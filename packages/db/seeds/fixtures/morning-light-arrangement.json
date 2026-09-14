@@ -1,0 +1,151 @@
+{
+  "$schema": "arrangement-document/v1",
+  "songVersionId": "__SONG_VERSION_ID__",
+  "songDocumentSchema": "song-document/v1",
+  "frozenAt": null,
+  "defaults": {
+    "key": "G",
+    "keyNormalized": { "root": "G", "accidental": null, "mode": "major" },
+    "tempo": 78,
+    "timeSignature": { "numerator": 4, "denominator": 4 },
+    "capo": 0,
+    "transposeSteps": 0,
+    "guitarTuning": null,
+    "guitarTuningNotes": null
+  },
+  "items": [
+    {
+      "id": "ai_01",
+      "sectionId": "sec_intro",
+      "instanceLabel": "Intro",
+      "overrides": [],
+      "performanceNote": "Fingerpicked guitar, band enters bar 5",
+      "durationOverrideSeconds": null
+    },
+    {
+      "id": "ai_02",
+      "sectionId": "sec_verse1",
+      "instanceLabel": "Verse 1",
+      "overrides": [],
+      "performanceNote": null,
+      "durationOverrideSeconds": null
+    },
+    {
+      "id": "ai_03",
+      "sectionId": "sec_prechorus",
+      "instanceLabel": "Pre-Chorus 1",
+      "overrides": [],
+      "performanceNote": null,
+      "durationOverrideSeconds": null
+    },
+    {
+      "id": "ai_04",
+      "sectionId": "sec_chorus",
+      "instanceLabel": "Chorus 1",
+      "overrides": [],
+      "performanceNote": null,
+      "durationOverrideSeconds": null
+    },
+    {
+      "id": "ai_05",
+      "sectionId": "sec_verse2",
+      "instanceLabel": "Verse 2",
+      "overrides": [],
+      "performanceNote": null,
+      "durationOverrideSeconds": null
+    },
+    {
+      "id": "ai_06",
+      "sectionId": "sec_prechorus",
+      "instanceLabel": "Pre-Chorus 2",
+      "overrides": [
+        {
+          "type": "hide_line",
+          "lineId": "line_pc_02"
+        }
+      ],
+      "performanceNote": "Shortened — skip second line",
+      "durationOverrideSeconds": null
+    },
+    {
+      "id": "ai_07",
+      "sectionId": "sec_chorus",
+      "instanceLabel": "Chorus 2",
+      "overrides": [
+        {
+          "type": "performance_note",
+          "lineId": "line_ch_01",
+          "note": "Add harmony vocal"
+        }
+      ],
+      "performanceNote": null,
+      "durationOverrideSeconds": null
+    },
+    {
+      "id": "ai_08",
+      "sectionId": "sec_bridge",
+      "instanceLabel": "Bridge",
+      "overrides": [
+        {
+          "type": "lyric",
+          "segmentId": "seg_br_14",
+          "value": "sing un-til "
+        }
+      ],
+      "performanceNote": "Strip back to piano and vocals, band re-enters bar 5",
+      "durationOverrideSeconds": null
+    },
+    {
+      "id": "ai_09",
+      "sectionId": "sec_chorus",
+      "instanceLabel": "Final Chorus",
+      "keyOverride": {
+        "key": "Bb",
+        "keyNormalized": { "root": "B", "accidental": "flat", "mode": "major" },
+        "transposeSteps": 3
+      },
+      "overrides": [
+        {
+          "type": "chord",
+          "chordId": "chd_ch_02",
+          "raw": "F",
+          "normalized": {
+            "root": "F", "accidental": null, "quality": "major",
+            "extensions": [], "bass": null, "bassAccidental": null
+          }
+        },
+        {
+          "type": "insert_line",
+          "afterLineId": "line_ch_05",
+          "line": {
+            "id": "ins_line_01",
+            "segments": [
+              {
+                "id": "ins_seg_01",
+                "lyric": "A-men, a-men",
+                "chord": {
+                  "id": "ins_chd_01",
+                  "raw": "Bb",
+                  "normalized": {
+                    "root": "B", "accidental": "flat", "quality": "major",
+                    "extensions": [], "bass": null, "bassAccidental": null
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "performanceNote": "Modulate up a minor third, full band, key change on downbeat",
+      "durationOverrideSeconds": 20
+    },
+    {
+      "id": "ai_10",
+      "sectionId": "sec_outro",
+      "instanceLabel": "Outro / Tag",
+      "overrides": [],
+      "performanceNote": "Vocals only, fade on final Gmaj7",
+      "durationOverrideSeconds": 16
+    }
+  ]
+}

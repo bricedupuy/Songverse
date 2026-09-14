@@ -1,0 +1,35 @@
+{
+  "name": "@songverse/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "prisma": {
+    "seed": "tsx seeds/seed.ts"
+  },
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "lint": "eslint src seeds --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "test": "echo \"no tests in @songverse/db\" && exit 0",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed": "prisma db seed",
+    "studio": "prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.2.1"
+  },
+  "devDependencies": {
+    "@songverse/core": "workspace:*",
+    "@songverse/tsconfig": "workspace:*",
+    "@types/node": "^22.10.5",
+    "prisma": "^6.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,36 @@
+node_modules/
+.pnpm-store/
+dist/
+build/
+.output/
+.vinxi/
+.turbo/
+generated/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Prisma
+packages/db/generated/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS
+.DS_Store
+
+# Testing
+coverage/
+
+# Expo / React Native (Phase 13+)
+.expo/

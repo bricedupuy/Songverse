@@ -1,0 +1,28 @@
+[
+  {
+    "arrangementItemId": "ai_01",
+    "events": [
+      { "type": "program_change", "channel": 1, "program": 0, "bankMsb": 0, "bankLsb": 0 }
+    ]
+  },
+  {
+    "arrangementItemId": "ai_04",
+    "events": [
+      { "type": "program_change", "channel": 1, "program": 4 },
+      { "type": "control_change", "channel": 1, "controller": 64, "value": 127 }
+    ]
+  },
+  {
+    "arrangementItemId": "ai_08",
+    "events": [
+      { "type": "program_change", "channel": 1, "program": 1 }
+    ]
+  },
+  {
+    "arrangementItemId": "ai_09",
+    "events": [
+      { "type": "program_change", "channel": 1, "program": 12, "bankMsb": 0, "bankLsb": 1 },
+      { "type": "control_change", "channel": 1, "controller": 11, "value": 100 }
+    ]
+  }
+]

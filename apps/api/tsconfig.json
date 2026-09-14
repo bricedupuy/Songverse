@@ -1,0 +1,10 @@
+{
+  "extends": "@songverse/tsconfig/nestjs.json",
+  "compilerOptions": {
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "outDir": "./dist"
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "SongVerse",
+  "short_name": "SongVerse",
+  "description": "Collaborative song library, arrangement, and performance platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#111827",
+  "icons": []
+}
