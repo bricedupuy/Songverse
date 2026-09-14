@@ -1,0 +1,39 @@
+# TanStack Start's default build output is a Fetch-API handler meant for a
+# platform adapter (Vercel/Cloudflare), not a plain Node entrypoint — so for
+# a self-hosted/Docker deploy this image serves the production build with
+# `vite preview`, which wires up the built SSR handler plus static assets.
+#
+# VITE_API_URL is a build-time value (Vite inlines import.meta.env.VITE_*
+# into the client bundle) — it must be passed as a build ARG, not just a
+# runtime env var on the container.
+FROM node:22-slim AS base
+RUN corepack enable
+WORKDIR /repo
+
+FROM base AS deps
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY packages/tsconfig/package.json packages/tsconfig/
+COPY packages/core/package.json packages/core/
+COPY packages/db/package.json packages/db/
+COPY apps/web/package.json apps/web/
+RUN pnpm install --frozen-lockfile
+
+FROM deps AS build
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+COPY packages/tsconfig packages/tsconfig
+COPY packages/core packages/core
+COPY packages/db packages/db
+COPY apps/web apps/web
+RUN pnpm --filter @songverse/core build \
+ && pnpm --filter @songverse/db build \
+ && pnpm --filter @songverse/web build
+
+FROM base AS runtime
+ENV NODE_ENV=production
+COPY --from=build /repo/node_modules /repo/node_modules
+COPY --from=build /repo/packages /repo/packages
+COPY --from=build /repo/apps/web /repo/apps/web
+WORKDIR /repo/apps/web
+EXPOSE 3000
+CMD ["pnpm", "exec", "vite", "preview", "--port", "3000", "--host"]
