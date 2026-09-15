@@ -1,46 +1,37 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { Music2 } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "#/lib/auth-client";
+import { getSession } from "#/lib/server-auth";
+import { Button } from "#/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const session = await getSession();
+    if (session) {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
   component: Home,
 });
 
 function Home() {
-  const { data: session, isPending } = authClient.useSession();
-
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-4 p-8">
-      <h1 className="text-2xl font-semibold">SongVerse</h1>
-      <p className="text-neutral-600">Phase 1 foundation — auth, teams, and library skeleton.</p>
-
-      {isPending ? (
-        <p>Loading session…</p>
-      ) : session?.user ? (
-        <div className="flex items-center gap-4">
-          <p>
-            Signed in as <strong>{session.user.email}</strong>
-          </p>
-          <Link to="/dashboard" className="text-blue-600 underline">
-            Go to dashboard
-          </Link>
-          <button
-            className="rounded border px-3 py-1"
-            onClick={() => {
-              void authClient.signOut();
-            }}
-          >
-            Sign out
-          </button>
-        </div>
-      ) : (
-        <SignInForm />
-      )}
+    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
+      <div className="flex items-center gap-2 text-lg font-semibold">
+        <Music2 className="size-6" />
+        SongVerse
+      </div>
+      <AuthCard />
     </main>
   );
 }
 
-function SignInForm() {
+function AuthCard() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -67,29 +58,76 @@ function SignInForm() {
   }
 
   return (
-    <form className="flex flex-col gap-2" onSubmit={(event) => event.preventDefault()}>
-      <input name="name" placeholder="Display name (sign up only)" className="border p-2" />
-      <input name="email" type="email" placeholder="Email" required className="border p-2" />
-      <input name="password" type="password" placeholder="Password" required minLength={8} className="border p-2" />
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={(event) => submit("signin", event.currentTarget.form!)}
-          className="rounded border px-3 py-1"
-        >
-          Sign in
-        </button>
-        <button
-          type="button"
-          disabled={loading}
-          onClick={(event) => submit("signup", event.currentTarget.form!)}
-          className="rounded border px-3 py-1"
-        >
-          Sign up
-        </button>
-      </div>
-    </form>
+    <Card className="w-full max-w-sm">
+      <CardHeader>
+        <CardTitle>Welcome</CardTitle>
+        <CardDescription>Sign in to your account, or create a new one.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="signin">
+          <TabsList className="w-full">
+            <TabsTrigger value="signin">Sign in</TabsTrigger>
+            <TabsTrigger value="signup">Sign up</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="signin" className="mt-4">
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submit("signin", event.currentTarget);
+              }}
+            >
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signin-email">Email</Label>
+                <Input id="signin-email" name="email" type="email" required autoComplete="email" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signin-password">Password</Label>
+                <Input id="signin-password" name="password" type="password" required autoComplete="current-password" />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" disabled={loading}>
+                {loading ? "Signing in…" : "Sign in"}
+              </Button>
+            </form>
+          </TabsContent>
+
+          <TabsContent value="signup" className="mt-4">
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submit("signup", event.currentTarget);
+              }}
+            >
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signup-name">Display name</Label>
+                <Input id="signup-name" name="name" required autoComplete="name" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signup-email">Email</Label>
+                <Input id="signup-email" name="email" type="email" required autoComplete="email" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="signup-password">Password</Label>
+                <Input
+                  id="signup-password"
+                  name="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" disabled={loading}>
+                {loading ? "Creating account…" : "Create account"}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   );
 }

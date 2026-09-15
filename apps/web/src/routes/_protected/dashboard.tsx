@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { apiClient } from "#/lib/api-client";
+import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: async ({ context }) => {
@@ -13,19 +14,29 @@ function Dashboard() {
   const { session, me, teams } = Route.useLoaderData();
 
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-4 p-8">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
-      <p>
-        Signed in as <strong>{session.displayName}</strong> ({session.email})
-      </p>
-      <section>
-        <h2 className="font-medium">/users/me (via NestJS API, bearer token)</h2>
-        <pre className="rounded bg-neutral-100 p-3 text-sm">{JSON.stringify(me, null, 2)}</pre>
-      </section>
-      <section>
-        <h2 className="font-medium">/teams</h2>
-        <pre className="rounded bg-neutral-100 p-3 text-sm">{JSON.stringify(teams, null, 2)}</pre>
-      </section>
-    </main>
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Welcome, {session.displayName}</h1>
+        <p className="text-sm text-muted-foreground">{session.email}</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">/users/me (via NestJS API, bearer token)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">{JSON.stringify(me, null, 2)}</pre>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">/teams</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">{JSON.stringify(teams, null, 2)}</pre>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

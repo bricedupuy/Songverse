@@ -9,6 +9,17 @@ import { prisma } from "@songverse/db";
 // in this file's git history for the underlying pnpm/zod-v4 friction.
 import type {} from "zod/v4/core";
 
+// Comma-separated list of emails that should be promoted to global admin
+// the moment they sign up — there's no other bootstrap path (no "first
+// user" logic, no admin UI yet), so without this every account is an
+// ordinary user until someone hand-edits the database.
+const bootstrapAdminEmails = new Set(
+  (process.env.BOOTSTRAP_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean),
+);
+
 /**
  * BetterAuth issues sessions (cookie-based, for the web app) and JWTs (for
  * the NestJS API — see apps/api's JwtVerifierService, which verifies
@@ -30,6 +41,21 @@ export const auth = betterAuth({
     fields: {
       name: "displayName",
       image: "avatarUrl",
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        // isGlobalAdmin isn't a field BetterAuth's own schema knows about
+        // (it's ours, not registered via user.additionalFields), so this
+        // writes it directly via Prisma after the row exists rather than
+        // trying to route it through BetterAuth's create data.
+        after: async (user) => {
+          if (bootstrapAdminEmails.has(user.email.toLowerCase())) {
+            await prisma.user.update({ where: { id: user.id }, data: { isGlobalAdmin: true } });
+          }
+        },
+      },
     },
   },
   plugins: [
