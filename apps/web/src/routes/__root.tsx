@@ -1,5 +1,6 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { renderPublicEnvScript } from "#/lib/public-env";
 import appCss from "#/styles/app.css?url";
 
 export const Route = createRootRoute({
@@ -23,6 +24,7 @@ function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: renderPublicEnvScript() }} />
         <HeadContent />
       </head>
       <body className="min-h-screen bg-neutral-50 text-neutral-900 antialiased">

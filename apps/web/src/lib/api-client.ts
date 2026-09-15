@@ -1,4 +1,5 @@
 import { createApiClient } from "@songverse/core";
+import { getApiUrl } from "./public-env";
 import { getApiToken } from "./server-auth";
 
 /**
@@ -7,6 +8,6 @@ import { getApiToken } from "./server-auth";
  * identically during SSR and from the browser.
  */
 export const apiClient = createApiClient({
-  baseUrl: import.meta.env.VITE_API_URL ?? "http://localhost:3001",
+  baseUrl: getApiUrl(),
   getToken: () => getApiToken(),
 });

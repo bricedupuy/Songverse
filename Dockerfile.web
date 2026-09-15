@@ -3,9 +3,9 @@
 # a self-hosted/Docker deploy this image serves the production build with
 # `vite preview`, which wires up the built SSR handler plus static assets.
 #
-# VITE_API_URL is a build-time value (Vite inlines import.meta.env.VITE_*
-# into the client bundle) — it must be passed as a build ARG, not just a
-# runtime env var on the container.
+# The NestJS API's URL (API_URL) is read at container runtime, not baked in
+# at build time — see src/lib/public-env.ts for why. No Docker build ARG
+# needed here; it's just a normal environment variable on the container.
 #
 # Lives at the repo root, not apps/web/, on purpose: it needs to COPY
 # sibling packages (packages/core, packages/db), so it must be built with
@@ -31,8 +31,6 @@ COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
-ARG VITE_API_URL
-ENV VITE_API_URL=${VITE_API_URL}
 COPY packages/tsconfig packages/tsconfig
 COPY packages/core packages/core
 COPY packages/db packages/db
