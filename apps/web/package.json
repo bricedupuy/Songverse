@@ -9,7 +9,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite dev --port 3000",
-    "start": "vite preview --port 3000 --host",
+    "start": "node server.mjs",
     "lint": "eslint src --max-warnings 0",
     "type-check": "tsc --noEmit"
   },
@@ -25,6 +25,7 @@
     "@songverse/db": "workspace:*",
     "@tanstack/react-router": "^1.170.36",
     "@tanstack/react-start": "^1.168.54",
+    "@whatwg-node/server": "^0.11.0",
     "better-auth": "^1.7.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

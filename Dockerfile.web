@@ -1,7 +1,10 @@
 # TanStack Start's default build output is a Fetch-API handler meant for a
 # platform adapter (Vercel/Cloudflare), not a plain Node entrypoint — so for
 # a self-hosted/Docker deploy this image serves the production build with
-# `vite preview`, which wires up the built SSR handler plus static assets.
+# server.mjs, a small real Node server (not `vite preview`, which is a
+# preview/dev tool: it serves static assets with Cache-Control: no-cache,
+# causing a flash-of-unstyled-content on every load over real network
+# latency since the browser can never cache the stylesheet).
 #
 # The NestJS API's URL (API_URL) is read at container runtime, not baked in
 # at build time — see src/lib/public-env.ts for why. No Docker build ARG
@@ -51,4 +54,4 @@ COPY --from=build /repo/packages /repo/packages
 COPY --from=build /repo/apps/web /repo/apps/web
 WORKDIR /repo/apps/web
 EXPOSE 3000
-CMD ["pnpm", "exec", "vite", "preview", "--port", "3000", "--host"]
+CMD ["node", "server.mjs"]
