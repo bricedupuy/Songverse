@@ -1,7 +1,13 @@
 # Builds the NestJS API and BullMQ worker from the same image — only the
-# CMD entrypoint differs at deploy time (see docker-compose.yml / Dokploy
-# service definitions: api runs `node dist/main.js`, worker runs
-# `node dist/worker.js`).
+# CMD entrypoint differs at deploy time (api runs `node dist/main.js`,
+# worker overrides it to `node dist/worker.js`).
+#
+# Lives at the repo root, not apps/api/, on purpose: it needs to COPY
+# sibling packages (packages/core, packages/db), so it must be built with
+# the repo root as the Docker build context. Some PaaS UIs (Dokploy
+# included) default the build context to "the directory the Dockerfile is
+# in" regardless of a separately configured context path — keeping the
+# Dockerfile at the root sidesteps that entirely.
 FROM node:22-slim AS base
 RUN corepack enable
 WORKDIR /repo

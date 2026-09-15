@@ -6,6 +6,13 @@
 # VITE_API_URL is a build-time value (Vite inlines import.meta.env.VITE_*
 # into the client bundle) — it must be passed as a build ARG, not just a
 # runtime env var on the container.
+#
+# Lives at the repo root, not apps/web/, on purpose: it needs to COPY
+# sibling packages (packages/core, packages/db), so it must be built with
+# the repo root as the Docker build context. Some PaaS UIs (Dokploy
+# included) default the build context to "the directory the Dockerfile is
+# in" regardless of a separately configured context path — keeping the
+# Dockerfile at the root sidesteps that entirely.
 FROM node:22-slim AS base
 RUN corepack enable
 WORKDIR /repo
