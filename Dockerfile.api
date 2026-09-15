@@ -9,7 +9,12 @@
 # in" regardless of a separately configured context path — keeping the
 # Dockerfile at the root sidesteps that entirely.
 FROM node:22-slim AS base
-RUN corepack enable
+# Pin pnpm explicitly rather than letting corepack lazily resolve a version
+# from package.json at first use — some base-image corepack versions treat
+# an unhashed "packageManager" pin as advisory and silently fetch latest
+# instead, which broke a monorepo build here (pnpm 10 -> 12 changed
+# workspace resolution behavior).
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 WORKDIR /repo
 
 FROM base AS deps
