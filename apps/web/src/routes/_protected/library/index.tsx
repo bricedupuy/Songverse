@@ -34,6 +34,7 @@ function LibraryIndex() {
           <DataTable
             columns={libraryColumns}
             data={versions}
+            filterPlaceholder="Filter by title, artist, language, status…"
             onRowClick={(version) => void navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id } })}
           />
         </Card>

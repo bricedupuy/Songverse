@@ -33,7 +33,7 @@ export const libraryColumns: ColumnDef<SongVersionSummary>[] = [
   {
     id: "artist",
     accessorFn: (version) => artistLabel(version.artists),
-    header: "Artist",
+    header: sortableHeader("Artist"),
     cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
   },
   {
@@ -43,7 +43,7 @@ export const libraryColumns: ColumnDef<SongVersionSummary>[] = [
   },
   {
     accessorKey: "publicationState",
-    header: "Status",
+    header: sortableHeader("Status"),
     cell: ({ row }) => <span className="text-muted-foreground">{row.original.publicationState}</span>,
   },
   {
