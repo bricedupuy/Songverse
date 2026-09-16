@@ -1,5 +1,12 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { parseChordPro, parseSongDocument, type SongDocument } from "@songverse/core";
+import {
+  parseChordPro,
+  parseSongDocument,
+  parseStreamingLink,
+  serializeChordPro,
+  type SongDocument,
+  type StreamingIdentifierType,
+} from "@songverse/core";
 import type { ContributorRole, Prisma } from "@songverse/db";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -20,12 +27,21 @@ const LIST_SELECT = {
   updatedAt: true,
 } as const;
 
+const STREAMING_IDENTIFIER_TYPES = ["SPOTIFY", "APPLE_MUSIC", "YOUTUBE"] as const;
+
 const DETAIL_SELECT = {
   ...LIST_SELECT,
   documentJson: true,
   contributors: {
     select: { id: true, userId: true, source: true, roles: true, isAutoAttached: true, displayOrder: true },
     orderBy: { displayOrder: "asc" },
+  },
+  // CCLI has its own column and MusicBrainz its own endpoint (live lookup) -
+  // this is just the plain "links" (Spotify/Apple Music/YouTube/custom),
+  // which have nothing more to fetch than what's stored.
+  identifiers: {
+    where: { type: { in: [...STREAMING_IDENTIFIER_TYPES, "CUSTOM"] } },
+    select: { id: true, type: true, value: true, sourceUrl: true },
   },
 } satisfies Prisma.SongVersionSelect;
 
@@ -118,6 +134,8 @@ export class SongVersionsService {
       publisher: dto.publisher,
       ccli: dto.ccli,
       documentJson: documentJson as object,
+      chordproCache: serializeChordPro(documentJson),
+      chordproCacheAt: new Date(),
     } as const;
 
     if (dto.workId) {
@@ -193,6 +211,8 @@ export class SongVersionsService {
         copyrightYear: dto.copyrightYear,
         publisher: dto.publisher,
         documentJson: documentJson as object,
+        chordproCache: serializeChordPro(documentJson),
+        chordproCacheAt: new Date(),
       },
       select: DETAIL_SELECT,
     });
@@ -200,10 +220,10 @@ export class SongVersionsService {
 
   /**
    * Replaces this version's content with the result of parsing pasted
-   * ChordPro(-ish) text, leaving metadata untouched. chordproCache mirrors
-   * the schema's own convention for that column ("Cached ChordPro export,
-   * regenerated on save") - the pasted text already is one, so there's
-   * nothing to re-serialize.
+   * ChordPro(-ish) text, leaving metadata untouched. The cache is
+   * regenerated from the parsed result rather than stored verbatim, so it
+   * reflects what was actually understood (whitespace normalized, unknown
+   * directives dropped) rather than whatever the user happened to paste.
    */
   async importChordPro(
     id: string,
@@ -223,9 +243,36 @@ export class SongVersionsService {
 
     return this.prisma.client.songVersion.update({
       where: { id },
-      data: { documentJson: documentJson as object, chordproCache: content, chordproCacheAt: new Date() },
+      data: {
+        documentJson: documentJson as object,
+        chordproCache: serializeChordPro(documentJson),
+        chordproCacheAt: new Date(),
+      },
       select: DETAIL_SELECT,
     });
+  }
+
+  async exportChordPro(id: string): Promise<string> {
+    const version = await this.prisma.client.songVersion.findUnique({
+      where: { id },
+      select: { chordproCache: true },
+    });
+    if (!version) throw new NotFoundException("Song version not found");
+    return version.chordproCache ?? "";
+  }
+
+  async setStreamingLink(songVersionId: string, type: StreamingIdentifierType, url: string) {
+    const { value, sourceUrl } = parseStreamingLink(type, url);
+    return this.prisma.client.songVersionIdentifier.upsert({
+      where: { songVersionId_type: { songVersionId, type } },
+      create: { songVersionId, type, value, sourceUrl, verifiedAt: null },
+      update: { value, sourceUrl, verifiedAt: null },
+      select: { id: true, type: true, value: true, sourceUrl: true },
+    });
+  }
+
+  async removeStreamingLink(songVersionId: string, type: StreamingIdentifierType): Promise<void> {
+    await this.prisma.client.songVersionIdentifier.deleteMany({ where: { songVersionId, type } });
   }
 
   /**

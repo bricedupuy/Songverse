@@ -28,6 +28,9 @@ enum SongIdentifierType {
   ISRC                  // Recording ID. Format: CC-XXX-YY-NNNNN. Belongs on audio attachments.
   MUSICBRAINZ_WORK      // MusicBrainz Work UUID. Belongs on Work.
   MUSICBRAINZ_RECORDING // MusicBrainz Recording UUID. Belongs on Song Version.
+  SPOTIFY               // Spotify track ID. Belongs on Song Version (a specific recording).
+  APPLE_MUSIC           // Apple Music track ID. Belongs on Song Version.
+  YOUTUBE               // YouTube video ID. Belongs on Song Version.
   CUSTOM                // Internal catalog numbers or platform-specific IDs.
 }
 

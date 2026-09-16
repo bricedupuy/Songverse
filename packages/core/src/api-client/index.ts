@@ -29,9 +29,19 @@ export interface VersionContributor {
   displayOrder: number;
 }
 
+export type StreamingLinkType = "SPOTIFY" | "APPLE_MUSIC" | "YOUTUBE";
+
+export interface SongVersionLink {
+  id: string;
+  type: string;
+  value: string;
+  sourceUrl: string | null;
+}
+
 export interface SongVersionDetail extends SongVersionSummary {
   documentJson: SongDocument;
   contributors: VersionContributor[];
+  identifiers: SongVersionLink[];
 }
 
 export interface CreateSongVersionInput {
@@ -150,6 +160,15 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       }),
     removeContributor: (songVersionId: string, contributorId: string) =>
       request<void>(`/song-versions/${songVersionId}/contributors/${contributorId}`, { method: "DELETE" }),
+    exportChordPro: (songVersionId: string) =>
+      request<{ content: string }>(`/song-versions/${songVersionId}/chordpro`),
+    setStreamingLink: (songVersionId: string, type: StreamingLinkType, url: string) =>
+      request<SongVersionLink>(`/song-versions/${songVersionId}/links/${type}`, {
+        method: "PUT",
+        body: JSON.stringify({ url }),
+      }),
+    removeStreamingLink: (songVersionId: string, type: StreamingLinkType) =>
+      request<void>(`/song-versions/${songVersionId}/links/${type}`, { method: "DELETE" }),
     listTagCategories: () => request<Array<{ id: string; slug: string; label: string }>>("/tags/categories"),
     listTags: () => request<Array<{ id: string; slug: string; label: string }>>("/tags"),
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { apiClient } from "#/lib/api-client";
 import { MusicBrainzMatchPanel } from "#/components/musicbrainz-match-panel";
 import { SongChart } from "#/components/song-chart";
+import { StreamingLinkRow } from "#/components/streaming-link-row";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -45,6 +46,8 @@ function SongVersionDetail() {
   const [chordpro, setChordpro] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [contributorName, setContributorName] = useState("");
   const [contributorRole, setContributorRole] = useState<(typeof CONTRIBUTOR_ROLES)[number]>("performer");
   const [addingContributor, setAddingContributor] = useState(false);
@@ -114,6 +117,25 @@ function SongVersionDetail() {
       setImportError("Couldn't parse that. Check the text and try again.");
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function exportContent() {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const { content } = await apiClient.exportChordPro(version.id);
+      const blob = new Blob([content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${version.title}.cho`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError("Couldn't export this song. Try again.");
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -218,9 +240,64 @@ function SongVersionDetail() {
             />
           </div>
           {importError ? <p className="text-sm text-destructive">{importError}</p> : null}
-          <Button onClick={() => void importContent()} disabled={importing || !chordpro.trim()} className="self-start">
-            {importing ? "Importing…" : "Import"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => void importContent()} disabled={importing || !chordpro.trim()}>
+              {importing ? "Importing…" : "Import"}
+            </Button>
+            {version.documentJson.sections.length > 0 ? (
+              <Button variant="outline" onClick={() => void exportContent()} disabled={exporting}>
+                {exporting ? "Exporting…" : "Export as ChordPro"}
+              </Button>
+            ) : null}
+          </div>
+          {exportError ? <p className="text-sm text-destructive">{exportError}</p> : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Links</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <StreamingLinkRow
+            id="spotify"
+            label="Spotify"
+            current={version.identifiers.find((i) => i.type === "SPOTIFY")}
+            onSave={async (url) => {
+              await apiClient.setStreamingLink(version.id, "SPOTIFY", url);
+              await router.invalidate();
+            }}
+            onRemove={async () => {
+              await apiClient.removeStreamingLink(version.id, "SPOTIFY");
+              await router.invalidate();
+            }}
+          />
+          <StreamingLinkRow
+            id="appleMusic"
+            label="Apple Music"
+            current={version.identifiers.find((i) => i.type === "APPLE_MUSIC")}
+            onSave={async (url) => {
+              await apiClient.setStreamingLink(version.id, "APPLE_MUSIC", url);
+              await router.invalidate();
+            }}
+            onRemove={async () => {
+              await apiClient.removeStreamingLink(version.id, "APPLE_MUSIC");
+              await router.invalidate();
+            }}
+          />
+          <StreamingLinkRow
+            id="youtube"
+            label="YouTube"
+            current={version.identifiers.find((i) => i.type === "YOUTUBE")}
+            onSave={async (url) => {
+              await apiClient.setStreamingLink(version.id, "YOUTUBE", url);
+              await router.invalidate();
+            }}
+            onRemove={async () => {
+              await apiClient.removeStreamingLink(version.id, "YOUTUBE");
+              await router.invalidate();
+            }}
+          />
         </CardContent>
       </Card>
 

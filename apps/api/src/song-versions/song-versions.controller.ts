@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -8,10 +9,12 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import type { StreamingIdentifierType } from "@songverse/core";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -19,9 +22,19 @@ import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
 import { AddContributorDto } from "./dto/add-contributor.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import { ImportChordProDto } from "./dto/import-chordpro.dto";
+import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto";
 import { SongVersionResponseDto } from "./dto/song-version-response.dto";
 import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 import { SongVersionsService } from "./song-versions.service";
+
+const STREAMING_TYPES = new Set(["SPOTIFY", "APPLE_MUSIC", "YOUTUBE"]);
+
+function asStreamingType(type: string): StreamingIdentifierType {
+  if (!STREAMING_TYPES.has(type)) {
+    throw new BadRequestException(`Unknown link type '${type}' — expected one of ${[...STREAMING_TYPES].join(", ")}`);
+  }
+  return type as StreamingIdentifierType;
+}
 
 @ApiTags("song-versions")
 @ApiBearerAuth()
@@ -90,6 +103,28 @@ export class SongVersionsController {
     @Param("contributorId") contributorId: string,
   ) {
     return this.songVersionsService.removeContributor(songVersionId, contributorId);
+  }
+
+  @Get(":songVersionId/chordpro")
+  async exportChordPro(@Param("songVersionId") songVersionId: string) {
+    return { content: await this.songVersionsService.exportChordPro(songVersionId) };
+  }
+
+  @Put(":songVersionId/links/:type")
+  @UseGuards(SongVersionOwnerGuard)
+  setStreamingLink(
+    @Param("songVersionId") songVersionId: string,
+    @Param("type") type: string,
+    @Body() dto: SetStreamingLinkDto,
+  ) {
+    return this.songVersionsService.setStreamingLink(songVersionId, asStreamingType(type), dto.url);
+  }
+
+  @Delete(":songVersionId/links/:type")
+  @UseGuards(SongVersionOwnerGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeStreamingLink(@Param("songVersionId") songVersionId: string, @Param("type") type: string) {
+    return this.songVersionsService.removeStreamingLink(songVersionId, asStreamingType(type));
   }
 
   @Post(":songVersionId/musicbrainz-link")
