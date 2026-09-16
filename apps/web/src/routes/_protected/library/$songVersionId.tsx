@@ -1,4 +1,6 @@
 import { CONTRIBUTOR_ROLES } from "@songverse/core";
+
+const NON_ARTIST_ROLES = CONTRIBUTOR_ROLES.filter((r) => r !== "performer");
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiClient } from "#/lib/api-client";
@@ -49,10 +51,29 @@ function SongVersionDetail() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [contributorName, setContributorName] = useState("");
-  const [contributorRole, setContributorRole] = useState<(typeof CONTRIBUTOR_ROLES)[number]>("performer");
+  const [contributorRole, setContributorRole] = useState<(typeof NON_ARTIST_ROLES)[number]>("composer");
   const [addingContributor, setAddingContributor] = useState(false);
   const [contributorError, setContributorError] = useState<string | null>(null);
   const [removingContributorId, setRemovingContributorId] = useState<string | null>(null);
+  const [artistName, setArtistName] = useState("");
+  const [addingArtist, setAddingArtist] = useState(false);
+  const [artistError, setArtistError] = useState<string | null>(null);
+
+  const otherContributors = version.contributors.filter((c) => !c.roles.includes("PERFORMER"));
+
+  async function addArtist() {
+    setAddingArtist(true);
+    setArtistError(null);
+    try {
+      await apiClient.addContributor(version.id, artistName, ["performer"]);
+      setArtistName("");
+      await router.invalidate();
+    } catch {
+      setArtistError("Couldn't add that artist. Try again.");
+    } finally {
+      setAddingArtist(false);
+    }
+  }
 
   const dirty =
     title !== version.title ||
@@ -186,6 +207,47 @@ function SongVersionDetail() {
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
+            <Label htmlFor="artistName">Artist</Label>
+            {version.artists.length > 0 ? (
+              <ul className="flex flex-wrap gap-2">
+                {version.artists.map((a) => (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
+                  >
+                    <span>{a.source ?? a.userId ?? "Unknown artist"}</span>
+                    <button
+                      type="button"
+                      onClick={() => void removeContributor(a.id)}
+                      disabled={removingContributorId !== null}
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label={`Remove ${a.source ?? "artist"}`}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="flex gap-2">
+              <Input
+                id="artistName"
+                value={artistName}
+                onChange={(e) => setArtistName(e.target.value)}
+                placeholder="e.g. the performing artist or band"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void addArtist()}
+                disabled={addingArtist || !artistName.trim()}
+              >
+                {addingArtist ? "Adding…" : "Add"}
+              </Button>
+            </div>
+            {artistError ? <p className="text-sm text-destructive">{artistError}</p> : null}
+          </div>
+          <div className="flex flex-col gap-1.5">
             <Label htmlFor="alternateTitle">Alternate title</Label>
             <Input id="alternateTitle" value={alternateTitle} onChange={(e) => setAlternateTitle(e.target.value)} />
           </div>
@@ -306,13 +368,13 @@ function SongVersionDetail() {
           <CardTitle className="text-sm">Contributors</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {version.contributors.length === 0 ? (
+          {otherContributors.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              None yet — add one below, or link a MusicBrainz recording to attach its artist automatically.
+              None yet — add a composer, lyricist, or other credit below. (Artists have their own field up in Details.)
             </p>
           ) : (
             <ul className="flex flex-col gap-2">
-              {version.contributors.map((c) => (
+              {otherContributors.map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-2 text-sm">
                   <span>
                     <span className="font-medium">{contributorLabel(c)}</span>{" "}
@@ -349,12 +411,12 @@ function SongVersionDetail() {
               <select
                 id="contributorRole"
                 value={contributorRole}
-                onChange={(e) => setContributorRole(e.target.value as (typeof CONTRIBUTOR_ROLES)[number])}
+                onChange={(e) => setContributorRole(e.target.value as (typeof NON_ARTIST_ROLES)[number])}
                 className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
               >
-                {CONTRIBUTOR_ROLES.map((role) => (
+                {NON_ARTIST_ROLES.map((role) => (
                   <option key={role} value={role}>
-                    {role === "performer" ? "Performer / Artist" : role.charAt(0).toUpperCase() + role.slice(1)}
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
                   </option>
                 ))}
               </select>

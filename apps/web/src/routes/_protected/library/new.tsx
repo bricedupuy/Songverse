@@ -47,6 +47,8 @@ function NewSong() {
       const version = await apiClient.createSongVersion({ title, language });
       if (selected) {
         await apiClient.linkSongVersionMusicBrainz(version.id, selected.mbid);
+      } else if (artist.trim()) {
+        await apiClient.addContributor(version.id, artist.trim(), ["performer"]);
       }
       await navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id } });
     } catch {

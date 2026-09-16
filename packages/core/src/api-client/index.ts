@@ -7,6 +7,12 @@ export interface ApiClientOptions {
   getToken: () => Promise<string | null>;
 }
 
+export interface ArtistSummary {
+  id: string;
+  userId: string | null;
+  source: string | null;
+}
+
 export interface SongVersionSummary {
   id: string;
   workId: string;
@@ -18,6 +24,7 @@ export interface SongVersionSummary {
   ccli: string | null;
   createdAt: string;
   updatedAt: string;
+  artists: ArtistSummary[];
 }
 
 export interface VersionContributor {

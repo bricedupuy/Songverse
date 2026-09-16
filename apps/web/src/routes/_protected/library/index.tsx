@@ -8,6 +8,11 @@ export const Route = createFileRoute("/_protected/library/")({
   component: LibraryIndex,
 });
 
+function artistLabel(artists: Array<{ userId: string | null; source: string | null }>): string | null {
+  if (artists.length === 0) return null;
+  return artists.map((a) => a.source ?? a.userId ?? "Unknown artist").join(", ");
+}
+
 function LibraryIndex() {
   const { versions } = Route.useLoaderData();
 
@@ -33,7 +38,12 @@ function LibraryIndex() {
               <Card className="transition-colors hover:bg-accent/50">
                 <CardHeader className="py-4">
                   <CardTitle className="flex items-baseline justify-between text-base font-medium">
-                    <span>{version.title}</span>
+                    <span>
+                      {version.title}
+                      {artistLabel(version.artists) ? (
+                        <span className="ml-2 font-normal text-muted-foreground">— {artistLabel(version.artists)}</span>
+                      ) : null}
+                    </span>
                     <span className="text-xs font-normal text-muted-foreground">{version.language}</span>
                   </CardTitle>
                 </CardHeader>

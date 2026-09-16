@@ -25,7 +25,15 @@ const LIST_SELECT = {
   ccli: true,
   createdAt: true,
   updatedAt: true,
-} as const;
+  // Just the artist(s) — enough for the library list to show "Title —
+  // Artist" without pulling in the full contributor list (composer,
+  // lyricist, etc.), which only the detail page needs.
+  contributors: {
+    where: { roles: { has: "PERFORMER" as ContributorRole } },
+    select: { id: true, userId: true, source: true },
+    orderBy: { displayOrder: "asc" },
+  },
+} satisfies Prisma.SongVersionSelect;
 
 const STREAMING_IDENTIFIER_TYPES = ["SPOTIFY", "APPLE_MUSIC", "YOUTUBE"] as const;
 
@@ -45,6 +53,24 @@ const DETAIL_SELECT = {
   },
 } satisfies Prisma.SongVersionSelect;
 
+type ListRow = Prisma.SongVersionGetPayload<{ select: typeof LIST_SELECT }>;
+type ListItem = Omit<ListRow, "contributors"> & { artists: ListRow["contributors"] };
+
+// The Prisma relation is named `contributors` no matter how it's filtered;
+// renamed to `artists` here so the (performer-only) list/create payload and
+// the (all-roles) detail payload don't share a field name that means two
+// different things.
+function toListItem({ contributors, ...rest }: ListRow): ListItem {
+  return { ...rest, artists: contributors };
+}
+
+type DetailRow = Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>;
+type DetailItem = DetailRow & { artists: DetailRow["contributors"] };
+
+function toDetailItem(version: DetailRow): DetailItem {
+  return { ...version, artists: version.contributors.filter((c) => c.roles.includes("PERFORMER")) };
+}
+
 @Injectable()
 export class SongVersionsService {
   constructor(
@@ -57,7 +83,7 @@ export class SongVersionsService {
    * WorksService — Phase 2 will replace this with Meilisearch-backed
    * search and proper pagination).
    */
-  async findVisibleToUser(userId: string) {
+  async findVisibleToUser(userId: string): Promise<ListItem[]> {
     const teamIds = (
       await this.prisma.client.teamMembership.findMany({
         where: { userId },
@@ -65,7 +91,7 @@ export class SongVersionsService {
       })
     ).map((m) => m.teamId);
 
-    return this.prisma.client.songVersion.findMany({
+    const versions = await this.prisma.client.songVersion.findMany({
       where: {
         OR: [
           { ownerScope: "GLOBAL", publicationState: "APPROVED" },
@@ -77,15 +103,16 @@ export class SongVersionsService {
       orderBy: { updatedAt: "desc" },
       take: 50,
     });
+    return versions.map(toListItem);
   }
 
-  async findOne(id: string): Promise<Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>> {
+  async findOne(id: string): Promise<DetailItem> {
     const version = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: DETAIL_SELECT,
     });
     if (!version) throw new NotFoundException("Song version not found");
-    return version;
+    return toDetailItem(version);
   }
 
   /**
@@ -95,7 +122,7 @@ export class SongVersionsService {
    * same song"), so a version is the smallest thing a user can meaningfully
    * create on its own.
    */
-  async create(user: AuthenticatedUser, dto: CreateSongVersionDto) {
+  async create(user: AuthenticatedUser, dto: CreateSongVersionDto): Promise<ListItem> {
     let ownerTeamId: string | null = null;
     if (dto.teamId) {
       const membership = await this.prisma.client.teamMembership.findUnique({
@@ -141,24 +168,26 @@ export class SongVersionsService {
     if (dto.workId) {
       const work = await this.prisma.client.work.findUnique({ where: { id: dto.workId } });
       if (!work) throw new NotFoundException("Work not found");
-      return this.prisma.client.songVersion.create({
+      const version = await this.prisma.client.songVersion.create({
         data: { ...versionData, workId: work.id },
         select: LIST_SELECT,
       });
+      return toListItem(version);
     }
 
-    return this.prisma.client.$transaction(async (tx) => {
+    const version = await this.prisma.client.$transaction(async (tx) => {
       const work = await tx.work.create({ data: {} });
-      const version = await tx.songVersion.create({
+      const created = await tx.songVersion.create({
         data: { ...versionData, workId: work.id },
         select: LIST_SELECT,
       });
       await tx.work.update({
         where: { id: work.id },
-        data: { preferredOriginalVersionId: version.id },
+        data: { preferredOriginalVersionId: created.id },
       });
-      return version;
+      return created;
     });
+    return toListItem(version);
   }
 
   /**
@@ -168,10 +197,7 @@ export class SongVersionsService {
    * directly, but until then these mirrored top-level columns are what
    * list/filter queries actually use.
    */
-  async update(
-    id: string,
-    dto: UpdateSongVersionDto,
-  ): Promise<Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>> {
+  async update(id: string, dto: UpdateSongVersionDto): Promise<DetailItem> {
     const existing = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: { documentJson: true },
@@ -200,7 +226,7 @@ export class SongVersionsService {
 
     // key/tempo live only in documentJson.defaults (handled above) - not
     // real SongVersion columns, so they're left out of this scalar update.
-    return this.prisma.client.songVersion.update({
+    const version = await this.prisma.client.songVersion.update({
       where: { id },
       data: {
         title: dto.title,
@@ -216,6 +242,7 @@ export class SongVersionsService {
       },
       select: DETAIL_SELECT,
     });
+    return toDetailItem(version);
   }
 
   /**
@@ -225,10 +252,7 @@ export class SongVersionsService {
    * reflects what was actually understood (whitespace normalized, unknown
    * directives dropped) rather than whatever the user happened to paste.
    */
-  async importChordPro(
-    id: string,
-    content: string,
-  ): Promise<Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>> {
+  async importChordPro(id: string, content: string): Promise<DetailItem> {
     const existing = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: { documentJson: true },
@@ -241,7 +265,7 @@ export class SongVersionsService {
       sections: parseChordPro(content),
     });
 
-    return this.prisma.client.songVersion.update({
+    const version = await this.prisma.client.songVersion.update({
       where: { id },
       data: {
         documentJson: documentJson as object,
@@ -250,6 +274,7 @@ export class SongVersionsService {
       },
       select: DETAIL_SELECT,
     });
+    return toDetailItem(version);
   }
 
   async exportChordPro(id: string): Promise<string> {
