@@ -1,4 +1,4 @@
-import { CONTRIBUTOR_ROLES } from "@songverse/core";
+import { CONTRIBUTOR_ROLES, detectImportFormat } from "@songverse/core";
 
 const NON_ARTIST_ROLES = CONTRIBUTOR_ROLES.filter((r) => r !== "performer");
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
@@ -47,6 +47,7 @@ function SongVersionDetail() {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [chordpro, setChordpro] = useState("");
   const [importFormat, setImportFormat] = useState<"CHORDPRO" | "CHORDS_OVER_LYRICS">("CHORDPRO");
+  const [formatTouched, setFormatTouched] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -134,6 +135,7 @@ function SongVersionDetail() {
     try {
       await apiClient.importSongText(version.id, chordpro, importFormat);
       setChordpro("");
+      setFormatTouched(false);
       await router.invalidate();
     } catch {
       setImportError("Couldn't parse that. Check the text and try again.");
@@ -294,20 +296,32 @@ function SongVersionDetail() {
               <Label htmlFor="chordpro">
                 {version.documentJson.sections.length === 0 ? "Paste chord chart text" : "Replace with new text"}
               </Label>
-              <select
-                value={importFormat}
-                onChange={(e) => setImportFormat(e.target.value as "CHORDPRO" | "CHORDS_OVER_LYRICS")}
-                className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-              >
-                <option value="CHORDPRO">ChordPro format</option>
-                <option value="CHORDS_OVER_LYRICS">Chords over lyrics</option>
-              </select>
+              <div className="flex items-center gap-2">
+                {!formatTouched && chordpro.trim() ? (
+                  <span className="text-xs text-muted-foreground">auto-detected</span>
+                ) : null}
+                <select
+                  value={importFormat}
+                  onChange={(e) => {
+                    setImportFormat(e.target.value as "CHORDPRO" | "CHORDS_OVER_LYRICS");
+                    setFormatTouched(true);
+                  }}
+                  className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  <option value="CHORDPRO">ChordPro format</option>
+                  <option value="CHORDS_OVER_LYRICS">Chords over lyrics</option>
+                </select>
+              </div>
             </div>
             <Textarea
               id="chordpro"
               rows={8}
               value={chordpro}
-              onChange={(e) => setChordpro(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setChordpro(value);
+                if (!formatTouched && value.trim()) setImportFormat(detectImportFormat(value));
+              }}
               placeholder={
                 importFormat === "CHORDPRO"
                   ? "{start_of_verse}\n[G]Some lyric [C]line goes [G]here\n{end_of_verse}"
@@ -316,9 +330,10 @@ function SongVersionDetail() {
               className="font-mono"
             />
             <p className="text-xs text-muted-foreground">
-              "Chords over lyrics" is the plain format most tab/chord sites show on-screen — chords on their own line
-              directly above the lyric line. Paste text you have the right to use; SongVerse doesn't fetch or scrape
-              content from other sites.
+              Format is guessed from what you paste — pick it manually above if it guesses wrong. "Chords over
+              lyrics" is the plain format most tab/chord sites show on-screen, chords on their own line directly
+              above the lyric line. Paste text you have the right to use; SongVerse doesn't fetch or scrape content
+              from other sites.
             </p>
           </div>
           {importError ? <p className="text-sm text-destructive">{importError}</p> : null}

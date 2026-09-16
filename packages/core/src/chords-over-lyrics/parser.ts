@@ -12,7 +12,9 @@ import { LABEL_LINE, normalizeSectionType } from "../chordpro/section-labels.js"
 const CHORD_TOKEN = /^[A-G](?:#|b)?(?:maj|min|dim|aug|sus|add|m)?[0-9]*(?:\/[A-G](?:#|b)?)?$/;
 const NON_CHORD_TOKENS = new Set(["N.C.", "NC", "%"]);
 
-function isChordLine(trimmedLine: string): boolean {
+/** Exported for the format auto-detector, which uses the same "is this
+ * line nothing but chord tokens" test to recognize the format. */
+export function isChordLine(trimmedLine: string): boolean {
   if (trimmedLine === "") return false;
   const tokens = trimmedLine.split(/\s+/);
   return tokens.every((t) => CHORD_TOKEN.test(t) || NON_CHORD_TOKENS.has(t.toUpperCase()));

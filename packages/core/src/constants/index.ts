@@ -53,6 +53,11 @@ export const IMPORT_FORMATS = [
 ] as const;
 export type ImportFormatValue = (typeof IMPORT_FORMATS)[number];
 
+// The subset of IMPORT_FORMATS that actually has a parser today - the
+// others (RAW_TEXT, LRC, MUSICXML, ABC_NOTATION) are reserved for later.
+export const SUPPORTED_IMPORT_FORMATS = ["CHORDPRO", "CHORDS_OVER_LYRICS"] as const;
+export type SupportedImportFormat = (typeof SUPPORTED_IMPORT_FORMATS)[number];
+
 export const VOICING_PREFERENCES = ["OPEN", "BARRE", "DROP2", "CLOSE", "AUTO"] as const;
 export type VoicingPreferenceValue = (typeof VOICING_PREFERENCES)[number];
 

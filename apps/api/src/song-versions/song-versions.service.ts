@@ -7,8 +7,8 @@ import {
   serializeChordPro,
   type SongDocument,
   type StreamingIdentifierType,
+  type SupportedImportFormat,
 } from "@songverse/core";
-import type { SupportedImportFormat } from "./dto/import-song-text.dto";
 import type { ContributorRole, Prisma } from "@songverse/db";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";

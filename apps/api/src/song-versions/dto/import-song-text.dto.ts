@@ -1,10 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { SUPPORTED_IMPORT_FORMATS, type SupportedImportFormat } from "@songverse/core";
 import { IsIn, IsOptional, IsString, MinLength } from "class-validator";
-
-// Only the pasted-text formats are implemented so far - LRC/MusicXML/ABC
-// (also listed in IMPORT_FORMATS) don't have a parser yet.
-const SUPPORTED_IMPORT_FORMATS = ["CHORDPRO", "CHORDS_OVER_LYRICS"] as const;
-export type SupportedImportFormat = (typeof SUPPORTED_IMPORT_FORMATS)[number];
 
 export class ImportSongTextDto {
   @ApiProperty({ description: "Raw text to replace this version's content with" })
