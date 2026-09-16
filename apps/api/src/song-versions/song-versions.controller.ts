@@ -17,6 +17,7 @@ import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
+import { ImportChordProDto } from "./dto/import-chordpro.dto";
 import { SongVersionResponseDto } from "./dto/song-version-response.dto";
 import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 import { SongVersionsService } from "./song-versions.service";
@@ -62,6 +63,16 @@ export class SongVersionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("songVersionId") songVersionId: string) {
     return this.songVersionsService.remove(songVersionId);
+  }
+
+  @Post(":songVersionId/chordpro")
+  @UseGuards(SongVersionOwnerGuard)
+  @ApiOkResponse({ type: SongVersionResponseDto })
+  importChordPro(
+    @Param("songVersionId") songVersionId: string,
+    @Body() dto: ImportChordProDto,
+  ): ReturnType<SongVersionsService["importChordPro"]> {
+    return this.songVersionsService.importChordPro(songVersionId, dto.content);
   }
 
   @Post(":songVersionId/musicbrainz-link")

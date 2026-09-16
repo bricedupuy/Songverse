@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { parseSongDocument, type SongDocument } from "@songverse/core";
+import { parseChordPro, parseSongDocument, type SongDocument } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -178,6 +178,36 @@ export class SongVersionsService {
     return this.prisma.client.songVersion.update({
       where: { id },
       data: { ...dto, documentJson: documentJson as object },
+      select: DETAIL_SELECT,
+    });
+  }
+
+  /**
+   * Replaces this version's content with the result of parsing pasted
+   * ChordPro(-ish) text, leaving metadata untouched. chordproCache mirrors
+   * the schema's own convention for that column ("Cached ChordPro export,
+   * regenerated on save") - the pasted text already is one, so there's
+   * nothing to re-serialize.
+   */
+  async importChordPro(
+    id: string,
+    content: string,
+  ): Promise<Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>> {
+    const existing = await this.prisma.client.songVersion.findUnique({
+      where: { id },
+      select: { documentJson: true },
+    });
+    if (!existing) throw new NotFoundException("Song version not found");
+
+    const currentDoc = existing.documentJson as SongDocument;
+    const documentJson: SongDocument = parseSongDocument({
+      ...currentDoc,
+      sections: parseChordPro(content),
+    });
+
+    return this.prisma.client.songVersion.update({
+      where: { id },
+      data: { documentJson: documentJson as object, chordproCache: content, chordproCacheAt: new Date() },
       select: DETAIL_SELECT,
     });
   }

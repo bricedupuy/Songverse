@@ -1,4 +1,5 @@
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
+import type { SongDocument } from "../schemas/song-document.js";
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -28,7 +29,7 @@ export interface VersionContributor {
 }
 
 export interface SongVersionDetail extends SongVersionSummary {
-  documentJson: unknown;
+  documentJson: SongDocument;
   contributors: VersionContributor[];
 }
 
@@ -134,6 +135,11 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       request<SongVersionDetail>(`/song-versions/${songVersionId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteSongVersion: (songVersionId: string) =>
       request<void>(`/song-versions/${songVersionId}`, { method: "DELETE" }),
+    importChordPro: (songVersionId: string, content: string) =>
+      request<SongVersionDetail>(`/song-versions/${songVersionId}/chordpro`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      }),
     listTagCategories: () => request<Array<{ id: string; slug: string; label: string }>>("/tags/categories"),
     listTags: () => request<Array<{ id: string; slug: string; label: string }>>("/tags"),
 

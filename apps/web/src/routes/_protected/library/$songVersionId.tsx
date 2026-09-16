@@ -2,10 +2,12 @@ import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router"
 import { useState } from "react";
 import { apiClient } from "#/lib/api-client";
 import { MusicBrainzMatchPanel } from "#/components/musicbrainz-match-panel";
+import { SongChart } from "#/components/song-chart";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { Textarea } from "#/components/ui/textarea";
 
 export const Route = createFileRoute("/_protected/library/$songVersionId")({
   loader: async ({ params }) => {
@@ -37,6 +39,9 @@ function SongVersionDetail() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [chordpro, setChordpro] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const dirty =
     title !== version.title ||
@@ -59,6 +64,20 @@ function SongVersionDetail() {
       setSaveError("Couldn't save changes. Check the fields and try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function importContent() {
+    setImporting(true);
+    setImportError(null);
+    try {
+      await apiClient.importChordPro(version.id, chordpro);
+      setChordpro("");
+      await router.invalidate();
+    } catch {
+      setImportError("Couldn't parse that. Check the text and try again.");
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -123,6 +142,32 @@ function SongVersionDetail() {
           {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
           <Button onClick={() => void save()} disabled={!dirty || saving || !title.trim() || !language.trim()}>
             {saving ? "Saving…" : "Save changes"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Content</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <SongChart sections={version.documentJson.sections} />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="chordpro">
+              {version.documentJson.sections.length === 0 ? "Paste ChordPro text" : "Replace with new ChordPro text"}
+            </Label>
+            <Textarea
+              id="chordpro"
+              rows={8}
+              value={chordpro}
+              onChange={(e) => setChordpro(e.target.value)}
+              placeholder={"{start_of_verse}\n[G]Amazing [C]grace how [G]sweet the sound\n{end_of_verse}"}
+              className="font-mono"
+            />
+          </div>
+          {importError ? <p className="text-sm text-destructive">{importError}</p> : null}
+          <Button onClick={() => void importContent()} disabled={importing || !chordpro.trim()} className="self-start">
+            {importing ? "Importing…" : "Import"}
           </Button>
         </CardContent>
       </Card>
