@@ -5,6 +5,7 @@ import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
+import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 
 const LIST_SELECT = {
   id: true,
@@ -19,7 +20,14 @@ const LIST_SELECT = {
   updatedAt: true,
 } as const;
 
-const DETAIL_SELECT = { ...LIST_SELECT, documentJson: true } as const;
+const DETAIL_SELECT = {
+  ...LIST_SELECT,
+  documentJson: true,
+  contributors: {
+    select: { id: true, userId: true, source: true, roles: true, displayOrder: true },
+    orderBy: { displayOrder: "asc" },
+  },
+} satisfies Prisma.SongVersionSelect;
 
 @Injectable()
 export class SongVersionsService {
@@ -135,26 +143,112 @@ export class SongVersionsService {
     });
   }
 
+  /**
+   * Partial update. Scalar SongVersion columns and documentJson.metadata
+   * are kept in sync per the schema's own convention (see the ccli column
+   * comment) — the editor will eventually read/write documentJson
+   * directly, but until then these mirrored top-level columns are what
+   * list/filter queries actually use.
+   */
+  async update(
+    id: string,
+    dto: UpdateSongVersionDto,
+  ): Promise<Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>> {
+    const existing = await this.prisma.client.songVersion.findUnique({
+      where: { id },
+      select: { documentJson: true },
+    });
+    if (!existing) throw new NotFoundException("Song version not found");
+
+    const currentDoc = existing.documentJson as SongDocument;
+    const documentJson: SongDocument = parseSongDocument({
+      ...currentDoc,
+      metadata: {
+        ...currentDoc.metadata,
+        ...(dto.title !== undefined && { title: dto.title }),
+        ...(dto.alternateTitle !== undefined && { alternateTitle: dto.alternateTitle }),
+        ...(dto.language !== undefined && { language: dto.language }),
+        ...(dto.ccli !== undefined && { ccli: dto.ccli }),
+        ...(dto.copyright !== undefined && { copyright: dto.copyright }),
+        ...(dto.copyrightYear !== undefined && { copyrightYear: dto.copyrightYear }),
+        ...(dto.publisher !== undefined && { publisher: dto.publisher }),
+      },
+    });
+
+    return this.prisma.client.songVersion.update({
+      where: { id },
+      data: { ...dto, documentJson: documentJson as object },
+      select: DETAIL_SELECT,
+    });
+  }
+
+  /**
+   * Deletes a Song Version. A Work has no content of its own — if this
+   * was its only version, the Work is deleted with it rather than left
+   * behind empty.
+   */
+  async remove(id: string): Promise<void> {
+    const version = await this.prisma.client.songVersion.findUnique({
+      where: { id },
+      select: { workId: true },
+    });
+    if (!version) throw new NotFoundException("Song version not found");
+
+    const siblingCount = await this.prisma.client.songVersion.count({
+      where: { workId: version.workId, NOT: { id } },
+    });
+
+    await this.prisma.client.$transaction(async (tx) => {
+      // Clear the Work's preferredOriginalVersionId FK before deleting the
+      // version it points to, whether or not the Work itself survives.
+      await tx.work.updateMany({
+        where: { id: version.workId, preferredOriginalVersionId: id },
+        data: { preferredOriginalVersionId: null },
+      });
+      await tx.songVersion.delete({ where: { id } });
+      if (siblingCount === 0) {
+        await tx.work.delete({ where: { id: version.workId } });
+      }
+    });
+  }
+
   async linkMusicBrainzRecording(songVersionId: string, mbid: string) {
     const match = await this.musicBrainz.getRecording(mbid);
-    await this.prisma.client.songVersionIdentifier.upsert({
-      where: { songVersionId_type: { songVersionId, type: "MUSICBRAINZ_RECORDING" } },
-      create: {
-        songVersionId,
-        type: "MUSICBRAINZ_RECORDING",
-        value: mbid,
-        sourceUrl: match.sourceUrl,
-        verifiedAt: new Date(),
-      },
-      update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date() },
-    });
+    await this.prisma.client.$transaction([
+      this.prisma.client.songVersionIdentifier.upsert({
+        where: { songVersionId_type: { songVersionId, type: "MUSICBRAINZ_RECORDING" } },
+        create: {
+          songVersionId,
+          type: "MUSICBRAINZ_RECORDING",
+          value: mbid,
+          sourceUrl: match.sourceUrl,
+          verifiedAt: new Date(),
+        },
+        update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date() },
+      }),
+      // Every source-only (userId null) contributor on this version was
+      // put there by a previous MusicBrainz link — replace rather than
+      // accumulate, since re-linking to a different recording shouldn't
+      // leave the old artist attached alongside the new one.
+      this.prisma.client.versionContributor.deleteMany({ where: { songVersionId, userId: null } }),
+      ...(match.artist
+        ? [
+            this.prisma.client.versionContributor.create({
+              data: { songVersionId, userId: null, source: match.artist, roles: ["PERFORMER"] },
+            }),
+          ]
+        : []),
+    ]);
     return match;
   }
 
   async unlinkMusicBrainzRecording(songVersionId: string) {
-    await this.prisma.client.songVersionIdentifier.deleteMany({
-      where: { songVersionId, type: "MUSICBRAINZ_RECORDING" },
-    });
+    await this.prisma.client.$transaction([
+      this.prisma.client.songVersionIdentifier.deleteMany({
+        where: { songVersionId, type: "MUSICBRAINZ_RECORDING" },
+      }),
+      this.prisma.client.versionContributor.deleteMany({ where: { songVersionId, userId: null } }),
+    ]);
   }
 
   async getMusicBrainzInfo(songVersionId: string) {

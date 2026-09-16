@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   UnauthorizedException,
   UseGuards,
@@ -17,6 +18,7 @@ import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import { SongVersionResponseDto } from "./dto/song-version-response.dto";
+import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 import { SongVersionsService } from "./song-versions.service";
 
 @ApiTags("song-versions")
@@ -43,6 +45,23 @@ export class SongVersionsController {
   create(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: CreateSongVersionDto) {
     if (!user) throw new UnauthorizedException();
     return this.songVersionsService.create(user, dto);
+  }
+
+  @Patch(":songVersionId")
+  @UseGuards(SongVersionOwnerGuard)
+  @ApiOkResponse({ type: SongVersionResponseDto })
+  update(
+    @Param("songVersionId") songVersionId: string,
+    @Body() dto: UpdateSongVersionDto,
+  ): ReturnType<SongVersionsService["update"]> {
+    return this.songVersionsService.update(songVersionId, dto);
+  }
+
+  @Delete(":songVersionId")
+  @UseGuards(SongVersionOwnerGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param("songVersionId") songVersionId: string) {
+    return this.songVersionsService.remove(songVersionId);
   }
 
   @Post(":songVersionId/musicbrainz-link")

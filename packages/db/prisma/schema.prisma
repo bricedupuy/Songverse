@@ -574,17 +574,21 @@ model SongVersion {
 // CONTRIBUTORS
 // ============================================================
 
+// userId is nullable so a contributor can be recorded from `source` alone
+// (e.g. an artist name pulled from MusicBrainz) without requiring them to
+// be a registered SongVerse user — the app layer enforces that at least
+// one of userId/source is set.
 model VersionContributor {
   id            String          @id @default(cuid())
   songVersionId String
-  userId        String
+  userId        String?
   roles         ContributorRole[]
   source        String?         // Optional free text: "Hillsong Music", etc.
   displayOrder  Int             @default(0)
   createdAt     DateTime        @default(now())
 
   songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
-  user        User        @relation(fields: [userId], references: [id])
+  user        User?       @relation(fields: [userId], references: [id])
 
   @@unique([songVersionId, userId])
   @@index([songVersionId])

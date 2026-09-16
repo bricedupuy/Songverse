@@ -1,7 +1,11 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { useState } from "react";
 import { apiClient } from "#/lib/api-client";
 import { MusicBrainzMatchPanel } from "#/components/musicbrainz-match-panel";
+import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
 
 export const Route = createFileRoute("/_protected/library/$songVersionId")({
   loader: async ({ params }) => {
@@ -16,18 +20,134 @@ export const Route = createFileRoute("/_protected/library/$songVersionId")({
   component: SongVersionDetail,
 });
 
+function contributorLabel(c: { userId: string | null; source: string | null }): string {
+  return c.source ?? c.userId ?? "Unknown contributor";
+}
+
 function SongVersionDetail() {
   const { version, work, recordingMatch, workMatch } = Route.useLoaderData();
   const router = useRouter();
+  const navigate = useNavigate();
+
+  const [title, setTitle] = useState(version.title);
+  const [alternateTitle, setAlternateTitle] = useState(version.alternateTitle ?? "");
+  const [language, setLanguage] = useState(version.language);
+  const [ccli, setCcli] = useState(version.ccli ?? "");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  const dirty =
+    title !== version.title ||
+    alternateTitle !== (version.alternateTitle ?? "") ||
+    language !== version.language ||
+    ccli !== (version.ccli ?? "");
+
+  async function save() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await apiClient.updateSongVersion(version.id, {
+        title,
+        alternateTitle: alternateTitle || undefined,
+        language,
+        ccli: ccli || undefined,
+      });
+      await router.invalidate();
+    } catch {
+      setSaveError("Couldn't save changes. Check the fields and try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    setDeleting(true);
+    try {
+      await apiClient.deleteSongVersion(version.id);
+      await navigate({ to: "/library" });
+    } catch {
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  }
 
   return (
     <div className="mx-auto flex max-w-lg flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{version.title}</h1>
-        <p className="text-sm text-muted-foreground">
-          {version.language} · {version.publicationState}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">{version.title}</h1>
+          <p className="text-sm text-muted-foreground">
+            {version.language} · {version.publicationState}
+          </p>
+        </div>
+        {confirmingDelete ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Delete this song?</span>
+            <Button variant="destructive" size="sm" onClick={() => void remove()} disabled={deleting}>
+              {deleting ? "Deleting…" : "Confirm"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+              Cancel
+            </Button>
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(true)}>
+            Delete
+          </Button>
+        )}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Details</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="title">Title</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="alternateTitle">Alternate title</Label>
+            <Input id="alternateTitle" value={alternateTitle} onChange={(e) => setAlternateTitle(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="language">Language (BCP 47)</Label>
+            <Input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ccli">CCLI</Label>
+            <Input id="ccli" value={ccli} onChange={(e) => setCcli(e.target.value)} />
+          </div>
+          {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
+          <Button onClick={() => void save()} disabled={!dirty || saving || !title.trim() || !language.trim()}>
+            {saving ? "Saving…" : "Save changes"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Contributors</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {version.contributors.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              None yet — linking a MusicBrainz recording below will attach its artist automatically.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {version.contributors.map((c) => (
+                <li key={c.id} className="text-sm">
+                  <span className="font-medium">{contributorLabel(c)}</span>{" "}
+                  <span className="text-muted-foreground">({c.roles.join(", ").toLowerCase()})</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

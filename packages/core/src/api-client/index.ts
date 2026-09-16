@@ -19,8 +19,17 @@ export interface SongVersionSummary {
   updatedAt: string;
 }
 
+export interface VersionContributor {
+  id: string;
+  userId: string | null;
+  source: string | null;
+  roles: string[];
+  displayOrder: number;
+}
+
 export interface SongVersionDetail extends SongVersionSummary {
   documentJson: unknown;
+  contributors: VersionContributor[];
 }
 
 export interface CreateSongVersionInput {
@@ -29,6 +38,16 @@ export interface CreateSongVersionInput {
   title: string;
   language: string;
   alternateTitle?: string;
+  copyright?: string;
+  copyrightYear?: number;
+  publisher?: string;
+  ccli?: string;
+}
+
+export interface UpdateSongVersionInput {
+  title?: string;
+  alternateTitle?: string;
+  language?: string;
   copyright?: string;
   copyrightYear?: number;
   publisher?: string;
@@ -111,6 +130,10 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     getSongVersion: (songVersionId: string) => request<SongVersionDetail>(`/song-versions/${songVersionId}`),
     createSongVersion: (data: CreateSongVersionInput) =>
       request<SongVersionSummary>("/song-versions", { method: "POST", body: JSON.stringify(data) }),
+    updateSongVersion: (songVersionId: string, data: UpdateSongVersionInput) =>
+      request<SongVersionDetail>(`/song-versions/${songVersionId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    deleteSongVersion: (songVersionId: string) =>
+      request<void>(`/song-versions/${songVersionId}`, { method: "DELETE" }),
     listTagCategories: () => request<Array<{ id: string; slug: string; label: string }>>("/tags/categories"),
     listTags: () => request<Array<{ id: string; slug: string; label: string }>>("/tags"),
 
