@@ -13,7 +13,7 @@ export const Route = createFileRoute("/")({
   beforeLoad: async () => {
     const session = await getSession();
     if (session) {
-      throw redirect({ to: "/dashboard" });
+      throw redirect({ to: "/library" });
     }
   },
   component: Home,
@@ -54,7 +54,7 @@ function AuthCard() {
       setError(result.error.message ?? "Something went wrong");
       return;
     }
-    window.location.href = "/dashboard";
+    window.location.href = "/library";
   }
 
   return (
