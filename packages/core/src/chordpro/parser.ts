@@ -1,7 +1,8 @@
 import type { Section } from "../schemas/song-document.js";
 import type { Line, Segment } from "../schemas/shared.js";
-import { SECTION_TYPES, type SectionType } from "../constants/index.js";
+import type { SectionType } from "../constants/index.js";
 import { generateId, ID_PREFIXES } from "../ids/index.js";
+import { LABEL_LINE, normalizeSectionType } from "./section-labels.js";
 
 // Chord normalization (root/quality/extensions via @tonaljs/tonal) is
 // deliberately deferred - NormalizedChordSchema is nullable specifically so
@@ -24,21 +25,11 @@ const SECTION_DIRECTIVES: Record<string, SectionType> = {
 };
 const END_DIRECTIVES = new Set(["eov", "end_of_verse", "eoc", "end_of_chorus", "eob", "end_of_bridge", "eot", "end_of_tab"]);
 
-// A line containing only a recognized section name (optionally numbered,
-// bracketed, or followed by a colon - "Verse 1", "[Chorus]", "Bridge:")
-// is treated as a label for the block that follows, the common convention
-// in ChordPro-ish text pasted from other tools rather than authored with
-// explicit {start_of_x}/{end_of_x} directives.
-const LABEL_LINE = new RegExp(`^\\[?\\s*(${SECTION_TYPES.join("|")})\\s*\\d*\\s*:?\\s*\\]?$`, "i");
-
-function normalizeSectionType(label: string): SectionType {
-  const key = label.toLowerCase().replace(/\s+/g, "-") as SectionType;
-  return SECTION_TYPES.includes(key) ? key : "other";
-}
-
 /** Splits one lyric line into segments at each `[Chord]` marker. Text
- * before the first chord (if any) becomes a chord-less leading segment. */
-function parseLine(raw: string): Line {
+ * before the first chord (if any) becomes a chord-less leading segment.
+ * Shared with the chords-over-lyrics parser, which overlays its own
+ * chord-line tokens into this same `[Chord]lyric` markup first. */
+export function parseLine(raw: string): Line {
   const segments: Segment[] = [];
   const re = /\[([^\]]+)\]/g;
   let lastIndex = 0;

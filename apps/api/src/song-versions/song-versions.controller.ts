@@ -21,7 +21,7 @@ import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
 import { AddContributorDto } from "./dto/add-contributor.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
-import { ImportChordProDto } from "./dto/import-chordpro.dto";
+import { ImportSongTextDto } from "./dto/import-song-text.dto";
 import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto";
 import { SongVersionResponseDto } from "./dto/song-version-response.dto";
 import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
@@ -79,14 +79,14 @@ export class SongVersionsController {
     return this.songVersionsService.remove(songVersionId);
   }
 
-  @Post(":songVersionId/chordpro")
+  @Post(":songVersionId/import")
   @UseGuards(SongVersionOwnerGuard)
   @ApiOkResponse({ type: SongVersionResponseDto })
-  importChordPro(
+  importText(
     @Param("songVersionId") songVersionId: string,
-    @Body() dto: ImportChordProDto,
-  ): ReturnType<SongVersionsService["importChordPro"]> {
-    return this.songVersionsService.importChordPro(songVersionId, dto.content);
+    @Body() dto: ImportSongTextDto,
+  ): ReturnType<SongVersionsService["importText"]> {
+    return this.songVersionsService.importText(songVersionId, dto.content, dto.format ?? "CHORDPRO");
   }
 
   @Post(":songVersionId/contributors")

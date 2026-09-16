@@ -6,6 +6,8 @@ export * from "./schemas/arrangement-document.js";
 export * from "./schemas/midi.js";
 export * from "./schemas/musicbrainz.js";
 export * from "./chordpro/parser.js";
+export * from "./chordpro/section-labels.js";
 export * from "./chordpro/serializer.js";
+export * from "./chords-over-lyrics/parser.js";
 export * from "./streaming-links/parser.js";
 export * from "./api-client/index.js";

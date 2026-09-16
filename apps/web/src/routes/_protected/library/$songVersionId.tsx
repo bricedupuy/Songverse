@@ -46,6 +46,7 @@ function SongVersionDetail() {
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [chordpro, setChordpro] = useState("");
+  const [importFormat, setImportFormat] = useState<"CHORDPRO" | "CHORDS_OVER_LYRICS">("CHORDPRO");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -131,7 +132,7 @@ function SongVersionDetail() {
     setImporting(true);
     setImportError(null);
     try {
-      await apiClient.importChordPro(version.id, chordpro);
+      await apiClient.importSongText(version.id, chordpro, importFormat);
       setChordpro("");
       await router.invalidate();
     } catch {
@@ -289,17 +290,36 @@ function SongVersionDetail() {
         <CardContent className="flex flex-col gap-4">
           <SongChart sections={version.documentJson.sections} />
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="chordpro">
-              {version.documentJson.sections.length === 0 ? "Paste ChordPro text" : "Replace with new ChordPro text"}
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="chordpro">
+                {version.documentJson.sections.length === 0 ? "Paste chord chart text" : "Replace with new text"}
+              </Label>
+              <select
+                value={importFormat}
+                onChange={(e) => setImportFormat(e.target.value as "CHORDPRO" | "CHORDS_OVER_LYRICS")}
+                className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                <option value="CHORDPRO">ChordPro format</option>
+                <option value="CHORDS_OVER_LYRICS">Chords over lyrics</option>
+              </select>
+            </div>
             <Textarea
               id="chordpro"
               rows={8}
               value={chordpro}
               onChange={(e) => setChordpro(e.target.value)}
-              placeholder={"{start_of_verse}\n[G]Amazing [C]grace how [G]sweet the sound\n{end_of_verse}"}
+              placeholder={
+                importFormat === "CHORDPRO"
+                  ? "{start_of_verse}\n[G]Some lyric [C]line goes [G]here\n{end_of_verse}"
+                  : "Verse 1\nG          C\nSome lyric line goes here"
+              }
               className="font-mono"
             />
+            <p className="text-xs text-muted-foreground">
+              "Chords over lyrics" is the plain format most tab/chord sites show on-screen — chords on their own line
+              directly above the lyric line. Paste text you have the right to use; SongVerse doesn't fetch or scrape
+              content from other sites.
+            </p>
           </div>
           {importError ? <p className="text-sm text-destructive">{importError}</p> : null}
           <div className="flex items-center gap-2">

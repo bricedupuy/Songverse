@@ -1,12 +1,14 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   parseChordPro,
+  parseChordsOverLyrics,
   parseSongDocument,
   parseStreamingLink,
   serializeChordPro,
   type SongDocument,
   type StreamingIdentifierType,
 } from "@songverse/core";
+import type { SupportedImportFormat } from "./dto/import-song-text.dto";
 import type { ContributorRole, Prisma } from "@songverse/db";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -247,12 +249,14 @@ export class SongVersionsService {
 
   /**
    * Replaces this version's content with the result of parsing pasted
-   * ChordPro(-ish) text, leaving metadata untouched. The cache is
-   * regenerated from the parsed result rather than stored verbatim, so it
-   * reflects what was actually understood (whitespace normalized, unknown
-   * directives dropped) rather than whatever the user happened to paste.
+   * text - either ChordPro(-ish) or "chords on their own line above the
+   * lyric" (the plain format most tab/chord sites display on-screen) -
+   * leaving metadata untouched. The cache is regenerated from the parsed
+   * result rather than stored verbatim, so it reflects what was actually
+   * understood (whitespace normalized, unknown directives dropped) rather
+   * than whatever the user happened to paste.
    */
-  async importChordPro(id: string, content: string): Promise<DetailItem> {
+  async importText(id: string, content: string, format: SupportedImportFormat): Promise<DetailItem> {
     const existing = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: { documentJson: true },
@@ -262,7 +266,7 @@ export class SongVersionsService {
     const currentDoc = existing.documentJson as SongDocument;
     const documentJson: SongDocument = parseSongDocument({
       ...currentDoc,
-      sections: parseChordPro(content),
+      sections: format === "CHORDS_OVER_LYRICS" ? parseChordsOverLyrics(content) : parseChordPro(content),
     });
 
     const version = await this.prisma.client.songVersion.update({

@@ -155,10 +155,10 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       request<SongVersionDetail>(`/song-versions/${songVersionId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteSongVersion: (songVersionId: string) =>
       request<void>(`/song-versions/${songVersionId}`, { method: "DELETE" }),
-    importChordPro: (songVersionId: string, content: string) =>
-      request<SongVersionDetail>(`/song-versions/${songVersionId}/chordpro`, {
+    importSongText: (songVersionId: string, content: string, format: "CHORDPRO" | "CHORDS_OVER_LYRICS") =>
+      request<SongVersionDetail>(`/song-versions/${songVersionId}/import`, {
         method: "POST",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, format }),
       }),
     addContributor: (songVersionId: string, source: string, roles: string[]) =>
       request<VersionContributor>(`/song-versions/${songVersionId}/contributors`, {
