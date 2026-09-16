@@ -1,20 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { apiClient } from "#/lib/api-client";
+import { libraryColumns } from "./-columns";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Card, CardContent } from "#/components/ui/card";
+import { DataTable } from "#/components/ui/data-table";
 
 export const Route = createFileRoute("/_protected/library/")({
   loader: async () => ({ versions: await apiClient.listSongVersions() }),
   component: LibraryIndex,
 });
 
-function artistLabel(artists: Array<{ userId: string | null; source: string | null }>): string | null {
-  if (artists.length === 0) return null;
-  return artists.map((a) => a.source ?? a.userId ?? "Unknown artist").join(", ");
-}
-
 function LibraryIndex() {
   const { versions } = Route.useLoaderData();
+  const navigate = useNavigate();
 
   return (
     <div className="flex flex-col gap-6">
@@ -32,25 +30,13 @@ function LibraryIndex() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-2">
-          {versions.map((version) => (
-            <Link key={version.id} to="/library/$songVersionId" params={{ songVersionId: version.id }}>
-              <Card className="transition-colors hover:bg-accent/50">
-                <CardHeader className="py-4">
-                  <CardTitle className="flex items-baseline justify-between text-base font-medium">
-                    <span>
-                      {version.title}
-                      {artistLabel(version.artists) ? (
-                        <span className="ml-2 font-normal text-muted-foreground">— {artistLabel(version.artists)}</span>
-                      ) : null}
-                    </span>
-                    <span className="text-xs font-normal text-muted-foreground">{version.language}</span>
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <Card className="p-0">
+          <DataTable
+            columns={libraryColumns}
+            data={versions}
+            onRowClick={(version) => void navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id } })}
+          />
+        </Card>
       )}
     </div>
   );
