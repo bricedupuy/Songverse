@@ -4,4 +4,5 @@ export * from "./schemas/shared.js";
 export * from "./schemas/song-document.js";
 export * from "./schemas/arrangement-document.js";
 export * from "./schemas/midi.js";
+export * from "./schemas/musicbrainz.js";
 export * from "./api-client/index.js";

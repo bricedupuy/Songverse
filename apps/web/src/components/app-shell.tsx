@@ -30,10 +30,15 @@ export function AppShell({ session, children }: { session: AppSession; children:
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
-            <Music2 className="size-5" />
-            SongVerse
-          </Link>
+          <div className="flex items-center gap-6">
+            <Link to="/dashboard" className="flex items-center gap-2 font-semibold">
+              <Music2 className="size-5" />
+              SongVerse
+            </Link>
+            <Link to="/library" className="text-sm text-muted-foreground hover:text-foreground">
+              Library
+            </Link>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger className="outline-none">
               <Avatar>

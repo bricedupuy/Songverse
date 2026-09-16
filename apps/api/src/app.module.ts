@@ -5,6 +5,7 @@ import { APP_GUARD } from "@nestjs/core";
 import { AppController } from "./app.controller";
 import { AuthModule } from "./auth/auth.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
+import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { SongVersionsModule } from "./song-versions/song-versions.module";
 import { TagsModule } from "./tags/tags.module";
@@ -28,6 +29,7 @@ import { WorksModule } from "./works/works.module";
     WorksModule,
     SongVersionsModule,
     TagsModule,
+    MusicBrainzModule,
   ],
   controllers: [AppController],
   providers: [

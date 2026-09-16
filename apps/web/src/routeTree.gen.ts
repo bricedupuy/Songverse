@@ -12,6 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedLibraryIndexRouteImport } from './routes/_protected/library/index'
+import { Route as ProtectedLibrarySongVersionIdRouteImport } from './routes/_protected/library/$songVersionId'
+import { Route as ProtectedLibraryNewRouteImport } from './routes/_protected/library/new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -28,6 +31,22 @@ const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedLibraryIndexRoute = ProtectedLibraryIndexRouteImport.update({
+  id: '/library/',
+  path: '/library/',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedLibrarySongVersionIdRoute =
+  ProtectedLibrarySongVersionIdRouteImport.update({
+    id: '/library/$songVersionId',
+    path: '/library/$songVersionId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+const ProtectedLibraryNewRoute = ProtectedLibraryNewRouteImport.update({
+  id: '/library/new',
+  path: '/library/new',
+  getParentRoute: () => ProtectedRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -37,26 +56,55 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
+  '/library/new': typeof ProtectedLibraryNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/library/': typeof ProtectedLibraryIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
+  '/library/new': typeof ProtectedLibraryNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/library': typeof ProtectedLibraryIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
+  '/_protected/library/new': typeof ProtectedLibraryNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_protected/library/': typeof ProtectedLibraryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/dashboard'
+    | '/library/$songVersionId'
+    | '/library/new'
+    | '/api/auth/$'
+    | '/library/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/api/auth/$'
-  id: '__root__' | '/' | '/_protected' | '/_protected/dashboard' | '/api/auth/$'
+  to:
+    | '/'
+    | '/dashboard'
+    | '/library/$songVersionId'
+    | '/library/new'
+    | '/api/auth/$'
+    | '/library'
+  id:
+    | '__root__'
+    | '/'
+    | '/_protected'
+    | '/_protected/dashboard'
+    | '/_protected/library/$songVersionId'
+    | '/_protected/library/new'
+    | '/api/auth/$'
+    | '/_protected/library/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -88,6 +136,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedDashboardRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/library/': {
+      id: '/_protected/library/'
+      path: '/library'
+      fullPath: '/library/'
+      preLoaderRoute: typeof ProtectedLibraryIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/library/$songVersionId': {
+      id: '/_protected/library/$songVersionId'
+      path: '/library/$songVersionId'
+      fullPath: '/library/$songVersionId'
+      preLoaderRoute: typeof ProtectedLibrarySongVersionIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/library/new': {
+      id: '/_protected/library/new'
+      path: '/library/new'
+      fullPath: '/library/new'
+      preLoaderRoute: typeof ProtectedLibraryNewRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -100,10 +169,16 @@ declare module '@tanstack/react-router' {
 
 interface ProtectedRouteChildren {
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedLibrarySongVersionIdRoute: typeof ProtectedLibrarySongVersionIdRoute
+  ProtectedLibraryNewRoute: typeof ProtectedLibraryNewRoute
+  ProtectedLibraryIndexRoute: typeof ProtectedLibraryIndexRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedLibrarySongVersionIdRoute: ProtectedLibrarySongVersionIdRoute,
+  ProtectedLibraryNewRoute: ProtectedLibraryNewRoute,
+  ProtectedLibraryIndexRoute: ProtectedLibraryIndexRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(

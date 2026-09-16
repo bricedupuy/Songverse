@@ -1,7 +1,62 @@
+import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
+
 export interface ApiClientOptions {
   baseUrl: string;
   /** Resolves the current bearer token, or null when signed out. */
   getToken: () => Promise<string | null>;
+}
+
+export interface SongVersionSummary {
+  id: string;
+  workId: string;
+  title: string;
+  alternateTitle: string | null;
+  language: string;
+  ownerScope: "GLOBAL" | "TEAM" | "USER";
+  publicationState: string;
+  ccli: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SongVersionDetail extends SongVersionSummary {
+  documentJson: unknown;
+}
+
+export interface CreateSongVersionInput {
+  workId?: string;
+  teamId?: string;
+  title: string;
+  language: string;
+  alternateTitle?: string;
+  copyright?: string;
+  copyrightYear?: number;
+  publisher?: string;
+  ccli?: string;
+}
+
+export interface WorkIdentifier {
+  id: string;
+  workId: string;
+  type: string;
+  value: string;
+  sourceUrl: string | null;
+  verifiedAt: string | null;
+  note: string | null;
+}
+
+export interface WorkDetail {
+  id: string;
+  preferredOriginalVersionId: string | null;
+  versions: Array<{
+    id: string;
+    title: string;
+    language: string;
+    ownerScope: string;
+    publicationState: string;
+    createdAt: string;
+  }>;
+  identifiers: WorkIdentifier[];
 }
 
 export class ApiError extends Error {
@@ -32,8 +87,14 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     if (!response.ok) {
       throw new ApiError(response.status, await response.text());
     }
-    if (response.status === 204) return undefined as T;
-    return (await response.json()) as T;
+    // NestJS sends an empty body (Content-Length: 0) for a handler that
+    // returns `null` or `undefined` — not the 4-byte JSON literal "null" —
+    // and it does this on a plain 200, not just 204. `response.json()` on
+    // an empty body throws ("Unexpected end of JSON input"), so check the
+    // raw text first rather than trusting status code alone.
+    const text = await response.text();
+    if (!text) return undefined as T;
+    return JSON.parse(text) as T;
   }
 
   return {
@@ -44,10 +105,41 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
         method: "POST",
         body: JSON.stringify(data),
       }),
-    listWorks: () => request<Array<{ id: string; title: string | null }>>("/works"),
-    listSongVersions: () => request<Array<{ id: string; title: string }>>("/song-versions"),
+    listWorks: () => request<Array<{ id: string; title: string | null; createdAt: string }>>("/works"),
+    getWork: (workId: string) => request<WorkDetail>(`/works/${workId}`),
+    listSongVersions: () => request<SongVersionSummary[]>("/song-versions"),
+    getSongVersion: (songVersionId: string) => request<SongVersionDetail>(`/song-versions/${songVersionId}`),
+    createSongVersion: (data: CreateSongVersionInput) =>
+      request<SongVersionSummary>("/song-versions", { method: "POST", body: JSON.stringify(data) }),
     listTagCategories: () => request<Array<{ id: string; slug: string; label: string }>>("/tags/categories"),
     listTags: () => request<Array<{ id: string; slug: string; label: string }>>("/tags"),
+
+    searchMusicBrainzRecordings: (title: string, artist?: string) => {
+      const params = new URLSearchParams({ title });
+      if (artist) params.set("artist", artist);
+      return request<MusicBrainzRecordingMatch[]>(`/musicbrainz/recordings/search?${params}`);
+    },
+    searchMusicBrainzWorks: (title: string) =>
+      request<MusicBrainzWorkMatch[]>(`/musicbrainz/works/search?${new URLSearchParams({ title })}`),
+
+    getSongVersionMusicBrainz: (songVersionId: string) =>
+      request<MusicBrainzRecordingMatch | null>(`/song-versions/${songVersionId}/musicbrainz`),
+    linkSongVersionMusicBrainz: (songVersionId: string, mbid: string) =>
+      request<MusicBrainzRecordingMatch>(`/song-versions/${songVersionId}/musicbrainz-link`, {
+        method: "POST",
+        body: JSON.stringify({ mbid }),
+      }),
+    unlinkSongVersionMusicBrainz: (songVersionId: string) =>
+      request<void>(`/song-versions/${songVersionId}/musicbrainz-link`, { method: "DELETE" }),
+
+    getWorkMusicBrainz: (workId: string) => request<MusicBrainzWorkMatch | null>(`/works/${workId}/musicbrainz`),
+    linkWorkMusicBrainz: (workId: string, mbid: string) =>
+      request<MusicBrainzWorkMatch>(`/works/${workId}/musicbrainz-link`, {
+        method: "POST",
+        body: JSON.stringify({ mbid }),
+      }),
+    unlinkWorkMusicBrainz: (workId: string) =>
+      request<void>(`/works/${workId}/musicbrainz-link`, { method: "DELETE" }),
   };
 }
 

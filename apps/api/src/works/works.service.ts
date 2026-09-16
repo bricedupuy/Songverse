@@ -1,9 +1,30 @@
-import { Injectable } from "@nestjs/common";
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import type { Prisma } from "@songverse/db";
+import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
+
+const DETAIL_INCLUDE = {
+  versions: {
+    select: {
+      id: true,
+      title: true,
+      language: true,
+      ownerScope: true,
+      publicationState: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: "asc" },
+  },
+  identifiers: true,
+} satisfies Prisma.WorkInclude;
 
 @Injectable()
 export class WorksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly musicBrainz: MusicBrainzService,
+  ) {}
 
   /**
    * Lists Works visible to the user: globally approved works, plus works
@@ -43,5 +64,76 @@ export class WorksService {
       title: work.preferredOriginalVersion?.title ?? null,
       createdAt: work.createdAt,
     }));
+  }
+
+  async findOne(id: string): Promise<Prisma.WorkGetPayload<{ include: typeof DETAIL_INCLUDE }>> {
+    const work = await this.prisma.client.work.findUnique({
+      where: { id },
+      include: DETAIL_INCLUDE,
+    });
+    if (!work) throw new NotFoundException("Work not found");
+    return work;
+  }
+
+  /**
+   * A Work carries no owner of its own — ownership lives on its versions
+   * (spec §6). Editing a Work-level record (like its MusicBrainz Work
+   * link) is allowed to anyone who could edit at least one of its
+   * versions, mirroring SongVersionOwnerGuard's per-version rule.
+   */
+  private async assertCanEditWork(workId: string, user: AuthenticatedUser): Promise<void> {
+    if (user.isGlobalAdmin) return;
+
+    const versions = await this.prisma.client.songVersion.findMany({
+      where: { workId },
+      select: { ownerScope: true, ownerUserId: true, ownerTeamId: true },
+    });
+    if (versions.length === 0) throw new NotFoundException("Work not found");
+
+    const adminTeamIds = (
+      await this.prisma.client.teamMembership.findMany({
+        where: { userId: user.id, role: "ADMIN" },
+        select: { teamId: true },
+      })
+    ).map((m) => m.teamId);
+
+    const canEdit = versions.some((v) => {
+      if (v.ownerScope === "USER") return v.ownerUserId === user.id;
+      if (v.ownerScope === "TEAM") return v.ownerTeamId !== null && adminTeamIds.includes(v.ownerTeamId);
+      return false; // GLOBAL scope requires global admin, already checked above
+    });
+    if (!canEdit) throw new ForbiddenException("Not authorized to edit this work");
+  }
+
+  async linkMusicBrainzWork(workId: string, user: AuthenticatedUser, mbid: string) {
+    await this.assertCanEditWork(workId, user);
+    const match = await this.musicBrainz.getWork(mbid);
+    await this.prisma.client.workIdentifier.upsert({
+      where: { workId_type: { workId, type: "MUSICBRAINZ_WORK" } },
+      create: {
+        workId,
+        type: "MUSICBRAINZ_WORK",
+        value: mbid,
+        sourceUrl: match.sourceUrl,
+        verifiedAt: new Date(),
+      },
+      update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date() },
+    });
+    return match;
+  }
+
+  async unlinkMusicBrainzWork(workId: string, user: AuthenticatedUser) {
+    await this.assertCanEditWork(workId, user);
+    await this.prisma.client.workIdentifier.deleteMany({
+      where: { workId, type: "MUSICBRAINZ_WORK" },
+    });
+  }
+
+  async getMusicBrainzInfo(workId: string) {
+    const identifier = await this.prisma.client.workIdentifier.findUnique({
+      where: { workId_type: { workId, type: "MUSICBRAINZ_WORK" } },
+    });
+    if (!identifier) return null;
+    return this.musicBrainz.getWork(identifier.value);
   }
 }
