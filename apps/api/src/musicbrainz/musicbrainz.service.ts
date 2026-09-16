@@ -1,6 +1,20 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "@songverse/core";
-import { MusicBrainzClientService } from "./musicbrainz-client.service";
+import { MusicBrainzClientService, MusicBrainzRequestError } from "./musicbrainz-client.service";
+
+/** Only a genuine upstream 404 means "doesn't exist" - anything else (a
+ * network failure, or a 503 that outlasted our retries) is transient and
+ * must not be reported as if the record were missing. */
+function rethrowLookupFailure(err: unknown, notFoundMessage: string): never {
+  if (err instanceof MusicBrainzRequestError && err.status === 404) {
+    throw new NotFoundException(notFoundMessage);
+  }
+  throw asServiceError();
+}
+
+function asServiceError(): ServiceUnavailableException {
+  return new ServiceUnavailableException("MusicBrainz is temporarily unavailable — try again in a moment");
+}
 
 interface MbArtistCredit {
   name: string;
@@ -77,35 +91,55 @@ export class MusicBrainzService {
   constructor(private readonly client: MusicBrainzClientService) {}
 
   async searchRecordings(title: string, artist?: string): Promise<MusicBrainzRecordingMatch[]> {
-    let query = `recording:"${escapeLucene(title)}"`;
-    if (artist) query += ` AND artist:"${escapeLucene(artist)}"`;
-
-    const result = await this.client.get<MbRecordingSearchResponse>("recording", {
-      query,
-      limit: "10",
-    });
-    return (result.recordings ?? []).map(mapRecording);
+    try {
+      const titleQuery = `recording:"${escapeLucene(title)}"`;
+      if (artist) {
+        // AND-ing artist onto the query is a strict match - a slightly
+        // off spelling/variant zeroes out an otherwise-good title match
+        // (reported as "sometimes no results" in production). Fall back
+        // to a title-only search rather than surface nothing.
+        const combined = await this.client.get<MbRecordingSearchResponse>("recording", {
+          query: `${titleQuery} AND artist:"${escapeLucene(artist)}"`,
+          limit: "10",
+        });
+        if (combined.recordings?.length) return combined.recordings.map(mapRecording);
+      }
+      const result = await this.client.get<MbRecordingSearchResponse>("recording", { query: titleQuery, limit: "10" });
+      return (result.recordings ?? []).map(mapRecording);
+    } catch {
+      throw asServiceError();
+    }
   }
 
   async searchWorks(title: string): Promise<MusicBrainzWorkMatch[]> {
-    const result = await this.client.get<MbWorkSearchResponse>("work", {
-      query: `work:"${escapeLucene(title)}"`,
-      limit: "10",
-    });
-    return (result.works ?? []).map(mapWork);
+    try {
+      const result = await this.client.get<MbWorkSearchResponse>("work", {
+        query: `work:"${escapeLucene(title)}"`,
+        limit: "10",
+      });
+      return (result.works ?? []).map(mapWork);
+    } catch {
+      throw asServiceError();
+    }
   }
 
   async getRecording(mbid: string): Promise<MusicBrainzRecordingMatch> {
-    const recording = await this.client
-      .get<MbRecording>(`recording/${mbid}`, { inc: "artist-credits+releases" })
-      .catch(() => null);
-    if (!recording) throw new NotFoundException("MusicBrainz recording not found");
-    return mapRecording(recording);
+    try {
+      const recording = await this.client.get<MbRecording>(`recording/${mbid}`, {
+        inc: "artist-credits+releases",
+      });
+      return mapRecording(recording);
+    } catch (err) {
+      rethrowLookupFailure(err, "MusicBrainz recording not found");
+    }
   }
 
   async getWork(mbid: string): Promise<MusicBrainzWorkMatch> {
-    const work = await this.client.get<MbWork>(`work/${mbid}`, {}).catch(() => null);
-    if (!work) throw new NotFoundException("MusicBrainz work not found");
-    return mapWork(work);
+    try {
+      const work = await this.client.get<MbWork>(`work/${mbid}`, {});
+      return mapWork(work);
+    } catch (err) {
+      rethrowLookupFailure(err, "MusicBrainz work not found");
+    }
   }
 }

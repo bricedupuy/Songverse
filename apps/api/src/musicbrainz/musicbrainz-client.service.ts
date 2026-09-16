@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
 const API_ROOT = "https://musicbrainz.org/ws/2/";
@@ -8,6 +8,26 @@ const API_ROOT = "https://musicbrainz.org/ws/2/";
 // how many callers fire concurrently - see
 // https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting
 const MIN_INTERVAL_MS = 1000;
+// MusicBrainz's documented behavior when a client exceeds the rate limit
+// is a 503 - their own docs describe this as expected/transient and say
+// to back off and retry, not treat it as a real error.
+const MAX_503_RETRIES = 3;
+
+/** Carries the real upstream status so callers can tell "MusicBrainz said
+ * 404" (a genuine not-found) apart from a transient failure - previously
+ * every non-2xx response was flattened into one generic error, which made
+ * a temporary rate-limit response on a recording lookup indistinguishable
+ * from the recording genuinely not existing (seen in production: linking
+ * a recording picked from real search results failed with "not found"). */
+export class MusicBrainzRequestError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "MusicBrainzRequestError";
+  }
+}
 
 /**
  * Low-level MusicBrainz HTTP client: rate limiting and the required
@@ -43,14 +63,20 @@ export class MusicBrainzClientService {
     }
     url.searchParams.set("fmt", "json");
 
-    const response = await fetch(url, {
-      headers: { "User-Agent": this.userAgent, Accept: "application/json" },
-    });
-    if (!response.ok) {
-      throw new InternalServerErrorException(
+    for (let attempt = 0; ; attempt++) {
+      const response = await fetch(url, {
+        headers: { "User-Agent": this.userAgent, Accept: "application/json" },
+      });
+      if (response.ok) return (await response.json()) as T;
+
+      if (response.status === 503 && attempt < MAX_503_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, MIN_INTERVAL_MS * (attempt + 1)));
+        continue;
+      }
+      throw new MusicBrainzRequestError(
+        response.status,
         `MusicBrainz request failed: ${response.status} ${response.statusText}`,
       );
     }
-    return (await response.json()) as T;
   }
 }
