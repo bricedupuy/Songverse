@@ -10,12 +10,31 @@
 // handler.
 import { createServer } from "node:http";
 import { createServerAdapter } from "@whatwg-node/server";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname, sep } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const clientDir = join(__dirname, "dist", "client");
+
+// __root.tsx imports the stylesheet as `app.css?url`, which Vite resolves
+// separately in the client build and the SSR build (two independent Rollup
+// passes — see the "building client environment" / "building ssr
+// environment" lines in `vite build` output). Nothing guarantees Tailwind's
+// generated CSS is byte-identical across those two passes, so the
+// content-hashed filename baked into the SSR-rendered <link> tag can point
+// at a file that was never actually written to dist/client/assets (a 404
+// in production, seen and confirmed on songverse.one 2026-09-16 — the SSR
+// bundle referenced app-DxESX405.css while only app-Cg7lp79W.css existed on
+// disk, reproduced even on a from-scratch `docker build --no-cache`). Read
+// the filename Vite actually emitted and correct any stale reference to it.
+const actualAppCssHref = await (async () => {
+  const assetsDir = join(clientDir, "assets");
+  const files = await readdir(assetsDir).catch(() => []);
+  const match = files.find((f) => /^app-.*\.css$/.test(f));
+  return match ? `/assets/${match}` : null;
+})();
+const staleAppCssPattern = /\/assets\/app-[^"'.]*\.css/g;
 
 const MIME_TYPES = {
   ".js": "text/javascript",
@@ -70,7 +89,19 @@ const adapter = createServerAdapter(async (request) => {
     const staticResponse = await tryServeStatic(decodeURIComponent(pathname));
     if (staticResponse) return staticResponse;
   }
-  return appHandler.fetch(request);
+
+  const response = await appHandler.fetch(request);
+  if (!actualAppCssHref || !response.headers.get("content-type")?.includes("text/html")) {
+    return response;
+  }
+
+  const body = await response.text();
+  const fixed = body.replace(staleAppCssPattern, actualAppCssHref);
+  if (fixed === body) return new Response(body, response);
+
+  const headers = new Headers(response.headers);
+  headers.set("Content-Length", String(Buffer.byteLength(fixed)));
+  return new Response(fixed, { status: response.status, statusText: response.statusText, headers });
 });
 
 const port = Number(process.env.PORT ?? 3000);
