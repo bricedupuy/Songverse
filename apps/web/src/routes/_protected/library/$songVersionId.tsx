@@ -1,3 +1,4 @@
+import { CONTRIBUTOR_ROLES } from "@songverse/core";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiClient } from "#/lib/api-client";
@@ -35,6 +36,8 @@ function SongVersionDetail() {
   const [alternateTitle, setAlternateTitle] = useState(version.alternateTitle ?? "");
   const [language, setLanguage] = useState(version.language);
   const [ccli, setCcli] = useState(version.ccli ?? "");
+  const [key, setKey] = useState(version.documentJson.defaults.key ?? "");
+  const [tempo, setTempo] = useState(version.documentJson.defaults.tempo?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -42,12 +45,19 @@ function SongVersionDetail() {
   const [chordpro, setChordpro] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [contributorName, setContributorName] = useState("");
+  const [contributorRole, setContributorRole] = useState<(typeof CONTRIBUTOR_ROLES)[number]>("performer");
+  const [addingContributor, setAddingContributor] = useState(false);
+  const [contributorError, setContributorError] = useState<string | null>(null);
+  const [removingContributorId, setRemovingContributorId] = useState<string | null>(null);
 
   const dirty =
     title !== version.title ||
     alternateTitle !== (version.alternateTitle ?? "") ||
     language !== version.language ||
-    ccli !== (version.ccli ?? "");
+    ccli !== (version.ccli ?? "") ||
+    key !== (version.documentJson.defaults.key ?? "") ||
+    tempo !== (version.documentJson.defaults.tempo?.toString() ?? "");
 
   async function save() {
     setSaving(true);
@@ -58,12 +68,38 @@ function SongVersionDetail() {
         alternateTitle: alternateTitle || undefined,
         language,
         ccli: ccli || undefined,
+        key: key || undefined,
+        tempo: tempo ? Number(tempo) : undefined,
       });
       await router.invalidate();
     } catch {
       setSaveError("Couldn't save changes. Check the fields and try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function addContributor() {
+    setAddingContributor(true);
+    setContributorError(null);
+    try {
+      await apiClient.addContributor(version.id, contributorName, [contributorRole]);
+      setContributorName("");
+      await router.invalidate();
+    } catch {
+      setContributorError("Couldn't add that contributor. Try again.");
+    } finally {
+      setAddingContributor(false);
+    }
+  }
+
+  async function removeContributor(contributorId: string) {
+    setRemovingContributorId(contributorId);
+    try {
+      await apiClient.removeContributor(version.id, contributorId);
+      await router.invalidate();
+    } finally {
+      setRemovingContributorId(null);
     }
   }
 
@@ -139,6 +175,22 @@ function SongVersionDetail() {
             <Label htmlFor="ccli">CCLI</Label>
             <Input id="ccli" value={ccli} onChange={(e) => setCcli(e.target.value)} />
           </div>
+          <div className="flex gap-4">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="key">Key</Label>
+              <Input id="key" value={key} onChange={(e) => setKey(e.target.value)} placeholder="G, Bb, C#m…" />
+            </div>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="tempo">Tempo (BPM)</Label>
+              <Input
+                id="tempo"
+                type="number"
+                min={1}
+                value={tempo}
+                onChange={(e) => setTempo(e.target.value)}
+              />
+            </div>
+          </div>
           {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
           <Button onClick={() => void save()} disabled={!dirty || saving || !title.trim() || !language.trim()}>
             {saving ? "Saving…" : "Save changes"}
@@ -176,21 +228,65 @@ function SongVersionDetail() {
         <CardHeader>
           <CardTitle className="text-sm">Contributors</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
           {version.contributors.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              None yet — linking a MusicBrainz recording below will attach its artist automatically.
+              None yet — add one below, or link a MusicBrainz recording to attach its artist automatically.
             </p>
           ) : (
-            <ul className="flex flex-col gap-1">
+            <ul className="flex flex-col gap-2">
               {version.contributors.map((c) => (
-                <li key={c.id} className="text-sm">
-                  <span className="font-medium">{contributorLabel(c)}</span>{" "}
-                  <span className="text-muted-foreground">({c.roles.join(", ").toLowerCase()})</span>
+                <li key={c.id} className="flex items-center justify-between gap-2 text-sm">
+                  <span>
+                    <span className="font-medium">{contributorLabel(c)}</span>{" "}
+                    <span className="text-muted-foreground">
+                      ({c.roles.join(", ").toLowerCase()}
+                      {c.isAutoAttached ? " · via MusicBrainz" : ""})
+                    </span>
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void removeContributor(c.id)}
+                    disabled={removingContributorId !== null}
+                  >
+                    {removingContributorId === c.id ? "Removing…" : "Remove"}
+                  </Button>
                 </li>
               ))}
             </ul>
           )}
+
+          <div className="flex flex-wrap items-end gap-2 border-t pt-4">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label htmlFor="contributorName">Name</Label>
+              <Input
+                id="contributorName"
+                value={contributorName}
+                onChange={(e) => setContributorName(e.target.value)}
+                placeholder="e.g. an artist, composer, or lyricist"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="contributorRole">Role</Label>
+              <select
+                id="contributorRole"
+                value={contributorRole}
+                onChange={(e) => setContributorRole(e.target.value as (typeof CONTRIBUTOR_ROLES)[number])}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                {CONTRIBUTOR_ROLES.map((role) => (
+                  <option key={role} value={role}>
+                    {role === "performer" ? "Performer / Artist" : role.charAt(0).toUpperCase() + role.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Button onClick={() => void addContributor()} disabled={addingContributor || !contributorName.trim()}>
+              {addingContributor ? "Adding…" : "Add"}
+            </Button>
+          </div>
+          {contributorError ? <p className="text-sm text-destructive">{contributorError}</p> : null}
         </CardContent>
       </Card>
 

@@ -25,6 +25,7 @@ export interface VersionContributor {
   userId: string | null;
   source: string | null;
   roles: string[];
+  isAutoAttached: boolean;
   displayOrder: number;
 }
 
@@ -53,6 +54,8 @@ export interface UpdateSongVersionInput {
   copyrightYear?: number;
   publisher?: string;
   ccli?: string;
+  key?: string;
+  tempo?: number;
 }
 
 export interface WorkIdentifier {
@@ -140,6 +143,13 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
         method: "POST",
         body: JSON.stringify({ content }),
       }),
+    addContributor: (songVersionId: string, source: string, roles: string[]) =>
+      request<VersionContributor>(`/song-versions/${songVersionId}/contributors`, {
+        method: "POST",
+        body: JSON.stringify({ source, roles }),
+      }),
+    removeContributor: (songVersionId: string, contributorId: string) =>
+      request<void>(`/song-versions/${songVersionId}/contributors/${contributorId}`, { method: "DELETE" }),
     listTagCategories: () => request<Array<{ id: string; slug: string; label: string }>>("/tags/categories"),
     listTags: () => request<Array<{ id: string; slug: string; label: string }>>("/tags"),
 

@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsInt, IsOptional, IsPositive, IsString, MaxLength, MinLength } from "class-validator";
 
 export class UpdateSongVersionDto {
   @ApiProperty({ required: false })
@@ -44,4 +44,16 @@ export class UpdateSongVersionDto {
   @IsString()
   @MaxLength(50)
   ccli?: string;
+
+  @ApiProperty({ required: false, description: "Free-text key, e.g. G, Bb, C#m" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  key?: string;
+
+  @ApiProperty({ required: false, description: "Tempo in BPM" })
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  tempo?: number;
 }

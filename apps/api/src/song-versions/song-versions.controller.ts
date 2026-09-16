@@ -16,6 +16,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
+import { AddContributorDto } from "./dto/add-contributor.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import { ImportChordProDto } from "./dto/import-chordpro.dto";
 import { SongVersionResponseDto } from "./dto/song-version-response.dto";
@@ -73,6 +74,22 @@ export class SongVersionsController {
     @Body() dto: ImportChordProDto,
   ): ReturnType<SongVersionsService["importChordPro"]> {
     return this.songVersionsService.importChordPro(songVersionId, dto.content);
+  }
+
+  @Post(":songVersionId/contributors")
+  @UseGuards(SongVersionOwnerGuard)
+  addContributor(@Param("songVersionId") songVersionId: string, @Body() dto: AddContributorDto) {
+    return this.songVersionsService.addContributor(songVersionId, dto.source, dto.roles);
+  }
+
+  @Delete(":songVersionId/contributors/:contributorId")
+  @UseGuards(SongVersionOwnerGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeContributor(
+    @Param("songVersionId") songVersionId: string,
+    @Param("contributorId") contributorId: string,
+  ) {
+    return this.songVersionsService.removeContributor(songVersionId, contributorId);
   }
 
   @Post(":songVersionId/musicbrainz-link")

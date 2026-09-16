@@ -584,6 +584,11 @@ model VersionContributor {
   userId        String?
   roles         ContributorRole[]
   source        String?         // Optional free text: "Hillsong Music", etc.
+  // True only for the contributor row a MusicBrainz recording link
+  // creates automatically. Lets re-linking (or unlinking) replace just
+  // that row without touching one a user added by hand — both are
+  // source-only (userId null), so they're otherwise indistinguishable.
+  isAutoAttached Boolean        @default(false)
   displayOrder  Int             @default(0)
   createdAt     DateTime        @default(now())
 

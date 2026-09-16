@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { parseChordPro, parseSongDocument, type SongDocument } from "@songverse/core";
-import type { Prisma } from "@songverse/db";
+import type { ContributorRole, Prisma } from "@songverse/db";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -24,7 +24,7 @@ const DETAIL_SELECT = {
   ...LIST_SELECT,
   documentJson: true,
   contributors: {
-    select: { id: true, userId: true, source: true, roles: true, displayOrder: true },
+    select: { id: true, userId: true, source: true, roles: true, isAutoAttached: true, displayOrder: true },
     orderBy: { displayOrder: "asc" },
   },
 } satisfies Prisma.SongVersionSelect;
@@ -173,11 +173,27 @@ export class SongVersionsService {
         ...(dto.copyrightYear !== undefined && { copyrightYear: dto.copyrightYear }),
         ...(dto.publisher !== undefined && { publisher: dto.publisher }),
       },
+      defaults: {
+        ...currentDoc.defaults,
+        ...(dto.key !== undefined && { key: dto.key }),
+        ...(dto.tempo !== undefined && { tempo: dto.tempo }),
+      },
     });
 
+    // key/tempo live only in documentJson.defaults (handled above) - not
+    // real SongVersion columns, so they're left out of this scalar update.
     return this.prisma.client.songVersion.update({
       where: { id },
-      data: { ...dto, documentJson: documentJson as object },
+      data: {
+        title: dto.title,
+        alternateTitle: dto.alternateTitle,
+        language: dto.language,
+        ccli: dto.ccli,
+        copyright: dto.copyright,
+        copyrightYear: dto.copyrightYear,
+        publisher: dto.publisher,
+        documentJson: documentJson as object,
+      },
       select: DETAIL_SELECT,
     });
   }
@@ -256,15 +272,17 @@ export class SongVersionsService {
         },
         update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date() },
       }),
-      // Every source-only (userId null) contributor on this version was
-      // put there by a previous MusicBrainz link — replace rather than
-      // accumulate, since re-linking to a different recording shouldn't
-      // leave the old artist attached alongside the new one.
-      this.prisma.client.versionContributor.deleteMany({ where: { songVersionId, userId: null } }),
+      // A previous MusicBrainz link's own contributor row is marked
+      // isAutoAttached so it can be replaced here without touching one a
+      // user added by hand — re-linking to a different recording
+      // shouldn't leave the old artist attached alongside the new one,
+      // but a manually-entered composer/lyricist isn't this link's to
+      // remove.
+      this.prisma.client.versionContributor.deleteMany({ where: { songVersionId, isAutoAttached: true } }),
       ...(match.artist
         ? [
             this.prisma.client.versionContributor.create({
-              data: { songVersionId, userId: null, source: match.artist, roles: ["PERFORMER"] },
+              data: { songVersionId, userId: null, source: match.artist, roles: ["PERFORMER"], isAutoAttached: true },
             }),
           ]
         : []),
@@ -277,8 +295,27 @@ export class SongVersionsService {
       this.prisma.client.songVersionIdentifier.deleteMany({
         where: { songVersionId, type: "MUSICBRAINZ_RECORDING" },
       }),
-      this.prisma.client.versionContributor.deleteMany({ where: { songVersionId, userId: null } }),
+      this.prisma.client.versionContributor.deleteMany({ where: { songVersionId, isAutoAttached: true } }),
     ]);
+  }
+
+  async addContributor(songVersionId: string, source: string, roles: string[]) {
+    return this.prisma.client.versionContributor.create({
+      data: {
+        songVersionId,
+        userId: null,
+        source,
+        roles: roles.map((r) => r.toUpperCase()) as ContributorRole[],
+      },
+      select: { id: true, userId: true, source: true, roles: true, isAutoAttached: true, displayOrder: true },
+    });
+  }
+
+  async removeContributor(songVersionId: string, contributorId: string): Promise<void> {
+    const deleted = await this.prisma.client.versionContributor.deleteMany({
+      where: { id: contributorId, songVersionId },
+    });
+    if (deleted.count === 0) throw new NotFoundException("Contributor not found");
   }
 
   async getMusicBrainzInfo(songVersionId: string) {
