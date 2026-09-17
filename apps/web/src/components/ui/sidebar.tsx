@@ -183,7 +183,7 @@ function SidebarContent({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="sidebar-content"
-      className={cn("flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[state=collapsed]:overflow-hidden", className)}
+      className={cn("flex min-h-0 flex-1 flex-col gap-2 overflow-auto", className)}
       {...props}
     />
   );
@@ -194,6 +194,9 @@ function SidebarGroup({ className, ...props }: ComponentProps<"div">) {
 }
 
 function SidebarGroupLabel({ className, ...props }: ComponentProps<"div">) {
+  const { state, isMobile } = useSidebar();
+  if (state === "collapsed" && !isMobile) return null;
+
   return (
     <div
       data-slot="sidebar-group-label"
@@ -227,6 +230,7 @@ function SidebarMenuButton({
 }) {
   const { state, isMobile } = useSidebar();
   const Comp = asChild ? Slot : "button";
+  const collapsed = state === "collapsed" && !isMobile;
 
   const button = (
     <Comp
@@ -237,14 +241,17 @@ function SidebarMenuButton({
         "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground",
         "[&>svg]:size-4 [&>svg]:shrink-0",
-        "group-data-[state=collapsed]:size-8 group-data-[state=collapsed]:justify-center group-data-[state=collapsed]:p-2",
+        // Collapsing the sidebar shrinks its own width, but the button's
+        // text label needs hiding explicitly - it doesn't just disappear
+        // on its own, it'd otherwise wrap/overflow the icon-only rail.
+        collapsed && "size-8 justify-center p-2 [&>span]:hidden",
         className,
       )}
       {...props}
     />
   );
 
-  if (!tooltip || state !== "collapsed" || isMobile) return button;
+  if (!tooltip || !collapsed) return button;
 
   return (
     <Tooltip>

@@ -21,6 +21,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "#/components/ui/sidebar";
 
 function initials(name: string): string {
@@ -39,13 +40,15 @@ const NAV_ITEMS = [{ to: "/library", label: "Library", icon: Music2 }] as const;
 
 export function AppSidebar({ session }: { session: AppSession }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === "collapsed" && !isMobile;
 
   return (
     <Sidebar>
       <SidebarHeader>
         <Link to="/library" className="flex items-center gap-2 px-2 py-1.5 font-semibold">
-          <Music2 className="size-5" />
-          SongVerse
+          <Music2 className="size-5 shrink-0" />
+          {collapsed ? null : "SongVerse"}
         </Link>
       </SidebarHeader>
       <SidebarContent>
@@ -71,10 +74,10 @@ export function AppSidebar({ session }: { session: AppSession }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-12">
-                  <Avatar className="size-6">
+                  <Avatar className="size-6 shrink-0">
                     <AvatarFallback className="text-[10px]">{initials(session.displayName)}</AvatarFallback>
                   </Avatar>
-                  <span className="flex-1 truncate text-left">{session.displayName}</span>
+                  {collapsed ? null : <span className="flex-1 truncate text-left">{session.displayName}</span>}
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" side="top" className="w-56">
