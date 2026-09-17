@@ -35,6 +35,9 @@ const LIST_SELECT = {
     select: { id: true, userId: true, source: true },
     orderBy: { displayOrder: "asc" },
   },
+  versionTags: {
+    select: { id: true, tag: { select: { id: true, categoryId: true, slug: true, label: true } } },
+  },
 } satisfies Prisma.SongVersionSelect;
 
 const STREAMING_IDENTIFIER_TYPES = ["SPOTIFY", "APPLE_MUSIC", "YOUTUBE"] as const;
@@ -56,21 +59,34 @@ const DETAIL_SELECT = {
 } satisfies Prisma.SongVersionSelect;
 
 type ListRow = Prisma.SongVersionGetPayload<{ select: typeof LIST_SELECT }>;
-type ListItem = Omit<ListRow, "contributors"> & { artists: ListRow["contributors"] };
+type ListItem = Omit<ListRow, "contributors" | "versionTags"> & {
+  artists: ListRow["contributors"];
+  tags: ListRow["versionTags"][number]["tag"][];
+};
 
-// The Prisma relation is named `contributors` no matter how it's filtered;
-// renamed to `artists` here so the (performer-only) list/create payload and
-// the (all-roles) detail payload don't share a field name that means two
-// different things.
-function toListItem({ contributors, ...rest }: ListRow): ListItem {
-  return { ...rest, artists: contributors };
+// The Prisma relations are named `contributors`/`versionTags` no matter
+// how they're filtered; renamed here (`artists`, `tags`) so the
+// (performer-only) list/create payload and the (all-roles) detail payload
+// don't share a field name that means two different things, and so the
+// join row (versionTags' own `id`, not useful to the client) doesn't leak
+// into what's otherwise just a list of tags.
+function toListItem({ contributors, versionTags, ...rest }: ListRow): ListItem {
+  return { ...rest, artists: contributors, tags: versionTags.map((vt) => vt.tag) };
 }
 
 type DetailRow = Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>;
-type DetailItem = DetailRow & { artists: DetailRow["contributors"] };
+type DetailItem = Omit<DetailRow, "versionTags"> & {
+  artists: DetailRow["contributors"];
+  tags: DetailRow["versionTags"][number]["tag"][];
+};
 
 function toDetailItem(version: DetailRow): DetailItem {
-  return { ...version, artists: version.contributors.filter((c) => c.roles.includes("PERFORMER")) };
+  const { versionTags, ...rest } = version;
+  return {
+    ...rest,
+    artists: version.contributors.filter((c) => c.roles.includes("PERFORMER")),
+    tags: versionTags.map((vt) => vt.tag),
+  };
 }
 
 @Injectable()
@@ -392,6 +408,22 @@ export class SongVersionsService {
       where: { id: contributorId, songVersionId },
     });
     if (deleted.count === 0) throw new NotFoundException("Contributor not found");
+  }
+
+  async addTag(songVersionId: string, tagId: string) {
+    const tag = await this.prisma.client.tag.findUnique({ where: { id: tagId } });
+    if (!tag) throw new NotFoundException("Tag not found");
+
+    await this.prisma.client.songVersionTag.upsert({
+      where: { songVersionId_tagId: { songVersionId, tagId } },
+      update: {},
+      create: { songVersionId, tagId },
+    });
+    return tag;
+  }
+
+  async removeTag(songVersionId: string, tagId: string): Promise<void> {
+    await this.prisma.client.songVersionTag.deleteMany({ where: { songVersionId, tagId } });
   }
 
   async getMusicBrainzInfo(songVersionId: string) {

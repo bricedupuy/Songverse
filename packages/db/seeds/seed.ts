@@ -27,6 +27,43 @@ async function seedTagCategories() {
   console.log(`Seeded ${SEED_TAG_CATEGORIES.length} tag categories.`);
 }
 
+// A modest curated starting set per category - enough to make tagging
+// useful immediately. Users/teams can add their own scoped tags later;
+// this seed only covers the admin-curated global ones.
+const SEED_TAGS: Record<string, string[]> = {
+  theme: ["Christmas", "Easter", "Communion", "Baptism", "Advent", "Thanksgiving", "Funeral & Memorial", "Wedding"],
+  style: ["Contemporary", "Traditional Hymn", "Gospel", "Folk", "Acoustic", "Rock", "Orchestral", "Jazz"],
+  mood: ["Joyful", "Reflective", "Triumphant", "Peaceful", "Intense", "Tender"],
+  instrumentation: ["Guitar-led", "Piano-led", "Full Band", "A Cappella", "Orchestral", "Acoustic Only"],
+};
+
+function slugify(label: string): string {
+  return label
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+async function seedTags() {
+  let count = 0;
+  for (const category of SEED_TAG_CATEGORIES) {
+    const labels = SEED_TAGS[category.slug] ?? [];
+    if (labels.length === 0) continue;
+    const { id: categoryId } = await prisma.tagCategory.findUniqueOrThrow({ where: { slug: category.slug } });
+    for (const [index, label] of labels.entries()) {
+      const slug = slugify(label);
+      await prisma.tag.upsert({
+        where: { slug },
+        update: { label, sortOrder: index },
+        create: { categoryId, slug, label, scope: "GLOBAL", isApproved: true, sortOrder: index },
+      });
+      count++;
+    }
+  }
+  console.log(`Seeded ${count} tags.`);
+}
+
 async function seedTuningPresets() {
   for (const [index, preset] of SEED_TUNING_PRESETS.entries()) {
     await prisma.tuningPreset.upsert({
@@ -162,6 +199,7 @@ async function seedDemoContent() {
 
 async function main() {
   await seedTagCategories();
+  await seedTags();
   await seedTuningPresets();
   await seedDemoContent();
 }

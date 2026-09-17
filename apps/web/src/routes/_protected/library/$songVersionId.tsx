@@ -16,12 +16,14 @@ import { Textarea } from "#/components/ui/textarea";
 export const Route = createFileRoute("/_protected/library/$songVersionId")({
   loader: async ({ params }) => {
     const version = await apiClient.getSongVersion(params.songVersionId);
-    const [work, recordingMatch] = await Promise.all([
+    const [work, recordingMatch, tagCategories, availableTags] = await Promise.all([
       apiClient.getWork(version.workId),
       apiClient.getSongVersionMusicBrainz(version.id),
+      apiClient.listTagCategories(),
+      apiClient.listTags(),
     ]);
     const workMatch = await apiClient.getWorkMusicBrainz(work.id);
-    return { version, work, recordingMatch, workMatch };
+    return { version, work, recordingMatch, workMatch, tagCategories, availableTags };
   },
   component: SongVersionDetail,
 });
@@ -31,7 +33,7 @@ function contributorLabel(c: { userId: string | null; source: string | null }): 
 }
 
 function SongVersionDetail() {
-  const { version, work, recordingMatch, workMatch } = Route.useLoaderData();
+  const { version, work, recordingMatch, workMatch, tagCategories, availableTags } = Route.useLoaderData();
   const router = useRouter();
   const navigate = useNavigate();
 
@@ -60,8 +62,31 @@ function SongVersionDetail() {
   const [artistName, setArtistName] = useState("");
   const [addingArtist, setAddingArtist] = useState(false);
   const [artistError, setArtistError] = useState<string | null>(null);
+  const [togglingTagId, setTogglingTagId] = useState<string | null>(null);
+  const [tagError, setTagError] = useState<string | null>(null);
 
   const otherContributors = version.contributors.filter((c) => !c.roles.includes("PERFORMER"));
+  const tagIds = new Set(version.tags.map((t) => t.id));
+  const tagsByCategory = tagCategories
+    .map((category) => ({ category, tags: availableTags.filter((t) => t.categoryId === category.id) }))
+    .filter(({ tags }) => tags.length > 0);
+
+  async function toggleTag(tagId: string, isOn: boolean) {
+    setTogglingTagId(tagId);
+    setTagError(null);
+    try {
+      if (isOn) {
+        await apiClient.removeSongVersionTag(version.id, tagId);
+      } else {
+        await apiClient.addSongVersionTag(version.id, tagId);
+      }
+      await router.invalidate();
+    } catch {
+      setTagError("Couldn't update that tag. Try again.");
+    } finally {
+      setTogglingTagId(null);
+    }
+  }
 
   async function addArtist() {
     setAddingArtist(true);
@@ -461,6 +486,44 @@ function SongVersionDetail() {
             </Button>
           </div>
           {contributorError ? <p className="text-sm text-destructive">{contributorError}</p> : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Tags</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {tagsByCategory.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No tags available yet.</p>
+          ) : (
+            tagsByCategory.map(({ category, tags }) => (
+              <div key={category.id} className="flex flex-col gap-1.5">
+                <Label>{category.label}</Label>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => {
+                    const isOn = tagIds.has(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => void toggleTag(tag.id, isOn)}
+                        disabled={togglingTagId !== null}
+                        className={
+                          isOn
+                            ? "rounded-full border border-primary bg-primary px-3 py-1 text-sm text-primary-foreground disabled:opacity-50"
+                            : "rounded-full border px-3 py-1 text-sm text-muted-foreground hover:bg-accent disabled:opacity-50"
+                        }
+                      >
+                        {tag.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+          {tagError ? <p className="text-sm text-destructive">{tagError}</p> : null}
         </CardContent>
       </Card>
 

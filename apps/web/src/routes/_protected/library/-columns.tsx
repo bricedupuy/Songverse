@@ -8,6 +8,11 @@ function artistLabel(artists: SongVersionSummary["artists"]): string {
   return artists.map((a) => a.source ?? a.userId ?? "Unknown artist").join(", ");
 }
 
+function tagLabel(tags: SongVersionSummary["tags"]): string {
+  if (tags.length === 0) return "—";
+  return tags.map((t) => t.label).join(", ");
+}
+
 function sortableHeader(label: string) {
   return function SortableHeader({ column }: { column: Column<SongVersionSummary, unknown> }) {
     return (
@@ -45,6 +50,12 @@ export const libraryColumns: ColumnDef<SongVersionSummary>[] = [
     accessorKey: "publicationState",
     header: sortableHeader("Status"),
     cell: ({ row }) => <span className="text-muted-foreground">{row.original.publicationState}</span>,
+  },
+  {
+    id: "tags",
+    accessorFn: (version) => tagLabel(version.tags),
+    header: sortableHeader("Tags"),
+    cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
   },
   {
     accessorKey: "updatedAt",

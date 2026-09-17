@@ -110,6 +110,19 @@ export class SongVersionsController {
     return { content: await this.songVersionsService.exportChordPro(songVersionId) };
   }
 
+  @Put(":songVersionId/tags/:tagId")
+  @UseGuards(SongVersionOwnerGuard)
+  addTag(@Param("songVersionId") songVersionId: string, @Param("tagId") tagId: string) {
+    return this.songVersionsService.addTag(songVersionId, tagId);
+  }
+
+  @Delete(":songVersionId/tags/:tagId")
+  @UseGuards(SongVersionOwnerGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeTag(@Param("songVersionId") songVersionId: string, @Param("tagId") tagId: string) {
+    return this.songVersionsService.removeTag(songVersionId, tagId);
+  }
+
   @Put(":songVersionId/links/:type")
   @UseGuards(SongVersionOwnerGuard)
   setStreamingLink(

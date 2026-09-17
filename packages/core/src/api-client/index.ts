@@ -13,6 +13,22 @@ export interface ArtistSummary {
   source: string | null;
 }
 
+export interface TagCategory {
+  id: string;
+  slug: string;
+  label: string;
+  isGlobal: boolean;
+}
+
+export interface Tag {
+  id: string;
+  categoryId: string;
+  slug: string;
+  label: string;
+  scope: string;
+  isApproved: boolean;
+}
+
 export interface SongVersionSummary {
   id: string;
   workId: string;
@@ -25,6 +41,7 @@ export interface SongVersionSummary {
   createdAt: string;
   updatedAt: string;
   artists: ArtistSummary[];
+  tags: Tag[];
 }
 
 export interface VersionContributor {
@@ -176,8 +193,12 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       }),
     removeStreamingLink: (songVersionId: string, type: StreamingLinkType) =>
       request<void>(`/song-versions/${songVersionId}/links/${type}`, { method: "DELETE" }),
-    listTagCategories: () => request<Array<{ id: string; slug: string; label: string }>>("/tags/categories"),
-    listTags: () => request<Array<{ id: string; slug: string; label: string }>>("/tags"),
+    listTagCategories: () => request<TagCategory[]>("/tags/categories"),
+    listTags: () => request<Tag[]>("/tags"),
+    addSongVersionTag: (songVersionId: string, tagId: string) =>
+      request<Tag>(`/song-versions/${songVersionId}/tags/${tagId}`, { method: "PUT" }),
+    removeSongVersionTag: (songVersionId: string, tagId: string) =>
+      request<void>(`/song-versions/${songVersionId}/tags/${tagId}`, { method: "DELETE" }),
 
     searchMusicBrainzRecordings: (title: string, artist?: string) => {
       const params = new URLSearchParams({ title });
