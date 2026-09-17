@@ -14,6 +14,40 @@ export interface AdminCommandResult {
   stderr: string;
 }
 
+export type TeamRole = "MEMBER" | "ADMIN";
+
+export interface TeamSummary {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  currentUserRole: TeamRole;
+}
+
+export interface TeamMember {
+  userId: string;
+  displayName: string;
+  email: string;
+  role: TeamRole;
+  joinedAt: string;
+}
+
+export interface TeamInviteLink {
+  id: string;
+  token: string;
+  role: TeamRole;
+  createdAt: string;
+  expiresAt: string | null;
+  usedCount: number;
+  maxUses: number | null;
+}
+
+export interface CreateInviteLinkInput {
+  role?: TeamRole;
+  expiresInDays?: number;
+  maxUses?: number;
+}
+
 export interface ArtistSummary {
   id: string;
   userId: string | null;
@@ -170,12 +204,28 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
-    listTeams: () => request<Array<{ id: string; name: string; slug: string }>>("/teams"),
+    listTeams: () => request<TeamSummary[]>("/teams"),
     createTeam: (data: { name: string; slug?: string; description?: string }) =>
-      request<{ id: string; name: string; slug: string }>("/teams", {
+      request<TeamSummary>("/teams", {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    getTeam: (teamId: string) => request<TeamSummary>(`/teams/${teamId}`),
+    joinTeamByToken: (token: string) => request<TeamSummary>(`/teams/join/${token}`, { method: "POST" }),
+    listTeamMembers: (teamId: string) => request<TeamMember[]>(`/teams/${teamId}/members`),
+    updateTeamMemberRole: (teamId: string, memberUserId: string, role: TeamRole) =>
+      request<TeamMember>(`/teams/${teamId}/members/${memberUserId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role }),
+      }),
+    removeTeamMember: (teamId: string, memberUserId: string) =>
+      request<void>(`/teams/${teamId}/members/${memberUserId}`, { method: "DELETE" }),
+    leaveTeam: (teamId: string) => request<void>(`/teams/${teamId}/leave`, { method: "POST" }),
+    listTeamInviteLinks: (teamId: string) => request<TeamInviteLink[]>(`/teams/${teamId}/invite-links`),
+    createTeamInviteLink: (teamId: string, data: CreateInviteLinkInput) =>
+      request<TeamInviteLink>(`/teams/${teamId}/invite-links`, { method: "POST", body: JSON.stringify(data) }),
+    revokeTeamInviteLink: (teamId: string, linkId: string) =>
+      request<void>(`/teams/${teamId}/invite-links/${linkId}`, { method: "DELETE" }),
     listWorks: () => request<Array<{ id: string; title: string | null; createdAt: string }>>("/works"),
     getWork: (workId: string) => request<WorkDetail>(`/works/${workId}`),
     listSongVersions: () => request<SongVersionSummary[]>("/song-versions"),

@@ -129,8 +129,11 @@ function Dashboard() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-sm">{t("dashboard.teams")}</CardTitle>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/teams/new">{t("teams.createTeam")}</Link>
+          </Button>
         </CardHeader>
         <CardContent>
           {teams.length === 0 ? (
@@ -138,9 +141,15 @@ function Dashboard() {
           ) : (
             <ul className="flex flex-col divide-y">
               {teams.map((team) => (
-                <li key={team.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
-                  <span className="font-medium">{team.name}</span>
-                  <span className="text-xs text-muted-foreground">{team.slug}</span>
+                <li key={team.id}>
+                  <Link
+                    to="/teams/$teamId"
+                    params={{ teamId: team.id }}
+                    className="flex items-center justify-between py-3 first:pt-0 last:pb-0 hover:text-primary"
+                  >
+                    <span className="font-medium">{team.name}</span>
+                    <span className="text-xs text-muted-foreground">{team.slug}</span>
+                  </Link>
                 </li>
               ))}
             </ul>
