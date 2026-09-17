@@ -18,10 +18,11 @@ function loadFixture(name: string): unknown {
 
 async function seedTagCategories() {
   for (const category of SEED_TAG_CATEGORIES) {
+    const translations = { fr: category.fr };
     await prisma.tagCategory.upsert({
       where: { slug: category.slug },
-      update: { label: category.label },
-      create: { slug: category.slug, label: category.label, isGlobal: true },
+      update: { label: category.label, translations },
+      create: { slug: category.slug, label: category.label, translations, isGlobal: true },
     });
   }
   console.log(`Seeded ${SEED_TAG_CATEGORIES.length} tag categories.`);
@@ -29,12 +30,45 @@ async function seedTagCategories() {
 
 // A modest curated starting set per category - enough to make tagging
 // useful immediately. Users/teams can add their own scoped tags later;
-// this seed only covers the admin-curated global ones.
-const SEED_TAGS: Record<string, string[]> = {
-  theme: ["Christmas", "Easter", "Communion", "Baptism", "Advent", "Thanksgiving", "Funeral & Memorial", "Wedding"],
-  style: ["Contemporary", "Traditional Hymn", "Gospel", "Folk", "Acoustic", "Rock", "Orchestral", "Jazz"],
-  mood: ["Joyful", "Reflective", "Triumphant", "Peaceful", "Intense", "Tender"],
-  instrumentation: ["Guitar-led", "Piano-led", "Full Band", "A Cappella", "Orchestral", "Acoustic Only"],
+// this seed only covers the admin-curated global ones. `en` is the
+// canonical label (and slug source); `fr` seeds Tag.translations.
+const SEED_TAGS: Record<string, Array<{ en: string; fr: string }>> = {
+  theme: [
+    { en: "Christmas", fr: "Noël" },
+    { en: "Easter", fr: "Pâques" },
+    { en: "Communion", fr: "Communion" },
+    { en: "Baptism", fr: "Baptême" },
+    { en: "Advent", fr: "Avent" },
+    { en: "Thanksgiving", fr: "Action de grâce" },
+    { en: "Funeral & Memorial", fr: "Funérailles" },
+    { en: "Wedding", fr: "Mariage" },
+  ],
+  style: [
+    { en: "Contemporary", fr: "Contemporain" },
+    { en: "Traditional Hymn", fr: "Hymne traditionnel" },
+    { en: "Gospel", fr: "Gospel" },
+    { en: "Folk", fr: "Folk" },
+    { en: "Acoustic", fr: "Acoustique" },
+    { en: "Rock", fr: "Rock" },
+    { en: "Orchestral", fr: "Orchestral" },
+    { en: "Jazz", fr: "Jazz" },
+  ],
+  mood: [
+    { en: "Joyful", fr: "Joyeux" },
+    { en: "Reflective", fr: "Méditatif" },
+    { en: "Triumphant", fr: "Triomphant" },
+    { en: "Peaceful", fr: "Paisible" },
+    { en: "Intense", fr: "Intense" },
+    { en: "Tender", fr: "Tendre" },
+  ],
+  instrumentation: [
+    { en: "Guitar-led", fr: "Guitare principale" },
+    { en: "Piano-led", fr: "Piano principal" },
+    { en: "Full Band", fr: "Groupe complet" },
+    { en: "A Cappella", fr: "A cappella" },
+    { en: "Orchestral", fr: "Orchestral" },
+    { en: "Acoustic Only", fr: "Acoustique uniquement" },
+  ],
 };
 
 function slugify(label: string): string {
@@ -48,15 +82,16 @@ function slugify(label: string): string {
 async function seedTags() {
   let count = 0;
   for (const category of SEED_TAG_CATEGORIES) {
-    const labels = SEED_TAGS[category.slug] ?? [];
-    if (labels.length === 0) continue;
+    const entries = SEED_TAGS[category.slug] ?? [];
+    if (entries.length === 0) continue;
     const { id: categoryId } = await prisma.tagCategory.findUniqueOrThrow({ where: { slug: category.slug } });
-    for (const [index, label] of labels.entries()) {
+    for (const [index, { en: label, fr }] of entries.entries()) {
       const slug = slugify(label);
+      const translations = { fr };
       await prisma.tag.upsert({
         where: { slug },
-        update: { label, sortOrder: index },
-        create: { categoryId, slug, label, scope: "GLOBAL", isApproved: true, sortOrder: index },
+        update: { label, translations, sortOrder: index },
+        create: { categoryId, slug, label, translations, scope: "GLOBAL", isApproved: true, sortOrder: index },
       });
       count++;
     }

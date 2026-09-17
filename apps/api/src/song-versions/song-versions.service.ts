@@ -36,7 +36,10 @@ const LIST_SELECT = {
     orderBy: { displayOrder: "asc" },
   },
   versionTags: {
-    select: { id: true, tag: { select: { id: true, categoryId: true, slug: true, label: true } } },
+    select: {
+      id: true,
+      tag: { select: { id: true, categoryId: true, slug: true, label: true, translations: true } },
+    },
   },
 } satisfies Prisma.SongVersionSelect;
 

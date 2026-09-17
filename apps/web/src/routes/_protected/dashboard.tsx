@@ -1,8 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { SUPPORTED_LOCALES, type LocaleValue } from "@songverse/core";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ListMusic, Mic2, Music2, Users } from "lucide-react";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Label } from "#/components/ui/label";
+
+const LOCALE_NAMES: Record<LocaleValue, string> = { en: "English", fr: "Français" };
 
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: async ({ context }) => {
@@ -18,16 +24,29 @@ function artistLabel(artists: { userId: string | null; source: string | null }[]
 }
 
 function Dashboard() {
+  const { t } = useTranslation();
+  const router = useRouter();
   const { session, teams, versions } = Route.useLoaderData();
   const recentVersions = versions.slice(0, 5);
   const distinctArtists = new Set(
     versions.flatMap((v) => v.artists.map((a) => a.source ?? a.userId).filter((a): a is string => Boolean(a))),
   );
+  const [savingLocale, setSavingLocale] = useState(false);
+
+  async function changeLocale(locale: LocaleValue) {
+    setSavingLocale(true);
+    try {
+      await apiClient.updateMe({ locale });
+      await router.invalidate();
+    } finally {
+      setSavingLocale(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">Welcome back, {session.displayName}</h1>
+        <h1 className="text-2xl font-semibold">{t("dashboard.welcomeBack", { name: session.displayName })}</h1>
         <p className="text-sm text-muted-foreground">{session.email}</p>
       </div>
 
@@ -39,7 +58,7 @@ function Dashboard() {
             </div>
             <div>
               <p className="text-2xl font-semibold leading-none">{versions.length}</p>
-              <p className="text-sm text-muted-foreground">Songs</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.songs")}</p>
             </div>
           </CardContent>
         </Card>
@@ -50,7 +69,7 @@ function Dashboard() {
             </div>
             <div>
               <p className="text-2xl font-semibold leading-none">{distinctArtists.size}</p>
-              <p className="text-sm text-muted-foreground">Artists</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.artists")}</p>
             </div>
           </CardContent>
         </Card>
@@ -61,7 +80,7 @@ function Dashboard() {
             </div>
             <div>
               <p className="text-2xl font-semibold leading-none">{teams.length}</p>
-              <p className="text-sm text-muted-foreground">Teams</p>
+              <p className="text-sm text-muted-foreground">{t("dashboard.teams")}</p>
             </div>
           </CardContent>
         </Card>
@@ -69,18 +88,18 @@ function Dashboard() {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-sm">Recently updated</CardTitle>
+          <CardTitle className="text-sm">{t("dashboard.recentlyUpdated")}</CardTitle>
           <Button asChild variant="ghost" size="sm">
-            <Link to="/library">View all</Link>
+            <Link to="/library">{t("dashboard.viewAll")}</Link>
           </Button>
         </CardHeader>
         <CardContent>
           {recentVersions.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center text-sm text-muted-foreground">
               <ListMusic className="size-8" />
-              <p>No songs yet. Add your first one to get started.</p>
+              <p>{t("dashboard.noSongsYet")}</p>
               <Button asChild size="sm">
-                <Link to="/library/new">+ Add a song</Link>
+                <Link to="/library/new">{t("dashboard.addASong")}</Link>
               </Button>
             </div>
           ) : (
@@ -111,11 +130,11 @@ function Dashboard() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Teams</CardTitle>
+          <CardTitle className="text-sm">{t("dashboard.teams")}</CardTitle>
         </CardHeader>
         <CardContent>
           {teams.length === 0 ? (
-            <p className="text-sm text-muted-foreground">You're not part of any teams yet.</p>
+            <p className="text-sm text-muted-foreground">{t("dashboard.noTeamsYet")}</p>
           ) : (
             <ul className="flex flex-col divide-y">
               {teams.map((team) => (
@@ -126,6 +145,28 @@ function Dashboard() {
               ))}
             </ul>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">{t("dashboard.language")}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1.5">
+          <Label htmlFor="locale">{t("dashboard.languageDescription")}</Label>
+          <select
+            id="locale"
+            value={session.locale}
+            disabled={savingLocale}
+            onChange={(e) => void changeLocale(e.target.value as LocaleValue)}
+            className="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+          >
+            {SUPPORTED_LOCALES.map((locale) => (
+              <option key={locale} value={locale}>
+                {LOCALE_NAMES[locale]}
+              </option>
+            ))}
+          </select>
         </CardContent>
       </Card>
     </div>

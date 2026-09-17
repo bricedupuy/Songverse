@@ -10,5 +10,6 @@ export * from "./chordpro/section-labels.js";
 export * from "./chordpro/serializer.js";
 export * from "./chords-over-lyrics/parser.js";
 export * from "./import-detection/detect-format.js";
+export * from "./i18n/index.js";
 export * from "./streaming-links/parser.js";
 export * from "./api-client/index.js";

@@ -88,12 +88,20 @@ export type TeamRoleValue = (typeof TEAM_ROLES)[number];
 export const DISPLAY_MODES = ["SINGER", "GUITAR", "PIANO", "UKULELE", "LEADER", "DRUMMER"] as const;
 export type DisplayModeValue = (typeof DISPLAY_MODES)[number];
 
+// UI locales the app has translations for. French is first alongside the
+// English default; add more here (and a matching packages/core/src/i18n
+// dictionary) as new languages ship.
+export const SUPPORTED_LOCALES = ["en", "fr"] as const;
+export type LocaleValue = (typeof SUPPORTED_LOCALES)[number];
+export const DEFAULT_LOCALE: LocaleValue = "en";
+
 // Seed tag category types (Section 10 of the spec). Admins can add more.
+// `label` is the English fallback; `fr` seeds TagCategory.translations.
 export const SEED_TAG_CATEGORIES = [
-  { slug: "theme", label: "Theme" },
-  { slug: "style", label: "Musical Style" },
-  { slug: "mood", label: "Mood / Energy" },
-  { slug: "instrumentation", label: "Instrumentation" },
+  { slug: "theme", label: "Theme", fr: "Thème" },
+  { slug: "style", label: "Musical Style", fr: "Style musical" },
+  { slug: "mood", label: "Mood / Energy", fr: "Ambiance" },
+  { slug: "instrumentation", label: "Instrumentation", fr: "Instrumentation" },
 ] as const;
 
 // Seed tuning presets (Section 22 of the spec).

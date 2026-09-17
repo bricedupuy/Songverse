@@ -1,5 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { I18nextProvider } from "react-i18next";
 import { AppShell } from "#/components/app-shell";
+import { createI18n } from "#/lib/i18n";
 import { getSession } from "#/lib/server-auth";
 
 /**
@@ -20,9 +23,17 @@ export const Route = createFileRoute("/_protected")({
 
 function RouteComponent() {
   const { session } = Route.useRouteContext();
+  // Recreated only when the locale actually changes (e.g. after the
+  // dashboard's language picker triggers a router.invalidate()), not on
+  // every render - see createI18n's own note on why this isn't a
+  // module-level singleton.
+  const i18n = useMemo(() => createI18n(session.locale), [session.locale]);
+
   return (
-    <AppShell session={session}>
-      <Outlet />
-    </AppShell>
+    <I18nextProvider i18n={i18n}>
+      <AppShell session={session}>
+        <Outlet />
+      </AppShell>
+    </I18nextProvider>
   );
 }

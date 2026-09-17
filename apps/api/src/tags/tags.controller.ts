@@ -13,13 +13,13 @@ export class TagsController {
 
   @Get("categories")
   @ApiOkResponse({ type: TagCategoryResponseDto, isArray: true })
-  findCategories() {
+  findCategories(): ReturnType<TagsService["findCategories"]> {
     return this.tagsService.findCategories();
   }
 
   @Get()
   @ApiOkResponse({ type: TagResponseDto, isArray: true })
-  findAll(@CurrentUser() user?: AuthenticatedUser) {
+  findAll(@CurrentUser() user?: AuthenticatedUser): ReturnType<TagsService["findVisibleToUser"]> {
     if (!user) throw new UnauthorizedException();
     return this.tagsService.findVisibleToUser(user.id);
   }

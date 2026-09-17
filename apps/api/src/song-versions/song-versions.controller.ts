@@ -44,7 +44,7 @@ export class SongVersionsController {
 
   @Get()
   @ApiOkResponse({ type: SongVersionResponseDto, isArray: true })
-  findAll(@CurrentUser() user?: AuthenticatedUser) {
+  findAll(@CurrentUser() user?: AuthenticatedUser): ReturnType<SongVersionsService["findVisibleToUser"]> {
     if (!user) throw new UnauthorizedException();
     return this.songVersionsService.findVisibleToUser(user.id);
   }
@@ -57,7 +57,10 @@ export class SongVersionsController {
 
   @Post()
   @ApiCreatedResponse({ type: SongVersionResponseDto })
-  create(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: CreateSongVersionDto) {
+  create(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Body() dto: CreateSongVersionDto,
+  ): ReturnType<SongVersionsService["create"]> {
     if (!user) throw new UnauthorizedException();
     return this.songVersionsService.create(user, dto);
   }
@@ -112,7 +115,10 @@ export class SongVersionsController {
 
   @Put(":songVersionId/tags/:tagId")
   @UseGuards(SongVersionOwnerGuard)
-  addTag(@Param("songVersionId") songVersionId: string, @Param("tagId") tagId: string) {
+  addTag(
+    @Param("songVersionId") songVersionId: string,
+    @Param("tagId") tagId: string,
+  ): ReturnType<SongVersionsService["addTag"]> {
     return this.songVersionsService.addTag(songVersionId, tagId);
   }
 

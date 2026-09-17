@@ -1,8 +1,9 @@
-import { CONTRIBUTOR_ROLES, detectImportFormat } from "@songverse/core";
+import { CONTRIBUTOR_ROLES, detectImportFormat, resolveTranslation, type LocaleValue } from "@songverse/core";
 
 const NON_ARTIST_ROLES = CONTRIBUTOR_ROLES.filter((r) => r !== "performer");
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { MusicBrainzMatchPanel } from "#/components/musicbrainz-match-panel";
 import { SongChart } from "#/components/song-chart";
@@ -36,6 +37,8 @@ function SongVersionDetail() {
   const { version, work, recordingMatch, workMatch, tagCategories, availableTags } = Route.useLoaderData();
   const router = useRouter();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
+  const locale = i18n.language as LocaleValue;
 
   const [title, setTitle] = useState(version.title);
   const [alternateTitle, setAlternateTitle] = useState(version.alternateTitle ?? "");
@@ -499,7 +502,7 @@ function SongVersionDetail() {
           ) : (
             tagsByCategory.map(({ category, tags }) => (
               <div key={category.id} className="flex flex-col gap-1.5">
-                <Label>{category.label}</Label>
+                <Label>{resolveTranslation(category.label, category.translations, locale)}</Label>
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag) => {
                     const isOn = tagIds.has(tag.id);
@@ -515,7 +518,7 @@ function SongVersionDetail() {
                             : "rounded-full border px-3 py-1 text-sm text-muted-foreground hover:bg-accent disabled:opacity-50"
                         }
                       >
-                        {tag.label}
+                        {resolveTranslation(tag.label, tag.translations, locale)}
                       </button>
                     );
                   })}

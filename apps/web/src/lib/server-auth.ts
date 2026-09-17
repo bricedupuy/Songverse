@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { prisma } from "@songverse/db";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type LocaleValue } from "@songverse/core";
 import { auth } from "./auth";
 
 export interface AppSession {
@@ -8,6 +9,11 @@ export interface AppSession {
   email: string;
   displayName: string;
   isGlobalAdmin: boolean;
+  locale: LocaleValue;
+}
+
+function asLocale(value: string): LocaleValue {
+  return (SUPPORTED_LOCALES as readonly string[]).includes(value) ? (value as LocaleValue) : DEFAULT_LOCALE;
 }
 
 async function loadSession(): Promise<AppSession | null> {
@@ -16,7 +22,7 @@ async function loadSession(): Promise<AppSession | null> {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { id: true, email: true, displayName: true, isGlobalAdmin: true },
+    select: { id: true, email: true, displayName: true, isGlobalAdmin: true, locale: true },
   });
   if (!user) return null;
 
@@ -25,6 +31,7 @@ async function loadSession(): Promise<AppSession | null> {
     email: user.email,
     displayName: user.displayName,
     isGlobalAdmin: user.isGlobalAdmin,
+    locale: asLocale(user.locale),
   };
 }
 

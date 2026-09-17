@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
+import type { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class TagsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findCategories() {
+  findCategories(): Promise<Prisma.TagCategoryGetPayload<object>[]> {
     return this.prisma.client.tagCategory.findMany({
       orderBy: { sortOrder: "asc" },
     });
@@ -15,7 +16,7 @@ export class TagsService {
    * Lists tags visible to the user: approved global tags, plus their own
    * private tags, plus their teams' private tags.
    */
-  async findVisibleToUser(userId: string) {
+  async findVisibleToUser(userId: string): Promise<Prisma.TagGetPayload<object>[]> {
     const teamIds = (
       await this.prisma.client.teamMembership.findMany({
         where: { userId },

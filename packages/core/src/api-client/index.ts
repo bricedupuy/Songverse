@@ -17,6 +17,7 @@ export interface TagCategory {
   id: string;
   slug: string;
   label: string;
+  translations: Record<string, string> | null;
   isGlobal: boolean;
 }
 
@@ -25,6 +26,7 @@ export interface Tag {
   categoryId: string;
   slug: string;
   label: string;
+  translations: Record<string, string> | null;
   scope: string;
   isApproved: boolean;
 }
@@ -155,7 +157,12 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
   }
 
   return {
-    getMe: () => request<{ id: string; email: string; displayName: string }>("/users/me"),
+    getMe: () => request<{ id: string; email: string; displayName: string; locale: string }>("/users/me"),
+    updateMe: (data: { locale?: string }) =>
+      request<{ id: string; email: string; displayName: string; locale: string }>("/users/me", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
     listTeams: () => request<Array<{ id: string; name: string; slug: string }>>("/teams"),
     createTeam: (data: { name: string; slug?: string; description?: string }) =>
       request<{ id: string; name: string; slug: string }>("/teams", {

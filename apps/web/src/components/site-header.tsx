@@ -1,4 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "#/components/ui/breadcrumb";
 import { Separator } from "#/components/ui/separator";
 import { SidebarTrigger } from "#/components/ui/sidebar";
@@ -9,18 +10,24 @@ interface Crumb {
 }
 
 function useBreadcrumbs(): Crumb[] {
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const loaderData = useRouterState({
     select: (s) => s.matches.at(-1)?.loaderData as { version?: { title?: string } } | undefined,
   });
 
-  if (pathname === "/dashboard") return [{ label: "Dashboard" }];
-  if (pathname === "/library") return [{ label: "Library" }];
-  if (pathname === "/library/new") return [{ label: "Library", to: "/library" }, { label: "Add a song" }];
-  if (pathname.startsWith("/library/")) {
-    return [{ label: "Library", to: "/library" }, { label: loaderData?.version?.title ?? "Song" }];
+  if (pathname === "/dashboard") return [{ label: t("nav.dashboard") }];
+  if (pathname === "/library") return [{ label: t("nav.library") }];
+  if (pathname === "/library/new") {
+    return [{ label: t("nav.library"), to: "/library" }, { label: t("breadcrumb.addASong") }];
   }
-  return [{ label: "Library" }];
+  if (pathname.startsWith("/library/")) {
+    return [
+      { label: t("nav.library"), to: "/library" },
+      { label: loaderData?.version?.title ?? t("breadcrumb.song") },
+    ];
+  }
+  return [{ label: t("nav.library") }];
 }
 
 export function SiteHeader() {

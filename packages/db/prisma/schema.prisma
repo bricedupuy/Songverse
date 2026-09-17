@@ -208,6 +208,7 @@ model User {
   updatedAt     DateTime @updatedAt
 
   // Preferences
+  locale            String            @default("en") // UI language - see SUPPORTED_LOCALES in packages/core
   displayMode       DisplayMode       @default(GUITAR)
   capoDisplayMode   CapoDisplayMode   @default(SOUNDING)
   voicingPreference VoicingPreference @default(AUTO)
@@ -414,7 +415,12 @@ model WorkIdentifier {
 model TagCategory {
   id          String   @id @default(cuid())
   slug        String   @unique  // e.g. "theme", "style", "season"
-  label       String            // e.g. "Theme", "Musical Style", "Liturgical Season"
+  label       String            // e.g. "Theme", "Musical Style", "Liturgical Season" - English fallback
+  // Per-locale overrides, e.g. {"fr": "Thème"}. A locale missing here falls
+  // back to `label`. Keyed by the app's locale codes (see SUPPORTED_LOCALES
+  // in packages/core), not full BCP 47 - these are UI display labels, not
+  // the song-content `language` field elsewhere in the schema.
+  translations Json?
   description String?
   sortOrder   Int      @default(0)
   isGlobal    Boolean  @default(true)  // false = user/team-defined category
@@ -432,7 +438,11 @@ model Tag {
   id          String    @id @default(cuid())
   categoryId  String
   slug        String    @unique  // e.g. "easter", "jazz", "advent"
-  label       String             // e.g. "Easter", "Jazz", "Advent"
+  label       String             // e.g. "Easter", "Jazz", "Advent" - English fallback
+  // Per-locale overrides, e.g. {"fr": "Pâques"}. Same convention as
+  // TagCategory.translations. Only meaningful for admin-curated GLOBAL
+  // tags - a user/team's own custom tag is just their freeform text.
+  translations Json?
   description String?
   scope       TagScope  @default(GLOBAL)
   ownerUserId String?   // set when scope = USER

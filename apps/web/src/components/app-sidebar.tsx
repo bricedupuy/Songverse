@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, LogOut, Music2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { authClient } from "#/lib/auth-client";
 import type { AppSession } from "#/lib/server-auth";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
@@ -36,12 +37,13 @@ function initials(name: string): string {
   );
 }
 
-const NAV_ITEMS = [{ to: "/library", label: "Library", icon: Music2 }] as const;
-
 export function AppSidebar({ session }: { session: AppSession }) {
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { state, isMobile } = useSidebar();
   const collapsed = state === "collapsed" && !isMobile;
+
+  const navItems = [{ to: "/library" as const, label: t("nav.library"), icon: Music2 }];
 
   return (
     <Sidebar>
@@ -53,9 +55,9 @@ export function AppSidebar({ session }: { session: AppSession }) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("nav.platform")}</SidebarGroupLabel>
           <SidebarMenu>
-            {NAV_ITEMS.map((item) => (
+            {navItems.map((item) => (
               <SidebarMenuItem key={item.to}>
                 <SidebarMenuButton asChild isActive={pathname.startsWith(item.to)} tooltip={item.label}>
                   <Link to={item.to}>
@@ -89,7 +91,7 @@ export function AppSidebar({ session }: { session: AppSession }) {
                 <DropdownMenuItem asChild>
                   <Link to="/dashboard">
                     <LayoutDashboard />
-                    Dashboard
+                    {t("nav.dashboard")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -102,7 +104,7 @@ export function AppSidebar({ session }: { session: AppSession }) {
                   }}
                 >
                   <LogOut />
-                  Sign out
+                  {t("nav.signOut")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
