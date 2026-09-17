@@ -6,6 +6,7 @@ import {
   parseArrangementDocument,
   parseMidiItemTriggers,
   parseSongDocument,
+  slugify,
 } from "@songverse/core";
 import { prisma } from "./index.js";
 
@@ -72,12 +73,8 @@ const SEED_TAGS: Record<string, Array<{ en: string; fr: string }>> = {
   ],
 };
 
-function slugify(label: string): string {
-  return label
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+function tagSlug(label: string): string {
+  return slugify(label.replace(/&/g, "and"));
 }
 
 async function seedTags(log: (line: string) => void) {
@@ -87,7 +84,7 @@ async function seedTags(log: (line: string) => void) {
     if (entries.length === 0) continue;
     const { id: categoryId } = await prisma.tagCategory.findUniqueOrThrow({ where: { slug: category.slug } });
     for (const [index, { en: label, fr }] of entries.entries()) {
-      const slug = slugify(label);
+      const slug = tagSlug(label);
       const translations = { fr };
       await prisma.tag.upsert({
         where: { slug },

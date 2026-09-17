@@ -1,20 +1,9 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { TeamRoleValue } from "@songverse/core";
+import { slugify, type TeamRoleValue } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
 import type { CreateInviteLinkDto } from "./dto/create-invite-link.dto";
 import type { CreateTeamDto } from "./dto/create-team.dto";
-
-function slugify(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "") // strip combining diacritical marks (é -> e, ô -> o, ç -> c, ...)
-    .toLowerCase()
-    .trim()
-    .replace(/['’]/g, "") // drop apostrophes rather than turning them into a hyphen
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
 
 @Injectable()
 export class TeamsService {
