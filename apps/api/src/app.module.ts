@@ -2,6 +2,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
+import { AdminModule } from "./admin/admin.module";
 import { AppController } from "./app.controller";
 import { AuthModule } from "./auth/auth.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
@@ -30,6 +31,7 @@ import { WorksModule } from "./works/works.module";
     SongVersionsModule,
     TagsModule,
     MusicBrainzModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

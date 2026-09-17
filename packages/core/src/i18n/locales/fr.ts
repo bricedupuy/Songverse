@@ -7,6 +7,7 @@ const fr: typeof en = {
     platform: "Plateforme",
     library: "Bibliothèque",
     dashboard: "Tableau de bord",
+    admin: "Administration",
     signOut: "Se déconnecter",
   },
   dashboard: {
@@ -37,6 +38,23 @@ const fr: typeof en = {
   breadcrumb: {
     addASong: "Ajouter une chanson",
     song: "Chanson",
+  },
+  admin: {
+    title: "Administration",
+    description: "Outils opérationnels pour les administrateurs globaux.",
+    serverAndApi: "Serveur et API",
+    serverAndApiDescription:
+      "Tâches de maintenance de la base de données qui nécessitaient auparavant un terminal dans le conteneur de l'API.",
+    migrationStatus: "État des migrations",
+    migrationStatusDescription: "Compare les migrations présentes sur le disque à celles appliquées à la base de données.",
+    checkStatus: "Vérifier",
+    checking: "Vérification…",
+    runSeed: "Exécuter le script de départ",
+    runSeedDescription:
+      "Réapplique les données de départ (catégories d'étiquettes, étiquettes, préréglages d'accordage). Sans risque à réexécuter.",
+    running: "Exécution…",
+    confirm: "Confirmer",
+    cancel: "Annuler",
   },
 };
 

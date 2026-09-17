@@ -7,6 +7,13 @@ export interface ApiClientOptions {
   getToken: () => Promise<string | null>;
 }
 
+export interface AdminCommandResult {
+  ok: boolean;
+  command: string;
+  stdout: string;
+  stderr: string;
+}
+
 export interface ArtistSummary {
   id: string;
   userId: string | null;
@@ -233,6 +240,9 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       }),
     unlinkWorkMusicBrainz: (workId: string) =>
       request<void>(`/works/${workId}/musicbrainz-link`, { method: "DELETE" }),
+
+    adminMigrationStatus: () => request<AdminCommandResult>("/admin/migrations/status"),
+    adminRunSeed: () => request<AdminCommandResult>("/admin/seed", { method: "POST" }),
   };
 }
 

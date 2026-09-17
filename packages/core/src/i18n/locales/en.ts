@@ -7,6 +7,7 @@ const en = {
     platform: "Platform",
     library: "Library",
     dashboard: "Dashboard",
+    admin: "Admin",
     signOut: "Sign out",
   },
   dashboard: {
@@ -37,6 +38,21 @@ const en = {
   breadcrumb: {
     addASong: "Add a song",
     song: "Song",
+  },
+  admin: {
+    title: "Admin",
+    description: "Operational tools for global admins.",
+    serverAndApi: "Server & API",
+    serverAndApiDescription: "Database maintenance tasks that used to require a terminal in the API container.",
+    migrationStatus: "Migration status",
+    migrationStatusDescription: "Compares migrations on disk against what's applied to the database.",
+    checkStatus: "Check status",
+    checking: "Checking…",
+    runSeed: "Run seed script",
+    runSeedDescription: "Re-applies the seed data (tag categories, tags, tuning presets). Safe to re-run.",
+    running: "Running…",
+    confirm: "Confirm",
+    cancel: "Cancel",
   },
 };
 

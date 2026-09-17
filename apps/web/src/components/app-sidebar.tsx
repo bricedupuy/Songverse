@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, Music2 } from "lucide-react";
+import { LayoutDashboard, LogOut, Music2, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { authClient } from "#/lib/auth-client";
 import type { AppSession } from "#/lib/server-auth";
@@ -43,7 +43,10 @@ export function AppSidebar({ session }: { session: AppSession }) {
   const { state, isMobile } = useSidebar();
   const collapsed = state === "collapsed" && !isMobile;
 
-  const navItems = [{ to: "/library" as const, label: t("nav.library"), icon: Music2 }];
+  const navItems = [
+    { to: "/library" as const, label: t("nav.library"), icon: Music2 },
+    ...(session.isGlobalAdmin ? [{ to: "/admin" as const, label: t("nav.admin"), icon: ShieldCheck }] : []),
+  ];
 
   return (
     <Sidebar>
