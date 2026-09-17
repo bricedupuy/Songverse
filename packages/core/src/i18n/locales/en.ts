@@ -9,6 +9,8 @@ const en = {
     dashboard: "Dashboard",
     admin: "Admin",
     signOut: "Sign out",
+    teams: "Teams",
+    noTeams: "No teams yet",
   },
   dashboard: {
     welcomeBack: "Welcome back, {{name}}",

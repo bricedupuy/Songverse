@@ -1,5 +1,7 @@
+import type { TeamSummary } from "@songverse/core";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, LogOut, Music2, ShieldCheck } from "lucide-react";
+import { ChevronRight, LayoutDashboard, LogOut, Music2, ShieldCheck, Users } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { authClient } from "#/lib/auth-client";
 import type { AppSession } from "#/lib/server-auth";
@@ -37,11 +39,12 @@ function initials(name: string): string {
   );
 }
 
-export function AppSidebar({ session }: { session: AppSession }) {
+export function AppSidebar({ session, teams }: { session: AppSession; teams: TeamSummary[] }) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { state, isMobile } = useSidebar();
   const collapsed = state === "collapsed" && !isMobile;
+  const [teamsOpen, setTeamsOpen] = useState(true);
 
   const navItems = [
     { to: "/library" as const, label: t("nav.library"), icon: Music2 },
@@ -71,6 +74,41 @@ export function AppSidebar({ session }: { session: AppSession }) {
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>
+            <button
+              type="button"
+              onClick={() => setTeamsOpen((open) => !open)}
+              className="flex w-full items-center justify-between"
+            >
+              <span>{t("nav.teams")}</span>
+              <ChevronRight className={`size-3.5 transition-transform ${teamsOpen ? "rotate-90" : ""}`} />
+            </button>
+          </SidebarGroupLabel>
+          {teamsOpen ? (
+            <SidebarMenu>
+              {teams.length === 0 ? (
+                collapsed ? null : <p className="px-2 py-1 text-xs text-muted-foreground">{t("nav.noTeams")}</p>
+              ) : (
+                teams.map((team) => (
+                  <SidebarMenuItem key={team.id}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === `/teams/${team.id}`}
+                      tooltip={team.name}
+                    >
+                      <Link to="/teams/$teamId" params={{ teamId: team.id }}>
+                        <Users />
+                        <span>{team.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))
+              )}
+            </SidebarMenu>
+          ) : null}
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>

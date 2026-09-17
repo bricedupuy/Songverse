@@ -12,8 +12,8 @@ const LOCALE_NAMES: Record<LocaleValue, string> = { en: "English", fr: "Françai
 
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: async ({ context }) => {
-    const [teams, versions] = await Promise.all([apiClient.listTeams(), apiClient.listSongVersions()]);
-    return { session: context.session, teams, versions };
+    const versions = await apiClient.listSongVersions();
+    return { session: context.session, teams: context.teams, versions };
   },
   component: Dashboard,
 });

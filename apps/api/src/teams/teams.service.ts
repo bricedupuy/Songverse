@@ -7,8 +7,11 @@ import type { CreateTeamDto } from "./dto/create-team.dto";
 
 function slugify(name: string): string {
   return name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "") // strip combining diacritical marks (é -> e, ô -> o, ç -> c, ...)
     .toLowerCase()
     .trim()
+    .replace(/['’]/g, "") // drop apostrophes rather than turning them into a hyphen
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }

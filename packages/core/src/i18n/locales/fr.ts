@@ -9,6 +9,8 @@ const fr: typeof en = {
     dashboard: "Tableau de bord",
     admin: "Administration",
     signOut: "Se déconnecter",
+    teams: "Équipes",
+    noTeams: "Aucune équipe pour l'instant",
   },
   dashboard: {
     welcomeBack: "Bon retour, {{name}}",
