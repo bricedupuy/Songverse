@@ -26,10 +26,16 @@ function TeamDetail() {
   const { session, team, members, inviteLinks } = Route.useLoaderData();
   const isAdmin = team.currentUserRole === "ADMIN";
 
+  const isSoleMember = members.length === 1;
+  const isSoleAdmin = isAdmin && members.filter((m) => m.role === "ADMIN").length === 1;
+  const otherMembers = members.filter((m) => m.userId !== session.userId);
+
   const [error, setError] = useState<string | null>(null);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [confirmingLeave, setConfirmingLeave] = useState(false);
+  const [promotingBeforeLeave, setPromotingBeforeLeave] = useState(false);
+  const [promoteTargetUserId, setPromoteTargetUserId] = useState("");
 
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -92,6 +98,20 @@ function TeamDetail() {
       setError(err instanceof Error ? err.message : String(err));
       setLeaving(false);
       setConfirmingLeave(false);
+    }
+  }
+
+  async function promoteAndLeave() {
+    if (!promoteTargetUserId) return;
+    setLeaving(true);
+    setError(null);
+    try {
+      await apiClient.updateTeamMemberRole(team.id, promoteTargetUserId, "ADMIN");
+      await apiClient.leaveTeam(team.id);
+      window.location.href = "/dashboard";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setLeaving(false);
     }
   }
 
@@ -159,7 +179,40 @@ function TeamDetail() {
               </Button>
             )
           ) : null}
-          {confirmingLeave ? (
+          {isSoleMember ? null : isSoleAdmin ? (
+            promotingBeforeLeave ? (
+              <div className="flex items-center gap-2">
+                <select
+                  value={promoteTargetUserId}
+                  onChange={(e) => setPromoteTargetUserId(e.target.value)}
+                  disabled={leaving}
+                  className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                >
+                  <option value="">{t("teams.chooseMember")}</option>
+                  {otherMembers.map((m) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.displayName}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => void promoteAndLeave()}
+                  disabled={!promoteTargetUserId || leaving}
+                >
+                  {leaving ? t("teams.leaving") : t("teams.promoteAndLeave")}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setPromotingBeforeLeave(false)} disabled={leaving}>
+                  {t("teams.cancel")}
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setPromotingBeforeLeave(true)}>
+                {t("teams.leaveTeam")}
+              </Button>
+            )
+          ) : confirmingLeave ? (
             <div className="flex items-center gap-2">
               <Button variant="destructive" size="sm" onClick={() => void leaveTeam()} disabled={leaving}>
                 {leaving ? t("teams.leaving") : t("teams.confirmLeave")}
@@ -175,6 +228,9 @@ function TeamDetail() {
           )}
         </div>
       </div>
+      {promotingBeforeLeave ? (
+        <p className="text-sm text-muted-foreground">{t("teams.promoteBeforeLeaveDescription")}</p>
+      ) : null}
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 

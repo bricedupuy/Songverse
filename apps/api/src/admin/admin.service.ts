@@ -1,9 +1,10 @@
 import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { runSeed } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
-import { StorageService } from "../storage/storage.service";
+import { MissingEncryptionKeyError } from "../storage/secret-crypto";
+import { StorageService, type SaveStorageConfigInput } from "../storage/storage.service";
 
 // packages/db is always a sibling two levels up from wherever the API
 // process's cwd is - true both in local dev (pnpm runs each package's
@@ -57,8 +58,8 @@ export class AdminService {
   }
 
   async storageStats() {
-    const [{ driver }, aggregate, grouped] = await Promise.all([
-      Promise.resolve(this.storage.describe()),
+    const [{ driver, source }, aggregate, grouped] = await Promise.all([
+      this.storage.describe(),
       this.prisma.client.attachment.aggregate({
         _count: { _all: true },
         _sum: { sizeBytes: true },
@@ -68,10 +69,28 @@ export class AdminService {
 
     return {
       driver,
+      source,
       attachmentCount: aggregate._count._all,
       totalBytes: aggregate._sum.sizeBytes ?? 0,
       byType: Object.fromEntries(grouped.map((g) => [g.type, g._count._all])),
     };
+  }
+
+  getStorageConfig(): ReturnType<StorageService["getConfigSummary"]> {
+    return this.storage.getConfigSummary();
+  }
+
+  async saveStorageConfig(input: SaveStorageConfigInput): Promise<void> {
+    try {
+      await this.storage.saveConfig(input);
+    } catch (error) {
+      if (error instanceof MissingEncryptionKeyError) throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
+
+  clearStorageConfig(): Promise<void> {
+    return this.storage.clearConfig();
   }
 
   /**

@@ -60,22 +60,41 @@ DATABASE_URL=<Postgres connection string>
 REDIS_URL=<Redis connection string>
 AUTH_URL=https://songverse.one
 PORT=3001
-R2_ACCOUNT_ID=<Cloudflare account ID>
-R2_ACCESS_KEY_ID=<R2 API token access key ID>
-R2_SECRET_ACCESS_KEY=<R2 API token secret access key>
-R2_BUCKET=songverse
+SETTINGS_ENCRYPTION_KEY=<any long random string>
 ```
-`R2_ENDPOINT` is optional — leave it unset and it defaults to
-`https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`; only set it if using a
-custom R2 endpoint/domain.
 
-**If the `R2_*` vars are left unset**, song attachments (uploaded ChordPro
+**Object storage (R2) has two setup paths** — pick one:
+
+1. **Preferred: Admin > Storage** (in the web app, once it's up). Enter the
+   account ID, access key ID, secret access key, and bucket there; it's
+   saved in the database (secret access key encrypted with
+   `SETTINGS_ENCRYPTION_KEY`) and takes effect immediately, no redeploy or
+   env var needed. This requires `SETTINGS_ENCRYPTION_KEY` to be set on
+   **both** the API and Worker apps (same value on both — it's what
+   decrypts the stored secret), generated with:
+   ```
+   node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+   ```
+2. **Fallback: env vars**, only used when nothing has been saved via the
+   admin dashboard:
+   ```
+   R2_ACCOUNT_ID=<Cloudflare account ID>
+   R2_ACCESS_KEY_ID=<R2 API token access key ID>
+   R2_SECRET_ACCESS_KEY=<R2 API token secret access key>
+   R2_BUCKET=songverse
+   ```
+   `R2_ENDPOINT` is optional — leave it unset and it defaults to
+   `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`; only set it if using
+   a custom R2 endpoint/domain.
+
+**If neither path is configured**, song attachments (uploaded ChordPro
 files, PDF sheet music scans) silently fall back to local disk inside the
 container instead of erroring — fine for local dev, **broken in
 production**: the API and Worker are separate containers with separate
 disks, an upload handled by one won't be visible to the other, and nothing
-survives a redeploy either way. Set these before anyone uploads an
-attachment or runs a bulk content upload for real.
+survives a redeploy either way. Set one of the two paths before anyone
+uploads an attachment or runs a bulk content upload for real. Admin >
+Storage shows which path is currently active.
 
 ### Worker app
 
@@ -86,9 +105,10 @@ attachment or runs a bulk content upload for real.
 - **Command override** (usually under an "Advanced" tab, field is typically called "Command"): `node dist/worker.js`
 
 Environment variables: same as the API app (`DATABASE_URL`, `REDIS_URL`,
-`AUTH_URL`, and the `R2_*` vars above — the Worker is what actually
-processes bulk content uploads, so it needs the same real object storage
-config as the API, not local disk). `PORT` isn't used here.
+`AUTH_URL`, `SETTINGS_ENCRYPTION_KEY`, and the `R2_*` vars if using the
+env-var fallback — the Worker is what actually processes bulk content
+uploads, so it needs the same object storage config as the API, whichever
+path you chose). `PORT` isn't used here.
 
 ### Web app
 

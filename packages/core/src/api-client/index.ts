@@ -26,11 +26,32 @@ export interface AdminUserSummary {
   songCount: number;
 }
 
+export type StorageConfigSource = "database" | "env" | "none";
+
 export interface AdminStorageStats {
   driver: "s3" | "local";
+  source: StorageConfigSource;
   attachmentCount: number;
   totalBytes: number;
   byType: Record<string, number>;
+}
+
+export interface StorageConfigSummary {
+  source: StorageConfigSource;
+  driver: "s3" | "local";
+  hasDatabaseConfig: boolean;
+  accountId: string | null;
+  accessKeyIdMasked: string | null;
+  bucket: string | null;
+  endpoint: string | null;
+}
+
+export interface SaveStorageConfigInput {
+  accountId?: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  bucket?: string;
+  endpoint?: string;
 }
 
 export type TeamRole = "MEMBER" | "ADMIN";
@@ -555,6 +576,10 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     adminRunSeed: () => request<AdminCommandResult>("/admin/seed", { method: "POST" }),
     adminListUsers: () => request<AdminUserSummary[]>("/admin/users"),
     adminStorageStats: () => request<AdminStorageStats>("/admin/storage"),
+    adminGetStorageConfig: () => request<StorageConfigSummary>("/admin/storage/config"),
+    adminSaveStorageConfig: (data: SaveStorageConfigInput) =>
+      request<void>("/admin/storage/config", { method: "PUT", body: JSON.stringify(data) }),
+    adminClearStorageConfig: () => request<void>("/admin/storage/config", { method: "DELETE" }),
   };
 }
 

@@ -300,13 +300,28 @@ background.
   drift out of sync. Verified end-to-end: deleting one of two attachments
   sharing a hash leaves the object in place; deleting the last one removes
   it.
-- **Two drivers, chosen automatically** (`StorageService`'s constructor):
-  `S3StorageDriver` (R2 is S3-compatible, so the plain AWS SDK works against
-  it given the account's R2 endpoint) when all `R2_*` env vars are set, else
-  `LocalDiskStorageDriver` (writes under `apps/api/.data/attachments/`,
-  gitignored) so attachments work in dev/test without cloud credentials —
-  the same code path either way, just a different `ObjectStorageDriver`
-  underneath.
+- **Two drivers, chosen fresh on every call** (`StorageService.resolveDriver()`,
+  no caching — see below for why): `S3StorageDriver` (R2 is S3-compatible,
+  so the plain AWS SDK works against it given the account's R2 endpoint)
+  when credentials are available, else `LocalDiskStorageDriver` (writes
+  under `apps/api/.data/attachments/`, gitignored) so attachments work in
+  dev/test without cloud credentials — the same code path either way, just
+  a different `ObjectStorageDriver` underneath.
+- **Credentials resolve database-first, then env, then local disk.**
+  Admins can set R2 credentials directly from the web app (Admin >
+  Storage) instead of environment variables — stored in the
+  `StorageSettings` singleton row, with the secret access key encrypted at
+  rest (AES-256-GCM, keyed by the `SETTINGS_ENCRYPTION_KEY` env var — see
+  `apps/api/src/storage/secret-crypto.ts`) and never returned to the
+  client in plaintext once saved. The `R2_*` env vars remain a supported
+  fallback for deployments that prefer pure env-var config, used only when
+  no database config is present. `StorageService` re-checks the database
+  on every operation rather than caching the resolved driver in memory:
+  the API and Worker are separate processes (see `Deploy.md`), so an
+  in-memory cache in one would go stale the instant an admin updates
+  settings through the other, with no cross-process cache invalidation to
+  fix it — one cheap indexed lookup per operation was the simpler,
+  correct trade-off.
 - Exposed via `apps/api/src/attachments/` (`AttachmentsController`/
   `AttachmentsService`): `GET`/`POST /song-versions/:id/attachments`,
   `GET .../:attachmentId/download`, `DELETE .../:attachmentId`. Upload is

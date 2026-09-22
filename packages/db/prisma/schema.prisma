@@ -1302,3 +1302,23 @@ model AuditEvent {
   @@index([songVersionId])
   @@index([createdAt])
 }
+
+// ============================================================
+// STORAGE SETTINGS
+// ============================================================
+
+// Singleton row (id is always the literal string "singleton") holding
+// admin-managed R2/S3 object storage credentials, as an alternative to
+// setting the R2_* env vars - see apps/api/src/storage/storage.service.ts.
+// When this row is absent (or a field is null), StorageService falls back
+// to the matching R2_* env var, then to local disk. r2SecretAccessKeyEnc
+// is never stored or returned in plaintext - see secret-crypto.ts.
+model StorageSettings {
+  id                   String   @id @default("singleton")
+  r2AccountId          String?
+  r2AccessKeyId        String?
+  r2SecretAccessKeyEnc String?
+  r2Bucket             String?
+  r2Endpoint           String?
+  updatedAt            DateTime @updatedAt
+}

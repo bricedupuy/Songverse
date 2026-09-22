@@ -1,9 +1,10 @@
-import { Controller, Get, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
 import { AdminService, type AdminCommandResult } from "./admin.service";
-import { AdminStorageResponseDto } from "./dto/admin-storage-response.dto";
+import { AdminStorageResponseDto, StorageConfigResponseDto } from "./dto/admin-storage-response.dto";
 import { AdminUserResponseDto } from "./dto/admin-user-response.dto";
+import { SaveStorageConfigDto } from "./dto/save-storage-config.dto";
 
 /**
  * Operational tools for global admins - today, the migrate/seed steps
@@ -44,5 +45,23 @@ export class AdminController {
   @ApiOkResponse({ type: AdminStorageResponseDto })
   storageStats(): ReturnType<AdminService["storageStats"]> {
     return this.adminService.storageStats();
+  }
+
+  @Get("storage/config")
+  @ApiOkResponse({ type: StorageConfigResponseDto })
+  getStorageConfig(): ReturnType<AdminService["getStorageConfig"]> {
+    return this.adminService.getStorageConfig();
+  }
+
+  @Put("storage/config")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  saveStorageConfig(@Body() dto: SaveStorageConfigDto): Promise<void> {
+    return this.adminService.saveStorageConfig(dto);
+  }
+
+  @Delete("storage/config")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  clearStorageConfig(): Promise<void> {
+    return this.adminService.clearStorageConfig();
   }
 }
