@@ -132,14 +132,48 @@ answer "what is JEM, and what songs does it contain," independent of whether
 anyone has transcribed those songs into SongVerse yet.
 
 **Sourcing**: no external "hymnal API" exists to pull this from. Initial
-population is a CSV import (header row; entryCode, title, originalLanguage,
-composer, author, ccli columns) a global admin runs per catalog, upserting
-by entryCode so re-importing updates rather than duplicates and reporting
-per-row errors without aborting the whole batch. Ongoing maintenance
-(editing entries, adding more one at a time) is a normal CRUD UI on top, not
-a one-time-only import. Reading the catalog is open to any authenticated
-user (so they can browse what's available before importing); writing to it
-is global-admin-only, via the existing `GlobalAdminGuard`.
+population is a CSV import a global admin runs per catalog
+(`POST /songbook-catalogs/:catalogId/entries/import-csv`, body `{ csv:
+"<raw text>" }`), upserting by entryCode so re-importing updates rather
+than duplicates and reporting per-row errors without aborting the whole
+batch. Ongoing maintenance (editing entries, adding more one at a time) is
+a normal CRUD UI on top, not a one-time-only import. Reading the catalog is
+open to any authenticated user (so they can browse what's available before
+importing); writing to it is global-admin-only, via the existing
+`GlobalAdminGuard`.
+
+#### CSV format
+
+Parsed by the hand-rolled `parseCsvRecords()` in
+`apps/api/src/songbook-catalog/parse-csv.ts` (RFC4180-ish — no dependency
+pulled in for it):
+
+- **A header row is required.** Recognized column names (case-sensitive,
+  whitespace-trimmed): `entryCode`, `title`, `originalLanguage`,
+  `composer`, `author`, `ccli`. Order doesn't matter, and any other column
+  present is read but ignored.
+- **`entryCode` and `title` are required per row** — a row missing either
+  is skipped and reported back as an error (`Row N: missing entryCode` /
+  `missing title`), by row number counting the header as row 1, without
+  aborting the rest of the batch. `originalLanguage`, `composer`, `author`,
+  and `ccli` are optional; a blank cell is stored as `null`, not an empty
+  string.
+- **Quoting**: wrap a field in double quotes if it contains a comma, a
+  newline, or a double quote; escape a literal double quote inside a
+  quoted field by doubling it (`""`). Both `\n` and `\r\n` line endings are
+  accepted.
+- **Re-importing is idempotent by `entryCode`**: a row whose `entryCode`
+  already exists in this catalog updates that entry in place (all other
+  columns overwritten from the new row, `undefined`/omitted-in-this-row
+  values become `null`) rather than creating a duplicate; a new
+  `entryCode` creates a new entry.
+
+Example:
+```csv
+entryCode,title,originalLanguage,composer,author,ccli
+0001,"Amazing Grace",en,,John Newton,
+0002,"How Great Thou Art, arr.",sv,Stuart K. Hine,Stuart K. Hine,14181
+```
 
 ### Import flow: catalog → working songbook (Implemented)
 

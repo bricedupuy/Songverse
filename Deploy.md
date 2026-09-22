@@ -9,7 +9,7 @@ Five things get created in Dokploy, all in one Project:
 | Resource | Type | Built from | Notes |
 |---|---|---|---|
 | Postgres | Database | Dokploy's built-in template | Shared by API, Worker, and Web |
-| Redis | Database | Dokploy's built-in template | Used for background jobs (not active yet in Phase 1) |
+| Redis | Database | Dokploy's built-in template | Backs BullMQ background jobs (bulk songbook content upload) — the Worker app must actually be running for these to process |
 | API | Application | `Dockerfile.api` | Serves the NestJS API, listens on port 3001 |
 | Worker | Application | `Dockerfile.api` (same as API) | Same image as API, different start command — processes background jobs |
 | Web | Application | `Dockerfile.web` | The TanStack Start web app, listens on port 3000 |
@@ -60,7 +60,22 @@ DATABASE_URL=<Postgres connection string>
 REDIS_URL=<Redis connection string>
 AUTH_URL=https://songverse.one
 PORT=3001
+R2_ACCOUNT_ID=<Cloudflare account ID>
+R2_ACCESS_KEY_ID=<R2 API token access key ID>
+R2_SECRET_ACCESS_KEY=<R2 API token secret access key>
+R2_BUCKET=songverse
 ```
+`R2_ENDPOINT` is optional — leave it unset and it defaults to
+`https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`; only set it if using a
+custom R2 endpoint/domain.
+
+**If the `R2_*` vars are left unset**, song attachments (uploaded ChordPro
+files, PDF sheet music scans) silently fall back to local disk inside the
+container instead of erroring — fine for local dev, **broken in
+production**: the API and Worker are separate containers with separate
+disks, an upload handled by one won't be visible to the other, and nothing
+survives a redeploy either way. Set these before anyone uploads an
+attachment or runs a bulk content upload for real.
 
 ### Worker app
 
@@ -70,7 +85,10 @@ PORT=3001
 - **No domain, no port** — it doesn't serve web traffic
 - **Command override** (usually under an "Advanced" tab, field is typically called "Command"): `node dist/worker.js`
 
-Environment variables: same as the API app (`DATABASE_URL`, `REDIS_URL`, `AUTH_URL`). `PORT` isn't used here.
+Environment variables: same as the API app (`DATABASE_URL`, `REDIS_URL`,
+`AUTH_URL`, and the `R2_*` vars above — the Worker is what actually
+processes bulk content uploads, so it needs the same real object storage
+config as the API, not local disk). `PORT` isn't used here.
 
 ### Web app
 
