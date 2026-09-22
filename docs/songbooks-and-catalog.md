@@ -35,7 +35,9 @@ principle for everything below.
 - Web: songbook list, create form (with an ownership picker), detail page for
   editing metadata and adding/removing entries by searching existing songs.
 
-## 3. Planned: Simple vs. Numbered songbooks
+## 3. Simple vs. Numbered songbooks
+
+**Status: Implemented.**
 
 Not every songbook has a numbering scheme — a personal set list is just an
 unordered collection. Plan:
@@ -47,7 +49,10 @@ entryCode])`. Required and enforced unique only when `kind = NUMBERED`
   in the service layer — the DB constraint itself is harmless for `SIMPLE`
   entries, which just never set a code).
 
-## 4. Planned: Sections within a numbered songbook (e.g. JEM1–JEM5)
+## 4. Sections within a numbered songbook (e.g. JEM1–JEM5)
+
+**Status: Implemented**, including the section filter dropdown on the
+songbook detail page.
 
 Some numbered songbooks are published in volumes, with number ranges mapping
 to a volume label (JEM 1–371 = "JEM1", 372–721 = "JEM2", etc.).
@@ -238,8 +243,8 @@ declared in `.env.example` but never implemented. Design:
 1. ✅ `SongbookCatalog`/`SongbookCatalogEntry` CRUD + CSV import for initial
    seeding (§6). Nothing else here has anything to import from until this
    exists.
-2. `Songbook.kind` + optional/unique `entryCode` + ranges (§3, §4) — smaller,
-   self-contained schema change to the existing working model.
+2. ✅ `Songbook.kind` + optional/unique `entryCode` + ranges (§3, §4) —
+   smaller, self-contained schema change to the existing working model.
 3. Reverse lookup on the song detail page (§5) — small, and exercises the
    visibility-filtering pattern before it's needed again for storage.
 4. Lazy import-from-catalog (§6) — depends on #1.
