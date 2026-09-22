@@ -94,7 +94,11 @@ The query joins `SongbookEntry` by `songVersionId` instead of `songbookId`,
 then filters each result through the existing GLOBAL/TEAM/USER visibility
 check before rendering.
 
-## 6. Planned: Songbook Catalog (metadata without content)
+## 6. Songbook Catalog (metadata without content)
+
+**Status: Implemented** (catalog + entries CRUD, CSV import). The import
+flow into a working songbook, in the second half of this section, is still
+**Planned**.
 
 A separate, purely informational layer — think Goodreads/Google Books for
 hymnals. Two new models, unrelated to `Songbook`/`SongbookEntry`:
@@ -102,7 +106,7 @@ hymnals. Two new models, unrelated to `Songbook`/`SongbookEntry`:
 ```
 SongbookCatalog        — name, publisher, ISBN, description, cover image,
                           official URL, language, denomination, stated total
-                          entry count
+                          entry count, licensed flag
 SongbookCatalogEntry   — per-song facts only: entry code, title, original
                           language, composer/author attribution, CCLI number
                           if publicly known. Never lyrics, chords, sheet
@@ -115,11 +119,16 @@ answer "what is JEM, and what songs does it contain," independent of whether
 anyone has transcribed those songs into SongVerse yet.
 
 **Sourcing**: no external "hymnal API" exists to pull this from. Initial
-population is a CSV import (number + title, at minimum) that a global admin
-runs once per catalog; ongoing maintenance (editing entries, adding more) is
-a normal CRUD UI on top, not a one-time-only import.
+population is a CSV import (header row; entryCode, title, originalLanguage,
+composer, author, ccli columns) a global admin runs per catalog, upserting
+by entryCode so re-importing updates rather than duplicates and reporting
+per-row errors without aborting the whole batch. Ongoing maintenance
+(editing entries, adding more one at a time) is a normal CRUD UI on top, not
+a one-time-only import. Reading the catalog is open to any authenticated
+user (so they can browse what's available before importing); writing to it
+is global-admin-only, via the existing `GlobalAdminGuard`.
 
-### Import flow: catalog → working songbook
+### Import flow: catalog → working songbook (Planned)
 
 A user picks a catalog (e.g. "JEM") and imports it:
 
@@ -226,7 +235,7 @@ declared in `.env.example` but never implemented. Design:
 
 ## 10. Suggested build order
 
-1. `SongbookCatalog`/`SongbookCatalogEntry` CRUD + CSV import for initial
+1. ✅ `SongbookCatalog`/`SongbookCatalogEntry` CRUD + CSV import for initial
    seeding (§6). Nothing else here has anything to import from until this
    exists.
 2. `Songbook.kind` + optional/unique `entryCode` + ranges (§3, §4) — smaller,
