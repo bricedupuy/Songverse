@@ -48,6 +48,49 @@ export interface CreateInviteLinkInput {
   maxUses?: number;
 }
 
+export type OwnershipScope = "GLOBAL" | "TEAM" | "USER";
+
+export interface SongbookEntry {
+  id: string;
+  songVersionId: string;
+  entryCode: string;
+  songVersionTitle: string | null;
+}
+
+export interface SongbookSummary {
+  id: string;
+  name: string;
+  abbreviation: string | null;
+  language: string | null;
+  publisher: string | null;
+  year: number | null;
+  ownerScope: OwnershipScope;
+  ownerUserId: string | null;
+  ownerTeamId: string | null;
+}
+
+export interface SongbookDetail extends SongbookSummary {
+  entries: SongbookEntry[];
+}
+
+export interface CreateSongbookInput {
+  name: string;
+  abbreviation?: string;
+  language?: string;
+  publisher?: string;
+  year?: number;
+  teamId?: string;
+  global?: boolean;
+}
+
+export interface UpdateSongbookInput {
+  name?: string;
+  abbreviation?: string;
+  language?: string;
+  publisher?: string;
+  year?: number;
+}
+
 export interface ArtistSummary {
   id: string;
   userId: string | null;
@@ -226,6 +269,22 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       request<TeamInviteLink>(`/teams/${teamId}/invite-links`, { method: "POST", body: JSON.stringify(data) }),
     revokeTeamInviteLink: (teamId: string, linkId: string) =>
       request<void>(`/teams/${teamId}/invite-links/${linkId}`, { method: "DELETE" }),
+
+    listSongbooks: () => request<SongbookSummary[]>("/songbooks"),
+    createSongbook: (data: CreateSongbookInput) =>
+      request<SongbookSummary>("/songbooks", { method: "POST", body: JSON.stringify(data) }),
+    getSongbook: (songbookId: string) => request<SongbookDetail>(`/songbooks/${songbookId}`),
+    updateSongbook: (songbookId: string, data: UpdateSongbookInput) =>
+      request<SongbookSummary>(`/songbooks/${songbookId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    deleteSongbook: (songbookId: string) => request<void>(`/songbooks/${songbookId}`, { method: "DELETE" }),
+    addSongbookEntry: (songbookId: string, songVersionId: string, entryCode: string) =>
+      request<SongbookEntry>(`/songbooks/${songbookId}/entries`, {
+        method: "POST",
+        body: JSON.stringify({ songVersionId, entryCode }),
+      }),
+    removeSongbookEntry: (songbookId: string, entryId: string) =>
+      request<void>(`/songbooks/${songbookId}/entries/${entryId}`, { method: "DELETE" }),
+
     listWorks: () => request<Array<{ id: string; title: string | null; createdAt: string }>>("/works"),
     getWork: (workId: string) => request<WorkDetail>(`/works/${workId}`),
     listSongVersions: () => request<SongVersionSummary[]>("/song-versions"),

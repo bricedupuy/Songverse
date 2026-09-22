@@ -229,6 +229,7 @@ model User {
   inkAnnotations    InkAnnotation[]
   midiConfigs       UserArrangementMidi[]
   ownedTags         Tag[]
+  ownedSongbooks    Songbook[]             @relation("SongbookOwnerUser")
   importJobs        ImportJob[]
 
   // BetterAuth
@@ -326,6 +327,7 @@ model Team {
   accessGrants      AccessGrant[]
   shareLinks        ShareLink[]
   ownedTags         Tag[]
+  ownedSongbooks    Songbook[]         @relation("SongbookOwnerTeam")
 
   @@index([slug])
 }
@@ -744,7 +746,21 @@ model Songbook {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Ownership - GLOBAL songbooks are an admin-curated catalog (published
+  // hymnals) visible to everyone; TEAM/USER songbooks are private to their
+  // owner, same pattern as SongVersion/Arrangement.
+  ownerScope  OwnershipScope @default(GLOBAL)
+  ownerUserId String?
+  ownerTeamId String?
+
+  ownerUser User? @relation("SongbookOwnerUser", fields: [ownerUserId], references: [id])
+  ownerTeam Team? @relation("SongbookOwnerTeam", fields: [ownerTeamId], references: [id])
+
   entries SongbookEntry[]
+
+  @@index([ownerUserId])
+  @@index([ownerTeamId])
+  @@index([ownerScope])
 }
 
 model SongbookEntry {

@@ -1,6 +1,6 @@
 import type { TeamSummary } from "@songverse/core";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ChevronRight, LayoutDashboard, LogOut, Music2, ShieldCheck, Users } from "lucide-react";
+import { BookOpen, ChevronRight, LayoutDashboard, LogOut, Music2, ShieldCheck, Users } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { authClient } from "#/lib/auth-client";
@@ -48,6 +48,7 @@ export function AppSidebar({ session, teams }: { session: AppSession; teams: Tea
 
   const navItems = [
     { to: "/library" as const, label: t("nav.library"), icon: Music2 },
+    { to: "/songbooks" as const, label: t("nav.songbooks"), icon: BookOpen },
     ...(session.isGlobalAdmin ? [{ to: "/admin" as const, label: t("nav.admin"), icon: ShieldCheck }] : []),
   ];
 
