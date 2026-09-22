@@ -19,9 +19,12 @@ export interface StoredObject {
  * R2 isn't configured, so attachments work in dev/test without cloud
  * credentials; a real deployment always has the R2_* vars set.
  */
+export type StorageDriverName = "s3" | "local";
+
 @Injectable()
 export class StorageService {
   private readonly driver: ObjectStorageDriver;
+  private readonly driverName: StorageDriverName;
   private readonly logger = new Logger(StorageService.name);
 
   constructor(config: ConfigService) {
@@ -38,10 +41,17 @@ export class StorageService {
         bucket,
         endpoint: config.get<string>("R2_ENDPOINT"),
       });
+      this.driverName = "s3";
     } else {
       this.logger.warn("R2_* env vars not fully set - using local disk storage for attachments (dev only)");
       this.driver = new LocalDiskStorageDriver(join(process.cwd(), ".data", "attachments"));
+      this.driverName = "local";
     }
+  }
+
+  /** Which driver is actually serving attachment uploads - surfaced in the admin Storage panel. */
+  describe(): { driver: StorageDriverName } {
+    return { driver: this.driverName };
   }
 
   async put(body: Buffer, contentType: string): Promise<StoredObject> {

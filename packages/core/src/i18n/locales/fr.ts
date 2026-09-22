@@ -3,6 +3,9 @@ import type en from "./en.js";
 // Keep this in sync with en.ts's key shape - TypeScript will flag a
 // mismatch since it's typed against `typeof en`.
 const fr: typeof en = {
+  common: {
+    noLanguage: "Aucune langue",
+  },
   nav: {
     platform: "Plateforme",
     library: "Bibliothèque",
@@ -12,6 +15,12 @@ const fr: typeof en = {
     teams: "Équipes",
     noTeams: "Aucune équipe pour l'instant",
     songbooks: "Recueils",
+    toggle: "Basculer",
+    backToApp: "Retour à l'application",
+    adminUsers: "Utilisateurs",
+    adminStorage: "Stockage",
+    adminCatalogs: "Catalogues",
+    adminMetadata: "Métadonnées",
   },
   dashboard: {
     welcomeBack: "Bon retour, {{name}}",
@@ -58,6 +67,19 @@ const fr: typeof en = {
     running: "Exécution…",
     confirm: "Confirmer",
     cancel: "Annuler",
+    usersDescription: "Tous les comptes de ce déploiement.",
+    globalAdmin: "Administrateur global",
+    userStats: "{{teams}} équipe(s) · {{songs}} chanson(s)",
+    storageDescription: "Comment les pièces jointes (fichiers ChordPro, partitions PDF) sont stockées.",
+    storageDriver: "Pilote actif",
+    storageDriverS3: "Stockage objet (R2)",
+    storageDriverLocal: "Disque local (développement seulement)",
+    storageAttachmentCount: "Pièces jointes",
+    storageTotalSize: "Taille totale",
+    storageLocalWarning:
+      "R2 n'est pas configuré, donc les pièces jointes sont écrites sur le disque local du conteneur - acceptable en développement, mais ces données ne survivront pas à un redéploiement et ne seront pas partagées entre instances en production. Définissez les variables d'environnement R2_* pour corriger cela.",
+    storageByType: "Par type",
+    storageNoAttachments: "Aucune pièce jointe téléversée pour l'instant.",
   },
   teams: {
     createTeam: "Créer une équipe",
@@ -73,6 +95,12 @@ const fr: typeof en = {
     leaveTeam: "Quitter l'équipe",
     confirmLeave: "Confirmer",
     leaving: "Départ…",
+    deleteTeam: "Supprimer l'équipe",
+    confirmDeleteTeam: "Confirmer la suppression",
+    deletingTeam: "Suppression…",
+    cancel: "Annuler",
+    myTeams: "Mes équipes",
+    noTeamsYet: "Aucune équipe pour l'instant.",
     inviteLinks: "Liens d'invitation",
     inviteLinksDescription: "Partagez un lien pour permettre à quelqu'un de rejoindre cette équipe sans invitation par courriel.",
     roleForInvite: "Rôle accordé à l'arrivée",
@@ -164,8 +192,6 @@ const fr: typeof en = {
     descriptionLabel: "Description",
     officialUrl: "Site officiel",
     language: "Langue",
-    denomination: "Dénomination / tradition",
-    totalEntries: "Nombre total de chansons (selon l'éditeur)",
     creating: "Création…",
     save: "Enregistrer",
     saving: "Enregistrement…",

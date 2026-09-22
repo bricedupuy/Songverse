@@ -3,6 +3,7 @@ import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tansta
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
+import { LanguageSelect } from "#/components/language-select";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -262,11 +263,13 @@ function SongbookDetail() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="songbook-language">{t("songbooks.language")}</Label>
-            <Input
+            <LanguageSelect
               id="songbook-language"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={setLanguage}
               disabled={!canEdit}
+              allowEmpty
+              emptyLabel={t("common.noLanguage")}
             />
           </div>
           <div className="flex flex-col gap-1.5">

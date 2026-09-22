@@ -263,6 +263,73 @@ function SidebarMenuButton({
   );
 }
 
+function SidebarMenuAction({
+  className,
+  asChild = false,
+  ...props
+}: ComponentProps<"button"> & { asChild?: boolean }) {
+  const { state, isMobile } = useSidebar();
+  const Comp = asChild ? Slot : "button";
+  const collapsed = state === "collapsed" && !isMobile;
+  if (collapsed) return null;
+
+  return (
+    <Comp
+      {...props}
+      data-slot="sidebar-menu-action"
+      className={cn(
+        "absolute top-1 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none",
+        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        "peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
+        className,
+      )}
+    />
+  );
+}
+
+function SidebarMenuSub({ className, ...props }: ComponentProps<"ul">) {
+  const { state, isMobile } = useSidebar();
+  if (state === "collapsed" && !isMobile) return null;
+
+  return (
+    <ul
+      data-slot="sidebar-menu-sub"
+      className={cn(
+        "mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+function SidebarMenuSubItem({ className, ...props }: ComponentProps<"li">) {
+  return <li data-slot="sidebar-menu-sub-item" className={cn("group/menu-sub-item relative", className)} {...props} />;
+}
+
+function SidebarMenuSubButton({
+  asChild = false,
+  isActive = false,
+  className,
+  ...props
+}: ComponentProps<"a"> & { asChild?: boolean; isActive?: boolean }) {
+  const Comp = asChild ? Slot : "a";
+  return (
+    <Comp
+      data-slot="sidebar-menu-sub-button"
+      data-active={isActive}
+      className={cn(
+        "flex h-7 min-w-0 items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-none",
+        "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+        "data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground",
+        "[&>svg]:size-4 [&>svg]:shrink-0",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 export {
   Sidebar,
   SidebarContent,
@@ -272,8 +339,12 @@ export {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarSeparator,
   SidebarTrigger,

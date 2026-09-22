@@ -20,8 +20,6 @@ export class CatalogResponseDto {
   @ApiProperty({ required: false, nullable: true }) coverImageUrl!: string | null;
   @ApiProperty({ required: false, nullable: true }) officialUrl!: string | null;
   @ApiProperty({ required: false, nullable: true }) language!: string | null;
-  @ApiProperty({ required: false, nullable: true }) denomination!: string | null;
-  @ApiProperty({ required: false, nullable: true }) totalEntries!: number | null;
   @ApiProperty() licensed!: boolean;
   @ApiProperty({ type: CatalogEntryResponseDto, isArray: true, required: false })
   entries?: CatalogEntryResponseDto[];

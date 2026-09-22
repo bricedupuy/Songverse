@@ -3,6 +3,7 @@ export * from "./ids/index.js";
 export * from "./slug/index.js";
 export * from "./songbook-sections/index.js";
 export * from "./bulk-upload-matching/index.js";
+export * from "./languages/index.js";
 export * from "./schemas/shared.js";
 export * from "./schemas/song-document.js";
 export * from "./schemas/arrangement-document.js";

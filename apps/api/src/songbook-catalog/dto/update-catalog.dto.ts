@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsBoolean, IsInt, IsOptional, IsString, IsUrl, MaxLength, MinLength } from "class-validator";
+import { ISO_639_1_CODES } from "@songverse/core";
+import { IsBoolean, IsIn, IsOptional, IsString, IsUrl, MaxLength, MinLength } from "class-validator";
 
 export class UpdateCatalogDto {
   @ApiProperty({ required: false })
@@ -43,22 +44,10 @@ export class UpdateCatalogDto {
   @IsUrl()
   officialUrl?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, enum: ISO_639_1_CODES, description: "ISO 639-1 language code" })
   @IsOptional()
-  @IsString()
-  @MaxLength(35)
+  @IsIn(ISO_639_1_CODES)
   language?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  denomination?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsInt()
-  totalEntries?: number;
 
   @ApiProperty({ required: false })
   @IsOptional()

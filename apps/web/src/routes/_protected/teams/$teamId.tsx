@@ -31,6 +31,9 @@ function TeamDetail() {
   const [leaving, setLeaving] = useState(false);
   const [confirmingLeave, setConfirmingLeave] = useState(false);
 
+  const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
   const [linkRole, setLinkRole] = useState<TeamRole>("MEMBER");
   const [linkExpiresInDays, setLinkExpiresInDays] = useState("");
   const [linkMaxUses, setLinkMaxUses] = useState("");
@@ -64,6 +67,18 @@ function TeamDetail() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusyUserId(null);
+    }
+  }
+
+  async function deleteTeam() {
+    setDeleting(true);
+    try {
+      await apiClient.deleteTeam(team.id);
+      window.location.href = "/teams";
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setDeleting(false);
+      setConfirmingDelete(false);
     }
   }
 
@@ -127,20 +142,38 @@ function TeamDetail() {
           <h1 className="text-2xl font-semibold">{team.name}</h1>
           {team.description ? <p className="text-sm text-muted-foreground">{team.description}</p> : null}
         </div>
-        {confirmingLeave ? (
-          <div className="flex items-center gap-2">
-            <Button variant="destructive" size="sm" onClick={() => void leaveTeam()} disabled={leaving}>
-              {leaving ? t("teams.leaving") : t("teams.confirmLeave")}
+        <div className="flex items-center gap-2">
+          {isAdmin ? (
+            confirmingDelete ? (
+              <div className="flex items-center gap-2">
+                <Button variant="destructive" size="sm" onClick={() => void deleteTeam()} disabled={deleting}>
+                  {deleting ? t("teams.deletingTeam") : t("teams.confirmDeleteTeam")}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+                  {t("teams.cancel")}
+                </Button>
+              </div>
+            ) : (
+              <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(true)}>
+                {t("teams.deleteTeam")}
+              </Button>
+            )
+          ) : null}
+          {confirmingLeave ? (
+            <div className="flex items-center gap-2">
+              <Button variant="destructive" size="sm" onClick={() => void leaveTeam()} disabled={leaving}>
+                {leaving ? t("teams.leaving") : t("teams.confirmLeave")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setConfirmingLeave(false)} disabled={leaving}>
+                {t("teams.cancel")}
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setConfirmingLeave(true)}>
+              {t("teams.leaveTeam")}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setConfirmingLeave(false)} disabled={leaving}>
-              {t("teams.cancel")}
-            </Button>
-          </div>
-        ) : (
-          <Button variant="outline" size="sm" onClick={() => setConfirmingLeave(true)}>
-            {t("teams.leaveTeam")}
-          </Button>
-        )}
+          )}
+        </div>
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

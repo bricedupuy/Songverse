@@ -2,6 +2,7 @@ import type { MusicBrainzRecordingMatch } from "@songverse/core";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiClient } from "#/lib/api-client";
+import { LanguageSelect } from "#/components/language-select";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -71,8 +72,8 @@ function NewSong() {
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Amazing Grace" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="language">Language (BCP 47)</Label>
-            <Input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="en" />
+            <Label htmlFor="language">Language</Label>
+            <LanguageSelect id="language" value={language} onChange={setLanguage} />
           </div>
         </CardContent>
       </Card>

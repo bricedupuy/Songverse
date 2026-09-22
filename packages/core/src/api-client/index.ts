@@ -16,6 +16,23 @@ export interface AdminCommandResult {
   stderr: string;
 }
 
+export interface AdminUserSummary {
+  id: string;
+  email: string;
+  displayName: string;
+  isGlobalAdmin: boolean;
+  createdAt: string;
+  teamCount: number;
+  songCount: number;
+}
+
+export interface AdminStorageStats {
+  driver: "s3" | "local";
+  attachmentCount: number;
+  totalBytes: number;
+  byType: Record<string, number>;
+}
+
 export type TeamRole = "MEMBER" | "ADMIN";
 
 export interface TeamSummary {
@@ -141,8 +158,6 @@ export interface SongbookCatalogSummary {
   coverImageUrl: string | null;
   officialUrl: string | null;
   language: string | null;
-  denomination: string | null;
-  totalEntries: number | null;
   licensed: boolean;
 }
 
@@ -159,8 +174,6 @@ export interface CreateSongbookCatalogInput {
   coverImageUrl?: string;
   officialUrl?: string;
   language?: string;
-  denomination?: string;
-  totalEntries?: number;
   licensed?: boolean;
 }
 
@@ -370,6 +383,7 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
         body: JSON.stringify(data),
       }),
     getTeam: (teamId: string) => request<TeamSummary>(`/teams/${teamId}`),
+    deleteTeam: (teamId: string) => request<void>(`/teams/${teamId}`, { method: "DELETE" }),
     joinTeamByToken: (token: string) => request<TeamSummary>(`/teams/join/${token}`, { method: "POST" }),
     listTeamMembers: (teamId: string) => request<TeamMember[]>(`/teams/${teamId}/members`),
     updateTeamMemberRole: (teamId: string, memberUserId: string, role: TeamRole) =>
@@ -539,6 +553,8 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
 
     adminMigrationStatus: () => request<AdminCommandResult>("/admin/migrations/status"),
     adminRunSeed: () => request<AdminCommandResult>("/admin/seed", { method: "POST" }),
+    adminListUsers: () => request<AdminUserSummary[]>("/admin/users"),
+    adminStorageStats: () => request<AdminStorageStats>("/admin/storage"),
   };
 }
 

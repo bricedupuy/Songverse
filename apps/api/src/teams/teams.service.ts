@@ -121,6 +121,35 @@ export class TeamsService {
     return this.removeMember(teamId, userId);
   }
 
+  /**
+   * Deleting a team cascades its memberships and invite links (see the
+   * schema's onDelete: Cascade on those two relations) - kicking out
+   * every member is an accepted, expected consequence of "this team no
+   * longer exists". What's NOT acceptable is silently orphaning real
+   * creative work: a Songbook, SongVersion, or Arrangement still owned by
+   * this team has no onDelete behavior defined on that relation, so it
+   * blocks deletion until the admin has moved or removed that content.
+   */
+  async remove(teamId: string): Promise<void> {
+    const [songbookCount, songVersionCount, arrangementCount] = await Promise.all([
+      this.prisma.client.songbook.count({ where: { ownerTeamId: teamId } }),
+      this.prisma.client.songVersion.count({ where: { ownerTeamId: teamId } }),
+      this.prisma.client.arrangement.count({ where: { ownerTeamId: teamId } }),
+    ]);
+    if (songbookCount > 0 || songVersionCount > 0 || arrangementCount > 0) {
+      throw new ConflictException(
+        `This team still owns content (${songbookCount} songbook(s), ${songVersionCount} song(s), ${arrangementCount} arrangement(s)) - move or delete it first.`,
+      );
+    }
+
+    await this.prisma.client.team.delete({ where: { id: teamId } }).catch((error: unknown) => {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
+        throw new ConflictException("This team still has content referencing it - move or delete it first.");
+      }
+      throw error;
+    });
+  }
+
   private async assertNotLastAdmin(teamId: string, excludingUserId: string): Promise<void> {
     const otherAdmins = await this.prisma.client.teamMembership.count({
       where: { teamId, role: "ADMIN", userId: { not: excludingUserId } },

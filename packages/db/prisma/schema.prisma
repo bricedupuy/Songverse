@@ -830,10 +830,6 @@ model SongbookCatalog {
   coverImageUrl  String?
   officialUrl    String?
   language       String?
-  denomination   String?
-  // Stated total from the publisher, which may exceed how many entries
-  // have actually been catalogued so far.
-  totalEntries   Int?
   // True once SongVerse has secured rights to distribute this songbook's
   // actual content - reserved for a future import path that would populate
   // real content instead of blank stubs. Not used by anything yet.

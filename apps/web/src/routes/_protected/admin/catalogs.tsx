@@ -4,30 +4,25 @@ import { apiClient } from "#/lib/api-client";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
 
-export const Route = createFileRoute("/_protected/songbook-catalogs/")({
-  loader: async ({ context }) => ({
-    session: context.session,
-    catalogs: await apiClient.listSongbookCatalogs(),
-  }),
-  component: SongbookCatalogsIndex,
+export const Route = createFileRoute("/_protected/admin/catalogs")({
+  loader: () => apiClient.listSongbookCatalogs(),
+  component: AdminCatalogsPage,
 });
 
-function SongbookCatalogsIndex() {
+function AdminCatalogsPage() {
   const { t } = useTranslation();
-  const { session, catalogs } = Route.useLoaderData();
+  const catalogs = Route.useLoaderData();
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">{t("songbookCatalog.title")}</h1>
+          <h1 className="text-2xl font-semibold">{t("nav.adminCatalogs")}</h1>
           <p className="text-sm text-muted-foreground">{t("songbookCatalog.description")}</p>
         </div>
-        {session.isGlobalAdmin ? (
-          <Button asChild>
-            <Link to="/songbook-catalogs/new">{t("songbookCatalog.createCatalog")}</Link>
-          </Button>
-        ) : null}
+        <Button asChild>
+          <Link to="/songbook-catalogs/new">{t("songbookCatalog.createCatalog")}</Link>
+        </Button>
       </div>
 
       <Card>
@@ -48,9 +43,7 @@ function SongbookCatalogsIndex() {
                         {catalog.name}
                         {catalog.abbreviation ? ` (${catalog.abbreviation})` : ""}
                       </p>
-                      {catalog.publisher ? (
-                        <p className="text-xs text-muted-foreground">{catalog.publisher}</p>
-                      ) : null}
+                      {catalog.publisher ? <p className="text-xs text-muted-foreground">{catalog.publisher}</p> : null}
                     </div>
                     {catalog.licensed ? (
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">

@@ -3,6 +3,9 @@
 // library) are covered so far; other pages fall back to their hardcoded
 // English strings until translated.
 const en = {
+  common: {
+    noLanguage: "No language",
+  },
   nav: {
     platform: "Platform",
     library: "Library",
@@ -12,6 +15,12 @@ const en = {
     teams: "Teams",
     noTeams: "No teams yet",
     songbooks: "Songbooks",
+    toggle: "Toggle",
+    backToApp: "Back to app",
+    adminUsers: "Users",
+    adminStorage: "Storage",
+    adminCatalogs: "Catalogs",
+    adminMetadata: "Metadata",
   },
   dashboard: {
     welcomeBack: "Welcome back, {{name}}",
@@ -56,6 +65,19 @@ const en = {
     running: "Running…",
     confirm: "Confirm",
     cancel: "Cancel",
+    usersDescription: "Everyone with an account on this deployment.",
+    globalAdmin: "Global admin",
+    userStats: "{{teams}} team(s) · {{songs}} song(s)",
+    storageDescription: "How attachments (ChordPro files, PDF sheet music) are being stored.",
+    storageDriver: "Active driver",
+    storageDriverS3: "Object storage (R2)",
+    storageDriverLocal: "Local disk (dev only)",
+    storageAttachmentCount: "Attachments",
+    storageTotalSize: "Total size",
+    storageLocalWarning:
+      "R2 isn't configured, so attachments are being written to local disk inside this container - fine for development, but this data won't survive a redeploy and won't be shared across instances in production. Set the R2_* environment variables to fix this.",
+    storageByType: "By type",
+    storageNoAttachments: "No attachments uploaded yet.",
   },
   teams: {
     createTeam: "Create team",
@@ -71,6 +93,12 @@ const en = {
     leaveTeam: "Leave team",
     confirmLeave: "Confirm leave",
     leaving: "Leaving…",
+    deleteTeam: "Delete team",
+    confirmDeleteTeam: "Confirm delete",
+    deletingTeam: "Deleting…",
+    cancel: "Cancel",
+    myTeams: "My teams",
+    noTeamsYet: "No teams yet.",
     inviteLinks: "Invite links",
     inviteLinksDescription: "Share a link so someone can join this team without an email invite.",
     roleForInvite: "Role granted on join",
@@ -162,8 +190,6 @@ const en = {
     descriptionLabel: "Description",
     officialUrl: "Official website",
     language: "Language",
-    denomination: "Denomination / tradition",
-    totalEntries: "Total songs (stated by publisher)",
     creating: "Creating…",
     save: "Save",
     saving: "Saving…",

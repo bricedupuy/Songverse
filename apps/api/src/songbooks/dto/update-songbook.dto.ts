@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import type { SongbookSection } from "@songverse/core";
-import { IsArray, IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { ISO_639_1_CODES, type SongbookSection } from "@songverse/core";
+import { IsArray, IsIn, IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class UpdateSongbookDto {
   @ApiProperty({ required: false })
@@ -16,10 +16,9 @@ export class UpdateSongbookDto {
   @MaxLength(30)
   abbreviation?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ required: false, enum: ISO_639_1_CODES, description: "ISO 639-1 language code" })
   @IsOptional()
-  @IsString()
-  @MaxLength(35)
+  @IsIn(ISO_639_1_CODES)
   language?: string;
 
   @ApiProperty({ required: false })

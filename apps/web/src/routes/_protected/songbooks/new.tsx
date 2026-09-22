@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { Button } from "#/components/ui/button";
+import { LanguageSelect } from "#/components/language-select";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
@@ -89,7 +90,13 @@ function NewSongbook() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="songbook-language">{t("songbooks.language")}</Label>
-            <Input id="songbook-language" value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="fr" />
+            <LanguageSelect
+              id="songbook-language"
+              value={language}
+              onChange={setLanguage}
+              allowEmpty
+              emptyLabel={t("common.noLanguage")}
+            />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="songbook-publisher">{t("songbooks.publisher")}</Label>

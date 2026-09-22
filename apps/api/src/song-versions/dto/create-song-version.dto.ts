@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { ISO_639_1_CODES } from "@songverse/core";
+import { IsIn, IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class CreateSongVersionDto {
   @ApiProperty({
@@ -30,10 +31,8 @@ export class CreateSongVersionDto {
   @MaxLength(300)
   alternateTitle?: string;
 
-  @ApiProperty({ description: "BCP 47 language tag, e.g. en, fr, de" })
-  @IsString()
-  @MinLength(2)
-  @MaxLength(35)
+  @ApiProperty({ enum: ISO_639_1_CODES, description: "ISO 639-1 language code" })
+  @IsIn(ISO_639_1_CODES)
   language!: string;
 
   @ApiProperty({ required: false })

@@ -118,8 +118,7 @@ hymnals. Two new models, unrelated to `Songbook`/`SongbookEntry`:
 
 ```
 SongbookCatalog        — name, publisher, ISBN, description, cover image,
-                          official URL, language, denomination, stated total
-                          entry count, licensed flag
+                          official URL, language, licensed flag
 SongbookCatalogEntry   — per-song facts only: entry code, title, original
                           language, composer/author attribution, CCLI number
                           if publicly known. Never lyrics, chords, sheet

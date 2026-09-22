@@ -7,6 +7,7 @@ import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tansta
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
+import { LanguageSelect } from "#/components/language-select";
 import { MusicBrainzMatchPanel } from "#/components/musicbrainz-match-panel";
 import { SongChart } from "#/components/song-chart";
 import { StreamingLinkRow } from "#/components/streaming-link-row";
@@ -338,8 +339,8 @@ function SongVersionDetail() {
             <Input id="alternateTitle" value={alternateTitle} onChange={(e) => setAlternateTitle(e.target.value)} />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="language">Language (BCP 47)</Label>
-            <Input id="language" value={language} onChange={(e) => setLanguage(e.target.value)} />
+            <Label htmlFor="language">Language</Label>
+            <LanguageSelect id="language" value={language} onChange={setLanguage} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="ccli">CCLI</Label>

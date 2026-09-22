@@ -93,6 +93,13 @@ export class TeamsController {
     return this.teamsService.removeMember(teamId, memberUserId);
   }
 
+  @Delete(":teamId")
+  @UseGuards(TeamAdminGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param("teamId") teamId: string): Promise<void> {
+    return this.teamsService.remove(teamId);
+  }
+
   @Post(":teamId/leave")
   @UseGuards(TeamMemberGuard)
   @HttpCode(HttpStatus.NO_CONTENT)

@@ -17,14 +17,14 @@ export const Route = createFileRoute("/_protected")({
     if (!session) {
       throw redirect({ to: "/" });
     }
-    const teams = await apiClient.listTeams();
-    return { session, teams };
+    const [teams, songbooks] = await Promise.all([apiClient.listTeams(), apiClient.listSongbooks()]);
+    return { session, teams, songbooks };
   },
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { session, teams } = Route.useRouteContext();
+  const { session, teams, songbooks } = Route.useRouteContext();
   // Recreated only when the locale actually changes (e.g. after the
   // dashboard's language picker triggers a router.invalidate()), not on
   // every render - see createI18n's own note on why this isn't a
@@ -33,7 +33,7 @@ function RouteComponent() {
 
   return (
     <I18nextProvider i18n={i18n}>
-      <AppShell session={session} teams={teams}>
+      <AppShell session={session} teams={teams} songbooks={songbooks}>
         <Outlet />
       </AppShell>
     </I18nextProvider>

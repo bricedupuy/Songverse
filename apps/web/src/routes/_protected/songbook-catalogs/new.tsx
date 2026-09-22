@@ -2,6 +2,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
+import { LanguageSelect } from "#/components/language-select";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -28,8 +29,6 @@ function NewSongbookCatalog() {
   const [description, setDescription] = useState("");
   const [officialUrl, setOfficialUrl] = useState("");
   const [language, setLanguage] = useState("");
-  const [denomination, setDenomination] = useState("");
-  const [totalEntries, setTotalEntries] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,8 +44,6 @@ function NewSongbookCatalog() {
         description: description.trim() || undefined,
         officialUrl: officialUrl.trim() || undefined,
         language: language.trim() || undefined,
-        denomination: denomination.trim() || undefined,
-        totalEntries: totalEntries.trim() ? Number(totalEntries) : undefined,
       });
       await navigate({ to: "/songbook-catalogs/$catalogId", params: { catalogId: catalog.id } });
     } catch (err) {
@@ -99,19 +96,12 @@ function NewSongbookCatalog() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="catalog-language">{t("songbookCatalog.language")}</Label>
-            <Input id="catalog-language" value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="fr" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="catalog-denomination">{t("songbookCatalog.denomination")}</Label>
-            <Input id="catalog-denomination" value={denomination} onChange={(e) => setDenomination(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="catalog-total-entries">{t("songbookCatalog.totalEntries")}</Label>
-            <Input
-              id="catalog-total-entries"
-              type="number"
-              value={totalEntries}
-              onChange={(e) => setTotalEntries(e.target.value)}
+            <LanguageSelect
+              id="catalog-language"
+              value={language}
+              onChange={setLanguage}
+              allowEmpty
+              emptyLabel={t("common.noLanguage")}
             />
           </div>
         </CardContent>

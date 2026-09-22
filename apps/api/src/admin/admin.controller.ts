@@ -2,6 +2,8 @@ import { Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
 import { AdminService, type AdminCommandResult } from "./admin.service";
+import { AdminStorageResponseDto } from "./dto/admin-storage-response.dto";
+import { AdminUserResponseDto } from "./dto/admin-user-response.dto";
 
 /**
  * Operational tools for global admins - today, the migrate/seed steps
@@ -30,5 +32,17 @@ export class AdminController {
   @ApiOkResponse({ description: "Runs the database seed script in-process." })
   runSeed(): Promise<AdminCommandResult> {
     return this.adminService.runSeed();
+  }
+
+  @Get("users")
+  @ApiOkResponse({ type: AdminUserResponseDto, isArray: true })
+  listUsers(): ReturnType<AdminService["listUsers"]> {
+    return this.adminService.listUsers();
+  }
+
+  @Get("storage")
+  @ApiOkResponse({ type: AdminStorageResponseDto })
+  storageStats(): ReturnType<AdminService["storageStats"]> {
+    return this.adminService.storageStats();
   }
 }

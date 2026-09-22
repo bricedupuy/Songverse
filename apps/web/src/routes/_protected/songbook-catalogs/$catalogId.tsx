@@ -2,6 +2,7 @@ import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/rea
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
+import { LanguageSelect } from "#/components/language-select";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -37,8 +38,6 @@ function SongbookCatalogDetail() {
   const [description, setDescription] = useState(catalog.description ?? "");
   const [officialUrl, setOfficialUrl] = useState(catalog.officialUrl ?? "");
   const [language, setLanguage] = useState(catalog.language ?? "");
-  const [denomination, setDenomination] = useState(catalog.denomination ?? "");
-  const [totalEntries, setTotalEntries] = useState(catalog.totalEntries?.toString() ?? "");
   const [licensed, setLicensed] = useState(catalog.licensed);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -69,8 +68,6 @@ function SongbookCatalogDetail() {
         description: description.trim() || undefined,
         officialUrl: officialUrl.trim() || undefined,
         language: language.trim() || undefined,
-        denomination: denomination.trim() || undefined,
-        totalEntries: totalEntries.trim() ? Number(totalEntries) : undefined,
         licensed,
       });
       await router.invalidate();
@@ -237,30 +234,13 @@ function SongbookCatalogDetail() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="catalog-language">{t("songbookCatalog.language")}</Label>
-            <Input
+            <LanguageSelect
               id="catalog-language"
               value={language}
-              onChange={(e) => setLanguage(e.target.value)}
+              onChange={setLanguage}
               disabled={!canEdit}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="catalog-denomination">{t("songbookCatalog.denomination")}</Label>
-            <Input
-              id="catalog-denomination"
-              value={denomination}
-              onChange={(e) => setDenomination(e.target.value)}
-              disabled={!canEdit}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="catalog-total-entries">{t("songbookCatalog.totalEntries")}</Label>
-            <Input
-              id="catalog-total-entries"
-              type="number"
-              value={totalEntries}
-              onChange={(e) => setTotalEntries(e.target.value)}
-              disabled={!canEdit}
+              allowEmpty
+              emptyLabel={t("common.noLanguage")}
             />
           </div>
           {canEdit ? (

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { Injectable } from "@nestjs/common";
 import { runSeed } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
+import { StorageService } from "../storage/storage.service";
 
 // packages/db is always a sibling two levels up from wherever the API
 // process's cwd is - true both in local dev (pnpm runs each package's
@@ -27,7 +28,51 @@ interface AppliedMigration {
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
+
+  async listUsers() {
+    const users = await this.prisma.client.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        isGlobalAdmin: true,
+        createdAt: true,
+        _count: { select: { teamMemberships: true, ownedVersions: true } },
+      },
+    });
+    return users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      isGlobalAdmin: user.isGlobalAdmin,
+      createdAt: user.createdAt,
+      teamCount: user._count.teamMemberships,
+      songCount: user._count.ownedVersions,
+    }));
+  }
+
+  async storageStats() {
+    const [{ driver }, aggregate, grouped] = await Promise.all([
+      Promise.resolve(this.storage.describe()),
+      this.prisma.client.attachment.aggregate({
+        _count: { _all: true },
+        _sum: { sizeBytes: true },
+      }),
+      this.prisma.client.attachment.groupBy({ by: ["type"], _count: { _all: true } }),
+    ]);
+
+    return {
+      driver,
+      attachmentCount: aggregate._count._all,
+      totalBytes: aggregate._sum.sizeBytes ?? 0,
+      byType: Object.fromEntries(grouped.map((g) => [g.type, g._count._all])),
+    };
+  }
 
   /**
    * Read-only: compares the migration folders shipped with this
