@@ -32,6 +32,9 @@ pnpm-debug.log*
 # Testing
 coverage/
 
+# Local Redis dump (dev only)
+dump.rdb
+
 # Local disk fallback for object storage (dev only - see StorageService)
 apps/api/.data/
 
