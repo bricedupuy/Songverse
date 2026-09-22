@@ -109,9 +109,8 @@ check before rendering.
 
 ## 6. Songbook Catalog (metadata without content)
 
-**Status: Implemented** (catalog + entries CRUD, CSV import). The import
-flow into a working songbook, in the second half of this section, is still
-**Planned**.
+**Status: Implemented** (catalog + entries CRUD, CSV import, and the lazy
+import-from-catalog flow in the second half of this section).
 
 A separate, purely informational layer — think Goodreads/Google Books for
 hymnals. Two new models, unrelated to `Songbook`/`SongbookEntry`:
@@ -141,24 +140,38 @@ a one-time-only import. Reading the catalog is open to any authenticated
 user (so they can browse what's available before importing); writing to it
 is global-admin-only, via the existing `GlobalAdminGuard`.
 
-### Import flow: catalog → working songbook (Planned)
+### Import flow: catalog → working songbook (Implemented)
 
-A user picks a catalog (e.g. "JEM") and imports it:
+A user picks a catalog (e.g. "JEM") and imports it via
+`POST /songbooks/import-from-catalog` (`{ catalogId, teamId?, global? }`):
 
-1. A real `Songbook` is created, owned by the importing user's choice — USER
-   or TEAM. **Never automatically GLOBAL.** This is the legal linchpin: the
-   catalog is free to be GLOBAL (it's just facts), but the *content* someone
-   subsequently writes into their copy of song #245 is their own transcription,
-   under their own responsibility, and stays within whatever ownership scope
-   they already control — never auto-published platform-wide. This is the
-   same posture the platform already takes toward user-generated content
-   everywhere else.
+1. A real `Songbook` is created (always `kind: NUMBERED`, since a catalog's
+   entries carry a real per-book number), owned by the importing user's
+   choice — USER or TEAM, or GLOBAL if they're a global admin (same
+   `resolveOwnership()` rule `SongbooksService.create()` already used, now
+   shared by both). **Never automatically GLOBAL.** This is the legal
+   linchpin: the catalog is free to be GLOBAL (it's just facts), but the
+   *content* someone subsequently writes into their copy of song #245 is
+   their own transcription, under their own responsibility, and stays within
+   whatever ownership scope they already control — never auto-published
+   platform-wide. This is the same posture the platform already takes toward
+   user-generated content everywhere else. `Songbook.sourceCatalogId` links
+   the new songbook back to its catalog (`onDelete: SetNull` — deleting the
+   catalog later leaves already-imported songbooks' real content untouched,
+   they just stop offering more entries to start).
 2. **Import is lazy.** Importing a 1,238-song catalog does not create 1,238
    `SongVersion` rows up front — most would sit blank and untouched. Instead,
-   import reserves the number/title pairing, and the real `SongVersion` (plus
-   its `SongbookEntry`) is only materialized the first time the user acts on
-   that specific entry — either by opening it to start editing, or via a bulk
-   content upload (§7) that supplies content for it directly.
+   `SongbooksService.findOne()` computes a `pendingEntries` list (catalog
+   entries with no matching `SongbookEntry` yet, by `entryCode`) whenever
+   `sourceCatalogId` is set, and the real `SongVersion` (plus its
+   `SongbookEntry`) is only materialized when the user clicks "Start" on one,
+   via `POST /songbooks/:songbookId/catalog-entries/:catalogEntryId/materialize`.
+   That route mints a blank `SongVersion` under the songbook's own ownership
+   (`SongVersionsService.createOwned()` — the same blank-document-skeleton
+   logic `create()` uses, but able to mint GLOBAL-owned versions directly,
+   which the public create endpoint doesn't allow a caller to pick) and links
+   it in with the catalog entry's number. A bulk content upload (§7) will be
+   the second materialization path once it exists.
 3. **Forward compatibility for licensed content**: if SongVerse ever secures
    distribution rights for a specific catalog (the `licensed` case), the same
    import mechanism can populate real, complete `SongVersion`s instead of
@@ -252,6 +265,6 @@ declared in `.env.example` but never implemented. Design:
    smaller, self-contained schema change to the existing working model.
 3. ✅ Reverse lookup on the song detail page (§5) — small, and exercised the
    visibility-filtering pattern before it's needed again for storage.
-4. Lazy import-from-catalog (§6) — depends on #1.
+4. ✅ Lazy import-from-catalog (§6) — depends on #1.
 5. Object storage + `Attachment` upload (§8) — foundational for #6.
 6. Bulk content upload with matching and review (§7) — depends on #4 and #5.
