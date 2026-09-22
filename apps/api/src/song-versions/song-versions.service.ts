@@ -144,13 +144,32 @@ export class SongVersionsService {
       select: DETAIL_SELECT,
     });
     if (!version) throw new NotFoundException("Song version not found");
+    await this.assertVisible(user, version);
+    return toDetailItem(version);
+  }
 
+  /**
+   * Same visibility rule as findOne(), exposed standalone so other
+   * services nesting resources under a song version (e.g. Attachments)
+   * can enforce it without pulling the full detail payload.
+   */
+  async assertVisibleById(user: AuthenticatedUser, songVersionId: string): Promise<void> {
+    const version = await this.prisma.client.songVersion.findUnique({
+      where: { id: songVersionId },
+      select: { ownerScope: true, ownerUserId: true, ownerTeamId: true, publicationState: true },
+    });
+    if (!version) throw new NotFoundException("Song version not found");
+    await this.assertVisible(user, version);
+  }
+
+  private async assertVisible(
+    user: AuthenticatedUser,
+    version: { ownerScope: string; ownerUserId: string | null; ownerTeamId: string | null; publicationState: string },
+  ): Promise<void> {
     const visible =
       (version.ownerScope === "GLOBAL" && (version.publicationState === "APPROVED" || user.isGlobalAdmin)) ||
       (await isOwnedByOrMemberOf(this.prisma, user, version));
     if (!visible) throw new ForbiddenException("Not visible to you");
-
-    return toDetailItem(version);
   }
 
   /**

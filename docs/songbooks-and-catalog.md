@@ -218,10 +218,10 @@ go, matched automatically to the right entries.
   (already wired into the API in `apps/api/src/worker.ts`, currently unused)
   rather than a single long-lived synchronous request.
 
-## 8. Planned: object storage (R2), with content-addressed dedup
+## 8. Object storage (R2), with content-addressed dedup
 
-This is the first feature that actually needs the `R2_*` env vars already
-declared in `.env.example` but never implemented. Design:
+**Status: Implemented.** This was the first feature to actually need the
+`R2_*` env vars declared in `.env.example` but never implemented. Design:
 
 - Store objects keyed by **SHA-256** content hash, not a random per-upload
   ID and not CRC32. CRC32 is a checksum meant to catch accidental
@@ -229,22 +229,47 @@ declared in `.env.example` but never implemented. Design:
   nontrivial file count, collisions become a real risk, and a false match
   here means silently serving the wrong sheet music to someone. SHA-256 is
   the standard choice for content-addressed storage (Git, container
-  registries) for exactly this reason.
+  registries) for exactly this reason. `StorageService.put()`
+  (`apps/api/src/storage/storage.service.ts`) hashes the uploaded buffer and
+  hands the hash to the underlying driver as the object key; `Attachment.
+  storageKey` stores that hash (despite the column's old "S3 object key"
+  name/comment from before this work — it's the same string, just now
+  content-derived instead of random).
 - Keying by hash gives deduplication for free: re-uploading byte-identical
   content (the same scanned PDF used across multiple teams' songbooks, say)
   resolves to the same storage object; multiple `Attachment` rows across
-  different `SongVersion`s can point at the same underlying object.
+  different `SongVersion`s can point at the same underlying object. Verified
+  end-to-end: uploading the same bytes twice under different filenames
+  creates two `Attachment` rows but exactly one object on disk/in the
+  bucket.
 - **Deletion must never remove an object still in use elsewhere.** When an
-  `Attachment` row is deleted, check whether any other `Attachment` rows
-  still reference that same content hash — only issue the actual
-  object-storage delete once the count reaches zero. This is checked on
-  demand (`COUNT(*) WHERE storageKey = ?`) at delete time rather than via a
-  separately-maintained reference counter, which could drift out of sync.
-  The metadata-layer delete-and-recount happens in one DB transaction; the
-  actual storage delete, issued after, is safe even in a rare race because
-  deleting an already-deleted object key is a no-op — the danger to guard
-  against is only ever the one-directional case (deleting something still
-  referenced), not the reverse.
+  `Attachment` row is deleted (`AttachmentsService.remove()`), check whether
+  any other `Attachment` rows still reference that same content hash — only
+  issue the actual object-storage delete once the count reaches zero. This
+  is checked on demand (`COUNT(*) WHERE storageKey = ?`) at delete time
+  rather than via a separately-maintained reference counter, which could
+  drift out of sync. Verified end-to-end: deleting one of two attachments
+  sharing a hash leaves the object in place; deleting the last one removes
+  it.
+- **Two drivers, chosen automatically** (`StorageService`'s constructor):
+  `S3StorageDriver` (R2 is S3-compatible, so the plain AWS SDK works against
+  it given the account's R2 endpoint) when all `R2_*` env vars are set, else
+  `LocalDiskStorageDriver` (writes under `apps/api/.data/attachments/`,
+  gitignored) so attachments work in dev/test without cloud credentials —
+  the same code path either way, just a different `ObjectStorageDriver`
+  underneath.
+- Exposed via `apps/api/src/attachments/` (`AttachmentsController`/
+  `AttachmentsService`): `GET`/`POST /song-versions/:id/attachments`,
+  `GET .../:attachmentId/download`, `DELETE .../:attachmentId`. Upload is
+  guarded by `SongVersionOwnerGuard`; read/download reuse
+  `SongVersionsService.assertVisibleById()` (extracted from `findOne()`'s
+  visibility check, see §5) so an attachment can never be listed or
+  downloaded by someone who couldn't see the song version it belongs to
+  in the first place — the same private-by-default posture as everything
+  else nested under a song version.
+- Web: an "Attachments" card on the song detail page (type picker + file
+  input, list with Download/Remove) — the same UI slot the bulk-upload
+  work (§7) will build on.
 
 ## 9. Open questions
 
@@ -266,5 +291,5 @@ declared in `.env.example` but never implemented. Design:
 3. ✅ Reverse lookup on the song detail page (§5) — small, and exercised the
    visibility-filtering pattern before it's needed again for storage.
 4. ✅ Lazy import-from-catalog (§6) — depends on #1.
-5. Object storage + `Attachment` upload (§8) — foundational for #6.
+5. ✅ Object storage + `Attachment` upload (§8) — foundational for #6.
 6. Bulk content upload with matching and review (§7) — depends on #4 and #5.

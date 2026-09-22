@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { AdminModule } from "./admin/admin.module";
 import { AppController } from "./app.controller";
+import { AttachmentsModule } from "./attachments/attachments.module";
 import { AuthModule } from "./auth/auth.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module";
@@ -35,6 +36,7 @@ import { WorksModule } from "./works/works.module";
     SongbookCatalogModule,
     TagsModule,
     MusicBrainzModule,
+    AttachmentsModule,
     AdminModule,
   ],
   controllers: [AppController],

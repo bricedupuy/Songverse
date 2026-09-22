@@ -1,4 +1,6 @@
-import { CONTRIBUTOR_ROLES, detectImportFormat, resolveTranslation, type LocaleValue } from "@songverse/core";
+import { CONTRIBUTOR_ROLES, detectImportFormat, resolveTranslation, type AttachmentType, type LocaleValue } from "@songverse/core";
+
+const ATTACHMENT_TYPES: AttachmentType[] = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE"];
 
 const NON_ARTIST_ROLES = CONTRIBUTOR_ROLES.filter((r) => r !== "performer");
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
@@ -18,15 +20,16 @@ export const Route = createFileRoute("/_protected/library/$songVersionId")({
   loader: async ({ params }) => {
     const version = await apiClient.getSongVersion(params.songVersionId).catch(() => null);
     if (!version) throw redirect({ to: "/library" });
-    const [work, recordingMatch, tagCategories, availableTags, songbookMemberships] = await Promise.all([
+    const [work, recordingMatch, tagCategories, availableTags, songbookMemberships, attachments] = await Promise.all([
       apiClient.getWork(version.workId),
       apiClient.getSongVersionMusicBrainz(version.id),
       apiClient.listTagCategories(),
       apiClient.listTags(),
       apiClient.getSongVersionSongbooks(version.id),
+      apiClient.listAttachments(version.id),
     ]);
     const workMatch = await apiClient.getWorkMusicBrainz(work.id);
-    return { version, work, recordingMatch, workMatch, tagCategories, availableTags, songbookMemberships };
+    return { version, work, recordingMatch, workMatch, tagCategories, availableTags, songbookMemberships, attachments };
   },
   component: SongVersionDetail,
 });
@@ -36,7 +39,7 @@ function contributorLabel(c: { userId: string | null; source: string | null }): 
 }
 
 function SongVersionDetail() {
-  const { version, work, recordingMatch, workMatch, tagCategories, availableTags, songbookMemberships } =
+  const { version, work, recordingMatch, workMatch, tagCategories, availableTags, songbookMemberships, attachments } =
     Route.useLoaderData();
   const router = useRouter();
   const navigate = useNavigate();
@@ -70,6 +73,11 @@ function SongVersionDetail() {
   const [artistError, setArtistError] = useState<string | null>(null);
   const [togglingTagId, setTogglingTagId] = useState<string | null>(null);
   const [tagError, setTagError] = useState<string | null>(null);
+  const [attachmentType, setAttachmentType] = useState<AttachmentType>("CHORDPRO");
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null);
+  const [removingAttachmentId, setRemovingAttachmentId] = useState<string | null>(null);
 
   const otherContributors = version.contributors.filter((c) => !c.roles.includes("PERFORMER"));
   const tagIds = new Set(version.tags.map((t) => t.id));
@@ -202,6 +210,50 @@ function SongVersionDetail() {
     } catch {
       setDeleting(false);
       setConfirmingDelete(false);
+    }
+  }
+
+  async function uploadAttachment(file: File) {
+    setUploadingAttachment(true);
+    setAttachmentError(null);
+    try {
+      await apiClient.uploadAttachment(version.id, attachmentType, file);
+      await router.invalidate();
+    } catch (err) {
+      setAttachmentError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploadingAttachment(false);
+    }
+  }
+
+  async function downloadAttachment(attachmentId: string, filename: string) {
+    setDownloadingAttachmentId(attachmentId);
+    setAttachmentError(null);
+    try {
+      const blob = await apiClient.downloadAttachment(version.id, attachmentId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setAttachmentError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDownloadingAttachmentId(null);
+    }
+  }
+
+  async function removeAttachment(attachmentId: string) {
+    setRemovingAttachmentId(attachmentId);
+    setAttachmentError(null);
+    try {
+      await apiClient.deleteAttachment(version.id, attachmentId);
+      await router.invalidate();
+    } catch (err) {
+      setAttachmentError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRemovingAttachmentId(null);
     }
   }
 
@@ -379,6 +431,82 @@ function SongVersionDetail() {
             ) : null}
           </div>
           {exportError ? <p className="text-sm text-destructive">{exportError}</p> : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Attachments</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {attachments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No files attached yet - the original ChordPro upload, scanned sheet music (PDF), or other reference
+              files.
+            </p>
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {attachments.map((attachment) => (
+                <li key={attachment.id} className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{attachment.type}</span>
+                    <span className="text-sm">{attachment.filename}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void downloadAttachment(attachment.id, attachment.filename)}
+                      disabled={downloadingAttachmentId === attachment.id}
+                    >
+                      {downloadingAttachmentId === attachment.id ? "Downloading…" : "Download"}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void removeAttachment(attachment.id)}
+                      disabled={removingAttachmentId !== null}
+                    >
+                      {removingAttachmentId === attachment.id ? "Removing…" : "Remove"}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-wrap items-end gap-2 border-t pt-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="attachment-type">Type</Label>
+              <select
+                id="attachment-type"
+                value={attachmentType}
+                onChange={(e) => setAttachmentType(e.target.value as AttachmentType)}
+                className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                {ATTACHMENT_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="attachment-file">File</Label>
+              <input
+                id="attachment-file"
+                type="file"
+                disabled={uploadingAttachment}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (file) void uploadAttachment(file);
+                }}
+                className="text-sm"
+              />
+            </div>
+            {uploadingAttachment ? <span className="text-sm text-muted-foreground">Uploading…</span> : null}
+          </div>
+          {attachmentError ? <p className="text-sm text-destructive">{attachmentError}</p> : null}
         </CardContent>
       </Card>
 

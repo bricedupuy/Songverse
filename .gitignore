@@ -32,5 +32,8 @@ pnpm-debug.log*
 # Testing
 coverage/
 
+# Local disk fallback for object storage (dev only - see StorageService)
+apps/api/.data/
+
 # Expo / React Native (Phase 13+)
 .expo/

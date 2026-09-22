@@ -1,0 +1,35 @@
+import { NotFoundException } from "@nestjs/common";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import type { ObjectStorageDriver } from "./object-storage-driver";
+
+/**
+ * Dev/test fallback when R2 isn't configured (see StorageService) - a real
+ * deployment always uses S3ObjectStorageDriver. Keyed by hash the same way,
+ * one file per object, so dedup/reference-counting behavior is identical
+ * either way.
+ */
+export class LocalDiskStorageDriver implements ObjectStorageDriver {
+  constructor(private readonly rootDir: string) {}
+
+  private pathFor(hash: string): string {
+    return join(this.rootDir, hash);
+  }
+
+  async putObject(hash: string, body: Buffer): Promise<void> {
+    await mkdir(this.rootDir, { recursive: true });
+    await writeFile(this.pathFor(hash), body);
+  }
+
+  async getObject(hash: string): Promise<Buffer> {
+    try {
+      return await readFile(this.pathFor(hash));
+    } catch {
+      throw new NotFoundException("Object not found in storage");
+    }
+  }
+
+  async deleteObject(hash: string): Promise<void> {
+    await rm(this.pathFor(hash), { force: true });
+  }
+}

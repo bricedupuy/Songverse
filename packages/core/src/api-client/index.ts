@@ -175,6 +175,18 @@ export interface ImportSongbookCatalogCsvResult {
   errors: string[];
 }
 
+export type AttachmentType = "PDF" | "CHORDPRO" | "MUSICXML" | "ABC_NOTATION" | "TEXT" | "IMAGE";
+
+export interface Attachment {
+  id: string;
+  songVersionId: string;
+  type: AttachmentType;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number | null;
+  createdAt: string;
+}
+
 export interface ArtistSummary {
   id: string;
   userId: string | null;
@@ -316,7 +328,10 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     const token = await getToken();
     const headers = new Headers(init?.headers);
     headers.set("Accept", "application/json");
-    if (init?.body) headers.set("Content-Type", "application/json");
+    // A FormData body (attachment upload) must NOT get an explicit
+    // Content-Type - the browser sets one itself, including the
+    // multipart boundary, only when it's left unset.
+    if (init?.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
     if (token) headers.set("Authorization", `Bearer ${token}`);
 
     const response = await fetch(`${baseUrl}${path}`, { ...init, headers });
@@ -419,6 +434,26 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     getSongVersion: (songVersionId: string) => request<SongVersionDetail>(`/song-versions/${songVersionId}`),
     getSongVersionSongbooks: (songVersionId: string) =>
       request<SongVersionSongbookMembership[]>(`/song-versions/${songVersionId}/songbooks`),
+    listAttachments: (songVersionId: string) => request<Attachment[]>(`/song-versions/${songVersionId}/attachments`),
+    uploadAttachment: (songVersionId: string, type: AttachmentType, file: File) => {
+      const form = new FormData();
+      form.append("type", type);
+      form.append("file", file);
+      return request<Attachment>(`/song-versions/${songVersionId}/attachments`, { method: "POST", body: form });
+    },
+    deleteAttachment: (songVersionId: string, attachmentId: string) =>
+      request<void>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "DELETE" }),
+    downloadAttachment: async (songVersionId: string, attachmentId: string): Promise<Blob> => {
+      const token = await getToken();
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+      const response = await fetch(
+        `${baseUrl}/song-versions/${songVersionId}/attachments/${attachmentId}/download`,
+        { headers },
+      );
+      if (!response.ok) throw new ApiError(response.status, await response.text());
+      return response.blob();
+    },
     createSongVersion: (data: CreateSongVersionInput) =>
       request<SongVersionSummary>("/song-versions", { method: "POST", body: JSON.stringify(data) }),
     updateSongVersion: (songVersionId: string, data: UpdateSongVersionInput) =>
