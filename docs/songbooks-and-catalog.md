@@ -84,10 +84,18 @@ to a volume label (JEM 1–371 = "JEM1", 372–721 = "JEM2", etc.).
   match any range — sections are an optional feature per numbered songbook,
   not a requirement.
 
-## 5. Planned: reverse lookup (which songbooks is this song in?)
+## 5. Reverse lookup (which songbooks is this song in?)
 
-A song can belong to many songbooks. The song's own detail page should show
-a "Songbooks" card listing each one it's a member of, with its number (and
+**Status: Implemented**, along with a related fix: `SongVersion.findOne` had
+no visibility check at all before this (any authenticated user could fetch
+any song version by ID). Both now share one `isOwnedByOrMemberOf()` helper
+(`apps/api/src/common/utils/ownership-visibility.ts`) for the USER/TEAM
+membership check, with each entity handling its own GLOBAL-case nuance
+(SongVersion requires `publicationState = APPROVED`; Songbook doesn't have
+a moderation state, so GLOBAL is always visible there).
+
+A song can belong to many songbooks. The song's own detail page shows a
+"Songbooks" card listing each one it's a member of, with its number (and
 computed section, if applicable).
 
 **Privacy constraint that must not be missed**: this reverse query must apply
@@ -227,16 +235,13 @@ declared in `.env.example` but never implemented. Design:
 
 ## 9. Open questions
 
-- Should catalogs support a `licensed` flag now (even before any catalog is
-  actually licensed), so the import pipeline is ready for it later, or add
-  it when the first real licensing deal exists?
+- ✅ Resolved: `licensed` was added to `SongbookCatalog` from the start (§6).
+- ✅ Resolved: `SongVersion.findOne`'s missing visibility check was fixed
+  alongside the reverse-lookup work (§5), sharing one helper rather than
+  writing the same check twice.
 - Bulk upload UI: folder selection (`<input type="file" webkitdirectory>`)
   works well in Chromium but needs a fallback/explanation for other
   browsers — worth deciding how much effort that gets.
-- Should `SongVersion.findOne`'s missing visibility check (a pre-existing
-  gap, unrelated to this feature) be fixed alongside this work, since the
-  reverse-lookup feature (§5) is adding a second place that needs the same
-  kind of check done correctly?
 
 ## 10. Suggested build order
 
@@ -245,7 +250,7 @@ declared in `.env.example` but never implemented. Design:
    exists.
 2. ✅ `Songbook.kind` + optional/unique `entryCode` + ranges (§3, §4) —
    smaller, self-contained schema change to the existing working model.
-3. Reverse lookup on the song detail page (§5) — small, and exercises the
+3. ✅ Reverse lookup on the song detail page (§5) — small, and exercised the
    visibility-filtering pattern before it's needed again for storage.
 4. Lazy import-from-catalog (§6) — depends on #1.
 5. Object storage + `Attachment` upload (§8) — foundational for #6.
