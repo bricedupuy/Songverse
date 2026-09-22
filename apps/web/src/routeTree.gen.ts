@@ -17,6 +17,9 @@ import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as ProtectedLibraryIndexRouteImport } from './routes/_protected/library/index'
 import { Route as ProtectedLibrarySongVersionIdRouteImport } from './routes/_protected/library/$songVersionId'
 import { Route as ProtectedLibraryNewRouteImport } from './routes/_protected/library/new'
+import { Route as ProtectedSongbookCatalogsIndexRouteImport } from './routes/_protected/songbook-catalogs/index'
+import { Route as ProtectedSongbookCatalogsCatalogIdRouteImport } from './routes/_protected/songbook-catalogs/$catalogId'
+import { Route as ProtectedSongbookCatalogsNewRouteImport } from './routes/_protected/songbook-catalogs/new'
 import { Route as ProtectedSongbooksIndexRouteImport } from './routes/_protected/songbooks/index'
 import { Route as ProtectedSongbooksSongbookIdRouteImport } from './routes/_protected/songbooks/$songbookId'
 import { Route as ProtectedSongbooksNewRouteImport } from './routes/_protected/songbooks/new'
@@ -64,6 +67,24 @@ const ProtectedLibraryNewRoute = ProtectedLibraryNewRouteImport.update({
   path: '/library/new',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedSongbookCatalogsIndexRoute =
+  ProtectedSongbookCatalogsIndexRouteImport.update({
+    id: '/songbook-catalogs/',
+    path: '/songbook-catalogs/',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+const ProtectedSongbookCatalogsCatalogIdRoute =
+  ProtectedSongbookCatalogsCatalogIdRouteImport.update({
+    id: '/songbook-catalogs/$catalogId',
+    path: '/songbook-catalogs/$catalogId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
+const ProtectedSongbookCatalogsNewRoute =
+  ProtectedSongbookCatalogsNewRouteImport.update({
+    id: '/songbook-catalogs/new',
+    path: '/songbook-catalogs/new',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
 const ProtectedSongbooksIndexRoute = ProtectedSongbooksIndexRouteImport.update({
   id: '/songbooks/',
   path: '/songbooks/',
@@ -103,12 +124,15 @@ export interface FileRoutesByFullPath {
   '/join/$token': typeof JoinTokenRoute
   '/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
   '/library/new': typeof ProtectedLibraryNewRoute
+  '/songbook-catalogs/$catalogId': typeof ProtectedSongbookCatalogsCatalogIdRoute
+  '/songbook-catalogs/new': typeof ProtectedSongbookCatalogsNewRoute
   '/songbooks/$songbookId': typeof ProtectedSongbooksSongbookIdRoute
   '/songbooks/new': typeof ProtectedSongbooksNewRoute
   '/teams/$teamId': typeof ProtectedTeamsTeamIdRoute
   '/teams/new': typeof ProtectedTeamsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/library/': typeof ProtectedLibraryIndexRoute
+  '/songbook-catalogs/': typeof ProtectedSongbookCatalogsIndexRoute
   '/songbooks/': typeof ProtectedSongbooksIndexRoute
 }
 export interface FileRoutesByTo {
@@ -118,12 +142,15 @@ export interface FileRoutesByTo {
   '/join/$token': typeof JoinTokenRoute
   '/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
   '/library/new': typeof ProtectedLibraryNewRoute
+  '/songbook-catalogs/$catalogId': typeof ProtectedSongbookCatalogsCatalogIdRoute
+  '/songbook-catalogs/new': typeof ProtectedSongbookCatalogsNewRoute
   '/songbooks/$songbookId': typeof ProtectedSongbooksSongbookIdRoute
   '/songbooks/new': typeof ProtectedSongbooksNewRoute
   '/teams/$teamId': typeof ProtectedTeamsTeamIdRoute
   '/teams/new': typeof ProtectedTeamsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/library': typeof ProtectedLibraryIndexRoute
+  '/songbook-catalogs': typeof ProtectedSongbookCatalogsIndexRoute
   '/songbooks': typeof ProtectedSongbooksIndexRoute
 }
 export interface FileRoutesById {
@@ -135,12 +162,15 @@ export interface FileRoutesById {
   '/join/$token': typeof JoinTokenRoute
   '/_protected/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
   '/_protected/library/new': typeof ProtectedLibraryNewRoute
+  '/_protected/songbook-catalogs/$catalogId': typeof ProtectedSongbookCatalogsCatalogIdRoute
+  '/_protected/songbook-catalogs/new': typeof ProtectedSongbookCatalogsNewRoute
   '/_protected/songbooks/$songbookId': typeof ProtectedSongbooksSongbookIdRoute
   '/_protected/songbooks/new': typeof ProtectedSongbooksNewRoute
   '/_protected/teams/$teamId': typeof ProtectedTeamsTeamIdRoute
   '/_protected/teams/new': typeof ProtectedTeamsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_protected/library/': typeof ProtectedLibraryIndexRoute
+  '/_protected/songbook-catalogs/': typeof ProtectedSongbookCatalogsIndexRoute
   '/_protected/songbooks/': typeof ProtectedSongbooksIndexRoute
 }
 export interface FileRouteTypes {
@@ -152,12 +182,15 @@ export interface FileRouteTypes {
     | '/join/$token'
     | '/library/$songVersionId'
     | '/library/new'
+    | '/songbook-catalogs/$catalogId'
+    | '/songbook-catalogs/new'
     | '/songbooks/$songbookId'
     | '/songbooks/new'
     | '/teams/$teamId'
     | '/teams/new'
     | '/api/auth/$'
     | '/library/'
+    | '/songbook-catalogs/'
     | '/songbooks/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -167,12 +200,15 @@ export interface FileRouteTypes {
     | '/join/$token'
     | '/library/$songVersionId'
     | '/library/new'
+    | '/songbook-catalogs/$catalogId'
+    | '/songbook-catalogs/new'
     | '/songbooks/$songbookId'
     | '/songbooks/new'
     | '/teams/$teamId'
     | '/teams/new'
     | '/api/auth/$'
     | '/library'
+    | '/songbook-catalogs'
     | '/songbooks'
   id:
     | '__root__'
@@ -183,12 +219,15 @@ export interface FileRouteTypes {
     | '/join/$token'
     | '/_protected/library/$songVersionId'
     | '/_protected/library/new'
+    | '/_protected/songbook-catalogs/$catalogId'
+    | '/_protected/songbook-catalogs/new'
     | '/_protected/songbooks/$songbookId'
     | '/_protected/songbooks/new'
     | '/_protected/teams/$teamId'
     | '/_protected/teams/new'
     | '/api/auth/$'
     | '/_protected/library/'
+    | '/_protected/songbook-catalogs/'
     | '/_protected/songbooks/'
   fileRoutesById: FileRoutesById
 }
@@ -257,6 +296,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedLibraryNewRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/songbook-catalogs/': {
+      id: '/_protected/songbook-catalogs/'
+      path: '/songbook-catalogs'
+      fullPath: '/songbook-catalogs/'
+      preLoaderRoute: typeof ProtectedSongbookCatalogsIndexRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/songbook-catalogs/$catalogId': {
+      id: '/_protected/songbook-catalogs/$catalogId'
+      path: '/songbook-catalogs/$catalogId'
+      fullPath: '/songbook-catalogs/$catalogId'
+      preLoaderRoute: typeof ProtectedSongbookCatalogsCatalogIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/songbook-catalogs/new': {
+      id: '/_protected/songbook-catalogs/new'
+      path: '/songbook-catalogs/new'
+      fullPath: '/songbook-catalogs/new'
+      preLoaderRoute: typeof ProtectedSongbookCatalogsNewRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/_protected/songbooks/': {
       id: '/_protected/songbooks/'
       path: '/songbooks'
@@ -307,11 +367,14 @@ interface ProtectedRouteChildren {
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedLibrarySongVersionIdRoute: typeof ProtectedLibrarySongVersionIdRoute
   ProtectedLibraryNewRoute: typeof ProtectedLibraryNewRoute
+  ProtectedSongbookCatalogsCatalogIdRoute: typeof ProtectedSongbookCatalogsCatalogIdRoute
+  ProtectedSongbookCatalogsNewRoute: typeof ProtectedSongbookCatalogsNewRoute
   ProtectedSongbooksSongbookIdRoute: typeof ProtectedSongbooksSongbookIdRoute
   ProtectedSongbooksNewRoute: typeof ProtectedSongbooksNewRoute
   ProtectedTeamsTeamIdRoute: typeof ProtectedTeamsTeamIdRoute
   ProtectedTeamsNewRoute: typeof ProtectedTeamsNewRoute
   ProtectedLibraryIndexRoute: typeof ProtectedLibraryIndexRoute
+  ProtectedSongbookCatalogsIndexRoute: typeof ProtectedSongbookCatalogsIndexRoute
   ProtectedSongbooksIndexRoute: typeof ProtectedSongbooksIndexRoute
 }
 
@@ -320,11 +383,15 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedLibrarySongVersionIdRoute: ProtectedLibrarySongVersionIdRoute,
   ProtectedLibraryNewRoute: ProtectedLibraryNewRoute,
+  ProtectedSongbookCatalogsCatalogIdRoute:
+    ProtectedSongbookCatalogsCatalogIdRoute,
+  ProtectedSongbookCatalogsNewRoute: ProtectedSongbookCatalogsNewRoute,
   ProtectedSongbooksSongbookIdRoute: ProtectedSongbooksSongbookIdRoute,
   ProtectedSongbooksNewRoute: ProtectedSongbooksNewRoute,
   ProtectedTeamsTeamIdRoute: ProtectedTeamsTeamIdRoute,
   ProtectedTeamsNewRoute: ProtectedTeamsNewRoute,
   ProtectedLibraryIndexRoute: ProtectedLibraryIndexRoute,
+  ProtectedSongbookCatalogsIndexRoute: ProtectedSongbookCatalogsIndexRoute,
   ProtectedSongbooksIndexRoute: ProtectedSongbooksIndexRoute,
 }
 

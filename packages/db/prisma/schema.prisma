@@ -778,6 +778,59 @@ model SongbookEntry {
 }
 
 // ============================================================
+// SONGBOOK CATALOG
+// ============================================================
+// A curated, admin-maintained directory of known published songbooks -
+// bibliographic metadata only (Goodreads/Google Books style), never lyrics,
+// chords, sheet music, or audio. Deliberately decoupled from Songbook/
+// SongbookEntry: a catalog entry can exist with no working Songbook built
+// from it yet. See docs/songbooks-and-catalog.md.
+
+model SongbookCatalog {
+  id             String   @id @default(cuid())
+  name           String
+  abbreviation   String?
+  publisher      String?
+  isbn           String?
+  description    String?
+  coverImageUrl  String?
+  officialUrl    String?
+  language       String?
+  denomination   String?
+  // Stated total from the publisher, which may exceed how many entries
+  // have actually been catalogued so far.
+  totalEntries   Int?
+  // True once SongVerse has secured rights to distribute this songbook's
+  // actual content - reserved for a future import path that would populate
+  // real content instead of blank stubs. Not used by anything yet.
+  licensed       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  entries SongbookCatalogEntry[]
+
+  @@index([name])
+}
+
+model SongbookCatalogEntry {
+  id               String   @id @default(cuid())
+  catalogId        String
+  entryCode        String   // e.g. "0245"
+  title            String
+  originalLanguage String?
+  composer         String?
+  author           String?
+  ccli             String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  catalog SongbookCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+
+  @@unique([catalogId, entryCode])
+  @@index([catalogId])
+}
+
+// ============================================================
 // ATTACHMENTS
 // ============================================================
 

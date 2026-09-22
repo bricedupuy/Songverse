@@ -91,6 +91,68 @@ export interface UpdateSongbookInput {
   year?: number;
 }
 
+export interface SongbookCatalogEntry {
+  id: string;
+  entryCode: string;
+  title: string;
+  originalLanguage: string | null;
+  composer: string | null;
+  author: string | null;
+  ccli: string | null;
+}
+
+export interface SongbookCatalogSummary {
+  id: string;
+  name: string;
+  abbreviation: string | null;
+  publisher: string | null;
+  isbn: string | null;
+  description: string | null;
+  coverImageUrl: string | null;
+  officialUrl: string | null;
+  language: string | null;
+  denomination: string | null;
+  totalEntries: number | null;
+  licensed: boolean;
+}
+
+export interface SongbookCatalogDetail extends SongbookCatalogSummary {
+  entries: SongbookCatalogEntry[];
+}
+
+export interface CreateSongbookCatalogInput {
+  name: string;
+  abbreviation?: string;
+  publisher?: string;
+  isbn?: string;
+  description?: string;
+  coverImageUrl?: string;
+  officialUrl?: string;
+  language?: string;
+  denomination?: string;
+  totalEntries?: number;
+  licensed?: boolean;
+}
+
+export type UpdateSongbookCatalogInput = Partial<CreateSongbookCatalogInput>;
+
+export interface CreateSongbookCatalogEntryInput {
+  entryCode: string;
+  title: string;
+  originalLanguage?: string;
+  composer?: string;
+  author?: string;
+  ccli?: string;
+}
+
+export type UpdateSongbookCatalogEntryInput = Partial<CreateSongbookCatalogEntryInput>;
+
+export interface ImportSongbookCatalogCsvResult {
+  created: number;
+  updated: number;
+  errors: string[];
+}
+
 export interface ArtistSummary {
   id: string;
   userId: string | null;
@@ -284,6 +346,35 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       }),
     removeSongbookEntry: (songbookId: string, entryId: string) =>
       request<void>(`/songbooks/${songbookId}/entries/${entryId}`, { method: "DELETE" }),
+
+    listSongbookCatalogs: () => request<SongbookCatalogSummary[]>("/songbook-catalogs"),
+    getSongbookCatalog: (catalogId: string) => request<SongbookCatalogDetail>(`/songbook-catalogs/${catalogId}`),
+    createSongbookCatalog: (data: CreateSongbookCatalogInput) =>
+      request<SongbookCatalogSummary>("/songbook-catalogs", { method: "POST", body: JSON.stringify(data) }),
+    updateSongbookCatalog: (catalogId: string, data: UpdateSongbookCatalogInput) =>
+      request<SongbookCatalogSummary>(`/songbook-catalogs/${catalogId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    deleteSongbookCatalog: (catalogId: string) =>
+      request<void>(`/songbook-catalogs/${catalogId}`, { method: "DELETE" }),
+    addSongbookCatalogEntry: (catalogId: string, data: CreateSongbookCatalogEntryInput) =>
+      request<SongbookCatalogEntry>(`/songbook-catalogs/${catalogId}/entries`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    updateSongbookCatalogEntry: (catalogId: string, entryId: string, data: UpdateSongbookCatalogEntryInput) =>
+      request<SongbookCatalogEntry>(`/songbook-catalogs/${catalogId}/entries/${entryId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+    removeSongbookCatalogEntry: (catalogId: string, entryId: string) =>
+      request<void>(`/songbook-catalogs/${catalogId}/entries/${entryId}`, { method: "DELETE" }),
+    importSongbookCatalogCsv: (catalogId: string, csv: string) =>
+      request<ImportSongbookCatalogCsvResult>(`/songbook-catalogs/${catalogId}/entries/import-csv`, {
+        method: "POST",
+        body: JSON.stringify({ csv }),
+      }),
 
     listWorks: () => request<Array<{ id: string; title: string | null; createdAt: string }>>("/works"),
     getWork: (workId: string) => request<WorkDetail>(`/works/${workId}`),

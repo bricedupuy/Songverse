@@ -17,9 +17,14 @@ function SongbooksIndex() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("songbooks.title")}</h1>
-        <Button asChild>
-          <Link to="/songbooks/new">{t("songbooks.createSongbook")}</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline">
+            <Link to="/songbook-catalogs">{t("songbooks.browseCatalog")}</Link>
+          </Button>
+          <Button asChild>
+            <Link to="/songbooks/new">{t("songbooks.createSongbook")}</Link>
+          </Button>
+        </div>
       </div>
 
       <Card>

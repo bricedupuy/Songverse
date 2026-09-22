@@ -1,0 +1,71 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { apiClient } from "#/lib/api-client";
+import { Button } from "#/components/ui/button";
+import { Card, CardContent } from "#/components/ui/card";
+
+export const Route = createFileRoute("/_protected/songbook-catalogs/")({
+  loader: async ({ context }) => ({
+    session: context.session,
+    catalogs: await apiClient.listSongbookCatalogs(),
+  }),
+  component: SongbookCatalogsIndex,
+});
+
+function SongbookCatalogsIndex() {
+  const { t } = useTranslation();
+  const { session, catalogs } = Route.useLoaderData();
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">{t("songbookCatalog.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("songbookCatalog.description")}</p>
+        </div>
+        {session.isGlobalAdmin ? (
+          <Button asChild>
+            <Link to="/songbook-catalogs/new">{t("songbookCatalog.createCatalog")}</Link>
+          </Button>
+        ) : null}
+      </div>
+
+      <Card>
+        <CardContent>
+          {catalogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("songbookCatalog.noCatalogsYet")}</p>
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {catalogs.map((catalog) => (
+                <li key={catalog.id}>
+                  <Link
+                    to="/songbook-catalogs/$catalogId"
+                    params={{ catalogId: catalog.id }}
+                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 hover:text-primary"
+                  >
+                    <div>
+                      <p className="font-medium">
+                        {catalog.name}
+                        {catalog.abbreviation ? ` (${catalog.abbreviation})` : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {[catalog.publisher, catalog.totalEntries ? `${catalog.totalEntries} songs` : null]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                    </div>
+                    {catalog.licensed ? (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        {t("songbookCatalog.licensed")}
+                      </span>
+                    ) : null}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

@@ -8,6 +8,7 @@ import { AuthModule } from "./auth/auth.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { SongbookCatalogModule } from "./songbook-catalog/songbook-catalog.module";
 import { SongbooksModule } from "./songbooks/songbooks.module";
 import { SongVersionsModule } from "./song-versions/song-versions.module";
 import { TagsModule } from "./tags/tags.module";
@@ -31,6 +32,7 @@ import { WorksModule } from "./works/works.module";
     WorksModule,
     SongVersionsModule,
     SongbooksModule,
+    SongbookCatalogModule,
     TagsModule,
     MusicBrainzModule,
     AdminModule,
