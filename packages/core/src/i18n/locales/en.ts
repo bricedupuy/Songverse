@@ -128,6 +128,10 @@ const en = {
     confirmDelete: "Confirm delete",
     deleting: "Deleting…",
     cancel: "Cancel",
+    pendingEntries: "Pending entries",
+    pendingEntriesDescription: "Songs from the catalog that haven't been started yet - add lyrics/chords by starting one.",
+    start: "Start",
+    starting: "Starting…",
   },
   songbookCatalog: {
     title: "Songbook catalog",
@@ -166,6 +170,10 @@ const en = {
     runImport: "Import",
     importing: "Importing…",
     importResult: "{{created}} created, {{updated}} updated.",
+    importIntoSongverse: "Import into SongVerse",
+    importDescription: "Creates a new songbook you own, with a placeholder for each catalog entry - you add the lyrics/chords yourself.",
+    startImport: "Create songbook",
+    startingImport: "Creating…",
   },
 };
 

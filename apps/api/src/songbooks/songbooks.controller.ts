@@ -5,6 +5,7 @@ import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { AddSongbookEntryDto } from "./dto/add-songbook-entry.dto";
 import { CreateSongbookDto } from "./dto/create-songbook.dto";
+import { ImportSongbookFromCatalogDto } from "./dto/import-songbook-from-catalog.dto";
 import { SongbookResponseDto } from "./dto/songbook-response.dto";
 import { UpdateSongbookDto } from "./dto/update-songbook.dto";
 import { SongbooksService } from "./songbooks.service";
@@ -30,6 +31,16 @@ export class SongbooksController {
   ): ReturnType<SongbooksService["create"]> {
     if (!user) throw new UnauthorizedException();
     return this.songbooksService.create(user, dto);
+  }
+
+  @Post("import-from-catalog")
+  @ApiCreatedResponse({ type: SongbookResponseDto })
+  importFromCatalog(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Body() dto: ImportSongbookFromCatalogDto,
+  ): ReturnType<SongbooksService["importFromCatalog"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.songbooksService.importFromCatalog(user, dto);
   }
 
   @Get(":songbookId")
@@ -73,5 +84,14 @@ export class SongbooksController {
   @HttpCode(HttpStatus.NO_CONTENT)
   removeEntry(@Param("songbookId") songbookId: string, @Param("entryId") entryId: string): Promise<void> {
     return this.songbooksService.removeEntry(songbookId, entryId);
+  }
+
+  @Post(":songbookId/catalog-entries/:catalogEntryId/materialize")
+  @UseGuards(SongbookOwnerGuard)
+  materializeEntry(
+    @Param("songbookId") songbookId: string,
+    @Param("catalogEntryId") catalogEntryId: string,
+  ): ReturnType<SongbooksService["materializeEntry"]> {
+    return this.songbooksService.materializeEntry(songbookId, catalogEntryId);
   }
 }

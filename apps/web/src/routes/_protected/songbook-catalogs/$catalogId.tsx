@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
@@ -12,16 +12,23 @@ export const Route = createFileRoute("/_protected/songbook-catalogs/$catalogId")
   loader: async ({ context, params }) => {
     const catalog = await apiClient.getSongbookCatalog(params.catalogId).catch(() => null);
     if (!catalog) throw redirect({ to: "/songbook-catalogs" });
-    return { session: context.session, catalog };
+    return { session: context.session, teams: context.teams, catalog };
   },
   component: SongbookCatalogDetail,
 });
 
+type Ownership = "personal" | "global" | `team:${string}`;
+
 function SongbookCatalogDetail() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { session, catalog } = Route.useLoaderData();
+  const navigate = useNavigate();
+  const { session, teams, catalog } = Route.useLoaderData();
   const canEdit = session.isGlobalAdmin;
+
+  const [importOwnership, setImportOwnership] = useState<Ownership>("personal");
+  const [startingImport, setStartingImport] = useState(false);
+  const [startImportError, setStartImportError] = useState<string | null>(null);
 
   const [name, setName] = useState(catalog.name);
   const [abbreviation, setAbbreviation] = useState(catalog.abbreviation ?? "");
@@ -111,6 +118,22 @@ function SongbookCatalogDetail() {
     }
   }
 
+  async function startImport() {
+    setStartingImport(true);
+    setStartImportError(null);
+    try {
+      const songbook = await apiClient.importSongbookFromCatalog({
+        catalogId: catalog.id,
+        teamId: importOwnership.startsWith("team:") ? importOwnership.slice(5) : undefined,
+        global: importOwnership === "global",
+      });
+      await navigate({ to: "/songbooks/$songbookId", params: { songbookId: songbook.id } });
+    } catch (err) {
+      setStartImportError(err instanceof Error ? err.message : String(err));
+      setStartingImport(false);
+    }
+  }
+
   async function runImport() {
     if (!csv.trim()) return;
     setImporting(true);
@@ -134,6 +157,34 @@ function SongbookCatalogDetail() {
         <h1 className="text-2xl font-semibold">{catalog.name}</h1>
         {catalog.description ? <p className="text-sm text-muted-foreground">{catalog.description}</p> : null}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">{t("songbookCatalog.importIntoSongverse")}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-sm text-muted-foreground">{t("songbookCatalog.importDescription")}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={importOwnership}
+              onChange={(e) => setImportOwnership(e.target.value as Ownership)}
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <option value="personal">{t("songbooks.personal")}</option>
+              {teams.map((team) => (
+                <option key={team.id} value={`team:${team.id}`}>
+                  {team.name}
+                </option>
+              ))}
+              {session.isGlobalAdmin ? <option value="global">{t("songbooks.global")}</option> : null}
+            </select>
+            <Button onClick={() => void startImport()} disabled={startingImport}>
+              {startingImport ? t("songbookCatalog.startingImport") : t("songbookCatalog.startImport")}
+            </Button>
+          </div>
+          {startImportError ? <p className="text-sm text-destructive">{startImportError}</p> : null}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

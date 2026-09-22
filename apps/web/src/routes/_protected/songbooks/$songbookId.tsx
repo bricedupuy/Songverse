@@ -60,6 +60,9 @@ function SongbookDetail() {
   const [savingSections, setSavingSections] = useState(false);
   const [sectionsError, setSectionsError] = useState<string | null>(null);
 
+  const [materializingId, setMaterializingId] = useState<string | null>(null);
+  const [materializeError, setMaterializeError] = useState<string | null>(null);
+
   const filteredSongVersions = useMemo(() => {
     const alreadyAdded = new Set(songbook.entries.map((entry) => entry.songVersionId));
     const query = entryFilter.trim().toLowerCase();
@@ -128,6 +131,19 @@ function SongbookDetail() {
       await router.invalidate();
     } catch (err) {
       setEntryError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function materializeEntry(catalogEntryId: string) {
+    setMaterializingId(catalogEntryId);
+    setMaterializeError(null);
+    try {
+      await apiClient.materializeSongbookCatalogEntry(songbook.id, catalogEntryId);
+      await router.invalidate();
+    } catch (err) {
+      setMaterializeError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setMaterializingId(null);
     }
   }
 
@@ -310,6 +326,45 @@ function SongbookDetail() {
               </div>
             ) : null}
             {sectionsError ? <p className="text-sm text-destructive">{sectionsError}</p> : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {songbook.pendingEntries && songbook.pendingEntries.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">
+              {t("songbooks.pendingEntries")} ({songbook.pendingEntries.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">{t("songbooks.pendingEntriesDescription")}</p>
+            <ul className="flex max-h-96 flex-col divide-y overflow-auto">
+              {songbook.pendingEntries.map((entry) => (
+                <li
+                  key={entry.catalogEntryId}
+                  className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-14 shrink-0 rounded-md bg-muted px-2 py-1 text-center text-xs font-medium">
+                      {entry.entryCode}
+                    </span>
+                    <span className="text-sm">{entry.title}</span>
+                  </div>
+                  {canEdit ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void materializeEntry(entry.catalogEntryId)}
+                      disabled={materializingId === entry.catalogEntryId}
+                    >
+                      {materializingId === entry.catalogEntryId ? t("songbooks.starting") : t("songbooks.start")}
+                    </Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            {materializeError ? <p className="text-sm text-destructive">{materializeError}</p> : null}
           </CardContent>
         </Card>
       ) : null}

@@ -50,6 +50,12 @@ const LIST_SELECT = {
 
 const STREAMING_IDENTIFIER_TYPES = ["SPOTIFY", "APPLE_MUSIC", "YOUTUBE"] as const;
 
+export interface SongVersionOwner {
+  ownerScope: "GLOBAL" | "TEAM" | "USER";
+  ownerUserId: string | null;
+  ownerTeamId: string | null;
+}
+
 const DETAIL_SELECT = {
   ...LIST_SELECT,
   documentJson: true,
@@ -194,7 +200,43 @@ export class SongVersionsService {
       ownerTeamId = dto.teamId;
     }
     const ownerScope = ownerTeamId ? "TEAM" : "USER";
+    const owner: SongVersionOwner = { ownerScope, ownerUserId: ownerTeamId ? null : user.id, ownerTeamId };
 
+    if (dto.workId) {
+      const work = await this.prisma.client.work.findUnique({ where: { id: dto.workId } });
+      if (!work) throw new NotFoundException("Work not found");
+      const version = await this.prisma.client.songVersion.create({
+        data: { ...this.buildVersionData(owner, dto), workId: work.id },
+        select: LIST_SELECT,
+      });
+      return toListItem(version);
+    }
+
+    return this.createWithNewWork(owner, dto);
+  }
+
+  /**
+   * Mints a blank Song Version under an arbitrary ownership (including
+   * GLOBAL, which the public create() endpoint never allows a caller to
+   * pick directly). Used by SongbooksService when materializing a pending
+   * catalog entry into a real song - see docs/songbooks-and-catalog.md §6.
+   */
+  async createOwned(owner: SongVersionOwner, params: { title: string; language: string }): Promise<ListItem> {
+    return this.createWithNewWork(owner, params);
+  }
+
+  private buildVersionData(
+    owner: SongVersionOwner,
+    dto: {
+      title: string;
+      alternateTitle?: string;
+      language: string;
+      copyright?: string;
+      copyrightYear?: number;
+      publisher?: string;
+      ccli?: string;
+    },
+  ) {
     const documentJson: SongDocument = parseSongDocument({
       $schema: "song-document/v1",
       metadata: {
@@ -211,10 +253,8 @@ export class SongVersionsService {
       sections: [],
     });
 
-    const versionData = {
-      ownerScope,
-      ownerUserId: ownerTeamId ? null : user.id,
-      ownerTeamId,
+    return {
+      ...owner,
       title: dto.title,
       alternateTitle: dto.alternateTitle,
       language: dto.language,
@@ -225,18 +265,14 @@ export class SongVersionsService {
       documentJson: documentJson as object,
       chordproCache: serializeChordPro(documentJson),
       chordproCacheAt: new Date(),
-    } as const;
+    };
+  }
 
-    if (dto.workId) {
-      const work = await this.prisma.client.work.findUnique({ where: { id: dto.workId } });
-      if (!work) throw new NotFoundException("Work not found");
-      const version = await this.prisma.client.songVersion.create({
-        data: { ...versionData, workId: work.id },
-        select: LIST_SELECT,
-      });
-      return toListItem(version);
-    }
-
+  private async createWithNewWork(
+    owner: SongVersionOwner,
+    dto: { title: string; language: string; alternateTitle?: string },
+  ): Promise<ListItem> {
+    const versionData = this.buildVersionData(owner, dto);
     const version = await this.prisma.client.$transaction(async (tx) => {
       const work = await tx.work.create({ data: {} });
       const created = await tx.songVersion.create({

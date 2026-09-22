@@ -130,6 +130,10 @@ const fr: typeof en = {
     confirmDelete: "Confirmer la suppression",
     deleting: "Suppression…",
     cancel: "Annuler",
+    pendingEntries: "Entrées en attente",
+    pendingEntriesDescription: "Chansons du catalogue pas encore démarrées - ajoutez paroles/accords en en démarrant une.",
+    start: "Démarrer",
+    starting: "Démarrage…",
   },
   songbookCatalog: {
     title: "Catalogue de recueils",
@@ -168,6 +172,10 @@ const fr: typeof en = {
     runImport: "Importer",
     importing: "Importation…",
     importResult: "{{created}} créées, {{updated}} mises à jour.",
+    importIntoSongverse: "Importer dans SongVerse",
+    importDescription: "Crée un nouveau recueil que vous possédez, avec un espace réservé pour chaque entrée du catalogue - à vous d'ajouter les paroles/accords.",
+    startImport: "Créer le recueil",
+    startingImport: "Création…",
   },
 };
 

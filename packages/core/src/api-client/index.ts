@@ -73,10 +73,18 @@ export interface SongbookSummary {
   ownerScope: OwnershipScope;
   ownerUserId: string | null;
   ownerTeamId: string | null;
+  sourceCatalogId?: string | null;
+}
+
+export interface PendingSongbookEntry {
+  catalogEntryId: string;
+  entryCode: string;
+  title: string;
 }
 
 export interface SongbookDetail extends SongbookSummary {
   entries: SongbookEntry[];
+  pendingEntries?: PendingSongbookEntry[];
 }
 
 export interface CreateSongbookInput {
@@ -86,6 +94,12 @@ export interface CreateSongbookInput {
   language?: string;
   publisher?: string;
   year?: number;
+  teamId?: string;
+  global?: boolean;
+}
+
+export interface ImportSongbookFromCatalogInput {
+  catalogId: string;
   teamId?: string;
   global?: boolean;
 }
@@ -356,6 +370,12 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     updateSongbook: (songbookId: string, data: UpdateSongbookInput) =>
       request<SongbookSummary>(`/songbooks/${songbookId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteSongbook: (songbookId: string) => request<void>(`/songbooks/${songbookId}`, { method: "DELETE" }),
+    importSongbookFromCatalog: (data: ImportSongbookFromCatalogInput) =>
+      request<SongbookSummary>("/songbooks/import-from-catalog", { method: "POST", body: JSON.stringify(data) }),
+    materializeSongbookCatalogEntry: (songbookId: string, catalogEntryId: string) =>
+      request<SongbookEntry>(`/songbooks/${songbookId}/catalog-entries/${catalogEntryId}/materialize`, {
+        method: "POST",
+      }),
     addSongbookEntry: (songbookId: string, songVersionId: string, entryCode?: string) =>
       request<SongbookEntry>(`/songbooks/${songbookId}/entries`, {
         method: "POST",

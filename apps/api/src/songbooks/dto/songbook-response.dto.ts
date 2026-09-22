@@ -10,6 +10,13 @@ export class SongbookEntryResponseDto {
   sectionLabel!: string | null;
 }
 
+export class PendingSongbookEntryResponseDto {
+  @ApiProperty({ description: "The SongbookCatalogEntry id - pass this to the materialize endpoint" })
+  catalogEntryId!: string;
+  @ApiProperty() entryCode!: string;
+  @ApiProperty() title!: string;
+}
+
 export class SongbookResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() name!: string;
@@ -21,6 +28,19 @@ export class SongbookResponseDto {
   @ApiProperty({ required: false, nullable: true }) sections!: SongbookSection[] | null;
   @ApiProperty({ enum: OWNERSHIP_SCOPES }) ownerScope!: (typeof OWNERSHIP_SCOPES)[number];
   @ApiProperty({ required: false, nullable: true }) ownerTeamId!: string | null;
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    description: "Set if this songbook was imported from a SongbookCatalog",
+  })
+  sourceCatalogId?: string | null;
   @ApiProperty({ type: SongbookEntryResponseDto, isArray: true, required: false })
   entries?: SongbookEntryResponseDto[];
+  @ApiProperty({
+    type: PendingSongbookEntryResponseDto,
+    isArray: true,
+    required: false,
+    description: "Catalog entries not yet materialized into a real song - only set when sourceCatalogId is set",
+  })
+  pendingEntries?: PendingSongbookEntryResponseDto[];
 }

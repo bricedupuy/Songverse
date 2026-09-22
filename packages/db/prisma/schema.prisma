@@ -777,6 +777,15 @@ model Songbook {
   ownerUser User? @relation("SongbookOwnerUser", fields: [ownerUserId], references: [id])
   ownerTeam Team? @relation("SongbookOwnerTeam", fields: [ownerTeamId], references: [id])
 
+  // Set when this songbook was created via "import from catalog" - entries
+  // are materialized lazily (see docs/songbooks-and-catalog.md §6), so a
+  // catalog entry with no matching SongbookEntry yet is still "pending"
+  // rather than missing. SetNull on delete: if the catalog itself is later
+  // removed, already-imported songbooks keep their real content untouched,
+  // they just stop offering more entries to materialize.
+  sourceCatalogId String?
+  sourceCatalog   SongbookCatalog? @relation(fields: [sourceCatalogId], references: [id], onDelete: SetNull)
+
   entries SongbookEntry[]
 
   @@index([ownerUserId])
@@ -832,7 +841,8 @@ model SongbookCatalog {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  entries SongbookCatalogEntry[]
+  entries           SongbookCatalogEntry[]
+  importedSongbooks Songbook[]
 
   @@index([name])
 }
