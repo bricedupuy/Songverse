@@ -192,12 +192,21 @@ export interface SongVersionSummary {
   alternateTitle: string | null;
   language: string;
   ownerScope: "GLOBAL" | "TEAM" | "USER";
+  ownerUserId: string | null;
+  ownerTeamId: string | null;
   publicationState: string;
   ccli: string | null;
   createdAt: string;
   updatedAt: string;
   artists: ArtistSummary[];
   tags: Tag[];
+}
+
+export interface SongVersionSongbookMembership {
+  songbookId: string;
+  songbookName: string;
+  entryCode: string | null;
+  sectionLabel: string | null;
 }
 
 export interface VersionContributor {
@@ -388,6 +397,8 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     getWork: (workId: string) => request<WorkDetail>(`/works/${workId}`),
     listSongVersions: () => request<SongVersionSummary[]>("/song-versions"),
     getSongVersion: (songVersionId: string) => request<SongVersionDetail>(`/song-versions/${songVersionId}`),
+    getSongVersionSongbooks: (songVersionId: string) =>
+      request<SongVersionSongbookMembership[]>(`/song-versions/${songVersionId}/songbooks`),
     createSongVersion: (data: CreateSongVersionInput) =>
       request<SongVersionSummary>("/song-versions", { method: "POST", body: JSON.stringify(data) }),
     updateSongVersion: (songVersionId: string, data: UpdateSongVersionInput) =>

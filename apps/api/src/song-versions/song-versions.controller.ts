@@ -23,7 +23,7 @@ import { AddContributorDto } from "./dto/add-contributor.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import { ImportSongTextDto } from "./dto/import-song-text.dto";
 import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto";
-import { SongVersionResponseDto } from "./dto/song-version-response.dto";
+import { SongVersionResponseDto, SongVersionSongbookMembershipDto } from "./dto/song-version-response.dto";
 import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 import { SongVersionsService } from "./song-versions.service";
 
@@ -51,8 +51,22 @@ export class SongVersionsController {
 
   @Get(":songVersionId")
   @ApiOkResponse({ type: SongVersionResponseDto })
-  findOne(@Param("songVersionId") songVersionId: string): ReturnType<SongVersionsService["findOne"]> {
-    return this.songVersionsService.findOne(songVersionId);
+  findOne(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("songVersionId") songVersionId: string,
+  ): ReturnType<SongVersionsService["findOne"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.songVersionsService.findOne(user, songVersionId);
+  }
+
+  @Get(":songVersionId/songbooks")
+  @ApiOkResponse({ type: SongVersionSongbookMembershipDto, isArray: true })
+  findSongbookMemberships(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("songVersionId") songVersionId: string,
+  ): ReturnType<SongVersionsService["findSongbookMemberships"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.songVersionsService.findSongbookMemberships(user, songVersionId);
   }
 
   @Post()

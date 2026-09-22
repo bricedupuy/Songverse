@@ -1,7 +1,7 @@
 import { CONTRIBUTOR_ROLES, detectImportFormat, resolveTranslation, type LocaleValue } from "@songverse/core";
 
 const NON_ARTIST_ROLES = CONTRIBUTOR_ROLES.filter((r) => r !== "performer");
-import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
@@ -16,15 +16,17 @@ import { Textarea } from "#/components/ui/textarea";
 
 export const Route = createFileRoute("/_protected/library/$songVersionId")({
   loader: async ({ params }) => {
-    const version = await apiClient.getSongVersion(params.songVersionId);
-    const [work, recordingMatch, tagCategories, availableTags] = await Promise.all([
+    const version = await apiClient.getSongVersion(params.songVersionId).catch(() => null);
+    if (!version) throw redirect({ to: "/library" });
+    const [work, recordingMatch, tagCategories, availableTags, songbookMemberships] = await Promise.all([
       apiClient.getWork(version.workId),
       apiClient.getSongVersionMusicBrainz(version.id),
       apiClient.listTagCategories(),
       apiClient.listTags(),
+      apiClient.getSongVersionSongbooks(version.id),
     ]);
     const workMatch = await apiClient.getWorkMusicBrainz(work.id);
-    return { version, work, recordingMatch, workMatch, tagCategories, availableTags };
+    return { version, work, recordingMatch, workMatch, tagCategories, availableTags, songbookMemberships };
   },
   component: SongVersionDetail,
 });
@@ -34,7 +36,8 @@ function contributorLabel(c: { userId: string | null; source: string | null }): 
 }
 
 function SongVersionDetail() {
-  const { version, work, recordingMatch, workMatch, tagCategories, availableTags } = Route.useLoaderData();
+  const { version, work, recordingMatch, workMatch, tagCategories, availableTags, songbookMemberships } =
+    Route.useLoaderData();
   const router = useRouter();
   const navigate = useNavigate();
   const { i18n } = useTranslation();
@@ -527,6 +530,46 @@ function SongVersionDetail() {
             ))
           )}
           {tagError ? <p className="text-sm text-destructive">{tagError}</p> : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Songbooks</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {songbookMemberships.length === 0 ? (
+            <p className="text-sm text-muted-foreground">This song isn't in any songbook yet.</p>
+          ) : (
+            <ul className="flex flex-col divide-y">
+              {songbookMemberships.map((membership) => (
+                <li
+                  key={membership.songbookId}
+                  className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                >
+                  <Link
+                    to="/songbooks/$songbookId"
+                    params={{ songbookId: membership.songbookId }}
+                    className="text-sm hover:text-primary"
+                  >
+                    {membership.songbookName}
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    {membership.entryCode ? (
+                      <span className="rounded-md bg-muted px-2 py-1 text-center text-xs font-medium">
+                        {membership.entryCode}
+                      </span>
+                    ) : null}
+                    {membership.sectionLabel ? (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        {membership.sectionLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
 

@@ -1,10 +1,12 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
+  computeSectionLabel,
   parseChordPro,
   parseChordsOverLyrics,
   parseSongDocument,
   parseStreamingLink,
   serializeChordPro,
+  type SongbookSection,
   type SongDocument,
   type StreamingIdentifierType,
   type SupportedImportFormat,
@@ -13,6 +15,7 @@ import type { ContributorRole, Prisma } from "@songverse/db";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { isOwnedByOrMemberOf } from "../common/utils/ownership-visibility";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 
@@ -23,6 +26,8 @@ const LIST_SELECT = {
   alternateTitle: true,
   language: true,
   ownerScope: true,
+  ownerUserId: true,
+  ownerTeamId: true,
   publicationState: true,
   ccli: true,
   createdAt: true,
@@ -127,13 +132,49 @@ export class SongVersionsService {
     return versions.map(toListItem);
   }
 
-  async findOne(id: string): Promise<DetailItem> {
+  async findOne(user: AuthenticatedUser, id: string): Promise<DetailItem> {
     const version = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: DETAIL_SELECT,
     });
     if (!version) throw new NotFoundException("Song version not found");
+
+    const visible =
+      (version.ownerScope === "GLOBAL" && (version.publicationState === "APPROVED" || user.isGlobalAdmin)) ||
+      (await isOwnedByOrMemberOf(this.prisma, user, version));
+    if (!visible) throw new ForbiddenException("Not visible to you");
+
     return toDetailItem(version);
+  }
+
+  /**
+   * Lists the songbooks this song version is a member of, filtered to
+   * what `user` can see - a private songbook's membership (e.g. someone
+   * else's personal set list) must never leak through a song that's
+   * otherwise publicly visible. See docs/songbooks-and-catalog.md §5.
+   */
+  async findSongbookMemberships(user: AuthenticatedUser, songVersionId: string) {
+    const entries = await this.prisma.client.songbookEntry.findMany({
+      where: { songVersionId },
+      include: { songbook: true },
+    });
+
+    const visibility = await Promise.all(
+      entries.map((entry) =>
+        entry.songbook.ownerScope === "GLOBAL"
+          ? Promise.resolve(true)
+          : isOwnedByOrMemberOf(this.prisma, user, entry.songbook),
+      ),
+    );
+
+    return entries
+      .filter((_, index) => visibility[index])
+      .map((entry) => ({
+        songbookId: entry.songbookId,
+        songbookName: entry.songbook.name,
+        entryCode: entry.entryCode,
+        sectionLabel: computeSectionLabel(entry.entryCode, entry.songbook.sections as SongbookSection[] | null),
+      }));
   }
 
   /**

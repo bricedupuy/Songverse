@@ -3,6 +3,7 @@ import { computeSectionLabel, validateSongbookSections, type SongbookSection } f
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { isOwnedByOrMemberOf } from "../common/utils/ownership-visibility";
 import type { AddSongbookEntryDto } from "./dto/add-songbook-entry.dto";
 import type { CreateSongbookDto } from "./dto/create-songbook.dto";
 import type { UpdateSongbookDto } from "./dto/update-songbook.dto";
@@ -74,17 +75,10 @@ export class SongbooksService {
     user: AuthenticatedUser,
     songbook: { ownerScope: string; ownerUserId: string | null; ownerTeamId: string | null },
   ): Promise<void> {
-    if (user.isGlobalAdmin || songbook.ownerScope === "GLOBAL") return;
-
-    if (songbook.ownerScope === "USER") {
-      if (songbook.ownerUserId !== user.id) throw new ForbiddenException("Not visible to you");
-      return;
+    if (songbook.ownerScope === "GLOBAL") return;
+    if (!(await isOwnedByOrMemberOf(this.prisma, user, songbook))) {
+      throw new ForbiddenException("Not visible to you");
     }
-
-    const membership = await this.prisma.client.teamMembership.findUnique({
-      where: { teamId_userId: { teamId: songbook.ownerTeamId!, userId: user.id } },
-    });
-    if (!membership) throw new ForbiddenException("Not visible to you");
   }
 
   async create(user: AuthenticatedUser, dto: CreateSongbookDto): Promise<Prisma.SongbookGetPayload<object>> {

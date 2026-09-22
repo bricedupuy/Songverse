@@ -8,8 +8,17 @@ export class SongVersionResponseDto {
   @ApiProperty({ required: false, nullable: true }) alternateTitle!: string | null;
   @ApiProperty() language!: string;
   @ApiProperty({ enum: OWNERSHIP_SCOPES }) ownerScope!: (typeof OWNERSHIP_SCOPES)[number];
+  @ApiProperty({ required: false, nullable: true }) ownerUserId!: string | null;
+  @ApiProperty({ required: false, nullable: true }) ownerTeamId!: string | null;
   @ApiProperty({ enum: PUBLICATION_STATES }) publicationState!: (typeof PUBLICATION_STATES)[number];
   @ApiProperty({ required: false, nullable: true }) ccli!: string | null;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;
+}
+
+export class SongVersionSongbookMembershipDto {
+  @ApiProperty() songbookId!: string;
+  @ApiProperty() songbookName!: string;
+  @ApiProperty({ required: false, nullable: true }) entryCode!: string | null;
+  @ApiProperty({ required: false, nullable: true }) sectionLabel!: string | null;
 }
