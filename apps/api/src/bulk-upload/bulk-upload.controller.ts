@@ -1,0 +1,42 @@
+import { FilesInterceptor } from "@nestjs/platform-express";
+import { Body, Controller, Param, Post, UseGuards, UseInterceptors, UploadedFiles } from "@nestjs/common";
+import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard";
+import { BulkUploadService } from "./bulk-upload.service";
+import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto";
+import { BulkUploadPreviewDto } from "./dto/bulk-upload-preview.dto";
+import { BulkUploadCommitResultDto, BulkUploadFileMatchDto } from "./dto/bulk-upload-response.dto";
+
+const MAX_BULK_UPLOAD_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+const MAX_BULK_UPLOAD_FILES_PER_REQUEST = 200;
+
+@ApiTags("bulk-upload")
+@ApiBearerAuth()
+@Controller("songbooks/:songbookId/bulk-upload")
+@UseGuards(SongbookOwnerGuard)
+export class BulkUploadController {
+  constructor(private readonly bulkUploadService: BulkUploadService) {}
+
+  @Post("preview")
+  @ApiOkResponse({ type: BulkUploadFileMatchDto, isArray: true })
+  preview(
+    @Param("songbookId") songbookId: string,
+    @Body() dto: BulkUploadPreviewDto,
+  ): ReturnType<BulkUploadService["preview"]> {
+    return this.bulkUploadService.preview(songbookId, dto.filenames);
+  }
+
+  @Post()
+  @UseInterceptors(
+    FilesInterceptor("files", MAX_BULK_UPLOAD_FILES_PER_REQUEST, { limits: { fileSize: MAX_BULK_UPLOAD_FILE_SIZE_BYTES } }),
+  )
+  @ApiConsumes("multipart/form-data")
+  @ApiCreatedResponse({ type: BulkUploadCommitResultDto })
+  commit(
+    @Param("songbookId") songbookId: string,
+    @Body() dto: BulkUploadCommitDto,
+    @UploadedFiles() files: Express.Multer.File[] | undefined,
+  ): ReturnType<BulkUploadService["commit"]> {
+    return this.bulkUploadService.commit(songbookId, dto.type, files ?? []);
+  }
+}

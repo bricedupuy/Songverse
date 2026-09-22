@@ -1,4 +1,4 @@
-import type { SongbookSection } from "@songverse/core";
+import type { BulkUploadContentType, BulkUploadFileMatch, SongbookSection } from "@songverse/core";
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -62,6 +62,14 @@ function SongbookDetail() {
 
   const [materializingId, setMaterializingId] = useState<string | null>(null);
   const [materializeError, setMaterializeError] = useState<string | null>(null);
+
+  const [bulkUploadType, setBulkUploadType] = useState<BulkUploadContentType>("CHORDPRO");
+  const [bulkUploadFiles, setBulkUploadFiles] = useState<File[]>([]);
+  const [bulkUploadPreview, setBulkUploadPreview] = useState<BulkUploadFileMatch[] | null>(null);
+  const [previewingBulkUpload, setPreviewingBulkUpload] = useState(false);
+  const [committingBulkUpload, setCommittingBulkUpload] = useState(false);
+  const [bulkUploadResult, setBulkUploadResult] = useState<{ queued: number; skipped: string[] } | null>(null);
+  const [bulkUploadError, setBulkUploadError] = useState<string | null>(null);
 
   const filteredSongVersions = useMemo(() => {
     const alreadyAdded = new Set(songbook.entries.map((entry) => entry.songVersionId));
@@ -144,6 +152,48 @@ function SongbookDetail() {
       setMaterializeError(err instanceof Error ? err.message : String(err));
     } finally {
       setMaterializingId(null);
+    }
+  }
+
+  async function selectBulkUploadFiles(files: File[]) {
+    setBulkUploadFiles(files);
+    setBulkUploadResult(null);
+    setBulkUploadError(null);
+    setBulkUploadPreview(null);
+    if (files.length === 0) return;
+    setPreviewingBulkUpload(true);
+    try {
+      const matches = await apiClient.previewBulkUpload(
+        songbook.id,
+        files.map((file) => file.name),
+      );
+      setBulkUploadPreview(matches);
+    } catch (err) {
+      setBulkUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPreviewingBulkUpload(false);
+    }
+  }
+
+  async function commitBulkUpload() {
+    if (!bulkUploadPreview) return;
+    const matchedFilenames = new Set(
+      bulkUploadPreview.filter((match) => match.status === "MATCHED").map((match) => match.filename),
+    );
+    const filesToUpload = bulkUploadFiles.filter((file) => matchedFilenames.has(file.name));
+    if (filesToUpload.length === 0) return;
+
+    setCommittingBulkUpload(true);
+    setBulkUploadError(null);
+    try {
+      const result = await apiClient.commitBulkUpload(songbook.id, bulkUploadType, filesToUpload);
+      setBulkUploadResult(result);
+      setBulkUploadFiles([]);
+      setBulkUploadPreview(null);
+    } catch (err) {
+      setBulkUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCommittingBulkUpload(false);
     }
   }
 
@@ -479,6 +529,102 @@ function SongbookDetail() {
           ) : null}
         </CardContent>
       </Card>
+
+      {isNumbered && canEdit ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">{t("songbooks.bulkUpload")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">{t("songbooks.bulkUploadDescription")}</p>
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="bulk-upload-type">{t("songbooks.bulkUploadType")}</Label>
+                <select
+                  id="bulk-upload-type"
+                  value={bulkUploadType}
+                  onChange={(e) => setBulkUploadType(e.target.value as BulkUploadContentType)}
+                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  <option value="CHORDPRO">{t("songbooks.bulkUploadTypeChordpro")}</option>
+                  <option value="PDF">{t("songbooks.bulkUploadTypePdf")}</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="bulk-upload-files">{t("songbooks.bulkUploadChooseFiles")}</Label>
+                <input
+                  id="bulk-upload-files"
+                  type="file"
+                  multiple
+                  disabled={previewingBulkUpload || committingBulkUpload}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files ?? []);
+                    e.target.value = "";
+                    void selectBulkUploadFiles(files);
+                  }}
+                  className="text-sm"
+                />
+              </div>
+            </div>
+
+            {previewingBulkUpload ? (
+              <p className="text-sm text-muted-foreground">{t("songbooks.bulkUploadPreviewing")}</p>
+            ) : null}
+
+            {bulkUploadPreview && bulkUploadPreview.length > 0 ? (
+              <div className="flex flex-col gap-2 border-t pt-4">
+                <ul className="flex max-h-64 flex-col divide-y overflow-auto">
+                  {bulkUploadPreview.map((match) => (
+                    <li key={match.filename} className="flex items-center justify-between gap-4 py-2 text-sm">
+                      <span className="truncate">{match.filename}</span>
+                      <span className="flex items-center gap-2 whitespace-nowrap">
+                        {match.entryCode ? (
+                          <span className="rounded-md bg-muted px-2 py-1 text-center text-xs font-medium">
+                            {match.entryCode}
+                          </span>
+                        ) : null}
+                        <span
+                          className={
+                            match.status === "MATCHED"
+                              ? "text-xs font-medium text-primary"
+                              : "text-xs font-medium text-destructive"
+                          }
+                        >
+                          {match.status === "MATCHED"
+                            ? t("songbooks.bulkUploadStatusMatched")
+                            : match.status === "DUPLICATE"
+                              ? t("songbooks.bulkUploadStatusDuplicate")
+                              : t("songbooks.bulkUploadStatusUnmatched")}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  onClick={() => void commitBulkUpload()}
+                  disabled={committingBulkUpload || !bulkUploadPreview.some((match) => match.status === "MATCHED")}
+                  className="self-start"
+                >
+                  {committingBulkUpload ? t("songbooks.bulkUploadUploading") : t("songbooks.bulkUploadConfirm")}
+                </Button>
+              </div>
+            ) : null}
+
+            {bulkUploadResult ? (
+              <div className="text-sm">
+                <p>{t("songbooks.bulkUploadResult", { queued: bulkUploadResult.queued })}</p>
+                {bulkUploadResult.skipped.length > 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {t("songbooks.bulkUploadSkipped", { files: bulkUploadResult.skipped.join(", ") })}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {bulkUploadError ? <p className="text-sm text-destructive">{bulkUploadError}</p> : null}
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

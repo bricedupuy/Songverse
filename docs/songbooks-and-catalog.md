@@ -1,6 +1,7 @@
 # Songbooks & Songbook Catalog
 
-Status: **design in progress**. Sections are marked Implemented / Planned below.
+Status: **all planned items implemented** (see §10). Each section below is
+marked with its own status for reference.
 This document captures the reasoning behind the Songbooks feature so the "why"
 survives past the conversation it was designed in.
 
@@ -177,46 +178,61 @@ A user picks a catalog (e.g. "JEM") and imports it via
    import mechanism can populate real, complete `SongVersion`s instead of
    blank stubs — this is a data flag to add later, not a different pipeline.
 
-## 7. Planned: bulk content upload (ChordPro + PDF), with matching
+## 7. Bulk content upload (ChordPro + PDF), with matching
 
-Once a user has a real songbook (imported or hand-built), they need to get
-their own transcriptions and scans in efficiently rather than one song at a
-time. Target: upload a folder of ~1,000+ ChordPro files and/or PDFs in one
-go, matched automatically to the right entries.
+**Status: Implemented.** Once a user has a real songbook (imported or
+hand-built), they can get their own transcriptions and scans in efficiently
+rather than one song at a time: pick a batch of ChordPro or PDF files,
+review the matches, confirm, and the actual writes happen in the
+background.
 
-- **Matching is number-first, not fuzzy-first.** Extract the numeric token
-  from each filename ("0245.cho", "JEM_0245.pdf" → 245) and match against
-  each entry's code. Title-similarity matching is not reliable enough to run
-  unattended at this volume (e.g. "Amazing Grace" vs. "Amazing Grace
-  (Reprise)") and is, at most, a secondary aid for files that don't match by
-  number.
-- **A review step is mandatory, not optional polish.** Before anything is
-  written, show filename → matched entry → status (matched / unmatched /
-  conflict), so mismatches are caught by a human before a bulk write, not
-  after.
+- **Matching is number-first, not fuzzy-first.** `matchFilenamesToEntryCodes()`
+  (`packages/core/src/bulk-upload-matching/index.ts`) extracts the numeric
+  token from each filename ("0245.cho", "JEM_0245.pdf" → "245") and matches
+  it against each real entry code, tolerating zero-padding differences
+  ("3.cho" matches entry code "0003"). Title-similarity matching is not
+  reliable enough to run unattended at this volume (e.g. "Amazing Grace" vs.
+  "Amazing Grace (Reprise)") and isn't attempted at all - an unmatched file
+  is reported, never guessed at.
+- **A review step is mandatory, not optional polish.** `POST /songbooks/
+  :songbookId/bulk-upload/preview` takes just filenames (no upload yet) and
+  returns filename → matched entry code → status (`MATCHED` / `UNMATCHED` /
+  `DUPLICATE`, the last when more than one file claims the same code) - the
+  web UI renders this as a table before any file is actually sent, and the
+  "Confirm upload" step only ever sends the `MATCHED` files.
 - **ChordPro and PDF are handled differently**, because they aren't the same
   kind of artifact:
-  - ChordPro text is the actual song content. Each matched file is run
-    through the existing single-song ChordPro import path
-    (`POST /song-versions/:id/import`) rather than a new pipeline — bulk
-    import is that same operation, run many times.
+  - ChordPro text is the actual song content. `BulkUploadProcessor` runs
+    each matched file's content through `SongVersionsService.importText()`
+    - the same parse-and-cache path the single-song import endpoint uses,
+      not a separate pipeline.
   - The **original uploaded ChordPro file is also kept**, as an `Attachment`
     (type `CHORDPRO`), alongside the parsed/editable version. This is
     distinct from `SongVersion.chordproCache` (a regenerated *export* of the
-    current, possibly since-edited document) — the UI should label these
-    differently ("original upload" vs. "current export") so they're never
-    confused as the same artifact. Worth doing for the existing single-file
-    import path too, not just bulk, since it's the same mechanism either way.
-  - PDFs are opaque reference files (scanned sheet music) — these map
-    directly onto the existing, currently-unimplemented `Attachment` model
-    (type `PDF`), which needs real object storage behind it (§8).
+    current, possibly since-edited document) - the web UI's Attachments card
+    and Content card are separate for exactly this reason.
+  - PDFs are opaque reference files (scanned sheet music) - stored purely as
+    an `Attachment` (type `PDF`) via the object storage from §8, no content
+    parsing attempted.
 - **Bulk upload is also the second materialization path for lazy import**
-  (§6): uploading content for an entry nobody has opened yet is itself the
-  "start" — no separate step needed to reconcile lazy stubs with bulk
-  content.
-- Given the file counts involved, this runs as a background job via BullMQ
-  (already wired into the API in `apps/api/src/worker.ts`, currently unused)
-  rather than a single long-lived synchronous request.
+  (§6): `SongbooksService.ensureEntryForCode()` - the same lazy-
+  materialization logic the interactive "Start" button uses - resolves each
+  matched code to a SongVersion, materializing a pending catalog entry on
+  demand. Uploading content for an entry nobody has opened yet is itself the
+  "start."
+- **Runs as a background job via BullMQ** (`apps/api/src/bulk-upload/`),
+  exactly as planned: `POST /songbooks/:songbookId/bulk-upload` stores each
+  matched file's bytes synchronously (fast - just a hash and a write, via
+  the object storage from §8) and enqueues one small job per file -
+  `{songbookId, entryCode, type, filename, mimeType, storageKey, sizeBytes}`,
+  deliberately not the file's bytes, so the queue payload stays small
+  regardless of file count. `BulkUploadProcessor` (`@Processor("bulk-
+  upload")`) then does the actual materialize/parse/attach work per job,
+  decoupling upload latency from the count of files being processed.
+  Verified end-to-end: uploading a batch against a hand-built NUMBERED
+  songbook's existing entries gets the right content into the right
+  SongVersion, with the original file retained as an Attachment, entirely
+  through the queue rather than inline in the HTTP request.
 
 ## 8. Object storage (R2), with content-addressed dedup
 
@@ -277,9 +293,12 @@ go, matched automatically to the right entries.
 - ✅ Resolved: `SongVersion.findOne`'s missing visibility check was fixed
   alongside the reverse-lookup work (§5), sharing one helper rather than
   writing the same check twice.
-- Bulk upload UI: folder selection (`<input type="file" webkitdirectory>`)
-  works well in Chromium but needs a fallback/explanation for other
-  browsers — worth deciding how much effort that gets.
+- Bulk upload UI ships with a plain multi-file `<input type="file" multiple>`
+  (works identically in every browser, and the user can still select an
+  entire folder's contents by selecting all files inside it). Folder
+  selection via `<input type="file" webkitdirectory>` would save that one
+  extra step but only works reliably in Chromium - left as a future nicety
+  rather than a launch requirement.
 
 ## 10. Suggested build order
 
@@ -292,4 +311,6 @@ go, matched automatically to the right entries.
    visibility-filtering pattern before it's needed again for storage.
 4. ✅ Lazy import-from-catalog (§6) — depends on #1.
 5. ✅ Object storage + `Attachment` upload (§8) — foundational for #6.
-6. Bulk content upload with matching and review (§7) — depends on #4 and #5.
+6. ✅ Bulk content upload with matching and review (§7) — depends on #4 and #5.
+
+All six items in the build order are now shipped.

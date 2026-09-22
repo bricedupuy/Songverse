@@ -1,0 +1,52 @@
+import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { Logger } from "@nestjs/common";
+import type { Job } from "bullmq";
+import { PrismaService } from "../prisma/prisma.service";
+import { SongbooksService } from "../songbooks/songbooks.service";
+import { SongVersionsService } from "../song-versions/song-versions.service";
+import { StorageService } from "../storage/storage.service";
+import { BULK_UPLOAD_QUEUE, type BulkUploadJobData } from "./bulk-upload.types";
+
+/**
+ * One job per file (see bulk-upload.types.ts for why the payload stays
+ * small). Resolving the target SongVersion goes through
+ * SongbooksService.ensureEntryForCode() - the exact same lazy-
+ * materialization path the interactive "Start" button on a pending
+ * catalog entry uses - so a bulk upload against a not-yet-started entry
+ * is itself the "start", per docs/songbooks-and-catalog.md §7.
+ */
+@Processor(BULK_UPLOAD_QUEUE)
+export class BulkUploadProcessor extends WorkerHost {
+  private readonly logger = new Logger(BulkUploadProcessor.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly songbooksService: SongbooksService,
+    private readonly songVersionsService: SongVersionsService,
+    private readonly storage: StorageService,
+  ) {
+    super();
+  }
+
+  async process(job: Job<BulkUploadJobData>): Promise<void> {
+    const { songbookId, entryCode, type, filename, mimeType, storageKey, sizeBytes } = job.data;
+
+    const target = await this.songbooksService.ensureEntryForCode(songbookId, entryCode);
+    if (!target) {
+      this.logger.warn(`Skipping ${filename}: no entry (existing or catalog-backed) for code ${entryCode}`);
+      return;
+    }
+
+    if (type === "CHORDPRO") {
+      const buffer = await this.storage.get(storageKey);
+      await this.songVersionsService.importText(target.songVersionId, buffer.toString("utf-8"), "CHORDPRO");
+    }
+
+    // Kept alongside the parsed content, not instead of it - this is the
+    // original upload (distinct from SongVersion.chordproCache, which is a
+    // regenerated *export*), and for PDF it's the only artifact at all.
+    await this.prisma.client.attachment.create({
+      data: { songVersionId: target.songVersionId, type, filename, mimeType, storageKey, sizeBytes },
+    });
+  }
+}

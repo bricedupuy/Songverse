@@ -6,6 +6,7 @@ import { AdminModule } from "./admin/admin.module";
 import { AppController } from "./app.controller";
 import { AttachmentsModule } from "./attachments/attachments.module";
 import { AuthModule } from "./auth/auth.module";
+import { BulkUploadModule } from "./bulk-upload/bulk-upload.module";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -37,6 +38,7 @@ import { WorksModule } from "./works/works.module";
     TagsModule,
     MusicBrainzModule,
     AttachmentsModule,
+    BulkUploadModule,
     AdminModule,
   ],
   controllers: [AppController],

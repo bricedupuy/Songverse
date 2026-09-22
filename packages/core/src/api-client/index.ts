@@ -1,3 +1,4 @@
+import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SongDocument } from "../schemas/song-document.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
@@ -102,6 +103,13 @@ export interface ImportSongbookFromCatalogInput {
   catalogId: string;
   teamId?: string;
   global?: boolean;
+}
+
+export type BulkUploadContentType = "CHORDPRO" | "PDF";
+
+export interface BulkUploadCommitResult {
+  queued: number;
+  skipped: string[];
 }
 
 export interface UpdateSongbookInput {
@@ -396,6 +404,20 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
         method: "POST",
         body: JSON.stringify({ songVersionId, entryCode }),
       }),
+    previewBulkUpload: (songbookId: string, filenames: string[]) =>
+      request<BulkUploadFileMatch[]>(`/songbooks/${songbookId}/bulk-upload/preview`, {
+        method: "POST",
+        body: JSON.stringify({ filenames }),
+      }),
+    commitBulkUpload: (songbookId: string, type: BulkUploadContentType, files: File[]) => {
+      const form = new FormData();
+      form.append("type", type);
+      for (const file of files) form.append("files", file);
+      return request<BulkUploadCommitResult>(`/songbooks/${songbookId}/bulk-upload`, {
+        method: "POST",
+        body: form,
+      });
+    },
     removeSongbookEntry: (songbookId: string, entryId: string) =>
       request<void>(`/songbooks/${songbookId}/entries/${entryId}`, { method: "DELETE" }),
 

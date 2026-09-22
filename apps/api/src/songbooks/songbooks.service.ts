@@ -214,6 +214,69 @@ export class SongbooksService {
     };
   }
 
+  /**
+   * Every entry code bulk upload (docs/songbooks-and-catalog.md §7) can
+   * match a filename against: real entries already in the songbook, plus
+   * (for a catalog-imported songbook) codes still pending materialization.
+   * A pending code is included because uploading content for it is itself
+   * the "start" - no separate step needed to reconcile a lazy stub with
+   * bulk content.
+   */
+  async entryCodesFor(songbookId: string): Promise<string[]> {
+    const songbook = await this.prisma.client.songbook.findUnique({
+      where: { id: songbookId },
+      select: { sourceCatalogId: true },
+    });
+    if (!songbook) throw new NotFoundException("Songbook not found");
+
+    const existingEntries = await this.prisma.client.songbookEntry.findMany({
+      where: { songbookId, entryCode: { not: null } },
+      select: { entryCode: true },
+    });
+    const codes = new Set(existingEntries.map((entry) => entry.entryCode!));
+
+    if (songbook.sourceCatalogId) {
+      const catalogEntries = await this.prisma.client.songbookCatalogEntry.findMany({
+        where: { catalogId: songbook.sourceCatalogId },
+        select: { entryCode: true },
+      });
+      for (const entry of catalogEntries) codes.add(entry.entryCode);
+    }
+    return [...codes];
+  }
+
+  /**
+   * Resolves an entry code to the SongVersion content should be attached
+   * to, materializing a pending catalog entry on demand exactly like
+   * materializeEntry() does interactively. Returns null when there's no
+   * entry - existing or catalog-backed - for that code, so the caller
+   * (the bulk upload processor) can skip it rather than guess.
+   */
+  async ensureEntryForCode(songbookId: string, entryCode: string): Promise<{ songVersionId: string } | null> {
+    const songbook = await this.prisma.client.songbook.findUnique({ where: { id: songbookId } });
+    if (!songbook) return null;
+
+    const existing = await this.prisma.client.songbookEntry.findUnique({
+      where: { songbookId_entryCode: { songbookId, entryCode } },
+    });
+    if (existing) return { songVersionId: existing.songVersionId };
+    if (!songbook.sourceCatalogId) return null;
+
+    const catalogEntry = await this.prisma.client.songbookCatalogEntry.findUnique({
+      where: { catalogId_entryCode: { catalogId: songbook.sourceCatalogId, entryCode } },
+    });
+    if (!catalogEntry) return null;
+
+    const version = await this.songVersionsService.createOwned(
+      { ownerScope: songbook.ownerScope, ownerUserId: songbook.ownerUserId, ownerTeamId: songbook.ownerTeamId },
+      { title: catalogEntry.title, language: songbook.language ?? catalogEntry.originalLanguage ?? "en" },
+    );
+    const created = await this.prisma.client.songbookEntry.create({
+      data: { songbookId, songVersionId: version.id, entryCode },
+    });
+    return { songVersionId: created.songVersionId };
+  }
+
   update(songbookId: string, dto: UpdateSongbookDto): Promise<Prisma.SongbookGetPayload<object>> {
     let sections: Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined;
     if (dto.sections !== undefined) {

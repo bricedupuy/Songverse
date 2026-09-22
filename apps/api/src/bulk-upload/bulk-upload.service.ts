@@ -1,0 +1,85 @@
+import { InjectQueue } from "@nestjs/bullmq";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { matchFilenamesToEntryCodes, type BulkUploadFileMatch } from "@songverse/core";
+import type { Queue } from "bullmq";
+import { PrismaService } from "../prisma/prisma.service";
+import { SongbooksService } from "../songbooks/songbooks.service";
+import { StorageService } from "../storage/storage.service";
+import { BULK_UPLOAD_QUEUE, type BulkUploadJobData } from "./bulk-upload.types";
+import type { BulkUploadTypeValue } from "./dto/bulk-upload-commit.dto";
+
+export interface BulkUploadCommitResult {
+  queued: number;
+  skipped: string[];
+}
+
+@Injectable()
+export class BulkUploadService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly songbooksService: SongbooksService,
+    private readonly storage: StorageService,
+    @InjectQueue(BULK_UPLOAD_QUEUE) private readonly queue: Queue<BulkUploadJobData>,
+  ) {}
+
+  async preview(songbookId: string, filenames: string[]): Promise<BulkUploadFileMatch[]> {
+    const entryCodes = await this.entryCodesForNumberedSongbook(songbookId);
+    return matchFilenamesToEntryCodes(filenames, entryCodes);
+  }
+
+  /**
+   * Stores each matched file's bytes synchronously (fast - just a hash
+   * and a write) and enqueues one small BullMQ job per file to do the
+   * actual materialize/parse/link work in the background. Unmatched or
+   * duplicate-matched files are reported back, never guessed at - see
+   * the "review step is mandatory" rule in docs/songbooks-and-catalog.md
+   * §7.
+   */
+  async commit(
+    songbookId: string,
+    type: BulkUploadTypeValue,
+    files: Express.Multer.File[],
+  ): Promise<BulkUploadCommitResult> {
+    const entryCodes = await this.entryCodesForNumberedSongbook(songbookId);
+    const matches = matchFilenamesToEntryCodes(
+      files.map((file) => file.originalname),
+      entryCodes,
+    );
+    const matchByFilename = new Map(matches.map((match) => [match.filename, match]));
+
+    let queued = 0;
+    const skipped: string[] = [];
+    for (const file of files) {
+      const match = matchByFilename.get(file.originalname);
+      if (!match || match.status !== "MATCHED" || !match.entryCode) {
+        skipped.push(file.originalname);
+        continue;
+      }
+
+      const { hash, sizeBytes } = await this.storage.put(file.buffer, file.mimetype);
+      await this.queue.add("process-file", {
+        songbookId,
+        entryCode: match.entryCode,
+        type,
+        filename: file.originalname,
+        mimeType: file.mimetype,
+        storageKey: hash,
+        sizeBytes,
+      } satisfies BulkUploadJobData);
+      queued++;
+    }
+    return { queued, skipped };
+  }
+
+  private async entryCodesForNumberedSongbook(songbookId: string): Promise<string[]> {
+    const songbook = await this.prisma.client.songbook.findUnique({
+      where: { id: songbookId },
+      select: { kind: true },
+    });
+    if (!songbook) throw new NotFoundException("Songbook not found");
+    if (songbook.kind !== "NUMBERED") {
+      throw new BadRequestException("Bulk upload matches files by number - only supported for NUMBERED songbooks");
+    }
+    return this.songbooksService.entryCodesFor(songbookId);
+  }
+}

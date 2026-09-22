@@ -7,5 +7,6 @@ import { SongbooksService } from "./songbooks.service";
   imports: [SongVersionsModule],
   controllers: [SongbooksController],
   providers: [SongbooksService],
+  exports: [SongbooksService],
 })
 export class SongbooksModule {}
