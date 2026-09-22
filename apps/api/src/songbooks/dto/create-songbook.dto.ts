@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsBoolean, IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { SONGBOOK_KINDS, type SongbookKindValue } from "@songverse/core";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class CreateSongbookDto {
   @ApiProperty()
@@ -7,6 +8,13 @@ export class CreateSongbookDto {
   @MinLength(1)
   @MaxLength(200)
   name!: string;
+
+  @ApiProperty({
+    enum: SONGBOOK_KINDS,
+    description: "SIMPLE = unordered collection; NUMBERED = entries require a unique per-songbook number",
+  })
+  @IsIn(SONGBOOK_KINDS)
+  kind!: SongbookKindValue;
 
   @ApiProperty({ required: false })
   @IsOptional()

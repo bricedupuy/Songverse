@@ -1,5 +1,6 @@
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SongDocument } from "../schemas/song-document.js";
+import type { SongbookSection } from "../songbook-sections/index.js";
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -50,11 +51,14 @@ export interface CreateInviteLinkInput {
 
 export type OwnershipScope = "GLOBAL" | "TEAM" | "USER";
 
+export type SongbookKind = "SIMPLE" | "NUMBERED";
+
 export interface SongbookEntry {
   id: string;
   songVersionId: string;
-  entryCode: string;
+  entryCode: string | null;
   songVersionTitle: string | null;
+  sectionLabel: string | null;
 }
 
 export interface SongbookSummary {
@@ -64,6 +68,8 @@ export interface SongbookSummary {
   language: string | null;
   publisher: string | null;
   year: number | null;
+  kind: SongbookKind;
+  sections: SongbookSection[] | null;
   ownerScope: OwnershipScope;
   ownerUserId: string | null;
   ownerTeamId: string | null;
@@ -75,6 +81,7 @@ export interface SongbookDetail extends SongbookSummary {
 
 export interface CreateSongbookInput {
   name: string;
+  kind: SongbookKind;
   abbreviation?: string;
   language?: string;
   publisher?: string;
@@ -89,6 +96,7 @@ export interface UpdateSongbookInput {
   language?: string;
   publisher?: string;
   year?: number;
+  sections?: SongbookSection[];
 }
 
 export interface SongbookCatalogEntry {
@@ -339,7 +347,7 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     updateSongbook: (songbookId: string, data: UpdateSongbookInput) =>
       request<SongbookSummary>(`/songbooks/${songbookId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteSongbook: (songbookId: string) => request<void>(`/songbooks/${songbookId}`, { method: "DELETE" }),
-    addSongbookEntry: (songbookId: string, songVersionId: string, entryCode: string) =>
+    addSongbookEntry: (songbookId: string, songVersionId: string, entryCode?: string) =>
       request<SongbookEntry>(`/songbooks/${songbookId}/entries`, {
         method: "POST",
         body: JSON.stringify({ songVersionId, entryCode }),

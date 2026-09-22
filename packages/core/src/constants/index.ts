@@ -70,6 +70,9 @@ export type MidiEventTypeValue = (typeof MIDI_EVENT_TYPES)[number];
 export const OWNERSHIP_SCOPES = ["GLOBAL", "TEAM", "USER"] as const;
 export type OwnershipScopeValue = (typeof OWNERSHIP_SCOPES)[number];
 
+export const SONGBOOK_KINDS = ["SIMPLE", "NUMBERED"] as const;
+export type SongbookKindValue = (typeof SONGBOOK_KINDS)[number];
+
 export const PUBLICATION_STATES = [
   "DRAFT",
   "SUBMITTED",

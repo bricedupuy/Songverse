@@ -1,3 +1,4 @@
+import type { SongbookSection } from "@songverse/core";
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,6 +33,7 @@ function SongbookDetail() {
       : songbook.ownerScope === "TEAM"
         ? teams.some((team) => team.id === songbook.ownerTeamId && team.currentUserRole === "ADMIN")
         : false);
+  const isNumbered = songbook.kind === "NUMBERED";
 
   const [name, setName] = useState(songbook.name);
   const [abbreviation, setAbbreviation] = useState(songbook.abbreviation ?? "");
@@ -49,6 +51,14 @@ function SongbookDetail() {
   const [entryCode, setEntryCode] = useState("");
   const [addingEntry, setAddingEntry] = useState(false);
   const [entryError, setEntryError] = useState<string | null>(null);
+  const [sectionFilter, setSectionFilter] = useState("");
+
+  const [sections, setSections] = useState<SongbookSection[]>(songbook.sections ?? []);
+  const [newSectionLabel, setNewSectionLabel] = useState("");
+  const [newSectionStart, setNewSectionStart] = useState("");
+  const [newSectionEnd, setNewSectionEnd] = useState("");
+  const [savingSections, setSavingSections] = useState(false);
+  const [sectionsError, setSectionsError] = useState<string | null>(null);
 
   const filteredSongVersions = useMemo(() => {
     const alreadyAdded = new Set(songbook.entries.map((entry) => entry.songVersionId));
@@ -58,6 +68,11 @@ function SongbookDetail() {
       .filter((version) => !query || version.title.toLowerCase().includes(query))
       .slice(0, 20);
   }, [songVersions, songbook.entries, entryFilter]);
+
+  const visibleEntries = useMemo(() => {
+    if (!sectionFilter) return songbook.entries;
+    return songbook.entries.filter((entry) => entry.sectionLabel === sectionFilter);
+  }, [songbook.entries, sectionFilter]);
 
   async function save() {
     setSaving(true);
@@ -91,11 +106,11 @@ function SongbookDetail() {
   }
 
   async function addEntry() {
-    if (!selectedSongVersionId || !entryCode.trim()) return;
+    if (!selectedSongVersionId || (isNumbered && !entryCode.trim())) return;
     setAddingEntry(true);
     setEntryError(null);
     try {
-      await apiClient.addSongbookEntry(songbook.id, selectedSongVersionId, entryCode.trim());
+      await apiClient.addSongbookEntry(songbook.id, selectedSongVersionId, isNumbered ? entryCode.trim() : undefined);
       setSelectedSongVersionId("");
       setEntryCode("");
       setEntryFilter("");
@@ -116,16 +131,48 @@ function SongbookDetail() {
     }
   }
 
+  async function saveSections(next: SongbookSection[]) {
+    setSavingSections(true);
+    setSectionsError(null);
+    try {
+      await apiClient.updateSongbook(songbook.id, { sections: next });
+      setSections(next);
+      await router.invalidate();
+    } catch (err) {
+      setSectionsError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSavingSections(false);
+    }
+  }
+
+  function addSection() {
+    const start = Number(newSectionStart);
+    const end = Number(newSectionEnd);
+    if (!newSectionLabel.trim() || !Number.isInteger(start) || !Number.isInteger(end)) return;
+    void saveSections([...sections, { label: newSectionLabel.trim(), start, end }]).then(() => {
+      setNewSectionLabel("");
+      setNewSectionStart("");
+      setNewSectionEnd("");
+    });
+  }
+
+  function removeSection(index: number) {
+    void saveSections(sections.filter((_, i) => i !== index));
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold">{songbook.name}</h1>
         <p className="text-sm text-muted-foreground">
-          {songbook.ownerScope === "GLOBAL"
-            ? t("songbooks.global")
-            : songbook.ownerScope === "TEAM"
-              ? t("songbooks.teamOwned")
-              : t("songbooks.personal")}
+          {[
+            songbook.ownerScope === "GLOBAL"
+              ? t("songbooks.global")
+              : songbook.ownerScope === "TEAM"
+                ? t("songbooks.teamOwned")
+                : t("songbooks.personal"),
+            isNumbered ? t("songbooks.kindNumbered") : t("songbooks.kindSimple"),
+          ].join(" · ")}
         </p>
       </div>
 
@@ -200,21 +247,109 @@ function SongbookDetail() {
         </CardContent>
       </Card>
 
+      {isNumbered ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">{t("songbooks.sections")}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {sections.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("songbooks.noSectionsYet")}</p>
+            ) : (
+              <ul className="flex flex-col gap-1.5">
+                {sections.map((section, index) => (
+                  <li key={`${section.label}-${index}`} className="flex items-center justify-between gap-4 text-sm">
+                    <span>
+                      <span className="font-medium">{section.label}</span>{" "}
+                      <span className="text-muted-foreground">
+                        ({section.start}–{section.end})
+                      </span>
+                    </span>
+                    {canEdit ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeSection(index)}
+                        disabled={savingSections}
+                      >
+                        {t("songbooks.remove")}
+                      </Button>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canEdit ? (
+              <div className="flex flex-wrap items-end gap-2 border-t pt-4">
+                <Input
+                  value={newSectionLabel}
+                  onChange={(e) => setNewSectionLabel(e.target.value)}
+                  placeholder={t("songbooks.sectionLabelPlaceholder")}
+                  className="w-28"
+                />
+                <Input
+                  type="number"
+                  value={newSectionStart}
+                  onChange={(e) => setNewSectionStart(e.target.value)}
+                  placeholder={t("songbooks.sectionStartPlaceholder")}
+                  className="w-24"
+                />
+                <Input
+                  type="number"
+                  value={newSectionEnd}
+                  onChange={(e) => setNewSectionEnd(e.target.value)}
+                  placeholder={t("songbooks.sectionEndPlaceholder")}
+                  className="w-24"
+                />
+                <Button
+                  onClick={addSection}
+                  disabled={savingSections || !newSectionLabel.trim() || !newSectionStart.trim() || !newSectionEnd.trim()}
+                >
+                  {savingSections ? t("songbooks.saving") : t("songbooks.add")}
+                </Button>
+              </div>
+            ) : null}
+            {sectionsError ? <p className="text-sm text-destructive">{sectionsError}</p> : null}
+          </CardContent>
+        </Card>
+      ) : null}
+
       <Card>
-        <CardHeader>
+        <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-sm">{t("songbooks.entries")}</CardTitle>
+          {isNumbered && sections.length > 0 ? (
+            <select
+              value={sectionFilter}
+              onChange={(e) => setSectionFilter(e.target.value)}
+              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <option value="">{t("songbooks.allSections")}</option>
+              {sections.map((section) => (
+                <option key={section.label} value={section.label}>
+                  {section.label}
+                </option>
+              ))}
+            </select>
+          ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {songbook.entries.length === 0 ? (
+          {visibleEntries.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("songbooks.noEntriesYet")}</p>
           ) : (
             <ul className="flex flex-col divide-y">
-              {songbook.entries.map((entry) => (
+              {visibleEntries.map((entry) => (
                 <li key={entry.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-3">
-                    <span className="w-14 shrink-0 rounded-md bg-muted px-2 py-1 text-center text-xs font-medium">
-                      {entry.entryCode}
-                    </span>
+                    {entry.entryCode ? (
+                      <span className="w-14 shrink-0 rounded-md bg-muted px-2 py-1 text-center text-xs font-medium">
+                        {entry.entryCode}
+                      </span>
+                    ) : null}
+                    {entry.sectionLabel ? (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                        {entry.sectionLabel}
+                      </span>
+                    ) : null}
                     <Link
                       to="/library/$songVersionId"
                       params={{ songVersionId: entry.songVersionId }}
@@ -247,15 +382,17 @@ function SongbookDetail() {
                   placeholder={t("songbooks.searchSongPlaceholder")}
                   className="max-w-xs"
                 />
-                <Input
-                  value={entryCode}
-                  onChange={(e) => setEntryCode(e.target.value)}
-                  placeholder={t("songbooks.entryCodePlaceholder")}
-                  className="w-28"
-                />
+                {isNumbered ? (
+                  <Input
+                    value={entryCode}
+                    onChange={(e) => setEntryCode(e.target.value)}
+                    placeholder={t("songbooks.entryCodePlaceholder")}
+                    className="w-28"
+                  />
+                ) : null}
                 <Button
                   onClick={() => void addEntry()}
-                  disabled={addingEntry || !selectedSongVersionId || !entryCode.trim()}
+                  disabled={addingEntry || !selectedSongVersionId || (isNumbered && !entryCode.trim())}
                 >
                   {addingEntry ? t("songbooks.adding") : t("songbooks.add")}
                 </Button>

@@ -1,3 +1,4 @@
+import type { SongbookKind } from "@songverse/core";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -19,6 +20,7 @@ function NewSongbook() {
   const { session, teams } = Route.useRouteContext();
 
   const [name, setName] = useState("");
+  const [kind, setKind] = useState<SongbookKind>("SIMPLE");
   const [abbreviation, setAbbreviation] = useState("");
   const [language, setLanguage] = useState("");
   const [publisher, setPublisher] = useState("");
@@ -33,6 +35,7 @@ function NewSongbook() {
     try {
       const songbook = await apiClient.createSongbook({
         name,
+        kind,
         abbreviation: abbreviation.trim() || undefined,
         language: language.trim() || undefined,
         publisher: publisher.trim() || undefined,
@@ -59,6 +62,21 @@ function NewSongbook() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="songbook-name">{t("songbooks.name")}</Label>
             <Input id="songbook-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Louange et Réveil" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="songbook-kind">{t("songbooks.kind")}</Label>
+            <select
+              id="songbook-kind"
+              value={kind}
+              onChange={(e) => setKind(e.target.value as SongbookKind)}
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <option value="SIMPLE">{t("songbooks.kindSimple")}</option>
+              <option value="NUMBERED">{t("songbooks.kindNumbered")}</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              {kind === "SIMPLE" ? t("songbooks.kindSimpleDescription") : t("songbooks.kindNumberedDescription")}
+            </p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="songbook-abbreviation">{t("songbooks.abbreviation")}</Label>

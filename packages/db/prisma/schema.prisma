@@ -81,6 +81,14 @@ enum OwnershipScope {
   USER
 }
 
+enum SongbookKind {
+  // An unordered collection - entries have no number.
+  SIMPLE
+  // Entries are numbered to match a printed edition; numbers are unique
+  // within the songbook.
+  NUMBERED
+}
+
 enum PublicationState {
   DRAFT
   SUBMITTED
@@ -746,6 +754,19 @@ model Songbook {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // SIMPLE songbooks are an unordered collection (entries have no code);
+  // NUMBERED songbooks require a unique per-songbook entryCode, matching a
+  // printed edition's numbering.
+  kind SongbookKind @default(NUMBERED)
+
+  // For NUMBERED songbooks only: an ordered list of number ranges mapped to
+  // a display label (e.g. [{label: "JEM1", start: 1, end: 371}, ...]), used
+  // to group/filter entries by volume. Computed on read against an entry's
+  // numeric entryCode - never persisted per-entry, so editing a range's
+  // boundary takes effect everywhere immediately. See
+  // docs/songbooks-and-catalog.md §4.
+  sections Json?
+
   // Ownership - GLOBAL songbooks are an admin-curated catalog (published
   // hymnals) visible to everyone; TEAM/USER songbooks are private to their
   // owner, same pattern as SongVersion/Arrangement.
@@ -767,14 +788,18 @@ model SongbookEntry {
   id            String   @id @default(cuid())
   songVersionId String
   songbookId    String
-  entryCode     String   // e.g. "245", "A-17", "FR-092"
+  // e.g. "245", "A-17", "FR-092" - required and unique per songbook when
+  // the songbook's kind is NUMBERED; null and ignored for SIMPLE songbooks.
+  // Multiple SIMPLE entries with entryCode = null don't conflict - Postgres
+  // treats NULLs as distinct in a unique index.
+  entryCode     String?
   createdAt     DateTime @default(now())
 
   songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
   songbook    Songbook    @relation(fields: [songbookId], references: [id], onDelete: Cascade)
 
   @@unique([songVersionId, songbookId])
-  @@index([songbookId, entryCode])
+  @@unique([songbookId, entryCode])
 }
 
 // ============================================================

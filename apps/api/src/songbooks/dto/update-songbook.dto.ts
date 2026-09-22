@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import type { SongbookSection } from "@songverse/core";
+import { IsArray, IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class UpdateSongbookDto {
   @ApiProperty({ required: false })
@@ -31,4 +32,12 @@ export class UpdateSongbookDto {
   @IsOptional()
   @IsInt()
   year?: number;
+
+  @ApiProperty({
+    required: false,
+    description: "NUMBERED songbooks only - ordered list of {label, start, end} number ranges",
+  })
+  @IsOptional()
+  @IsArray()
+  sections?: SongbookSection[];
 }

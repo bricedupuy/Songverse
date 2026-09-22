@@ -1,4 +1,5 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { computeSectionLabel, validateSongbookSections, type SongbookSection } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -17,13 +18,16 @@ type SongbookWithEntries = Prisma.SongbookGetPayload<{ include: typeof DETAIL_IN
 
 function toDetail(songbook: SongbookWithEntries) {
   const { entries, ...rest } = songbook;
+  const sections = (songbook.sections as SongbookSection[] | null) ?? null;
   return {
     ...rest,
+    sections,
     entries: entries.map((entry) => ({
       id: entry.id,
       songVersionId: entry.songVersionId,
       entryCode: entry.entryCode,
       songVersionTitle: entry.songVersion.title,
+      sectionLabel: computeSectionLabel(entry.entryCode, sections),
     })),
   };
 }
@@ -105,6 +109,7 @@ export class SongbooksService {
     return this.prisma.client.songbook.create({
       data: {
         name: dto.name,
+        kind: dto.kind,
         abbreviation: dto.abbreviation,
         language: dto.language,
         publisher: dto.publisher,
@@ -117,7 +122,19 @@ export class SongbooksService {
   }
 
   update(songbookId: string, dto: UpdateSongbookDto): Promise<Prisma.SongbookGetPayload<object>> {
-    return this.prisma.client.songbook.update({ where: { id: songbookId }, data: dto });
+    let sections: Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined;
+    if (dto.sections !== undefined) {
+      try {
+        sections = validateSongbookSections(dto.sections) as unknown as Prisma.InputJsonValue;
+      } catch (error) {
+        throw new BadRequestException(error instanceof Error ? error.message : String(error));
+      }
+    }
+
+    return this.prisma.client.songbook.update({
+      where: { id: songbookId },
+      data: { ...dto, sections },
+    });
   }
 
   async remove(songbookId: string): Promise<void> {
@@ -125,6 +142,16 @@ export class SongbooksService {
   }
 
   async addEntry(songbookId: string, dto: AddSongbookEntryDto) {
+    const songbook = await this.prisma.client.songbook.findUnique({
+      where: { id: songbookId },
+      select: { kind: true, sections: true },
+    });
+    if (!songbook) throw new NotFoundException("Songbook not found");
+    if (songbook.kind === "NUMBERED" && !dto.entryCode) {
+      throw new BadRequestException("entryCode is required for a NUMBERED songbook");
+    }
+    const entryCode = songbook.kind === "NUMBERED" ? dto.entryCode! : null;
+
     const songVersion = await this.prisma.client.songVersion.findUnique({
       where: { id: dto.songVersionId },
       select: { id: true, title: true },
@@ -133,11 +160,11 @@ export class SongbooksService {
 
     const entry = await this.prisma.client.songbookEntry
       .create({
-        data: { songbookId, songVersionId: dto.songVersionId, entryCode: dto.entryCode },
+        data: { songbookId, songVersionId: dto.songVersionId, entryCode },
       })
       .catch((error: unknown) => {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-          throw new ConflictException("This song is already in this songbook");
+          throw new ConflictException("This song is already in this songbook, or its number is already taken");
         }
         throw error;
       });
@@ -146,6 +173,7 @@ export class SongbooksService {
       songVersionId: entry.songVersionId,
       entryCode: entry.entryCode,
       songVersionTitle: songVersion.title,
+      sectionLabel: computeSectionLabel(entry.entryCode, songbook.sections as SongbookSection[] | null),
     };
   }
 

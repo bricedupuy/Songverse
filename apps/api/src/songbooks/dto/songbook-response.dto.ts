@@ -1,11 +1,13 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { OWNERSHIP_SCOPES } from "@songverse/core";
+import { OWNERSHIP_SCOPES, SONGBOOK_KINDS, type SongbookSection } from "@songverse/core";
 
 export class SongbookEntryResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() songVersionId!: string;
-  @ApiProperty() entryCode!: string;
+  @ApiProperty({ required: false, nullable: true }) entryCode!: string | null;
   @ApiProperty({ required: false, nullable: true }) songVersionTitle!: string | null;
+  @ApiProperty({ required: false, nullable: true, description: "Computed from the songbook's sections, if any" })
+  sectionLabel!: string | null;
 }
 
 export class SongbookResponseDto {
@@ -15,6 +17,8 @@ export class SongbookResponseDto {
   @ApiProperty({ required: false, nullable: true }) language!: string | null;
   @ApiProperty({ required: false, nullable: true }) publisher!: string | null;
   @ApiProperty({ required: false, nullable: true }) year!: number | null;
+  @ApiProperty({ enum: SONGBOOK_KINDS }) kind!: (typeof SONGBOOK_KINDS)[number];
+  @ApiProperty({ required: false, nullable: true }) sections!: SongbookSection[] | null;
   @ApiProperty({ enum: OWNERSHIP_SCOPES }) ownerScope!: (typeof OWNERSHIP_SCOPES)[number];
   @ApiProperty({ required: false, nullable: true }) ownerTeamId!: string | null;
   @ApiProperty({ type: SongbookEntryResponseDto, isArray: true, required: false })
