@@ -16,6 +16,7 @@ import {
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { formatBytes } from "#/lib/format-bytes";
 import { initials } from "#/lib/initials";
+import { cn } from "#/lib/utils";
 
 export type UserAction = "storage" | "ban" | "unban" | "delete" | "newTransferLink" | "deleteNow";
 
@@ -28,6 +29,31 @@ function sortableHeader(label: string) {
       </Button>
     );
   };
+}
+
+function StatusBadges({ user, className }: { user: AdminUserSummary; className?: string }) {
+  const { t, i18n } = useTranslation();
+  if (user.deletedAt && user.transferExpiresAt) {
+    return (
+      <div className={className}>
+        <Badge variant="warning">
+          {t("admin.statusPendingTransfer", { date: new Date(user.transferExpiresAt).toLocaleDateString(i18n.language) })}
+        </Badge>
+      </div>
+    );
+  }
+  return (
+    <div className={cn("flex flex-wrap gap-1", className)}>
+      {user.bannedAt ? (
+        <Badge variant="destructive" title={user.banReason ?? undefined}>
+          {t("admin.statusBanned")}
+        </Badge>
+      ) : null}
+      <Badge variant={user.emailVerified ? "muted" : "warning"}>
+        {user.emailVerified ? t("admin.statusVerified") : t("admin.statusUnverified")}
+      </Badge>
+    </div>
+  );
 }
 
 export function useUsersColumns(currentUserId: string, onAction: (action: UserAction, user: AdminUserSummary) => void) {
@@ -50,13 +76,16 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
                 {user.avatarUrl ? <AvatarImage src={sizedAvatarUrl(user.avatarUrl, 32)} alt="" /> : null}
                 <AvatarFallback className="text-xs">{initials(user.displayName)}</AvatarFallback>
               </Avatar>
-              <div className="min-w-0">
-                <p className="flex items-center gap-2 font-medium">
+              {/* Capped so long emails truncate: a table column otherwise grows to fit them. */}
+              <div className="max-w-48 min-w-0 sm:max-w-xs">
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-medium">
                   <span className="truncate">{user.displayName}</span>
                   {user.id === currentUserId ? <span className="text-xs font-normal text-muted-foreground">({t("admin.you")})</span> : null}
                   {user.isGlobalAdmin ? <Badge>{t("admin.globalAdmin")}</Badge> : null}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                {/* The Status column is hidden on phones. */}
+                <StatusBadges user={user} className="mt-1 sm:hidden" />
               </div>
             </div>
           );
@@ -67,31 +96,17 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
         accessorFn: (user) =>
           user.deletedAt ? "deleted" : user.bannedAt ? "banned" : user.emailVerified ? "verified" : "unverified",
         header: t("admin.columnStatus"),
-        cell: ({ row }) => {
-          const user = row.original;
-          if (user.deletedAt && user.transferExpiresAt) {
-            return <Badge variant="warning">{t("admin.statusPendingTransfer", { date: formatDate(user.transferExpiresAt) })}</Badge>;
-          }
-          return (
-            <div className="flex flex-wrap gap-1">
-              {user.bannedAt ? (
-                <Badge variant="destructive" title={user.banReason ?? undefined}>
-                  {t("admin.statusBanned")}
-                </Badge>
-              ) : null}
-              <Badge variant={user.emailVerified ? "muted" : "warning"}>
-                {user.emailVerified ? t("admin.statusVerified") : t("admin.statusUnverified")}
-              </Badge>
-            </div>
-          );
-        },
+        meta: { secondary: true },
+        cell: ({ row }) => <StatusBadges user={row.original} />,
       },
       {
         accessorKey: "songCount",
+        meta: { secondary: true },
         header: sortableHeader(t("admin.columnSongs")),
       },
       {
         accessorKey: "usedBytes",
+        meta: { secondary: true },
         header: sortableHeader(t("admin.columnStorage")),
         cell: ({ row }) => {
           const user = row.original;
@@ -109,6 +124,7 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
       },
       {
         accessorKey: "createdAt",
+        meta: { secondary: true },
         header: sortableHeader(t("admin.columnJoined")),
         cell: ({ row }) => <span className="text-muted-foreground">{formatDate(row.original.createdAt)}</span>,
       },

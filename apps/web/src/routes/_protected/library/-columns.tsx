@@ -50,22 +50,26 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
       },
       {
         accessorKey: "language",
+        meta: { secondary: true },
         header: sortableHeader(t("library.columnLanguage")),
         cell: ({ row }) => <span className="text-muted-foreground">{row.original.language}</span>,
       },
       {
         accessorKey: "publicationState",
+        meta: { secondary: true },
         header: sortableHeader(t("library.columnStatus")),
         cell: ({ row }) => <span className="text-muted-foreground">{row.original.publicationState}</span>,
       },
       {
         id: "tags",
+        meta: { secondary: true },
         accessorFn: (version) => tagLabel(version.tags, locale),
         header: sortableHeader(t("library.columnTags")),
         cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
       },
       {
         accessorKey: "updatedAt",
+        meta: { secondary: true },
         header: sortableHeader(t("library.columnUpdated")),
         cell: ({ row }) => (
           <span className="text-muted-foreground">{new Date(row.original.updatedAt).toLocaleDateString()}</span>

@@ -121,7 +121,19 @@ function Sidebar({ className, children, ...props }: ComponentProps<"div">) {
             <SheetTitle>Sidebar</SheetTitle>
             <SheetDescription>Navigation</SheetDescription>
           </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
+          {/* Following a link closes the sheet; a new-tab click or a
+              non-link control (a section toggle, a menu) leaves it open.
+              React events bubble through portals, so this also catches
+              links in dropdown menus opened from the sidebar. */}
+          <div
+            className="flex h-full w-full flex-col"
+            onClick={(event) => {
+              if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+              if (event.target instanceof Element && event.target.closest("a[href]")) setOpenMobile(false);
+            }}
+          >
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     );
@@ -164,7 +176,7 @@ function SidebarTrigger({ className, onClick, ...props }: ComponentProps<typeof 
 }
 
 function SidebarInset({ className, ...props }: ComponentProps<"main">) {
-  return <main data-slot="sidebar-inset" className={cn("flex min-h-screen flex-1 flex-col", className)} {...props} />;
+  return <main data-slot="sidebar-inset" className={cn("flex min-h-screen min-w-0 flex-1 flex-col", className)} {...props} />;
 }
 
 function SidebarHeader({ className, ...props }: ComponentProps<"div">) {

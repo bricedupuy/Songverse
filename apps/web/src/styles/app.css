@@ -68,5 +68,14 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    /* Break words too long for their line (URLs, env var names, emails, a
+       chord run with no spaces) instead of pushing the page sideways on
+       phones. Only kicks in when a word can't fit, so normal text is unaffected. */
+    overflow-wrap: break-word;
+  }
+  /* A select is as wide as its longest option by default, which pushes
+     narrow (phone) layouts sideways. */
+  select {
+    max-width: 100%;
   }
 }

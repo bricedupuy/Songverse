@@ -15,7 +15,7 @@ function SongbooksIndex() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t("songbooks.title")}</h1>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline">

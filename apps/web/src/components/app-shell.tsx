@@ -23,9 +23,9 @@ export function AppShell({
       <AppSidebar session={session} teams={teams} songbooks={songbooks} setlists={setlists} />
       <SidebarInset>
         <SiteHeader />
-        <main className="flex-1 px-4 py-8 md:px-6">
+        <div className="flex-1 px-4 py-8 md:px-6">
           <div className="mx-auto w-full max-w-5xl">{children}</div>
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
