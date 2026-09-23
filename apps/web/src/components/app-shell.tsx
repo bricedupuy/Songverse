@@ -1,4 +1,4 @@
-import type { SongbookSummary, TeamSummary } from "@songverse/core";
+import type { SetlistSummary, SongbookSummary, TeamSummary } from "@songverse/core";
 import type { ReactNode } from "react";
 import { AppSidebar } from "#/components/app-sidebar";
 import { SiteHeader } from "#/components/site-header";
@@ -9,16 +9,18 @@ export function AppShell({
   session,
   teams,
   songbooks,
+  setlists,
   children,
 }: {
   session: AppSession;
   teams: TeamSummary[];
   songbooks: SongbookSummary[];
+  setlists: SetlistSummary[];
   children: ReactNode;
 }) {
   return (
     <SidebarProvider>
-      <AppSidebar session={session} teams={teams} songbooks={songbooks} />
+      <AppSidebar session={session} teams={teams} songbooks={songbooks} setlists={setlists} />
       <SidebarInset>
         <SiteHeader />
         <main className="flex-1 px-4 py-8 md:px-6">

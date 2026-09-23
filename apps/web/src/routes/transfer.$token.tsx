@@ -98,6 +98,7 @@ function ClaimCard({ token, email, preview }: { token: string; email: string; pr
     t("transfer.arrangements", { count: preview.arrangementCount }),
     t("transfer.songbooks", { count: preview.songbookCount }),
     t("transfer.tags", { count: preview.tagCount }),
+    t("transfer.sets", { count: preview.setCount }),
     t("transfer.files", { size: formatBytes(preview.storageBytes) }),
   ];
 

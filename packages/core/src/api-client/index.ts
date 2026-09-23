@@ -56,6 +56,7 @@ export interface TransferPreview {
   arrangementCount: number;
   songbookCount: number;
   tagCount: number;
+  setCount: number;
   storageBytes: number;
 }
 
@@ -69,6 +70,45 @@ export interface StorageUsage {
   usedBytes: number;
   /** Null means unlimited. */
   limitBytes: number | null;
+}
+
+export interface SetlistSongRef {
+  id: string;
+  title: string;
+  workId: string;
+  /** The song's own key as written on it, if any. */
+  key: string | null;
+  ownerScope: "GLOBAL" | "TEAM" | "USER";
+  teamName: string | null;
+}
+
+export interface SetlistSummary {
+  id: string;
+  /** Null when the set is shown by its date (or as untitled). */
+  name: string | null;
+  /** YYYY-MM-DD */
+  eventDate: string | null;
+  /** Null for a personal set. */
+  teamId: string | null;
+  teamName: string | null;
+  itemCount: number;
+  canEdit: boolean;
+}
+
+export interface SetlistItem {
+  id: string;
+  position: number;
+  /** Semitones relative to the song's own key. */
+  transposeSteps: number;
+  notes: string | null;
+  /** Null when the song isn't visible to the current user. */
+  song: SetlistSongRef | null;
+  /** Versions of the same song this item can switch to (editors only). */
+  versions: SetlistSongRef[];
+}
+
+export interface SetlistDetail extends SetlistSummary {
+  items: SetlistItem[];
 }
 
 export interface UserProfile {
@@ -631,6 +671,26 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       if (!response.ok) throw new ApiError(response.status, await response.text());
       return response.blob();
     },
+    listSetlists: () => request<SetlistSummary[]>("/setlists"),
+    createSetlist: (data: { name?: string; eventDate?: string; teamId?: string }) =>
+      request<SetlistSummary>("/setlists", { method: "POST", body: JSON.stringify(data) }),
+    getSetlist: (setlistId: string) => request<SetlistDetail>(`/setlists/${setlistId}`),
+    updateSetlist: (setlistId: string, data: { name?: string | null; eventDate?: string | null }) =>
+      request<SetlistDetail>(`/setlists/${setlistId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    deleteSetlist: (setlistId: string) => request<void>(`/setlists/${setlistId}`, { method: "DELETE" }),
+    searchSetlistSongs: (setlistId: string, query: string) =>
+      request<SetlistSongRef[]>(`/setlists/${setlistId}/song-candidates?q=${encodeURIComponent(query)}`),
+    addSetlistItem: (setlistId: string, data: { songVersionId: string; transposeSteps?: number }) =>
+      request<SetlistDetail>(`/setlists/${setlistId}/items`, { method: "POST", body: JSON.stringify(data) }),
+    updateSetlistItem: (
+      setlistId: string,
+      itemId: string,
+      data: { songVersionId?: string; transposeSteps?: number; notes?: string | null },
+    ) => request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    removeSetlistItem: (setlistId: string, itemId: string) =>
+      request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "DELETE" }),
+    reorderSetlistItems: (setlistId: string, itemIds: string[]) =>
+      request<SetlistDetail>(`/setlists/${setlistId}/items/order`, { method: "PUT", body: JSON.stringify({ itemIds }) }),
     createSongVersion: (data: CreateSongVersionInput) =>
       request<SongVersionSummary>("/song-versions", { method: "POST", body: JSON.stringify(data) }),
     updateSongVersion: (songVersionId: string, data: UpdateSongVersionInput) =>

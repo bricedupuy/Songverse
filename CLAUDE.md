@@ -44,7 +44,7 @@ case — see the next section for why.
 Admin > Users can delete an account, either with everything the user
 personally owns or keeping that content behind a one-time transfer link
 (`apps/api/src/user-management/`). `UserDeletionService` handles every
-relation to `User`, `SongVersion`, `Arrangement`, `Songbook` and `Tag`
+relation to `User`, `SongVersion`, `Arrangement`, `Songbook`, `Tag` and `Setlist`
 that doesn't cascade on delete. **If you add a model with a foreign key to
 any of those without `onDelete: Cascade`/`SetNull`, handle it there too**,
 or deleting a user who has such a row will fail with a foreign-key error.

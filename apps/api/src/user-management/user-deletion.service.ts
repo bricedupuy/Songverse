@@ -16,8 +16,8 @@ const TRANSACTION_OPTIONS = { timeout: 60_000, maxWait: 10_000 };
 
 /**
  * Permanently removes accounts. Two ways to handle what the user
- * personally owns (song versions, arrangements, songbooks, tags - never
- * team-owned content):
+ * personally owns (song versions, arrangements, songbooks, tags, sets -
+ * never team-owned content):
  * - deleteAccountAndContent: everything goes with them.
  * - transferContentAndDeleteAccount: everything moves to another user
  *   first (see ContentTransfersService).
@@ -64,6 +64,7 @@ export class UserDeletionService {
       await tx.arrangement.updateMany({ where: byOwner, data: toOwner });
       await tx.songbook.updateMany({ where: byOwner, data: toOwner });
       await tx.tag.updateMany({ where: byOwner, data: toOwner });
+      await tx.setlist.updateMany({ where: byOwner, data: toOwner });
       // The new owner's storage limit now covers these files.
       await tx.attachment.updateMany({ where: { uploadedByUserId: fromUserId }, data: { uploadedByUserId: toUserId } });
       return this.removeAccount(tx, fromUserId);
@@ -133,6 +134,7 @@ export class UserDeletionService {
 
     await tx.songbook.deleteMany({ where: { ownerUserId: userId } });
     await tx.tag.deleteMany({ where: { ownerUserId: userId } });
+    await tx.setlist.deleteMany({ where: { ownerUserId: userId } });
 
     return attachments.map((attachment) => attachment.storageKey);
   }

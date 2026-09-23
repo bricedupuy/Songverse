@@ -11,6 +11,7 @@ class TransferPreviewResponseDto {
   @ApiProperty() arrangementCount!: number;
   @ApiProperty() songbookCount!: number;
   @ApiProperty() tagCount!: number;
+  @ApiProperty() setCount!: number;
   @ApiProperty() storageBytes!: number;
 }
 

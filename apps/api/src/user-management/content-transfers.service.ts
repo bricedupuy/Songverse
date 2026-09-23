@@ -74,11 +74,12 @@ export class ContentTransfersService {
   async preview(token: string) {
     const transfer = await this.findValid(token);
     const owner = { ownerUserId: transfer.fromUserId };
-    const [songCount, arrangementCount, songbookCount, tagCount, storage] = await Promise.all([
+    const [songCount, arrangementCount, songbookCount, tagCount, setCount, storage] = await Promise.all([
       this.prisma.client.songVersion.count({ where: owner }),
       this.prisma.client.arrangement.count({ where: owner }),
       this.prisma.client.songbook.count({ where: owner }),
       this.prisma.client.tag.count({ where: owner }),
+      this.prisma.client.setlist.count({ where: owner }),
       this.prisma.client.attachment.aggregate({ where: { uploadedByUserId: transfer.fromUserId }, _sum: { sizeBytes: true } }),
     ]);
     return {
@@ -88,6 +89,7 @@ export class ContentTransfersService {
       arrangementCount,
       songbookCount,
       tagCount,
+      setCount,
       storageBytes: storage._sum.sizeBytes ?? 0,
     };
   }

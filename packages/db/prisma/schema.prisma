@@ -255,6 +255,7 @@ model User {
   ownedSongbooks      Songbook[]            @relation("SongbookOwnerUser")
   importJobs          ImportJob[]
   uploadedAttachments Attachment[]          @relation("AttachmentUploader")
+  ownedSetlists       Setlist[]             @relation("SetlistOwnerUser")
   contentTransfer     ContentTransfer?
 
   // BetterAuth
@@ -376,6 +377,7 @@ model Team {
   shareLinks        ShareLink[]
   ownedTags         Tag[]
   ownedSongbooks    Songbook[]       @relation("SongbookOwnerTeam")
+  ownedSetlists     Setlist[]        @relation("SetlistOwnerTeam")
 
   @@index([slug])
 }
@@ -742,17 +744,20 @@ model Setlist {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  name        String
+  // Optional: an unnamed set is shown by its date (formatted in the
+  // viewer's language), or as an untitled set when it has no date either.
+  name        String?
   description String?
-  eventDate   DateTime?
+  eventDate   DateTime? @db.Date
 
-  // Ownership (team or user)
+  // Owned by exactly one user or one team; deleted along with its owner.
   ownerUserId String?
   ownerTeamId String?
 
-  // Relations
-  items SetlistItem[]
-  notes Note[]
+  ownerUser User?         @relation("SetlistOwnerUser", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  ownerTeam Team?         @relation("SetlistOwnerTeam", fields: [ownerTeamId], references: [id], onDelete: Cascade)
+  items     SetlistItem[]
+  notes     Note[]
 
   @@index([ownerUserId])
   @@index([ownerTeamId])
@@ -761,20 +766,22 @@ model Setlist {
 model SetlistItem {
   id            String   @id @default(cuid())
   setlistId     String
-  songVersionId String?
+  songVersionId String
   arrangementId String?
   position      Int // Sort order (0-based)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Per-item overrides
-  keyOverride   String? // e.g. "Bb"
-  tempoOverride Int?
-  notes         String? // Quick inline note
+  // Per-item overrides. Transposition is in semitones relative to the song
+  // version's own key (same convention as Arrangement.transposeSteps), so it
+  // works even when the song has no key recorded.
+  transposeSteps Int     @default(0)
+  tempoOverride  Int?
+  notes          String? // Quick inline note
 
   setlist     Setlist      @relation(fields: [setlistId], references: [id], onDelete: Cascade)
-  songVersion SongVersion? @relation(fields: [songVersionId], references: [id])
-  arrangement Arrangement? @relation(fields: [arrangementId], references: [id])
+  songVersion SongVersion  @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  arrangement Arrangement? @relation(fields: [arrangementId], references: [id], onDelete: SetNull)
   fullNotes   Note[]
 
   @@index([setlistId, position])

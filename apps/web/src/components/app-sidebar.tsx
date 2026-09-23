@@ -1,4 +1,4 @@
-import type { SongbookSummary, TeamSummary } from "@songverse/core";
+import type { SetlistSummary, SongbookSummary, TeamSummary } from "@songverse/core";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -8,6 +8,7 @@ import {
   FileStack,
   KeyRound,
   LayoutDashboard,
+  ListMusic,
   LogOut,
   Music2,
   ShieldCheck,
@@ -20,6 +21,7 @@ import { authClient } from "#/lib/auth-client";
 import type { AppSession } from "#/lib/server-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
+import { setlistTitle } from "#/lib/setlists";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -62,10 +64,12 @@ export function AppSidebar({
   session,
   teams,
   songbooks,
+  setlists,
 }: {
   session: AppSession;
   teams: TeamSummary[];
   songbooks: SongbookSummary[];
+  setlists: SetlistSummary[];
 }) {
   const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -82,7 +86,13 @@ export function AppSidebar({
       {inAdmin ? (
         <AdminNav pathname={pathname} />
       ) : (
-        <MainNav pathname={pathname} teams={teams} songbooks={songbooks} isGlobalAdmin={session.isGlobalAdmin} />
+        <MainNav
+          pathname={pathname}
+          teams={teams}
+          songbooks={songbooks}
+          setlists={setlists}
+          isGlobalAdmin={session.isGlobalAdmin}
+        />
       )}
       <SidebarFooter>
         <SidebarMenu>
@@ -137,6 +147,8 @@ export function AppSidebar({
 }
 
 /** Hides its children in icon-rail (collapsed, non-mobile) mode - same rule SidebarGroupLabel follows. */
+const SIDEBAR_SET_LIMIT = 8;
+
 function SidebarLabel({ children, className }: { children: ReactNode; className?: string }) {
   const { state, isMobile } = useSidebar();
   if (state === "collapsed" && !isMobile) return null;
@@ -147,14 +159,19 @@ function MainNav({
   pathname,
   teams,
   songbooks,
+  setlists,
   isGlobalAdmin,
 }: {
   pathname: string;
   teams: TeamSummary[];
   songbooks: SongbookSummary[];
+  setlists: SetlistSummary[];
   isGlobalAdmin: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Upcoming and undated sets come first (the API's order); past ones are
+  // on the Sets page.
+  const shownSetlists = setlists.slice(0, SIDEBAR_SET_LIMIT);
 
   return (
     <SidebarContent>
@@ -169,6 +186,51 @@ function MainNav({
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith("/sets")} tooltip={t("nav.sets")}>
+                <Link to="/sets">
+                  <ListMusic />
+                  <span>{t("nav.sets")}</span>
+                </Link>
+              </SidebarMenuButton>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuAction>
+                  <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                  <span className="sr-only">{t("nav.toggle")}</span>
+                </SidebarMenuAction>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {setlists.length === 0 ? (
+                    <p className="px-2 py-1 text-xs text-muted-foreground">{t("sets.noSetsYet")}</p>
+                  ) : (
+                    <>
+                      {shownSetlists.map((set) => (
+                        <SidebarMenuSubItem key={set.id}>
+                          <SidebarMenuSubButton asChild isActive={pathname === `/sets/${set.id}`}>
+                            <Link to="/sets/$setlistId" params={{ setlistId: set.id }}>
+                              <span className="truncate">{setlistTitle(set, t, i18n.language)}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                      {setlists.length > shownSetlists.length ? (
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton asChild>
+                            <Link to="/sets" className="text-muted-foreground">
+                              <span>{t("sets.viewAll", { count: setlists.length })}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ) : null}
+                    </>
+                  )}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
 
           <Collapsible defaultOpen className="group/collapsible">
             <SidebarMenuItem>
