@@ -4,6 +4,7 @@ import { matchFilenamesToEntryCodes, type BulkUploadFileMatch } from "@songverse
 import type { Queue } from "bullmq";
 import { PrismaService } from "../prisma/prisma.service";
 import { SongbooksService } from "../songbooks/songbooks.service";
+import { StorageQuotaService } from "../storage/storage-quota.service";
 import { StorageService } from "../storage/storage.service";
 import { BULK_UPLOAD_QUEUE, type BulkUploadJobData } from "./bulk-upload.types";
 import type { BulkUploadTypeValue } from "./dto/bulk-upload-commit.dto";
@@ -19,6 +20,7 @@ export class BulkUploadService {
     private readonly prisma: PrismaService,
     private readonly songbooksService: SongbooksService,
     private readonly storage: StorageService,
+    private readonly quota: StorageQuotaService,
     @InjectQueue(BULK_UPLOAD_QUEUE) private readonly queue: Queue<BulkUploadJobData>,
   ) {}
 
@@ -36,6 +38,7 @@ export class BulkUploadService {
    * §7.
    */
   async commit(
+    uploaderId: string,
     songbookId: string,
     type: BulkUploadTypeValue,
     files: Express.Multer.File[],
@@ -47,24 +50,35 @@ export class BulkUploadService {
     );
     const matchByFilename = new Map(matches.map((match) => [match.filename, match]));
 
-    let queued = 0;
     const skipped: string[] = [];
+    const accepted: { file: Express.Multer.File; entryCode: string }[] = [];
     for (const file of files) {
       const match = matchByFilename.get(file.originalname);
       if (!match || match.status !== "MATCHED" || !match.entryCode) {
         skipped.push(file.originalname);
         continue;
       }
+      accepted.push({ file, entryCode: match.entryCode });
+    }
 
+    // All-or-nothing against the storage limit, checked before anything is stored.
+    await this.quota.assertCanStore(
+      uploaderId,
+      accepted.reduce((total, { file }) => total + file.size, 0),
+    );
+
+    let queued = 0;
+    for (const { file, entryCode } of accepted) {
       const { hash, sizeBytes } = await this.storage.put(file.buffer, file.mimetype);
       await this.queue.add("process-file", {
         songbookId,
-        entryCode: match.entryCode,
+        entryCode,
         type,
         filename: file.originalname,
         mimeType: file.mimetype,
         storageKey: hash,
         sizeBytes,
+        uploadedByUserId: uploaderId,
       } satisfies BulkUploadJobData);
       queued++;
     }

@@ -16,6 +16,8 @@ export interface BulkUploadJobData {
   mimeType: string;
   storageKey: string;
   sizeBytes: number;
+  /** Optional only for jobs queued before uploaders were tracked. */
+  uploadedByUserId?: string;
 }
 
 export const BULK_UPLOAD_QUEUE = "bulk-upload";

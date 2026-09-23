@@ -1,20 +1,221 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import type { StorageUsage, UserProfile } from "@songverse/core";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyRound, Trash2 } from "lucide-react";
+import { apiClient } from "#/lib/api-client";
 import { authClient } from "#/lib/auth-client";
+import { formatBytes } from "#/lib/format-bytes";
+import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 
+const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+
 export const Route = createFileRoute("/_protected/account")({
+  loader: async () => {
+    const [profile, storage] = await Promise.all([apiClient.getMe(), apiClient.getMyStorage()]);
+    return { profile, storage };
+  },
   component: AccountSettings,
 });
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
+function ProfileCard({ profile }: { profile: UserProfile }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [displayName, setDisplayName] = useState(profile.displayName);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+
+  async function run(action: () => Promise<unknown>, successText?: string) {
+    setPending(true);
+    setMessage(null);
+    try {
+      await action();
+      // Also reloads the session, so the sidebar picks up the new name/picture.
+      await router.invalidate();
+      if (successText) setMessage({ kind: "ok", text: successText });
+    } catch (err) {
+      setMessage({ kind: "error", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function onFileChosen(file: File | undefined) {
+    if (!file) return;
+    if (file.size > MAX_AVATAR_BYTES) {
+      setMessage({ kind: "error", text: t("account.avatarTooLarge") });
+      return;
+    }
+    void run(() => apiClient.uploadAvatar(file, file.name));
+  }
+
+  const trimmedName = displayName.trim();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">{t("account.profile")}</CardTitle>
+        <CardDescription>{t("account.profileDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="flex items-center gap-4">
+          <Avatar className="size-16">
+            {profile.avatarUrl ? <AvatarImage src={profile.avatarUrl} alt="" /> : null}
+            <AvatarFallback className="text-lg">{initials(profile.displayName)}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" disabled={pending} onClick={() => fileInput.current?.click()}>
+                {t("account.uploadAvatar")}
+              </Button>
+              {profile.avatarUrl ? (
+                <Button variant="ghost" size="sm" disabled={pending} onClick={() => void run(() => apiClient.removeAvatar())}>
+                  {t("account.removeAvatar")}
+                </Button>
+              ) : null}
+            </div>
+            <p className="text-xs text-muted-foreground">{t("account.avatarHint")}</p>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              className="hidden"
+              data-testid="avatar-input"
+              onChange={(event) => {
+                onFileChosen(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
+          </div>
+        </div>
+
+        <form
+          className="flex flex-col gap-2 border-t pt-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void run(() => apiClient.updateMe({ displayName: trimmedName }), t("account.saved"));
+          }}
+        >
+          <Label htmlFor="display-name">{t("account.displayNameLabel")}</Label>
+          <div className="flex gap-2">
+            <Input id="display-name" value={displayName} maxLength={80} onChange={(event) => setDisplayName(event.target.value)} />
+            <Button type="submit" disabled={pending || trimmedName === "" || trimmedName === profile.displayName}>
+              {pending ? t("account.saving") : t("account.save")}
+            </Button>
+          </div>
+        </form>
+
+        {message ? (
+          <p className={message.kind === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{message.text}</p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function EmailCard({ email }: { email: string }) {
+  const { t } = useTranslation();
+  const [newEmail, setNewEmail] = useState("");
+  const [pending, setPending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function changeEmail() {
+    setPending(true);
+    setError(null);
+    const result = await authClient.changeEmail({
+      newEmail: newEmail.trim(),
+      // BetterAuth resolves a relative URL against the API's origin, not this app's.
+      callbackURL: `${window.location.origin}/account`,
+    });
+    setPending(false);
+    if (result.error) {
+      setError(result.error.message ?? String(result.error.status));
+      return;
+    }
+    setSent(true);
+    setNewEmail("");
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">{t("account.emailTitle")}</CardTitle>
+        <CardDescription>{t("account.emailDescription", { email })}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <form
+          className="flex flex-col gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void changeEmail();
+          }}
+        >
+          <Label htmlFor="new-email">{t("account.newEmailLabel")}</Label>
+          <div className="flex gap-2">
+            <Input id="new-email" type="email" required value={newEmail} autoComplete="email" onChange={(event) => setNewEmail(event.target.value)} />
+            <Button type="submit" disabled={pending || newEmail.trim() === ""}>
+              {t("account.changeEmail")}
+            </Button>
+          </div>
+        </form>
+        {sent ? <p className="text-sm text-muted-foreground">{t("account.changeEmailSent", { email })}</p> : null}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+function StorageCard({ storage }: { storage: StorageUsage }) {
+  const { t } = useTranslation();
+  const used = formatBytes(storage.usedBytes);
+  const percent = storage.limitBytes ? Math.min(100, (storage.usedBytes / storage.limitBytes) * 100) : 0;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">{t("account.storageTitle")}</CardTitle>
+        <CardDescription>{t("account.storageDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        {storage.limitBytes === null ? (
+          <p className="text-sm">{t("account.storageUnlimited", { used })}</p>
+        ) : (
+          <>
+            <div
+              className="h-2 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(percent)}
+            >
+              <div className={percent >= 90 ? "h-full bg-destructive" : "h-full bg-primary"} style={{ width: `${percent}%` }} />
+            </div>
+            <p className="text-sm">{t("account.storageUsage", { used, limit: formatBytes(storage.limitBytes) })}</p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function AccountSettings() {
   const { t } = useTranslation();
   const { session } = Route.useRouteContext();
+  const { profile, storage } = Route.useLoaderData();
   const { data: passkeys, isPending } = authClient.useListPasskeys();
   const [name, setName] = useState("");
   const [adding, setAdding] = useState(false);
@@ -49,6 +250,10 @@ function AccountSettings() {
         <h1 className="text-2xl font-semibold">{t("account.title")}</h1>
         <p className="text-sm text-muted-foreground">{session.email}</p>
       </div>
+
+      <ProfileCard profile={profile} />
+      <EmailCard email={profile.email} />
+      <StorageCard storage={storage} />
 
       <Card>
         <CardHeader>

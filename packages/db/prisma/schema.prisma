@@ -23,40 +23,40 @@ datasource db {
 // ============================================================
 
 enum SongIdentifierType {
-  CCLI                  // Worship-specific. Numeric string.
-  ISWC                  // ISO composition ID. Format: T-000.000.000-C. Belongs on Work.
-  ISRC                  // Recording ID. Format: CC-XXX-YY-NNNNN. Belongs on audio attachments.
-  MUSICBRAINZ_WORK      // MusicBrainz Work UUID. Belongs on Work.
+  CCLI // Worship-specific. Numeric string.
+  ISWC // ISO composition ID. Format: T-000.000.000-C. Belongs on Work.
+  ISRC // Recording ID. Format: CC-XXX-YY-NNNNN. Belongs on audio attachments.
+  MUSICBRAINZ_WORK // MusicBrainz Work UUID. Belongs on Work.
   MUSICBRAINZ_RECORDING // MusicBrainz Recording UUID. Belongs on Song Version.
-  SPOTIFY               // Spotify track ID. Belongs on Song Version (a specific recording).
-  APPLE_MUSIC           // Apple Music track ID. Belongs on Song Version.
-  YOUTUBE               // YouTube video ID. Belongs on Song Version.
-  CUSTOM                // Internal catalog numbers or platform-specific IDs.
+  SPOTIFY // Spotify track ID. Belongs on Song Version (a specific recording).
+  APPLE_MUSIC // Apple Music track ID. Belongs on Song Version.
+  YOUTUBE // YouTube video ID. Belongs on Song Version.
+  CUSTOM // Internal catalog numbers or platform-specific IDs.
 }
 
 enum ImportFormat {
   CHORDPRO
-  CHORDS_OVER_LYRICS   // Ultimate Guitar style — chords on line above lyrics
-  RAW_TEXT             // Plain lyrics, no chords
-  LRC                  // Timestamped lyrics [MM:SS.ms]
+  CHORDS_OVER_LYRICS // Ultimate Guitar style — chords on line above lyrics
+  RAW_TEXT // Plain lyrics, no chords
+  LRC // Timestamped lyrics [MM:SS.ms]
   MUSICXML
   ABC_NOTATION
 }
 
 enum InstrumentType {
-  GUITAR_STANDARD      // 6-string E A D G B E
-  GUITAR_ALTERNATE     // Any non-standard guitar tuning
-  BASS_STANDARD        // 4-string E A D G
-  UKULELE_STANDARD     // 4-string G C E A (soprano/concert/tenor)
-  PIANO                // Keyboard diagram — note-based, no fret positions
+  GUITAR_STANDARD // 6-string E A D G B E
+  GUITAR_ALTERNATE // Any non-standard guitar tuning
+  BASS_STANDARD // 4-string E A D G
+  UKULELE_STANDARD // 4-string G C E A (soprano/concert/tenor)
+  PIANO // Keyboard diagram — note-based, no fret positions
 }
 
 enum VoicingPreference {
-  OPEN        // Prefer open chord voicings
-  BARRE       // Prefer barre chord shapes
-  DROP2       // Drop 2 voicings (jazz)
-  CLOSE       // Close position voicings (piano)
-  AUTO        // Let SongVerse decide based on key and context
+  OPEN // Prefer open chord voicings
+  BARRE // Prefer barre chord shapes
+  DROP2 // Drop 2 voicings (jazz)
+  CLOSE // Close position voicings (piano)
+  AUTO // Let SongVerse decide based on key and context
 }
 
 enum CapoDisplayMode {
@@ -70,9 +70,9 @@ enum MidiEventType {
 }
 
 enum TagScope {
-  GLOBAL   // Admin-curated, available to all users
-  USER     // Created by a user, private to them
-  TEAM     // Created by a team, visible to team members
+  GLOBAL // Admin-curated, available to all users
+  USER // Created by a user, private to them
+  TEAM // Created by a team, visible to team members
 }
 
 enum OwnershipScope {
@@ -215,30 +215,47 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Moderation (Admin > Users). A banned user can't sign in; their content
+  // is untouched.
+  bannedAt         DateTime?
+  banReason        String?
+  // Set when an admin deletes the account but keeps its content behind a
+  // transfer link (see ContentTransfer): the row stays, unusable, until the
+  // content is claimed or the link expires, then it's removed for real.
+  deletedAt        DateTime?
+  // Per-user override of StorageSettings.defaultUserStorageLimitMb; null
+  // means "use the default".
+  storageLimitMb   Int?
+  // Storage key of an avatar uploaded through the account page. Null when
+  // there's none, or when avatarUrl points elsewhere (e.g. Google's).
+  avatarStorageKey String?
+
   // Preferences
   locale            String            @default("en") // UI language - see SUPPORTED_LOCALES in packages/core
   displayMode       DisplayMode       @default(GUITAR)
   capoDisplayMode   CapoDisplayMode   @default(SOUNDING)
   voicingPreference VoicingPreference @default(AUTO)
-  pedalMappingJson  Json?             // UserPedalMapping — null = use defaults
-  midiOutputDevice  String?           // Last selected MIDI output device name
+  pedalMappingJson  Json? // UserPedalMapping — null = use defaults
+  midiOutputDevice  String? // Last selected MIDI output device name
 
   // Relations
-  teamMemberships   TeamMembership[]
-  ownedVersions     SongVersion[]          @relation("VersionOwnerUser")
-  contributorCredits VersionContributor[]
-  ownedArrangements Arrangement[]          @relation("ArrangementOwnerUser")
-  submissions       Submission[]
-  proposals         ChangeProposal[]
-  notes             Note[]
-  auditEvents       AuditEvent[]
-  accessGrants      AccessGrant[]
-  shareLinks        ShareLink[]
-  inkAnnotations    InkAnnotation[]
-  midiConfigs       UserArrangementMidi[]
-  ownedTags         Tag[]
-  ownedSongbooks    Songbook[]             @relation("SongbookOwnerUser")
-  importJobs        ImportJob[]
+  teamMemberships     TeamMembership[]
+  ownedVersions       SongVersion[]         @relation("VersionOwnerUser")
+  contributorCredits  VersionContributor[]
+  ownedArrangements   Arrangement[]         @relation("ArrangementOwnerUser")
+  submissions         Submission[]
+  proposals           ChangeProposal[]
+  notes               Note[]
+  auditEvents         AuditEvent[]
+  accessGrants        AccessGrant[]
+  shareLinks          ShareLink[]
+  inkAnnotations      InkAnnotation[]
+  midiConfigs         UserArrangementMidi[]
+  ownedTags           Tag[]
+  ownedSongbooks      Songbook[]            @relation("SongbookOwnerUser")
+  importJobs          ImportJob[]
+  uploadedAttachments Attachment[]          @relation("AttachmentUploader")
+  contentTransfer     ContentTransfer?
 
   // BetterAuth
   sessions Session[]
@@ -352,13 +369,13 @@ model Team {
   // Relations
   memberships       TeamMembership[]
   inviteLinks       TeamInviteLink[]
-  ownedVersions     SongVersion[]      @relation("VersionOwnerTeam")
-  ownedArrangements Arrangement[]      @relation("ArrangementOwnerTeam")
+  ownedVersions     SongVersion[]    @relation("VersionOwnerTeam")
+  ownedArrangements Arrangement[]    @relation("ArrangementOwnerTeam")
   notes             Note[]
   accessGrants      AccessGrant[]
   shareLinks        ShareLink[]
   ownedTags         Tag[]
-  ownedSongbooks    Songbook[]         @relation("SongbookOwnerTeam")
+  ownedSongbooks    Songbook[]       @relation("SongbookOwnerTeam")
 
   @@index([slug])
 }
@@ -387,7 +404,7 @@ model TeamInviteLink {
   createdAt DateTime  @default(now())
   expiresAt DateTime?
   usedCount Int       @default(0)
-  maxUses   Int?      // null = unlimited
+  maxUses   Int? // null = unlimited
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
@@ -400,16 +417,16 @@ model TeamInviteLink {
 // ============================================================
 
 model Work {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // The preferred original version (optional)
   preferredOriginalVersionId String?      @unique
   preferredOriginalVersion   SongVersion? @relation("WorkPreferredOriginal", fields: [preferredOriginalVersionId], references: [id])
 
   // Relations
-  versions    SongVersion[]  @relation("WorkVersions")
+  versions    SongVersion[]    @relation("WorkVersions")
   workTags    WorkTag[]
   identifiers WorkIdentifier[]
 }
@@ -422,19 +439,19 @@ model Work {
 // These belong on Work, not Song Version, because they identify
 // the abstract composition across all versions.
 model WorkIdentifier {
-  id          String              @id @default(cuid())
-  workId      String
-  type        SongIdentifierType
-  value       String
-  sourceUrl   String?             // e.g. https://musicbrainz.org/work/uuid
-  verifiedAt  DateTime?           // Set when confirmed against external source
-  note        String?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  id         String             @id @default(cuid())
+  workId     String
+  type       SongIdentifierType
+  value      String
+  sourceUrl  String? // e.g. https://musicbrainz.org/work/uuid
+  verifiedAt DateTime? // Set when confirmed against external source
+  note       String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
 
   work Work @relation(fields: [workId], references: [id], onDelete: Cascade)
 
-  @@unique([workId, type])        // one ISWC, one MBID per Work
+  @@unique([workId, type]) // one ISWC, one MBID per Work
   @@index([workId])
   @@index([type, value])
 }
@@ -446,19 +463,19 @@ model WorkIdentifier {
 // TagCategory defines the type of tag: "theme", "style", "season", etc.
 // Global categories are admin-curated. Admins can add new category types.
 model TagCategory {
-  id          String   @id @default(cuid())
-  slug        String   @unique  // e.g. "theme", "style", "season"
-  label       String            // e.g. "Theme", "Musical Style", "Liturgical Season" - English fallback
+  id           String   @id @default(cuid())
+  slug         String   @unique // e.g. "theme", "style", "season"
+  label        String // e.g. "Theme", "Musical Style", "Liturgical Season" - English fallback
   // Per-locale overrides, e.g. {"fr": "Thème"}. A locale missing here falls
   // back to `label`. Keyed by the app's locale codes (see SUPPORTED_LOCALES
   // in packages/core), not full BCP 47 - these are UI display labels, not
   // the song-content `language` field elsewhere in the schema.
   translations Json?
-  description String?
-  sortOrder   Int      @default(0)
-  isGlobal    Boolean  @default(true)  // false = user/team-defined category
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  description  String?
+  sortOrder    Int      @default(0)
+  isGlobal     Boolean  @default(true) // false = user/team-defined category
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   tags Tag[]
 
@@ -468,26 +485,26 @@ model TagCategory {
 // Tag is a single value within a category.
 // Global tags are admin-curated. Users and teams can create their own.
 model Tag {
-  id          String    @id @default(cuid())
-  categoryId  String
-  slug        String    @unique  // e.g. "easter", "jazz", "advent"
-  label       String             // e.g. "Easter", "Jazz", "Advent" - English fallback
+  id           String   @id @default(cuid())
+  categoryId   String
+  slug         String   @unique // e.g. "easter", "jazz", "advent"
+  label        String // e.g. "Easter", "Jazz", "Advent" - English fallback
   // Per-locale overrides, e.g. {"fr": "Pâques"}. Same convention as
   // TagCategory.translations. Only meaningful for admin-curated GLOBAL
   // tags - a user/team's own custom tag is just their freeform text.
   translations Json?
-  description String?
-  scope       TagScope  @default(GLOBAL)
-  ownerUserId String?   // set when scope = USER
-  ownerTeamId String?   // set when scope = TEAM
-  isApproved  Boolean   @default(false)  // user-suggested tags start false; admin approves
-  sortOrder   Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  description  String?
+  scope        TagScope @default(GLOBAL)
+  ownerUserId  String? // set when scope = USER
+  ownerTeamId  String? // set when scope = TEAM
+  isApproved   Boolean  @default(false) // user-suggested tags start false; admin approves
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  category    TagCategory          @relation(fields: [categoryId], references: [id])
-  ownerUser   User?                @relation(fields: [ownerUserId], references: [id])
-  ownerTeam   Team?                @relation(fields: [ownerTeamId], references: [id])
+  category    TagCategory      @relation(fields: [categoryId], references: [id])
+  ownerUser   User?            @relation(fields: [ownerUserId], references: [id])
+  ownerTeam   Team?            @relation(fields: [ownerTeamId], references: [id])
   workTags    WorkTag[]
   versionTags SongVersionTag[]
 
@@ -544,7 +561,7 @@ model SongVersion {
   updatedAt DateTime @updatedAt
 
   // Ownership
-  ownerScope OwnershipScope @default(USER)
+  ownerScope  OwnershipScope @default(USER)
   ownerUserId String?
   ownerTeamId String?
 
@@ -554,41 +571,41 @@ model SongVersion {
   // Core metadata
   title          String
   alternateTitle String?
-  language       String  // BCP 47 tag: en, fr, de, etc.
+  language       String // BCP 47 tag: en, fr, de, etc.
   trustLabel     String? // Free text: "Official publisher text", etc.
 
   // Rights metadata
-  copyright      String?
-  copyrightYear  Int?
-  publisher      String? // Free text
+  copyright     String?
+  copyrightYear Int?
+  publisher     String? // Free text
 
   // CCLI kept as a denormalized indexed column for fast worship-context filtering.
   // The authoritative record is in SongIdentifier with type = CCLI.
   // Keep these in sync at the application layer.
-  ccli           String?
+  ccli String?
 
   // Canonical content
-  documentJson      Json    // SongDocument v1
-  chordproCache     String? // Cached ChordPro export, regenerated on save
-  chordproCacheAt   DateTime?
+  documentJson    Json // SongDocument v1
+  chordproCache   String? // Cached ChordPro export, regenerated on save
+  chordproCacheAt DateTime?
 
   // Version relationship (relationship to parent/source)
-  relationshipType  VersionRelationshipType?
-  parentVersionId   String?
+  relationshipType VersionRelationshipType?
+  parentVersionId  String?
 
   // Work relation
-  work         Work          @relation("WorkVersions", fields: [workId], references: [id])
-  ownerUser    User?         @relation("VersionOwnerUser", fields: [ownerUserId], references: [id])
-  ownerTeam    Team?         @relation("VersionOwnerTeam", fields: [ownerTeamId], references: [id])
-  parentVersion SongVersion? @relation("VersionChildren", fields: [parentVersionId], references: [id])
+  work          Work          @relation("WorkVersions", fields: [workId], references: [id])
+  ownerUser     User?         @relation("VersionOwnerUser", fields: [ownerUserId], references: [id])
+  ownerTeam     Team?         @relation("VersionOwnerTeam", fields: [ownerTeamId], references: [id])
+  parentVersion SongVersion?  @relation("VersionChildren", fields: [parentVersionId], references: [id])
   childVersions SongVersion[] @relation("VersionChildren")
 
   // Preferred original back-relation
   preferredOriginalFor Work? @relation("WorkPreferredOriginal")
 
   // Groove default for the whole song version (section-level overrides live in documentJson)
-  defaultGrooveStyleId  String?
-  defaultGrooveVariant  String?
+  defaultGrooveStyleId String?
+  defaultGrooveVariant String?
 
   // Related records
   contributors    VersionContributor[]
@@ -600,8 +617,8 @@ model SongVersion {
   submissions     Submission[]
   importJobs      ImportJob[]
   proposals       ChangeProposal[]
-  upstreamLinks   UpstreamLink[]      @relation("UpstreamLinkLocal")
-  downstreamLinks UpstreamLink[]      @relation("UpstreamLinkGlobal")
+  upstreamLinks   UpstreamLink[]          @relation("UpstreamLinkLocal")
+  downstreamLinks UpstreamLink[]          @relation("UpstreamLinkGlobal")
   accessGrants    AccessGrant[]
   shareLinks      ShareLink[]
   auditEvents     AuditEvent[]
@@ -625,18 +642,18 @@ model SongVersion {
 // be a registered SongVerse user — the app layer enforces that at least
 // one of userId/source is set.
 model VersionContributor {
-  id            String          @id @default(cuid())
-  songVersionId String
-  userId        String?
-  roles         ContributorRole[]
-  source        String?         // Optional free text: "Hillsong Music", etc.
+  id             String            @id @default(cuid())
+  songVersionId  String
+  userId         String?
+  roles          ContributorRole[]
+  source         String? // Optional free text: "Hillsong Music", etc.
   // True only for the contributor row a MusicBrainz recording link
   // creates automatically. Lets re-linking (or unlinking) replace just
   // that row without touching one a user added by hand — both are
   // source-only (userId null), so they're otherwise indistinguishable.
-  isAutoAttached Boolean        @default(false)
-  displayOrder  Int             @default(0)
-  createdAt     DateTime        @default(now())
+  isAutoAttached Boolean           @default(false)
+  displayOrder   Int               @default(0)
+  createdAt      DateTime          @default(now())
 
   songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
   user        User?       @relation(fields: [userId], references: [id])
@@ -657,15 +674,15 @@ model SongVersionIdentifier {
   songVersionId String
   type          SongIdentifierType
   value         String
-  sourceUrl     String?            // e.g. https://musicbrainz.org/recording/uuid
-  verifiedAt    DateTime?          // Set when confirmed against external source
-  note          String?            // e.g. "Based on 2019 Hillsong live recording"
+  sourceUrl     String? // e.g. https://musicbrainz.org/recording/uuid
+  verifiedAt    DateTime? // Set when confirmed against external source
+  note          String? // e.g. "Based on 2019 Hillsong live recording"
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
   songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
 
-  @@unique([songVersionId, type])  // one CCLI, one MBID recording per version
+  @@unique([songVersionId, type]) // one CCLI, one MBID recording per version
   @@index([songVersionId])
   @@index([type, value])
 }
@@ -689,7 +706,7 @@ model Arrangement {
   description String?
 
   // Canonical content
-  documentJson Json    // ArrangementDocument v1
+  documentJson Json // ArrangementDocument v1
 
   // Guitar tuning for this arrangement (null = standard tuning)
   // Stored here as a convenience cache — authoritative value is in documentJson.defaults
@@ -697,16 +714,16 @@ model Arrangement {
   guitarTuningPreset   TuningPreset? @relation(fields: [guitarTuningPresetId], references: [id])
 
   // Freeze state (set when upstream SongDocument changes)
-  frozenAt    DateTime?
+  frozenAt     DateTime?
   frozenReason String?
 
   // Relations
-  songVersion  SongVersion @relation(fields: [songVersionId], references: [id])
-  ownerUser    User?       @relation("ArrangementOwnerUser", fields: [ownerUserId], references: [id])
-  ownerTeam    Team?       @relation("ArrangementOwnerTeam", fields: [ownerTeamId], references: [id])
-  setlistItems SetlistItem[]
-  notes        Note[]
-  midiConfigs  UserArrangementMidi[]
+  songVersion     SongVersion           @relation(fields: [songVersionId], references: [id])
+  ownerUser       User?                 @relation("ArrangementOwnerUser", fields: [ownerUserId], references: [id])
+  ownerTeam       Team?                 @relation("ArrangementOwnerTeam", fields: [ownerTeamId], references: [id])
+  setlistItems    SetlistItem[]
+  notes           Note[]
+  midiConfigs     UserArrangementMidi[]
   grooveOverrides ArrangementGroove[]
 
   @@index([songVersionId])
@@ -721,9 +738,9 @@ model Arrangement {
 // ============================================================
 
 model Setlist {
-  id          String   @id @default(cuid())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   name        String
   description String?
@@ -734,8 +751,8 @@ model Setlist {
   ownerTeamId String?
 
   // Relations
-  items       SetlistItem[]
-  notes       Note[]
+  items SetlistItem[]
+  notes Note[]
 
   @@index([ownerUserId])
   @@index([ownerTeamId])
@@ -746,14 +763,14 @@ model SetlistItem {
   setlistId     String
   songVersionId String?
   arrangementId String?
-  position      Int      // Sort order (0-based)
+  position      Int // Sort order (0-based)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Per-item overrides
-  keyOverride   String?  // e.g. "Bb"
+  keyOverride   String? // e.g. "Bb"
   tempoOverride Int?
-  notes         String?  // Quick inline note
+  notes         String? // Quick inline note
 
   setlist     Setlist      @relation(fields: [setlistId], references: [id], onDelete: Cascade)
   songVersion SongVersion? @relation(fields: [songVersionId], references: [id])
@@ -768,14 +785,14 @@ model SetlistItem {
 // ============================================================
 
 model Songbook {
-  id          String   @id @default(cuid())
-  name        String
+  id           String   @id @default(cuid())
+  name         String
   abbreviation String?
-  language    String?
-  publisher   String?
-  year        Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  language     String?
+  publisher    String?
+  year         Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // SIMPLE songbooks are an unordered collection (entries have no code);
   // NUMBERED songbooks require a unique per-songbook entryCode, matching a
@@ -844,21 +861,21 @@ model SongbookEntry {
 // from it yet. See docs/songbooks-and-catalog.md.
 
 model SongbookCatalog {
-  id             String   @id @default(cuid())
-  name           String
-  abbreviation   String?
-  publisher      String?
-  isbn           String?
-  description    String?
-  coverImageUrl  String?
-  officialUrl    String?
-  language       String?
+  id            String   @id @default(cuid())
+  name          String
+  abbreviation  String?
+  publisher     String?
+  isbn          String?
+  description   String?
+  coverImageUrl String?
+  officialUrl   String?
+  language      String?
   // True once SongVerse has secured rights to distribute this songbook's
   // actual content - reserved for a future import path that would populate
   // real content instead of blank stubs. Not used by anything yet.
-  licensed       Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  licensed      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   entries           SongbookCatalogEntry[]
   importedSongbooks Songbook[]
@@ -869,7 +886,7 @@ model SongbookCatalog {
 model SongbookCatalogEntry {
   id               String   @id @default(cuid())
   catalogId        String
-  entryCode        String   // e.g. "0245"
+  entryCode        String // e.g. "0245"
   title            String
   originalLanguage String?
   composer         String?
@@ -889,18 +906,24 @@ model SongbookCatalogEntry {
 // ============================================================
 
 model Attachment {
-  id            String         @id @default(cuid())
-  songVersionId String
-  type          AttachmentType
-  filename      String
-  mimeType      String
-  storageKey    String         // S3 object key
-  sizeBytes     Int?
-  createdAt     DateTime       @default(now())
+  id               String         @id @default(cuid())
+  songVersionId    String
+  type             AttachmentType
+  filename         String
+  mimeType         String
+  storageKey       String // S3 object key
+  sizeBytes        Int?
+  // Who the upload counts against for storage limits. Null for files
+  // uploaded before this was tracked into a team-owned song, or whose
+  // uploader has since been deleted.
+  uploadedByUserId String?
+  createdAt        DateTime       @default(now())
 
   songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  uploadedBy  User?       @relation("AttachmentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
 
   @@index([songVersionId])
+  @@index([uploadedByUserId])
 }
 
 // ============================================================
@@ -908,21 +931,21 @@ model Attachment {
 // ============================================================
 
 model Note {
-  id            String    @id @default(cuid())
-  scope         NoteScope
-  content       String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String    @id @default(cuid())
+  scope     NoteScope
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   // Owner
-  authorUserId  String
+  authorUserId String
 
   // Targets (one of these will be set depending on scope)
-  songVersionId  String?
-  arrangementId  String?
-  setlistId      String?
-  setlistItemId  String?
-  teamId         String?
+  songVersionId String?
+  arrangementId String?
+  setlistId     String?
+  setlistItemId String?
+  teamId        String?
 
   author      User         @relation(fields: [authorUserId], references: [id])
   songVersion SongVersion? @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
@@ -951,18 +974,18 @@ model Submission {
 
   // Submission content
   submitterMessage String?
-  duplicateReason  String?  // Required if submitting as new despite duplicate warning
+  duplicateReason  String? // Required if submitting as new despite duplicate warning
 
   // Admin review
-  reviewerId       String?
-  reviewNotes      String?
-  mergeTargetId    String?  // SongVersion ID if merging into existing
+  reviewerId    String?
+  reviewNotes   String?
+  mergeTargetId String? // SongVersion ID if merging into existing
 
   // Similarity results snapshot (JSON array of similar song version IDs + scores)
   similarityResults Json?
 
-  songVersion  SongVersion  @relation(fields: [songVersionId], references: [id])
-  submitter    User         @relation(fields: [submitterId], references: [id])
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id])
+  submitter   User        @relation(fields: [submitterId], references: [id])
 
   @@index([songVersionId])
   @@index([submitterId])
@@ -982,15 +1005,15 @@ model ChangeProposal {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  title         String
-  description   String?
+  title       String
+  description String?
 
   // The proposed change as a JSON diff or patch
   proposedChange Json
 
   // Admin review
-  reviewerId    String?
-  reviewNotes   String?
+  reviewerId  String?
+  reviewNotes String?
 
   songVersion SongVersion @relation(fields: [songVersionId], references: [id])
   proposer    User        @relation(fields: [proposerId], references: [id])
@@ -1005,12 +1028,12 @@ model ChangeProposal {
 // ============================================================
 
 model UpstreamLink {
-  id                String   @id @default(cuid())
-  localVersionId    String   // The fork/copy
-  globalVersionId   String   // The upstream global original
-  forkedAt          DateTime @default(now())
-  lastSyncedAt      DateTime?
-  hasUpstreamChanges Boolean @default(false)
+  id                 String    @id @default(cuid())
+  localVersionId     String // The fork/copy
+  globalVersionId    String // The upstream global original
+  forkedAt           DateTime  @default(now())
+  lastSyncedAt       DateTime?
+  hasUpstreamChanges Boolean   @default(false)
 
   localVersion  SongVersion @relation("UpstreamLinkLocal", fields: [localVersionId], references: [id], onDelete: Cascade)
   globalVersion SongVersion @relation("UpstreamLinkGlobal", fields: [globalVersionId], references: [id])
@@ -1024,9 +1047,9 @@ model UpstreamLink {
 // ============================================================
 
 model AccessGrant {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   songVersionId String
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
   expiresAt     DateTime?
 
   // Granted by
@@ -1054,18 +1077,18 @@ model AccessGrant {
 // ============================================================
 
 model ShareLink {
-  id            String   @id @default(cuid())
-  songVersionId String
+  id              String    @id @default(cuid())
+  songVersionId   String
   createdByUserId String
-  token         String   @unique @default(cuid())
-  createdAt     DateTime @default(now())
-  expiresAt     DateTime?
+  token           String    @unique @default(cuid())
+  createdAt       DateTime  @default(now())
+  expiresAt       DateTime?
 
-  canDownload   Boolean @default(false)
-  viewCount     Int     @default(0)
+  canDownload Boolean @default(false)
+  viewCount   Int     @default(0)
 
   // Optional team context
-  teamId        String?
+  teamId String?
 
   songVersion   SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
   createdByUser User        @relation(fields: [createdByUserId], references: [id])
@@ -1088,11 +1111,11 @@ model InkAnnotation {
   updatedAt     DateTime @updatedAt
 
   // Semantic anchor
-  anchorType    String   // "section" | "line" | "segment" | "chord" | "arrangement_item"
-  anchorId      String   // Stable ID of the anchored element
+  anchorType String // "section" | "line" | "segment" | "chord" | "arrangement_item"
+  anchorId   String // Stable ID of the anchored element
 
   // Normalized geometry (relative to anchor, device-independent)
-  geometryJson  Json     // Array of stroke paths in normalized coordinates
+  geometryJson Json // Array of stroke paths in normalized coordinates
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1108,15 +1131,15 @@ model InkAnnotation {
 // TuningPreset — named guitar/bass tunings for quick selection.
 // Standard tunings are seeded. Users can define custom tunings.
 model TuningPreset {
-  id          String         @id @default(cuid())
-  instrument  InstrumentType
-  name        String         // "DADGAD", "Drop D", "Open G", "Standard"
-  slug        String         @unique  // "dadgad", "drop_d", "open_g", "standard"
-  notes       String[]       // Open string notes low→high: ["D","A","D","G","A","D"]
-  isStandard  Boolean        @default(false)  // true = ships with SongVerse
-  isDefault   Boolean        @default(false)  // true = the default for that instrument
-  sortOrder   Int            @default(0)
-  createdAt   DateTime       @default(now())
+  id         String         @id @default(cuid())
+  instrument InstrumentType
+  name       String // "DADGAD", "Drop D", "Open G", "Standard"
+  slug       String         @unique // "dadgad", "drop_d", "open_g", "standard"
+  notes      String[] // Open string notes low→high: ["D","A","D","G","A","D"]
+  isStandard Boolean        @default(false) // true = ships with SongVerse
+  isDefault  Boolean        @default(false) // true = the default for that instrument
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
 
   voicings     ChordVoicing[]
   arrangements Arrangement[]
@@ -1135,38 +1158,38 @@ model TuningPreset {
 // Piano voicings store only pianoKeys (the notes to highlight).
 // String instrument voicings store frets, fingers, barres, baseFret.
 model ChordVoicing {
-  id            String         @id @default(cuid())
-  instrument    InstrumentType
+  id         String         @id @default(cuid())
+  instrument InstrumentType
 
   // The chord this voicing represents
-  root          String         // "C", "D", "F#", "Bb"
-  suffix        String         // "major", "minor", "sus2", "maj7", "7", "add9", "dim"
+  root   String // "C", "D", "F#", "Bb"
+  suffix String // "major", "minor", "sus2", "maj7", "7", "add9", "dim"
 
   // Tuning — null means the default/standard tuning for the instrument
   tuningPresetId String?
   tuningPreset   TuningPreset? @relation(fields: [tuningPresetId], references: [id])
 
   // Selection / quality
-  sortOrder     Int            @default(0)   // lower = preferred
-  isDefault     Boolean        @default(false)  // the recommended first voicing
-  label         String?        // "Open", "Barre 5th", "Jazz voicing", "Capo shape"
+  sortOrder Int     @default(0) // lower = preferred
+  isDefault Boolean @default(false) // the recommended first voicing
+  label     String? // "Open", "Barre 5th", "Jazz voicing", "Capo shape"
 
   // Source tracking
-  source        String         @default("chords-db")  // "chords-db" | "generated" | "manual"
+  source String @default("chords-db") // "chords-db" | "generated" | "manual"
 
   // Fretboard data (guitar / bass / ukulele)
   // frets: per-string fret number. -1 = muted, 0 = open, 1+ = fret number
-  frets         Int[]          // length = string count for instrument
-  fingers       Int[]          // per-string finger number (1=index…4=pinky, 0=none)
-  barres        Int[]          // fret numbers where a full barre is applied
-  baseFret      Int            @default(1)   // which fret the diagram starts at
-  isCapo        Boolean        @default(false)
+  frets    Int[] // length = string count for instrument
+  fingers  Int[] // per-string finger number (1=index…4=pinky, 0=none)
+  barres   Int[] // fret numbers where a full barre is applied
+  baseFret Int     @default(1) // which fret the diagram starts at
+  isCapo   Boolean @default(false)
 
   // Piano data (only populated when instrument = PIANO)
-  pianoKeys     String[]       // note names to highlight: ["C", "E", "G"]
+  pianoKeys String[] // note names to highlight: ["C", "E", "G"]
 
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([instrument, root, suffix])
   @@index([instrument, root, suffix, tuningPresetId])
@@ -1181,16 +1204,16 @@ model ChordVoicing {
 // Tracks URL-based scrape and import jobs initiated by users.
 // Scraping runs in the BullMQ worker, not the API process.
 model ImportJob {
-  id            String       @id @default(cuid())
-  userId        String
-  sourceUrl     String?      // URL scraped, if URL-based
-  sourceFormat  ImportFormat
-  state         String       @default("pending") // pending | processing | needs_review | complete | failed
-  errorMessage  String?      // Set on failure — instructs user to try clipboard paste
-  rawContent    String?      // Extracted raw text from scraper (before format parsing)
-  draftVersionId String?     // SongVersion created as draft, awaiting user review
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  userId         String
+  sourceUrl      String? // URL scraped, if URL-based
+  sourceFormat   ImportFormat
+  state          String       @default("pending") // pending | processing | needs_review | complete | failed
+  errorMessage   String? // Set on failure — instructs user to try clipboard paste
+  rawContent     String? // Extracted raw text from scraper (before format parsing)
+  draftVersionId String? // SongVersion created as draft, awaiting user review
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   draftVersion SongVersion? @relation(fields: [draftVersionId], references: [id])
@@ -1205,11 +1228,11 @@ model ImportJob {
 
 // GrooveCategory — top-level style category (Rock, Jazz, Latin, etc.)
 model GrooveCategory {
-  id          String   @id @default(cuid())
-  slug        String   @unique  // e.g. "rock", "jazz", "latin"
-  label       String            // e.g. "Rock", "Jazz", "Latin"
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  slug      String   @unique // e.g. "rock", "jazz", "latin"
+  label     String // e.g. "Rock", "Jazz", "Latin"
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
 
   styles GrooveStyle[]
 }
@@ -1217,18 +1240,18 @@ model GrooveCategory {
 // GrooveStyle — a named style within a category, with multiple variants
 // e.g. category=rock, style=arena_rock, variants=[simple, medium, full]
 model GrooveStyle {
-  id           String   @id @default(cuid())
-  categoryId   String
-  slug         String   @unique  // e.g. "rock_arena", "jazz_swing", "latin_bossa"
-  label        String            // e.g. "Arena Rock", "Jazz Swing", "Bossa Nova"
-  description  String?
-  timeSignature String  @default("4/4")  // "4/4", "3/4", "6/8" etc.
-  sortOrder    Int      @default(0)
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  categoryId    String
+  slug          String   @unique // e.g. "rock_arena", "jazz_swing", "latin_bossa"
+  label         String // e.g. "Arena Rock", "Jazz Swing", "Bossa Nova"
+  description   String?
+  timeSignature String   @default("4/4") // "4/4", "3/4", "6/8" etc.
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
 
-  category         GrooveCategory      @relation(fields: [categoryId], references: [id])
-  patterns         GroovePattern[]
-  arrangementUses  ArrangementGroove[]
+  category        GrooveCategory      @relation(fields: [categoryId], references: [id])
+  patterns        GroovePattern[]
+  arrangementUses ArrangementGroove[]
 
   @@index([categoryId])
 }
@@ -1240,9 +1263,9 @@ model GrooveStyle {
 model GroovePattern {
   id          String   @id @default(cuid())
   styleId     String
-  variant     String   // "simple" | "medium" | "full" | "half_time" | "double_time"
-  label       String   // e.g. "Full", "Simple", "Half-time"
-  patternJson Json     // 16th-note grid pattern definition
+  variant     String // "simple" | "medium" | "full" | "half_time" | "double_time"
+  label       String // e.g. "Full", "Simple", "Half-time"
+  patternJson Json // 16th-note grid pattern definition
   createdAt   DateTime @default(now())
 
   style GrooveStyle @relation(fields: [styleId], references: [id], onDelete: Cascade)
@@ -1254,14 +1277,14 @@ model GroovePattern {
 // ArrangementGroove — per-arrangement-item groove override
 // If set, overrides the section-level groove from the SongDocument
 model ArrangementGroove {
-  id                  String   @id @default(cuid())
-  arrangementId       String
-  arrangementItemId   String   // References ai_ ID in ArrangementDocument
-  grooveStyleId       String
-  variant             String
-  tempoRelative       Float    @default(1.0)  // 0.5 = half-time, 2.0 = double-time
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                String   @id @default(cuid())
+  arrangementId     String
+  arrangementItemId String // References ai_ ID in ArrangementDocument
+  grooveStyleId     String
+  variant           String
+  tempoRelative     Float    @default(1.0) // 0.5 = half-time, 2.0 = double-time
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   arrangement Arrangement @relation(fields: [arrangementId], references: [id], onDelete: Cascade)
   grooveStyle GrooveStyle @relation(fields: [grooveStyleId], references: [id])
@@ -1285,7 +1308,7 @@ model UserArrangementMidi {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  enabled       Boolean  @default(true)
+  enabled Boolean @default(true)
 
   // JSON array of MidiItemTrigger:
   // [{ arrangementItemId, events: [{ type, channel, program?, cc?, value? }] }]
@@ -1304,15 +1327,15 @@ model UserArrangementMidi {
 // ============================================================
 
 model AuditEvent {
-  id            String      @id @default(cuid())
-  action        AuditAction
-  entityType    String      // "SongVersion" | "Arrangement" | "Team" | etc.
-  entityId      String
-  actorUserId   String?
-  createdAt     DateTime    @default(now())
+  id          String      @id @default(cuid())
+  action      AuditAction
+  entityType  String // "SongVersion" | "Arrangement" | "Team" | etc.
+  entityId    String
+  actorUserId String?
+  createdAt   DateTime    @default(now())
 
   // Snapshot of relevant data at time of event
-  metadata      Json?
+  metadata Json?
 
   // Target version (for song-related events)
   songVersionId String?
@@ -1337,13 +1360,38 @@ model AuditEvent {
 // to the matching R2_* env var, then to local disk. r2SecretAccessKeyEnc
 // is never stored or returned in plaintext - see secret-crypto.ts.
 model StorageSettings {
-  id                   String   @id @default("singleton")
-  r2AccountId          String?
-  r2AccessKeyId        String?
-  r2SecretAccessKeyEnc String?
-  r2Bucket             String?
-  r2Endpoint           String?
-  updatedAt            DateTime @updatedAt
+  id                        String   @id @default("singleton")
+  r2AccountId               String?
+  r2AccessKeyId             String?
+  r2SecretAccessKeyEnc      String?
+  r2Bucket                  String?
+  r2Endpoint                String?
+  // Storage limit for users without their own override (User.storageLimitMb).
+  // Null means the built-in default (see storage-quota.service.ts).
+  defaultUserStorageLimitMb Int?
+  updatedAt                 DateTime @updatedAt
+}
+
+// Content of a deleted user, held for a limited time behind a one-time
+// link. Whoever opens the link while signed in (before expiresAt) becomes
+// the owner of everything the deleted user personally owned; unclaimed
+// content is deleted with the user once it expires. Only a hash of the
+// link's token is stored.
+model ContentTransfer {
+  id              String   @id @default(cuid())
+  tokenHash       String   @unique
+  fromUserId      String   @unique
+  // Snapshot of who the content came from, since the user row itself has
+  // been anonymized by the time anyone looks at this.
+  fromDisplayName String
+  fromEmail       String
+  createdByUserId String?
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  fromUser User @relation(fields: [fromUserId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 // Singleton row (id is always the literal string "singleton") holding

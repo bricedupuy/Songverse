@@ -39,6 +39,21 @@ Both `StorageSettings` and `AuthSettings` are managed through
 There's no more "settings only used by the web app, so it skips the API"
 case — see the next section for why.
 
+## Deleting users
+
+Admin > Users can delete an account, either with everything the user
+personally owns or keeping that content behind a one-time transfer link
+(`apps/api/src/user-management/`). `UserDeletionService` handles every
+relation to `User`, `SongVersion`, `Arrangement`, `Songbook` and `Tag`
+that doesn't cascade on delete. **If you add a model with a foreign key to
+any of those without `onDelete: Cascade`/`SetNull`, handle it there too**,
+or deleting a user who has such a row will fail with a foreign-key error.
+New user-owned content types also need adding to its transfer step.
+
+Storage objects are content-addressed and shared (attachments and avatars
+with identical bytes are one object). Delete them only through
+`StorageService.deleteUnreferenced()`, which checks both.
+
 ## Where auth lives
 
 BetterAuth is mounted in `apps/api` (`apps/api/src/auth/`, wired up in

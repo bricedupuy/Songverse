@@ -1,7 +1,9 @@
 import { FilesInterceptor } from "@nestjs/platform-express";
-import { Body, Controller, Param, Post, UseGuards, UseInterceptors, UploadedFiles } from "@nestjs/common";
+import { Body, Controller, Param, Post, UnauthorizedException, UseGuards, UseInterceptors, UploadedFiles } from "@nestjs/common";
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard";
+import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { BulkUploadService } from "./bulk-upload.service";
 import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto";
 import { BulkUploadPreviewDto } from "./dto/bulk-upload-preview.dto";
@@ -36,7 +38,9 @@ export class BulkUploadController {
     @Param("songbookId") songbookId: string,
     @Body() dto: BulkUploadCommitDto,
     @UploadedFiles() files: Express.Multer.File[] | undefined,
+    @CurrentUser() user: AuthenticatedUser | undefined,
   ): ReturnType<BulkUploadService["commit"]> {
-    return this.bulkUploadService.commit(songbookId, dto.type, files ?? []);
+    if (!user) throw new UnauthorizedException();
+    return this.bulkUploadService.commit(user.id, songbookId, dto.type, files ?? []);
   }
 }

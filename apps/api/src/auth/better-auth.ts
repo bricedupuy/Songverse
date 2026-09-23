@@ -1,10 +1,16 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { jwt } from "better-auth/plugins/jwt";
 import { passkey } from "@better-auth/passkey";
 import { prisma } from "@songverse/db";
 import { getEffectiveAuthSettings, type EffectiveAuthSettings } from "./auth-settings";
-import { sendPasswordResetEmail, sendVerificationEmail } from "./email";
+import {
+  sendChangeEmailConfirmation,
+  sendNewEmailVerification,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+} from "./email";
 
 // Comma-separated list of emails that should be promoted to global admin
 // the moment they sign up — there's no other bootstrap path (no "first
@@ -93,7 +99,9 @@ function buildAuth(settings: EffectiveAuthSettings) {
     },
     emailVerification: {
       sendVerificationEmail: async ({ user, url }) => {
-        await sendVerificationEmail(user.email, url);
+        // Also the second step of an email change (user.email is then the
+        // new address), which only a verified account can reach.
+        await (user.emailVerified ? sendNewEmailVerification(user.email, url) : sendVerificationEmail(user.email, url));
       },
       sendOnSignUp: true,
       autoSignInAfterVerification: true,
@@ -120,6 +128,7 @@ function buildAuth(settings: EffectiveAuthSettings) {
         "/request-password-reset": { window: 600, max: 3 },
         "/send-verification-email": { window: 600, max: 3 },
         "/sign-up/email": { window: 600, max: 5 },
+        "/change-email": { window: 600, max: 3 },
       },
     },
     user: {
@@ -127,12 +136,44 @@ function buildAuth(settings: EffectiveAuthSettings) {
         name: "displayName",
         image: "avatarUrl",
       },
+      // Approve from the current address first, then verify the new one.
+      changeEmail: {
+        enabled: true,
+        sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+          await sendChangeEmailConfirmation(user.email, newEmail, url);
+        },
+      },
       additionalFields: {
         isGlobalAdmin: { type: "boolean", input: false, defaultValue: false },
         locale: { type: "string", input: false, defaultValue: "en" },
       },
     },
     databaseHooks: {
+      session: {
+        create: {
+          // Every way of signing in (password, passkey, Google, the
+          // auto-sign-in after email verification) creates a session, so
+          // this is the one place to turn banned and deleted accounts away.
+          // JwtAuthGuard re-checks for tokens issued before a ban.
+          before: async (session) => {
+            const user = await prisma.user.findUnique({
+              where: { id: session.userId },
+              select: { bannedAt: true, banReason: true, deletedAt: true },
+            });
+            if (!user || user.deletedAt) {
+              throw APIError.from("FORBIDDEN", { message: "This account no longer exists.", code: "ACCOUNT_DELETED" });
+            }
+            if (user.bannedAt) {
+              throw APIError.from("FORBIDDEN", {
+                message: user.banReason
+                  ? `Your account has been suspended: ${user.banReason}`
+                  : "Your account has been suspended.",
+                code: "ACCOUNT_BANNED",
+              });
+            }
+          },
+        },
+      },
       user: {
         create: {
           // isGlobalAdmin isn't settable through BetterAuth's own create/

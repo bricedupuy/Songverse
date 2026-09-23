@@ -38,13 +38,18 @@ export class JwtAuthGuard implements CanActivate {
 
     const user = await this.prisma.client.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, isGlobalAdmin: true },
+      select: { id: true, email: true, isGlobalAdmin: true, bannedAt: true, deletedAt: true },
     });
-    if (!user) {
+    // Checked here as well as at sign-in: a JWT issued before a ban or
+    // deletion would otherwise keep working until it expires.
+    if (!user || user.deletedAt) {
       throw new UnauthorizedException("User no longer exists");
     }
+    if (user.bannedAt) {
+      throw new UnauthorizedException("Account banned");
+    }
 
-    request.user = user;
+    request.user = { id: user.id, email: user.email, isGlobalAdmin: user.isGlobalAdmin };
     return true;
   }
 

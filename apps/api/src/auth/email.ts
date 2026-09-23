@@ -10,7 +10,8 @@ import { getEffectiveAuthSettings } from "./auth-settings";
  * still work without needing a real Resend account. This is the only
  * place SongVerse sends email - keep it that way, since Resend's free tier
  * has a low daily/monthly send cap and this app should only ever send
- * verification/reset mail, never bulk or marketing mail.
+ * account mail (verification, password reset, email change), never bulk or
+ * marketing mail.
  */
 async function sendEmail(params: { to: string; subject: string; html: string; text: string }): Promise<void> {
   const settings = await getEffectiveAuthSettings();
@@ -42,6 +43,38 @@ export async function sendVerificationEmail(to: string, url: string): Promise<vo
       <p style="color:#666;font-size:13px">If you didn't create this account, you can ignore this email.</p>
     `,
   });
+}
+
+/** Second step of an email change: proves the user controls the new address. */
+export async function sendNewEmailVerification(to: string, url: string): Promise<void> {
+  await sendEmail({
+    to,
+    subject: "Confirm your new SongVerse email",
+    text: `Confirm this address to finish changing the email on your SongVerse account:\n\n${url}\n\nIf you didn't ask for this, you can ignore this email.`,
+    html: `
+      <p>Confirm this address to finish changing the email on your SongVerse account.</p>
+      <p><a href="${url}">Confirm new email</a></p>
+      <p style="color:#666;font-size:13px">If you didn't ask for this, you can ignore this email.</p>
+    `,
+  });
+}
+
+/** First step of an email change, sent to the current address so a hijacked session can't redirect the account. */
+export async function sendChangeEmailConfirmation(to: string, newEmail: string, url: string): Promise<void> {
+  await sendEmail({
+    to,
+    subject: "Approve your SongVerse email change",
+    text: `Someone asked to change the email on your SongVerse account to ${newEmail}. If that was you, approve it here:\n\n${url}\n\nIf it wasn't you, ignore this email and consider changing your password - your email won't change.`,
+    html: `
+      <p>Someone asked to change the email on your SongVerse account to <strong>${escapeHtml(newEmail)}</strong>. If that was you, approve it below.</p>
+      <p><a href="${url}">Approve email change</a></p>
+      <p style="color:#666;font-size:13px">If it wasn't you, ignore this email and consider changing your password - your email won't change.</p>
+    `,
+  });
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 }
 
 export async function sendPasswordResetEmail(to: string, url: string): Promise<void> {

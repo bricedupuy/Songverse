@@ -12,6 +12,7 @@ import {
   type SaveAuthConfigInput,
 } from "../auth/auth-settings";
 import { PrismaService } from "../prisma/prisma.service";
+import { BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB, StorageQuotaService } from "../storage/storage-quota.service";
 import { StorageService, type SaveStorageConfigInput } from "../storage/storage.service";
 
 // packages/db is always a sibling two levels up from wherever the API
@@ -40,30 +41,8 @@ export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly quota: StorageQuotaService,
   ) {}
-
-  async listUsers() {
-    const users = await this.prisma.client.user.findMany({
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        isGlobalAdmin: true,
-        createdAt: true,
-        _count: { select: { teamMemberships: true, ownedVersions: true } },
-      },
-    });
-    return users.map((user) => ({
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      isGlobalAdmin: user.isGlobalAdmin,
-      createdAt: user.createdAt,
-      teamCount: user._count.teamMemberships,
-      songCount: user._count.ownedVersions,
-    }));
-  }
 
   async storageStats() {
     const [{ driver, source }, aggregate, grouped] = await Promise.all([
@@ -82,6 +61,15 @@ export class AdminService {
       totalBytes: aggregate._sum.sizeBytes ?? 0,
       byType: Object.fromEntries(grouped.map((g) => [g.type, g._count._all])),
     };
+  }
+
+  async getStorageLimits() {
+    const { limitMb, isBuiltIn } = await this.quota.getDefaultLimitMb();
+    return { defaultLimitMb: limitMb, isBuiltIn, builtInDefaultMb: BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB };
+  }
+
+  saveStorageLimits(defaultLimitMb: number | null): Promise<void> {
+    return this.quota.setDefaultLimitMb(defaultLimitMb);
   }
 
   getStorageConfig(): ReturnType<StorageService["getConfigSummary"]> {

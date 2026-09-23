@@ -1,16 +1,65 @@
-import { createFileRoute } from "@tanstack/react-router";
+import type { AdminUserSummary, TransferLink } from "@songverse/core";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Card } from "#/components/ui/card";
+import { DataTable } from "#/components/ui/data-table";
 import { apiClient } from "#/lib/api-client";
-import { Card, CardContent } from "#/components/ui/card";
+import { BanDialog, DeleteNowDialog, DeleteUserDialog, StorageLimitDialog, TransferLinkDialog } from "./-user-dialogs";
+import { useUsersColumns, type UserAction } from "./-users-columns";
 
 export const Route = createFileRoute("/_protected/admin/users")({
-  loader: () => apiClient.adminListUsers(),
+  loader: async () => {
+    const [users, limits] = await Promise.all([apiClient.adminListUsers(), apiClient.adminGetStorageLimits()]);
+    return { users, defaultLimitMb: limits.defaultLimitMb };
+  },
   component: AdminUsersPage,
 });
 
+type OpenDialog =
+  | { kind: "storage" | "ban" | "delete" | "deleteNow"; user: AdminUserSummary }
+  | { kind: "link"; name: string; link: TransferLink };
+
 function AdminUsersPage() {
   const { t } = useTranslation();
-  const users = Route.useLoaderData();
+  const router = useRouter();
+  const { session } = Route.useRouteContext();
+  const { users, defaultLimitMb } = Route.useLoaderData();
+  const [dialog, setDialog] = useState<OpenDialog | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    await router.invalidate();
+  }, [router]);
+
+  const closeAndRefresh = useCallback(async () => {
+    setDialog(null);
+    await refresh();
+  }, [refresh]);
+
+  const onAction = useCallback(
+    (action: UserAction, user: AdminUserSummary) => {
+      setActionError(null);
+      if (action === "unban") {
+        void apiClient
+          .adminUpdateUser(user.id, { banned: false })
+          .then(refresh)
+          .catch((err: unknown) => setActionError(err instanceof Error ? err.message : String(err)));
+        return;
+      }
+      if (action === "newTransferLink") {
+        void apiClient
+          .adminRegenerateTransferLink(user.id)
+          .then((link) => setDialog({ kind: "link", name: user.displayName, link }))
+          .catch((err: unknown) => setActionError(err instanceof Error ? err.message : String(err)));
+        return;
+      }
+      setDialog({ kind: action, user });
+    },
+    [refresh],
+  );
+
+  const columns = useUsersColumns(session.userId, onAction);
 
   return (
     <div className="flex flex-col gap-6">
@@ -19,31 +68,30 @@ function AdminUsersPage() {
         <p className="text-sm text-muted-foreground">{t("admin.usersDescription")}</p>
       </div>
 
-      <Card>
-        <CardContent>
-          <ul className="flex flex-col divide-y">
-            {users.map((user) => (
-              <li key={user.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                <div>
-                  <p className="text-sm font-medium">
-                    {user.displayName}
-                    {user.isGlobalAdmin ? (
-                      <span className="ml-2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        {t("admin.globalAdmin")}
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
-                </div>
-                <div className="text-right text-xs text-muted-foreground">
-                  <p>{t("admin.userStats", { teams: user.teamCount, songs: user.songCount })}</p>
-                  <p>{new Date(user.createdAt).toLocaleDateString()}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
+      {actionError ? <p className="text-sm text-destructive">{actionError}</p> : null}
+
+      <Card className="p-0">
+        <DataTable columns={columns} data={users} filterPlaceholder={t("admin.usersFilterPlaceholder")} />
       </Card>
+
+      {dialog?.kind === "storage" ? (
+        <StorageLimitDialog user={dialog.user} defaultLimitMb={defaultLimitMb} onClose={() => setDialog(null)} onDone={closeAndRefresh} />
+      ) : null}
+      {dialog?.kind === "ban" ? <BanDialog user={dialog.user} onClose={() => setDialog(null)} onDone={closeAndRefresh} /> : null}
+      {dialog?.kind === "delete" ? (
+        <DeleteUserDialog
+          user={dialog.user}
+          onClose={() => setDialog(null)}
+          onDeleted={async (link) => {
+            setDialog(link ? { kind: "link", name: dialog.user.displayName, link } : null);
+            await refresh();
+          }}
+        />
+      ) : null}
+      {dialog?.kind === "deleteNow" ? (
+        <DeleteNowDialog user={dialog.user} onClose={() => setDialog(null)} onDone={closeAndRefresh} />
+      ) : null}
+      {dialog?.kind === "link" ? <TransferLinkDialog name={dialog.name} link={dialog.link} onClose={() => setDialog(null)} /> : null}
     </div>
   );
 }

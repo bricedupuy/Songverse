@@ -1,12 +1,18 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, UnauthorizedException, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
+import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { AdminUsersService } from "../user-management/admin-users.service";
+import { DEFAULT_TRANSFER_RETENTION_DAYS } from "../user-management/content-transfers.service";
 import { AdminService, type AdminCommandResult } from "./admin.service";
 import { AuthConfigResponseDto } from "./dto/admin-auth-response.dto";
 import { AdminStorageResponseDto, StorageConfigResponseDto } from "./dto/admin-storage-response.dto";
 import { AdminUserResponseDto } from "./dto/admin-user-response.dto";
+import { DeleteUserDto, TransferLinkResponseDto, UpdateUserByAdminDto } from "./dto/manage-user.dto";
 import { SaveAuthConfigDto } from "./dto/save-auth-config.dto";
 import { SaveStorageConfigDto } from "./dto/save-storage-config.dto";
+import { SaveStorageLimitsDto, StorageLimitsResponseDto } from "./dto/storage-limits.dto";
 
 /**
  * Operational tools for global admins - today, the migrate/seed steps
@@ -16,14 +22,18 @@ import { SaveStorageConfigDto } from "./dto/save-storage-config.dto";
  * Deliberately in-process only (no child_process/shell-exec anywhere in
  * this module): running seed logic in-process is straightforward, but
  * there's no supported non-CLI way to run `prisma migrate deploy`, so
- * applying migrations stays a manual step - this only reports status.
+ * migrations are applied when the API container starts (see the CMD in
+ * Dockerfile.api) - this only reports status.
  */
 @ApiTags("admin")
 @ApiBearerAuth()
 @Controller("admin")
 @UseGuards(GlobalAdminGuard)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly adminUsers: AdminUsersService,
+  ) {}
 
   @Get("migrations/status")
   @ApiOkResponse({ description: "Read-only: compares migrations on disk against what's applied in the DB." })
@@ -39,14 +49,55 @@ export class AdminController {
 
   @Get("users")
   @ApiOkResponse({ type: AdminUserResponseDto, isArray: true })
-  listUsers(): ReturnType<AdminService["listUsers"]> {
-    return this.adminService.listUsers();
+  listUsers(): ReturnType<AdminUsersService["list"]> {
+    return this.adminUsers.list();
+  }
+
+  @Patch("users/:userId")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  updateUser(
+    @Param("userId") userId: string,
+    @Body() dto: UpdateUserByAdminDto,
+    @CurrentUser() admin: AuthenticatedUser | undefined,
+  ): Promise<void> {
+    if (!admin) throw new UnauthorizedException();
+    return this.adminUsers.update(admin.id, userId, dto);
+  }
+
+  /** Returns the transfer link when contentAction is "transfer", otherwise null. */
+  @Post("users/:userId/delete")
+  @ApiOkResponse({ type: TransferLinkResponseDto })
+  deleteUser(
+    @Param("userId") userId: string,
+    @Body() dto: DeleteUserDto,
+    @CurrentUser() admin: AuthenticatedUser | undefined,
+  ): ReturnType<AdminUsersService["remove"]> {
+    if (!admin) throw new UnauthorizedException();
+    return this.adminUsers.remove(admin.id, userId, dto.contentAction, dto.retentionDays ?? DEFAULT_TRANSFER_RETENTION_DAYS);
+  }
+
+  @Post("users/:userId/transfer-link")
+  @ApiOkResponse({ type: TransferLinkResponseDto })
+  regenerateTransferLink(@Param("userId") userId: string): ReturnType<AdminUsersService["regenerateTransferLink"]> {
+    return this.adminUsers.regenerateTransferLink(userId);
   }
 
   @Get("storage")
   @ApiOkResponse({ type: AdminStorageResponseDto })
   storageStats(): ReturnType<AdminService["storageStats"]> {
     return this.adminService.storageStats();
+  }
+
+  @Get("storage/limits")
+  @ApiOkResponse({ type: StorageLimitsResponseDto })
+  getStorageLimits(): ReturnType<AdminService["getStorageLimits"]> {
+    return this.adminService.getStorageLimits();
+  }
+
+  @Put("storage/limits")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  saveStorageLimits(@Body() dto: SaveStorageLimitsDto): Promise<void> {
+    return this.adminService.saveStorageLimits(dto.defaultLimitMb);
   }
 
   @Get("storage/config")

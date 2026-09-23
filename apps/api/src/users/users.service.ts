@@ -1,5 +1,9 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
+import { StorageQuotaService } from "../storage/storage-quota.service";
+import { StorageService } from "../storage/storage.service";
+import { detectAvatarImageType } from "./avatar-image";
 import type { UpdateUserDto } from "./dto/update-user.dto";
 
 const SELECT = {
@@ -16,7 +20,12 @@ const SELECT = {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
+    private readonly storage: StorageService,
+    private readonly quota: StorageQuotaService,
+  ) {}
 
   async findMe(userId: string) {
     const user = await this.prisma.client.user.findUnique({ where: { id: userId }, select: SELECT });
@@ -27,8 +36,65 @@ export class UsersService {
   async updateMe(userId: string, dto: UpdateUserDto) {
     return this.prisma.client.user.update({
       where: { id: userId },
-      data: { locale: dto.locale },
+      data: { locale: dto.locale, displayName: dto.displayName },
       select: SELECT,
     });
+  }
+
+  getStorageUsage(userId: string) {
+    return this.quota.getUsage(userId);
+  }
+
+  /** Avatars don't count toward the storage limit; they're capped in size instead (see the controller). */
+  async setAvatar(userId: string, body: Buffer) {
+    if (!detectAvatarImageType(body)) {
+      throw new BadRequestException("Avatar must be a PNG, JPEG, GIF or WebP image");
+    }
+    const previous = await this.prisma.client.user.findUniqueOrThrow({ where: { id: userId }, select: { avatarStorageKey: true } });
+    const { hash } = await this.storage.put(body, detectAvatarImageType(body) as string);
+    const user = await this.prisma.client.user.update({
+      where: { id: userId },
+      data: { avatarStorageKey: hash, avatarUrl: this.avatarUrlFor(userId, hash) },
+      select: SELECT,
+    });
+    if (previous.avatarStorageKey && previous.avatarStorageKey !== hash) {
+      await this.storage.deleteUnreferenced([previous.avatarStorageKey]);
+    }
+    return user;
+  }
+
+  async removeAvatar(userId: string) {
+    const previous = await this.prisma.client.user.findUniqueOrThrow({ where: { id: userId }, select: { avatarStorageKey: true } });
+    const user = await this.prisma.client.user.update({
+      where: { id: userId },
+      data: { avatarStorageKey: null, avatarUrl: null },
+      select: SELECT,
+    });
+    if (previous.avatarStorageKey) await this.storage.deleteUnreferenced([previous.avatarStorageKey]);
+    return user;
+  }
+
+  /**
+   * Public, but only ever serves a user's *current* avatar: storage keys are
+   * content hashes shared with attachments, so serving any key on request
+   * would expose private files.
+   */
+  async getAvatar(userId: string, key: string): Promise<{ body: Buffer; contentType: string }> {
+    const user = await this.prisma.client.user.findUnique({
+      where: { id: userId },
+      select: { avatarStorageKey: true, deletedAt: true },
+    });
+    if (!user || user.deletedAt || !user.avatarStorageKey || user.avatarStorageKey !== key) {
+      throw new NotFoundException("Avatar not found");
+    }
+    const body = await this.storage.get(key);
+    return { body, contentType: detectAvatarImageType(body) ?? "application/octet-stream" };
+  }
+
+  // Absolute, since the web app renders it from a different origin. The key
+  // in the path changes with every new image, so it can be cached forever.
+  private avatarUrlFor(userId: string, key: string): string {
+    const apiOrigin = new URL(this.config.get<string>("AUTH_URL") ?? "http://localhost:3001").origin;
+    return `${apiOrigin}/users/${userId}/avatar/${key}`;
   }
 }

@@ -57,9 +57,11 @@ export class AttachmentsController {
     @Param("songVersionId") songVersionId: string,
     @Body() dto: UploadAttachmentDto,
     @UploadedFile() file: Express.Multer.File | undefined,
+    @CurrentUser() user: AuthenticatedUser | undefined,
   ): ReturnType<AttachmentsService["upload"]> {
+    if (!user) throw new UnauthorizedException();
     if (!file) throw new BadRequestException("A file is required");
-    return this.attachmentsService.upload(songVersionId, dto.type, file.originalname, file.mimetype, file.buffer);
+    return this.attachmentsService.upload(user.id, songVersionId, dto.type, file.originalname, file.mimetype, file.buffer);
   }
 
   @Get(":attachmentId/download")

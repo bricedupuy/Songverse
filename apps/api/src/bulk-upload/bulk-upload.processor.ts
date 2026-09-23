@@ -29,7 +29,7 @@ export class BulkUploadProcessor extends WorkerHost {
   }
 
   async process(job: Job<BulkUploadJobData>): Promise<void> {
-    const { songbookId, entryCode, type, filename, mimeType, storageKey, sizeBytes } = job.data;
+    const { songbookId, entryCode, type, filename, mimeType, storageKey, sizeBytes, uploadedByUserId } = job.data;
 
     const target = await this.songbooksService.ensureEntryForCode(songbookId, entryCode);
     if (!target) {
@@ -46,7 +46,15 @@ export class BulkUploadProcessor extends WorkerHost {
     // original upload (distinct from SongVersion.chordproCache, which is a
     // regenerated *export*), and for PDF it's the only artifact at all.
     await this.prisma.client.attachment.create({
-      data: { songVersionId: target.songVersionId, type, filename, mimeType, storageKey, sizeBytes },
+      data: {
+        songVersionId: target.songVersionId,
+        type,
+        filename,
+        mimeType,
+        storageKey,
+        sizeBytes,
+        uploadedByUserId: uploadedByUserId ?? null,
+      },
     });
   }
 }

@@ -1,7 +1,9 @@
+import type { StorageLimits } from "@songverse/core";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
+import { formatBytes } from "#/lib/format-bytes";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -9,23 +11,20 @@ import { Label } from "#/components/ui/label";
 
 export const Route = createFileRoute("/_protected/admin/storage")({
   loader: async () => {
-    const [stats, config] = await Promise.all([apiClient.adminStorageStats(), apiClient.adminGetStorageConfig()]);
-    return { stats, config };
+    const [stats, config, limits] = await Promise.all([
+      apiClient.adminStorageStats(),
+      apiClient.adminGetStorageConfig(),
+      apiClient.adminGetStorageLimits(),
+    ]);
+    return { stats, config, limits };
   },
   component: AdminStoragePage,
 });
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  return `${(bytes / 1024 ** exponent).toFixed(exponent === 0 ? 0 : 1)} ${units[exponent]}`;
-}
-
 function AdminStoragePage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { stats, config } = Route.useLoaderData();
+  const { stats, config, limits } = Route.useLoaderData();
 
   const [accountId, setAccountId] = useState(config.accountId ?? "");
   const [accessKeyId, setAccessKeyId] = useState("");
@@ -192,6 +191,8 @@ function AdminStoragePage() {
         </CardContent>
       </Card>
 
+      <StorageLimitsCard limits={limits} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">{t("admin.storageByType")}</CardTitle>
@@ -212,5 +213,71 @@ function AdminStoragePage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/** Kept apart from the R2 card: saving or reverting one never touches the other. */
+function StorageLimitsCard({ limits }: { limits: StorageLimits }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [value, setValue] = useState(String(limits.defaultLimitMb));
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(defaultLimitMb: number | null) {
+    setPending(true);
+    setError(null);
+    try {
+      await apiClient.adminSaveStorageLimits(defaultLimitMb);
+      await router.invalidate();
+      if (defaultLimitMb === null) setValue(String(limits.builtInDefaultMb));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const parsed = Number(value);
+  const valid = value.trim() !== "" && Number.isInteger(parsed) && parsed >= 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">{t("admin.storageLimitsTitle")}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">{t("admin.storageLimitsDescription")}</p>
+        <p className="text-xs">
+          <span className="font-medium">{t("admin.storageConfigSource")}: </span>
+          <span className="text-muted-foreground">
+            {limits.isBuiltIn ? t("admin.storageLimitsSourceBuiltIn") : t("admin.storageLimitsSourceDatabase")}
+          </span>
+        </p>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="default-storage-limit">{t("admin.storageDefaultLimitLabel")}</Label>
+          <Input
+            id="default-storage-limit"
+            type="number"
+            min={0}
+            step={1}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            className="max-w-40"
+          />
+        </div>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <div className="flex items-center justify-between">
+          <Button onClick={() => void save(parsed)} disabled={pending || !valid}>
+            {pending ? t("admin.saving") : t("admin.save")}
+          </Button>
+          {limits.isBuiltIn ? null : (
+            <Button variant="outline" size="sm" onClick={() => void save(null)} disabled={pending}>
+              {t("admin.resetToBuiltIn", { mb: limits.builtInDefaultMb })}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

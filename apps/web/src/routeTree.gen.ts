@@ -16,6 +16,7 @@ import { Route as ProtectedAccountRouteImport } from './routes/_protected/accoun
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
+import { Route as TransferTokenRouteImport } from './routes/transfer.$token'
 import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
 import { Route as ProtectedAdminAuthRouteImport } from './routes/_protected/admin/auth'
 import { Route as ProtectedAdminCatalogsRouteImport } from './routes/_protected/admin/catalogs'
@@ -67,6 +68,11 @@ const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
 const JoinTokenRoute = JoinTokenRouteImport.update({
   id: '/join/$token',
   path: '/join/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TransferTokenRoute = TransferTokenRouteImport.update({
+  id: '/transfer/$token',
+  path: '/transfer/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProtectedAdminIndexRoute = ProtectedAdminIndexRouteImport.update({
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof ProtectedAdminRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/transfer/$token': typeof TransferTokenRoute
   '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/admin/metadata': typeof ProtectedAdminMetadataRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/account': typeof ProtectedAccountRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/transfer/$token': typeof TransferTokenRoute
   '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/admin/metadata': typeof ProtectedAdminMetadataRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/transfer/$token': typeof TransferTokenRoute
   '/_protected/admin/auth': typeof ProtectedAdminAuthRoute
   '/_protected/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/_protected/admin/metadata': typeof ProtectedAdminMetadataRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/join/$token'
+    | '/transfer/$token'
     | '/admin/auth'
     | '/admin/catalogs'
     | '/admin/metadata'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/dashboard'
     | '/join/$token'
+    | '/transfer/$token'
     | '/admin/auth'
     | '/admin/catalogs'
     | '/admin/metadata'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/_protected/admin'
     | '/_protected/dashboard'
     | '/join/$token'
+    | '/transfer/$token'
     | '/_protected/admin/auth'
     | '/_protected/admin/catalogs'
     | '/_protected/admin/metadata'
@@ -330,6 +342,7 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   JoinTokenRoute: typeof JoinTokenRoute
+  TransferTokenRoute: typeof TransferTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -381,6 +394,13 @@ declare module '@tanstack/react-router' {
       path: '/join/$token'
       fullPath: '/join/$token'
       preLoaderRoute: typeof JoinTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/transfer/$token': {
+      id: '/transfer/$token'
+      path: '/transfer/$token'
+      fullPath: '/transfer/$token'
+      preLoaderRoute: typeof TransferTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/admin/': {
@@ -580,6 +600,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   JoinTokenRoute: JoinTokenRoute,
+  TransferTokenRoute: TransferTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

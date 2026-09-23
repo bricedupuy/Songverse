@@ -1,0 +1,165 @@
+import { Injectable } from "@nestjs/common";
+import type { Prisma } from "@songverse/db";
+import { PrismaService } from "../prisma/prisma.service";
+import { StorageService } from "../storage/storage.service";
+
+type Tx = Prisma.TransactionClient;
+
+export class TransferUnavailableError extends Error {
+  constructor() {
+    super("This transfer link is invalid, expired, or already used.");
+  }
+}
+
+// Large accounts touch many rows; Prisma's 5s default is too tight.
+const TRANSACTION_OPTIONS = { timeout: 60_000, maxWait: 10_000 };
+
+/**
+ * Permanently removes accounts. Two ways to handle what the user
+ * personally owns (song versions, arrangements, songbooks, tags - never
+ * team-owned content):
+ * - deleteAccountAndContent: everything goes with them.
+ * - transferContentAndDeleteAccount: everything moves to another user
+ *   first (see ContentTransfersService).
+ *
+ * Either way, activity tied to the person rather than to owned content
+ * (notes, submissions, change proposals, share links, access grants they
+ * created) is removed, audit entries lose their actor, and contributor
+ * credits keep their name as plain text.
+ */
+@Injectable()
+export class UserDeletionService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
+
+  async deleteAccountAndContent(userId: string): Promise<void> {
+    const releasedKeys = await this.prisma.client.$transaction(async (tx) => {
+      const contentKeys = await this.purgeOwnedContent(tx, userId);
+      const accountKeys = await this.removeAccount(tx, userId);
+      return [...contentKeys, ...accountKeys];
+    }, TRANSACTION_OPTIONS);
+    await this.storage.deleteUnreferenced(releasedKeys);
+  }
+
+  /**
+   * `consumeTransferId`, when given, is deleted in the same transaction and
+   * the whole move aborts if it's already gone - so two people opening the
+   * same link at once can't both claim it.
+   */
+  async transferContentAndDeleteAccount(
+    fromUserId: string,
+    toUserId: string,
+    { consumeTransferId }: { consumeTransferId?: string } = {},
+  ): Promise<void> {
+    const releasedKeys = await this.prisma.client.$transaction(async (tx) => {
+      if (consumeTransferId) {
+        const consumed = await tx.contentTransfer.deleteMany({ where: { id: consumeTransferId, expiresAt: { gt: new Date() } } });
+        if (consumed.count === 0) throw new TransferUnavailableError();
+      }
+      const byOwner = { ownerUserId: fromUserId };
+      const toOwner = { ownerUserId: toUserId };
+      await tx.songVersion.updateMany({ where: byOwner, data: toOwner });
+      await tx.arrangement.updateMany({ where: byOwner, data: toOwner });
+      await tx.songbook.updateMany({ where: byOwner, data: toOwner });
+      await tx.tag.updateMany({ where: byOwner, data: toOwner });
+      // The new owner's storage limit now covers these files.
+      await tx.attachment.updateMany({ where: { uploadedByUserId: fromUserId }, data: { uploadedByUserId: toUserId } });
+      return this.removeAccount(tx, fromUserId);
+    }, TRANSACTION_OPTIONS);
+    await this.storage.deleteUnreferenced(releasedKeys);
+  }
+
+  /**
+   * Makes sure no team is left without an admin once `userId` leaves it,
+   * by promoting its longest-standing remaining member.
+   */
+  async handOverTeamAdminRoles(tx: Tx, userId: string): Promise<void> {
+    const adminships = await tx.teamMembership.findMany({ where: { userId, role: "ADMIN" }, select: { teamId: true } });
+    for (const { teamId } of adminships) {
+      const otherAdmins = await tx.teamMembership.count({ where: { teamId, role: "ADMIN", NOT: { userId } } });
+      if (otherAdmins > 0) continue;
+      const successor = await tx.teamMembership.findFirst({
+        where: { teamId, NOT: { userId } },
+        orderBy: { joinedAt: "asc" },
+      });
+      if (successor) {
+        await tx.teamMembership.update({ where: { id: successor.id }, data: { role: "ADMIN" } });
+      }
+    }
+  }
+
+  /** Deletes everything the user personally owns. Returns storage keys that may now be unreferenced. */
+  private async purgeOwnedContent(tx: Tx, userId: string): Promise<string[]> {
+    const versions = await tx.songVersion.findMany({ where: { ownerUserId: userId }, select: { id: true, workId: true } });
+    const versionIds = versions.map((version) => version.id);
+    const workIds = [...new Set(versions.map((version) => version.workId))];
+
+    const attachments = await tx.attachment.findMany({
+      where: { songVersionId: { in: versionIds } },
+      select: { storageKey: true },
+    });
+
+    // Arrangements they own, plus any arrangement (anyone's) of a version
+    // that's about to disappear - an arrangement can't outlive its version.
+    const arrangements = await tx.arrangement.findMany({
+      where: { OR: [{ ownerUserId: userId }, { songVersionId: { in: versionIds } }] },
+      select: { id: true },
+    });
+    const arrangementIds = arrangements.map((arrangement) => arrangement.id);
+
+    // Setlist entries for a deleted song go; entries that only lose an
+    // arrangement keep their song.
+    await tx.setlistItem.deleteMany({ where: { songVersionId: { in: versionIds } } });
+    await tx.setlistItem.updateMany({ where: { arrangementId: { in: arrangementIds } }, data: { arrangementId: null } });
+    await tx.arrangement.deleteMany({ where: { id: { in: arrangementIds } } });
+
+    // References without ON DELETE CASCADE.
+    await tx.work.updateMany({
+      where: { preferredOriginalVersionId: { in: versionIds } },
+      data: { preferredOriginalVersionId: null },
+    });
+    await tx.songVersion.updateMany({ where: { parentVersionId: { in: versionIds } }, data: { parentVersionId: null } });
+    await tx.submission.deleteMany({ where: { songVersionId: { in: versionIds } } });
+    await tx.changeProposal.deleteMany({ where: { songVersionId: { in: versionIds } } });
+    await tx.upstreamLink.deleteMany({ where: { globalVersionId: { in: versionIds } } });
+    await tx.importJob.updateMany({ where: { draftVersionId: { in: versionIds } }, data: { draftVersionId: null } });
+    await tx.auditEvent.updateMany({ where: { songVersionId: { in: versionIds } }, data: { songVersionId: null } });
+
+    await tx.songVersion.deleteMany({ where: { id: { in: versionIds } } });
+    // A Work has no content of its own - drop the ones left with no versions.
+    await tx.work.deleteMany({ where: { id: { in: workIds }, versions: { none: {} } } });
+
+    await tx.songbook.deleteMany({ where: { ownerUserId: userId } });
+    await tx.tag.deleteMany({ where: { ownerUserId: userId } });
+
+    return attachments.map((attachment) => attachment.storageKey);
+  }
+
+  /** Removes the user row and personal activity. Returns the avatar key, if any, for storage cleanup. */
+  private async removeAccount(tx: Tx, userId: string): Promise<string[]> {
+    const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true, avatarStorageKey: true } });
+
+    await tx.note.deleteMany({ where: { authorUserId: userId } });
+    await tx.submission.deleteMany({ where: { submitterId: userId } });
+    await tx.changeProposal.deleteMany({ where: { proposerId: userId } });
+    await tx.accessGrant.deleteMany({ where: { OR: [{ grantedByUserId: userId }, { grantedToUserId: userId }] } });
+    await tx.shareLink.deleteMany({ where: { createdByUserId: userId } });
+    await tx.auditEvent.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } });
+
+    // Credits survive as plain text: name-only when there was no text source.
+    await tx.versionContributor.updateMany({
+      where: { userId, source: null },
+      data: { userId: null, source: user.displayName },
+    });
+    await tx.versionContributor.updateMany({ where: { userId }, data: { userId: null } });
+
+    await this.handOverTeamAdminRoles(tx, userId);
+    // Sessions, accounts, passkeys, memberships, a pending ContentTransfer
+    // and other per-user rows cascade; Attachment.uploadedByUserId nulls.
+    await tx.user.delete({ where: { id: userId } });
+
+    return user.avatarStorageKey ? [user.avatarStorageKey] : [];
+  }
+}

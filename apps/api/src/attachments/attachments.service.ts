@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { StorageQuotaService } from "../storage/storage-quota.service";
 import { StorageService } from "../storage/storage.service";
 import type { AttachmentTypeValue } from "./dto/upload-attachment.dto";
 
@@ -8,6 +9,7 @@ export class AttachmentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly quota: StorageQuotaService,
   ) {}
 
   listForSongVersion(songVersionId: string) {
@@ -17,10 +19,18 @@ export class AttachmentsService {
     });
   }
 
-  async upload(songVersionId: string, type: AttachmentTypeValue, filename: string, mimeType: string, body: Buffer) {
+  async upload(
+    uploaderId: string,
+    songVersionId: string,
+    type: AttachmentTypeValue,
+    filename: string,
+    mimeType: string,
+    body: Buffer,
+  ) {
+    await this.quota.assertCanStore(uploaderId, body.length);
     const { hash, sizeBytes } = await this.storage.put(body, mimeType);
     return this.prisma.client.attachment.create({
-      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes },
+      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes, uploadedByUserId: uploaderId },
     });
   }
 
@@ -32,7 +42,7 @@ export class AttachmentsService {
 
   /**
    * Deletes the Attachment row, then deletes the underlying object only if
-   * no other Attachment (in this or any other song version) still
+   * no other Attachment (in this or any other song version) or avatar still
    * references the same content hash - see docs/songbooks-and-catalog.md
    * §8. Checked on demand rather than via a maintained counter, which
    * could drift out of sync with the actual row count.
@@ -40,13 +50,7 @@ export class AttachmentsService {
   async remove(songVersionId: string, attachmentId: string): Promise<void> {
     const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
     await this.prisma.client.attachment.delete({ where: { id: attachment.id } });
-
-    const stillReferenced = await this.prisma.client.attachment.count({
-      where: { storageKey: attachment.storageKey },
-    });
-    if (stillReferenced === 0) {
-      await this.storage.delete(attachment.storageKey);
-    }
+    await this.storage.deleteUnreferenced([attachment.storageKey]);
   }
 
   private async findOwnedAttachment(songVersionId: string, attachmentId: string) {

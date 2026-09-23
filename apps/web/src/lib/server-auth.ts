@@ -7,6 +7,7 @@ export interface AppSession {
   userId: string;
   email: string;
   displayName: string;
+  avatarUrl: string | null;
   isGlobalAdmin: boolean;
   locale: LocaleValue;
 }
@@ -15,6 +16,7 @@ interface BetterAuthUser {
   id: string;
   email: string;
   name: string;
+  image?: string | null;
   isGlobalAdmin?: boolean;
   locale?: string;
 }
@@ -47,6 +49,7 @@ async function loadSession(): Promise<AppSession | null> {
     userId: data.user.id,
     email: data.user.email,
     displayName: data.user.name,
+    avatarUrl: data.user.image ?? null,
     isGlobalAdmin: Boolean(data.user.isGlobalAdmin),
     locale: asLocale(data.user.locale ?? DEFAULT_LOCALE),
   };

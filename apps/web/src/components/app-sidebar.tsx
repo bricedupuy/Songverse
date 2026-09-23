@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { authClient } from "#/lib/auth-client";
 import type { AppSession } from "#/lib/server-auth";
-import { Avatar, AvatarFallback } from "#/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import {
   DropdownMenu,
@@ -90,6 +90,7 @@ export function AppSidebar({
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-12">
                   <Avatar className="size-6 shrink-0">
+                    {session.avatarUrl ? <AvatarImage src={session.avatarUrl} alt="" /> : null}
                     <AvatarFallback className="text-[10px]">{initials(session.displayName)}</AvatarFallback>
                   </Avatar>
                   <SidebarLabel className="flex-1 truncate text-left">{session.displayName}</SidebarLabel>

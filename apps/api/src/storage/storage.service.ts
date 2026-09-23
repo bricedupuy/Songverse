@@ -123,6 +123,23 @@ export class StorageService {
   }
 
   /** Which driver/source is actually serving uploads - surfaced in the admin Storage panel. */
+  /**
+   * Deletes whichever of `hashes` nothing references any more. Objects are
+   * content-addressed and shared, so an attachment and an avatar (or two
+   * attachments) with identical bytes point at the same object.
+   */
+  async deleteUnreferenced(hashes: string[]): Promise<void> {
+    for (const hash of new Set(hashes)) {
+      const [attachments, avatars] = await Promise.all([
+        this.prisma.client.attachment.count({ where: { storageKey: hash } }),
+        this.prisma.client.user.count({ where: { avatarStorageKey: hash } }),
+      ]);
+      if (attachments === 0 && avatars === 0) {
+        await this.delete(hash);
+      }
+    }
+  }
+
   async describe(): Promise<{ driver: StorageDriverName; source: StorageConfigSource }> {
     const { name, source } = await this.resolveDriver();
     return { driver: name, source };
@@ -181,7 +198,15 @@ export class StorageService {
     });
   }
 
+  /**
+   * Clears only the R2 fields: the row also holds the default per-user
+   * storage limit (see StorageQuotaService), which "revert to env vars"
+   * shouldn't touch.
+   */
   async clearConfig(): Promise<void> {
-    await this.prisma.client.storageSettings.deleteMany({ where: { id: SINGLETON_ID } });
+    await this.prisma.client.storageSettings.updateMany({
+      where: { id: SINGLETON_ID },
+      data: { r2AccountId: null, r2AccessKeyId: null, r2SecretAccessKeyEnc: null, r2Bucket: null, r2Endpoint: null },
+    });
   }
 }

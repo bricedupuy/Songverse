@@ -20,10 +20,64 @@ export interface AdminUserSummary {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl: string | null;
+  emailVerified: boolean;
   isGlobalAdmin: boolean;
   createdAt: string;
+  bannedAt: string | null;
+  banReason: string | null;
+  /** Set while the account awaits a content transfer. */
+  deletedAt: string | null;
+  transferExpiresAt: string | null;
+  /** Per-user override; null uses the default limit. */
+  storageLimitMb: number | null;
+  usedBytes: number;
+  /** Null means unlimited (global admins). */
+  limitBytes: number | null;
   teamCount: number;
   songCount: number;
+}
+
+export interface UpdateUserByAdminInput {
+  storageLimitMb?: number | null;
+  banned?: boolean;
+  banReason?: string;
+}
+
+export interface TransferLink {
+  transferUrl: string;
+  expiresAt: string;
+}
+
+export interface TransferPreview {
+  fromDisplayName: string;
+  expiresAt: string;
+  songCount: number;
+  arrangementCount: number;
+  songbookCount: number;
+  tagCount: number;
+  storageBytes: number;
+}
+
+export interface StorageLimits {
+  defaultLimitMb: number;
+  isBuiltIn: boolean;
+  builtInDefaultMb: number;
+}
+
+export interface StorageUsage {
+  usedBytes: number;
+  /** Null means unlimited. */
+  limitBytes: number | null;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  avatarUrl: string | null;
+  locale: string;
+  isGlobalAdmin: boolean;
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -371,13 +425,35 @@ export interface WorkDetail {
   identifiers: WorkIdentifier[];
 }
 
+/**
+ * `message` is the API's human-readable message when the body is a NestJS
+ * error ({ message, code? }), otherwise the raw body; `code` is the
+ * machine-readable one, when the API sent one (e.g. STORAGE_LIMIT_EXCEEDED).
+ */
 export class ApiError extends Error {
+  readonly code?: string;
+
   constructor(
     public readonly status: number,
-    message: string,
+    body: string,
   ) {
-    super(message);
+    const parsed = parseErrorBody(body);
+    super(parsed.message ?? body);
     this.name = "ApiError";
+    this.code = parsed.code;
+  }
+}
+
+function parseErrorBody(body: string): { message?: string; code?: string } {
+  try {
+    const json = JSON.parse(body) as { message?: unknown; code?: unknown };
+    const message = Array.isArray(json.message) ? json.message.join(", ") : json.message;
+    return {
+      message: typeof message === "string" ? message : undefined,
+      code: typeof json.code === "string" ? json.code : undefined,
+    };
+  } catch {
+    return {};
   }
 }
 
@@ -413,12 +489,19 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
   }
 
   return {
-    getMe: () => request<{ id: string; email: string; displayName: string; locale: string }>("/users/me"),
-    updateMe: (data: { locale?: string }) =>
-      request<{ id: string; email: string; displayName: string; locale: string }>("/users/me", {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
+    getMe: () => request<UserProfile>("/users/me"),
+    updateMe: (data: { locale?: string; displayName?: string }) =>
+      request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
+    getMyStorage: () => request<StorageUsage>("/users/me/storage"),
+    uploadAvatar: (file: Blob, filename = "avatar") => {
+      const form = new FormData();
+      form.append("file", file, filename);
+      return request<UserProfile>("/users/me/avatar", { method: "PUT", body: form });
+    },
+    removeAvatar: () => request<UserProfile>("/users/me/avatar", { method: "DELETE" }),
+    getTransfer: (token: string) => request<TransferPreview>(`/transfers/${encodeURIComponent(token)}`),
+    claimTransfer: (token: string) =>
+      request<void>(`/transfers/${encodeURIComponent(token)}/claim`, { method: "POST" }),
     listTeams: () => request<TeamSummary[]>("/teams"),
     createTeam: (data: { name: string; slug?: string; description?: string }) =>
       request<TeamSummary>("/teams", {
@@ -597,6 +680,16 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     adminMigrationStatus: () => request<AdminCommandResult>("/admin/migrations/status"),
     adminRunSeed: () => request<AdminCommandResult>("/admin/seed", { method: "POST" }),
     adminListUsers: () => request<AdminUserSummary[]>("/admin/users"),
+    adminUpdateUser: (userId: string, data: UpdateUserByAdminInput) =>
+      request<void>(`/admin/users/${userId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    /** Resolves to the transfer link for contentAction "transfer", otherwise undefined. */
+    adminDeleteUser: (userId: string, data: { contentAction: "delete" | "transfer"; retentionDays?: number }) =>
+      request<TransferLink | undefined>(`/admin/users/${userId}/delete`, { method: "POST", body: JSON.stringify(data) }),
+    adminRegenerateTransferLink: (userId: string) =>
+      request<TransferLink>(`/admin/users/${userId}/transfer-link`, { method: "POST" }),
+    adminGetStorageLimits: () => request<StorageLimits>("/admin/storage/limits"),
+    adminSaveStorageLimits: (defaultLimitMb: number | null) =>
+      request<void>("/admin/storage/limits", { method: "PUT", body: JSON.stringify({ defaultLimitMb }) }),
     adminStorageStats: () => request<AdminStorageStats>("/admin/storage"),
     adminGetStorageConfig: () => request<StorageConfigSummary>("/admin/storage/config"),
     adminSaveStorageConfig: (data: SaveStorageConfigInput) =>

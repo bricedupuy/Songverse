@@ -1,10 +1,30 @@
-import { Body, Controller, Get, Patch, UnauthorizedException } from "@nestjs/common";
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Put,
+  Res,
+  StreamableFile,
+  UnauthorizedException,
+  UploadedFile,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiBearerAuth, ApiConsumes, ApiExcludeEndpoint, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import type { Response } from "express";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { Public } from "../common/decorators/public.decorator";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { StorageUsageResponseDto } from "./dto/storage-usage.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { UsersService } from "./users.service";
+
+const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -24,5 +44,48 @@ export class UsersController {
   updateMe(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: UpdateUserDto) {
     if (!user) throw new UnauthorizedException();
     return this.usersService.updateMe(user.id, dto);
+  }
+
+  @Get("me/storage")
+  @ApiOkResponse({ type: StorageUsageResponseDto })
+  storage(@CurrentUser() user: AuthenticatedUser | undefined) {
+    if (!user) throw new UnauthorizedException();
+    return this.usersService.getStorageUsage(user.id);
+  }
+
+  @Put("me/avatar")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_AVATAR_SIZE_BYTES } }))
+  @ApiConsumes("multipart/form-data")
+  @ApiOkResponse({ type: UserResponseDto })
+  setAvatar(@CurrentUser() user: AuthenticatedUser | undefined, @UploadedFile() file: Express.Multer.File | undefined) {
+    if (!user) throw new UnauthorizedException();
+    if (!file) throw new BadRequestException("A file is required");
+    return this.usersService.setAvatar(user.id, file.buffer);
+  }
+
+  @Delete("me/avatar")
+  @ApiOkResponse({ type: UserResponseDto })
+  removeAvatar(@CurrentUser() user: AuthenticatedUser | undefined) {
+    if (!user) throw new UnauthorizedException();
+    return this.usersService.removeAvatar(user.id);
+  }
+
+  @Public()
+  @Get(":userId/avatar/:key")
+  @ApiExcludeEndpoint()
+  async avatar(
+    @Param("userId") userId: string,
+    @Param("key") key: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { body, contentType } = await this.usersService.getAvatar(userId, key);
+    res.set({
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
+      // Rendered as <img> by the web app on another origin.
+      "Cross-Origin-Resource-Policy": "cross-origin",
+    });
+    return new StreamableFile(body);
   }
 }
