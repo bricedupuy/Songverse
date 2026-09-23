@@ -124,7 +124,10 @@ function Dashboard() {
                       className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 hover:text-primary"
                     >
                       <div>
-                        <p className="font-medium">{version.title}</p>
+                        <p className="font-medium">
+                          {version.title}
+                          {version.versionName ? <span className="font-normal text-muted-foreground"> — {version.versionName}</span> : null}
+                        </p>
                         {artistLabel(version.artists) ? (
                           <p className="text-sm text-muted-foreground">{artistLabel(version.artists)}</p>
                         ) : null}

@@ -24,7 +24,7 @@ export function AppShell({
       <SidebarInset>
         <SiteHeader />
         <div className="flex-1 px-4 py-8 md:px-6">
-          <div className="mx-auto w-full max-w-5xl">{children}</div>
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
         </div>
       </SidebarInset>
     </SidebarProvider>

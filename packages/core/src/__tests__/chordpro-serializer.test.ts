@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseChordPro } from "../chordpro/parser.js";
-import { serializeChordPro } from "../chordpro/serializer.js";
+import { serializeChordPro, serializeChordProSections } from "../chordpro/serializer.js";
 import { parseSongDocument } from "../schemas/song-document.js";
 
 function doc(sections: ReturnType<typeof parseChordPro>, overrides: Partial<Parameters<typeof parseSongDocument>[0]> = {}) {
@@ -27,6 +27,18 @@ describe("serializeChordPro", () => {
     expect(output).toContain("{ccli: 18723}");
     expect(output).toContain("{key: G}");
     expect(output).toContain("{tempo: 72}");
+  });
+
+  it("emits time and capo, with a blank line before the chart", () => {
+    const sections = parseChordPro("[G]Amazing grace");
+    const output = serializeChordPro(doc(sections, { defaults: { timeSignature: { numerator: 3, denominator: 4 }, capo: 2 } }));
+    expect(output).toBe("{title: Amazing Grace}\n{time: 3/4}\n{capo: 2}\n\n[G]Amazing grace\n");
+  });
+
+  it("serializes just the chart for the editor", () => {
+    const sections = parseChordPro("{start_of_verse}\n[G]Amazing grace\n{end_of_verse}");
+    expect(serializeChordProSections(sections)).toBe("{start_of_verse}\n[G]Amazing grace\n{end_of_verse}\n");
+    expect(serializeChordProSections([])).toBe("");
   });
 
   it("round-trips through parse -> serialize -> parse with the same structure", () => {

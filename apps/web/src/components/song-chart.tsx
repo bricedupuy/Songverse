@@ -20,9 +20,9 @@ const SECTION_LABELS: Record<string, string> = {
  * than a chord-above-lyric grid, and doesn't need monospace/column
  * alignment to stay legible.
  */
-export function SongChart({ sections }: { sections: SongDocument["sections"] }) {
+export function SongChart({ sections, emptyText }: { sections: SongDocument["sections"]; emptyText?: string }) {
   if (sections.length === 0) {
-    return <p className="text-sm text-muted-foreground">No content yet — paste ChordPro text below to add some.</p>;
+    return <p className="text-sm text-muted-foreground">{emptyText ?? "No content yet."}</p>;
   }
 
   return (

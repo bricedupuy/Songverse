@@ -8,11 +8,13 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  PayloadTooLargeException,
   Post,
   Query,
   Res,
   StreamableFile,
   UnauthorizedException,
+  UnsupportedMediaTypeException,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -28,6 +30,8 @@ import { AttachmentResponseDto } from "./dto/attachment-response.dto";
 import { UploadAttachmentDto } from "./dto/upload-attachment.dto";
 
 const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
+/** Recordings run bigger than sheets and charts. */
+const MAX_AUDIO_SIZE_BYTES = 50 * 1024 * 1024;
 
 @ApiTags("attachments")
 @ApiBearerAuth()
@@ -51,7 +55,7 @@ export class AttachmentsController {
 
   @Post()
   @UseGuards(SongVersionOwnerGuard)
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_ATTACHMENT_SIZE_BYTES } }))
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_AUDIO_SIZE_BYTES } }))
   @ApiConsumes("multipart/form-data")
   @ApiCreatedResponse({ type: AttachmentResponseDto })
   upload(
@@ -62,6 +66,11 @@ export class AttachmentsController {
   ): ReturnType<AttachmentsService["upload"]> {
     if (!user) throw new UnauthorizedException();
     if (!file) throw new BadRequestException("A file is required");
+    if (dto.type === "AUDIO") {
+      if (!file.mimetype.startsWith("audio/")) throw new UnsupportedMediaTypeException("That isn't an audio file");
+    } else if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+      throw new PayloadTooLargeException("Files can be up to 25 MB (audio up to 50 MB)");
+    }
     return this.attachmentsService.upload(user.id, songVersionId, dto.type, file.originalname, file.mimetype, file.buffer);
   }
 

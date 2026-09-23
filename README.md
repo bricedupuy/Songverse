@@ -6,14 +6,20 @@ playing on Sunday, and share it with the people playing with you.
 
 ## Features
 
-- **Song library** – personal, team and global songs. Paste a chart as
-  ChordPro or "chords over lyrics" and it's parsed into a structured,
-  rendered chart; export back to ChordPro. Each song has one or more
-  artists, composers and lyricists, and its own subtitle, sort title,
-  album, year, key, time signature, tempo, duration, copyright, CCLI,
-  ISRC, reference and notes; plus tags, streaming links (Spotify, Apple
-  Music, YouTube) and file attachments, with image thumbnails.
-  Translations are filed as versions of their original.
+- **Song library** – personal, team and global songs, added and edited
+  on one tabbed screen (Song info, Editor, Files, Audio, Links). Upload
+  or paste a chart as ChordPro, "chords over lyrics" or lyrics only (the
+  format is detected, with how sure the guess is) and it's parsed into a
+  structured chart, previewed live beside the text; export back to
+  ChordPro. Each song has artists, composers, lyricists and other
+  credits (autocompleted from names already in your library), a version
+  name, and its own subtitle, sort title, album, year, key, time
+  signature, capo, tempo, duration, copyright, CCLI, ISRC, reference and
+  notes; plus tags, streaming links (Spotify, Apple Music, YouTube), file
+  attachments with image thumbnails, and audio recordings to play in the
+  page. Adding a song whose title is already in your library offers to
+  open it, start from it, or add another version of it; translations and
+  other versions are filed together.
 - **MusicBrainz matching** – link a song to its MusicBrainz recording and
   work to pull in artist and songwriter credits.
 - **Songbooks** – simple or numbered collections, built by hand, imported

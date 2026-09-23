@@ -40,7 +40,12 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
       {
         accessorKey: "title",
         header: sortableHeader(t("library.columnTitle")),
-        cell: ({ row }) => <span className="font-medium">{row.original.title}</span>,
+        cell: ({ row }) => (
+          <span className="font-medium">
+            {row.original.title}
+            {row.original.versionName ? <span className="font-normal text-muted-foreground"> — {row.original.versionName}</span> : null}
+          </span>
+        ),
       },
       {
         id: "artist",

@@ -133,6 +133,7 @@ function SongRow({
             className="font-medium hover:underline"
           >
             {song.title}
+            {song.versionName ? <span className="font-normal text-muted-foreground"> — {song.versionName}</span> : null}
           </Link>
         ) : (
           <span className="text-sm italic text-muted-foreground">{title}</span>
@@ -149,7 +150,7 @@ function SongRow({
         >
           {item.versions.map((version) => (
             <option key={version.id} value={version.id}>
-              {version.title} · {scopeLabel(version, t)}
+              {version.versionName ? `${version.title} — ${version.versionName}` : version.title} · {scopeLabel(version, t)}
             </option>
           ))}
         </select>

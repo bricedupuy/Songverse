@@ -1,4 +1,4 @@
-import type { InstrumentValue, TechRoleValue } from "../constants/index.js";
+import type { InstrumentValue, SupportedImportFormat, TechRoleValue } from "../constants/index.js";
 import type { CatalogEntryData, CatalogEntryFieldKey, CatalogFileProblem } from "../songbook-catalog-format/index.js";
 import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
@@ -79,6 +79,8 @@ export interface StorageUsage {
 export interface SetlistSongRef {
   id: string;
   title: string;
+  /** Tells this version apart from the song's others, e.g. "Acoustic". */
+  versionName: string | null;
   workId: string;
   /** The song's own key as written on it, if any. */
   key: string | null;
@@ -404,7 +406,7 @@ export interface SongbookCatalogImportResult {
   changes: { entryCode: string; kind: "create" | "update" | "delete"; fields: CatalogEntryFieldKey[] }[];
 }
 
-export type AttachmentType = "PDF" | "CHORDPRO" | "MUSICXML" | "ABC_NOTATION" | "TEXT" | "IMAGE";
+export type AttachmentType = "PDF" | "CHORDPRO" | "MUSICXML" | "ABC_NOTATION" | "TEXT" | "IMAGE" | "AUDIO" | "OTHER";
 
 export interface Attachment {
   id: string;
@@ -445,6 +447,8 @@ export interface SongVersionSummary {
   workId: string;
   title: string;
   alternateTitle: string | null;
+  /** Tells this version apart from the song's others, e.g. "Acoustic". */
+  versionName: string | null;
   language: string;
   ownerScope: "GLOBAL" | "TEAM" | "USER";
   ownerUserId: string | null;
@@ -498,33 +502,21 @@ export interface SongVersionDetail extends SongVersionSummary {
   relationshipType: string | null;
   /** The version this one derives from, e.g. the original of a translation. */
   parentVersion: { id: string; title: string; language: string } | null;
-  /** Key, tempo, time signature and duration are in `documentJson.defaults`. */
+  /** Key, tempo, time signature, duration and capo are in `documentJson.defaults`. */
   documentJson: SongDocument;
   contributors: VersionContributor[];
   identifiers: SongVersionLink[];
+  /** Whether the current user may change it. */
+  canEdit: boolean;
 }
 
-export interface CreateSongVersionInput {
-  workId?: string;
-  teamId?: string;
-  title: string;
-  language: string;
-  /** At least one. */
-  artists: string[];
-  alternateTitle?: string;
-  copyright?: string;
-  copyrightYear?: number;
-  publisher?: string;
-  ccli?: string;
-}
-
-/** A field left out is left alone; null clears it. */
-export interface UpdateSongVersionInput {
-  title?: string;
+/** A song's optional fields. A field left out is left alone; null clears it. */
+export interface SongFieldsInput {
   /** Shown as "Subtitle". */
   alternateTitle?: string | null;
+  /** Tells this version apart from the song's others, e.g. "Acoustic". */
+  versionName?: string | null;
   sortTitle?: string | null;
-  language?: string;
   album?: string | null;
   year?: number | null;
   copyright?: string | null;
@@ -539,6 +531,67 @@ export interface UpdateSongVersionInput {
   /** "4/4" */
   timeSignature?: string | null;
   durationSeconds?: number | null;
+  /** Capo fret, 1-11; 0 or null for none. */
+  capo?: number | null;
+  /** Replace the song's composers. */
+  composers?: string[];
+  /** Replace the song's lyricists. */
+  lyricists?: string[];
+  /** Replace the song's writers (words and music), arrangers, translators and adaptors. */
+  writers?: string[];
+  arrangers?: string[];
+  translators?: string[];
+  adaptors?: string[];
+  /** Replace the song's tags. */
+  tagIds?: string[];
+  /** Replaces the chart (empty clears it). */
+  content?: string;
+  /** content's format; guessed when left out. */
+  contentFormat?: SupportedImportFormat;
+}
+
+export interface CreateSongVersionInput extends SongFieldsInput {
+  workId?: string;
+  /** A song this is another version of: it joins that song's Work. */
+  basedOnVersionId?: string;
+  teamId?: string;
+  title: string;
+  language: string;
+  /** At least one. */
+  artists: string[];
+}
+
+export interface UpdateSongVersionInput extends SongFieldsInput {
+  title?: string;
+  language?: string;
+  /** Replace the song's artists (at least one). */
+  artists?: string[];
+}
+
+/** A name already credited on songs you can see. */
+export interface CreditSuggestion {
+  name: string;
+  /** Every role they're credited in: PERFORMER, COMPOSER, LYRICIST... */
+  roles: string[];
+  songCount: number;
+}
+
+/** A song in your library with the title you're adding, and its versions. */
+export interface SongMatch {
+  workId: string;
+  versions: {
+    id: string;
+    workId: string;
+    title: string;
+    versionName: string | null;
+    language: string;
+    ownerScope: "GLOBAL" | "TEAM" | "USER";
+    teamName: string | null;
+    key: string | null;
+    artists: string[];
+    /** This version has the title (the others are its song's other versions). */
+    matchesTitle: boolean;
+  }[];
 }
 
 export interface WorkIdentifier {
@@ -840,7 +893,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized }: ApiClient
       request<SongVersionDetail>(`/song-versions/${songVersionId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteSongVersion: (songVersionId: string) =>
       request<void>(`/song-versions/${songVersionId}`, { method: "DELETE" }),
-    importSongText: (songVersionId: string, content: string, format: "CHORDPRO" | "CHORDS_OVER_LYRICS") =>
+    searchCredits: (query: string) => request<CreditSuggestion[]>(`/song-versions/credits?q=${encodeURIComponent(query)}`),
+    findSongMatches: (title: string) => request<SongMatch[]>(`/song-versions/matches?title=${encodeURIComponent(title)}`),
+    importSongText: (songVersionId: string, content: string, format: SupportedImportFormat) =>
       request<SongVersionDetail>(`/song-versions/${songVersionId}/import`, {
         method: "POST",
         body: JSON.stringify({ content, format }),

@@ -6,6 +6,7 @@ import { PrismaService } from "../prisma/prisma.service";
 export const SONG_SELECT = {
   id: true,
   title: true,
+  versionName: true,
   workId: true,
   ownerScope: true,
   ownerUserId: true,

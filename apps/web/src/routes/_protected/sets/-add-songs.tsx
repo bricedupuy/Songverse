@@ -59,7 +59,10 @@ export function AddSongs({ set, onAdded }: { set: SetlistDetail; onAdded: (set: 
           {results.map((song) => (
             <li key={song.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{song.title}</p>
+                <p className="truncate text-sm font-medium">
+                  {song.title}
+                  {song.versionName ? <span className="font-normal text-muted-foreground"> — {song.versionName}</span> : null}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {[song.key, song.ownerScope === "GLOBAL" ? t("sets.scopeGlobal") : song.ownerScope === "TEAM" ? song.teamName : t("sets.scopePersonal")]
                     .filter(Boolean)

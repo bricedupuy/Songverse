@@ -26,6 +26,8 @@ export const MusicDefaultsSchema = z.object({
   tempo: z.number().positive().nullable().optional(),
   timeSignature: TimeSignatureSchema.nullable().optional(),
   durationSeconds: z.number().positive().nullable().optional(),
+  /** Fret the capo goes on to play the chart's chords as written; 0 or absent for none. */
+  capo: z.number().int().min(0).max(11).nullable().optional(),
 });
 export type MusicDefaults = z.infer<typeof MusicDefaultsSchema>;
 

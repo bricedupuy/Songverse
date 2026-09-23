@@ -16,6 +16,8 @@ const NOTE_MAX_LENGTH = 5000;
 export interface SongRef {
   id: string;
   title: string;
+  /** Tells this version apart from the song's others, e.g. "Acoustic". */
+  versionName: string | null;
   workId: string;
   /** The song's own key as written on it, if any. */
   key: string | null;
@@ -390,6 +392,7 @@ export function toSongRef(song: SongRow): SongRef {
   return {
     id: song.id,
     title: song.title,
+    versionName: song.versionName,
     workId: song.workId,
     key: typeof defaults?.key === "string" && defaults.key.trim() ? defaults.key.trim() : null,
     ownerScope: song.ownerScope,

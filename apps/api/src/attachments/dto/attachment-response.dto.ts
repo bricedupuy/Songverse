@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 
-const ATTACHMENT_TYPES = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE"] as const;
+const ATTACHMENT_TYPES = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE", "AUDIO", "OTHER"] as const;
 
 export class AttachmentResponseDto {
   @ApiProperty() id!: string;

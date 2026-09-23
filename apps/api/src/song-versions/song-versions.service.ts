@@ -1,9 +1,9 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   computeSectionLabel,
-  parseChordPro,
-  parseChordsOverLyrics,
+  detectImportFormat,
   parseSongDocument,
+  parseSongText,
   parseStreamingLink,
   serializeChordPro,
   splitNames,
@@ -19,6 +19,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { isOwnedByOrMemberOf } from "../common/utils/ownership-visibility";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
+import type { SongFieldsDto } from "./dto/song-fields.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 
 /** A version's own fields (the columns, and their mirror in documentJson.metadata). */
@@ -26,6 +27,7 @@ type VersionFields = {
   title: string;
   language: string;
   alternateTitle?: string | null;
+  versionName?: string | null;
   sortTitle?: string | null;
   album?: string | null;
   year?: number | null;
@@ -40,6 +42,7 @@ type VersionFields = {
 
 type CreateExtras = {
   defaults?: SongDocument["defaults"];
+  sections?: SongDocument["sections"];
   credits?: { source: string; roles: ContributorRole[] }[];
   tagIds?: string[];
   /** Add to this existing Work. */
@@ -90,6 +93,93 @@ async function replaceAutoAttachedArtist(tx: Prisma.TransactionClient, songVersi
   await tx.versionContributor.updateMany({ where: { songVersionId, isAutoAttached: true }, data: { isAutoAttached: false } });
 }
 
+/** The chart's defaults a DTO sets (undefined leaves one alone, null clears it). */
+function defaultsFrom(dto: SongFieldsDto): SongDocument["defaults"] {
+  return {
+    ...(dto.key !== undefined && { key: dto.key }),
+    ...(dto.tempo !== undefined && { tempo: dto.tempo }),
+    ...(dto.timeSignature !== undefined && { timeSignature: parseTimeSignature(dto.timeSignature) }),
+    ...(dto.durationSeconds !== undefined && { durationSeconds: dto.durationSeconds }),
+    ...(dto.capo !== undefined && { capo: dto.capo || null }),
+  };
+}
+
+/** The credits a DTO lists, by role; roles it leaves out aren't there. */
+function creditListsFrom(dto: SongFieldsDto & { artists?: string[] }): Partial<Record<ContributorRole, string[]>> {
+  return {
+    ...(dto.artists && { PERFORMER: dto.artists }),
+    ...(dto.composers && { COMPOSER: dto.composers }),
+    ...(dto.lyricists && { LYRICIST: dto.lyricists }),
+    ...(dto.writers && { AUTHOR: dto.writers }),
+    ...(dto.arrangers && { ARRANGER: dto.arrangers }),
+    ...(dto.translators && { TRANSLATOR: dto.translators }),
+    ...(dto.adaptors && { ADAPTOR: dto.adaptors }),
+  };
+}
+
+/**
+ * Makes `lists[role]` exactly who the song credits in each listed role,
+ * leaving other roles alone: a person keeps one row with all their roles
+ * (a composer who's also the lyricist), rows left with no role go, and
+ * artists come first, in the order given.
+ */
+async function replaceCredits(
+  tx: Prisma.TransactionClient,
+  songVersionId: string,
+  lists: Partial<Record<ContributorRole, string[]>>,
+): Promise<void> {
+  const roles = Object.keys(lists) as ContributorRole[];
+  if (roles.length === 0) return;
+  const wanted = new Map<string, { name: string; roles: ContributorRole[] }>();
+  for (const role of roles) {
+    for (const name of lists[role] ?? []) {
+      const entry = wanted.get(name.toLowerCase()) ?? { name, roles: [] };
+      if (!entry.roles.includes(role)) entry.roles.push(role);
+      wanted.set(name.toLowerCase(), entry);
+    }
+  }
+
+  const rows = await tx.versionContributor.findMany({
+    where: { songVersionId },
+    select: { id: true, source: true, roles: true },
+    orderBy: { displayOrder: "asc" },
+  });
+  const kept: { id: string; source: string | null; roles: ContributorRole[] }[] = [];
+  for (const row of rows) {
+    const nextRoles = row.roles.filter((role) => !roles.includes(role));
+    const match = row.source ? wanted.get(row.source.toLowerCase()) : undefined;
+    if (match) {
+      nextRoles.push(...match.roles.filter((role) => !nextRoles.includes(role)));
+      wanted.delete(row.source!.toLowerCase());
+    }
+    if (nextRoles.length === 0) {
+      await tx.versionContributor.delete({ where: { id: row.id } });
+      continue;
+    }
+    if (nextRoles.length !== row.roles.length || nextRoles.some((role) => !row.roles.includes(role))) {
+      await tx.versionContributor.update({ where: { id: row.id }, data: { roles: nextRoles } });
+    }
+    kept.push({ id: row.id, source: row.source, roles: nextRoles });
+  }
+  for (const entry of wanted.values()) {
+    const created = await tx.versionContributor.create({
+      data: { songVersionId, userId: null, source: entry.name, roles: entry.roles },
+      select: { id: true },
+    });
+    kept.push({ id: created.id, source: entry.name, roles: entry.roles });
+  }
+
+  const artistOrder = (lists.PERFORMER ?? []).map((name) => name.toLowerCase());
+  const rank = (row: (typeof kept)[number]) => {
+    const index = row.source ? artistOrder.indexOf(row.source.toLowerCase()) : -1;
+    return row.roles.includes("PERFORMER") ? (index === -1 ? artistOrder.length : index) : artistOrder.length + 1;
+  };
+  const ordered = kept.map((row, index) => ({ row, index })).sort((a, b) => rank(a.row) - rank(b.row) || a.index - b.index);
+  for (const [displayOrder, { row }] of ordered.entries()) {
+    await tx.versionContributor.update({ where: { id: row.id }, data: { displayOrder } });
+  }
+}
+
 function parseTimeSignature(text: string | null): { numerator: number; denominator: number } | null {
   const match = text ? /^(\d+)\/(\d+)$/.exec(text) : null;
   return match ? { numerator: Number(match[1]), denominator: Number(match[2]) } : null;
@@ -104,6 +194,7 @@ const LIST_SELECT = {
   workId: true,
   title: true,
   alternateTitle: true,
+  versionName: true,
   language: true,
   ownerScope: true,
   ownerUserId: true,
@@ -184,16 +275,53 @@ type DetailRow = Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>;
 type DetailItem = Omit<DetailRow, "versionTags"> & {
   artists: DetailRow["contributors"];
   tags: DetailRow["versionTags"][number]["tag"][];
+  /** Whether the current user may change it (see SongVersionOwnerGuard). */
+  canEdit: boolean;
 };
 
-function toDetailItem(version: DetailRow): DetailItem {
+function toDetailItem(version: DetailRow, canEdit: boolean): DetailItem {
   const { versionTags, ...rest } = version;
   return {
     ...rest,
     artists: version.contributors.filter((c) => c.roles.includes("PERFORMER")),
     tags: versionTags.map((vt) => vt.tag),
+    canEdit,
   };
 }
+
+/** What songs `userId` can see (the library's rule). */
+function visibleWhere(userId: string, teamIds: string[]): Prisma.SongVersionWhereInput {
+  return {
+    OR: [
+      { ownerScope: "GLOBAL", publicationState: "APPROVED" },
+      { ownerScope: "USER", ownerUserId: userId },
+      { ownerScope: "TEAM", ownerTeamId: { in: teamIds } },
+    ],
+  };
+}
+
+/** A name someone's already credited under, for autocomplete. */
+export interface CreditSuggestion {
+  name: string;
+  roles: ContributorRole[];
+  songCount: number;
+}
+
+const MATCH_VERSION_SELECT = {
+  id: true,
+  workId: true,
+  title: true,
+  versionName: true,
+  language: true,
+  ownerScope: true,
+  ownerTeam: { select: { name: true } },
+  documentJson: true,
+  contributors: {
+    where: { roles: { has: "PERFORMER" as ContributorRole } },
+    select: { source: true },
+    orderBy: { displayOrder: "asc" },
+  },
+} satisfies Prisma.SongVersionSelect;
 
 @Injectable()
 export class SongVersionsService {
@@ -216,13 +344,7 @@ export class SongVersionsService {
     ).map((m) => m.teamId);
 
     const versions = await this.prisma.client.songVersion.findMany({
-      where: {
-        OR: [
-          { ownerScope: "GLOBAL", publicationState: "APPROVED" },
-          { ownerScope: "USER", ownerUserId: userId },
-          { ownerScope: "TEAM", ownerTeamId: { in: teamIds } },
-        ],
-      },
+      where: visibleWhere(userId, teamIds),
       select: LIST_SELECT,
       orderBy: { updatedAt: "desc" },
       take: 50,
@@ -237,7 +359,125 @@ export class SongVersionsService {
     });
     if (!version) throw new NotFoundException("Song version not found");
     await this.assertVisible(user, version);
-    return toDetailItem(version);
+    return toDetailItem(version, await this.canEdit(user, version));
+  }
+
+  /** SongVersionOwnerGuard's rule, as a yes/no. */
+  private async canEdit(user: AuthenticatedUser, version: { ownerScope: string; ownerUserId: string | null; ownerTeamId: string | null }) {
+    if (user.isGlobalAdmin) return true;
+    if (version.ownerScope === "USER") return version.ownerUserId === user.id;
+    if (version.ownerScope !== "TEAM" || !version.ownerTeamId) return false;
+    const membership = await this.prisma.client.teamMembership.findUnique({
+      where: { teamId_userId: { teamId: version.ownerTeamId, userId: user.id } },
+      select: { role: true },
+    });
+    return membership?.role === "ADMIN";
+  }
+
+  private async teamIdsOf(userId: string): Promise<string[]> {
+    const memberships = await this.prisma.client.teamMembership.findMany({ where: { userId }, select: { teamId: true } });
+    return memberships.map((m) => m.teamId);
+  }
+
+  /**
+   * Names credited on songs the user can see that contain `query` (all of
+   * them, for an empty one), with every role they're credited in - for
+   * autocompleting artists, composers and lyricists. Names that start with
+   * the query come first, then the most credited.
+   */
+  async searchCredits(user: AuthenticatedUser, query: string): Promise<CreditSuggestion[]> {
+    const q = query.trim();
+    const rows = await this.prisma.client.versionContributor.findMany({
+      where: {
+        source: q ? { contains: q, mode: "insensitive" } : { not: null },
+        songVersion: visibleWhere(user.id, await this.teamIdsOf(user.id)),
+      },
+      select: { source: true, roles: true },
+      take: 1000,
+    });
+    const byName = new Map<string, CreditSuggestion>();
+    for (const row of rows) {
+      const name = row.source!.trim();
+      const entry = byName.get(name.toLowerCase()) ?? { name, roles: [], songCount: 0 };
+      entry.songCount++;
+      for (const role of row.roles) if (!entry.roles.includes(role)) entry.roles.push(role);
+      byName.set(name.toLowerCase(), entry);
+    }
+    const lower = q.toLowerCase();
+    const startsWith = (s: CreditSuggestion) => (lower && s.name.toLowerCase().startsWith(lower) ? 0 : 1);
+    return [...byName.values()]
+      .sort((a, b) => startsWith(a) - startsWith(b) || b.songCount - a.songCount || a.name.localeCompare(b.name))
+      .slice(0, 10);
+  }
+
+  /**
+   * Songs the user can see with this title (or subtitle), ignoring case -
+   * or titled it plus a parenthesised addition, "Amazing Grace (My Chains
+   * Are Gone)" - each with every version of it they can see, so adding a
+   * song can offer to open one or add another version instead.
+   */
+  async findMatches(user: AuthenticatedUser, title: string) {
+    const t = title.trim();
+    if (!t) return [];
+    const visible = visibleWhere(user.id, await this.teamIdsOf(user.id));
+    const matching = await this.prisma.client.songVersion.findMany({
+      where: {
+        AND: [
+          visible,
+          {
+            OR: [
+              { title: { equals: t, mode: "insensitive" } },
+              { title: { startsWith: `${t} (`, mode: "insensitive" } },
+              { alternateTitle: { equals: t, mode: "insensitive" } },
+            ],
+          },
+        ],
+      },
+      select: { id: true, workId: true },
+      orderBy: { updatedAt: "desc" },
+      take: 20,
+    });
+    const workIds = [...new Set(matching.map((v) => v.workId))].slice(0, 5);
+    if (workIds.length === 0) return [];
+    const versions = await this.prisma.client.songVersion.findMany({
+      where: { AND: [visible, { workId: { in: workIds } }] },
+      select: MATCH_VERSION_SELECT,
+      orderBy: { createdAt: "asc" },
+    });
+    const matchedIds = new Set(matching.map((v) => v.id));
+    return workIds.map((workId) => ({
+      workId,
+      versions: versions
+        .filter((v) => v.workId === workId)
+        .sort((a, b) => Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id)))
+        .map(({ documentJson, contributors, ownerTeam, ...rest }) => {
+          const key = (documentJson as { defaults?: { key?: unknown } } | null)?.defaults?.key;
+          return {
+            ...rest,
+            teamName: ownerTeam?.name ?? null,
+            key: typeof key === "string" && key ? key : null,
+            artists: contributors.map((c) => c.source).filter((name): name is string => !!name),
+            matchesTitle: matchedIds.has(rest.id),
+          };
+        }),
+    }));
+  }
+
+  /** Throws unless every id is a tag the user can see (approved global, their own, their teams'). */
+  private async assertTagsUsable(user: AuthenticatedUser, tagIds: string[]): Promise<void> {
+    if (tagIds.length === 0) return;
+    const unique = [...new Set(tagIds)];
+    const found = await this.prisma.client.tag.count({
+      where: {
+        id: { in: unique },
+        OR: [
+          { scope: "GLOBAL", isApproved: true },
+          { scope: "USER", ownerUserId: user.id },
+          { scope: "TEAM", ownerTeamId: { in: await this.teamIdsOf(user.id) } },
+        ],
+      },
+    });
+    if (found !== unique.length) throw new BadRequestException("Unknown tag");
   }
 
   /**
@@ -313,15 +553,51 @@ export class SongVersionsService {
     const ownerScope = ownerTeamId ? "TEAM" : "USER";
     const owner: SongVersionOwner = { ownerScope, ownerUserId: ownerTeamId ? null : user.id, ownerTeamId };
 
-    if (dto.workId) {
+    let parent: CreateExtras["parent"];
+    if (dto.basedOnVersionId) {
+      const base = await this.prisma.client.songVersion.findUnique({
+        where: { id: dto.basedOnVersionId },
+        select: { id: true, workId: true, ownerScope: true, ownerUserId: true, ownerTeamId: true, publicationState: true },
+      });
+      if (!base) throw new NotFoundException("Song version not found");
+      await this.assertVisible(user, base);
+      parent = { id: base.id, workId: base.workId, relationshipType: "ALTERNATE_VERSION" };
+    } else if (dto.workId) {
       const work = await this.prisma.client.work.findUnique({ where: { id: dto.workId }, select: { id: true } });
       if (!work) throw new NotFoundException("Work not found");
     }
-    const { title, language, alternateTitle, copyright, copyrightYear, publisher, ccli } = dto;
-    return this.createVersion(owner, { title, language, alternateTitle, copyright, copyrightYear, publisher, ccli }, {
-      workId: dto.workId,
-      credits: mergeCredits(dto.artists.map((name) => [name, "PERFORMER"] as const)),
-    });
+    if (dto.tagIds) await this.assertTagsUsable(user, dto.tagIds);
+
+    const content = dto.content?.trim() ? dto.content : null;
+    return this.createVersion(
+      owner,
+      {
+        title: dto.title,
+        language: dto.language,
+        alternateTitle: dto.alternateTitle,
+        versionName: dto.versionName,
+        sortTitle: dto.sortTitle,
+        album: dto.album,
+        year: dto.year,
+        copyright: dto.copyright,
+        copyrightYear: dto.copyrightYear,
+        publisher: dto.publisher,
+        ccli: dto.ccli,
+        isrc: dto.isrc,
+        reference: dto.reference,
+        notes: dto.notes,
+      },
+      {
+        workId: dto.workId,
+        parent,
+        defaults: defaultsFrom(dto),
+        sections: content ? parseSongText(content, dto.contentFormat ?? detectImportFormat(content)) : [],
+        credits: mergeCredits(
+          Object.entries(creditListsFrom(dto)).flatMap(([role, names]) => names.map((name) => [name, role as ContributorRole] as const)),
+        ),
+        tagIds: dto.tagIds ? [...new Set(dto.tagIds)] : [],
+      },
+    );
   }
 
   /**
@@ -403,7 +679,12 @@ export class SongVersionsService {
     return [...new Set(names.map((name) => byName.get(foldName(name))).filter((id): id is string => !!id))];
   }
 
-  private buildVersionData(owner: SongVersionOwner, fields: VersionFields, defaults: SongDocument["defaults"] = {}) {
+  private buildVersionData(
+    owner: SongVersionOwner,
+    fields: VersionFields,
+    defaults: SongDocument["defaults"] = {},
+    sections: SongDocument["sections"] = [],
+  ) {
     const documentJson: SongDocument = parseSongDocument({
       $schema: "song-document/v1",
       metadata: {
@@ -417,13 +698,14 @@ export class SongVersionsService {
         trustLabel: null,
       },
       defaults,
-      sections: [],
+      sections,
     });
 
     return {
       ...owner,
       title: fields.title,
       alternateTitle: fields.alternateTitle ?? null,
+      versionName: fields.versionName ?? null,
       sortTitle: fields.sortTitle ?? null,
       language: fields.language,
       album: fields.album ?? null,
@@ -446,7 +728,7 @@ export class SongVersionsService {
    * `parent`'s derived version in its Work), with its credits and tags.
    */
   private async createVersion(owner: SongVersionOwner, fields: VersionFields, extras: CreateExtras = {}): Promise<ListItem> {
-    const versionData = this.buildVersionData(owner, fields, extras.defaults);
+    const versionData = this.buildVersionData(owner, fields, extras.defaults, extras.sections);
     const version = await this.prisma.client.$transaction(async (tx) => {
       const existingWorkId = extras.parent?.workId ?? extras.workId;
       const workId = existingWorkId ?? (await tx.work.create({ data: {} })).id;
@@ -475,20 +757,24 @@ export class SongVersionsService {
   }
 
   /**
-   * Partial update. Scalar SongVersion columns and documentJson.metadata
-   * are kept in sync per the schema's own convention (see the ccli column
-   * comment) — the editor will eventually read/write documentJson
-   * directly, but until then these mirrored top-level columns are what
-   * list/filter queries actually use.
+   * Partial update, in one transaction. Scalar SongVersion columns and
+   * documentJson.metadata are kept in sync per the schema's own convention
+   * (see the ccli column comment) — the editor will eventually read/write
+   * documentJson directly, but until then these mirrored top-level columns
+   * are what list/filter queries actually use. Given, the artist, composer
+   * and lyricist lists replace those credits, tagIds the tags, and content
+   * the chart (empty content clears it).
    */
-  async update(id: string, dto: UpdateSongVersionDto): Promise<DetailItem> {
+  async update(user: AuthenticatedUser, id: string, dto: UpdateSongVersionDto): Promise<DetailItem> {
     const existing = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: { documentJson: true },
     });
     if (!existing) throw new NotFoundException("Song version not found");
+    if (dto.tagIds) await this.assertTagsUsable(user, dto.tagIds);
 
     const currentDoc = existing.documentJson as SongDocument;
+    const content = dto.content?.trim() ? dto.content : null;
     const documentJson: SongDocument = parseSongDocument({
       ...currentDoc,
       metadata: {
@@ -501,42 +787,48 @@ export class SongVersionsService {
         ...(dto.copyrightYear !== undefined && { copyrightYear: dto.copyrightYear }),
         ...(dto.publisher !== undefined && { publisher: dto.publisher }),
       },
-      defaults: {
-        ...currentDoc.defaults,
-        ...(dto.key !== undefined && { key: dto.key }),
-        ...(dto.tempo !== undefined && { tempo: dto.tempo }),
-        ...(dto.timeSignature !== undefined && { timeSignature: parseTimeSignature(dto.timeSignature) }),
-        ...(dto.durationSeconds !== undefined && { durationSeconds: dto.durationSeconds }),
-      },
+      defaults: { ...currentDoc.defaults, ...defaultsFrom(dto) },
+      ...(dto.content !== undefined && {
+        sections: content ? parseSongText(content, dto.contentFormat ?? detectImportFormat(content)) : [],
+      }),
     });
 
-    // Key, tempo, time signature and duration live only in
+    // Key, tempo, time signature, duration and capo live only in
     // documentJson.defaults (handled above) - not real SongVersion columns,
     // so they're left out of this scalar update. undefined leaves a column
     // alone; null clears it.
-    const version = await this.prisma.client.songVersion.update({
-      where: { id },
-      data: {
-        title: dto.title,
-        alternateTitle: dto.alternateTitle,
-        sortTitle: dto.sortTitle,
-        language: dto.language,
-        album: dto.album,
-        year: dto.year,
-        ccli: dto.ccli,
-        isrc: dto.isrc,
-        copyright: dto.copyright,
-        copyrightYear: dto.copyrightYear,
-        publisher: dto.publisher,
-        reference: dto.reference,
-        notes: dto.notes,
-        documentJson: documentJson as object,
-        chordproCache: serializeChordPro(documentJson),
-        chordproCacheAt: new Date(),
-      },
-      select: DETAIL_SELECT,
+    const version = await this.prisma.client.$transaction(async (tx) => {
+      await tx.songVersion.update({
+        where: { id },
+        data: {
+          title: dto.title,
+          alternateTitle: dto.alternateTitle,
+          versionName: dto.versionName,
+          sortTitle: dto.sortTitle,
+          language: dto.language,
+          album: dto.album,
+          year: dto.year,
+          ccli: dto.ccli,
+          isrc: dto.isrc,
+          copyright: dto.copyright,
+          copyrightYear: dto.copyrightYear,
+          publisher: dto.publisher,
+          reference: dto.reference,
+          notes: dto.notes,
+          documentJson: documentJson as object,
+          chordproCache: serializeChordPro(documentJson),
+          chordproCacheAt: new Date(),
+        },
+      });
+      await replaceCredits(tx, id, creditListsFrom(dto));
+      if (dto.tagIds) {
+        const tagIds = [...new Set(dto.tagIds)];
+        await tx.songVersionTag.deleteMany({ where: { songVersionId: id, tagId: { notIn: tagIds } } });
+        await tx.songVersionTag.createMany({ data: tagIds.map((tagId) => ({ songVersionId: id, tagId })), skipDuplicates: true });
+      }
+      return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     });
-    return toDetailItem(version);
+    return toDetailItem(version, true);
   }
 
   /**
@@ -558,7 +850,7 @@ export class SongVersionsService {
     const currentDoc = existing.documentJson as SongDocument;
     const documentJson: SongDocument = parseSongDocument({
       ...currentDoc,
-      sections: format === "CHORDS_OVER_LYRICS" ? parseChordsOverLyrics(content) : parseChordPro(content),
+      sections: parseSongText(content, format),
     });
 
     const version = await this.prisma.client.songVersion.update({
@@ -570,7 +862,7 @@ export class SongVersionsService {
       },
       select: DETAIL_SELECT,
     });
-    return toDetailItem(version);
+    return toDetailItem(version, true);
   }
 
   async exportChordPro(id: string): Promise<string> {

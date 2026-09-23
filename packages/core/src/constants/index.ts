@@ -54,8 +54,9 @@ export const IMPORT_FORMATS = [
 export type ImportFormatValue = (typeof IMPORT_FORMATS)[number];
 
 // The subset of IMPORT_FORMATS that actually has a parser today - the
-// others (RAW_TEXT, LRC, MUSICXML, ABC_NOTATION) are reserved for later.
-export const SUPPORTED_IMPORT_FORMATS = ["CHORDPRO", "CHORDS_OVER_LYRICS"] as const;
+// others (LRC, MUSICXML, ABC_NOTATION) are reserved for later. RAW_TEXT is
+// plain lyrics with no chords ("Lyrics only" in the UI).
+export const SUPPORTED_IMPORT_FORMATS = ["CHORDPRO", "CHORDS_OVER_LYRICS", "RAW_TEXT"] as const;
 export type SupportedImportFormat = (typeof SUPPORTED_IMPORT_FORMATS)[number];
 
 export const VOICING_PREFERENCES = ["OPEN", "BARRE", "DROP2", "CLOSE", "AUTO"] as const;

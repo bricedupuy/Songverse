@@ -10,6 +10,7 @@ import {
   Patch,
   Post,
   Put,
+  Query,
   UnauthorizedException,
   UseGuards,
 } from "@nestjs/common";
@@ -49,6 +50,26 @@ export class SongVersionsController {
     return this.songVersionsService.findVisibleToUser(user.id);
   }
 
+  /** Names already credited on songs you can see, for autocomplete. */
+  @Get("credits")
+  searchCredits(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Query("q") query: string | undefined,
+  ): ReturnType<SongVersionsService["searchCredits"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.songVersionsService.searchCredits(user, query ?? "");
+  }
+
+  /** Songs you can see with this title, grouped with their other versions. */
+  @Get("matches")
+  findMatches(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Query("title") title: string | undefined,
+  ): ReturnType<SongVersionsService["findMatches"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.songVersionsService.findMatches(user, title ?? "");
+  }
+
   @Get(":songVersionId")
   @ApiOkResponse({ type: SongVersionResponseDto })
   findOne(
@@ -83,10 +104,12 @@ export class SongVersionsController {
   @UseGuards(SongVersionOwnerGuard)
   @ApiOkResponse({ type: SongVersionResponseDto })
   update(
+    @CurrentUser() user: AuthenticatedUser | undefined,
     @Param("songVersionId") songVersionId: string,
     @Body() dto: UpdateSongVersionDto,
   ): ReturnType<SongVersionsService["update"]> {
-    return this.songVersionsService.update(songVersionId, dto);
+    if (!user) throw new UnauthorizedException();
+    return this.songVersionsService.update(user, songVersionId, dto);
   }
 
   @Delete(":songVersionId")

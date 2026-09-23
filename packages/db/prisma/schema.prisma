@@ -582,6 +582,8 @@ model SongVersion {
   // Core metadata
   title          String
   alternateTitle String? // shown as "Subtitle"
+  // Tells this version apart from the song's others: "Acoustic", "Youth band".
+  versionName    String?
   sortTitle      String? // how to sort it, if not by title
   language       String // BCP 47 tag: en, fr, de, etc.
   trustLabel     String? // Free text: "Official publisher text", etc.
