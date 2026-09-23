@@ -1,16 +1,18 @@
-import { ApiError, type SetlistDetail, type SetlistItem } from "@songverse/core";
+import { ApiError, type SetlistDetail, type SetlistItem, type TeamSummary } from "@songverse/core";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { apiClient } from "#/lib/api-client";
-import { formatSetDate, setlistTitle } from "#/lib/setlists";
+import { formatSetDate, setOwnerLabel, setlistTitle } from "#/lib/setlists";
 import { AddSongs } from "./-add-songs";
 import { SetSongList } from "./-set-song-list";
+import { ShareCard } from "./-share-card";
 
 export const Route = createFileRoute("/_protected/sets/$setlistId")({
   // Null when the set doesn't exist or isn't visible to this user (the API
@@ -43,6 +45,7 @@ function SetRoute() {
 function SetPage({ loaded }: { loaded: SetlistDetail }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const { session, teams } = Route.useRouteContext();
   const [set, setSet] = useState<SetlistDetail>(loaded);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,21 +75,41 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
     );
   }
 
-  const subtitle = [
-    set.name && set.eventDate ? formatSetDate(set.eventDate, i18n.language, "long") : null,
-    set.teamName ?? t("sets.personal"),
-  ]
+  const subtitle = [set.name && set.eventDate ? formatSetDate(set.eventDate, i18n.language, "long") : null, setOwnerLabel(set, t)]
     .filter(Boolean)
     .join(" · ");
 
+  const ownership = {
+    currentUserId: session.userId,
+    onRequest: (itemId: string) => void apply(apiClient.requestSongOwnership(set.id, itemId)),
+    onDecide: (requestId: string, accept: boolean) =>
+      void apply(
+        (accept ? apiClient.acceptOwnershipRequest(requestId) : apiClient.declineOwnershipRequest(requestId)).then(() =>
+          apiClient.getSetlist(set.id),
+        ),
+      ),
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{setlistTitle(set, t, i18n.language)}</h1>
-        <p className="text-sm text-muted-foreground">{subtitle}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold">
+            {setlistTitle(set, t, i18n.language)}
+            {set.isGuest ? <Badge variant="muted">{t("sets.guestBadge")}</Badge> : null}
+          </h1>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
+        </div>
+        {set.isGuest ? <LeaveSetButton setlistId={set.id} /> : null}
       </div>
 
-      {!set.canEdit ? <p className="text-sm text-muted-foreground">{t("sets.readOnly")}</p> : null}
+      {set.isGuest ? (
+        <p className="text-sm text-muted-foreground">
+          {set.teamName ? t("sets.guestReadOnlyTeam", { team: set.teamName }) : t("sets.guestReadOnly", { name: set.ownerName ?? "" })}
+        </p>
+      ) : !set.canEdit ? (
+        <p className="text-sm text-muted-foreground">{t("sets.readOnly")}</p>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -97,8 +120,10 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
             <p className="text-sm text-muted-foreground">{t("sets.emptySet")}</p>
           ) : (
             <SetSongList
+              setlistId={set.id}
               items={set.items}
               canEdit={set.canEdit}
+              ownership={ownership}
               onReorder={reorder}
               onChangeItem={(itemId, change) => void apply(apiClient.updateSetlistItem(set.id, itemId, change))}
               onRemoveItem={(itemId) => void apply(apiClient.removeSetlistItem(set.id, itemId))}
@@ -118,8 +143,10 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
               <AddSongs set={set} onAdded={setSet} />
             </CardContent>
           </Card>
+          <ShareCard setlistId={set.id} />
           <DetailsCard
             set={set}
+            teams={teams}
             onSaved={async (updated) => {
               setSet(updated);
               // The sidebar lists sets by title.
@@ -132,7 +159,137 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
   );
 }
 
-function DetailsCard({ set, onSaved }: { set: SetlistDetail; onSaved: (set: SetlistDetail) => Promise<void> }) {
+function LeaveSetButton({ setlistId }: { setlistId: string }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const navigate = useNavigate();
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function leave() {
+    setPending(true);
+    setError(null);
+    try {
+      await apiClient.leaveSetlist(setlistId);
+      // Leave the page first: refreshing it in place would reload a set that's no longer ours.
+      await navigate({ to: "/sets" });
+      await router.invalidate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setPending(false);
+    }
+  }
+
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={() => setConfirming(true)}>
+        {t("sets.leaveSet")}
+      </Button>
+      <Dialog open={confirming} onOpenChange={(open) => !pending && setConfirming(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("sets.confirmLeave")}</DialogTitle>
+            <DialogDescription>{t("sets.confirmLeaveDescription")}</DialogDescription>
+          </DialogHeader>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirming(false)} disabled={pending}>
+              {t("sets.cancel")}
+            </Button>
+            <Button variant="destructive" onClick={() => void leave()} disabled={pending}>
+              {pending ? t("sets.leaving") : t("sets.leaveSet")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+const SELECT_CLASS =
+  "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50";
+
+/** Moves the set to a team the user admins, or makes it their personal set - after a confirm step. */
+function OwnerField({
+  set,
+  teams,
+  onMoved,
+}: {
+  set: SetlistDetail;
+  teams: TeamSummary[];
+  onMoved: (set: SetlistDetail) => Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const [target, setTarget] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const adminTeams = teams.filter((team) => team.currentUserRole === "ADMIN");
+  // A team set viewed by a global admin who isn't one of that team's admins.
+  const options =
+    set.teamId && !adminTeams.some((team) => team.id === set.teamId)
+      ? [...adminTeams, { id: set.teamId, name: set.teamName ?? set.teamId }]
+      : adminTeams;
+  const targetTeam = options.find((team) => team.id === target);
+
+  async function move() {
+    setPending(true);
+    setError(null);
+    try {
+      await onMoved(await apiClient.updateSetlist(set.id, { teamId: target || null }));
+      setTarget(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor="set-owner">{t("sets.ownerLabel")}</Label>
+      <select id="set-owner" value={set.teamId ?? ""} onChange={(event) => setTarget(event.target.value)} className={SELECT_CLASS}>
+        <option value="">{t("sets.ownerPersonal")}</option>
+        {options.map((team) => (
+          <option key={team.id} value={team.id}>
+            {team.name}
+          </option>
+        ))}
+      </select>
+      <Dialog open={target !== null} onOpenChange={(open) => !pending && !open && setTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("sets.ownerChangeTitle")}</DialogTitle>
+            <DialogDescription>
+              {targetTeam ? t("sets.ownerToTeam", { team: targetTeam.name }) : t("sets.ownerToPersonal")}
+            </DialogDescription>
+          </DialogHeader>
+          {targetTeam && !set.teamId ? <p className="text-sm text-muted-foreground">{t("sets.ownerToTeamShared")}</p> : null}
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTarget(null)} disabled={pending}>
+              {t("sets.cancel")}
+            </Button>
+            <Button onClick={() => void move()} disabled={pending}>
+              {pending ? t("sets.moving") : t("sets.move")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DetailsCard({
+  set,
+  teams,
+  onSaved,
+}: {
+  set: SetlistDetail;
+  teams: TeamSummary[];
+  onSaved: (set: SetlistDetail) => Promise<void>;
+}) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const navigate = useNavigate();
@@ -204,6 +361,7 @@ function DetailsCard({ set, onSaved }: { set: SetlistDetail; onSaved: (set: Setl
               />
             </div>
           </div>
+          <OwnerField set={set} teams={teams} onMoved={onSaved} />
           {message ? (
             <p className={message.kind === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{message.text}</p>
           ) : null}

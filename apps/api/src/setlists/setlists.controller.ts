@@ -5,13 +5,16 @@ import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import {
   AddSetlistItemDto,
   CreateSetlistDto,
+  MyNoteDto,
   ReorderSetlistItemsDto,
   UpdateSetlistDto,
   UpdateSetlistItemDto,
 } from "./dto/setlist.dto";
+import { SetlistSharingService } from "./setlist-sharing.service";
 import { SetlistsService } from "./setlists.service";
+import { SongOwnershipService } from "./song-ownership.service";
 
-function requireUser(user: AuthenticatedUser | undefined): AuthenticatedUser {
+export function requireUser(user: AuthenticatedUser | undefined): AuthenticatedUser {
   if (!user) throw new UnauthorizedException();
   return user;
 }
@@ -21,7 +24,11 @@ function requireUser(user: AuthenticatedUser | undefined): AuthenticatedUser {
 @ApiBearerAuth()
 @Controller("setlists")
 export class SetlistsController {
-  constructor(private readonly setlists: SetlistsService) {}
+  constructor(
+    private readonly setlists: SetlistsService,
+    private readonly sharing: SetlistSharingService,
+    private readonly ownership: SongOwnershipService,
+  ) {}
 
   @Get()
   list(@CurrentUser() user: AuthenticatedUser | undefined) {
@@ -97,5 +104,69 @@ export class SetlistsController {
     @Param("itemId") itemId: string,
   ) {
     return this.setlists.removeItem(requireUser(user), setlistId, itemId);
+  }
+
+  /** One song of the set, readable by anyone who can open the set (guests included), with the viewer's private note. */
+  @Get(":setlistId/items/:itemId/song")
+  songView(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("setlistId") setlistId: string,
+    @Param("itemId") itemId: string,
+  ) {
+    return this.setlists.songView(requireUser(user), setlistId, itemId);
+  }
+
+  @Put(":setlistId/items/:itemId/my-note")
+  setMyNote(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("setlistId") setlistId: string,
+    @Param("itemId") itemId: string,
+    @Body() dto: MyNoteDto,
+  ) {
+    return this.setlists.setMyNote(requireUser(user), setlistId, itemId, dto.content);
+  }
+
+  /** Asks the song's owner to hand it to the set's team (or hands it over, if it's yours). Returns the updated set. */
+  @Post(":setlistId/items/:itemId/ownership-request")
+  async requestOwnership(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("setlistId") setlistId: string,
+    @Param("itemId") itemId: string,
+  ) {
+    await this.ownership.request(requireUser(user), setlistId, itemId);
+    return this.setlists.findOne(requireUser(user), setlistId);
+  }
+
+  /** Share link and guests (editors only). */
+  @Get(":setlistId/sharing")
+  getSharing(@CurrentUser() user: AuthenticatedUser | undefined, @Param("setlistId") setlistId: string) {
+    return this.sharing.sharing(requireUser(user), setlistId);
+  }
+
+  /** Turns the share link on, or replaces it (the old one stops working). */
+  @Post(":setlistId/share-link")
+  resetShareLink(@CurrentUser() user: AuthenticatedUser | undefined, @Param("setlistId") setlistId: string) {
+    return this.sharing.resetLink(requireUser(user), setlistId);
+  }
+
+  @Delete(":setlistId/share-link")
+  removeShareLink(@CurrentUser() user: AuthenticatedUser | undefined, @Param("setlistId") setlistId: string) {
+    return this.sharing.removeLink(requireUser(user), setlistId);
+  }
+
+  @Delete(":setlistId/guests/:userId")
+  removeGuest(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("setlistId") setlistId: string,
+    @Param("userId") guestUserId: string,
+  ) {
+    return this.sharing.removeGuest(requireUser(user), setlistId, guestUserId);
+  }
+
+  /** A guest leaving a set shared with them. */
+  @Post(":setlistId/leave")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  leave(@CurrentUser() user: AuthenticatedUser | undefined, @Param("setlistId") setlistId: string): Promise<void> {
+    return this.sharing.leave(requireUser(user), setlistId);
   }
 }

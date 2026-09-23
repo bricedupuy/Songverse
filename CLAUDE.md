@@ -48,7 +48,9 @@ relation to `User`, `SongVersion`, `Arrangement`, `Songbook`, `Tag` and `Setlist
 that doesn't cascade on delete. **If you add a model with a foreign key to
 any of those without `onDelete: Cascade`/`SetNull`, handle it there too**,
 or deleting a user who has such a row will fail with a foreign-key error.
-New user-owned content types also need adding to its transfer step.
+New user-owned content types also need adding to its transfer step
+(as `SetlistItem.sharedByUserId` - songs shared into team sets - does,
+so it follows the songs to their new owner).
 
 Storage objects are content-addressed and shared (attachments and avatars
 with identical bytes are one object). Delete them only through

@@ -1,0 +1,159 @@
+import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import type { Prisma } from "@songverse/db";
+import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { PrismaService } from "../prisma/prisma.service";
+
+export const SONG_SELECT = {
+  id: true,
+  title: true,
+  workId: true,
+  ownerScope: true,
+  ownerUserId: true,
+  ownerTeamId: true,
+  publicationState: true,
+  documentJson: true,
+  ownerTeam: { select: { name: true } },
+} satisfies Prisma.SongVersionSelect;
+
+export type SongRow = Prisma.SongVersionGetPayload<{ select: typeof SONG_SELECT }>;
+export type SetRow = { id: string; ownerUserId: string | null; ownerTeamId: string | null };
+
+export interface SetAccess {
+  canView: boolean;
+  canEdit: boolean;
+  /** Joined through the set's share link, rather than owning it or being on its team. */
+  isGuest: boolean;
+}
+
+const NO_ACCESS: SetAccess = { canView: false, canEdit: false, isGuest: false };
+
+/** Just enough of a user to decide what songs they can see. */
+type Viewer = { id: string; isGlobalAdmin: boolean };
+
+/**
+ * Who can open or change a set, and which of its songs they can read.
+ *
+ * - The owner of a personal set, and admins of a team set's team, edit it;
+ *   other team members view it. Global admins can do anything.
+ * - Guests (joined through the share link) view it.
+ * - Everyone who can open a set can read every song in it that its owner
+ *   could put there today (see addableWhere) - so a guest sees songs that
+ *   aren't in their own library - plus songs shared into it by their owner
+ *   (SetlistItem.sharedByUserId) for as long as that person can still see
+ *   them. Anything else shows as a placeholder.
+ */
+@Injectable()
+export class SetlistAccessService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async access(user: AuthenticatedUser, set: SetRow): Promise<SetAccess> {
+    if (user.isGlobalAdmin || set.ownerUserId === user.id) return { canView: true, canEdit: true, isGuest: false };
+    if (set.ownerTeamId) {
+      const membership = await this.prisma.client.teamMembership.findUnique({
+        where: { teamId_userId: { teamId: set.ownerTeamId, userId: user.id } },
+        select: { role: true },
+      });
+      if (membership) return { canView: true, canEdit: membership.role === "ADMIN", isGuest: false };
+    }
+    const guest = await this.prisma.client.setlistGuest.findUnique({
+      where: { setlistId_userId: { setlistId: set.id, userId: user.id } },
+      select: { id: true },
+    });
+    return guest ? { canView: true, canEdit: false, isGuest: true } : NO_ACCESS;
+  }
+
+  /** 404 unless the user can open the set (not telling apart "doesn't exist" and "not yours"). */
+  async findViewable(user: AuthenticatedUser, setlistId: string): Promise<{ set: SetRow; access: SetAccess }> {
+    const set = await this.prisma.client.setlist.findUnique({
+      where: { id: setlistId },
+      select: { id: true, ownerUserId: true, ownerTeamId: true },
+    });
+    if (!set) throw new NotFoundException("Set not found");
+    const access = await this.access(user, set);
+    if (!access.canView) throw new NotFoundException("Set not found");
+    return { set, access };
+  }
+
+  async findEditable(user: AuthenticatedUser, setlistId: string): Promise<SetRow> {
+    const { set, access } = await this.findViewable(user, setlistId);
+    if (!access.canEdit) throw new ForbiddenException("Only the set's owner or a team admin can change it");
+    return set;
+  }
+
+  async assertTeamAdmin(user: AuthenticatedUser, teamId: string): Promise<void> {
+    if (user.isGlobalAdmin) {
+      const team = await this.prisma.client.team.findUnique({ where: { id: teamId }, select: { id: true } });
+      if (!team) throw new NotFoundException("Team not found");
+      return;
+    }
+    const membership = await this.prisma.client.teamMembership.findUnique({
+      where: { teamId_userId: { teamId, userId: user.id } },
+      select: { role: true },
+    });
+    if (membership?.role !== "ADMIN") throw new ForbiddenException("Team admin role required");
+  }
+
+  async teamIdsOf(userId: string): Promise<Set<string>> {
+    const memberships = await this.prisma.client.teamMembership.findMany({ where: { userId }, select: { teamId: true } });
+    return new Set(memberships.map((m) => m.teamId));
+  }
+
+  /**
+   * Songs everyone who can open this set can also open: approved global
+   * songs, plus the owning team's songs for a team set, or for a personal
+   * set anything its owner can see. Mirrored in memory by `addableIn()`.
+   */
+  async addableWhere(set: SetRow): Promise<Prisma.SongVersionWhereInput> {
+    const approvedGlobal: Prisma.SongVersionWhereInput = { ownerScope: "GLOBAL", publicationState: "APPROVED" };
+    if (set.ownerTeamId) {
+      return { OR: [approvedGlobal, { ownerScope: "TEAM", ownerTeamId: set.ownerTeamId }] };
+    }
+    const ownerTeams = await this.teamIdsOf(set.ownerUserId!);
+    return {
+      OR: [
+        approvedGlobal,
+        { ownerScope: "USER", ownerUserId: set.ownerUserId },
+        { ownerScope: "TEAM", ownerTeamId: { in: [...ownerTeams] } },
+      ],
+    };
+  }
+
+  /** In-memory twin of `addableWhere()`, for songs already loaded. */
+  async addableIn(set: SetRow): Promise<(song: SongRow) => boolean> {
+    const ownerTeams = set.ownerTeamId ? new Set([set.ownerTeamId]) : await this.teamIdsOf(set.ownerUserId!);
+    return (song) => {
+      if (song.ownerScope === "GLOBAL") return song.publicationState === "APPROVED";
+      if (song.ownerScope === "TEAM") return !!song.ownerTeamId && ownerTeams.has(song.ownerTeamId);
+      return !set.ownerTeamId && song.ownerUserId === set.ownerUserId;
+    };
+  }
+
+  /** Ids of the items whose song anyone who can open the set may read (see the class comment). */
+  async readableItems(set: SetRow, items: { id: string; sharedByUserId: string | null; songVersion: SongRow }[]): Promise<Set<string>> {
+    const addable = await this.addableIn(set);
+    const sharerIds = [...new Set(items.map((item) => item.sharedByUserId).filter((id): id is string => !!id))];
+    const sharers = new Map<string, (song: SongRow) => boolean>();
+    if (sharerIds.length > 0) {
+      const users = await this.prisma.client.user.findMany({ where: { id: { in: sharerIds } }, select: { id: true, isGlobalAdmin: true } });
+      for (const sharer of users) sharers.set(sharer.id, await this.visibilityFor(sharer));
+    }
+    return new Set(
+      items
+        .filter((item) => addable(item.songVersion) || (!!item.sharedByUserId && !!sharers.get(item.sharedByUserId)?.(item.songVersion)))
+        .map((item) => item.id),
+    );
+  }
+
+  /** Whether a user can see a song in their own library. */
+  async visibilityFor(user: Viewer): Promise<(song: SongRow) => boolean> {
+    const teams = await this.teamIdsOf(user.id);
+    return (song) => isVisibleTo(user, teams, song);
+  }
+}
+
+export function isVisibleTo(user: Viewer, userTeams: Set<string>, song: SongRow): boolean {
+  if (user.isGlobalAdmin) return true;
+  if (song.ownerScope === "GLOBAL") return song.publicationState === "APPROVED";
+  if (song.ownerScope === "USER") return song.ownerUserId === user.id;
+  return !!song.ownerTeamId && userTeams.has(song.ownerTeamId);
+}

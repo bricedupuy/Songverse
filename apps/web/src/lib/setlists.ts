@@ -17,6 +17,13 @@ export function setlistTitle(set: Pick<SetlistSummary, "name" | "eventDate">, t:
   return t("sets.untitled");
 }
 
+/** The team's name, "Personal", or for a set shared with you, who shared it. */
+export function setOwnerLabel(set: Pick<SetlistSummary, "teamName" | "ownerName" | "isGuest">, t: TFunction): string {
+  if (set.teamName) return set.teamName;
+  if (set.isGuest && set.ownerName) return t("sets.sharedWithYouBy", { name: set.ownerName });
+  return t("sets.personal");
+}
+
 function signed(steps: number): string {
   return steps > 0 ? `+${steps}` : `−${Math.abs(steps)}`;
 }

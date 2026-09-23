@@ -245,9 +245,9 @@ model User {
 
   // Relations
   teamMemberships     TeamMembership[]
-  ownedVersions       SongVersion[]         @relation("VersionOwnerUser")
+  ownedVersions       SongVersion[]          @relation("VersionOwnerUser")
   contributorCredits  VersionContributor[]
-  ownedArrangements   Arrangement[]         @relation("ArrangementOwnerUser")
+  ownedArrangements   Arrangement[]          @relation("ArrangementOwnerUser")
   submissions         Submission[]
   proposals           ChangeProposal[]
   notes               Note[]
@@ -257,10 +257,13 @@ model User {
   inkAnnotations      InkAnnotation[]
   midiConfigs         UserArrangementMidi[]
   ownedTags           Tag[]
-  ownedSongbooks      Songbook[]            @relation("SongbookOwnerUser")
+  ownedSongbooks      Songbook[]             @relation("SongbookOwnerUser")
   importJobs          ImportJob[]
-  uploadedAttachments Attachment[]          @relation("AttachmentUploader")
-  ownedSetlists       Setlist[]             @relation("SetlistOwnerUser")
+  uploadedAttachments Attachment[]           @relation("AttachmentUploader")
+  ownedSetlists       Setlist[]              @relation("SetlistOwnerUser")
+  guestSetlists       SetlistGuest[]
+  sharedSetlistItems  SetlistItem[]          @relation("SetlistItemSharedBy")
+  ownershipRequests   SongOwnershipRequest[]
   contentTransfer     ContentTransfer?
 
   // BetterAuth
@@ -375,14 +378,15 @@ model Team {
   // Relations
   memberships       TeamMembership[]
   inviteLinks       TeamInviteLink[]
-  ownedVersions     SongVersion[]    @relation("VersionOwnerTeam")
-  ownedArrangements Arrangement[]    @relation("ArrangementOwnerTeam")
+  ownedVersions     SongVersion[]          @relation("VersionOwnerTeam")
+  ownedArrangements Arrangement[]          @relation("ArrangementOwnerTeam")
   notes             Note[]
   accessGrants      AccessGrant[]
   shareLinks        ShareLink[]
   ownedTags         Tag[]
-  ownedSongbooks    Songbook[]       @relation("SongbookOwnerTeam")
-  ownedSetlists     Setlist[]        @relation("SetlistOwnerTeam")
+  ownedSongbooks    Songbook[]             @relation("SongbookOwnerTeam")
+  ownedSetlists     Setlist[]              @relation("SetlistOwnerTeam")
+  ownershipRequests SongOwnershipRequest[]
 
   @@index([slug])
 }
@@ -615,22 +619,23 @@ model SongVersion {
   defaultGrooveVariant String?
 
   // Related records
-  contributors    VersionContributor[]
-  attachments     Attachment[]
-  arrangements    Arrangement[]
-  songbookEntries SongbookEntry[]
-  versionTags     SongVersionTag[]
-  identifiers     SongVersionIdentifier[]
-  submissions     Submission[]
-  importJobs      ImportJob[]
-  proposals       ChangeProposal[]
-  upstreamLinks   UpstreamLink[]          @relation("UpstreamLinkLocal")
-  downstreamLinks UpstreamLink[]          @relation("UpstreamLinkGlobal")
-  accessGrants    AccessGrant[]
-  shareLinks      ShareLink[]
-  auditEvents     AuditEvent[]
-  setlistItems    SetlistItem[]
-  notes           Note[]
+  contributors      VersionContributor[]
+  attachments       Attachment[]
+  arrangements      Arrangement[]
+  songbookEntries   SongbookEntry[]
+  versionTags       SongVersionTag[]
+  identifiers       SongVersionIdentifier[]
+  submissions       Submission[]
+  importJobs        ImportJob[]
+  proposals         ChangeProposal[]
+  upstreamLinks     UpstreamLink[]          @relation("UpstreamLinkLocal")
+  downstreamLinks   UpstreamLink[]          @relation("UpstreamLinkGlobal")
+  accessGrants      AccessGrant[]
+  shareLinks        ShareLink[]
+  auditEvents       AuditEvent[]
+  setlistItems      SetlistItem[]
+  ownershipRequests SongOwnershipRequest[]
+  notes             Note[]
 
   @@index([workId])
   @@index([ownerUserId])
@@ -759,13 +764,71 @@ model Setlist {
   ownerUserId String?
   ownerTeamId String?
 
-  ownerUser User?         @relation("SetlistOwnerUser", fields: [ownerUserId], references: [id], onDelete: Cascade)
-  ownerTeam Team?         @relation("SetlistOwnerTeam", fields: [ownerTeamId], references: [id], onDelete: Cascade)
-  items     SetlistItem[]
-  notes     Note[]
+  ownerUser         User?                  @relation("SetlistOwnerUser", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  ownerTeam         Team?                  @relation("SetlistOwnerTeam", fields: [ownerTeamId], references: [id], onDelete: Cascade)
+  items             SetlistItem[]
+  notes             Note[]
+  shareLink         SetlistShareLink?
+  guests            SetlistGuest[]
+  ownershipRequests SongOwnershipRequest[]
 
   @@index([ownerUserId])
   @@index([ownerTeamId])
+}
+
+// At most one per set. Anyone signed in who opens it joins the set as a
+// read-only guest (SetlistGuest); resetting it issues a new token, turning
+// it off deletes the row. Guests already in stay until removed.
+model SetlistShareLink {
+  id        String   @id @default(cuid())
+  setlistId String   @unique
+  token     String   @unique
+  createdAt DateTime @default(now())
+
+  setlist Setlist @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+}
+
+// Someone who joined a set through its share link: can open the set and
+// every song in it, and keep private notes, but not change it.
+model SetlistGuest {
+  id        String   @id @default(cuid())
+  setlistId String
+  userId    String
+  joinedAt  DateTime @default(now())
+
+  setlist Setlist @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([setlistId, userId])
+  @@index([userId])
+}
+
+enum OwnershipRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+// A team admin asking a song's owner to hand a song shared into one of the
+// team's sets over to the team. Accepting moves the song to the team.
+model SongOwnershipRequest {
+  id                String                 @id @default(cuid())
+  songVersionId     String
+  teamId            String
+  // Where it was asked from, for context; kept if the set goes.
+  setlistId         String?
+  requestedByUserId String?
+  status            OwnershipRequestStatus @default(PENDING)
+  createdAt         DateTime               @default(now())
+  decidedAt         DateTime?
+
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  setlist     Setlist?    @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+  requestedBy User?       @relation(fields: [requestedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([songVersionId, status])
+  @@index([teamId])
 }
 
 model SetlistItem {
@@ -784,9 +847,15 @@ model SetlistItem {
   tempoOverride  Int?
   notes          String? // Quick inline note
 
+  // Set on a song shared into the set by its owner - when a personal set
+  // moves to a team, its owner's songs a team set couldn't otherwise hold.
+  // Readable through the set for as long as this user can still see it.
+  sharedByUserId String?
+
   setlist     Setlist      @relation(fields: [setlistId], references: [id], onDelete: Cascade)
   songVersion SongVersion  @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
   arrangement Arrangement? @relation(fields: [arrangementId], references: [id], onDelete: SetNull)
+  sharedBy    User?        @relation("SetlistItemSharedBy", fields: [sharedByUserId], references: [id], onDelete: SetNull)
   fullNotes   Note[]
 
   @@index([setlistId, position])

@@ -9,12 +9,18 @@ import { apiClient } from "#/lib/api-client";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { initials } from "#/lib/initials";
 import { EmailCard, LanguageCard, PasskeysCard, ProfileCard, StorageCard } from "./-dashboard/account-cards";
+import { OwnershipRequestsCard } from "./-dashboard/ownership-requests-card";
 import { RolesCard } from "./-dashboard/roles-card";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: async ({ context }) => {
-    const [versions, profile, storage] = await Promise.all([apiClient.listSongVersions(), apiClient.getMe(), apiClient.getMyStorage()]);
-    return { teams: context.teams, versions, profile, storage };
+    const [versions, profile, storage, ownershipRequests] = await Promise.all([
+      apiClient.listSongVersions(),
+      apiClient.getMe(),
+      apiClient.getMyStorage(),
+      apiClient.listOwnershipRequests(),
+    ]);
+    return { teams: context.teams, versions, profile, storage, ownershipRequests };
   },
   component: Dashboard,
 });
@@ -26,7 +32,7 @@ function artistLabel(artists: { userId: string | null; source: string | null }[]
 
 function Dashboard() {
   const { t } = useTranslation();
-  const { teams, versions, profile, storage } = Route.useLoaderData();
+  const { teams, versions, profile, storage, ownershipRequests } = Route.useLoaderData();
   const recentVersions = versions.slice(0, 5);
   const distinctArtists = new Set(
     versions.flatMap((v) => v.artists.map((a) => a.source ?? a.userId).filter((a): a is string => Boolean(a))),
@@ -52,6 +58,8 @@ function Dashboard() {
           )}
         </div>
       </div>
+
+      <OwnershipRequestsCard requests={ownershipRequests} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>

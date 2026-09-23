@@ -16,6 +16,7 @@ import { Route as ProtectedAccountRouteImport } from './routes/_protected/accoun
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
+import { Route as SetInviteTokenRouteImport } from './routes/set-invite.$token'
 import { Route as TransferTokenRouteImport } from './routes/transfer.$token'
 import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
 import { Route as ProtectedAdminAuthRouteImport } from './routes/_protected/admin/auth'
@@ -38,6 +39,7 @@ import { Route as ProtectedSongbooksNewRouteImport } from './routes/_protected/s
 import { Route as ProtectedTeamsIndexRouteImport } from './routes/_protected/teams/index'
 import { Route as ProtectedTeamsTeamIdRouteImport } from './routes/_protected/teams/$teamId'
 import { Route as ProtectedTeamsNewRouteImport } from './routes/_protected/teams/new'
+import { Route as ProtectedSetsSetlistIdSongsItemIdRouteImport } from './routes/_protected/sets/$setlistId_.songs.$itemId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -71,6 +73,11 @@ const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
 const JoinTokenRoute = JoinTokenRouteImport.update({
   id: '/join/$token',
   path: '/join/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SetInviteTokenRoute = SetInviteTokenRouteImport.update({
+  id: '/set-invite/$token',
+  path: '/set-invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TransferTokenRoute = TransferTokenRouteImport.update({
@@ -188,6 +195,12 @@ const ProtectedTeamsNewRoute = ProtectedTeamsNewRouteImport.update({
   path: '/teams/new',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedSetsSetlistIdSongsItemIdRoute =
+  ProtectedSetsSetlistIdSongsItemIdRouteImport.update({
+    id: '/sets/$setlistId_/songs/$itemId',
+    path: '/sets/$setlistId/songs/$itemId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -196,6 +209,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof ProtectedAdminRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
   '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
@@ -218,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/songbook-catalogs/': typeof ProtectedSongbookCatalogsIndexRoute
   '/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/teams/': typeof ProtectedTeamsIndexRoute
+  '/sets/$setlistId/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -225,6 +240,7 @@ export interface FileRoutesByTo {
   '/account': typeof ProtectedAccountRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
   '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
@@ -247,6 +263,7 @@ export interface FileRoutesByTo {
   '/songbook-catalogs': typeof ProtectedSongbookCatalogsIndexRoute
   '/songbooks': typeof ProtectedSongbooksIndexRoute
   '/teams': typeof ProtectedTeamsIndexRoute
+  '/sets/$setlistId/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -257,6 +274,7 @@ export interface FileRoutesById {
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
   '/_protected/admin/auth': typeof ProtectedAdminAuthRoute
   '/_protected/admin/catalogs': typeof ProtectedAdminCatalogsRoute
@@ -279,6 +297,7 @@ export interface FileRoutesById {
   '/_protected/songbook-catalogs/': typeof ProtectedSongbookCatalogsIndexRoute
   '/_protected/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/_protected/teams/': typeof ProtectedTeamsIndexRoute
+  '/_protected/sets/$setlistId_/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -289,6 +308,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/join/$token'
+    | '/set-invite/$token'
     | '/transfer/$token'
     | '/admin/auth'
     | '/admin/catalogs'
@@ -311,6 +331,7 @@ export interface FileRouteTypes {
     | '/songbook-catalogs/'
     | '/songbooks/'
     | '/teams/'
+    | '/sets/$setlistId/songs/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -318,6 +339,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/dashboard'
     | '/join/$token'
+    | '/set-invite/$token'
     | '/transfer/$token'
     | '/admin/auth'
     | '/admin/catalogs'
@@ -340,6 +362,7 @@ export interface FileRouteTypes {
     | '/songbook-catalogs'
     | '/songbooks'
     | '/teams'
+    | '/sets/$setlistId/songs/$itemId'
   id:
     | '__root__'
     | '/'
@@ -349,6 +372,7 @@ export interface FileRouteTypes {
     | '/_protected/admin'
     | '/_protected/dashboard'
     | '/join/$token'
+    | '/set-invite/$token'
     | '/transfer/$token'
     | '/_protected/admin/auth'
     | '/_protected/admin/catalogs'
@@ -371,6 +395,7 @@ export interface FileRouteTypes {
     | '/_protected/songbook-catalogs/'
     | '/_protected/songbooks/'
     | '/_protected/teams/'
+    | '/_protected/sets/$setlistId_/songs/$itemId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -378,6 +403,7 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   JoinTokenRoute: typeof JoinTokenRoute
+  SetInviteTokenRoute: typeof SetInviteTokenRoute
   TransferTokenRoute: typeof TransferTokenRoute
 }
 
@@ -430,6 +456,13 @@ declare module '@tanstack/react-router' {
       path: '/join/$token'
       fullPath: '/join/$token'
       preLoaderRoute: typeof JoinTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/set-invite/$token': {
+      id: '/set-invite/$token'
+      path: '/set-invite/$token'
+      fullPath: '/set-invite/$token'
+      preLoaderRoute: typeof SetInviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/transfer/$token': {
@@ -586,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedTeamsNewRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/sets/$setlistId_/songs/$itemId': {
+      id: '/_protected/sets/$setlistId_/songs/$itemId'
+      path: '/sets/$setlistId/songs/$itemId'
+      fullPath: '/sets/$setlistId/songs/$itemId'
+      preLoaderRoute: typeof ProtectedSetsSetlistIdSongsItemIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
   }
 }
 
@@ -630,6 +670,7 @@ interface ProtectedRouteChildren {
   ProtectedSongbookCatalogsIndexRoute: typeof ProtectedSongbookCatalogsIndexRoute
   ProtectedSongbooksIndexRoute: typeof ProtectedSongbooksIndexRoute
   ProtectedTeamsIndexRoute: typeof ProtectedTeamsIndexRoute
+  ProtectedSetsSetlistIdSongsItemIdRoute: typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
@@ -652,6 +693,8 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedSongbookCatalogsIndexRoute: ProtectedSongbookCatalogsIndexRoute,
   ProtectedSongbooksIndexRoute: ProtectedSongbooksIndexRoute,
   ProtectedTeamsIndexRoute: ProtectedTeamsIndexRoute,
+  ProtectedSetsSetlistIdSongsItemIdRoute:
+    ProtectedSetsSetlistIdSongsItemIdRoute,
 }
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
@@ -663,6 +706,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   JoinTokenRoute: JoinTokenRoute,
+  SetInviteTokenRoute: SetInviteTokenRoute,
   TransferTokenRoute: TransferTokenRoute,
 }
 export const routeTree = rootRouteImport

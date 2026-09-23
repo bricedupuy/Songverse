@@ -1,5 +1,4 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { Prisma } from "@songverse/db";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { PrismaService } from "../prisma/prisma.service";
 import type {
@@ -8,24 +7,11 @@ import type {
   UpdateSetlistDto,
   UpdateSetlistItemDto,
 } from "./dto/setlist.dto";
+import { SetlistAccessService, SONG_SELECT, type SetRow, type SongRow } from "./setlist-access.service";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CANDIDATE_LIMIT = 20;
-
-const SONG_SELECT = {
-  id: true,
-  title: true,
-  workId: true,
-  ownerScope: true,
-  ownerUserId: true,
-  ownerTeamId: true,
-  publicationState: true,
-  documentJson: true,
-  ownerTeam: { select: { name: true } },
-} satisfies Prisma.SongVersionSelect;
-
-type SongRow = Prisma.SongVersionGetPayload<{ select: typeof SONG_SELECT }>;
-type SetRow = { id: string; ownerUserId: string | null; ownerTeamId: string | null };
+const NOTE_MAX_LENGTH = 5000;
 
 export interface SongRef {
   id: string;
@@ -37,36 +23,60 @@ export interface SongRef {
   teamName: string | null;
 }
 
+const ITEM_INCLUDE = {
+  songVersion: { select: SONG_SELECT },
+  sharedBy: { select: { id: true, displayName: true } },
+} as const;
+
 /**
  * Sets (a.k.a. setlists): an ordered list of song versions for a service or
- * gig, owned by a user or a team. Same access rules as songbooks: team
- * members can view a team's sets, team admins edit them.
+ * gig, owned by a user or a team, optionally shared with guests by link.
+ * Who can see and change what is decided by SetlistAccessService.
  *
- * What can go in a set is limited to songs its whole audience can open - for
- * a team set, approved global songs and that team's own songs; for a personal
- * set, anything its owner can see. Viewers still only get details of songs
- * visible to them, in case a song's visibility changes afterwards.
+ * What can be added to a set is limited to songs its whole audience can
+ * open - for a team set, approved global songs and that team's own songs;
+ * for a personal set, anything its owner can see. Moving a personal set to
+ * a team keeps its owner's other songs in it, shared read-only (see
+ * `moveTo()`), until the owner hands them to the team or removes them.
  */
 @Injectable()
 export class SetlistsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly sets: SetlistAccessService,
+  ) {}
 
   async list(user: AuthenticatedUser) {
     const memberships = await this.prisma.client.teamMembership.findMany({
       where: { userId: user.id },
       select: { teamId: true, role: true },
     });
-    const sets = await this.prisma.client.setlist.findMany({
-      where: { OR: [{ ownerUserId: user.id }, { ownerTeamId: { in: memberships.map((m) => m.teamId) } }] },
-      include: { ownerTeam: { select: { name: true } }, _count: { select: { items: true } } },
+    const rows = await this.prisma.client.setlist.findMany({
+      where: {
+        OR: [
+          { ownerUserId: user.id },
+          { ownerTeamId: { in: memberships.map((m) => m.teamId) } },
+          { guests: { some: { userId: user.id } } },
+        ],
+      },
+      include: {
+        ownerTeam: { select: { name: true } },
+        ownerUser: { select: { displayName: true } },
+        _count: { select: { items: true } },
+      },
     });
+    const memberTeams = new Set(memberships.map((m) => m.teamId));
     const adminTeams = new Set(memberships.filter((m) => m.role === "ADMIN").map((m) => m.teamId));
 
-    return sortForDisplay(sets).map((set) => ({
-      ...summarize(set, set.ownerTeam?.name ?? null),
-      itemCount: set._count.items,
-      canEdit: user.isGlobalAdmin || set.ownerUserId === user.id || (!!set.ownerTeamId && adminTeams.has(set.ownerTeamId)),
-    }));
+    return sortForDisplay(rows).map((set) => {
+      const isGuest = set.ownerUserId !== user.id && !(set.ownerTeamId && memberTeams.has(set.ownerTeamId));
+      return {
+        ...summarize(set),
+        itemCount: set._count.items,
+        canEdit: user.isGlobalAdmin || set.ownerUserId === user.id || (!!set.ownerTeamId && adminTeams.has(set.ownerTeamId)),
+        isGuest,
+      };
+    });
   }
 
   async create(user: AuthenticatedUser, dto: CreateSetlistDto) {
@@ -74,11 +84,7 @@ export class SetlistsService {
     if (eventDate && eventDate.getTime() < startOfTodayUtc() - DAY_MS) {
       throw new BadRequestException("A new set's date can't be in the past");
     }
-    let teamName: string | null = null;
-    if (dto.teamId) {
-      await this.assertTeamAdmin(user, dto.teamId);
-      teamName = (await this.prisma.client.team.findUniqueOrThrow({ where: { id: dto.teamId }, select: { name: true } })).name;
-    }
+    if (dto.teamId) await this.sets.assertTeamAdmin(user, dto.teamId);
     const set = await this.prisma.client.setlist.create({
       data: {
         name: dto.name || null,
@@ -86,57 +92,81 @@ export class SetlistsService {
         ownerUserId: dto.teamId ? null : user.id,
         ownerTeamId: dto.teamId ?? null,
       },
+      include: { ownerTeam: { select: { name: true } }, ownerUser: { select: { displayName: true } } },
     });
-    return { ...summarize(set, teamName), itemCount: 0, canEdit: true };
+    return { ...summarize(set), itemCount: 0, canEdit: true, isGuest: false };
   }
 
   async findOne(user: AuthenticatedUser, setlistId: string) {
-    const set = await this.prisma.client.setlist.findUnique({
+    const { access } = await this.sets.findViewable(user, setlistId);
+    const set = await this.prisma.client.setlist.findUniqueOrThrow({
       where: { id: setlistId },
       include: {
         ownerTeam: { select: { name: true } },
-        items: { orderBy: { position: "asc" }, include: { songVersion: { select: SONG_SELECT } } },
+        ownerUser: { select: { displayName: true } },
+        items: { orderBy: { position: "asc" }, include: ITEM_INCLUDE },
       },
     });
-    if (!set) throw new NotFoundException("Set not found");
-    const access = await this.access(user, set);
-    if (!access.canView) throw new NotFoundException("Set not found");
 
-    const viewerTeams = await this.teamIdsOf(user.id);
-    const visible = (song: SongRow) => isVisibleTo(user, viewerTeams, song);
+    const [readable, inViewersLibrary] = await Promise.all([this.sets.readableItems(set, set.items), this.sets.visibilityFor(user)]);
 
     // Other versions of each song, for the version picker (editors only).
     const siblingsByWork = new Map<string, SongRef[]>();
     if (access.canEdit) {
       const workIds = [...new Set(set.items.map((item) => item.songVersion.workId))];
       const siblings = await this.prisma.client.songVersion.findMany({
-        where: { AND: [{ workId: { in: workIds } }, await this.addableWhere(set)] },
+        where: { AND: [{ workId: { in: workIds } }, await this.sets.addableWhere(set)] },
         select: SONG_SELECT,
         orderBy: { createdAt: "asc" },
       });
-      for (const song of siblings.filter(visible)) {
+      for (const song of siblings.filter(inViewersLibrary)) {
         siblingsByWork.set(song.workId, [...(siblingsByWork.get(song.workId) ?? []), toSongRef(song)]);
       }
     }
 
+    // Pending requests for the team to take over songs shared into this set.
+    const pending = set.ownerTeamId
+      ? await this.prisma.client.songOwnershipRequest.findMany({
+          where: { teamId: set.ownerTeamId, status: "PENDING", songVersionId: { in: set.items.map((item) => item.songVersionId) } },
+          select: { id: true, songVersionId: true },
+        })
+      : [];
+    const pendingBySong = new Map(pending.map((request) => [request.songVersionId, request.id]));
+
     return {
-      ...summarize(set, set.ownerTeam?.name ?? null),
+      ...summarize(set),
       itemCount: set.items.length,
       canEdit: access.canEdit,
-      items: set.items.map((item) => ({
-        id: item.id,
-        position: item.position,
-        transposeSteps: item.transposeSteps,
-        notes: item.notes,
-        // Null when this viewer can't see the song (shown as a placeholder).
-        song: visible(item.songVersion) ? toSongRef(item.songVersion) : null,
-        versions: siblingsByWork.get(item.songVersion.workId) ?? [],
-      })),
+      isGuest: access.isGuest,
+      items: set.items.map((item) => {
+        const song = item.songVersion;
+        const shown = readable.has(item.id) || inViewersLibrary(song);
+        const sharedPersonalSong = !!set.ownerTeamId && song.ownerScope === "USER" && !!song.ownerUserId;
+        const requestId = pendingBySong.get(song.id) ?? null;
+        return {
+          id: item.id,
+          position: item.position,
+          transposeSteps: item.transposeSteps,
+          notes: item.notes,
+          // Null when this viewer can't read the song (shown as a placeholder).
+          song: shown ? toSongRef(song) : null,
+          // Whether it's also in the viewer's own library, i.e. openable outside the set.
+          inLibrary: inViewersLibrary(song),
+          sharedBy: shown && item.sharedBy ? { id: item.sharedBy.id, displayName: item.sharedBy.displayName } : null,
+          ownershipRequest: requestId ? { id: requestId, canDecide: song.ownerUserId === user.id } : null,
+          // A team admin can ask for (or, owning it, hand over) a personal song shared into a team set.
+          canRequestOwnership: access.canEdit && shown && sharedPersonalSong && !requestId,
+          versions: siblingsByWork.get(song.workId) ?? [],
+        };
+      }),
     };
   }
 
   async update(user: AuthenticatedUser, setlistId: string, dto: UpdateSetlistDto) {
-    await this.findEditable(user, setlistId);
+    const set = await this.sets.findEditable(user, setlistId);
+    if (dto.teamId !== undefined && dto.teamId !== set.ownerTeamId) {
+      await this.moveTo(user, set, dto.teamId);
+    }
     await this.prisma.client.setlist.update({
       where: { id: setlistId },
       data: {
@@ -147,18 +177,53 @@ export class SetlistsService {
     return this.findOne(user, setlistId);
   }
 
+  /**
+   * Hands a set to a team (`teamId`), or to the acting user as a personal
+   * set (`null`). Songs the new owner couldn't add themselves stay in it,
+   * marked as shared by whoever could see them - the previous owner, when
+   * a personal set moves to a team - so its audience can still read them.
+   * Marks no longer needed (the song is now addable anyway) are cleared.
+   */
+  private async moveTo(user: AuthenticatedUser, set: SetRow, teamId: string | null): Promise<void> {
+    if (teamId) await this.sets.assertTeamAdmin(user, teamId);
+    const next: SetRow = { id: set.id, ownerUserId: teamId ? null : user.id, ownerTeamId: teamId };
+    const items = await this.prisma.client.setlistItem.findMany({
+      where: { setlistId: set.id },
+      select: { id: true, sharedByUserId: true, songVersion: { select: SONG_SELECT } },
+    });
+    const [addable, actorSees] = await Promise.all([this.sets.addableIn(next), this.sets.visibilityFor(user)]);
+    const sharer = set.ownerUserId ?? user.id;
+
+    await this.prisma.client.$transaction(async (tx) => {
+      await tx.setlist.update({ where: { id: set.id }, data: { ownerUserId: next.ownerUserId, ownerTeamId: next.ownerTeamId } });
+      for (const item of items) {
+        const sharedByUserId = addable(item.songVersion) ? null : (item.sharedByUserId ?? (actorSees(item.songVersion) ? sharer : null));
+        if (sharedByUserId !== item.sharedByUserId) {
+          await tx.setlistItem.update({ where: { id: item.id }, data: { sharedByUserId } });
+        }
+      }
+      // Being a guest of a set that's now your own (or your team's) is moot.
+      await tx.setlistGuest.deleteMany({
+        where: {
+          setlistId: set.id,
+          ...(teamId ? { user: { teamMemberships: { some: { teamId } } } } : { userId: user.id }),
+        },
+      });
+    });
+  }
+
   async remove(user: AuthenticatedUser, setlistId: string): Promise<void> {
-    await this.findEditable(user, setlistId);
+    await this.sets.findEditable(user, setlistId);
     await this.prisma.client.setlist.delete({ where: { id: setlistId } });
   }
 
   /** Songs that can be added to this set, optionally filtered by title. */
   async candidates(user: AuthenticatedUser, setlistId: string, query: string | undefined) {
-    const set = await this.findEditable(user, setlistId);
+    const set = await this.sets.findEditable(user, setlistId);
     const search = query?.trim();
     const songs = await this.prisma.client.songVersion.findMany({
       where: {
-        AND: [await this.addableWhere(set), ...(search ? [{ title: { contains: search, mode: "insensitive" as const } }] : [])],
+        AND: [await this.sets.addableWhere(set), ...(search ? [{ title: { contains: search, mode: "insensitive" as const } }] : [])],
       },
       select: SONG_SELECT,
       orderBy: search ? { title: "asc" } : { updatedAt: "desc" },
@@ -168,7 +233,7 @@ export class SetlistsService {
   }
 
   async addItem(user: AuthenticatedUser, setlistId: string, dto: AddSetlistItemDto) {
-    const set = await this.findEditable(user, setlistId);
+    const set = await this.sets.findEditable(user, setlistId);
     await this.assertAddable(set, dto.songVersionId);
     await this.prisma.client.$transaction(async (tx) => {
       const position = await tx.setlistItem.count({ where: { setlistId } });
@@ -180,7 +245,7 @@ export class SetlistsService {
   }
 
   async updateItem(user: AuthenticatedUser, setlistId: string, itemId: string, dto: UpdateSetlistItemDto) {
-    const set = await this.findEditable(user, setlistId);
+    const set = await this.sets.findEditable(user, setlistId);
     const item = await this.findItem(setlistId, itemId);
     if (dto.songVersionId !== undefined && dto.songVersionId !== item.songVersionId) {
       const [current, next] = await Promise.all([
@@ -195,7 +260,8 @@ export class SetlistsService {
     await this.prisma.client.setlistItem.update({
       where: { id: itemId },
       data: {
-        ...(dto.songVersionId !== undefined && { songVersionId: dto.songVersionId }),
+        // A version picked from what's addable needs no sharing.
+        ...(dto.songVersionId !== undefined && dto.songVersionId !== item.songVersionId && { songVersionId: dto.songVersionId, sharedByUserId: null }),
         ...(dto.transposeSteps !== undefined && { transposeSteps: dto.transposeSteps }),
         ...(dto.notes !== undefined && { notes: dto.notes || null }),
       },
@@ -204,7 +270,7 @@ export class SetlistsService {
   }
 
   async removeItem(user: AuthenticatedUser, setlistId: string, itemId: string) {
-    await this.findEditable(user, setlistId);
+    await this.sets.findEditable(user, setlistId);
     await this.findItem(setlistId, itemId);
     await this.prisma.client.$transaction(async (tx) => {
       await tx.setlistItem.delete({ where: { id: itemId } });
@@ -216,7 +282,7 @@ export class SetlistsService {
 
   /** `itemIds` must list every item of the set exactly once. */
   async reorder(user: AuthenticatedUser, setlistId: string, itemIds: string[]) {
-    await this.findEditable(user, setlistId);
+    await this.sets.findEditable(user, setlistId);
     const existing = await this.prisma.client.setlistItem.findMany({ where: { setlistId }, select: { id: true } });
     const existingIds = new Set(existing.map((item) => item.id));
     if (itemIds.length !== existingIds.size || !itemIds.every((id) => existingIds.has(id))) {
@@ -228,16 +294,77 @@ export class SetlistsService {
     return this.findOne(user, setlistId);
   }
 
-  private async findEditable(user: AuthenticatedUser, setlistId: string): Promise<SetRow> {
-    const set = await this.prisma.client.setlist.findUnique({
+  /**
+   * One song of a set, as anyone who can open the set sees it - including
+   * guests, and songs that aren't in the viewer's own library - with the
+   * viewer's private notes on it and its neighbours in the set.
+   */
+  async songView(user: AuthenticatedUser, setlistId: string, itemId: string) {
+    const { access } = await this.sets.findViewable(user, setlistId);
+    const set = await this.prisma.client.setlist.findUniqueOrThrow({
       where: { id: setlistId },
-      select: { id: true, ownerUserId: true, ownerTeamId: true },
+      include: {
+        ownerTeam: { select: { name: true } },
+        ownerUser: { select: { displayName: true } },
+        items: { orderBy: { position: "asc" }, include: ITEM_INCLUDE },
+      },
     });
-    if (!set) throw new NotFoundException("Set not found");
-    const access = await this.access(user, set);
-    if (!access.canView) throw new NotFoundException("Set not found");
-    if (!access.canEdit) throw new ForbiddenException("Only the set's owner or a team admin can change it");
-    return set;
+    const index = set.items.findIndex((item) => item.id === itemId);
+    if (index === -1) throw new NotFoundException("Item not found");
+    const item = set.items[index]!;
+
+    const [readable, inViewersLibrary, note] = await Promise.all([
+      this.sets.readableItems(set, [item]),
+      this.sets.visibilityFor(user),
+      this.myNoteRow(user.id, itemId),
+    ]);
+    const song = item.songVersion;
+    const shown = readable.has(item.id) || inViewersLibrary(song);
+    const document = song.documentJson as { defaults?: { tempo?: unknown }; sections?: unknown[] } | null;
+
+    return {
+      set: { ...summarize(set), itemCount: set.items.length, canEdit: access.canEdit, isGuest: access.isGuest },
+      item: { id: item.id, position: item.position, transposeSteps: item.transposeSteps, notes: item.notes },
+      song: shown
+        ? {
+            ...toSongRef(song),
+            tempo: typeof document?.defaults?.tempo === "number" ? document.defaults.tempo : null,
+            sections: document?.sections ?? [],
+          }
+        : null,
+      inLibrary: inViewersLibrary(song),
+      sharedBy: shown && item.sharedBy ? { id: item.sharedBy.id, displayName: item.sharedBy.displayName } : null,
+      previousItemId: set.items[index - 1]?.id ?? null,
+      nextItemId: set.items[index + 1]?.id ?? null,
+      myNote: note?.content ?? "",
+    };
+  }
+
+  /** The viewer's private note on one song of the set; an empty one deletes it. */
+  async setMyNote(user: AuthenticatedUser, setlistId: string, itemId: string, content: string): Promise<{ myNote: string }> {
+    await this.sets.findViewable(user, setlistId);
+    await this.findItem(setlistId, itemId);
+    const text = content.trim();
+    if (text.length > NOTE_MAX_LENGTH) throw new BadRequestException(`Notes are limited to ${NOTE_MAX_LENGTH} characters`);
+    const existing = await this.myNoteRow(user.id, itemId);
+    if (!text) {
+      if (existing) await this.prisma.client.note.delete({ where: { id: existing.id } });
+      return { myNote: "" };
+    }
+    if (existing) {
+      await this.prisma.client.note.update({ where: { id: existing.id }, data: { content: text } });
+    } else {
+      await this.prisma.client.note.create({ data: { scope: "SETLIST_ITEM", content: text, authorUserId: user.id, setlistItemId: itemId } });
+    }
+    return { myNote: text };
+  }
+
+  // Private to its author for now; one per person per song in the set.
+  private myNoteRow(userId: string, itemId: string) {
+    return this.prisma.client.note.findFirst({
+      where: { scope: "SETLIST_ITEM", setlistItemId: itemId, authorUserId: userId },
+      select: { id: true, content: true },
+    });
   }
 
   private async findItem(setlistId: string, itemId: string) {
@@ -246,47 +373,8 @@ export class SetlistsService {
     return item;
   }
 
-  private async access(user: AuthenticatedUser, set: SetRow): Promise<{ canView: boolean; canEdit: boolean }> {
-    if (user.isGlobalAdmin || set.ownerUserId === user.id) return { canView: true, canEdit: true };
-    if (!set.ownerTeamId) return { canView: false, canEdit: false };
-    const membership = await this.prisma.client.teamMembership.findUnique({
-      where: { teamId_userId: { teamId: set.ownerTeamId, userId: user.id } },
-      select: { role: true },
-    });
-    return { canView: !!membership, canEdit: membership?.role === "ADMIN" };
-  }
-
-  private async assertTeamAdmin(user: AuthenticatedUser, teamId: string): Promise<void> {
-    if (user.isGlobalAdmin) {
-      const team = await this.prisma.client.team.findUnique({ where: { id: teamId }, select: { id: true } });
-      if (!team) throw new NotFoundException("Team not found");
-      return;
-    }
-    const membership = await this.prisma.client.teamMembership.findUnique({
-      where: { teamId_userId: { teamId, userId: user.id } },
-      select: { role: true },
-    });
-    if (membership?.role !== "ADMIN") throw new ForbiddenException("Team admin role required to create a team set");
-  }
-
-  /** Songs everyone who can open this set can also open (see the class comment). */
-  private async addableWhere(set: SetRow): Promise<Prisma.SongVersionWhereInput> {
-    const approvedGlobal: Prisma.SongVersionWhereInput = { ownerScope: "GLOBAL", publicationState: "APPROVED" };
-    if (set.ownerTeamId) {
-      return { OR: [approvedGlobal, { ownerScope: "TEAM", ownerTeamId: set.ownerTeamId }] };
-    }
-    const ownerTeams = await this.teamIdsOf(set.ownerUserId!);
-    return {
-      OR: [
-        approvedGlobal,
-        { ownerScope: "USER", ownerUserId: set.ownerUserId },
-        { ownerScope: "TEAM", ownerTeamId: { in: [...ownerTeams] } },
-      ],
-    };
-  }
-
   private async assertAddable(set: SetRow, songVersionId: string): Promise<void> {
-    const count = await this.prisma.client.songVersion.count({ where: { AND: [{ id: songVersionId }, await this.addableWhere(set)] } });
+    const count = await this.prisma.client.songVersion.count({ where: { AND: [{ id: songVersionId }, await this.sets.addableWhere(set)] } });
     if (count === 0) {
       throw new BadRequestException(
         set.ownerTeamId
@@ -295,21 +383,9 @@ export class SetlistsService {
       );
     }
   }
-
-  private async teamIdsOf(userId: string): Promise<Set<string>> {
-    const memberships = await this.prisma.client.teamMembership.findMany({ where: { userId }, select: { teamId: true } });
-    return new Set(memberships.map((m) => m.teamId));
-  }
 }
 
-function isVisibleTo(user: AuthenticatedUser, viewerTeams: Set<string>, song: SongRow): boolean {
-  if (user.isGlobalAdmin) return true;
-  if (song.ownerScope === "GLOBAL") return song.publicationState === "APPROVED";
-  if (song.ownerScope === "USER") return song.ownerUserId === user.id;
-  return !!song.ownerTeamId && viewerTeams.has(song.ownerTeamId);
-}
-
-function toSongRef(song: SongRow): SongRef {
+export function toSongRef(song: SongRow): SongRef {
   const defaults = (song.documentJson as { defaults?: { key?: unknown } } | null)?.defaults;
   return {
     id: song.id,
@@ -321,13 +397,22 @@ function toSongRef(song: SongRow): SongRef {
   };
 }
 
-function summarize(set: { id: string; name: string | null; eventDate: Date | null; ownerTeamId: string | null }, teamName: string | null) {
+export function summarize(set: {
+  id: string;
+  name: string | null;
+  eventDate: Date | null;
+  ownerTeamId: string | null;
+  ownerTeam?: { name: string } | null;
+  ownerUser?: { displayName: string } | null;
+}) {
   return {
     id: set.id,
     name: set.name,
     eventDate: set.eventDate ? formatDate(set.eventDate) : null,
     teamId: set.ownerTeamId,
-    teamName,
+    teamName: set.ownerTeam?.name ?? null,
+    // Whose personal set it is, for guests.
+    ownerName: set.ownerTeamId ? null : (set.ownerUser?.displayName ?? null),
   };
 }
 

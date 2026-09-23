@@ -94,8 +94,12 @@ export interface SetlistSummary {
   /** Null for a personal set. */
   teamId: string | null;
   teamName: string | null;
+  /** Whose personal set it is; null for a team set. */
+  ownerName: string | null;
   itemCount: number;
   canEdit: boolean;
+  /** Shared with the current user by link, rather than theirs or their team's. */
+  isGuest: boolean;
 }
 
 export interface SetlistItem {
@@ -104,14 +108,67 @@ export interface SetlistItem {
   /** Semitones relative to the song's own key. */
   transposeSteps: number;
   notes: string | null;
-  /** Null when the song isn't visible to the current user. */
+  /** Null when the song isn't readable by the current user (shown as a placeholder). */
   song: SetlistSongRef | null;
+  /** Also in the current user's own library, i.e. openable outside the set. */
+  inLibrary: boolean;
+  /** Someone's personal song shared into this (team) set by them, read-only. */
+  sharedBy: { id: string; displayName: string } | null;
+  /** The set's team has asked for this song; `canDecide` when it's the current user's. */
+  ownershipRequest: { id: string; canDecide: boolean } | null;
+  /** A team admin can ask for this shared song (or, owning it, hand it over). */
+  canRequestOwnership: boolean;
   /** Versions of the same song this item can switch to (editors only). */
   versions: SetlistSongRef[];
 }
 
 export interface SetlistDetail extends SetlistSummary {
   items: SetlistItem[];
+}
+
+/** One song of a set, as anyone who can open the set sees it. */
+export interface SetlistSongView {
+  set: SetlistSummary;
+  item: { id: string; position: number; transposeSteps: number; notes: string | null };
+  song: (SetlistSongRef & { tempo: number | null; sections: SongDocument["sections"] }) | null;
+  inLibrary: boolean;
+  sharedBy: { id: string; displayName: string } | null;
+  previousItemId: string | null;
+  nextItemId: string | null;
+  /** The current user's private note on this song of the set. */
+  myNote: string;
+}
+
+export interface SetlistGuest {
+  userId: string;
+  displayName: string;
+  email: string;
+  avatarUrl: string | null;
+  joinedAt: string;
+}
+
+export interface SetlistSharing {
+  link: { token: string; createdAt: string } | null;
+  guests: SetlistGuest[];
+}
+
+export interface SetInvitePreview {
+  name: string | null;
+  eventDate: string | null;
+  teamName: string | null;
+  ownerName: string | null;
+  itemCount: number;
+}
+
+export interface SongOwnershipRequest {
+  id: string;
+  createdAt: string;
+  song: { id: string; title: string };
+  team: { id: string; name: string };
+  requestedByName: string | null;
+  setlistId: string | null;
+  /** When false, handing the song over means losing access to it. */
+  ownerIsTeamMember: boolean;
 }
 
 export interface UserProfile {
@@ -687,7 +744,8 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized }: ApiClient
     createSetlist: (data: { name?: string; eventDate?: string; teamId?: string }) =>
       request<SetlistSummary>("/setlists", { method: "POST", body: JSON.stringify(data) }),
     getSetlist: (setlistId: string) => request<SetlistDetail>(`/setlists/${setlistId}`),
-    updateSetlist: (setlistId: string, data: { name?: string | null; eventDate?: string | null }) =>
+    /** `teamId` moves the set to that team, or (null) makes it the current user's personal set. */
+    updateSetlist: (setlistId: string, data: { name?: string | null; eventDate?: string | null; teamId?: string | null }) =>
       request<SetlistDetail>(`/setlists/${setlistId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteSetlist: (setlistId: string) => request<void>(`/setlists/${setlistId}`, { method: "DELETE" }),
     searchSetlistSongs: (setlistId: string, query: string) =>
@@ -701,6 +759,25 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized }: ApiClient
     ) => request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "PATCH", body: JSON.stringify(data) }),
     removeSetlistItem: (setlistId: string, itemId: string) =>
       request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "DELETE" }),
+    getSetlistSong: (setlistId: string, itemId: string) => request<SetlistSongView>(`/setlists/${setlistId}/items/${itemId}/song`),
+    /** An empty note deletes it. */
+    setSetlistNote: (setlistId: string, itemId: string, content: string) =>
+      request<{ myNote: string }>(`/setlists/${setlistId}/items/${itemId}/my-note`, { method: "PUT", body: JSON.stringify({ content }) }),
+    requestSongOwnership: (setlistId: string, itemId: string) =>
+      request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}/ownership-request`, { method: "POST" }),
+    getSetlistSharing: (setlistId: string) => request<SetlistSharing>(`/setlists/${setlistId}/sharing`),
+    /** Turns the share link on, or replaces it (the old one stops working). */
+    resetSetlistShareLink: (setlistId: string) => request<SetlistSharing>(`/setlists/${setlistId}/share-link`, { method: "POST" }),
+    removeSetlistShareLink: (setlistId: string) => request<SetlistSharing>(`/setlists/${setlistId}/share-link`, { method: "DELETE" }),
+    removeSetlistGuest: (setlistId: string, userId: string) =>
+      request<SetlistSharing>(`/setlists/${setlistId}/guests/${userId}`, { method: "DELETE" }),
+    leaveSetlist: (setlistId: string) => request<void>(`/setlists/${setlistId}/leave`, { method: "POST" }),
+    getSetInvite: (token: string) => request<SetInvitePreview>(`/set-invites/${encodeURIComponent(token)}`),
+    joinSetInvite: (token: string) =>
+      request<{ setlistId: string }>(`/set-invites/${encodeURIComponent(token)}/join`, { method: "POST" }),
+    listOwnershipRequests: () => request<SongOwnershipRequest[]>("/ownership-requests"),
+    acceptOwnershipRequest: (requestId: string) => request<void>(`/ownership-requests/${requestId}/accept`, { method: "POST" }),
+    declineOwnershipRequest: (requestId: string) => request<void>(`/ownership-requests/${requestId}/decline`, { method: "POST" }),
     reorderSetlistItems: (setlistId: string, itemIds: string[]) =>
       request<SetlistDetail>(`/setlists/${setlistId}/items/order`, { method: "PUT", body: JSON.stringify({ itemIds }) }),
     createSongVersion: (data: CreateSongVersionInput) =>

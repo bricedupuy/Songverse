@@ -51,6 +51,17 @@ export class UpdateSetlistDto {
   @ValidateIf((_, value) => value !== null)
   @Matches(DATE_ONLY, { message: "eventDate must be YYYY-MM-DD" })
   eventDate?: string | null;
+
+  @ApiProperty({
+    required: false,
+    nullable: true,
+    type: String,
+    description: "Move the set to this team (you must be one of its admins), or null to make it your personal set",
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  teamId?: string | null;
 }
 
 export class AddSetlistItemDto {
@@ -95,4 +106,11 @@ export class ReorderSetlistItemsDto {
   @ArrayMaxSize(500)
   @IsString({ each: true })
   itemIds!: string[];
+}
+
+export class MyNoteDto {
+  @ApiProperty({ description: "Private to you; empty deletes it", maxLength: 5000 })
+  @IsString()
+  @MaxLength(5000)
+  content!: string;
 }

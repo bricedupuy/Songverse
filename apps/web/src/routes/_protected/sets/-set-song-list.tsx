@@ -13,21 +13,31 @@ import { TRANSPOSE_STEP_OPTIONS, type SetlistItem, type SetlistSongRef } from "@
 import { Link } from "@tanstack/react-router";
 import { GripVertical, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { transposeLabel } from "#/lib/setlists";
 
 const SELECT_CLASS =
   "h-8 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
 
+/** Handing shared personal songs over to a team set's team (see SongOwnershipService in the API). */
+export interface OwnershipActions {
+  currentUserId: string;
+  onRequest: (itemId: string) => void;
+  onDecide: (requestId: string, accept: boolean) => void;
+}
+
 interface SetSongListProps {
+  setlistId: string;
   items: SetlistItem[];
   canEdit: boolean;
+  ownership: OwnershipActions;
   onReorder: (items: SetlistItem[]) => void;
   onChangeItem: (itemId: string, change: { songVersionId?: string; transposeSteps?: number }) => void;
   onRemoveItem: (itemId: string) => void;
 }
 
-export function SetSongList({ items, canEdit, onReorder, onChangeItem, onRemoveItem }: SetSongListProps) {
+export function SetSongList({ setlistId, items, canEdit, ownership, onReorder, onChangeItem, onRemoveItem }: SetSongListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -48,7 +58,9 @@ export function SetSongList({ items, canEdit, onReorder, onChangeItem, onRemoveI
           {items.map((item, index) => (
             <SongRow
               key={item.id}
+              setlistId={setlistId}
               item={item}
+              ownership={ownership}
               index={index}
               canEdit={canEdit}
               onChange={(change) => onChangeItem(item.id, change)}
@@ -68,13 +80,17 @@ function scopeLabel(song: SetlistSongRef, t: (key: string) => string): string {
 }
 
 function SongRow({
+  setlistId,
   item,
+  ownership,
   index,
   canEdit,
   onChange,
   onRemove,
 }: {
+  setlistId: string;
   item: SetlistItem;
+  ownership: OwnershipActions;
   index: number;
   canEdit: boolean;
   onChange: (change: { songVersionId?: string; transposeSteps?: number }) => void;
@@ -108,14 +124,20 @@ function SongRow({
         </button>
       ) : null}
       <span className="w-6 text-right text-sm tabular-nums text-muted-foreground">{index + 1}.</span>
-      <div className="min-w-0 flex-1">
+      {/* Wide enough to read; the controls wrap below it on a narrow screen. */}
+      <div className="flex min-w-40 flex-1 flex-col gap-1">
         {song ? (
-          <Link to="/library/$songVersionId" params={{ songVersionId: song.id }} className="font-medium hover:underline">
+          <Link
+            to="/sets/$setlistId/songs/$itemId"
+            params={{ setlistId, itemId: item.id }}
+            className="font-medium hover:underline"
+          >
             {song.title}
           </Link>
         ) : (
           <span className="text-sm italic text-muted-foreground">{title}</span>
         )}
+        <OwnershipLine item={item} ownership={ownership} />
       </div>
 
       {song && canEdit && item.versions.length > 1 ? (
@@ -156,5 +178,36 @@ function SongRow({
         </Button>
       ) : null}
     </li>
+  );
+}
+
+/** "Shared by …" and, for a team set, asking for / handing over / deciding on the song. */
+function OwnershipLine({ item, ownership }: { item: SetlistItem; ownership: OwnershipActions }) {
+  const { t } = useTranslation();
+  if (!item.sharedBy && !item.ownershipRequest) return null;
+  const sharedByMe = item.sharedBy?.id === ownership.currentUserId;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {item.sharedBy ? (
+        <Badge variant="muted">{sharedByMe ? t("sets.sharedByYou") : t("sets.sharedBy", { name: item.sharedBy.displayName })}</Badge>
+      ) : null}
+      {item.ownershipRequest?.canDecide ? (
+        <>
+          <span className="text-xs text-muted-foreground">{t("sets.teamAskedForYourSong")}</span>
+          <Button size="sm" variant="outline" className="h-7" onClick={() => ownership.onDecide(item.ownershipRequest!.id, true)}>
+            {t("sets.accept")}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7" onClick={() => ownership.onDecide(item.ownershipRequest!.id, false)}>
+            {t("sets.decline")}
+          </Button>
+        </>
+      ) : item.ownershipRequest ? (
+        <Badge variant="warning">{t("sets.requested")}</Badge>
+      ) : item.canRequestOwnership ? (
+        <Button size="sm" variant="outline" className="h-7" onClick={() => ownership.onRequest(item.id)}>
+          {sharedByMe ? t("sets.giveToTeam") : t("sets.askForSong")}
+        </Button>
+      ) : null}
+    </div>
   );
 }

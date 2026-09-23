@@ -3,11 +3,12 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
 import { DataTable } from "#/components/ui/data-table";
 import { apiClient } from "#/lib/api-client";
-import { formatSetDate, setlistTitle } from "#/lib/setlists";
+import { formatSetDate, setOwnerLabel, setlistTitle } from "#/lib/setlists";
 
 export const Route = createFileRoute("/_protected/sets/")({
   loader: () => apiClient.listSetlists(),
@@ -25,7 +26,12 @@ function SetsIndex() {
         id: "title",
         accessorFn: (set) => setlistTitle(set, t, i18n.language),
         header: t("sets.columnSet"),
-        cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+        cell: ({ row, getValue }) => (
+          <span className="flex items-center gap-2 font-medium">
+            {getValue<string>()}
+            {row.original.isGuest ? <Badge variant="muted">{t("sets.guestBadge")}</Badge> : null}
+          </span>
+        ),
       },
       {
         id: "date",
@@ -35,8 +41,9 @@ function SetsIndex() {
       },
       {
         id: "owner",
-        accessorFn: (set) => set.teamName ?? t("sets.personal"),
+        accessorFn: (set) => setOwnerLabel(set, t),
         header: t("sets.columnOwner"),
+        meta: { secondary: true },
       },
       {
         accessorKey: "itemCount",
