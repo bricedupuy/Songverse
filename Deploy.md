@@ -127,6 +127,14 @@ AUTH_URL=https://songverse.one
 API_URL=https://api.songverse.one
 BETTER_AUTH_SECRET=<generate one — see below>
 PORT=3000
+
+# Transactional email (verification + password reset) — see below
+RESEND_API_KEY=<Resend API key>
+EMAIL_FROM=SongVerse <onboarding@resend.dev>
+
+# Google sign-in — optional, see below
+GOOGLE_CLIENT_ID=<Google OAuth client ID>
+GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
 ```
 
 **`AUTH_URL` vs `API_URL`, since it's easy to mix up:** `AUTH_URL` is always the **Web app's** own address, on every service that has it — it's where the login system (BetterAuth) actually lives, and the API needs to know it to verify login tokens. `API_URL` is the **API's** address, and only the Web app needs it, so it knows where to send data requests.
@@ -136,6 +144,12 @@ PORT=3000
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 Keep this stable once set — BetterAuth encrypts its signing key with it in the database, so changing the secret without clearing the `Jwks` table breaks login for everyone until you do.
+
+**`RESEND_API_KEY` / `EMAIL_FROM`:** email addresses now have to be verified before sign-in works (`emailAndPassword.requireEmailVerification` in `apps/web/src/lib/auth.ts`), and "forgot password" sends a reset link — both go out through [Resend](https://resend.com). Sign up for a free account, verify a sending domain (or use their shared `onboarding@resend.dev` sender for testing), and create an API key. If `RESEND_API_KEY` is left unset, emails are logged to the container's stdout instead of sent — fine for local dev, **not fine in production** (nobody can verify their account). The app only ever sends these two transactional emails, never bulk/marketing mail, specifically to stay inside the free tier's daily/monthly send cap — don't add new call sites to `apps/web/src/lib/email.ts` without keeping that in mind.
+
+**`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`:** optional. Leave both unset to keep email+password (and passkeys) as the only sign-in methods — the "Continue with Google" button only renders once both are set (see `apps/web/src/lib/public-env.ts`). To enable it, create an OAuth 2.0 Client ID at the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) with an authorized redirect URI of `<AUTH_URL>/api/auth/callback/google` (e.g. `https://songverse.one/api/auth/callback/google`).
+
+**Passkeys** (`@better-auth/passkey`) need no extra configuration — they're derived from `AUTH_URL` at boot (the relying-party ID is its hostname).
 
 Deploy the API and Worker first, then the Web app (Web's build doesn't strictly depend on the others being up, but it's a sane order).
 

@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Database,
   FileStack,
+  KeyRound,
   LayoutDashboard,
   LogOut,
   Music2,
@@ -104,6 +105,12 @@ export function AppSidebar({
                   <Link to="/dashboard">
                     <LayoutDashboard />
                     {t("nav.dashboard")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/account">
+                    <KeyRound />
+                    {t("nav.account")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

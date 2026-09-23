@@ -5,11 +5,13 @@
 const en = {
   common: {
     noLanguage: "No language",
+    loading: "Loading…",
   },
   nav: {
     platform: "Platform",
     library: "Library",
     dashboard: "Dashboard",
+    account: "Account settings",
     admin: "Admin",
     signOut: "Sign out",
     teams: "Teams",
@@ -239,6 +241,20 @@ const en = {
     importDescription: "Creates a new songbook you own, with a placeholder for each catalog entry - you add the lyrics/chords yourself.",
     startImport: "Create songbook",
     startingImport: "Creating…",
+  },
+  account: {
+    title: "Account settings",
+    passkeys: "Passkeys",
+    passkeysDescription: "Sign in without a password using your device's fingerprint, face, or screen lock.",
+    noPasskeysYet: "No passkeys added yet.",
+    addedOn: "Added {{date}}",
+    passkeyNameLabel: "Name (optional)",
+    passkeyNamePlaceholder: "e.g. My laptop",
+    addPasskey: "Add a passkey",
+    addingPasskey: "Adding…",
+    unnamedPasskey: "Passkey",
+    passkeyAddFailed: "Couldn't add this passkey.",
+    passkeyRemoveFailed: "Couldn't remove this passkey.",
   },
 };
 

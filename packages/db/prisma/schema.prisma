@@ -243,6 +243,7 @@ model User {
   // BetterAuth
   sessions Session[]
   accounts Account[]
+  passkeys Passkey[]
 
   @@index([email])
 }
@@ -299,6 +300,28 @@ model Verification {
   updatedAt  DateTime?
 
   @@index([identifier])
+}
+
+// Required by BetterAuth's passkey plugin (apps/web auth.ts) - one row per
+// registered WebAuthn credential, so a user can have several (e.g. laptop +
+// phone).
+model Passkey {
+  id           String   @id @default(cuid())
+  name         String?
+  publicKey    String
+  userId       String
+  credentialID String
+  counter      Int
+  deviceType   String
+  backedUp     Boolean
+  transports   String?
+  createdAt    DateTime @default(now())
+  aaguid       String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([credentialID])
 }
 
 // Signing keys for BetterAuth's JWT plugin (apps/web auth.ts), which the

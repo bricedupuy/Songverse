@@ -5,11 +5,13 @@ import type en from "./en.js";
 const fr: typeof en = {
   common: {
     noLanguage: "Aucune langue",
+    loading: "Chargement…",
   },
   nav: {
     platform: "Plateforme",
     library: "Bibliothèque",
     dashboard: "Tableau de bord",
+    account: "Paramètres du compte",
     admin: "Administration",
     signOut: "Se déconnecter",
     teams: "Équipes",
@@ -241,6 +243,21 @@ const fr: typeof en = {
     importDescription: "Crée un nouveau recueil que vous possédez, avec un espace réservé pour chaque entrée du catalogue - à vous d'ajouter les paroles/accords.",
     startImport: "Créer le recueil",
     startingImport: "Création…",
+  },
+  account: {
+    title: "Paramètres du compte",
+    passkeys: "Clés d'accès (passkeys)",
+    passkeysDescription:
+      "Connectez-vous sans mot de passe grâce à l'empreinte digitale, au visage ou au verrouillage d'écran de votre appareil.",
+    noPasskeysYet: "Aucune clé d'accès ajoutée pour l'instant.",
+    addedOn: "Ajoutée le {{date}}",
+    passkeyNameLabel: "Nom (facultatif)",
+    passkeyNamePlaceholder: "ex. Mon ordinateur portable",
+    addPasskey: "Ajouter une clé d'accès",
+    addingPasskey: "Ajout…",
+    unnamedPasskey: "Clé d'accès",
+    passkeyAddFailed: "Impossible d'ajouter cette clé d'accès.",
+    passkeyRemoveFailed: "Impossible de supprimer cette clé d'accès.",
   },
 };
 
