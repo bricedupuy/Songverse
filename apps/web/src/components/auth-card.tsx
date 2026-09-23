@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
 import { authClient } from "#/lib/auth-client";
-import { hasGoogleAuth } from "#/lib/public-env";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -11,7 +10,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 
 type View = "auth" | "forgot-password" | "forgot-password-sent" | "signup-check-email";
 
-export function AuthCard({ redirectTo = "/library" }: { redirectTo?: string }) {
+interface AuthCardProps {
+  redirectTo?: string;
+  /** Whether Google sign-in is configured (Admin > Auth, or env vars) - resolved by the root route, see __root.tsx. */
+  hasGoogleAuth: boolean;
+}
+
+export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardProps) {
   const [view, setView] = useState<View>("auth");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -252,7 +257,7 @@ export function AuthCard({ redirectTo = "/library" }: { redirectTo?: string }) {
           </TabsContent>
         </Tabs>
 
-        {hasGoogleAuth() ? (
+        {hasGoogleAuth ? (
           <>
             <div className="flex items-center gap-3">
               <Separator className="flex-1" />

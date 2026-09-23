@@ -1,12 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { StorageSettings } from "@songverse/db";
+import { decryptSecret, encryptSecret, maskSecret } from "@songverse/secret-crypto";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { PrismaService } from "../prisma/prisma.service";
 import { LocalDiskStorageDriver } from "./local-disk-storage.driver";
 import type { ObjectStorageDriver } from "./object-storage-driver";
-import { decryptSecret, encryptSecret } from "./secret-crypto";
 import { S3StorageDriver } from "./s3-storage.driver";
 
 export interface StoredObject {
@@ -37,10 +37,6 @@ export interface SaveStorageConfigInput {
 }
 
 const SINGLETON_ID = "singleton";
-
-function maskSecret(value: string): string {
-  return value.length <= 4 ? "••••" : `••••${value.slice(-4)}`;
-}
 
 function hasCompleteDbCredentials(
   settings: StorageSettings | null,

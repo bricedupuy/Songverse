@@ -128,11 +128,15 @@ API_URL=https://api.songverse.one
 BETTER_AUTH_SECRET=<generate one — see below>
 PORT=3000
 
-# Transactional email (verification + password reset) — see below
+# Encrypts secrets saved through Admin > Auth / Admin > Storage - see below
+SETTINGS_ENCRYPTION_KEY=<any long random string>
+
+# Transactional email (verification + password reset) — fallback only,
+# prefer Admin > Auth once the app is up. See below.
 RESEND_API_KEY=<Resend API key>
 EMAIL_FROM=SongVerse <onboarding@resend.dev>
 
-# Google sign-in — optional, see below
+# Google sign-in — optional, also configurable via Admin > Auth. See below.
 GOOGLE_CLIENT_ID=<Google OAuth client ID>
 GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
 ```
@@ -145,9 +149,11 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 Keep this stable once set — BetterAuth encrypts its signing key with it in the database, so changing the secret without clearing the `Jwks` table breaks login for everyone until you do.
 
-**`RESEND_API_KEY` / `EMAIL_FROM`:** email addresses now have to be verified before sign-in works (`emailAndPassword.requireEmailVerification` in `apps/web/src/lib/auth.ts`), and "forgot password" sends a reset link — both go out through [Resend](https://resend.com). Sign up for a free account, verify a sending domain (or use their shared `onboarding@resend.dev` sender for testing), and create an API key. If `RESEND_API_KEY` is left unset, emails are logged to the container's stdout instead of sent — fine for local dev, **not fine in production** (nobody can verify their account). The app only ever sends these two transactional emails, never bulk/marketing mail, specifically to stay inside the free tier's daily/monthly send cap — don't add new call sites to `apps/web/src/lib/email.ts` without keeping that in mind.
+**`SETTINGS_ENCRYPTION_KEY`:** the same var the API uses for R2 credentials (see above — reuse that value, or generate a separate one, either works since each app only ever decrypts what it itself encrypted). Required to save a Resend API key or Google client secret through Admin > Auth; without it, that panel still works but can't persist secrets, and falls back to reading `RESEND_API_KEY`/`GOOGLE_CLIENT_SECRET` from the environment.
 
-**`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`:** optional. Leave both unset to keep email+password (and passkeys) as the only sign-in methods — the "Continue with Google" button only renders once both are set (see `apps/web/src/lib/public-env.ts`). To enable it, create an OAuth 2.0 Client ID at the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) with an authorized redirect URI of `<AUTH_URL>/api/auth/callback/google` (e.g. `https://songverse.one/api/auth/callback/google`).
+**`RESEND_API_KEY` / `EMAIL_FROM`:** email addresses now have to be verified before sign-in works (`emailAndPassword.requireEmailVerification` in `apps/web/src/lib/auth.ts`), and "forgot password" sends a reset link — both go out through [Resend](https://resend.com). Sign up for a free account, verify a sending domain (or use their shared `onboarding@resend.dev` sender for testing), and create an API key. The env vars here are a fallback: once the app is up, sign in as a global admin and set this at **Admin > Auth** instead — it takes effect immediately, no redeploy needed. Whichever path is used, if no Resend API key is configured at all, emails are logged to the container's stdout instead of sent — fine for local dev, **not fine in production** (nobody can verify their account). The app only ever sends these two transactional emails, never bulk/marketing mail, specifically to stay inside the free tier's daily/monthly send cap — don't add new call sites to `apps/web/src/lib/email.ts` without keeping that in mind.
+
+**`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`:** optional, and also settable at **Admin > Auth** instead of these env vars. Leave both unset everywhere to keep email+password (and passkeys) as the only sign-in methods — the "Continue with Google" button only renders once either path is configured. To enable it, create an OAuth 2.0 Client ID at the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) with an authorized redirect URI of `<AUTH_URL>/api/auth/callback/google` (e.g. `https://songverse.one/api/auth/callback/google`).
 
 **Passkeys** (`@better-auth/passkey`) need no extra configuration — they're derived from `AUTH_URL` at boot (the relying-party ID is its hostname).
 

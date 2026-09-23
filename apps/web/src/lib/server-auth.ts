@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { prisma } from "@songverse/db";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type LocaleValue } from "@songverse/core";
-import { auth } from "./auth";
+import { getAuth } from "./auth";
 
 export interface AppSession {
   userId: string;
@@ -17,6 +17,7 @@ function asLocale(value: string): LocaleValue {
 }
 
 async function loadSession(): Promise<AppSession | null> {
+  const auth = await getAuth();
   const session = await auth.api.getSession({ headers: getRequest().headers });
   if (!session) return null;
 
@@ -50,6 +51,7 @@ export const ensureSession = createServerFn({ method: "GET" }).handler(async () 
 /** Mints a short-lived JWT for the current session, for calling the NestJS API. */
 export const getApiToken = createServerFn({ method: "GET" }).handler(async () => {
   const headers = getRequest().headers;
+  const auth = await getAuth();
   const session = await auth.api.getSession({ headers });
   if (!session) return null;
   const { token } = await auth.api.getToken({ headers });

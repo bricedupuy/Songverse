@@ -1345,3 +1345,19 @@ model StorageSettings {
   r2Endpoint           String?
   updatedAt            DateTime @updatedAt
 }
+
+// Singleton row (id is always the literal string "singleton") holding
+// admin-managed Resend and Google OAuth credentials, as an alternative to
+// the RESEND_API_KEY/EMAIL_FROM/GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET env
+// vars - see apps/web/src/lib/auth-settings.ts. When this row is absent
+// (or a field is null), auth-settings.ts falls back to the matching env
+// var. resendApiKeyEnc/googleClientSecretEnc are never stored or returned
+// in plaintext - see packages/core/src/secret-crypto.
+model AuthSettings {
+  id                    String   @id @default("singleton")
+  resendApiKeyEnc       String?
+  emailFrom             String?
+  googleClientId        String?
+  googleClientSecretEnc String?
+  updatedAt             DateTime @updatedAt
+}

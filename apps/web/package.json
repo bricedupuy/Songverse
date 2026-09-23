@@ -27,6 +27,7 @@
     "@radix-ui/react-tooltip": "^1.2.16",
     "@songverse/core": "workspace:*",
     "@songverse/db": "workspace:*",
+    "@songverse/secret-crypto": "workspace:*",
     "@tanstack/react-router": "^1.170.36",
     "@tanstack/react-start": "^1.168.54",
     "@tanstack/react-table": "^8.21.3",

@@ -2,6 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Music2 } from "lucide-react";
 import { AuthCard } from "#/components/auth-card";
 import { apiClient } from "#/lib/api-client";
+import { getHasGoogleAuth } from "#/lib/public-auth-flags";
 import { getSession } from "#/lib/server-auth";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -10,7 +11,7 @@ export const Route = createFileRoute("/join/$token")({
   beforeLoad: async ({ params }) => {
     const session = await getSession();
     if (!session) {
-      return { error: null };
+      return { error: null, hasGoogleAuth: await getHasGoogleAuth() };
     }
 
     let team: Awaited<ReturnType<typeof apiClient.joinTeamByToken>> | null = null;
@@ -24,14 +25,16 @@ export const Route = createFileRoute("/join/$token")({
     if (team) {
       throw redirect({ to: "/teams/$teamId", params: { teamId: team.id } });
     }
-    return { error: joinError };
+    // Already signed in at this point, so <AuthCard> never renders below -
+    // no need to resolve the real value.
+    return { error: joinError, hasGoogleAuth: false };
   },
   component: JoinTeamPage,
 });
 
 function JoinTeamPage() {
   const { token } = Route.useParams();
-  const { error } = Route.useRouteContext();
+  const { error, hasGoogleAuth } = Route.useRouteContext();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
@@ -56,7 +59,7 @@ function JoinTeamPage() {
           <p className="max-w-sm text-center text-sm text-muted-foreground">
             Sign in or create an account to accept this team invite.
           </p>
-          <AuthCard redirectTo={`/join/${token}`} />
+          <AuthCard redirectTo={`/join/${token}`} hasGoogleAuth={hasGoogleAuth} />
         </>
       )}
     </main>

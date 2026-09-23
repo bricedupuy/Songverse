@@ -2,8 +2,8 @@ import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { runSeed } from "@songverse/db";
+import { MissingEncryptionKeyError } from "@songverse/secret-crypto";
 import { PrismaService } from "../prisma/prisma.service";
-import { MissingEncryptionKeyError } from "../storage/secret-crypto";
 import { StorageService, type SaveStorageConfigInput } from "../storage/storage.service";
 
 // packages/db is always a sibling two levels up from wherever the API

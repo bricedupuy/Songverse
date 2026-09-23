@@ -1,26 +1,26 @@
 import { Resend } from "resend";
-
-const resendApiKey = process.env.RESEND_API_KEY;
-const emailFrom = process.env.EMAIL_FROM ?? "SongVerse <onboarding@resend.dev>";
-
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
+import { getEffectiveAuthSettings } from "#/lib/auth-settings";
 
 /**
- * Sends transactional email via Resend. If RESEND_API_KEY isn't set (e.g.
- * local dev), logs the email instead of sending it, so auth flows that
- * require an email step (verification, password reset) still work without
- * needing a real Resend account. This is the only place SongVerse sends
- * email - keep it that way, since Resend's free tier has a low daily/monthly
- * send cap and this app should only ever send verification/reset mail, never
- * bulk or marketing mail.
+ * Sends transactional email via Resend, using whichever Resend API key is
+ * currently effective - the admin-managed one (Admin > Auth) if set, else
+ * RESEND_API_KEY (see auth-settings.ts for the resolution order). If
+ * neither is set (e.g. local dev), logs the email instead of sending it,
+ * so auth flows that require an email step (verification, password reset)
+ * still work without needing a real Resend account. This is the only
+ * place SongVerse sends email - keep it that way, since Resend's free tier
+ * has a low daily/monthly send cap and this app should only ever send
+ * verification/reset mail, never bulk or marketing mail.
  */
 async function sendEmail(params: { to: string; subject: string; html: string; text: string }): Promise<void> {
-  if (!resend) {
+  const settings = await getEffectiveAuthSettings();
+  if (!settings.resendApiKey) {
     console.info(`[email:dev] To: ${params.to}\nSubject: ${params.subject}\n\n${params.text}`);
     return;
   }
+  const resend = new Resend(settings.resendApiKey);
   const { error } = await resend.emails.send({
-    from: emailFrom,
+    from: settings.emailFrom,
     to: params.to,
     subject: params.subject,
     html: params.html,

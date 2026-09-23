@@ -17,6 +17,7 @@ import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
+import { Route as ProtectedAdminAuthRouteImport } from './routes/_protected/admin/auth'
 import { Route as ProtectedAdminCatalogsRouteImport } from './routes/_protected/admin/catalogs'
 import { Route as ProtectedAdminMetadataRouteImport } from './routes/_protected/admin/metadata'
 import { Route as ProtectedAdminStorageRouteImport } from './routes/_protected/admin/storage'
@@ -72,6 +73,11 @@ const JoinTokenRoute = JoinTokenRouteImport.update({
 const ProtectedAdminIndexRoute = ProtectedAdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ProtectedAdminRoute,
+} as any)
+const ProtectedAdminAuthRoute = ProtectedAdminAuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => ProtectedAdminRoute,
 } as any)
 const ProtectedAdminCatalogsRoute = ProtectedAdminCatalogsRouteImport.update({
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof ProtectedAdminRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/admin/metadata': typeof ProtectedAdminMetadataRoute
   '/admin/storage': typeof ProtectedAdminStorageRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   '/account': typeof ProtectedAccountRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/admin/metadata': typeof ProtectedAdminMetadataRoute
   '/admin/storage': typeof ProtectedAdminStorageRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/join/$token': typeof JoinTokenRoute
+  '/_protected/admin/auth': typeof ProtectedAdminAuthRoute
   '/_protected/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/_protected/admin/metadata': typeof ProtectedAdminMetadataRoute
   '/_protected/admin/storage': typeof ProtectedAdminStorageRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/join/$token'
+    | '/admin/auth'
     | '/admin/catalogs'
     | '/admin/metadata'
     | '/admin/storage'
@@ -278,6 +288,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/dashboard'
     | '/join/$token'
+    | '/admin/auth'
     | '/admin/catalogs'
     | '/admin/metadata'
     | '/admin/storage'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/_protected/admin'
     | '/_protected/dashboard'
     | '/join/$token'
+    | '/_protected/admin/auth'
     | '/_protected/admin/catalogs'
     | '/_protected/admin/metadata'
     | '/_protected/admin/storage'
@@ -389,6 +401,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof ProtectedAdminIndexRouteImport
+      parentRoute: typeof ProtectedAdminRoute
+    }
+    '/_protected/admin/auth': {
+      id: '/_protected/admin/auth'
+      path: '/auth'
+      fullPath: '/admin/auth'
+      preLoaderRoute: typeof ProtectedAdminAuthRouteImport
       parentRoute: typeof ProtectedAdminRoute
     }
     '/_protected/admin/catalogs': {
@@ -514,6 +533,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ProtectedAdminRouteChildren {
+  ProtectedAdminAuthRoute: typeof ProtectedAdminAuthRoute
   ProtectedAdminCatalogsRoute: typeof ProtectedAdminCatalogsRoute
   ProtectedAdminMetadataRoute: typeof ProtectedAdminMetadataRoute
   ProtectedAdminStorageRoute: typeof ProtectedAdminStorageRoute
@@ -522,6 +542,7 @@ interface ProtectedAdminRouteChildren {
 }
 
 const ProtectedAdminRouteChildren: ProtectedAdminRouteChildren = {
+  ProtectedAdminAuthRoute: ProtectedAdminAuthRoute,
   ProtectedAdminCatalogsRoute: ProtectedAdminCatalogsRoute,
   ProtectedAdminMetadataRoute: ProtectedAdminMetadataRoute,
   ProtectedAdminStorageRoute: ProtectedAdminStorageRoute,

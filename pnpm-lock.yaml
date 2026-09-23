@@ -56,6 +56,9 @@ importers:
       '@songverse/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@songverse/secret-crypto':
+        specifier: workspace:*
+        version: link:../../packages/secret-crypto
       bullmq:
         specifier: ^5.34.6
         version: 5.81.5
@@ -156,6 +159,9 @@ importers:
       '@songverse/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@songverse/secret-crypto':
+        specifier: workspace:*
+        version: link:../../packages/secret-crypto
       '@tanstack/react-router':
         specifier: ^1.170.36
         version: 1.170.36(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -273,6 +279,18 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.23.13
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
+  packages/secret-crypto:
+    devDependencies:
+      '@songverse/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@types/node':
+        specifier: ^22.10.5
+        version: 22.20.2
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
