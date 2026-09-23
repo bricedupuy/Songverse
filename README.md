@@ -14,8 +14,13 @@ playing on Sunday, and share it with the people playing with you.
 - **MusicBrainz matching** – link a song to its MusicBrainz recording and
   work to pull in artist and songwriter credits.
 - **Songbooks** – simple or numbered collections, built by hand, imported
-  from a published songbook catalogue (CSV import supported), or filled by
-  bulk-uploading files matched to entries.
+  from a published songbook catalogue, or filled by bulk-uploading files
+  matched to entries.
+- **Songbook catalogues** – the numbers, titles, credits, keys, tempos,
+  scripture references and tags of published songbooks (facts only, no
+  lyrics), kept in an editable table, imported and exported as CSV or JSON
+  ([format](docs/songbook-catalog-format.md)). Songs created from a
+  catalogue entry start with its details filled in.
 - **Sets** – ordered song lists for a service or gig, dated or named, with
   drag-and-drop ordering, a version and key per song. Personal or owned by
   a team; share one with guest musicians by link, who can read every song

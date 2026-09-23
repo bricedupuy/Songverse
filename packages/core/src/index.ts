@@ -18,4 +18,5 @@ export * from "./i18n/index.js";
 export * from "./streaming-links/parser.js";
 export * from "./music-keys/transpose.js";
 export * from "./user-roles/index.js";
+export * from "./songbook-catalog-format/index.js";
 export * from "./api-client/index.js";

@@ -1,15 +1,29 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiQuery, ApiTags } from "@nestjs/swagger";
+import type { Response } from "express";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import { CatalogEntryResponseDto, CatalogResponseDto, ImportCatalogCsvResultDto } from "./dto/catalog-response.dto";
-import { CreateCatalogEntryDto } from "./dto/create-catalog-entry.dto";
+import { CatalogEntryInputDto } from "./dto/catalog-entry-input.dto";
+import { CatalogEntryResponseDto, CatalogResponseDto, ImportCatalogResultDto } from "./dto/catalog-response.dto";
 import { CreateCatalogDto } from "./dto/create-catalog.dto";
-import { ImportCatalogCsvDto } from "./dto/import-catalog-csv.dto";
-import { UpdateCatalogEntryDto } from "./dto/update-catalog-entry.dto";
+import { CatalogFileDto, ImportCatalogEntriesDto } from "./dto/import-catalog-file.dto";
 import { UpdateCatalogDto } from "./dto/update-catalog.dto";
-import type { ImportCsvResult } from "./songbook-catalog.service";
 import { SongbookCatalogService } from "./songbook-catalog.service";
 
+/** Reading is open to everyone signed in; changes are global-admin-only. File format: docs/songbook-catalog-format.md. */
 @ApiTags("songbook-catalog")
 @ApiBearerAuth()
 @Controller("songbook-catalogs")
@@ -18,30 +32,44 @@ export class SongbookCatalogController {
 
   @Get()
   @ApiOkResponse({ type: CatalogResponseDto, isArray: true })
-  findAll(): ReturnType<SongbookCatalogService["findAll"]> {
+  findAll() {
     return this.catalogService.findAll();
+  }
+
+  /** Creates a catalogue, details and entries, from a JSON export. */
+  @Post("import")
+  @UseGuards(GlobalAdminGuard)
+  createFromFile(@Body() dto: CatalogFileDto) {
+    return this.catalogService.createFromFile(dto);
   }
 
   @Get(":catalogId")
   @ApiOkResponse({ type: CatalogResponseDto })
-  findOne(@Param("catalogId") catalogId: string): ReturnType<SongbookCatalogService["findOne"]> {
+  findOne(@Param("catalogId") catalogId: string) {
     return this.catalogService.findOne(catalogId);
+  }
+
+  @Get(":catalogId/export")
+  @ApiQuery({ name: "format", enum: ["csv", "json"] })
+  async export(@Param("catalogId") catalogId: string, @Query("format") format: string, @Res() res: Response): Promise<void> {
+    if (format !== "csv" && format !== "json") throw new BadRequestException("format must be csv or json");
+    const file = await this.catalogService.export(catalogId, format);
+    res
+      .set({ "Content-Type": file.contentType, "Content-Disposition": `attachment; filename="${file.filename}"` })
+      .send(file.body);
   }
 
   @Post()
   @UseGuards(GlobalAdminGuard)
   @ApiCreatedResponse({ type: CatalogResponseDto })
-  create(@Body() dto: CreateCatalogDto): ReturnType<SongbookCatalogService["create"]> {
+  create(@Body() dto: CreateCatalogDto) {
     return this.catalogService.create(dto);
   }
 
   @Patch(":catalogId")
   @UseGuards(GlobalAdminGuard)
   @ApiOkResponse({ type: CatalogResponseDto })
-  update(
-    @Param("catalogId") catalogId: string,
-    @Body() dto: UpdateCatalogDto,
-  ): ReturnType<SongbookCatalogService["update"]> {
+  update(@Param("catalogId") catalogId: string, @Body() dto: UpdateCatalogDto) {
     return this.catalogService.update(catalogId, dto);
   }
 
@@ -55,21 +83,15 @@ export class SongbookCatalogController {
   @Post(":catalogId/entries")
   @UseGuards(GlobalAdminGuard)
   @ApiCreatedResponse({ type: CatalogEntryResponseDto })
-  addEntry(
-    @Param("catalogId") catalogId: string,
-    @Body() dto: CreateCatalogEntryDto,
-  ): ReturnType<SongbookCatalogService["addEntry"]> {
+  addEntry(@Param("catalogId") catalogId: string, @Body() dto: CatalogEntryInputDto) {
     return this.catalogService.addEntry(catalogId, dto);
   }
 
+  /** Changes only the fields sent. */
   @Patch(":catalogId/entries/:entryId")
   @UseGuards(GlobalAdminGuard)
   @ApiOkResponse({ type: CatalogEntryResponseDto })
-  updateEntry(
-    @Param("catalogId") catalogId: string,
-    @Param("entryId") entryId: string,
-    @Body() dto: UpdateCatalogEntryDto,
-  ): ReturnType<SongbookCatalogService["updateEntry"]> {
+  updateEntry(@Param("catalogId") catalogId: string, @Param("entryId") entryId: string, @Body() dto: CatalogEntryInputDto) {
     return this.catalogService.updateEntry(catalogId, entryId, dto);
   }
 
@@ -80,10 +102,12 @@ export class SongbookCatalogController {
     return this.catalogService.removeEntry(catalogId, entryId);
   }
 
-  @Post(":catalogId/entries/import-csv")
+  /** CSV or JSON; `dryRun` previews. See the service for merge/replace. */
+  @Post(":catalogId/entries/import")
   @UseGuards(GlobalAdminGuard)
-  @ApiOkResponse({ type: ImportCatalogCsvResultDto })
-  importCsv(@Param("catalogId") catalogId: string, @Body() dto: ImportCatalogCsvDto): Promise<ImportCsvResult> {
-    return this.catalogService.importCsv(catalogId, dto.csv);
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: ImportCatalogResultDto })
+  importEntries(@Param("catalogId") catalogId: string, @Body() dto: ImportCatalogEntriesDto) {
+    return this.catalogService.importEntries(catalogId, dto);
   }
 }

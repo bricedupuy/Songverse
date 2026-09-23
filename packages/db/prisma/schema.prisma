@@ -964,15 +964,35 @@ model SongbookCatalog {
   @@index([name])
 }
 
+// One song of a published songbook: facts about it, never its content. The
+// fields and the CSV/JSON file format are defined together in
+// packages/core/src/songbook-catalog-format/ (and docs/songbook-catalog-format.md).
 model SongbookCatalogEntry {
   id               String   @id @default(cuid())
   catalogId        String
   entryCode        String // e.g. "0245"
   title            String
+  sortTitle        String?
+  subtitle         String?
+  // Another entry this one translates or adapts, as written: "JEM 245"
+  // (catalogue abbreviation and number) or just a number in this catalogue.
+  // Resolved to a link when read, so it links up once that entry exists.
+  originalSong     String?
   originalLanguage String?
+  artist           String?
   composer         String?
-  author           String?
+  lyricist         String?
+  album            String?
+  year             Int?
+  key              String?
+  timeSignature    String? // "4/4"
+  tempo            Int?
+  copyright        String?
   ccli             String?
+  // e.g. the scripture a song draws on.
+  reference        String?
+  tags             String[] @default([])
+  notes            String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

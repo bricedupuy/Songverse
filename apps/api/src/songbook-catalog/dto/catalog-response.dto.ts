@@ -1,13 +1,37 @@
 import { ApiProperty } from "@nestjs/swagger";
 
+export class CatalogEntryOriginalDto {
+  @ApiProperty() catalogId!: string;
+  @ApiProperty() catalogName!: string;
+  @ApiProperty({ nullable: true }) catalogAbbreviation!: string | null;
+  @ApiProperty() entryId!: string;
+  @ApiProperty() entryCode!: string;
+  @ApiProperty() title!: string;
+}
+
 export class CatalogEntryResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty() entryCode!: string;
   @ApiProperty() title!: string;
-  @ApiProperty({ required: false, nullable: true }) originalLanguage!: string | null;
-  @ApiProperty({ required: false, nullable: true }) composer!: string | null;
-  @ApiProperty({ required: false, nullable: true }) author!: string | null;
-  @ApiProperty({ required: false, nullable: true }) ccli!: string | null;
+  @ApiProperty({ nullable: true }) sortTitle!: string | null;
+  @ApiProperty({ nullable: true }) subtitle!: string | null;
+  @ApiProperty({ nullable: true, description: 'As written, e.g. "JEM 245"' }) originalSong!: string | null;
+  @ApiProperty({ nullable: true, type: CatalogEntryOriginalDto, description: "The entry originalSong points to, when it exists" })
+  original!: CatalogEntryOriginalDto | null;
+  @ApiProperty({ nullable: true }) originalLanguage!: string | null;
+  @ApiProperty({ nullable: true }) artist!: string | null;
+  @ApiProperty({ nullable: true }) composer!: string | null;
+  @ApiProperty({ nullable: true }) lyricist!: string | null;
+  @ApiProperty({ nullable: true }) album!: string | null;
+  @ApiProperty({ nullable: true }) year!: number | null;
+  @ApiProperty({ nullable: true }) key!: string | null;
+  @ApiProperty({ nullable: true }) timeSignature!: string | null;
+  @ApiProperty({ nullable: true }) tempo!: number | null;
+  @ApiProperty({ nullable: true }) copyright!: string | null;
+  @ApiProperty({ nullable: true }) ccli!: string | null;
+  @ApiProperty({ nullable: true }) reference!: string | null;
+  @ApiProperty({ type: [String] }) tags!: string[];
+  @ApiProperty({ nullable: true }) notes!: string | null;
 }
 
 export class CatalogResponseDto {
@@ -25,8 +49,27 @@ export class CatalogResponseDto {
   entries?: CatalogEntryResponseDto[];
 }
 
-export class ImportCatalogCsvResultDto {
+export class CatalogFileProblemDto {
+  @ApiProperty({ nullable: true, description: "Row number (CSV line, header = 1; or JSON entry position from 1); null for the whole file" })
+  row!: number | null;
+  @ApiProperty() message!: string;
+}
+
+export class CatalogChangeDto {
+  @ApiProperty() entryCode!: string;
+  @ApiProperty({ enum: ["create", "update", "delete"] }) kind!: "create" | "update" | "delete";
+  @ApiProperty({ type: [String], description: "Fields that change (updates)" }) fields!: string[];
+}
+
+export class ImportCatalogResultDto {
+  @ApiProperty({ enum: ["csv", "json"] }) format!: "csv" | "json";
+  @ApiProperty() dryRun!: boolean;
+  @ApiProperty({ description: "False when nothing was saved (dry run, or replace mode with problems)" }) applied!: boolean;
   @ApiProperty() created!: number;
   @ApiProperty() updated!: number;
-  @ApiProperty({ type: String, isArray: true }) errors!: string[];
+  @ApiProperty() unchanged!: number;
+  @ApiProperty() deleted!: number;
+  @ApiProperty({ type: [CatalogFileProblemDto] }) problems!: CatalogFileProblemDto[];
+  @ApiProperty({ type: [String] }) unknownColumns!: string[];
+  @ApiProperty({ type: [CatalogChangeDto], description: "The first 500 changes" }) changes!: CatalogChangeDto[];
 }

@@ -1,10 +1,10 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { LanguageSelect } from "#/components/language-select";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
@@ -112,6 +112,56 @@ function NewSongbookCatalog() {
       <Button onClick={() => void submit()} disabled={submitting || !name.trim()}>
         {submitting ? t("songbookCatalog.creating") : t("songbookCatalog.createCatalog")}
       </Button>
+
+      <CreateFromFileCard />
     </div>
+  );
+}
+
+/** A whole catalogue - details and entries - from a JSON export (see docs/songbook-catalog-format.md). */
+function CreateFromFileCard() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function create(file: File | undefined) {
+    if (!file) return;
+    setPending(true);
+    setError(null);
+    try {
+      const { catalog } = await apiClient.createSongbookCatalogFromFile({ content: await file.text(), filename: file.name });
+      await navigate({ to: "/songbook-catalogs/$catalogId", params: { catalogId: catalog.id } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setPending(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">{t("songbookCatalog.createFromFile")}</CardTitle>
+        <CardDescription>{t("songbookCatalog.createFromFileHint")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2">
+        <Button variant="outline" className="self-start" disabled={pending} onClick={() => fileInput.current?.click()}>
+          {pending ? t("songbookCatalog.creating") : t("songbookCatalog.chooseFile")}
+        </Button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          data-testid="catalog-create-file"
+          onChange={(event) => {
+            void create(event.target.files?.[0]);
+            event.target.value = "";
+          }}
+        />
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      </CardContent>
+    </Card>
   );
 }

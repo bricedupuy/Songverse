@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
 import type { Express } from "express";
@@ -9,7 +10,10 @@ import { getAuth } from "./auth/better-auth";
 
 async function bootstrap() {
   const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Above Express's 100kb default: a songbook catalogue file is imported as
+  // JSON text (see ImportCatalogEntriesDto's own 10 MB cap).
+  app.useBodyParser("json", { limit: "12mb" });
 
   // Registered via `app.enableCors()` rather than `NestFactory.create`'s
   // `cors` option: the option only takes effect once Nest actually

@@ -1,4 +1,5 @@
 import type { InstrumentValue, TechRoleValue } from "../constants/index.js";
+import type { CatalogEntryData, CatalogEntryFieldKey, CatalogFileProblem } from "../songbook-catalog-format/index.js";
 import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SongDocument } from "../schemas/song-document.js";
@@ -340,14 +341,18 @@ export interface UpdateSongbookInput {
   sections?: SongbookSection[];
 }
 
-export interface SongbookCatalogEntry {
+/** Every field of the catalogue file format (see songbook-catalog-format), plus where "Original song" points. */
+export interface SongbookCatalogEntry extends CatalogEntryData {
   id: string;
-  entryCode: string;
-  title: string;
-  originalLanguage: string | null;
-  composer: string | null;
-  author: string | null;
-  ccli: string | null;
+  /** The entry `originalSong` refers to ("JEM 245"), when it exists in SongVerse. */
+  original: {
+    catalogId: string;
+    catalogName: string;
+    catalogAbbreviation: string | null;
+    entryId: string;
+    entryCode: string;
+    title: string;
+  } | null;
 }
 
 export interface SongbookCatalogSummary {
@@ -381,21 +386,22 @@ export interface CreateSongbookCatalogInput {
 
 export type UpdateSongbookCatalogInput = Partial<CreateSongbookCatalogInput>;
 
-export interface CreateSongbookCatalogEntryInput {
-  entryCode: string;
-  title: string;
-  originalLanguage?: string;
-  composer?: string;
-  author?: string;
-  ccli?: string;
-}
+/** Any fields of an entry; null or "" clears, a field left out is left alone. */
+export type SongbookCatalogEntryInput = { [K in keyof CatalogEntryData]?: CatalogEntryData[K] | null };
 
-export type UpdateSongbookCatalogEntryInput = Partial<CreateSongbookCatalogEntryInput>;
-
-export interface ImportSongbookCatalogCsvResult {
+export interface SongbookCatalogImportResult {
+  format: "csv" | "json";
+  dryRun: boolean;
+  /** False when nothing was saved: a dry run, or replace mode with problems in the file. */
+  applied: boolean;
   created: number;
   updated: number;
-  errors: string[];
+  unchanged: number;
+  deleted: number;
+  problems: CatalogFileProblem[];
+  unknownColumns: string[];
+  /** The first 500 changes. */
+  changes: { entryCode: string; kind: "create" | "update" | "delete"; fields: CatalogEntryFieldKey[] }[];
 }
 
 export type AttachmentType = "PDF" | "CHORDPRO" | "MUSICXML" | "ABC_NOTATION" | "TEXT" | "IMAGE";
@@ -681,23 +687,42 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized }: ApiClient
       }),
     deleteSongbookCatalog: (catalogId: string) =>
       request<void>(`/songbook-catalogs/${catalogId}`, { method: "DELETE" }),
-    addSongbookCatalogEntry: (catalogId: string, data: CreateSongbookCatalogEntryInput) =>
+    addSongbookCatalogEntry: (catalogId: string, data: SongbookCatalogEntryInput & { entryCode: string; title: string }) =>
       request<SongbookCatalogEntry>(`/songbook-catalogs/${catalogId}/entries`, {
         method: "POST",
         body: JSON.stringify(data),
       }),
-    updateSongbookCatalogEntry: (catalogId: string, entryId: string, data: UpdateSongbookCatalogEntryInput) =>
+    /** Changes only the fields given. */
+    updateSongbookCatalogEntry: (catalogId: string, entryId: string, data: SongbookCatalogEntryInput) =>
       request<SongbookCatalogEntry>(`/songbook-catalogs/${catalogId}/entries/${entryId}`, {
         method: "PATCH",
         body: JSON.stringify(data),
       }),
     removeSongbookCatalogEntry: (catalogId: string, entryId: string) =>
       request<void>(`/songbook-catalogs/${catalogId}/entries/${entryId}`, { method: "DELETE" }),
-    importSongbookCatalogCsv: (catalogId: string, csv: string) =>
-      request<ImportSongbookCatalogCsvResult>(`/songbook-catalogs/${catalogId}/entries/import-csv`, {
+    /** A CSV or JSON catalogue file (see docs/songbook-catalog-format.md); `dryRun` previews. */
+    importSongbookCatalogEntries: (
+      catalogId: string,
+      file: { content: string; filename?: string; mode?: "merge" | "replace"; dryRun?: boolean },
+    ) =>
+      request<SongbookCatalogImportResult>(`/songbook-catalogs/${catalogId}/entries/import`, {
         method: "POST",
-        body: JSON.stringify({ csv }),
+        body: JSON.stringify(file),
       }),
+    /** A new catalogue, details and entries, from a JSON export. */
+    createSongbookCatalogFromFile: (file: { content: string; filename?: string }) =>
+      request<{ catalog: SongbookCatalogSummary; import: SongbookCatalogImportResult }>("/songbook-catalogs/import", {
+        method: "POST",
+        body: JSON.stringify(file),
+      }),
+    exportSongbookCatalog: async (catalogId: string, format: "csv" | "json"): Promise<Blob> => {
+      const token = await getToken();
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+      const response = await fetch(`${baseUrl}/songbook-catalogs/${catalogId}/export?format=${format}`, { headers });
+      if (!response.ok) throw await failed(response);
+      return response.blob();
+    },
 
     listWorks: () => request<Array<{ id: string; title: string | null; createdAt: string }>>("/works"),
     getWork: (workId: string) => request<WorkDetail>(`/works/${workId}`),

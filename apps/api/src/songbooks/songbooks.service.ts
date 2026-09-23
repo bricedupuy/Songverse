@@ -196,9 +196,10 @@ export class SongbooksService {
     });
     if (existing) throw new ConflictException("This catalog entry has already been imported");
 
-    const version = await this.songVersionsService.createOwned(
+    const version = await this.songVersionsService.createFromCatalogEntry(
       { ownerScope: songbook.ownerScope, ownerUserId: songbook.ownerUserId, ownerTeamId: songbook.ownerTeamId },
-      { title: catalogEntry.title, language: songbook.language ?? catalogEntry.originalLanguage ?? "en" },
+      catalogEntry,
+      songbook.language ?? catalogEntry.originalLanguage ?? "en",
     );
 
     const entry = await this.prisma.client.songbookEntry.create({
@@ -267,9 +268,10 @@ export class SongbooksService {
     });
     if (!catalogEntry) return null;
 
-    const version = await this.songVersionsService.createOwned(
+    const version = await this.songVersionsService.createFromCatalogEntry(
       { ownerScope: songbook.ownerScope, ownerUserId: songbook.ownerUserId, ownerTeamId: songbook.ownerTeamId },
-      { title: catalogEntry.title, language: songbook.language ?? catalogEntry.originalLanguage ?? "en" },
+      catalogEntry,
+      songbook.language ?? catalogEntry.originalLanguage ?? "en",
     );
     const created = await this.prisma.client.songbookEntry.create({
       data: { songbookId, songVersionId: version.id, entryCode },

@@ -1,27 +1,43 @@
+import { slugify, type SongbookCatalogImportResult } from "@songverse/core";
 import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/react-router";
+import { Download, Upload } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { LanguageSelect } from "#/components/language-select";
 import { Button } from "#/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
+import { downloadBlob } from "#/lib/download";
+import { CatalogEntriesTable } from "./-catalog-entries-table";
+import { CatalogImportDialog } from "./-catalog-import-dialog";
 
 export const Route = createFileRoute("/_protected/songbook-catalogs/$catalogId")({
+  // `q` pre-fills the entries search, e.g. from another entry's "Original song" link.
+  validateSearch: (search: Record<string, unknown>): { q?: string } => (typeof search.q === "string" && search.q ? { q: search.q } : {}),
   loader: async ({ context, params }) => {
     const catalog = await apiClient.getSongbookCatalog(params.catalogId).catch(() => null);
     if (!catalog) throw redirect({ to: "/songbook-catalogs" });
     return { session: context.session, teams: context.teams, catalog };
   },
-  component: SongbookCatalogDetail,
+  component: SongbookCatalogRoute,
 });
+
+// Keyed by catalogue, so following a link to another one (an entry's
+// "Original song") starts its form, search and table afresh.
+function SongbookCatalogRoute() {
+  const { catalog } = Route.useLoaderData();
+  return <SongbookCatalogDetail key={catalog.id} />;
+}
 
 type Ownership = "personal" | "global" | `team:${string}`;
 
 function SongbookCatalogDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { q } = Route.useSearch();
   const router = useRouter();
   const navigate = useNavigate();
   const { session, teams, catalog } = Route.useLoaderData();
@@ -45,16 +61,9 @@ function SongbookCatalogDetail() {
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const [entryCode, setEntryCode] = useState("");
-  const [entryTitle, setEntryTitle] = useState("");
-  const [addingEntry, setAddingEntry] = useState(false);
-  const [entryError, setEntryError] = useState<string | null>(null);
-
-  const [csv, setCsv] = useState("");
-  const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ created: number; updated: number; errors: string[] } | null>(
-    null,
-  );
+  const [importOpen, setImportOpen] = useState(false);
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   async function save() {
     setSaving(true);
@@ -90,31 +99,6 @@ function SongbookCatalogDetail() {
     }
   }
 
-  async function addEntry() {
-    if (!entryCode.trim() || !entryTitle.trim()) return;
-    setAddingEntry(true);
-    setEntryError(null);
-    try {
-      await apiClient.addSongbookCatalogEntry(catalog.id, { entryCode: entryCode.trim(), title: entryTitle.trim() });
-      setEntryCode("");
-      setEntryTitle("");
-      await router.invalidate();
-    } catch (err) {
-      setEntryError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setAddingEntry(false);
-    }
-  }
-
-  async function removeEntry(entryId: string) {
-    try {
-      await apiClient.removeSongbookCatalogEntry(catalog.id, entryId);
-      await router.invalidate();
-    } catch (err) {
-      setEntryError(err instanceof Error ? err.message : String(err));
-    }
-  }
-
   async function startImport() {
     setStartingImport(true);
     setStartImportError(null);
@@ -131,29 +115,69 @@ function SongbookCatalogDetail() {
     }
   }
 
-  async function runImport() {
-    if (!csv.trim()) return;
-    setImporting(true);
-    setImportResult(null);
-    setEntryError(null);
+  async function exportAs(format: "csv" | "json") {
+    setExportError(null);
     try {
-      const result = await apiClient.importSongbookCatalogCsv(catalog.id, csv);
-      setImportResult(result);
-      setCsv("");
-      await router.invalidate();
+      const blob = await apiClient.exportSongbookCatalog(catalog.id, format);
+      downloadBlob(blob, `${slugify(catalog.abbreviation || catalog.name) || "catalog"}.${format}`);
     } catch (err) {
-      setEntryError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setImporting(false);
+      setExportError(err instanceof Error ? err.message : String(err));
     }
+  }
+
+  async function onImported(result: SongbookCatalogImportResult) {
+    setImportMessage(t("songbookCatalog.imported", { created: result.created, updated: result.updated, deleted: result.deleted }));
+    await router.invalidate();
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{catalog.name}</h1>
-        {catalog.description ? <p className="text-sm text-muted-foreground">{catalog.description}</p> : null}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold">{catalog.name}</h1>
+          {catalog.description ? <p className="text-sm text-muted-foreground">{catalog.description}</p> : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download />
+                {t("songbookCatalog.exportLabel")}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => void exportAs("csv")}>{t("songbookCatalog.exportCsv")}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void exportAs("json")}>{t("songbookCatalog.exportJson")}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {canEdit ? (
+            <Button size="sm" onClick={() => setImportOpen(true)}>
+              <Upload />
+              {t("songbookCatalog.importFile")}
+            </Button>
+          ) : null}
+        </div>
       </div>
+      {importMessage ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {importMessage}
+        </p>
+      ) : null}
+      {exportError ? <p className="text-sm text-destructive">{exportError}</p> : null}
+      {canEdit ? (
+        <CatalogImportDialog catalogId={catalog.id} open={importOpen} onOpenChange={setImportOpen} onImported={onImported} />
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">
+            {t("songbookCatalog.entries")} ({catalog.entries.length.toLocaleString(i18n.language)})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CatalogEntriesTable catalogId={catalog.id} entries={catalog.entries} canEdit={canEdit} initialSearch={q ?? ""} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -277,96 +301,6 @@ function SongbookCatalogDetail() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">
-            {t("songbookCatalog.entries")} ({catalog.entries.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {catalog.entries.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("songbookCatalog.noEntriesYet")}</p>
-          ) : (
-            <ul className="flex max-h-96 flex-col divide-y overflow-auto">
-              {catalog.entries.map((entry) => (
-                <li key={entry.id} className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <span className="w-14 shrink-0 rounded-md bg-muted px-2 py-1 text-center text-xs font-medium">
-                      {entry.entryCode}
-                    </span>
-                    <span className="text-sm">{entry.title}</span>
-                  </div>
-                  {canEdit ? (
-                    <Button variant="ghost" size="sm" onClick={() => void removeEntry(entry.id)}>
-                      {t("songbookCatalog.remove")}
-                    </Button>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {canEdit ? (
-            <>
-              <div className="flex flex-col gap-2 border-t pt-4">
-                <Label>{t("songbookCatalog.addEntry")}</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Input
-                    value={entryCode}
-                    onChange={(e) => setEntryCode(e.target.value)}
-                    placeholder={t("songbookCatalog.entryCodePlaceholder")}
-                    className="w-28"
-                  />
-                  <Input
-                    value={entryTitle}
-                    onChange={(e) => setEntryTitle(e.target.value)}
-                    placeholder={t("songbookCatalog.entryTitlePlaceholder")}
-                    className="max-w-xs"
-                  />
-                  <Button onClick={() => void addEntry()} disabled={addingEntry || !entryCode.trim() || !entryTitle.trim()}>
-                    {addingEntry ? t("songbookCatalog.adding") : t("songbookCatalog.add")}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2 border-t pt-4">
-                <Label htmlFor="catalog-csv">{t("songbookCatalog.importCsv")}</Label>
-                <p className="text-xs text-muted-foreground">{t("songbookCatalog.importCsvDescription")}</p>
-                <Textarea
-                  id="catalog-csv"
-                  value={csv}
-                  onChange={(e) => setCsv(e.target.value)}
-                  rows={6}
-                  placeholder="entryCode,title,originalLanguage,composer,author,ccli"
-                  className="font-mono text-xs"
-                />
-                <Button onClick={() => void runImport()} disabled={importing || !csv.trim()} className="self-start">
-                  {importing ? t("songbookCatalog.importing") : t("songbookCatalog.runImport")}
-                </Button>
-                {importResult ? (
-                  <div className="text-sm">
-                    <p>
-                      {t("songbookCatalog.importResult", {
-                        created: importResult.created,
-                        updated: importResult.updated,
-                      })}
-                    </p>
-                    {importResult.errors.length > 0 ? (
-                      <ul className="mt-1 list-disc pl-5 text-xs text-destructive">
-                        {importResult.errors.map((err) => (
-                          <li key={err}>{err}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-
-              {entryError ? <p className="text-sm text-destructive">{entryError}</p> : null}
-            </>
-          ) : null}
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   parseSongDocument,
   parseStreamingLink,
   serializeChordPro,
+  type CatalogEntryData,
   type SongbookSection,
   type SongDocument,
   type StreamingIdentifierType,
@@ -18,6 +19,11 @@ import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { isOwnedByOrMemberOf } from "../common/utils/ownership-visibility";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
+
+type CatalogEntryFacts = Pick<
+  CatalogEntryData,
+  "title" | "subtitle" | "copyright" | "year" | "ccli" | "key" | "tempo" | "timeSignature" | "artist" | "composer" | "lyricist"
+>;
 
 const LIST_SELECT = {
   id: true,
@@ -235,13 +241,45 @@ export class SongVersionsService {
   }
 
   /**
-   * Mints a blank Song Version under an arbitrary ownership (including
-   * GLOBAL, which the public create() endpoint never allows a caller to
-   * pick directly). Used by SongbooksService when materializing a pending
-   * catalog entry into a real song - see docs/songbooks-and-catalog.md §6.
+   * A new song from a songbook catalogue entry, under any ownership
+   * (including GLOBAL, which the public create() endpoint never lets a
+   * caller pick). Used by SongbooksService when materializing a pending
+   * catalog entry - see docs/songbooks-and-catalog.md §6. Carries over what
+   * a song has somewhere to keep: subtitle, copyright and year, CCLI, key,
+   * tempo, time signature, and the artist, composer and lyricist as credits.
    */
-  async createOwned(owner: SongVersionOwner, params: { title: string; language: string }): Promise<ListItem> {
-    return this.createWithNewWork(owner, params);
+  async createFromCatalogEntry(owner: SongVersionOwner, entry: CatalogEntryFacts, language: string): Promise<ListItem> {
+    const time = entry.timeSignature ? /^(\d+)\/(\d+)$/.exec(entry.timeSignature) : null;
+    const credits = new Map<string, Set<ContributorRole>>();
+    const credit = (name: string | null, role: ContributorRole) => {
+      const source = name?.trim();
+      if (!source) return;
+      const key = [...credits.keys()].find((existing) => existing.toLowerCase() === source.toLowerCase()) ?? source;
+      credits.set(key, (credits.get(key) ?? new Set()).add(role));
+    };
+    credit(entry.artist, "PERFORMER");
+    credit(entry.composer, "COMPOSER");
+    credit(entry.lyricist, "LYRICIST");
+
+    return this.createWithNewWork(
+      owner,
+      {
+        title: entry.title,
+        language,
+        alternateTitle: entry.subtitle ?? undefined,
+        copyright: entry.copyright ?? undefined,
+        copyrightYear: entry.year ?? undefined,
+        ccli: entry.ccli ?? undefined,
+      },
+      {
+        defaults: {
+          ...(entry.key && { key: entry.key }),
+          ...(entry.tempo && { tempo: entry.tempo }),
+          ...(time && { timeSignature: { numerator: Number(time[1]), denominator: Number(time[2]) } }),
+        },
+        credits: [...credits].map(([source, roles]) => ({ source, roles: [...roles] })),
+      },
+    );
   }
 
   private buildVersionData(
@@ -255,6 +293,7 @@ export class SongVersionsService {
       publisher?: string;
       ccli?: string;
     },
+    defaults: SongDocument["defaults"] = {},
   ) {
     const documentJson: SongDocument = parseSongDocument({
       $schema: "song-document/v1",
@@ -268,7 +307,7 @@ export class SongVersionsService {
         publisher: dto.publisher ?? null,
         trustLabel: null,
       },
-      defaults: {},
+      defaults,
       sections: [],
     });
 
@@ -289,15 +328,21 @@ export class SongVersionsService {
 
   private async createWithNewWork(
     owner: SongVersionOwner,
-    dto: { title: string; language: string; alternateTitle?: string },
+    dto: { title: string; language: string; alternateTitle?: string; copyright?: string; copyrightYear?: number; ccli?: string },
+    extras: { defaults?: SongDocument["defaults"]; credits?: { source: string; roles: ContributorRole[] }[] } = {},
   ): Promise<ListItem> {
-    const versionData = this.buildVersionData(owner, dto);
+    const versionData = this.buildVersionData(owner, dto, extras.defaults);
     const version = await this.prisma.client.$transaction(async (tx) => {
       const work = await tx.work.create({ data: {} });
       const created = await tx.songVersion.create({
         data: { ...versionData, workId: work.id },
         select: LIST_SELECT,
       });
+      if (extras.credits?.length) {
+        await tx.versionContributor.createMany({
+          data: extras.credits.map((credit, displayOrder) => ({ songVersionId: created.id, source: credit.source, roles: credit.roles, displayOrder })),
+        });
+      }
       await tx.work.update({
         where: { id: work.id },
         data: { preferredOriginalVersionId: created.id },
