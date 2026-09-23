@@ -64,9 +64,14 @@ Consequences worth knowing before touching auth-adjacent code:
   point back into the web app, which BetterAuth has to explicitly trust
   via `trustedOrigins` now that it's a different origin.
 - **The session cookie is cross-origin (web ↔ API, different
-  subdomains).** `advanced.crossSubDomainCookies` and explicit
+  subdomains).** `advanced.crossSubDomainCookies` with an explicit
+  `domain` (the shared parent of `AUTH_URL`/`WEB_URL`, derived in
+  `better-auth.ts` - BetterAuth's own default is `AUTH_URL`'s full
+  hostname, which the web app can't read) and explicit
   `credentials: true` CORS naming the web app's exact origin (never a
-  wildcard) are both required for the cookie to survive the round trip -
+  wildcard) are both required for the cookie to survive the round trip.
+  Local dev (both on `localhost`) can't catch a mistake here, since
+  cookies ignore ports -
   see Deploy.md's gotcha #6 if sign-in stops persisting after a deploy
   change.
 - **`isGlobalAdmin`/`locale` are BetterAuth `additionalFields` with

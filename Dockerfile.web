@@ -11,17 +11,12 @@
 # needed here; it's just a normal environment variable on the container.
 #
 # Lives at the repo root, not apps/web/, on purpose: it needs to COPY
-# sibling packages (packages/core, packages/db), so it must be built with
+# sibling packages (packages/core), so it must be built with
 # the repo root as the Docker build context. Some PaaS UIs (Dokploy
 # included) default the build context to "the directory the Dockerfile is
 # in" regardless of a separately configured context path — keeping the
 # Dockerfile at the root sidesteps that entirely.
 FROM node:22-slim AS base
-# node:22-slim doesn't ship OpenSSL, which Prisma's query engine needs to
-# detect at runtime to pick the right binary — without it Prisma falls
-# back to a guess ("Defaulting to openssl-1.1.x") that happens to work by
-# luck on some hosts and may not on others.
-RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 # Pin pnpm explicitly rather than letting corepack lazily resolve a version
 # from package.json at first use — some base-image corepack versions treat
 # an unhashed "packageManager" pin as advisory and silently fetch latest
@@ -34,17 +29,14 @@ FROM base AS deps
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/tsconfig/package.json packages/tsconfig/
 COPY packages/core/package.json packages/core/
-COPY packages/db/package.json packages/db/
 COPY apps/web/package.json apps/web/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS build
 COPY packages/tsconfig packages/tsconfig
 COPY packages/core packages/core
-COPY packages/db packages/db
 COPY apps/web apps/web
 RUN pnpm --filter @songverse/core build \
- && pnpm --filter @songverse/db build \
  && pnpm --filter @songverse/web build
 
 FROM base AS runtime

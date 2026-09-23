@@ -3,8 +3,8 @@
 # worker overrides it to `node dist/worker.js`).
 #
 # Lives at the repo root, not apps/api/, on purpose: it needs to COPY
-# sibling packages (packages/core, packages/db), so it must be built with
-# the repo root as the Docker build context. Some PaaS UIs (Dokploy
+# sibling packages (packages/core, packages/db, packages/secret-crypto), so
+# it must be built with the repo root as the Docker build context. Some PaaS UIs (Dokploy
 # included) default the build context to "the directory the Dockerfile is
 # in" regardless of a separately configured context path — keeping the
 # Dockerfile at the root sidesteps that entirely.
@@ -27,6 +27,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY packages/tsconfig/package.json packages/tsconfig/
 COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
+COPY packages/secret-crypto/package.json packages/secret-crypto/
 COPY apps/api/package.json apps/api/
 RUN pnpm install --frozen-lockfile
 
@@ -34,9 +35,11 @@ FROM deps AS build
 COPY packages/tsconfig packages/tsconfig
 COPY packages/core packages/core
 COPY packages/db packages/db
+COPY packages/secret-crypto packages/secret-crypto
 COPY apps/api apps/api
 RUN pnpm --filter @songverse/core build \
  && pnpm --filter @songverse/db build \
+ && pnpm --filter @songverse/secret-crypto build \
  && pnpm --filter @songverse/api build
 
 FROM base AS runtime

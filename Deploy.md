@@ -92,7 +92,7 @@ Keep this stable once set — BetterAuth encrypts its signing key with it in the
 
 **Passkeys** (`@better-auth/passkey`) need no extra configuration — they're derived from `WEB_URL` at boot (the relying-party ID is its hostname), not `AUTH_URL`.
 
-**The session cookie is cross-subdomain by design** (`advanced.crossSubDomainCookies` in `better-auth.ts`): the web app (`songverse.one`) and this API (`api.songverse.one`) are different origins but the same *site* (same registrable domain), so a cookie scoped to `.songverse.one` reaches both. This is also why the API's CORS config (`main.ts`) names the web app's exact origin with `credentials: true` rather than using a wildcard — browsers refuse to combine a wildcard `Access-Control-Allow-Origin` with credentialed (cookie-bearing) requests.
+**The session cookie is cross-subdomain by design** (`advanced.crossSubDomainCookies` in `better-auth.ts`): the web app (`songverse.one`) and this API (`api.songverse.one`) are different origins but the same *site* (same registrable domain), so a cookie scoped to `songverse.one` reaches both. That parent domain is derived automatically from `AUTH_URL` and `WEB_URL` (their shared suffix), so the two must be subdomains of one domain you own — the API refuses to start otherwise. Two subdomains of a shared hosting domain (e.g. two different `*.up.railway.app` hosts) won't work either: browsers refuse cookies scoped to a public suffix. This is also why the API's CORS config (`main.ts`) names the web app's exact origin with `credentials: true` rather than using a wildcard — browsers refuse to combine a wildcard `Access-Control-Allow-Origin` with credentialed (cookie-bearing) requests.
 
 **Object storage (R2) has two setup paths** — pick one:
 
@@ -187,7 +187,7 @@ If all of those work, the deployment is healthy end to end: DNS → HTTPS → We
 These were real failures during the first deploy. The fixes are already committed, but they're documented here in case a future change accidentally reintroduces one of them.
 
 #### 1. Docker build context
-Both Dockerfiles live at the **repo root** (`Dockerfile.api`, `Dockerfile.web`), not inside `apps/api/` or `apps/web/`. They need to reach sibling folders (`packages/core`, `packages/db`) during the build, and some platforms — Dokploy included — default the build context to "the directory the Dockerfile is in," ignoring a separately configured context path. Keeping the Dockerfiles at the root sidesteps the ambiguity entirely: wherever the Dockerfile is *is* the context.
+Both Dockerfiles live at the **repo root** (`Dockerfile.api`, `Dockerfile.web`), not inside `apps/api/` or `apps/web/`. They need to reach sibling folders (`packages/*`) during the build, and some platforms — Dokploy included — default the build context to "the directory the Dockerfile is in," ignoring a separately configured context path. Keeping the Dockerfiles at the root sidesteps the ambiguity entirely: wherever the Dockerfile is *is* the context.
 
 #### 2. pnpm version drift
 Both Dockerfiles pin pnpm explicitly with `corepack prepare pnpm@10.33.0 --activate` in the base stage, rather than letting corepack lazily resolve a version from `package.json` at first use. Without this, a newer base image's corepack silently fetched pnpm 12 instead of the pinned 10.33.0, and pnpm 12 resolves monorepo workspaces more strictly — breaking the (normal, standard) "copy `package.json` files first, then install" layer-caching pattern both Dockerfiles use.
@@ -204,7 +204,7 @@ Both Dockerfiles now `apt-get install openssl` in the base stage. `node:22-slim`
 #### 6. Auth's session cookie and CORS have to agree on the exact origin
 Since BetterAuth moved into `apps/api`, its session cookie is set by `api.songverse.one` but needs to be usable by pages served from `songverse.one` — a genuinely cross-origin (though same-site) setup. Two things have to be configured together, in `apps/api/src/main.ts` / `auth/better-auth.ts`, or sign-in silently stops persisting:
 - CORS must name the web app's **exact** origin (`WEB_URL`) with `credentials: true` — `cors: true` (reflecting any origin) or a wildcard origin cannot be combined with credentialed requests; the browser will drop the cookie.
-- BetterAuth's `advanced.crossSubDomainCookies` must be enabled, or the cookie defaults to being scoped to `api.songverse.one` alone and the web app never sees it.
+- BetterAuth's `advanced.crossSubDomainCookies` must be enabled **with an explicit `domain`** of the shared parent (`songverse.one`). Enabling it without one doesn't help: BetterAuth then defaults the domain to `AUTH_URL`'s own hostname (`api.songverse.one`), which the web app still never sees. `better-auth.ts` derives this domain from `AUTH_URL`/`WEB_URL`, so in practice this means those two env vars must be right.
 
 If sign-in appears to succeed (a 200 comes back) but the user is immediately signed out again on the next page load, check these two first — it's almost always one of them, usually caused by `WEB_URL`/`AUTH_URL` being wrong or swapped.
 

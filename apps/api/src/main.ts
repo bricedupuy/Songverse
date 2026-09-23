@@ -36,9 +36,17 @@ async function bootstrap() {
   // and it never passes through JwtAuthGuard/GlobalAdminGuard (those are
   // registered as Nest's APP_GUARD, which only runs for Nest-routed
   // requests) - BetterAuth handles its own endpoint-level authorization.
-  const auth = await getAuth();
+  //
+  // getAuth() is resolved per request, not once at boot: it rebuilds the
+  // instance when Admin > Auth settings change (e.g. Google credentials),
+  // and a handler bound to the boot-time instance would keep serving the
+  // old config until a restart.
   const expressApp = app.getHttpAdapter().getInstance() as Express;
-  expressApp.all("/api/auth/*", toNodeHandler(auth));
+  expressApp.all("/api/auth/*", (req, res, next) => {
+    getAuth()
+      .then((auth) => toNodeHandler(auth)(req, res))
+      .catch(next);
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
