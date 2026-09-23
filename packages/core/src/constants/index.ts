@@ -91,6 +91,40 @@ export type TeamRoleValue = (typeof TEAM_ROLES)[number];
 export const DISPLAY_MODES = ["SINGER", "GUITAR", "PIANO", "UKULELE", "LEADER", "DRUMMER"] as const;
 export type DisplayModeValue = (typeof DISPLAY_MODES)[number];
 
+// What a user can say they do on a team (dashboard > Roles), shown next to
+// their name in team member lists. Stored as these keys; labels come from
+// the "roles" i18n section. Append new entries rather than renaming: stored
+// values that drop off these lists are ignored on read.
+export const INSTRUMENTS = [
+  "LEAD_VOCALS",
+  "BACKING_VOCALS",
+  "ACOUSTIC_GUITAR",
+  "ELECTRIC_GUITAR",
+  "BASS_GUITAR",
+  "PIANO",
+  "KEYBOARD",
+  "ORGAN",
+  "SYNTH",
+  "DRUMS",
+  "PERCUSSION",
+  "VIOLIN",
+  "VIOLA",
+  "CELLO",
+  "FLUTE",
+  "CLARINET",
+  "SAXOPHONE",
+  "TRUMPET",
+  "TROMBONE",
+  "UKULELE",
+  "MANDOLIN",
+  "BANJO",
+  "HARMONICA",
+] as const;
+export type InstrumentValue = (typeof INSTRUMENTS)[number];
+
+export const TECH_ROLES = ["TECHNICIAN", "MEDIA_OPERATOR", "SOUND_ENGINEER"] as const;
+export type TechRoleValue = (typeof TECH_ROLES)[number];
+
 // UI locales the app has translations for. French is first alongside the
 // English default; add more here (and a matching packages/core/src/i18n
 // dictionary) as new languages ship.

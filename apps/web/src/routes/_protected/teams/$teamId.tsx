@@ -2,7 +2,11 @@ import type { TeamRole } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { RoleBadges } from "#/components/role-badges";
+import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { apiClient } from "#/lib/api-client";
+import { sizedAvatarUrl } from "#/lib/avatar-url";
+import { initials } from "#/lib/initials";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -244,12 +248,21 @@ function TeamDetail() {
               const isSelf = member.userId === session.userId;
               return (
                 <li key={member.userId} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
-                  <div>
-                    <p className="text-sm font-medium">
-                      {member.displayName}
-                      {isSelf ? ` (${t("teams.you")})` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{member.email}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar className="size-8 shrink-0">
+                      {member.avatarUrl ? <AvatarImage src={sizedAvatarUrl(member.avatarUrl, 32)} alt="" /> : null}
+                      <AvatarFallback className="text-xs">{initials(member.displayName)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {member.displayName}
+                          {isSelf ? ` (${t("teams.you")})` : ""}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{member.email}</p>
+                      </div>
+                      <RoleBadges instruments={member.instruments} techRoles={member.techRoles} />
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     {isAdmin && !isSelf ? (

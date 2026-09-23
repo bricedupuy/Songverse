@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { DISPLAY_MODES, CAPO_DISPLAY_MODES, VOICING_PREFERENCES, SUPPORTED_LOCALES } from "@songverse/core";
+import { DISPLAY_MODES, CAPO_DISPLAY_MODES, INSTRUMENTS, VOICING_PREFERENCES, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
 
 export class UserResponseDto {
   @ApiProperty() id!: string;
@@ -11,4 +11,6 @@ export class UserResponseDto {
   @ApiProperty({ enum: CAPO_DISPLAY_MODES }) capoDisplayMode!: (typeof CAPO_DISPLAY_MODES)[number];
   @ApiProperty({ enum: VOICING_PREFERENCES }) voicingPreference!: (typeof VOICING_PREFERENCES)[number];
   @ApiProperty() isGlobalAdmin!: boolean;
+  @ApiProperty({ enum: INSTRUMENTS, isArray: true }) instruments!: (typeof INSTRUMENTS)[number][];
+  @ApiProperty({ enum: TECH_ROLES, isArray: true }) techRoles!: (typeof TECH_ROLES)[number][];
 }

@@ -1,5 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { slugify, type TeamRoleValue } from "@songverse/core";
+import { orderInstruments, orderTechRoles, slugify, type TeamRoleValue } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
 import type { CreateInviteLinkDto } from "./dto/create-invite-link.dto";
@@ -69,15 +69,20 @@ export class TeamsService {
   async listMembers(teamId: string) {
     const memberships = await this.prisma.client.teamMembership.findMany({
       where: { teamId },
-      include: { user: { select: { id: true, displayName: true, email: true } } },
+      include: {
+        user: { select: { id: true, displayName: true, email: true, avatarUrl: true, instruments: true, techRoles: true } },
+      },
       orderBy: { joinedAt: "asc" },
     });
     return memberships.map((m) => ({
       userId: m.user.id,
       displayName: m.user.displayName,
       email: m.user.email,
+      avatarUrl: m.user.avatarUrl,
       role: m.role,
       joinedAt: m.joinedAt,
+      instruments: orderInstruments(m.user.instruments),
+      techRoles: orderTechRoles(m.user.techRoles),
     }));
   }
 

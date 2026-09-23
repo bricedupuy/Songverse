@@ -15,17 +15,9 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { formatBytes } from "#/lib/format-bytes";
+import { initials } from "#/lib/initials";
 
 export type UserAction = "storage" | "ban" | "unban" | "delete" | "newTransferLink" | "deleteNow";
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
 
 function sortableHeader(label: string) {
   return function SortableHeader({ column }: { column: Column<AdminUserSummary, unknown> }) {

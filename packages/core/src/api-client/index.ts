@@ -1,3 +1,4 @@
+import type { InstrumentValue, TechRoleValue } from "../constants/index.js";
 import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SongDocument } from "../schemas/song-document.js";
@@ -118,6 +119,8 @@ export interface UserProfile {
   avatarUrl: string | null;
   locale: string;
   isGlobalAdmin: boolean;
+  instruments: InstrumentValue[];
+  techRoles: TechRoleValue[];
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -184,8 +187,11 @@ export interface TeamMember {
   userId: string;
   displayName: string;
   email: string;
+  avatarUrl: string | null;
   role: TeamRole;
   joinedAt: string;
+  instruments: InstrumentValue[];
+  techRoles: TechRoleValue[];
 }
 
 export interface TeamInviteLink {
@@ -530,7 +536,8 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
 
   return {
     getMe: () => request<UserProfile>("/users/me"),
-    updateMe: (data: { locale?: string; displayName?: string }) =>
+    /** Omitted fields are left as they are; `instruments`/`techRoles` replace the whole list. */
+    updateMe: (data: { locale?: string; displayName?: string; instruments?: InstrumentValue[]; techRoles?: TechRoleValue[] }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
     getMyStorage: () => request<StorageUsage>("/users/me/storage"),
     uploadAvatar: (file: Blob, filename = "avatar") => {

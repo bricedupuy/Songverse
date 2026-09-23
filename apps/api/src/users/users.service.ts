@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { orderInstruments, orderTechRoles } from "@songverse/core";
 import { PrismaService } from "../prisma/prisma.service";
 import { ImageService } from "../images/image.service";
 import { StorageQuotaService } from "../storage/storage-quota.service";
@@ -17,7 +18,14 @@ const SELECT = {
   capoDisplayMode: true,
   voicingPreference: true,
   isGlobalAdmin: true,
+  instruments: true,
+  techRoles: true,
 } as const;
+
+/** Stored roles no longer on the lists are dropped, the rest shown in list order. */
+function toProfile<T extends { instruments: string[]; techRoles: string[] }>(user: T): T {
+  return { ...user, instruments: orderInstruments(user.instruments), techRoles: orderTechRoles(user.techRoles) };
+}
 
 @Injectable()
 export class UsersService {
@@ -32,15 +40,21 @@ export class UsersService {
   async findMe(userId: string) {
     const user = await this.prisma.client.user.findUnique({ where: { id: userId }, select: SELECT });
     if (!user) throw new NotFoundException("User not found");
-    return user;
+    return toProfile(user);
   }
 
   async updateMe(userId: string, dto: UpdateUserDto) {
-    return this.prisma.client.user.update({
+    const user = await this.prisma.client.user.update({
       where: { id: userId },
-      data: { locale: dto.locale, displayName: dto.displayName },
+      data: {
+        locale: dto.locale,
+        displayName: dto.displayName,
+        instruments: dto.instruments && orderInstruments(dto.instruments),
+        techRoles: dto.techRoles && orderTechRoles(dto.techRoles),
+      },
       select: SELECT,
     });
+    return toProfile(user);
   }
 
   getStorageUsage(userId: string) {
@@ -63,7 +77,7 @@ export class UsersService {
     if (previous.avatarStorageKey && previous.avatarStorageKey !== hash) {
       await this.storage.deleteUnreferenced([previous.avatarStorageKey]);
     }
-    return user;
+    return toProfile(user);
   }
 
   async removeAvatar(userId: string) {
@@ -74,7 +88,7 @@ export class UsersService {
       select: SELECT,
     });
     if (previous.avatarStorageKey) await this.storage.deleteUnreferenced([previous.avatarStorageKey]);
-    return user;
+    return toProfile(user);
   }
 
   /**

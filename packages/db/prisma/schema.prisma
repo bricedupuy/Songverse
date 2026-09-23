@@ -230,6 +230,11 @@ model User {
   // there's none, or when avatarUrl points elsewhere (e.g. Google's).
   avatarStorageKey String?
 
+  // What they do on a team: keys from INSTRUMENTS / TECH_ROLES in
+  // packages/core, validated by the API.
+  instruments String[] @default([])
+  techRoles   String[] @default([])
+
   // Preferences
   locale            String            @default("en") // UI language - see SUPPORTED_LOCALES in packages/core
   displayMode       DisplayMode       @default(GUITAR)

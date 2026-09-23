@@ -47,18 +47,7 @@ import {
   SidebarMenuSubItem,
   useSidebar,
 } from "#/components/ui/sidebar";
-
-function initials(name: string): string {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .map((part) => part[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?"
-  );
-}
+import { initials } from "#/lib/initials";
 
 export function AppSidebar({
   session,
@@ -120,7 +109,7 @@ export function AppSidebar({
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/account">
+                  <Link to="/dashboard" hash="settings">
                     <KeyRound />
                     {t("nav.account")}
                   </Link>
@@ -146,9 +135,9 @@ export function AppSidebar({
   );
 }
 
-/** Hides its children in icon-rail (collapsed, non-mobile) mode - same rule SidebarGroupLabel follows. */
 const SIDEBAR_SET_LIMIT = 8;
 
+/** Hides its children in icon-rail (collapsed, non-mobile) mode - same rule SidebarGroupLabel follows. */
 function SidebarLabel({ children, className }: { children: ReactNode; className?: string }) {
   const { state, isMobile } = useSidebar();
   if (state === "collapsed" && !isMobile) return null;
