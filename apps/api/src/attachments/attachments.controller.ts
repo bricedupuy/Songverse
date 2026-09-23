@@ -9,6 +9,7 @@ import {
   HttpStatus,
   Param,
   Post,
+  Query,
   Res,
   StreamableFile,
   UnauthorizedException,
@@ -77,6 +78,28 @@ export class AttachmentsController {
     res.set({
       "Content-Type": attachment.mimeType,
       "Content-Disposition": `attachment; filename="${encodeURIComponent(attachment.filename)}"`,
+    });
+    return new StreamableFile(body);
+  }
+
+  /** Resized for display, e.g. thumbnails: `w` snaps up to a fixed set of widths (32-2048) and never enlarges. */
+  @Get(":attachmentId/image")
+  async image(
+    @Param("songVersionId") songVersionId: string,
+    @Param("attachmentId") attachmentId: string,
+    @Query("w") width: string | undefined,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    if (!user) throw new UnauthorizedException();
+    if (width === undefined) throw new BadRequestException("The w (width) query parameter is required");
+    await this.songVersionsService.assertVisibleById(user, songVersionId);
+    const { body, contentType } = await this.attachmentsService.resizedImage(songVersionId, attachmentId, Number(width));
+    res.set({
+      "Content-Type": contentType,
+      // Attachments are never edited in place, so a rendition never changes.
+      "Cache-Control": "private, max-age=31536000, immutable",
+      "X-Content-Type-Options": "nosniff",
     });
     return new StreamableFile(body);
   }

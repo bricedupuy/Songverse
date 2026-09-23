@@ -1,6 +1,7 @@
 /**
- * Identifies an uploaded avatar from its first bytes rather than trusting
- * the client's Content-Type. Only raster formats: SVG could carry script.
+ * Content type of a stored avatar, from its first bytes. New avatars are
+ * always WebP (see ImageService.normalizeAvatar); older ones may be any of
+ * these formats.
  */
 export function detectAvatarImageType(body: Buffer): string | null {
   if (body.length >= 8 && body.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {

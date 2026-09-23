@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
+import { ImageService, type ProcessedImage } from "../images/image.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageQuotaService } from "../storage/storage-quota.service";
 import { StorageService } from "../storage/storage.service";
@@ -10,6 +11,7 @@ export class AttachmentsService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly quota: StorageQuotaService,
+    private readonly images: ImageService,
   ) {}
 
   listForSongVersion(songVersionId: string) {
@@ -38,6 +40,15 @@ export class AttachmentsService {
     const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
     const body = await this.storage.get(attachment.storageKey);
     return { attachment, body };
+  }
+
+  /** A resized WebP rendition of an image attachment (see ImageService.resize for sizing rules). */
+  async resizedImage(songVersionId: string, attachmentId: string, width: number): Promise<ProcessedImage> {
+    const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
+    if (attachment.type !== "IMAGE" && !attachment.mimeType.startsWith("image/")) {
+      throw new UnsupportedMediaTypeException("This attachment isn't an image");
+    }
+    return this.images.resize(attachment.storageKey, () => this.storage.get(attachment.storageKey), width);
   }
 
   /**

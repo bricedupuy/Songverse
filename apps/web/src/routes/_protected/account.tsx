@@ -6,13 +6,17 @@ import { KeyRound, Trash2 } from "lucide-react";
 import { apiClient } from "#/lib/api-client";
 import { authClient } from "#/lib/auth-client";
 import { formatBytes } from "#/lib/format-bytes";
+import { AvatarCropDialog } from "#/components/avatar-crop-dialog";
+import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 
-const MAX_AVATAR_BYTES = 2 * 1024 * 1024;
+// Only guards what the browser has to decode for cropping; what's uploaded
+// is the cropped result, at most 512x512.
+const MAX_AVATAR_SOURCE_BYTES = 25 * 1024 * 1024;
 
 export const Route = createFileRoute("/_protected/account")({
   loader: async () => {
@@ -38,6 +42,7 @@ function ProfileCard({ profile }: { profile: UserProfile }) {
   const [displayName, setDisplayName] = useState(profile.displayName);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [cropping, setCropping] = useState<File | null>(null);
 
   async function run(action: () => Promise<unknown>, successText?: string) {
     setPending(true);
@@ -56,11 +61,12 @@ function ProfileCard({ profile }: { profile: UserProfile }) {
 
   function onFileChosen(file: File | undefined) {
     if (!file) return;
-    if (file.size > MAX_AVATAR_BYTES) {
+    if (file.size > MAX_AVATAR_SOURCE_BYTES) {
       setMessage({ kind: "error", text: t("account.avatarTooLarge") });
       return;
     }
-    void run(() => apiClient.uploadAvatar(file, file.name));
+    setMessage(null);
+    setCropping(file);
   }
 
   const trimmedName = displayName.trim();
@@ -74,7 +80,7 @@ function ProfileCard({ profile }: { profile: UserProfile }) {
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <Avatar className="size-16">
-            {profile.avatarUrl ? <AvatarImage src={profile.avatarUrl} alt="" /> : null}
+            {profile.avatarUrl ? <AvatarImage src={sizedAvatarUrl(profile.avatarUrl, 64)} alt="" /> : null}
             <AvatarFallback className="text-lg">{initials(profile.displayName)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col gap-2">
@@ -92,7 +98,7 @@ function ProfileCard({ profile }: { profile: UserProfile }) {
             <input
               ref={fileInput}
               type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
+              accept="image/*"
               className="hidden"
               data-testid="avatar-input"
               onChange={(event) => {
@@ -121,6 +127,19 @@ function ProfileCard({ profile }: { profile: UserProfile }) {
 
         {message ? (
           <p className={message.kind === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{message.text}</p>
+        ) : null}
+
+        {cropping ? (
+          <AvatarCropDialog
+            file={cropping}
+            onCancel={() => setCropping(null)}
+            onConfirm={async (cropped) => {
+              await apiClient.uploadAvatar(cropped, "avatar.webp");
+              setCropping(null);
+              // Also reloads the session, so the sidebar picks up the new picture.
+              await router.invalidate();
+            }}
+          />
         ) : null}
       </CardContent>
     </Card>

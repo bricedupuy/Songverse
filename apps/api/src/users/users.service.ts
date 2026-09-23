@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
+import { ImageService } from "../images/image.service";
 import { StorageQuotaService } from "../storage/storage-quota.service";
 import { StorageService } from "../storage/storage.service";
 import { detectAvatarImageType } from "./avatar-image";
@@ -25,6 +26,7 @@ export class UsersService {
     private readonly config: ConfigService,
     private readonly storage: StorageService,
     private readonly quota: StorageQuotaService,
+    private readonly images: ImageService,
   ) {}
 
   async findMe(userId: string) {
@@ -45,13 +47,14 @@ export class UsersService {
     return this.quota.getUsage(userId);
   }
 
-  /** Avatars don't count toward the storage limit; they're capped in size instead (see the controller). */
-  async setAvatar(userId: string, body: Buffer) {
-    if (!detectAvatarImageType(body)) {
-      throw new BadRequestException("Avatar must be a PNG, JPEG, GIF or WebP image");
-    }
+  /**
+   * Stored normalized (square, at most 512px, WebP, no metadata) whatever the
+   * client sent. Avatars don't count toward the storage limit.
+   */
+  async setAvatar(userId: string, upload: Buffer) {
+    const { body, contentType } = await this.images.normalizeAvatar(upload);
     const previous = await this.prisma.client.user.findUniqueOrThrow({ where: { id: userId }, select: { avatarStorageKey: true } });
-    const { hash } = await this.storage.put(body, detectAvatarImageType(body) as string);
+    const { hash } = await this.storage.put(body, contentType);
     const user = await this.prisma.client.user.update({
       where: { id: userId },
       data: { avatarStorageKey: hash, avatarUrl: this.avatarUrlFor(userId, hash) },
@@ -79,13 +82,16 @@ export class UsersService {
    * content hashes shared with attachments, so serving any key on request
    * would expose private files.
    */
-  async getAvatar(userId: string, key: string): Promise<{ body: Buffer; contentType: string }> {
+  async getAvatar(userId: string, key: string, size?: number): Promise<{ body: Buffer; contentType: string }> {
     const user = await this.prisma.client.user.findUnique({
       where: { id: userId },
       select: { avatarStorageKey: true, deletedAt: true },
     });
     if (!user || user.deletedAt || !user.avatarStorageKey || user.avatarStorageKey !== key) {
       throw new NotFoundException("Avatar not found");
+    }
+    if (size !== undefined) {
+      return this.images.resize(key, () => this.storage.get(key), size);
     }
     const body = await this.storage.get(key);
     return { body, contentType: detectAvatarImageType(body) ?? "application/octet-stream" };

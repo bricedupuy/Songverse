@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
+import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { formatBytes } from "#/lib/format-bytes";
 
 export type UserAction = "storage" | "ban" | "unban" | "delete" | "newTransferLink" | "deleteNow";
@@ -54,7 +55,7 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
           return (
             <div className="flex items-center gap-3">
               <Avatar className="size-8 shrink-0">
-                {user.avatarUrl ? <AvatarImage src={user.avatarUrl} alt="" /> : null}
+                {user.avatarUrl ? <AvatarImage src={sizedAvatarUrl(user.avatarUrl, 32)} alt="" /> : null}
                 <AvatarFallback className="text-xs">{initials(user.displayName)}</AvatarFallback>
               </Avatar>
               <div className="min-w-0">

@@ -616,6 +616,21 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
       if (!response.ok) throw new ApiError(response.status, await response.text());
       return response.blob();
     },
+    /**
+     * A resized WebP rendition of an image attachment. `width` snaps up to
+     * one of 32-2048 on the server, and images are never enlarged.
+     */
+    getAttachmentImage: async (songVersionId: string, attachmentId: string, width: number): Promise<Blob> => {
+      const token = await getToken();
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+      const response = await fetch(
+        `${baseUrl}/song-versions/${songVersionId}/attachments/${attachmentId}/image?w=${width}`,
+        { headers },
+      );
+      if (!response.ok) throw new ApiError(response.status, await response.text());
+      return response.blob();
+    },
     createSongVersion: (data: CreateSongVersionInput) =>
       request<SongVersionSummary>("/song-versions", { method: "POST", body: JSON.stringify(data) }),
     updateSongVersion: (songVersionId: string, data: UpdateSongVersionInput) =>

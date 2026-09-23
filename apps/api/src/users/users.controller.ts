@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Put,
+  Query,
   Res,
   StreamableFile,
   UnauthorizedException,
@@ -24,7 +25,9 @@ import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserResponseDto } from "./dto/user-response.dto";
 import { UsersService } from "./users.service";
 
-const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
+// The web app uploads an already-cropped image well under this; the server
+// normalizes whatever it gets anyway (see ImageService.normalizeAvatar).
+const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024;
 
 @ApiTags("users")
 @ApiBearerAuth()
@@ -76,9 +79,10 @@ export class UsersController {
   async avatar(
     @Param("userId") userId: string,
     @Param("key") key: string,
+    @Query("size") size: string | undefined,
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
-    const { body, contentType } = await this.usersService.getAvatar(userId, key);
+    const { body, contentType } = await this.usersService.getAvatar(userId, key, size === undefined ? undefined : Number(size));
     res.set({
       "Content-Type": contentType,
       "Cache-Control": "public, max-age=31536000, immutable",

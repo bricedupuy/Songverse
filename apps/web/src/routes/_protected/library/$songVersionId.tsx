@@ -1,4 +1,5 @@
 import { CONTRIBUTOR_ROLES, detectImportFormat, resolveTranslation, type AttachmentType, type LocaleValue } from "@songverse/core";
+import { AttachmentThumbnail } from "#/components/attachment-thumbnail";
 
 const ATTACHMENT_TYPES: AttachmentType[] = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE"];
 
@@ -450,6 +451,9 @@ function SongVersionDetail() {
               {attachments.map((attachment) => (
                 <li key={attachment.id} className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
                   <div className="flex items-center gap-3">
+                    {attachment.type === "IMAGE" || attachment.mimeType.startsWith("image/") ? (
+                      <AttachmentThumbnail songVersionId={version.id} attachmentId={attachment.id} alt={attachment.filename} />
+                    ) : null}
                     <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{attachment.type}</span>
                     <span className="text-sm">{attachment.filename}</span>
                   </div>
