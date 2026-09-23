@@ -165,13 +165,17 @@ Deploy the API and Worker first, then the Web app (Web's build doesn't strictly 
 
 **Where auth lives:** BetterAuth is mounted in `apps/api`, not here — the web app is just another HTTP client of the API for auth, exactly like it already was for every other endpoint. This matters mainly if you're adding a mobile app later: it talks to the same API for both login and data, rather than needing to know about the web app's URL at all. See `apps/api/src/auth/` for the actual auth config, and `apps/web/src/lib/server-auth.ts`/`auth-client.ts` for how the web app calls it.
 
-## 3. Run the database migration (once)
+## 3. Database migrations (automatic)
 
-The database exists but is empty. Open a shell into the running **API** container (Dokploy's terminal/exec feature) and run:
+Nothing to run by hand. The API container applies any pending migrations each time it starts, before serving traffic (see the `CMD` in `Dockerfile.api`), so the first deploy creates the schema and later deploys pick up new migrations. Check the API's startup logs for Prisma's output: either the migrations it applied or `No pending migrations to apply.` If a migration fails, the API won't start and the error will be in those same logs.
+
+The Worker doesn't migrate: its command override (`node dist/worker.js`) replaces the image's start command.
+
+To run migrations manually anyway (e.g. to retry after fixing a failure), open a shell in the running **API** container and run:
 ```
-pnpm --filter @songverse/db exec prisma migrate deploy
+/repo/packages/db/node_modules/.bin/prisma migrate deploy --schema /repo/packages/db/prisma/schema.prisma
 ```
-Run this again any time a new migration is added to the repo — it's safe to re-run, it only applies what's new.
+Don't use `pnpm --filter @songverse/db exec ...` there: the image doesn't include the pnpm workspace files, so pnpm finds no matching project and silently does nothing.
 
 ## 4. Verify
 
@@ -210,4 +214,4 @@ If sign-in appears to succeed (a 200 comes back) but the user is immediately sig
 
 ## Redeploying after a code change
 
-Push to `main`, then trigger a rebuild in Dokploy for whichever app(s) changed (API and Worker share an image, so a backend change means rebuilding both). If the change includes a new Prisma migration, re-run the migration command from step 3 after the API redeploys.
+Push to `main`, then trigger a rebuild in Dokploy for whichever app(s) changed (API and Worker share an image, so a backend change means rebuilding both). New Prisma migrations apply automatically when the API restarts (see step 3).

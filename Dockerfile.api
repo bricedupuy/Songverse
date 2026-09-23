@@ -49,4 +49,10 @@ COPY --from=build /repo/packages /repo/packages
 COPY --from=build /repo/apps/api /repo/apps/api
 WORKDIR /repo/apps/api
 EXPOSE 3001
-CMD ["node", "dist/main.js"]
+# Applies pending Prisma migrations before the API starts, so a deploy never
+# runs new code against an old schema. Safe when several instances start at
+# once (Prisma takes a database lock), and a failed migration keeps the new
+# version from starting. The Worker's command override (`node
+# dist/worker.js`) replaces this line, so only the API migrates. `exec` makes
+# node PID 1 so it receives the container's stop signal.
+CMD ["sh", "-c", "/repo/packages/db/node_modules/.bin/prisma migrate deploy --schema /repo/packages/db/prisma/schema.prisma && exec node dist/main.js"]
