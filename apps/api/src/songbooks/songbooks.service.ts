@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { computeSectionLabel, validateSongbookSections, type SongbookSection } from "@songverse/core";
+import { computeSectionLabel, parseOriginalSongReference, validateSongbookSections, type SongbookSection } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -196,10 +196,12 @@ export class SongbooksService {
     });
     if (existing) throw new ConflictException("This catalog entry has already been imported");
 
+    const owner = { ownerScope: songbook.ownerScope, ownerUserId: songbook.ownerUserId, ownerTeamId: songbook.ownerTeamId };
     const version = await this.songVersionsService.createFromCatalogEntry(
-      { ownerScope: songbook.ownerScope, ownerUserId: songbook.ownerUserId, ownerTeamId: songbook.ownerTeamId },
+      owner,
       catalogEntry,
       songbook.language ?? catalogEntry.originalLanguage ?? "en",
+      await this.findOriginalSong(owner, catalogEntry),
     );
 
     const entry = await this.prisma.client.songbookEntry.create({
@@ -268,15 +270,47 @@ export class SongbooksService {
     });
     if (!catalogEntry) return null;
 
+    const owner = { ownerScope: songbook.ownerScope, ownerUserId: songbook.ownerUserId, ownerTeamId: songbook.ownerTeamId };
     const version = await this.songVersionsService.createFromCatalogEntry(
-      { ownerScope: songbook.ownerScope, ownerUserId: songbook.ownerUserId, ownerTeamId: songbook.ownerTeamId },
+      owner,
       catalogEntry,
       songbook.language ?? catalogEntry.originalLanguage ?? "en",
+      await this.findOriginalSong(owner, catalogEntry),
     );
     const created = await this.prisma.client.songbookEntry.create({
       data: { songbookId, songVersionId: version.id, entryCode },
     });
     return { songVersionId: created.songVersionId };
+  }
+
+  /**
+   * The song a catalogue entry's "Original song" ("JEM 245", or "245" in
+   * the same catalogue) has become in one of the same owner's songbooks
+   * imported from that catalogue - so a translation can join its Work.
+   * Null when that entry hasn't become a song there (yet).
+   */
+  private async findOriginalSong(
+    owner: SongVersionOwner,
+    entry: { catalogId: string; originalSong: string | null },
+  ): Promise<{ id: string; workId: string } | null> {
+    const reference = entry.originalSong ? parseOriginalSongReference(entry.originalSong) : null;
+    if (!reference) return null;
+    const catalog = reference.abbreviation
+      ? await this.prisma.client.songbookCatalog.findFirst({
+          where: { abbreviation: { equals: reference.abbreviation, mode: "insensitive" } },
+          select: { id: true },
+        })
+      : { id: entry.catalogId };
+    if (!catalog) return null;
+    const found = await this.prisma.client.songbookEntry.findFirst({
+      where: {
+        entryCode: reference.entryCode,
+        songbook: { sourceCatalogId: catalog.id, ownerScope: owner.ownerScope, ownerUserId: owner.ownerUserId, ownerTeamId: owner.ownerTeamId },
+      },
+      select: { songVersion: { select: { id: true, workId: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+    return found?.songVersion ?? null;
   }
 
   update(songbookId: string, dto: UpdateSongbookDto): Promise<Prisma.SongbookGetPayload<object>> {

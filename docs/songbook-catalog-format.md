@@ -25,16 +25,18 @@ them.
 | `Subtitle` | `subtitle` | A second title or the first line | Up to 300 |
 | `OriginalSong` | `originalSong` | The song this one translates or adapts, as another catalogue's abbreviation and number — `JEM 245` — or just a number for one in the same catalogue. Linked when that entry exists; otherwise kept as written | Up to 120 |
 | `Language` | `language` | Language of the original song: `en`, `fr`… | Up to 35 |
-| `Artist` | `artist` | Who's known for performing it | Up to 300 |
-| `Composer` | `composer` | Music by | Up to 300 |
-| `Lyricist` | `lyricist` | Words by | Up to 300 |
+| `Artist` | `artist` | Who's known for performing it — several separated by `;` | Up to 300 |
+| `Composer` | `composer` | Music by — several separated by `;` | Up to 300 |
+| `Lyricist` | `lyricist` | Words by — several separated by `;` | Up to 300 |
 | `Album` | `album` | Album it appeared on | Up to 300 |
 | `Year` | `year` | Year written or published | Whole number, 1000–2999 |
 | `Key` | `key` | Key as printed: `G`, `Bb`, `F#m` | Up to 12 |
 | `Time` | `time` | Time signature | Like `4/4`, `6/8` |
 | `Tempo` | `tempo` | Beats per minute | Whole number, 20–400 |
+| `Duration` | `duration` | Running time | `3:45` or `1:02:03`, or a number of seconds (JSON exports use seconds) |
 | `Copyright` | `copyright` | Copyright line | Up to 500 |
 | `CCLI` | `ccli` | CCLI song number | Up to 20 |
+| `ISRC` | `isrc` | Recording code | 12 characters, e.g. `USRC17607839`; dashes and spaces are dropped |
 | `Reference` | `reference` | A reference to go with the song — for Christian songs, usually the scripture it draws on: `Psalm 23; John 10:11` | Up to 300 |
 | `Tags` | `tags` | Themes or keywords | CSV: separated by `;` (`grace; hope`). JSON: a list. Up to 30, each up to 50 characters |
 | `Notes` | `notes` | Anything else | Up to 2000; may span lines |
@@ -43,7 +45,8 @@ Column names are matched loosely — case, spaces and punctuation don't
 matter (`Sort Title`, `sort_title` and `SortTitle` are the same) — and some
 common alternatives are accepted: `SongNumber`, `No`, `Nr` for `Number`;
 `Author`, `Words` for `Lyricist`; `Music` for `Composer`; `BPM` for
-`Tempo`; `TimeSignature` for `Time`; `Scripture` for `Reference`… Columns
+`Tempo`; `TimeSignature` for `Time`; `Runtime` for `Duration`;
+`Scripture` for `Reference`… Columns
 SongVerse doesn't know are listed in the import preview and ignored.
 
 ## Importing
@@ -65,6 +68,18 @@ with problems. Nothing is saved until you confirm.
 
 A JSON file can also create a whole new catalogue, details and all, from
 the "New catalogue" page.
+
+## From catalogue entry to song
+
+When a songbook imported from a catalogue turns one of its entries into a
+real song, the song starts with every field of the entry: title, subtitle,
+sort title, language, album, year, key, time signature, tempo, duration,
+copyright, CCLI, ISRC, reference and notes as song fields; artists,
+composers and lyricists as credits (one per name); tags that match
+existing tags (by name, in any language, ignoring case and accents — the
+others are left out); and, when the "Original song" entry has itself
+become a song, the new song is filed as a translation of it, as another
+version of the same song.
 
 ## CSV specifics
 

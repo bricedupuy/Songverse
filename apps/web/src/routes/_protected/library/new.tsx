@@ -1,4 +1,4 @@
-import type { MusicBrainzRecordingMatch } from "@songverse/core";
+import { splitNames, type MusicBrainzRecordingMatch } from "@songverse/core";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiClient } from "#/lib/api-client";
@@ -27,7 +27,7 @@ function NewSong() {
     setSearching(true);
     setError(null);
     try {
-      setMatches(await apiClient.searchMusicBrainzRecordings(title, artist || undefined));
+      setMatches(await apiClient.searchMusicBrainzRecordings(title, splitNames(artist)[0]));
     } catch {
       setError("MusicBrainz search failed. Try again in a moment.");
     } finally {
@@ -39,18 +39,17 @@ function NewSong() {
     setSelected(match);
     setMatches(null);
     if (!title.trim()) setTitle(match.title);
+    if (!artist.trim() && match.artist) setArtist(match.artist);
   }
+
+  const artists = splitNames(artist);
 
   async function submit() {
     setSubmitting(true);
     setError(null);
     try {
-      const version = await apiClient.createSongVersion({ title, language });
-      if (selected) {
-        await apiClient.linkSongVersionMusicBrainz(version.id, selected.mbid);
-      } else if (artist.trim()) {
-        await apiClient.addContributor(version.id, artist.trim(), ["performer"]);
-      }
+      const version = await apiClient.createSongVersion({ title, language, artists });
+      if (selected) await apiClient.linkSongVersionMusicBrainz(version.id, selected.mbid);
       await navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id } });
     } catch {
       setError("Couldn't create this song. Check the fields and try again.");
@@ -70,6 +69,19 @@ function NewSong() {
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="title">Title</Label>
             <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Amazing Grace" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="artist">Artist</Label>
+            <Input
+              id="artist"
+              value={artist}
+              onChange={(e) => setArtist(e.target.value)}
+              placeholder="Hillsong Worship; Brooke Ligertwood"
+              aria-describedby="artist-hint"
+            />
+            <p id="artist-hint" className="text-xs text-muted-foreground">
+              Required. Separate several artists with semicolons.
+            </p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="language">Language</Label>
@@ -98,8 +110,8 @@ function NewSong() {
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap gap-2">
-                <Input value={artist} onChange={(e) => setArtist(e.target.value)} placeholder="Artist (optional)" className="max-w-xs" />
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm text-muted-foreground">Looks up the title (and first artist) on MusicBrainz.</p>
                 <Button type="button" variant="outline" onClick={() => void search()} disabled={searching || !title.trim()}>
                   {searching ? "Searching…" : "Search"}
                 </Button>
@@ -134,7 +146,7 @@ function NewSong() {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <Button onClick={() => void submit()} disabled={submitting || !title.trim() || !language.trim()}>
+      <Button onClick={() => void submit()} disabled={submitting || !title.trim() || !language.trim() || artists.length === 0}>
         {submitting ? "Creating…" : "Create song"}
       </Button>
     </div>

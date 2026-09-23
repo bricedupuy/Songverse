@@ -581,7 +581,8 @@ model SongVersion {
 
   // Core metadata
   title          String
-  alternateTitle String?
+  alternateTitle String? // shown as "Subtitle"
+  sortTitle      String? // how to sort it, if not by title
   language       String // BCP 47 tag: en, fr, de, etc.
   trustLabel     String? // Free text: "Official publisher text", etc.
 
@@ -589,6 +590,16 @@ model SongVersion {
   copyright     String?
   copyrightYear Int?
   publisher     String? // Free text
+
+  // More facts about the song, each its own field (see the song page's
+  // Details, and docs/songbook-catalog-format.md for what a catalogue
+  // entry fills in). Key, tempo, time signature and duration live in
+  // documentJson.defaults instead, next to the chart they describe.
+  album     String?
+  year      Int? // written or published; separate from copyrightYear
+  isrc      String? // recording code, compact: USRC17607839
+  reference String? // e.g. the scripture a song draws on
+  notes     String?
 
   // CCLI kept as a denormalized indexed column for fast worship-context filtering.
   // The authoritative record is in SongIdentifier with type = CCLI.
@@ -635,7 +646,7 @@ model SongVersion {
   auditEvents       AuditEvent[]
   setlistItems      SetlistItem[]
   ownershipRequests SongOwnershipRequest[]
-  notes             Note[]
+  userNotes         Note[] // people's own notes on it (Note model); not the song's `notes` field
 
   @@index([workId])
   @@index([ownerUserId])
@@ -987,8 +998,10 @@ model SongbookCatalogEntry {
   key              String?
   timeSignature    String? // "4/4"
   tempo            Int?
+  durationSeconds  Int?
   copyright        String?
   ccli             String?
+  isrc             String? // compact: USRC17607839
   // e.g. the scripture a song draws on.
   reference        String?
   tags             String[] @default([])

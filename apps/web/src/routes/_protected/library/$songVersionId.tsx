@@ -8,7 +8,6 @@ import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tansta
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
-import { LanguageSelect } from "#/components/language-select";
 import { MusicBrainzMatchPanel } from "#/components/musicbrainz-match-panel";
 import { SongChart } from "#/components/song-chart";
 import { StreamingLinkRow } from "#/components/streaming-link-row";
@@ -17,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
+import { SongDetailsForm } from "./-song-details-form";
 
 export const Route = createFileRoute("/_protected/library/$songVersionId")({
   loader: async ({ params }) => {
@@ -48,14 +48,6 @@ function SongVersionDetail() {
   const { i18n } = useTranslation();
   const locale = i18n.language as LocaleValue;
 
-  const [title, setTitle] = useState(version.title);
-  const [alternateTitle, setAlternateTitle] = useState(version.alternateTitle ?? "");
-  const [language, setLanguage] = useState(version.language);
-  const [ccli, setCcli] = useState(version.ccli ?? "");
-  const [key, setKey] = useState(version.documentJson.defaults.key ?? "");
-  const [tempo, setTempo] = useState(version.documentJson.defaults.tempo?.toString() ?? "");
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [chordpro, setChordpro] = useState("");
@@ -118,34 +110,6 @@ function SongVersionDetail() {
     }
   }
 
-  const dirty =
-    title !== version.title ||
-    alternateTitle !== (version.alternateTitle ?? "") ||
-    language !== version.language ||
-    ccli !== (version.ccli ?? "") ||
-    key !== (version.documentJson.defaults.key ?? "") ||
-    tempo !== (version.documentJson.defaults.tempo?.toString() ?? "");
-
-  async function save() {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      await apiClient.updateSongVersion(version.id, {
-        title,
-        alternateTitle: alternateTitle || undefined,
-        language,
-        ccli: ccli || undefined,
-        key: key || undefined,
-        tempo: tempo ? Number(tempo) : undefined,
-      });
-      await router.invalidate();
-    } catch {
-      setSaveError("Couldn't save changes. Check the fields and try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function addContributor() {
     setAddingContributor(true);
     setContributorError(null);
@@ -161,10 +125,18 @@ function SongVersionDetail() {
   }
 
   async function removeContributor(contributorId: string) {
+    const isArtist = version.contributors.find((c) => c.id === contributorId)?.roles.includes("PERFORMER") ?? false;
     setRemovingContributorId(contributorId);
+    setArtistError(null);
+    setContributorError(null);
     try {
       await apiClient.removeContributor(version.id, contributorId);
       await router.invalidate();
+    } catch (err) {
+      // e.g. the API refusing to remove a song's last artist.
+      const message = err instanceof Error ? err.message : "Couldn't remove that. Try again.";
+      if (isArtist) setArtistError(message);
+      else setContributorError(message);
     } finally {
       setRemovingContributorId(null);
     }
@@ -289,84 +261,60 @@ function SongVersionDetail() {
         <CardHeader>
           <CardTitle className="text-sm">Details</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="title">Title</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="artistName">Artist</Label>
-            {version.artists.length > 0 ? (
-              <ul className="flex flex-wrap gap-2">
-                {version.artists.map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
+        <CardContent>
+          <SongDetailsForm
+            version={version}
+            artists={
+              <>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="artistName">Artists</Label>
+                {version.artists.length === 0 ? (
+                  <p className="text-sm text-destructive" role="alert">
+                    A song needs at least one artist. Add one below.
+                  </p>
+                ) : null}
+                {version.artists.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {version.artists.map((a) => (
+                      <li
+                        key={a.id}
+                        className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm"
+                      >
+                        <span>{a.source ?? a.userId ?? "Unknown artist"}</span>
+                        <button
+                          type="button"
+                          onClick={() => void removeContributor(a.id)}
+                          disabled={removingContributorId !== null}
+                          className="text-muted-foreground hover:text-foreground"
+                          aria-label={`Remove ${a.source ?? "artist"}`}
+                        >
+                          ×
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="flex gap-2">
+                  <Input
+                    id="artistName"
+                    value={artistName}
+                    onChange={(e) => setArtistName(e.target.value)}
+                    placeholder="Another artist or band"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void addArtist()}
+                    disabled={addingArtist || !artistName.trim()}
                   >
-                    <span>{a.source ?? a.userId ?? "Unknown artist"}</span>
-                    <button
-                      type="button"
-                      onClick={() => void removeContributor(a.id)}
-                      disabled={removingContributorId !== null}
-                      className="text-muted-foreground hover:text-foreground"
-                      aria-label={`Remove ${a.source ?? "artist"}`}
-                    >
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <div className="flex gap-2">
-              <Input
-                id="artistName"
-                value={artistName}
-                onChange={(e) => setArtistName(e.target.value)}
-                placeholder="e.g. the performing artist or band"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => void addArtist()}
-                disabled={addingArtist || !artistName.trim()}
-              >
-                {addingArtist ? "Adding…" : "Add"}
-              </Button>
-            </div>
-            {artistError ? <p className="text-sm text-destructive">{artistError}</p> : null}
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="alternateTitle">Alternate title</Label>
-            <Input id="alternateTitle" value={alternateTitle} onChange={(e) => setAlternateTitle(e.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="language">Language</Label>
-            <LanguageSelect id="language" value={language} onChange={setLanguage} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ccli">CCLI</Label>
-            <Input id="ccli" value={ccli} onChange={(e) => setCcli(e.target.value)} />
-          </div>
-          <div className="flex gap-4">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="key">Key</Label>
-              <Input id="key" value={key} onChange={(e) => setKey(e.target.value)} placeholder="G, Bb, C#m…" />
-            </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label htmlFor="tempo">Tempo (BPM)</Label>
-              <Input
-                id="tempo"
-                type="number"
-                min={1}
-                value={tempo}
-                onChange={(e) => setTempo(e.target.value)}
-              />
-            </div>
-          </div>
-          {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
-          <Button onClick={() => void save()} disabled={!dirty || saving || !title.trim() || !language.trim()}>
-            {saving ? "Saving…" : "Save changes"}
-          </Button>
+                    {addingArtist ? "Adding…" : "Add"}
+                  </Button>
+                </div>
+                {artistError ? <p className="text-sm text-destructive">{artistError}</p> : null}
+              </div>
+              </>
+            }
+          />
         </CardContent>
       </Card>
 

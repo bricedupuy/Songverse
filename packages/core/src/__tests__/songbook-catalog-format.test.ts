@@ -3,12 +3,15 @@ import {
   compareEntryCodes,
   detectCsvDelimiter,
   emptyCatalogEntry,
+  formatDuration,
   parseCatalogCsv,
   parseCatalogFile,
   parseCatalogJson,
+  parseDuration,
   parseOriginalSongReference,
   serializeCatalogCsv,
   serializeCatalogJson,
+  splitNames,
   validateCatalogEntryPatch,
 } from "../songbook-catalog-format/index.js";
 
@@ -169,5 +172,45 @@ describe("parseOriginalSongReference", () => {
     ["Amazing Grace", null],
   ])("%j", (text, expected) => {
     expect(parseOriginalSongReference(text)).toEqual(expected);
+  });
+});
+
+describe("Duration and ISRC columns", () => {
+  it("reads durations as m:ss, h:mm:ss or seconds, and writes m:ss", () => {
+    const result = parseCatalogCsv("Number,Runtime\n1,3:45\n2,1:02:03\n3,225\n4,3:75\n");
+    expect(result.rows.map((r) => r.data.durationSeconds)).toEqual([225, 3723, 225]);
+    expect(result.problems).toEqual([{ row: 5, message: "Duration must be like 3:45 (or a number of seconds)" }]);
+    const csv = serializeCatalogCsv([{ ...emptyCatalogEntry("1", "x"), durationSeconds: 225 }]);
+    expect(csv).toContain(",3:45,");
+  });
+
+  it("stores ISRCs compact and upper-case, and rejects malformed ones", () => {
+    const result = parseCatalogCsv("Number,ISRC\n1,us-rc1-76-07839\n2,nope\n");
+    expect(result.rows[0]!.data.isrc).toBe("USRC17607839");
+    expect(result.problems[0]!.message).toMatch(/ISRC "NOPE" isn't valid/);
+  });
+});
+
+describe("duration helpers", () => {
+  it.each([
+    ["0:05", 5],
+    ["10:00", 600],
+    ["1:00:00", 3600],
+    ["90", 90],
+    ["1:60", null],
+    ["abc", null],
+  ])("parseDuration(%j) = %j", (text, seconds) => {
+    expect(parseDuration(text)).toBe(seconds);
+  });
+
+  it("formats", () => {
+    expect([5, 225, 3723].map(formatDuration)).toEqual(["0:05", "3:45", "1:02:03"]);
+  });
+});
+
+describe("splitNames", () => {
+  it("splits on semicolons, trims and drops repeats", () => {
+    expect(splitNames(" Hillsong Worship ;Brooke Ligertwood; hillsong worship;; ")).toEqual(["Hillsong Worship", "Brooke Ligertwood"]);
+    expect(splitNames(null)).toEqual([]);
   });
 });

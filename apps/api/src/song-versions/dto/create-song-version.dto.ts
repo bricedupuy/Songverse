@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { ISO_639_1_CODES } from "@songverse/core";
-import { IsIn, IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { Transform } from "class-transformer";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class CreateSongVersionDto {
   @ApiProperty({
@@ -24,6 +25,17 @@ export class CreateSongVersionDto {
   @MinLength(1)
   @MaxLength(300)
   title!: string;
+
+  @ApiProperty({ type: [String], description: "Who performs it: at least one artist (band or person)" })
+  @Transform(({ value }: { value: unknown }) =>
+    Array.isArray(value) ? value.map((name) => (typeof name === "string" ? name.trim() : name)).filter((name) => name !== "") : value,
+  )
+  @IsArray()
+  @ArrayMinSize(1, { message: "A song needs at least one artist" })
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  @MaxLength(300, { each: true })
+  artists!: string[];
 
   @ApiProperty({ required: false })
   @IsOptional()

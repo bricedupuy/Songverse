@@ -483,6 +483,22 @@ export interface SongVersionLink {
 }
 
 export interface SongVersionDetail extends SongVersionSummary {
+  sortTitle: string | null;
+  album: string | null;
+  /** Written or published; separate from copyrightYear. */
+  year: number | null;
+  copyright: string | null;
+  copyrightYear: number | null;
+  publisher: string | null;
+  /** Compact: USRC17607839. */
+  isrc: string | null;
+  /** E.g. the scripture a song draws on. */
+  reference: string | null;
+  notes: string | null;
+  relationshipType: string | null;
+  /** The version this one derives from, e.g. the original of a translation. */
+  parentVersion: { id: string; title: string; language: string } | null;
+  /** Key, tempo, time signature and duration are in `documentJson.defaults`. */
   documentJson: SongDocument;
   contributors: VersionContributor[];
   identifiers: SongVersionLink[];
@@ -493,6 +509,8 @@ export interface CreateSongVersionInput {
   teamId?: string;
   title: string;
   language: string;
+  /** At least one. */
+  artists: string[];
   alternateTitle?: string;
   copyright?: string;
   copyrightYear?: number;
@@ -500,16 +518,27 @@ export interface CreateSongVersionInput {
   ccli?: string;
 }
 
+/** A field left out is left alone; null clears it. */
 export interface UpdateSongVersionInput {
   title?: string;
-  alternateTitle?: string;
+  /** Shown as "Subtitle". */
+  alternateTitle?: string | null;
+  sortTitle?: string | null;
   language?: string;
-  copyright?: string;
-  copyrightYear?: number;
-  publisher?: string;
-  ccli?: string;
-  key?: string;
-  tempo?: number;
+  album?: string | null;
+  year?: number | null;
+  copyright?: string | null;
+  copyrightYear?: number | null;
+  publisher?: string | null;
+  ccli?: string | null;
+  isrc?: string | null;
+  reference?: string | null;
+  notes?: string | null;
+  key?: string | null;
+  tempo?: number | null;
+  /** "4/4" */
+  timeSignature?: string | null;
+  durationSeconds?: number | null;
 }
 
 export interface WorkIdentifier {

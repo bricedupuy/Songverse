@@ -27,8 +27,10 @@ export class CatalogEntryResponseDto {
   @ApiProperty({ nullable: true }) key!: string | null;
   @ApiProperty({ nullable: true }) timeSignature!: string | null;
   @ApiProperty({ nullable: true }) tempo!: number | null;
+  @ApiProperty({ nullable: true, description: "Seconds" }) durationSeconds!: number | null;
   @ApiProperty({ nullable: true }) copyright!: string | null;
   @ApiProperty({ nullable: true }) ccli!: string | null;
+  @ApiProperty({ nullable: true }) isrc!: string | null;
   @ApiProperty({ nullable: true }) reference!: string | null;
   @ApiProperty({ type: [String] }) tags!: string[];
   @ApiProperty({ nullable: true }) notes!: string | null;

@@ -1,4 +1,4 @@
-import { CATALOG_ENTRY_FIELDS, compareEntryCodes, type CatalogEntryFieldKey, type SongbookCatalogEntry } from "@songverse/core";
+import { CATALOG_ENTRY_FIELDS, compareEntryCodes, formatDuration, type CatalogEntryFieldKey, type SongbookCatalogEntry } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, Columns3, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
@@ -24,6 +24,8 @@ const WIDTH: Partial<Record<CatalogEntryFieldKey, string>> = {
   key: "w-20 min-w-20",
   timeSignature: "w-20 min-w-20",
   tempo: "w-20 min-w-20",
+  durationSeconds: "w-24 min-w-24",
+  isrc: "min-w-36",
   ccli: "min-w-24",
   tags: "min-w-44",
   notes: "min-w-64",
@@ -61,6 +63,7 @@ function fold(text: string): string {
 function editText(entry: SongbookCatalogEntry, field: CatalogEntryFieldKey): string {
   const value = entry[field];
   if (value === null) return "";
+  if (field === "durationSeconds" && typeof value === "number") return formatDuration(value);
   return Array.isArray(value) ? value.join("; ") : String(value);
 }
 

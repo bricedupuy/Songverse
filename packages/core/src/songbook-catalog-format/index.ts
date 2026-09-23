@@ -13,7 +13,7 @@
  * - Rows are matched to existing entries by Number.
  */
 
-export type CatalogFieldKind = "text" | "int" | "list";
+export type CatalogFieldKind = "text" | "int" | "list" | "duration";
 
 export interface CatalogFieldDef {
   key: CatalogEntryFieldKey;
@@ -47,8 +47,10 @@ export const CATALOG_ENTRY_FIELD_KEYS = [
   "key",
   "timeSignature",
   "tempo",
+  "durationSeconds",
   "copyright",
   "ccli",
+  "isrc",
   "reference",
   "tags",
   "notes",
@@ -82,8 +84,19 @@ export const CATALOG_ENTRY_FIELDS: readonly CatalogFieldDef[] = [
     patternHint: "like 4/4 or 6/8",
   },
   { key: "tempo", header: "Tempo", jsonKey: "tempo", aliases: ["BPM"], kind: "int", min: 20, max: 400 },
+  { key: "durationSeconds", header: "Duration", jsonKey: "duration", aliases: ["Runtime", "Length", "Time Length"], kind: "duration", min: 1, max: 36000 },
   { key: "copyright", header: "Copyright", jsonKey: "copyright", aliases: [], kind: "text", maxLength: 500 },
   { key: "ccli", header: "CCLI", jsonKey: "ccli", aliases: ["CCLINumber", "SongSelect"], kind: "text", maxLength: 20 },
+  {
+    key: "isrc",
+    header: "ISRC",
+    jsonKey: "isrc",
+    aliases: ["ISRCCode"],
+    kind: "text",
+    maxLength: 15,
+    pattern: /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/,
+    patternHint: "12 characters like USRC17607839; dashes are fine",
+  },
   { key: "reference", header: "Reference", jsonKey: "reference", aliases: ["Scripture", "BibleReference"], kind: "text", maxLength: 300 },
   { key: "tags", header: "Tags", jsonKey: "tags", aliases: ["Themes", "Keywords"], kind: "list", maxLength: 30 },
   { key: "notes", header: "Notes", jsonKey: "notes", aliases: ["Comments"], kind: "text", maxLength: 2000 },
@@ -110,8 +123,12 @@ export interface CatalogEntryData {
   key: string | null;
   timeSignature: string | null;
   tempo: number | null;
+  /** Running time in seconds; written as m:ss in files. */
+  durationSeconds: number | null;
   copyright: string | null;
   ccli: string | null;
+  /** Compact form: USRC17607839. */
+  isrc: string | null;
   reference: string | null;
   tags: string[];
   notes: string | null;
@@ -206,6 +223,15 @@ export function normalizeCatalogValue(field: CatalogFieldDef, raw: unknown): Nor
     return { ok: true, value: tags };
   }
 
+  if (field.kind === "duration") {
+    const seconds = typeof raw === "number" ? raw : typeof raw === "string" ? parseDuration(raw) : null;
+    if (seconds === null || !Number.isInteger(seconds)) return { ok: false, message: `${label} must be like 3:45 (or a number of seconds)` };
+    if ((field.min !== undefined && seconds < field.min) || (field.max !== undefined && seconds > field.max)) {
+      return { ok: false, message: `${label} must be between 0:01 and ${formatDuration(field.max ?? 0)}` };
+    }
+    return { ok: true, value: seconds };
+  }
+
   if (field.kind === "int") {
     const number = typeof raw === "number" ? raw : typeof raw === "string" && /^\s*-?\d+\s*$/.test(raw) ? Number(raw) : Number.NaN;
     if (!Number.isInteger(number)) return { ok: false, message: `${label} must be a whole number` };
@@ -216,8 +242,14 @@ export function normalizeCatalogValue(field: CatalogFieldDef, raw: unknown): Nor
   }
 
   if (typeof raw !== "string" && typeof raw !== "number") return { ok: false, message: `${label} must be text` };
-  // Notes keep their line breaks; everything else is one line.
-  const text = field.key === "notes" ? String(raw).trim().replace(/\r\n?/g, "\n") : String(raw).trim().replace(/\s+/g, " ");
+  // Notes keep their line breaks; everything else is one line. ISRCs are
+  // stored compact and upper-case, however they were written.
+  const text =
+    field.key === "notes"
+      ? String(raw).trim().replace(/\r\n?/g, "\n")
+      : field.key === "isrc"
+        ? String(raw).replace(/[\s-]/g, "").toUpperCase()
+        : String(raw).trim().replace(/\s+/g, " ");
   if (field.maxLength && text.length > field.maxLength) return { ok: false, message: `${label} is longer than ${field.maxLength} characters` };
   if (field.pattern && !field.pattern.test(text)) return { ok: false, message: `${label} "${text}" isn't valid (${field.patternHint})` };
   return { ok: true, value: text };
@@ -357,9 +389,10 @@ function csvCell(value: string): string {
   return /[",;\t\r\n]|^\s|\s$/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-function exportValue(value: CatalogEntryData[CatalogEntryFieldKey]): string {
+function exportValue(field: CatalogFieldDef, value: CatalogEntryData[CatalogEntryFieldKey]): string {
   if (value === null) return "";
   if (Array.isArray(value)) return value.join("; ");
+  if (field.kind === "duration" && typeof value === "number") return formatDuration(value);
   return String(value);
 }
 
@@ -370,7 +403,7 @@ function exportValue(value: CatalogEntryData[CatalogEntryFieldKey]): string {
 export function serializeCatalogCsv(entries: readonly CatalogEntryData[]): string {
   const lines = [CATALOG_ENTRY_FIELDS.map((field) => field.header).join(",")];
   for (const entry of entries) {
-    lines.push(CATALOG_ENTRY_FIELDS.map((field) => csvCell(exportValue(entry[field.key]))).join(","));
+    lines.push(CATALOG_ENTRY_FIELDS.map((field) => csvCell(exportValue(field, entry[field.key]))).join(","));
   }
   return `\uFEFF${lines.join("\r\n")}\r\n`;
 }
@@ -478,6 +511,38 @@ export function parseCatalogFile(text: string, filename?: string): ParsedCatalog
 
 // ---------------------------------------------------------------- helpers
 
+/** "3:45", "1:02:03" or plain seconds ("225") to seconds; null if it isn't one of those. */
+export function parseDuration(text: string): number | null {
+  const value = text.trim();
+  if (/^\d+$/.test(value)) return Number(value);
+  const match = /^(?:(\d+):)?(\d{1,2}):(\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, hours, minutes, seconds] = match;
+  if (Number(seconds) > 59 || (hours !== undefined && Number(minutes) > 59)) return null;
+  return Number(hours ?? 0) * 3600 + Number(minutes) * 60 + Number(seconds);
+}
+
+/** Seconds as m:ss, or h:mm:ss from an hour up. */
+export function formatDuration(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, "0");
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}` : `${minutes}:${seconds}`;
+}
+
+/**
+ * Several people in one credit, separated by semicolons: "Hillsong Worship;
+ * Brooke Ligertwood". Trimmed, blanks and repeats (ignoring case) dropped.
+ */
+export function splitNames(text: string | null | undefined): string[] {
+  const names: string[] = [];
+  for (const part of (text ?? "").split(";")) {
+    const name = part.trim().replace(/\s+/g, " ");
+    if (name && !names.some((existing) => existing.toLowerCase() === name.toLowerCase())) names.push(name);
+  }
+  return names;
+}
+
 /** Entry numbers in reading order: 2 before 10, "12a" after "12". */
 export function compareEntryCodes(a: string, b: string): number {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
@@ -514,8 +579,10 @@ export function emptyCatalogEntry(entryCode: string, title: string): CatalogEntr
     key: null,
     timeSignature: null,
     tempo: null,
+    durationSeconds: null,
     copyright: null,
     ccli: null,
+    isrc: null,
     reference: null,
     tags: [],
     notes: null,

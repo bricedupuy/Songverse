@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   computeSectionLabel,
   parseChordPro,
@@ -6,13 +6,14 @@ import {
   parseSongDocument,
   parseStreamingLink,
   serializeChordPro,
+  splitNames,
   type CatalogEntryData,
   type SongbookSection,
   type SongDocument,
   type StreamingIdentifierType,
   type SupportedImportFormat,
 } from "@songverse/core";
-import type { ContributorRole, Prisma } from "@songverse/db";
+import type { ContributorRole, Prisma, VersionRelationshipType } from "@songverse/db";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -20,10 +21,83 @@ import { isOwnedByOrMemberOf } from "../common/utils/ownership-visibility";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 
-type CatalogEntryFacts = Pick<
-  CatalogEntryData,
-  "title" | "subtitle" | "copyright" | "year" | "ccli" | "key" | "tempo" | "timeSignature" | "artist" | "composer" | "lyricist"
->;
+/** A version's own fields (the columns, and their mirror in documentJson.metadata). */
+type VersionFields = {
+  title: string;
+  language: string;
+  alternateTitle?: string | null;
+  sortTitle?: string | null;
+  album?: string | null;
+  year?: number | null;
+  copyright?: string | null;
+  copyrightYear?: number | null;
+  publisher?: string | null;
+  ccli?: string | null;
+  isrc?: string | null;
+  reference?: string | null;
+  notes?: string | null;
+};
+
+type CreateExtras = {
+  defaults?: SongDocument["defaults"];
+  credits?: { source: string; roles: ContributorRole[] }[];
+  tagIds?: string[];
+  /** Add to this existing Work. */
+  workId?: string;
+  /** Derived from this version (e.g. a translation of it): joins its Work. */
+  parent?: { id: string; workId: string; relationshipType: VersionRelationshipType };
+};
+
+/** One credit per person (ignoring case), with all their roles. */
+function mergeCredits(entries: readonly (readonly [string, ContributorRole])[]): { source: string; roles: ContributorRole[] }[] {
+  const credits: { source: string; roles: ContributorRole[] }[] = [];
+  for (const [name, role] of entries) {
+    const existing = credits.find((credit) => credit.source.toLowerCase() === name.toLowerCase());
+    if (!existing) credits.push({ source: name, roles: [role] });
+    else if (!existing.roles.includes(role)) existing.roles.push(role);
+  }
+  return credits;
+}
+
+/**
+ * Swaps the artist a MusicBrainz link added (isAutoAttached) for `artist`
+ * - or removes it, for null. A previous link's row is replaced so
+ * re-linking doesn't leave the old artist alongside the new one, and rows
+ * added by hand (a composer, say) aren't touched. Two rules on top: no
+ * second copy of an artist the song already credits, and a song never
+ * ends up with no artist - the old one is then kept, as an ordinary one.
+ */
+async function replaceAutoAttachedArtist(tx: Prisma.TransactionClient, songVersionId: string, artist: string | null): Promise<void> {
+  const performers = await tx.versionContributor.findMany({
+    where: { songVersionId, roles: { has: "PERFORMER" } },
+    select: { id: true, source: true, isAutoAttached: true },
+  });
+  const manual = performers.filter((p) => !p.isAutoAttached);
+  const auto = performers.filter((p) => p.isAutoAttached);
+  const same = (a: string | null, b: string) => a?.toLowerCase() === b.toLowerCase();
+
+  if (artist && !manual.some((p) => same(p.source, artist))) {
+    if (auto.length === 1 && same(auto[0]!.source, artist)) return;
+    await tx.versionContributor.deleteMany({ where: { songVersionId, isAutoAttached: true } });
+    await tx.versionContributor.create({ data: { songVersionId, userId: null, source: artist, roles: ["PERFORMER"], isAutoAttached: true } });
+    return;
+  }
+  if (manual.length > 0 || auto.length === 0) {
+    await tx.versionContributor.deleteMany({ where: { songVersionId, isAutoAttached: true } });
+    return;
+  }
+  // The link's artist is the only one: keep it, now as the song's own.
+  await tx.versionContributor.updateMany({ where: { songVersionId, isAutoAttached: true }, data: { isAutoAttached: false } });
+}
+
+function parseTimeSignature(text: string | null): { numerator: number; denominator: number } | null {
+  const match = text ? /^(\d+)\/(\d+)$/.exec(text) : null;
+  return match ? { numerator: Number(match[1]), denominator: Number(match[2]) } : null;
+}
+
+function foldName(name: string): string {
+  return name.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim().replace(/\s+/g, " ");
+}
 
 const LIST_SELECT = {
   id: true,
@@ -64,6 +138,18 @@ export interface SongVersionOwner {
 
 const DETAIL_SELECT = {
   ...LIST_SELECT,
+  sortTitle: true,
+  album: true,
+  year: true,
+  copyright: true,
+  copyrightYear: true,
+  publisher: true,
+  isrc: true,
+  reference: true,
+  notes: true,
+  relationshipType: true,
+  // The version this one derives from (e.g. the original of a translation).
+  parentVersion: { select: { id: true, title: true, language: true } },
   documentJson: true,
   contributors: {
     select: { id: true, userId: true, source: true, roles: true, isAutoAttached: true, displayOrder: true },
@@ -209,11 +295,11 @@ export class SongVersionsService {
   }
 
   /**
-   * Creates a new Song Version. Without a `workId`, this also creates a
-   * new Work with this version set as its preferred original — a Work
-   * has no title of its own (it's just the grouping of versions of "the
-   * same song"), so a version is the smallest thing a user can meaningfully
-   * create on its own.
+   * Creates a new Song Version, with its artist(s). Without a `workId`,
+   * this also creates a new Work with this version set as its preferred
+   * original — a Work has no title of its own (it's just the grouping of
+   * versions of "the same song"), so a version is the smallest thing a
+   * user can meaningfully create on its own.
    */
   async create(user: AuthenticatedUser, dto: CreateSongVersionDto): Promise<ListItem> {
     let ownerTeamId: string | null = null;
@@ -228,83 +314,106 @@ export class SongVersionsService {
     const owner: SongVersionOwner = { ownerScope, ownerUserId: ownerTeamId ? null : user.id, ownerTeamId };
 
     if (dto.workId) {
-      const work = await this.prisma.client.work.findUnique({ where: { id: dto.workId } });
+      const work = await this.prisma.client.work.findUnique({ where: { id: dto.workId }, select: { id: true } });
       if (!work) throw new NotFoundException("Work not found");
-      const version = await this.prisma.client.songVersion.create({
-        data: { ...this.buildVersionData(owner, dto), workId: work.id },
-        select: LIST_SELECT,
-      });
-      return toListItem(version);
     }
-
-    return this.createWithNewWork(owner, dto);
+    const { title, language, alternateTitle, copyright, copyrightYear, publisher, ccli } = dto;
+    return this.createVersion(owner, { title, language, alternateTitle, copyright, copyrightYear, publisher, ccli }, {
+      workId: dto.workId,
+      credits: mergeCredits(dto.artists.map((name) => [name, "PERFORMER"] as const)),
+    });
   }
 
   /**
    * A new song from a songbook catalogue entry, under any ownership
    * (including GLOBAL, which the public create() endpoint never lets a
    * caller pick). Used by SongbooksService when materializing a pending
-   * catalog entry - see docs/songbooks-and-catalog.md §6. Carries over what
-   * a song has somewhere to keep: subtitle, copyright and year, CCLI, key,
-   * tempo, time signature, and the artist, composer and lyricist as credits.
+   * catalog entry - see docs/songbooks-and-catalog.md §6 and
+   * docs/songbook-catalog-format.md. Every field of the entry is carried
+   * over: song fields, key/tempo/time signature/duration on the chart,
+   * artists, composers and lyricists as credits (several per field,
+   * separated by ";"), tags matching existing ones (the rest are dropped),
+   * and - given the song its "Original song" entry became - a place in that
+   * song's Work as its translation.
    */
-  async createFromCatalogEntry(owner: SongVersionOwner, entry: CatalogEntryFacts, language: string): Promise<ListItem> {
-    const time = entry.timeSignature ? /^(\d+)\/(\d+)$/.exec(entry.timeSignature) : null;
-    const credits = new Map<string, Set<ContributorRole>>();
-    const credit = (name: string | null, role: ContributorRole) => {
-      const source = name?.trim();
-      if (!source) return;
-      const key = [...credits.keys()].find((existing) => existing.toLowerCase() === source.toLowerCase()) ?? source;
-      credits.set(key, (credits.get(key) ?? new Set()).add(role));
-    };
-    credit(entry.artist, "PERFORMER");
-    credit(entry.composer, "COMPOSER");
-    credit(entry.lyricist, "LYRICIST");
-
-    return this.createWithNewWork(
+  async createFromCatalogEntry(
+    owner: SongVersionOwner,
+    entry: CatalogEntryData,
+    language: string,
+    original: { id: string; workId: string } | null = null,
+  ): Promise<ListItem> {
+    const timeSignature = parseTimeSignature(entry.timeSignature);
+    return this.createVersion(
       owner,
       {
         title: entry.title,
         language,
-        alternateTitle: entry.subtitle ?? undefined,
-        copyright: entry.copyright ?? undefined,
-        copyrightYear: entry.year ?? undefined,
-        ccli: entry.ccli ?? undefined,
+        alternateTitle: entry.subtitle,
+        sortTitle: entry.sortTitle,
+        album: entry.album,
+        year: entry.year,
+        copyright: entry.copyright,
+        ccli: entry.ccli,
+        isrc: entry.isrc,
+        reference: entry.reference,
+        notes: entry.notes,
       },
       {
         defaults: {
           ...(entry.key && { key: entry.key }),
           ...(entry.tempo && { tempo: entry.tempo }),
-          ...(time && { timeSignature: { numerator: Number(time[1]), denominator: Number(time[2]) } }),
+          ...(timeSignature && { timeSignature }),
+          ...(entry.durationSeconds && { durationSeconds: entry.durationSeconds }),
         },
-        credits: [...credits].map(([source, roles]) => ({ source, roles: [...roles] })),
+        credits: mergeCredits([
+          ...splitNames(entry.artist).map((name) => [name, "PERFORMER"] as const),
+          ...splitNames(entry.composer).map((name) => [name, "COMPOSER"] as const),
+          ...splitNames(entry.lyricist).map((name) => [name, "LYRICIST"] as const),
+        ]),
+        tagIds: await this.matchTagIds(owner, entry.tags),
+        parent: original ? { ...original, relationshipType: "DIRECT_TRANSLATION" } : undefined,
       },
     );
   }
 
-  private buildVersionData(
-    owner: SongVersionOwner,
-    dto: {
-      title: string;
-      alternateTitle?: string;
-      language: string;
-      copyright?: string;
-      copyrightYear?: number;
-      publisher?: string;
-      ccli?: string;
-    },
-    defaults: SongDocument["defaults"] = {},
-  ) {
+  /**
+   * Ids of the existing tags the owner can use whose name - English label,
+   * slug, or any translation - matches one of `names`, ignoring case and
+   * accents. Names with no such tag are dropped.
+   */
+  private async matchTagIds(owner: SongVersionOwner, names: string[]): Promise<string[]> {
+    if (names.length === 0) return [];
+    const tags = await this.prisma.client.tag.findMany({
+      where: {
+        OR: [
+          { scope: "GLOBAL", isApproved: true },
+          ...(owner.ownerUserId ? [{ scope: "USER" as const, ownerUserId: owner.ownerUserId }] : []),
+          ...(owner.ownerTeamId ? [{ scope: "TEAM" as const, ownerTeamId: owner.ownerTeamId }] : []),
+        ],
+      },
+      select: { id: true, label: true, slug: true, translations: true },
+    });
+    const byName = new Map<string, string>();
+    for (const tag of tags) {
+      const translations = tag.translations && typeof tag.translations === "object" ? Object.values(tag.translations) : [];
+      for (const name of [tag.label, tag.slug.replace(/-/g, " "), ...translations]) {
+        if (typeof name === "string" && !byName.has(foldName(name))) byName.set(foldName(name), tag.id);
+      }
+    }
+    return [...new Set(names.map((name) => byName.get(foldName(name))).filter((id): id is string => !!id))];
+  }
+
+  private buildVersionData(owner: SongVersionOwner, fields: VersionFields, defaults: SongDocument["defaults"] = {}) {
     const documentJson: SongDocument = parseSongDocument({
       $schema: "song-document/v1",
       metadata: {
-        title: dto.title,
-        alternateTitle: dto.alternateTitle ?? null,
-        language: dto.language,
-        ccli: dto.ccli ?? null,
-        copyright: dto.copyright ?? null,
-        copyrightYear: dto.copyrightYear ?? null,
-        publisher: dto.publisher ?? null,
+        title: fields.title,
+        alternateTitle: fields.alternateTitle ?? null,
+        language: fields.language,
+        ccli: fields.ccli ?? null,
+        copyright: fields.copyright ?? null,
+        copyrightYear: fields.copyrightYear ?? null,
+        publisher: fields.publisher ?? null,
         trustLabel: null,
       },
       defaults,
@@ -313,41 +422,54 @@ export class SongVersionsService {
 
     return {
       ...owner,
-      title: dto.title,
-      alternateTitle: dto.alternateTitle,
-      language: dto.language,
-      copyright: dto.copyright,
-      copyrightYear: dto.copyrightYear,
-      publisher: dto.publisher,
-      ccli: dto.ccli,
+      title: fields.title,
+      alternateTitle: fields.alternateTitle ?? null,
+      sortTitle: fields.sortTitle ?? null,
+      language: fields.language,
+      album: fields.album ?? null,
+      year: fields.year ?? null,
+      copyright: fields.copyright ?? null,
+      copyrightYear: fields.copyrightYear ?? null,
+      publisher: fields.publisher ?? null,
+      ccli: fields.ccli ?? null,
+      isrc: fields.isrc ?? null,
+      reference: fields.reference ?? null,
+      notes: fields.notes ?? null,
       documentJson: documentJson as object,
       chordproCache: serializeChordPro(documentJson),
       chordproCacheAt: new Date(),
     };
   }
 
-  private async createWithNewWork(
-    owner: SongVersionOwner,
-    dto: { title: string; language: string; alternateTitle?: string; copyright?: string; copyrightYear?: number; ccli?: string },
-    extras: { defaults?: SongDocument["defaults"]; credits?: { source: string; roles: ContributorRole[] }[] } = {},
-  ): Promise<ListItem> {
-    const versionData = this.buildVersionData(owner, dto, extras.defaults);
+  /**
+   * One transaction: the version, in a new Work (or `workId`'s, or as
+   * `parent`'s derived version in its Work), with its credits and tags.
+   */
+  private async createVersion(owner: SongVersionOwner, fields: VersionFields, extras: CreateExtras = {}): Promise<ListItem> {
+    const versionData = this.buildVersionData(owner, fields, extras.defaults);
     const version = await this.prisma.client.$transaction(async (tx) => {
-      const work = await tx.work.create({ data: {} });
+      const existingWorkId = extras.parent?.workId ?? extras.workId;
+      const workId = existingWorkId ?? (await tx.work.create({ data: {} })).id;
       const created = await tx.songVersion.create({
-        data: { ...versionData, workId: work.id },
-        select: LIST_SELECT,
+        data: {
+          ...versionData,
+          workId,
+          ...(extras.parent && { parentVersionId: extras.parent.id, relationshipType: extras.parent.relationshipType }),
+        },
+        select: { id: true },
       });
       if (extras.credits?.length) {
         await tx.versionContributor.createMany({
           data: extras.credits.map((credit, displayOrder) => ({ songVersionId: created.id, source: credit.source, roles: credit.roles, displayOrder })),
         });
       }
-      await tx.work.update({
-        where: { id: work.id },
-        data: { preferredOriginalVersionId: created.id },
-      });
-      return created;
+      if (extras.tagIds?.length) {
+        await tx.songVersionTag.createMany({ data: extras.tagIds.map((tagId) => ({ songVersionId: created.id, tagId })) });
+      }
+      if (!existingWorkId) {
+        await tx.work.update({ where: { id: workId }, data: { preferredOriginalVersionId: created.id } });
+      }
+      return tx.songVersion.findUniqueOrThrow({ where: { id: created.id }, select: LIST_SELECT });
     });
     return toListItem(version);
   }
@@ -383,21 +505,31 @@ export class SongVersionsService {
         ...currentDoc.defaults,
         ...(dto.key !== undefined && { key: dto.key }),
         ...(dto.tempo !== undefined && { tempo: dto.tempo }),
+        ...(dto.timeSignature !== undefined && { timeSignature: parseTimeSignature(dto.timeSignature) }),
+        ...(dto.durationSeconds !== undefined && { durationSeconds: dto.durationSeconds }),
       },
     });
 
-    // key/tempo live only in documentJson.defaults (handled above) - not
-    // real SongVersion columns, so they're left out of this scalar update.
+    // Key, tempo, time signature and duration live only in
+    // documentJson.defaults (handled above) - not real SongVersion columns,
+    // so they're left out of this scalar update. undefined leaves a column
+    // alone; null clears it.
     const version = await this.prisma.client.songVersion.update({
       where: { id },
       data: {
         title: dto.title,
         alternateTitle: dto.alternateTitle,
+        sortTitle: dto.sortTitle,
         language: dto.language,
+        album: dto.album,
+        year: dto.year,
         ccli: dto.ccli,
+        isrc: dto.isrc,
         copyright: dto.copyright,
         copyrightYear: dto.copyrightYear,
         publisher: dto.publisher,
+        reference: dto.reference,
+        notes: dto.notes,
         documentJson: documentJson as object,
         chordproCache: serializeChordPro(documentJson),
         chordproCacheAt: new Date(),
@@ -496,8 +628,8 @@ export class SongVersionsService {
 
   async linkMusicBrainzRecording(songVersionId: string, mbid: string) {
     const match = await this.musicBrainz.getRecording(mbid);
-    await this.prisma.client.$transaction([
-      this.prisma.client.songVersionIdentifier.upsert({
+    await this.prisma.client.$transaction(async (tx) => {
+      await tx.songVersionIdentifier.upsert({
         where: { songVersionId_type: { songVersionId, type: "MUSICBRAINZ_RECORDING" } },
         create: {
           songVersionId,
@@ -507,32 +639,17 @@ export class SongVersionsService {
           verifiedAt: new Date(),
         },
         update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date() },
-      }),
-      // A previous MusicBrainz link's own contributor row is marked
-      // isAutoAttached so it can be replaced here without touching one a
-      // user added by hand — re-linking to a different recording
-      // shouldn't leave the old artist attached alongside the new one,
-      // but a manually-entered composer/lyricist isn't this link's to
-      // remove.
-      this.prisma.client.versionContributor.deleteMany({ where: { songVersionId, isAutoAttached: true } }),
-      ...(match.artist
-        ? [
-            this.prisma.client.versionContributor.create({
-              data: { songVersionId, userId: null, source: match.artist, roles: ["PERFORMER"], isAutoAttached: true },
-            }),
-          ]
-        : []),
-    ]);
+      });
+      await replaceAutoAttachedArtist(tx, songVersionId, match.artist ?? null);
+    });
     return match;
   }
 
   async unlinkMusicBrainzRecording(songVersionId: string) {
-    await this.prisma.client.$transaction([
-      this.prisma.client.songVersionIdentifier.deleteMany({
-        where: { songVersionId, type: "MUSICBRAINZ_RECORDING" },
-      }),
-      this.prisma.client.versionContributor.deleteMany({ where: { songVersionId, isAutoAttached: true } }),
-    ]);
+    await this.prisma.client.$transaction(async (tx) => {
+      await tx.songVersionIdentifier.deleteMany({ where: { songVersionId, type: "MUSICBRAINZ_RECORDING" } });
+      await replaceAutoAttachedArtist(tx, songVersionId, null);
+    });
   }
 
   async addContributor(songVersionId: string, source: string, roles: string[]) {
@@ -547,11 +664,18 @@ export class SongVersionsService {
     });
   }
 
+  /** A song's last artist can't be removed - it needs at least one. */
   async removeContributor(songVersionId: string, contributorId: string): Promise<void> {
-    const deleted = await this.prisma.client.versionContributor.deleteMany({
+    const contributor = await this.prisma.client.versionContributor.findFirst({
       where: { id: contributorId, songVersionId },
+      select: { roles: true },
     });
-    if (deleted.count === 0) throw new NotFoundException("Contributor not found");
+    if (!contributor) throw new NotFoundException("Contributor not found");
+    if (contributor.roles.includes("PERFORMER")) {
+      const artists = await this.prisma.client.versionContributor.count({ where: { songVersionId, roles: { has: "PERFORMER" } } });
+      if (artists <= 1) throw new BadRequestException("A song needs at least one artist. Add another before removing this one.");
+    }
+    await this.prisma.client.versionContributor.delete({ where: { id: contributorId } });
   }
 
   async addTag(songVersionId: string, tagId: string) {
