@@ -3,6 +3,14 @@ import { resolve } from "node:path";
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { runSeed } from "@songverse/db";
 import { MissingEncryptionKeyError } from "@songverse/secret-crypto";
+import {
+  clearEmailAuthConfig as clearEmailAuthConfigSetting,
+  clearGoogleAuthConfig as clearGoogleAuthConfigSetting,
+  getAuthConfigSummary,
+  saveAuthConfig as saveAuthConfigSetting,
+  type AuthConfigSummary,
+  type SaveAuthConfigInput,
+} from "../auth/auth-settings";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService, type SaveStorageConfigInput } from "../storage/storage.service";
 
@@ -91,6 +99,27 @@ export class AdminService {
 
   clearStorageConfig(): Promise<void> {
     return this.storage.clearConfig();
+  }
+
+  getAuthConfig(): Promise<AuthConfigSummary> {
+    return getAuthConfigSummary();
+  }
+
+  async saveAuthConfig(input: SaveAuthConfigInput): Promise<void> {
+    try {
+      await saveAuthConfigSetting(input);
+    } catch (error) {
+      if (error instanceof MissingEncryptionKeyError) throw new BadRequestException(error.message);
+      throw error;
+    }
+  }
+
+  clearEmailAuthConfig(): Promise<void> {
+    return clearEmailAuthConfigSetting();
+  }
+
+  clearGoogleAuthConfig(): Promise<void> {
+    return clearGoogleAuthConfigSetting();
   }
 
   /**

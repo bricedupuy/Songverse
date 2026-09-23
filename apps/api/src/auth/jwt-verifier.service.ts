@@ -8,9 +8,17 @@ export interface BetterAuthJwtPayload extends JWTPayload {
 }
 
 /**
- * Verifies JWTs issued by BetterAuth's JWT plugin (apps/web) against its
- * published JWKS. BetterAuth owns issuance and session cookies; the API
- * only ever verifies — it never mints tokens itself.
+ * Verifies JWTs issued by BetterAuth's JWT plugin (mounted in this same
+ * API - see auth/better-auth.ts and main.ts) against its published JWKS.
+ * BetterAuth owns issuance; nothing else in this API mints tokens.
+ *
+ * The JWKS fetch itself goes over loopback (localhost:PORT) rather than
+ * the public AUTH_URL, even though both now point at this same process -
+ * calling your own public HTTPS URL from inside the container it's
+ * served from is a common deployment footgun (no guaranteed route back to
+ * yourself, TLS cert mismatches, etc.). The `iss` claim on the token is
+ * still AUTH_URL (that's what BetterAuth was configured with as its own
+ * baseURL), so verification still checks against the real public issuer.
  */
 @Injectable()
 export class JwtVerifierService {
@@ -19,7 +27,8 @@ export class JwtVerifierService {
 
   constructor(private readonly config: ConfigService) {
     this.issuer = this.config.getOrThrow<string>("AUTH_URL");
-    this.jwks = createRemoteJWKSet(new URL(`${this.issuer}/api/auth/jwks`));
+    const port = this.config.get<string>("PORT") ?? "3001";
+    this.jwks = createRemoteJWKSet(new URL(`http://localhost:${port}/api/auth/jwks`));
   }
 
   async verify(token: string): Promise<BetterAuthJwtPayload> {

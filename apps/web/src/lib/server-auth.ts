@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { prisma } from "@songverse/db";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type LocaleValue } from "@songverse/core";
-import { getAuth } from "./auth";
+import { getApiUrl } from "#/lib/public-env";
 
 export interface AppSession {
   userId: string;
@@ -12,85 +11,58 @@ export interface AppSession {
   locale: LocaleValue;
 }
 
+interface BetterAuthUser {
+  id: string;
+  email: string;
+  name: string;
+  isGlobalAdmin?: boolean;
+  locale?: string;
+}
+
 function asLocale(value: string): LocaleValue {
   return (SUPPORTED_LOCALES as readonly string[]).includes(value) ? (value as LocaleValue) : DEFAULT_LOCALE;
 }
 
+/**
+ * BetterAuth itself runs in apps/api now (see apps/api/src/auth/) - this
+ * forwards the incoming request's session cookie there and reads back
+ * `{session, user}` (or null) over HTTP, rather than calling an in-process
+ * `auth.api.getSession()` the way this worked when auth lived in this app.
+ * `isGlobalAdmin`/`locale` come back on `user` because they're registered
+ * as BetterAuth additionalFields (see apps/api's better-auth.ts) - that
+ * keeps this to one HTTP round trip instead of a second call to
+ * `/users/me` just to get them.
+ */
 async function loadSession(): Promise<AppSession | null> {
-  const auth = await getAuth();
-  const session = await auth.api.getSession({ headers: getRequest().headers });
-  if (!session) return null;
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, email: true, displayName: true, isGlobalAdmin: true, locale: true },
+  const cookie = getRequest().headers.get("cookie");
+  const response = await fetch(`${getApiUrl()}/api/auth/get-session`, {
+    headers: cookie ? { cookie } : undefined,
   });
-  if (!user) return null;
+  if (!response.ok) return null;
+
+  const data = (await response.json()) as { user: BetterAuthUser } | null;
+  if (!data?.user) return null;
 
   return {
-    userId: user.id,
-    email: user.email,
-    displayName: user.displayName,
-    isGlobalAdmin: user.isGlobalAdmin,
-    locale: asLocale(user.locale),
+    userId: data.user.id,
+    email: data.user.email,
+    displayName: data.user.name,
+    isGlobalAdmin: Boolean(data.user.isGlobalAdmin),
+    locale: asLocale(data.user.locale ?? DEFAULT_LOCALE),
   };
 }
 
 /** Returns the current session, or null when signed out. Safe to call anywhere. */
 export const getSession = createServerFn({ method: "GET" }).handler(loadSession);
 
-/** Throws if the caller isn't authenticated; otherwise returns a typed session. */
-export const ensureSession = createServerFn({ method: "GET" }).handler(async () => {
-  const session = await loadSession();
-  if (!session) {
-    throw new Response("Unauthorized", { status: 401 });
-  }
-  return session;
-});
-
 /** Mints a short-lived JWT for the current session, for calling the NestJS API. */
 export const getApiToken = createServerFn({ method: "GET" }).handler(async () => {
-  const headers = getRequest().headers;
-  const auth = await getAuth();
-  const session = await auth.api.getSession({ headers });
-  if (!session) return null;
-  const { token } = await auth.api.getToken({ headers });
-  return token;
-});
+  const cookie = getRequest().headers.get("cookie");
+  if (!cookie) return null;
 
-export const ensureTeamMember = createServerFn({ method: "GET" })
-  .validator((teamId: string) => teamId)
-  .handler(async ({ data: teamId }) => {
-    const session = await loadSession();
-    if (!session) throw new Response("Unauthorized", { status: 401 });
-    if (session.isGlobalAdmin) return session;
+  const response = await fetch(`${getApiUrl()}/api/auth/token`, { headers: { cookie } });
+  if (!response.ok) return null;
 
-    const membership = await prisma.teamMembership.findUnique({
-      where: { teamId_userId: { teamId, userId: session.userId } },
-    });
-    if (!membership) throw new Response("Forbidden: not a member of this team", { status: 403 });
-    return session;
-  });
-
-export const ensureTeamAdmin = createServerFn({ method: "GET" })
-  .validator((teamId: string) => teamId)
-  .handler(async ({ data: teamId }) => {
-    const session = await loadSession();
-    if (!session) throw new Response("Unauthorized", { status: 401 });
-    if (session.isGlobalAdmin) return session;
-
-    const membership = await prisma.teamMembership.findUnique({
-      where: { teamId_userId: { teamId, userId: session.userId } },
-    });
-    if (!membership || membership.role !== "ADMIN") {
-      throw new Response("Forbidden: team admin role required", { status: 403 });
-    }
-    return session;
-  });
-
-export const ensureGlobalAdmin = createServerFn({ method: "GET" }).handler(async () => {
-  const session = await loadSession();
-  if (!session) throw new Response("Unauthorized", { status: 401 });
-  if (!session.isGlobalAdmin) throw new Response("Forbidden: global admin role required", { status: 403 });
-  return session;
+  const data = (await response.json()) as { token: string } | null;
+  return data?.token ?? null;
 });

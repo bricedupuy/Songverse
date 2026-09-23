@@ -16,6 +16,16 @@ interface AuthCardProps {
   hasGoogleAuth: boolean;
 }
 
+// BetterAuth builds verification/reset-password/OAuth callback links
+// server-side, resolving a relative callbackURL against its own baseURL -
+// the API's origin, now that auth lives there rather than in this app. So
+// what we hand it here has to be an absolute URL pointing back at *this*
+// app, or a signed-out browser ends up sent to the API's origin instead of
+// the web app after clicking the link.
+function toAbsoluteUrl(path: string) {
+  return `${window.location.origin}${path}`;
+}
+
 export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardProps) {
   const [view, setView] = useState<View>("auth");
   const [error, setError] = useState<string | null>(null);
@@ -40,8 +50,8 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
 
     const result =
       mode === "signup"
-        ? await authClient.signUp.email({ email, password, name, callbackURL: redirectTo })
-        : await authClient.signIn.email({ email, password, callbackURL: redirectTo });
+        ? await authClient.signUp.email({ email, password, name, callbackURL: toAbsoluteUrl(redirectTo) })
+        : await authClient.signIn.email({ email, password, callbackURL: toAbsoluteUrl(redirectTo) });
 
     setLoading(false);
 
@@ -68,7 +78,10 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
     if (!unverifiedEmail) return;
     resetMessages();
     setLoading(true);
-    const result = await authClient.sendVerificationEmail({ email: unverifiedEmail, callbackURL: redirectTo });
+    const result = await authClient.sendVerificationEmail({
+      email: unverifiedEmail,
+      callbackURL: toAbsoluteUrl(redirectTo),
+    });
     setLoading(false);
     if (result.error) {
       setError(result.error.message ?? "Something went wrong");
@@ -82,7 +95,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
     setLoading(true);
     const form = new FormData(formEl);
     const email = String(form.get("email"));
-    const result = await authClient.requestPasswordReset({ email, redirectTo: "/reset-password" });
+    const result = await authClient.requestPasswordReset({ email, redirectTo: toAbsoluteUrl("/reset-password") });
     setLoading(false);
     if (result.error) {
       setError(result.error.message ?? "Something went wrong");
@@ -93,7 +106,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
 
   async function signInWithGoogle() {
     resetMessages();
-    await authClient.signIn.social({ provider: "google", callbackURL: redirectTo });
+    await authClient.signIn.social({ provider: "google", callbackURL: toAbsoluteUrl(redirectTo) });
   }
 
   async function signInWithPasskey() {

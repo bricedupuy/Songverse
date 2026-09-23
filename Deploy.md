@@ -58,10 +58,41 @@ Environment variables:
 ```
 DATABASE_URL=<Postgres connection string>
 REDIS_URL=<Redis connection string>
-AUTH_URL=https://songverse.one
 PORT=3001
+
+# BetterAuth lives here now (apps/api/src/auth/) - see below.
+AUTH_URL=https://api.songverse.one
+WEB_URL=https://songverse.one
+BETTER_AUTH_SECRET=<generate one — see below>
+BOOTSTRAP_ADMIN_EMAILS=<comma-separated emails to auto-promote on sign-up>
+
 SETTINGS_ENCRYPTION_KEY=<any long random string>
+
+# Transactional email (verification + password reset) — fallback only,
+# prefer Admin > Auth once the app is up. See below.
+RESEND_API_KEY=<Resend API key>
+EMAIL_FROM=SongVerse <onboarding@resend.dev>
+
+# Google sign-in — optional, also configurable via Admin > Auth. See below.
+GOOGLE_CLIENT_ID=<Google OAuth client ID>
+GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
 ```
+
+**`AUTH_URL` vs `WEB_URL` vs `API_URL`, since it's easy to mix up:** `AUTH_URL` is this **API's own address** (BetterAuth is mounted here — see `apps/api/src/auth/`). `WEB_URL` is the **web app's** address — needed here because a WebAuthn passkey is tied to the browser's origin (the web app), not to wherever the auth server lives, and because verification/reset-password links redirect back into the web app, which BetterAuth has to explicitly trust as a foreign origin now that it's not the same app. `API_URL` (set on the **Web app only**, below) is this same API's address again, from the web app's point of view, for its ordinary (non-auth) data calls.
+
+**Generating `BETTER_AUTH_SECRET`:**
+```
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+Keep this stable once set — BetterAuth encrypts its signing key with it in the database, so changing the secret without clearing the `Jwks` table breaks login for everyone until you do.
+
+**`RESEND_API_KEY` / `EMAIL_FROM`:** email addresses now have to be verified before sign-in works (`emailAndPassword.requireEmailVerification` in `apps/api/src/auth/better-auth.ts`), and "forgot password" sends a reset link — both go out through [Resend](https://resend.com). Sign up for a free account, verify a sending domain (or use their shared `onboarding@resend.dev` sender for testing), and create an API key. The env vars here are a fallback: once the app is up, sign in as a global admin and set this at **Admin > Auth** instead — it takes effect immediately, no redeploy needed. Whichever path is used, if no Resend API key is configured at all, emails are logged to the container's stdout instead of sent — fine for local dev, **not fine in production** (nobody can verify their account). The app only ever sends these two transactional emails, never bulk/marketing mail, specifically to stay inside the free tier's daily/monthly send cap — don't add new call sites to `apps/api/src/auth/email.ts` without keeping that in mind.
+
+**`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`:** optional, and also settable at **Admin > Auth** instead of these env vars. Leave both unset everywhere to keep email+password (and passkeys) as the only sign-in methods — the "Continue with Google" button only renders once either path is configured. To enable it, create an OAuth 2.0 Client ID at the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) with an authorized redirect URI of `<AUTH_URL>/api/auth/callback/google` (e.g. `https://api.songverse.one/api/auth/callback/google`).
+
+**Passkeys** (`@better-auth/passkey`) need no extra configuration — they're derived from `WEB_URL` at boot (the relying-party ID is its hostname), not `AUTH_URL`.
+
+**The session cookie is cross-subdomain by design** (`advanced.crossSubDomainCookies` in `better-auth.ts`): the web app (`songverse.one`) and this API (`api.songverse.one`) are different origins but the same *site* (same registrable domain), so a cookie scoped to `.songverse.one` reaches both. This is also why the API's CORS config (`main.ts`) names the web app's exact origin with `credentials: true` rather than using a wildcard — browsers refuse to combine a wildcard `Access-Control-Allow-Origin` with credentialed (cookie-bearing) requests.
 
 **Object storage (R2) has two setup paths** — pick one:
 
@@ -105,10 +136,13 @@ Storage shows which path is currently active.
 - **Command override** (usually under an "Advanced" tab, field is typically called "Command"): `node dist/worker.js`
 
 Environment variables: same as the API app (`DATABASE_URL`, `REDIS_URL`,
-`AUTH_URL`, `SETTINGS_ENCRYPTION_KEY`, and the `R2_*` vars if using the
-env-var fallback — the Worker is what actually processes bulk content
-uploads, so it needs the same object storage config as the API, whichever
-path you chose). `PORT` isn't used here.
+`SETTINGS_ENCRYPTION_KEY`, and the `R2_*` vars if using the env-var
+fallback — the Worker is what actually processes bulk content uploads, so
+it needs the same object storage config as the API, whichever path you
+chose). The Worker never serves HTTP traffic, so it doesn't need
+`AUTH_URL`/`WEB_URL`/`BETTER_AUTH_SECRET`/the Resend or Google vars —
+those only matter to whichever process BetterAuth's handler is actually
+mounted in (the API). `PORT` isn't used here either.
 
 ### Web app
 
@@ -122,42 +156,14 @@ path you chose). `PORT` isn't used here.
 
 Environment variables:
 ```
-DATABASE_URL=<same Postgres connection string as the API>
-AUTH_URL=https://songverse.one
 API_URL=https://api.songverse.one
-BETTER_AUTH_SECRET=<generate one — see below>
 PORT=3000
-
-# Encrypts secrets saved through Admin > Auth / Admin > Storage - see below
-SETTINGS_ENCRYPTION_KEY=<any long random string>
-
-# Transactional email (verification + password reset) — fallback only,
-# prefer Admin > Auth once the app is up. See below.
-RESEND_API_KEY=<Resend API key>
-EMAIL_FROM=SongVerse <onboarding@resend.dev>
-
-# Google sign-in — optional, also configurable via Admin > Auth. See below.
-GOOGLE_CLIENT_ID=<Google OAuth client ID>
-GOOGLE_CLIENT_SECRET=<Google OAuth client secret>
 ```
-
-**`AUTH_URL` vs `API_URL`, since it's easy to mix up:** `AUTH_URL` is always the **Web app's** own address, on every service that has it — it's where the login system (BetterAuth) actually lives, and the API needs to know it to verify login tokens. `API_URL` is the **API's** address, and only the Web app needs it, so it knows where to send data requests.
-
-**Generating `BETTER_AUTH_SECRET`:**
-```
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-Keep this stable once set — BetterAuth encrypts its signing key with it in the database, so changing the secret without clearing the `Jwks` table breaks login for everyone until you do.
-
-**`SETTINGS_ENCRYPTION_KEY`:** the same var the API uses for R2 credentials (see above — reuse that value, or generate a separate one, either works since each app only ever decrypts what it itself encrypted). Required to save a Resend API key or Google client secret through Admin > Auth; without it, that panel still works but can't persist secrets, and falls back to reading `RESEND_API_KEY`/`GOOGLE_CLIENT_SECRET` from the environment.
-
-**`RESEND_API_KEY` / `EMAIL_FROM`:** email addresses now have to be verified before sign-in works (`emailAndPassword.requireEmailVerification` in `apps/web/src/lib/auth.ts`), and "forgot password" sends a reset link — both go out through [Resend](https://resend.com). Sign up for a free account, verify a sending domain (or use their shared `onboarding@resend.dev` sender for testing), and create an API key. The env vars here are a fallback: once the app is up, sign in as a global admin and set this at **Admin > Auth** instead — it takes effect immediately, no redeploy needed. Whichever path is used, if no Resend API key is configured at all, emails are logged to the container's stdout instead of sent — fine for local dev, **not fine in production** (nobody can verify their account). The app only ever sends these two transactional emails, never bulk/marketing mail, specifically to stay inside the free tier's daily/monthly send cap — don't add new call sites to `apps/web/src/lib/email.ts` without keeping that in mind.
-
-**`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`:** optional, and also settable at **Admin > Auth** instead of these env vars. Leave both unset everywhere to keep email+password (and passkeys) as the only sign-in methods — the "Continue with Google" button only renders once either path is configured. To enable it, create an OAuth 2.0 Client ID at the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) with an authorized redirect URI of `<AUTH_URL>/api/auth/callback/google` (e.g. `https://songverse.one/api/auth/callback/google`).
-
-**Passkeys** (`@better-auth/passkey`) need no extra configuration — they're derived from `AUTH_URL` at boot (the relying-party ID is its hostname).
+That's it — the web app no longer talks to Postgres or BetterAuth directly (see the "Where auth lives" note below), so it doesn't need `DATABASE_URL`, `AUTH_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, or the Resend/Google vars at all anymore; those all live on the API app now (see above).
 
 Deploy the API and Worker first, then the Web app (Web's build doesn't strictly depend on the others being up, but it's a sane order).
+
+**Where auth lives:** BetterAuth is mounted in `apps/api`, not here — the web app is just another HTTP client of the API for auth, exactly like it already was for every other endpoint. This matters mainly if you're adding a mobile app later: it talks to the same API for both login and data, rather than needing to know about the web app's URL at all. See `apps/api/src/auth/` for the actual auth config, and `apps/web/src/lib/server-auth.ts`/`auth-client.ts` for how the web app calls it.
 
 ## 3. Run the database migration (once)
 
@@ -194,6 +200,13 @@ Both Dockerfiles now `apt-get install openssl` in the base stage. `node:22-slim`
 
 #### 5. The API URL must be a runtime value, not baked in at build time
 `apps/web/src/lib/public-env.ts` reads `API_URL` from the container's environment at request time, rather than through Vite's `VITE_`-prefixed build-time env inlining. The build-time approach requires the hosting platform to correctly pass a value as a Docker *build argument* specifically (not just a regular env var), which didn't work reliably here. If `/users/me` or similar ever starts failing again with something like `Failed to parse URL from /users/me`, it means `API_URL` isn't set on the Web app's environment variables.
+
+#### 6. Auth's session cookie and CORS have to agree on the exact origin
+Since BetterAuth moved into `apps/api`, its session cookie is set by `api.songverse.one` but needs to be usable by pages served from `songverse.one` — a genuinely cross-origin (though same-site) setup. Two things have to be configured together, in `apps/api/src/main.ts` / `auth/better-auth.ts`, or sign-in silently stops persisting:
+- CORS must name the web app's **exact** origin (`WEB_URL`) with `credentials: true` — `cors: true` (reflecting any origin) or a wildcard origin cannot be combined with credentialed requests; the browser will drop the cookie.
+- BetterAuth's `advanced.crossSubDomainCookies` must be enabled, or the cookie defaults to being scoped to `api.songverse.one` alone and the web app never sees it.
+
+If sign-in appears to succeed (a 200 comes back) but the user is immediately signed out again on the next page load, check these two first — it's almost always one of them, usually caused by `WEB_URL`/`AUTH_URL` being wrong or swapped.
 
 ## Redeploying after a code change
 

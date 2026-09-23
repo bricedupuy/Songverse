@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Music2 } from "lucide-react";
 import { AuthCard } from "#/components/auth-card";
-import { getHasGoogleAuth } from "#/lib/public-auth-flags";
+import { apiClient } from "#/lib/api-client";
 import { getSession } from "#/lib/server-auth";
 
 export const Route = createFileRoute("/")({
@@ -10,7 +10,8 @@ export const Route = createFileRoute("/")({
     if (session) {
       throw redirect({ to: "/library" });
     }
-    return { hasGoogleAuth: await getHasGoogleAuth() };
+    const { hasGoogleAuth } = await apiClient.getAuthPublicConfig();
+    return { hasGoogleAuth };
   },
   component: Home,
 });

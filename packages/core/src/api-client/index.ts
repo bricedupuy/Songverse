@@ -54,6 +54,28 @@ export interface SaveStorageConfigInput {
   endpoint?: string;
 }
 
+export type AuthConfigSource = "database" | "env" | "none";
+
+export interface AuthConfigSummary {
+  emailSource: AuthConfigSource;
+  emailFrom: string;
+  hasDatabaseResendKey: boolean;
+  googleSource: AuthConfigSource;
+  googleClientId: string | null;
+  hasDatabaseGoogleSecret: boolean;
+}
+
+export interface SaveAuthConfigInput {
+  resendApiKey?: string;
+  emailFrom?: string;
+  googleClientId?: string;
+  googleClientSecret?: string;
+}
+
+export interface AuthPublicConfig {
+  hasGoogleAuth: boolean;
+}
+
 export type TeamRole = "MEMBER" | "ADMIN";
 
 export interface TeamSummary {
@@ -580,6 +602,13 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     adminSaveStorageConfig: (data: SaveStorageConfigInput) =>
       request<void>("/admin/storage/config", { method: "PUT", body: JSON.stringify(data) }),
     adminClearStorageConfig: () => request<void>("/admin/storage/config", { method: "DELETE" }),
+
+    getAuthPublicConfig: () => request<AuthPublicConfig>("/auth/public-config"),
+    adminGetAuthConfig: () => request<AuthConfigSummary>("/admin/auth"),
+    adminSaveAuthConfig: (data: SaveAuthConfigInput) =>
+      request<void>("/admin/auth", { method: "PUT", body: JSON.stringify(data) }),
+    adminClearAuthEmailConfig: () => request<void>("/admin/auth/email", { method: "DELETE" }),
+    adminClearAuthGoogleConfig: () => request<void>("/admin/auth/google", { method: "DELETE" }),
   };
 }
 

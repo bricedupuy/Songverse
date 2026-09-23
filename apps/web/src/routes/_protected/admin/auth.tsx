@@ -1,19 +1,14 @@
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  clearEmailSettings,
-  clearGoogleSettings,
-  getAuthSettingsSummary,
-  saveAuthSettings,
-} from "#/lib/admin-auth-settings";
+import { apiClient } from "#/lib/api-client";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 
 export const Route = createFileRoute("/_protected/admin/auth")({
-  loader: () => getAuthSettingsSummary(),
+  loader: () => apiClient.adminGetAuthConfig(),
   component: AdminAuthPage,
 });
 
@@ -48,11 +43,9 @@ function AdminAuthPage() {
     setSavingEmail(true);
     setEmailError(null);
     try {
-      await saveAuthSettings({
-        data: {
-          resendApiKey: resendApiKey.trim() || undefined,
-          emailFrom: emailFrom.trim() || undefined,
-        },
+      await apiClient.adminSaveAuthConfig({
+        resendApiKey: resendApiKey.trim() || undefined,
+        emailFrom: emailFrom.trim() || undefined,
       });
       setResendApiKey("");
       await router.invalidate();
@@ -66,7 +59,7 @@ function AdminAuthPage() {
   async function clearEmail() {
     setClearingEmail(true);
     try {
-      await clearEmailSettings();
+      await apiClient.adminClearAuthEmailConfig();
       setEmailFrom("");
       await router.invalidate();
     } catch (err) {
@@ -81,11 +74,9 @@ function AdminAuthPage() {
     setSavingGoogle(true);
     setGoogleError(null);
     try {
-      await saveAuthSettings({
-        data: {
-          googleClientId: googleClientId.trim() || undefined,
-          googleClientSecret: googleClientSecret.trim() || undefined,
-        },
+      await apiClient.adminSaveAuthConfig({
+        googleClientId: googleClientId.trim() || undefined,
+        googleClientSecret: googleClientSecret.trim() || undefined,
       });
       setGoogleClientSecret("");
       await router.invalidate();
@@ -99,7 +90,7 @@ function AdminAuthPage() {
   async function clearGoogle() {
     setClearingGoogle(true);
     try {
-      await clearGoogleSettings();
+      await apiClient.adminClearAuthGoogleConfig();
       setGoogleClientId("");
       await router.invalidate();
     } catch (err) {

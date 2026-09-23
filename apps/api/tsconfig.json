@@ -4,7 +4,16 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "outDir": "./dist"
+    "outDir": "./dist",
+    // This is a runnable application, never imported as a library by
+    // anything else - declaration output serves no purpose and (with
+    // classic Node moduleResolution) forces every inferred public type to
+    // be nameable via a package's classic main/types fields, which several
+    // of better-auth's own transitive types (behind subpath `exports`
+    // maps, e.g. @better-auth/core/db/adapter) simply aren't under this
+    // resolution mode.
+    "declaration": false,
+    "declarationMap": false
   },
   "include": ["src"]
 }

@@ -2,8 +2,10 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Post, Put, UseGuar
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
 import { AdminService, type AdminCommandResult } from "./admin.service";
+import { AuthConfigResponseDto } from "./dto/admin-auth-response.dto";
 import { AdminStorageResponseDto, StorageConfigResponseDto } from "./dto/admin-storage-response.dto";
 import { AdminUserResponseDto } from "./dto/admin-user-response.dto";
+import { SaveAuthConfigDto } from "./dto/save-auth-config.dto";
 import { SaveStorageConfigDto } from "./dto/save-storage-config.dto";
 
 /**
@@ -63,5 +65,29 @@ export class AdminController {
   @HttpCode(HttpStatus.NO_CONTENT)
   clearStorageConfig(): Promise<void> {
     return this.adminService.clearStorageConfig();
+  }
+
+  @Get("auth")
+  @ApiOkResponse({ type: AuthConfigResponseDto })
+  getAuthConfig(): ReturnType<AdminService["getAuthConfig"]> {
+    return this.adminService.getAuthConfig();
+  }
+
+  @Put("auth")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  saveAuthConfig(@Body() dto: SaveAuthConfigDto): Promise<void> {
+    return this.adminService.saveAuthConfig(dto);
+  }
+
+  @Delete("auth/email")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  clearAuthEmailConfig(): Promise<void> {
+    return this.adminService.clearEmailAuthConfig();
+  }
+
+  @Delete("auth/google")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  clearAuthGoogleConfig(): Promise<void> {
+    return this.adminService.clearGoogleAuthConfig();
   }
 }

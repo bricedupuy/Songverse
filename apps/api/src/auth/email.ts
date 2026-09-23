@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { getEffectiveAuthSettings } from "#/lib/auth-settings";
+import { getEffectiveAuthSettings } from "./auth-settings";
 
 /**
  * Sends transactional email via Resend, using whichever Resend API key is

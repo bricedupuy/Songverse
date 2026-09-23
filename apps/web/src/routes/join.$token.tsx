@@ -2,7 +2,6 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Music2 } from "lucide-react";
 import { AuthCard } from "#/components/auth-card";
 import { apiClient } from "#/lib/api-client";
-import { getHasGoogleAuth } from "#/lib/public-auth-flags";
 import { getSession } from "#/lib/server-auth";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -11,7 +10,8 @@ export const Route = createFileRoute("/join/$token")({
   beforeLoad: async ({ params }) => {
     const session = await getSession();
     if (!session) {
-      return { error: null, hasGoogleAuth: await getHasGoogleAuth() };
+      const { hasGoogleAuth } = await apiClient.getAuthPublicConfig();
+      return { error: null, hasGoogleAuth };
     }
 
     let team: Awaited<ReturnType<typeof apiClient.joinTeamByToken>> | null = null;

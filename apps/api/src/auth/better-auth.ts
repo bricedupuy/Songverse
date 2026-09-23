@@ -2,20 +2,14 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { jwt } from "better-auth/plugins/jwt";
 import { passkey } from "@better-auth/passkey";
-import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { prisma } from "@songverse/db";
-import { getEffectiveAuthSettings, type EffectiveAuthSettings } from "#/lib/auth-settings";
-import { sendPasswordResetEmail, sendVerificationEmail } from "#/lib/email";
-// Forces TS to have a portable module specifier for zod's internal "v4/core"
-// types (better-auth's own zod dependency), avoiding TS2742 "inferred type
-// of 'auth' cannot be named" on the export below — see apps/web/README notes
-// in this file's git history for the underlying pnpm/zod-v4 friction.
-import type {} from "zod/v4/core";
+import { getEffectiveAuthSettings, type EffectiveAuthSettings } from "./auth-settings";
+import { sendPasswordResetEmail, sendVerificationEmail } from "./email";
 
 // Comma-separated list of emails that should be promoted to global admin
 // the moment they sign up — there's no other bootstrap path (no "first
-// user" logic, no admin UI yet), so without this every account is an
-// ordinary user until someone hand-edits the database.
+// user" logic), so without this every account is an ordinary user until
+// someone hand-edits the database.
 const bootstrapAdminEmails = new Set(
   (process.env.BOOTSTRAP_ADMIN_EMAILS ?? "")
     .split(",")
@@ -23,23 +17,47 @@ const bootstrapAdminEmails = new Set(
     .filter(Boolean),
 );
 
-const authUrl = new URL(process.env.AUTH_URL ?? "http://localhost:3000");
+// AUTH_URL is this API's own public URL (it's where BetterAuth is
+// mounted - see main.ts). WEB_URL is the *browser-facing* app's public
+// URL: needed separately because WebAuthn ties a passkey to the origin
+// the browser was actually on when registering it (the web app), not to
+// wherever the auth server happens to live, and because verification/
+// reset-password links redirect back into the web app, which - now that
+// it's a different origin from AUTH_URL - has to be explicitly trusted.
+const authUrl = new URL(process.env.AUTH_URL ?? "http://localhost:3001");
+const webUrl = new URL(process.env.WEB_URL ?? "http://localhost:3000");
 
 /**
- * BetterAuth issues sessions (cookie-based, for the web app) and JWTs (for
- * the NestJS API — see apps/api's JwtVerifierService, which verifies
- * against this server's JWKS at /api/auth/jwks).
+ * BetterAuth issues sessions (cookie-based, shared with the web app via
+ * cross-subdomain cookies - see `advanced.crossSubDomainCookies` below)
+ * and JWTs (also for the web app, which forwards them as Bearer tokens
+ * when calling this API's other endpoints - see JwtAuthGuard).
  *
  * The Prisma User model keeps SongVerse's own column names (displayName,
  * avatarUrl) rather than BetterAuth's defaults (name, image) — `user.fields`
  * maps BetterAuth's expected field names onto ours instead of renaming the
- * domain schema.
+ * domain schema. `isGlobalAdmin`/`locale` are registered as additionalFields
+ * with `input: false` so BetterAuth's own update-user endpoint rejects any
+ * attempt to set them directly (privilege escalation guard) - they're only
+ * ever written via the databaseHooks bootstrap logic below, or via this
+ * API's own `/users/me` endpoint (see UsersService). Returning them here
+ * means the web app's session/get-session call carries everything it needs
+ * in one round trip, without a second call back to `/users/me`.
  */
 function buildAuth(settings: EffectiveAuthSettings) {
   return betterAuth({
-    baseURL: process.env.AUTH_URL ?? "http://localhost:3000",
+    baseURL: authUrl.origin,
     secret: process.env.BETTER_AUTH_SECRET,
+    trustedOrigins: [webUrl.origin],
     database: prismaAdapter(prisma, { provider: "postgresql" }),
+    advanced: {
+      // Web and API are meant to live on subdomains of the same parent
+      // domain in production (see Deploy.md) - this makes the session
+      // cookie visible to both instead of scoped to just the API's own
+      // host. A no-op for local dev, where both apps share the exact
+      // host "localhost" (cookies are already visible across ports).
+      crossSubDomainCookies: { enabled: true },
+    },
     emailAndPassword: {
       enabled: true,
       // A session is only created once the address is verified - see
@@ -61,10 +79,11 @@ function buildAuth(settings: EffectiveAuthSettings) {
       // instead offers an explicit "Resend verification email" action, which
       // hits the rate-limited /send-verification-email endpoint below.
     },
-    // Google sign-in is opt-in: the button only appears (see auth-card.tsx /
-    // __root.tsx) once both of these are set - via Admin > Auth or the
-    // GOOGLE_CLIENT_ID/SECRET env vars (see auth-settings.ts). Leaving both
-    // unset keeps email+password (and passkeys) as the only sign-in methods.
+    // Google sign-in is opt-in: the button only appears (see
+    // apps/web's auth-card.tsx, fed by GET /auth/public-config) once
+    // either this or the GOOGLE_CLIENT_ID/SECRET env vars are set via
+    // Admin > Auth. Leaving both unset keeps email+password (and
+    // passkeys) as the only sign-in methods.
     socialProviders:
       settings.googleClientId && settings.googleClientSecret
         ? { google: { clientId: settings.googleClientId, clientSecret: settings.googleClientSecret } }
@@ -84,14 +103,17 @@ function buildAuth(settings: EffectiveAuthSettings) {
         name: "displayName",
         image: "avatarUrl",
       },
+      additionalFields: {
+        isGlobalAdmin: { type: "boolean", input: false, defaultValue: false },
+        locale: { type: "string", input: false, defaultValue: "en" },
+      },
     },
     databaseHooks: {
       user: {
         create: {
-          // isGlobalAdmin isn't a field BetterAuth's own schema knows about
-          // (it's ours, not registered via user.additionalFields), so this
-          // writes it directly via Prisma after the row exists rather than
-          // trying to route it through BetterAuth's create data.
+          // isGlobalAdmin isn't settable through BetterAuth's own create/
+          // update input (input: false above) - this writes it directly
+          // via Prisma after the row exists, the one legitimate way in.
           after: async (user) => {
             if (bootstrapAdminEmails.has(user.email.toLowerCase())) {
               await prisma.user.update({ where: { id: user.id }, data: { isGlobalAdmin: true } });
@@ -103,20 +125,19 @@ function buildAuth(settings: EffectiveAuthSettings) {
     plugins: [
       jwt({
         jwt: {
-          // Base user fields only — the API re-derives isGlobalAdmin and other
+          // Base user fields only — guards re-derive isGlobalAdmin and other
           // authorization state from Postgres by `sub` rather than trusting
-          // token claims (see apps/api JwtAuthGuard).
+          // token claims (see JwtAuthGuard).
           definePayload: ({ user }) => ({ email: user.email }),
         },
       }),
       passkey({
-        rpID: authUrl.hostname,
+        // Tied to the web app's origin, not this API's - see the comment
+        // on webUrl above.
+        rpID: webUrl.hostname,
         rpName: "SongVerse",
-        origin: authUrl.origin,
+        origin: webUrl.origin,
       }),
-      // Must be last: patches every endpoint's response to also set
-      // TanStack Start cookies, per BetterAuth's TanStack Start integration.
-      tanstackStartCookies(),
     ],
   });
 }
@@ -136,8 +157,7 @@ let cachedUpdatedAtMs: number | null | undefined;
 /**
  * Returns the current BetterAuth instance, rebuilding it only when the
  * admin-managed settings (Admin > Auth) have actually changed since the
- * last build. Everything that used to import a plain `auth` export now
- * awaits this instead - see routes/api/auth/$.ts and server-auth.ts.
+ * last build.
  */
 export async function getAuth(): Promise<Auth> {
   const settings = await getEffectiveAuthSettings();
