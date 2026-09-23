@@ -129,6 +129,13 @@ function buildAuth(settings: EffectiveAuthSettings) {
         "/send-verification-email": { window: 600, max: 3 },
         "/sign-up/email": { window: 600, max: 5 },
         "/change-email": { window: 600, max: 3 },
+        // Only read the session the cookie already proves, and are called
+        // by the web app's server on every user's behalf - so they'd all
+        // share that server's one per-IP bucket, and a few quick page
+        // changes by anyone would lock everyone out ("Missing bearer
+        // token"). Guessing a session token isn't feasible either way.
+        "/get-session": false,
+        "/token": false,
       },
     },
     user: {

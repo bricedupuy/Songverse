@@ -58,14 +58,32 @@ async function loadSession(): Promise<AppSession | null> {
 /** Returns the current session, or null when signed out. Safe to call anywhere. */
 export const getSession = createServerFn({ method: "GET" }).handler(loadSession);
 
-/** Mints a short-lived JWT for the current session, for calling the NestJS API. */
-export const getApiToken = createServerFn({ method: "GET" }).handler(async () => {
-  const cookie = getRequest().headers.get("cookie");
-  if (!cookie) return null;
-
+async function mintApiToken(cookie: string): Promise<string | null> {
   const response = await fetch(`${getApiUrl()}/api/auth/token`, { headers: { cookie } });
-  if (!response.ok) return null;
+  // 401 just means there's no valid session.
+  if (response.status === 401) return null;
+  // Anything else is a real failure; say so rather than returning null and
+  // letting the API call go out unauthenticated ("Missing bearer token").
+  if (!response.ok) throw new Error(`Couldn't get an API token from the auth server (HTTP ${response.status})`);
 
   const data = (await response.json()) as { token: string } | null;
   return data?.token ?? null;
+}
+
+// One token per incoming request: a server-rendered page makes several API
+// calls (layout data, then the page's own), and they can all share it.
+const tokensByRequest = new WeakMap<Request, Promise<string | null>>();
+
+/** Mints a short-lived JWT for the current session, for calling the NestJS API. */
+export const getApiToken = createServerFn({ method: "GET" }).handler(async () => {
+  const request = getRequest();
+  const cookie = request.headers.get("cookie");
+  if (!cookie) return null;
+
+  let token = tokensByRequest.get(request);
+  if (!token) {
+    token = mintApiToken(cookie);
+    tokensByRequest.set(request, token);
+  }
+  return token;
 });

@@ -89,6 +89,16 @@ Consequences worth knowing before touching auth-adjacent code:
   cookies ignore ports -
   see Deploy.md's gotcha #6 if sign-in stops persisting after a deploy
   change.
+- **`/api/auth/get-session` and `/api/auth/token` are exempt from
+  BetterAuth's rate limiter** (`rateLimit.customRules` in
+  `better-auth.ts`). The web app's *server* calls them on every user's
+  behalf, so they'd all share that server's one per-IP bucket (100 per
+  10s by default, production only - it's off in dev, so local testing
+  won't show it), and a few quick page changes by anyone locked everyone
+  out with "Missing bearer token". Relatedly, `apps/web/src/lib/api-client.ts`
+  reuses one API token until shortly before it expires (browser) or per
+  page render (server) - keep it that way rather than minting a token per
+  API call.
 - **`isGlobalAdmin`/`locale` are BetterAuth `additionalFields` with
   `input: false`.** They come back for free on `/api/auth/get-session`'s
   `user` object (so the web app doesn't need a second call to

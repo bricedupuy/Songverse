@@ -8,6 +8,8 @@ export interface ApiClientOptions {
   baseUrl: string;
   /** Resolves the current bearer token, or null when signed out. */
   getToken: () => Promise<string | null>;
+  /** Called when the API answers 401, e.g. so a cached token isn't reused. */
+  onUnauthorized?: () => void;
 }
 
 export interface AdminCommandResult {
@@ -509,7 +511,12 @@ function parseErrorBody(body: string): { message?: string; code?: string } {
  * share only the packages/core layer"). Each app supplies its own
  * `getToken`; this client only knows how to attach it and parse JSON.
  */
-export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
+export function createApiClient({ baseUrl, getToken, onUnauthorized }: ApiClientOptions) {
+  async function failed(response: Response): Promise<ApiError> {
+    if (response.status === 401) onUnauthorized?.();
+    return new ApiError(response.status, await response.text());
+  }
+
   async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const token = await getToken();
     const headers = new Headers(init?.headers);
@@ -521,9 +528,7 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
     if (token) headers.set("Authorization", `Bearer ${token}`);
 
     const response = await fetch(`${baseUrl}${path}`, { ...init, headers });
-    if (!response.ok) {
-      throw new ApiError(response.status, await response.text());
-    }
+    if (!response.ok) throw await failed(response);
     // NestJS sends an empty body (Content-Length: 0) for a handler that
     // returns `null` or `undefined` — not the 4-byte JSON literal "null" —
     // and it does this on a plain 200, not just 204. `response.json()` on
@@ -660,7 +665,7 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
         `${baseUrl}/song-versions/${songVersionId}/attachments/${attachmentId}/download`,
         { headers },
       );
-      if (!response.ok) throw new ApiError(response.status, await response.text());
+      if (!response.ok) throw await failed(response);
       return response.blob();
     },
     /**
@@ -675,7 +680,7 @@ export function createApiClient({ baseUrl, getToken }: ApiClientOptions) {
         `${baseUrl}/song-versions/${songVersionId}/attachments/${attachmentId}/image?w=${width}`,
         { headers },
       );
-      if (!response.ok) throw new ApiError(response.status, await response.text());
+      if (!response.ok) throw await failed(response);
       return response.blob();
     },
     listSetlists: () => request<SetlistSummary[]>("/setlists"),
