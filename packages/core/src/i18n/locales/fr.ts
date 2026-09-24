@@ -249,6 +249,11 @@ const fr: typeof en = {
     columnUpdated: "Mis à jour",
   },
   breadcrumb: {
+    new: "Nouveau",
+    set: "Liste",
+    songbook: "Recueil",
+    team: "Équipe",
+    catalog: "Catalogue",
     addASong: "Ajouter une chanson",
     song: "Chanson",
   },

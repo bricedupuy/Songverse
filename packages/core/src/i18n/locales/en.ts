@@ -249,6 +249,11 @@ const en = {
     columnUpdated: "Updated",
   },
   breadcrumb: {
+    new: "New",
+    set: "Set",
+    songbook: "Songbook",
+    team: "Team",
+    catalog: "Catalog",
     addASong: "Add a song",
     song: "Song",
   },

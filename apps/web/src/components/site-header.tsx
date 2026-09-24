@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouteContext, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "#/components/ui/breadcrumb";
 import { CommandSearch } from "#/components/command-search";
@@ -6,6 +6,7 @@ import { ModeSwitch } from "#/components/mode-switch";
 import { Separator } from "#/components/ui/separator";
 import { SidebarTrigger } from "#/components/ui/sidebar";
 import { useMode } from "#/lib/mode";
+import { setlistTitle } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 
 interface Crumb {
@@ -13,25 +14,69 @@ interface Crumb {
   to?: string;
 }
 
-function useBreadcrumbs(): Crumb[] {
-  const { t } = useTranslation();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const loaderData = useRouterState({
-    select: (s) => s.matches.at(-1)?.loaderData as { version?: { title?: string } } | undefined,
-  });
+// Each area of the app: its first crumb, named as the sidebar names it.
+const SECTIONS: { path: string; label: string }[] = [
+  { path: "library", label: "nav.library" },
+  { path: "sets", label: "nav.sets" },
+  { path: "songbooks", label: "nav.songbooks" },
+  { path: "songbook-catalogs", label: "songbookCatalog.title" },
+  { path: "teams", label: "nav.teams" },
+  { path: "review", label: "nav.review" },
+  { path: "admin", label: "nav.admin" },
+  { path: "account", label: "nav.account" },
+  { path: "dashboard", label: "nav.dashboard" },
+];
+const ADMIN_PAGES: Record<string, string> = {
+  users: "nav.adminUsers",
+  auth: "nav.adminAuth",
+  storage: "nav.adminStorage",
+  catalogs: "nav.adminCatalogs",
+  metadata: "nav.adminMetadata",
+};
 
-  if (pathname === "/dashboard") return [{ label: t("nav.dashboard") }];
-  if (pathname === "/library") return [{ label: t("nav.library") }];
-  if (pathname === "/library/new") {
-    return [{ label: t("nav.library"), to: "/library" }, { label: t("breadcrumb.addASong") }];
+/** Names the page's own data gives, whichever page it is. */
+interface PageData {
+  version?: { title?: string };
+  arrangement?: { name?: string };
+  catalog?: { name?: string };
+  songbook?: { name?: string };
+  team?: { name?: string };
+  submission?: { song?: { title?: string } };
+  song?: { title?: string } | null;
+}
+
+function useBreadcrumbs(): Crumb[] {
+  const { t, i18n } = useTranslation();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const page = useRouterState({ select: (s) => (s.matches.at(-1)?.loaderData ?? {}) as PageData });
+  const { setlists, songbooks, teams } = useRouteContext({ from: "/_protected" });
+
+  const [section, id, sub, subId] = pathname.split("/").filter(Boolean);
+  const area = SECTIONS.find((candidate) => candidate.path === section);
+  if (!area) return [];
+  const crumbs: Crumb[] = [{ label: t(area.label), to: `/${area.path}` }];
+  if (id) {
+    let label: string;
+    if (id === "new") label = section === "library" ? t("breadcrumb.addASong") : t("breadcrumb.new");
+    else if (section === "admin") label = ADMIN_PAGES[id] ? t(ADMIN_PAGES[id]) : id;
+    else if (section === "sets") {
+      const set = setlists.find((candidate) => candidate.id === id);
+      label = set ? setlistTitle(set, t, i18n.language) : t("breadcrumb.set");
+    } else if (section === "songbooks") label = songbooks.find((book) => book.id === id)?.name ?? page.songbook?.name ?? t("breadcrumb.songbook");
+    else if (section === "teams") label = teams.find((team) => team.id === id)?.name ?? page.team?.name ?? t("breadcrumb.team");
+    else if (section === "library") label = page.version?.title ?? t("breadcrumb.song");
+    else if (section === "songbook-catalogs") label = page.catalog?.name ?? t("breadcrumb.catalog");
+    else if (section === "review") label = page.submission?.song?.title ?? t("breadcrumb.song");
+    else label = id;
+    crumbs.push({ label, to: `/${section}/${id}` });
   }
-  if (pathname.startsWith("/library/")) {
-    return [
-      { label: t("nav.library"), to: "/library" },
-      { label: loaderData?.version?.title ?? t("breadcrumb.song") },
-    ];
+  if (sub && subId) {
+    if (section === "sets" && sub === "songs") crumbs.push({ label: page.song?.title ?? t("sets.hiddenSong") });
+    else if (section === "library" && sub === "arrangements") crumbs.push({ label: page.arrangement?.name ?? t("sets.arrangement") });
   }
-  return [{ label: t("nav.library") }];
+  // The page you're on isn't a link.
+  delete crumbs[crumbs.length - 1]!.to;
+  return crumbs;
 }
 
 export function SiteHeader() {
