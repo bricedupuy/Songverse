@@ -167,6 +167,8 @@ export interface SetlistSongView {
   sharedBy: { id: string; displayName: string } | null;
   previousItemId: string | null;
   nextItemId: string | null;
+  /** The next song's title; null at the end of the set, or when the viewer can't read that song. */
+  nextTitle: string | null;
   /** The current user's private note on this song of the set. */
   myNote: string;
 }

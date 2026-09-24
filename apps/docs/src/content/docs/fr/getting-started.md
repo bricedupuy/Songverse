@@ -30,6 +30,15 @@ Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord
 
 ![Le tableau de bord, avec vos chants, vos équipes et vos paramètres](../../../assets/screenshots/fr/dashboard.jpg)
 
+## Préparer et Jouer
+
+Le sélecteur en haut à droite de chaque page change le mode de SongVerse :
+
+- **Préparer** - pour écrire les chants, préparer les arrangements et les listes. Clair, comme vous le connaissez.
+- **Jouer** - pour jouer. Toute l'application passe en sombre, et les chants d'une liste s'ouvrent en plein écran (voir [Jouer une liste sur scène](/fr/sets/#jouer-une-liste-sur-scène)). Le bouton soleil à côté du sélecteur donne au mode Jouer un thème clair, pour la lumière du jour ou une scène en plein air ; la lune ramène le sombre.
+
+SongVerse retient le mode sur chaque appareil : la tablette sur votre pupitre peut rester en mode Jouer pendant que votre ordinateur reste en mode Préparer.
+
 ## Langue
 
 SongVerse existe en français et en anglais. Choisissez la vôtre dans **Paramètres du compte** > **Langue**. Cette documentation existe aussi dans les deux langues : utilisez le menu des langues en haut de chaque page.

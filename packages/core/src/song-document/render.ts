@@ -228,6 +228,26 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
   };
 }
 
+/** The tempo assumed when a song has none, and the bars a sung line usually takes. */
+const DEFAULT_TEMPO = 90;
+const BARS_PER_LINE = 2;
+
+/**
+ * How long a chart takes to play, in seconds, to pace autoscroll: the
+ * song's own duration when it has one, or else two bars a line at each
+ * pass's tempo (notes, which aren't sung, take no time).
+ */
+export function chartSeconds(chart: RenderedChart, durationSeconds?: number | null): number {
+  if (durationSeconds && durationSeconds > 0) return durationSeconds;
+  const beatsPerBar = chart.timeSignature?.numerator ?? 4;
+  let seconds = 0;
+  for (const pass of chart.passes) {
+    const lines = pass.lines.filter((line) => line.kind !== "note").length;
+    seconds += (lines * BARS_PER_LINE * beatsPerBar * 60) / (pass.tempo ?? DEFAULT_TEMPO);
+  }
+  return seconds;
+}
+
 /** A new arrangement of `song`: its order as the song's flow, nothing changed yet. */
 export function newArrangementDocument(song: SongDocumentV2, songVersionId: string, makeId: () => string): ArrangementDocumentV2 {
   const flow = song.flow.length > 0 ? song.flow : song.sections.map((section) => ({ id: section.id, sectionId: section.id }));

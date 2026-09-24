@@ -39,6 +39,21 @@ Click a song in the set to open its chart, as the set plays it: its arrangement,
 - **My view** changes the chart for you only - hide chords, simpler chords, solfège, capo shapes. See [Your own view of a chart](/arrangements/#your-own-view-of-a-chart).
 - **My notes** are private: capo, cues, reminders. Only you see them.
 
+## Performing a set
+
+On stage, switch to **Perform** - the button on the set's page, or the mode switch at the top right of every page. SongVerse turns dark (easy on the eyes in a dim room) and each song of the set opens full screen, big, as you read it with [My view](/arrangements/#your-own-view-of-a-chart).
+
+![A song of a set in Perform mode](../../assets/screenshots/en/perform.jpg)
+
+- The top shows the song, where it is in the set, and its key, capo and tempo. **×** goes back to the set.
+- The bottom shows what's next - **Next: …** takes you there - and the previous song's arrow.
+- **Autoscroll** (the play button) scrolls the chart at the song's pace: over its duration when it has one, or else two bars a line at its tempo. The tortoise and hare slow it down or speed it up, a step at a time.
+- The **A** buttons make the text smaller or bigger; SongVerse remembers your size on this device.
+- The expand button goes full screen, hiding the browser's own bars.
+- The screen stays on while a song is open.
+
+With a keyboard or a page-turner pedal: **Space** starts and pauses autoscroll, **↑** **↓** (or Page Up and Page Down) scroll, **←** **→** go to the previous or next song.
+
 ## Sharing a set with guests
 
 Under **Share**, **Create a share link** and send it to whoever should see the set - a guest musician, say. Anyone signed in who opens it can read every song in the set, even ones not in their library, and keep their own notes. They can't change it.

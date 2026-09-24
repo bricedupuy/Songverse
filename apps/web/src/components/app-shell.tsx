@@ -1,4 +1,5 @@
 import type { SetlistSummary, SongbookSummary, TeamSummary } from "@songverse/core";
+import { useMatches } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AppSidebar } from "#/components/app-sidebar";
 import { SiteHeader } from "#/components/site-header";
@@ -18,6 +19,8 @@ export function AppShell({
   setlists: SetlistSummary[];
   children: ReactNode;
 }) {
+  const fullScreen = useMatches({ select: (matches) => matches.some((match) => match.staticData.fullScreen) });
+  if (fullScreen) return children;
   return (
     <SidebarProvider>
       <AppSidebar session={session} teams={teams} songbooks={songbooks} setlists={setlists} />

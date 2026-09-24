@@ -1,8 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "#/components/ui/breadcrumb";
+import { ModeSwitch } from "#/components/mode-switch";
 import { Separator } from "#/components/ui/separator";
 import { SidebarTrigger } from "#/components/ui/sidebar";
+import { useMode } from "#/lib/mode";
+import { cn } from "#/lib/utils";
 
 interface Crumb {
   label: string;
@@ -32,13 +35,14 @@ function useBreadcrumbs(): Crumb[] {
 
 export function SiteHeader() {
   const crumbs = useBreadcrumbs();
+  const { mode } = useMode();
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b">
-      <div className="flex w-full items-center gap-2 px-4">
+    <header className={cn("flex h-14 shrink-0 items-center gap-2 border-b", mode === "perform" && "border-b-2 border-b-primary")}>
+      <div className="flex w-full min-w-0 items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
+        <Breadcrumb className="min-w-0">
           <BreadcrumbList>
             {crumbs.map((crumb, i) => (
               <span key={`${crumb.label}-${i}`} className="flex items-center gap-1.5 sm:gap-2.5">
@@ -56,6 +60,7 @@ export function SiteHeader() {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
+        <ModeSwitch className="ml-auto" />
       </div>
     </header>
   );

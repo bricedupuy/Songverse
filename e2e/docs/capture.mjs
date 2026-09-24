@@ -141,6 +141,9 @@ try {
     await shoot("arrangement-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
     await shoot("set", `/sets/${set.id}`, () => page.getByTestId("set-song-row").first().waitFor());
     await shoot("set-song", `/sets/${set.id}/songs/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor(), { fullPage: true });
+    // Perform mode (it's remembered, so back to Build for the rest).
+    await shoot("perform", `/sets/${set.id}/perform/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
+    await page.evaluate(() => localStorage.setItem("songverse.mode", "build"));
     await shoot("songbook", `/songbooks/${songbook.id}`, null, { fullPage: true });
     await shoot("team", `/teams/${team.id}`);
     await context.close();

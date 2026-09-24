@@ -1,5 +1,6 @@
 import { HeadContent, Scripts, createRootRoute, useMatches } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { MODE_SCRIPT } from "#/lib/mode";
 import { renderPublicEnvScript } from "#/lib/public-env";
 import appCss from "#/styles/app.css?url";
 
@@ -41,12 +42,14 @@ function usePageLocale(): string {
 function RootDocument({ children }: { children: ReactNode }) {
   const lang = usePageLocale();
   return (
-    <html lang={lang}>
+    // The mode script sets <html>'s theme before hydration, hence the warning suppressed.
+    <html lang={lang} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: renderPublicEnvScript() }} />
+        <script dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-neutral-50 text-neutral-900 antialiased">
+      <body className="min-h-screen bg-neutral-50 text-neutral-900 antialiased dark:bg-background dark:text-foreground">
         {children}
         <script dangerouslySetInnerHTML={{ __html: REGISTER_SW_SCRIPT }} />
         <Scripts />

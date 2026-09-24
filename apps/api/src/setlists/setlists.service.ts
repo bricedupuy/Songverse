@@ -369,9 +369,10 @@ export class SetlistsService {
     const index = set.items.findIndex((item) => item.id === itemId);
     if (index === -1) throw new NotFoundException("Item not found");
     const item = set.items[index]!;
+    const next = set.items[index + 1];
 
     const [readable, inViewersLibrary, note, viewer] = await Promise.all([
-      this.sets.readableItems(set, [item]),
+      this.sets.readableItems(set, next ? [item, next] : [item]),
       this.sets.visibilityFor(user),
       this.myNoteRow(user.id, itemId),
       this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true } }),
@@ -409,7 +410,9 @@ export class SetlistsService {
       inLibrary: inViewersLibrary(song),
       sharedBy: shown && item.sharedBy ? { id: item.sharedBy.id, displayName: item.sharedBy.displayName } : null,
       previousItemId: set.items[index - 1]?.id ?? null,
-      nextItemId: set.items[index + 1]?.id ?? null,
+      nextItemId: next?.id ?? null,
+      // What's coming, for Perform mode - unless the viewer can't read that song.
+      nextTitle: next && (readable.has(next.id) || inViewersLibrary(next.songVersion)) ? next.songVersion.title : null,
       myNote: note?.content ?? "",
     };
   }

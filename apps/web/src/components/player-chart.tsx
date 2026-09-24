@@ -1,4 +1,4 @@
-import { renderChart, type ChartPreferences, type ChordNotationValue, type CapoDisplayModeValue, type SetlistSongView } from "@songverse/core";
+import { renderChart, type ChartPreferences, type RenderedChart, type ChordNotationValue, type CapoDisplayModeValue, type SetlistSongView } from "@songverse/core";
 import { EyeOff } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,23 @@ import { apiClient } from "#/lib/api-client";
 import { cn } from "#/lib/utils";
 
 const EMPTY: ChartPreferences = { $schema: "chart-preferences/v1", hiddenChordIds: [], simplifyChords: false, hideBassNotes: false };
+
+/** The chart of a set's song as the set plays it, through this player's view (their saved one by default). */
+export function renderPlayerChart(
+  view: SetlistSongView,
+  preferences: ChartPreferences = view.view.preferences ?? EMPTY,
+  notation: ChordNotationValue = view.view.chordNotation,
+  capoDisplay: CapoDisplayModeValue = view.view.capoDisplayMode,
+): RenderedChart {
+  const song = view.song!;
+  return renderChart(song.document, view.arrangement?.document ?? null, {
+    transposeSteps: view.item.transposeSteps,
+    preferences,
+    notation: notation === "SOLFEGE" ? "solfege" : "english",
+    capoDisplay: capoDisplay === "FINGERED" ? "shapes" : "sounding",
+    suggestedCapo: song.suggestedCapo,
+  });
+}
 
 /**
  * A song of a set as this player reads it (docs/arrangement-document-v2.md,
@@ -31,17 +48,7 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
     setError(null);
   }, [view.item.id, view.item.arrangementId]);
 
-  const chart = useMemo(
-    () =>
-      renderChart(song.document, view.arrangement?.document ?? null, {
-        transposeSteps: view.item.transposeSteps,
-        preferences,
-        notation: notation === "SOLFEGE" ? "solfege" : "english",
-        capoDisplay: capoDisplay === "FINGERED" ? "shapes" : "sounding",
-        suggestedCapo: song.suggestedCapo,
-      }),
-    [song.document, view.arrangement, view.item.transposeSteps, preferences, notation, capoDisplay, song.suggestedCapo],
-  );
+  const chart = useMemo(() => renderPlayerChart(view, preferences, notation, capoDisplay), [view, preferences, notation, capoDisplay]);
 
   function savePreferences(next: ChartPreferences) {
     setPreferences(next);

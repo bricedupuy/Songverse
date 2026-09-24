@@ -1,5 +1,6 @@
 import { ApiError, type SetlistDetail, type SetlistItem, type TeamSummary } from "@songverse/core";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { Mic } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "#/components/ui/badge";
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { apiClient } from "#/lib/api-client";
+import { setMode } from "#/lib/mode";
 import { formatSetDate, setOwnerLabel, setlistTitle } from "#/lib/setlists";
 import { AddSongs } from "./-add-songs";
 import { SetSongList } from "./-set-song-list";
@@ -101,7 +103,17 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
           </h1>
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
-        {set.isGuest ? <LeaveSetButton setlistId={set.id} /> : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {set.items.length > 0 ? (
+            <Button asChild onClick={() => setMode("perform")}>
+              <Link to="/sets/$setlistId/perform/$itemId" params={{ setlistId: set.id, itemId: set.items[0]!.id }}>
+                <Mic />
+                {t("perform.start")}
+              </Link>
+            </Button>
+          ) : null}
+          {set.isGuest ? <LeaveSetButton setlistId={set.id} /> : null}
+        </div>
       </div>
 
       {set.isGuest ? (

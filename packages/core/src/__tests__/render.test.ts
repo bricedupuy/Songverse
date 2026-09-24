@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArrangementDocumentV2 } from "../schemas/arrangement-document-v2.js";
-import { newArrangementDocument, renderChart, type RenderedPass } from "../song-document/render.js";
+import { chartSeconds, newArrangementDocument, renderChart, type RenderedPass } from "../song-document/render.js";
 import { songDocumentFromText } from "../song-document/text.js";
 
 const song = songDocumentFromText(null, {
@@ -102,5 +102,19 @@ describe("renderChart", () => {
     // The song's own capo is a suggestion: used only when the arrangement sets none.
     expect(renderChart(song, null, { suggestedCapo: 5, capoDisplay: "shapes" }).capo).toBe(5);
     expect(renderChart(song, doc, { suggestedCapo: 5 }).capo).toBe(2);
+  });
+});
+
+describe("chartSeconds", () => {
+  it("is the song's duration when it has one", () => {
+    expect(chartSeconds(renderChart(song), 245)).toBe(245);
+  });
+
+  it("otherwise two bars a sung line at each pass's tempo", () => {
+    // Four lines (verse 2, chorus 1, final chorus 1), 8 beats each at 72 BPM.
+    expect(chartSeconds(renderChart(song))).toBeCloseTo((4 * 8 * 60) / 72);
+    // A 3/4 bar is three beats; no tempo is 90 BPM.
+    const waltz = songDocumentFromText(null, { content: "[G]One\n[D]Two\n", format: "CHORDPRO", defaults: { timeSignature: { numerator: 3, denominator: 4 } } });
+    expect(chartSeconds(renderChart(waltz))).toBeCloseTo((2 * 6 * 60) / 90);
   });
 });

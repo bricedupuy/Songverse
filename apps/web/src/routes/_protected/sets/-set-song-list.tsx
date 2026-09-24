@@ -17,6 +17,7 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
+import { useMode } from "#/lib/mode";
 import { transposeLabel } from "#/lib/setlists";
 import { NativeSelect } from "#/components/ui/native-select";
 
@@ -105,6 +106,7 @@ function SongRow({
     disabled: !canEdit,
   });
   const navigate = useNavigate();
+  const { mode } = useMode();
   const [customizing, setCustomizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const song = item.song;
@@ -150,7 +152,8 @@ function SongRow({
       <div className="flex min-w-40 flex-1 flex-col gap-1">
         {song ? (
           <Link
-            to="/sets/$setlistId/songs/$itemId"
+            // Perform opens it full screen.
+            to={mode === "perform" ? "/sets/$setlistId/perform/$itemId" : "/sets/$setlistId/songs/$itemId"}
             params={{ setlistId, itemId: item.id }}
             className="font-medium hover:underline"
           >

@@ -39,6 +39,21 @@ Cliquez sur un chant de la liste pour ouvrir sa grille, telle que la liste la jo
 - **Mon affichage** change la grille pour vous seul - accords masqués, simplifiés, solfège, formes de capo. Voir [Votre propre affichage d'une grille](/fr/arrangements/#votre-propre-affichage-dune-grille).
 - **Mes notes** sont privées : capo, repères, rappels. Vous seul les voyez.
 
+## Jouer une liste sur scène
+
+Sur scène, passez en mode **Jouer** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. SongVerse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste s'ouvre en plein écran, en grand, tel que vous le lisez avec [Mon affichage](/fr/arrangements/#votre-propre-affichage-dune-grille).
+
+![Un chant d'une liste en mode Jouer](../../../assets/screenshots/fr/perform.jpg)
+
+- En haut : le chant, sa place dans la liste, sa tonalité, son capo et son tempo. **×** revient à la liste.
+- En bas : ce qui vient ensuite - **Ensuite : …** y mène - et la flèche du chant précédent.
+- Le **défilement** (le bouton lecture) fait défiler la grille au rythme du chant : sur sa durée quand elle est connue, sinon deux mesures par ligne à son tempo. La tortue et le lièvre le ralentissent ou l'accélèrent, un cran à la fois.
+- Les boutons **A** réduisent ou agrandissent le texte ; SongVerse retient votre taille sur cet appareil.
+- Le bouton d'agrandissement passe en plein écran, sans les barres du navigateur.
+- L'écran reste allumé tant qu'un chant est ouvert.
+
+Au clavier ou avec un pédalier tourne-page : **Espace** lance et met en pause le défilement, **↑** **↓** (ou Page précédente et Page suivante) font défiler, **←** **→** passent au chant précédent ou suivant.
+
 ## Partager une liste avec des invités
 
 Sous **Partager**, **Créer un lien de partage** et envoyez-le à qui doit voir la liste - un musicien invité, par exemple. Toute personne connectée qui l'ouvre peut lire chaque chant de la liste, même ceux qui ne sont pas dans sa bibliothèque, et garder ses propres notes. Elle ne peut pas la modifier.

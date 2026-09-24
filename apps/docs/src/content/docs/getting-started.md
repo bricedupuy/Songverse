@@ -30,6 +30,15 @@ Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your
 
 ![The dashboard, with your songs, teams and settings](../../assets/screenshots/en/dashboard.jpg)
 
+## Build and Perform
+
+The switch at the top right of every page changes SongVerse's mode:
+
+- **Build** - to write songs, prepare arrangements and sets. Light, as you know it.
+- **Perform** - to play. The whole app turns dark, and a set's songs open full screen (see [Performing a set](/sets/#performing-a-set)). The sun button next to the switch gives Perform a light theme instead, for daylight or outdoor stages; the moon brings the dark back.
+
+SongVerse remembers the mode on each device, so the tablet on your music stand can stay in Perform while your computer stays in Build.
+
 ## Language
 
 SongVerse is in English and French. Pick yours under **Account settings** > **Language**. These docs are in both languages too: use the language menu at the top of any page.
