@@ -1,0 +1,41 @@
+---
+title: SongVerse documentation
+description: How to use SongVerse - songs, arrangements, sets and songbooks for worship teams and bands.
+template: splash
+hero:
+  tagline: Your band's songs, charts and sets in one place. Here's how everything works.
+  actions:
+    - text: Get started
+      link: /getting-started/
+      icon: right-arrow
+    - text: Open SongVerse
+      link: https://app.songverse.one
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="Songs" icon="document">
+    Keep every song with its chords, credits, files and recordings. Edit charts with chords sitting right over the words.
+  </Card>
+  <Card title="Arrangements" icon="setting">
+    How your band plays a song - its order, key, capo and changed chords - without touching the song itself.
+  </Card>
+  <Card title="Sets" icon="list-format">
+    Song lists for a service or a gig, each song in its key and arrangement. Share them with guest musicians by link.
+  </Card>
+  <Card title="Your own view" icon="seti:eye">
+    Hide chords that are too fast for you, simplify them, read them in solfège or as capo shapes. Nobody else's chart changes.
+  </Card>
+</CardGrid>
+
+## Where to go next
+
+<CardGrid>
+  <LinkCard title="Getting started" href="/getting-started/" description="Create your account and find your way around." />
+  <LinkCard title="The song editor" href="/song-editor/" description="Chords over lyrics, sections and the order a song is sung in." />
+  <LinkCard title="Sets" href="/sets/" description="Plan a service, pick keys and arrangements, share with guests." />
+  <LinkCard title="Teams" href="/teams/" description="Invite your band and share songs, arrangements and sets." />
+</CardGrid>

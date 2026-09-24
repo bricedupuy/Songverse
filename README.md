@@ -4,6 +4,8 @@ A songbook and set-planning app for worship teams and musicians: keep your
 chord charts in one library, organise them into songbooks, plan what you're
 playing on Sunday, and share it with the people playing with you.
 
+User documentation, in English and French: [docs.songverse.one](https://docs.songverse.one) (source in `apps/docs`).
+
 ## Features
 
 - **Song library** – personal, team and global songs, added and edited
@@ -70,7 +72,8 @@ playing on Sunday, and share it with the people playing with you.
 | Data (`packages/db`) | PostgreSQL with Prisma; migrations run when the API starts |
 | Shared (`packages/core`) | API client, zod schemas, ChordPro and chords-over-lyrics parsers, key transposition, translations, tested with Vitest |
 | Storage | Cloudflare R2 (S3-compatible) or local disk, content-addressed |
-| Deployment | Docker images for the API/worker and the web app, run on Dokploy |
+| Docs (`apps/docs`) | Astro Starlight, English and French, screenshots taken by Playwright |
+| Deployment | Docker images for the API/worker, the web app and the docs, run on Dokploy |
 
 ## Getting started
 
@@ -83,7 +86,7 @@ cp apps/api/.env.example apps/api/.env       # then fill in the values
 cp apps/web/.env.example apps/web/.env
 cp packages/db/.env.example packages/db/.env
 pnpm db:migrate
-pnpm dev                                     # web on :3000, API on :3001
+pnpm dev                                     # web on :3000, API on :3001, docs on :4321
 ```
 
 `pnpm lint`, `pnpm type-check` and `pnpm test` run the checks across the

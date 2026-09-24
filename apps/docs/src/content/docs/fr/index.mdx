@@ -1,0 +1,41 @@
+---
+title: Documentation de SongVerse
+description: Comment utiliser SongVerse - chants, arrangements, listes de chants et recueils pour les groupes de louange et les musiciens.
+template: splash
+hero:
+  tagline: Les chants, les grilles et les listes de votre groupe au même endroit. Voici comment tout fonctionne.
+  actions:
+    - text: Pour commencer
+      link: /fr/getting-started/
+      icon: right-arrow
+    - text: Ouvrir SongVerse
+      link: https://app.songverse.one
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="Chants" icon="document">
+    Chaque chant avec ses accords, ses crédits, ses fichiers et ses enregistrements. Des grilles modifiées avec les accords juste au-dessus des paroles.
+  </Card>
+  <Card title="Arrangements" icon="setting">
+    La façon dont votre groupe joue un chant - son ordre, sa tonalité, son capo, des accords changés - sans toucher au chant lui-même.
+  </Card>
+  <Card title="Listes de chants" icon="list-format">
+    Les chants d'un culte ou d'un concert, chacun dans sa tonalité et son arrangement. Partagez-les par lien avec des musiciens invités.
+  </Card>
+  <Card title="Votre propre affichage" icon="seti:eye">
+    Masquez les accords trop rapides pour vous, simplifiez-les, lisez-les en solfège ou en formes de capo. La grille des autres ne change pas.
+  </Card>
+</CardGrid>
+
+## Et ensuite
+
+<CardGrid>
+  <LinkCard title="Pour commencer" href="/fr/getting-started/" description="Créez votre compte et repérez-vous." />
+  <LinkCard title="L'éditeur de chants" href="/fr/song-editor/" description="Accords au-dessus des paroles, sections et ordre du chant." />
+  <LinkCard title="Listes de chants" href="/fr/sets/" description="Préparez un culte, choisissez tonalités et arrangements, partagez avec des invités." />
+  <LinkCard title="Équipes" href="/fr/teams/" description="Invitez votre groupe et partagez chants, arrangements et listes." />
+</CardGrid>

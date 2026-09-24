@@ -1,0 +1,11 @@
+/* The app's neutral palette instead of Starlight's blue accent. */
+:root {
+  --sl-color-accent-low: #e5e5e5;
+  --sl-color-accent: #171717;
+  --sl-color-accent-high: #0a0a0a;
+}
+:root[data-theme="dark"] {
+  --sl-color-accent-low: #262626;
+  --sl-color-accent: #e5e5e5;
+  --sl-color-accent-high: #fafafa;
+}

@@ -165,6 +165,21 @@ Deploy the API and Worker first, then the Web app (Web's build doesn't strictly 
 
 **Where auth lives:** BetterAuth is mounted in `apps/api`, not here — the web app is just another HTTP client of the API for auth, exactly like it already was for every other endpoint. This matters mainly if you're adding a mobile app later: it talks to the same API for both login and data, rather than needing to know about the web app's URL at all. See `apps/api/src/auth/` for the actual auth config, and `apps/web/src/lib/server-auth.ts`/`auth-client.ts` for how the web app calls it.
 
+### Docs app
+
+The user documentation (`apps/docs`), a static site served by nginx.
+
+**Application**, configured as:
+- Source: this repo, branch `main`
+- Build type: **Dockerfile**
+- Dockerfile path: `Dockerfile.docs`
+- Build context: `.`
+- Port: `80`
+- Domain: `docs.songverse.one`
+- Watch paths (under the app's advanced settings, if you use auto-deploy): `apps/docs/**`, so only docs changes rebuild it.
+
+No environment variables. The build fails if any page links to a page or heading that doesn't exist, so a broken docs change never deploys.
+
 ## 3. Database migrations (automatic)
 
 Nothing to run by hand. The API container applies any pending migrations each time it starts, before serving traffic (see the `CMD` in `Dockerfile.api`), so the first deploy creates the schema and later deploys pick up new migrations. Check the API's startup logs for Prisma's output: either the migrations it applied or `No pending migrations to apply.` If a migration fails, the API won't start and the error will be in those same logs.
@@ -182,6 +197,7 @@ Don't use `pnpm --filter @songverse/db exec ...` there: the image doesn't includ
 - `https://api.songverse.one/health` → `{"status":"ok"}`
 - `https://api.songverse.one/api/docs` → interactive API documentation
 - `https://songverse.one` → the homepage
+- `https://docs.songverse.one` → the documentation, with a language menu (English, Français)
 - Sign up for an account → should land on `/dashboard`, showing your name and the results of a live call to the API
 
 If all of those work, the deployment is healthy end to end: DNS → HTTPS → Web → Auth → API → Database.

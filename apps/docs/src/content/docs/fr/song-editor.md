@@ -1,0 +1,57 @@
+---
+title: L'éditeur de chants
+description: Écrire et modifier une grille avec les accords au-dessus des paroles, organiser ses sections et l'ordre dans lequel on le chante.
+---
+
+Ouvrez un chant et choisissez l'onglet **Éditeur**.
+
+![L'éditeur de chants](../../../assets/screenshots/fr/song-editor.jpg)
+
+L'éditeur a trois modes, en haut à gauche :
+
+- **Visuel** - la grille avec les accords au-dessus des mots. C'est là que vous passerez le plus de temps.
+- **Texte** - la même grille en texte ChordPro, pour des modifications rapides en bloc. Les accords et les lignes que vous ne changez pas restent tels quels.
+- **Aperçu** - la grille telle que les musiciens la verront.
+
+## Les accords
+
+- **Tapez un accord** entre crochets à l'endroit où il se joue : `[G]Amazing grace`.
+- **Déplacez un accord** en le faisant glisser sur une autre lettre, ou sélectionnez-le et utilisez les flèches ← →.
+- **Cliquez sur un accord** pour le changer (avec des suggestions de la tonalité du chant et des variantes comme `G7` ou `Gsus4`) ou le supprimer.
+- La palette à gauche liste les **accords de la tonalité** du chant (avec leur degré : I, IV, V…) et ceux **Dans ce chant**. Cliquez sur l'un d'eux pour l'ajouter au curseur, ou faites-le glisser sur un mot. **Autre accord** en ajoute un autre.
+
+Modifier les paroles garde les accords avec elles : taper avant un accord l'emmène, et supprimer des mots qui portent des accords laisse les accords à l'endroit des mots, pour que vous les replaciez. Entrée coupe une ligne, et ses accords suivent leurs mots.
+
+## Les sections
+
+Chaque bloc est une section : couplet, refrain, pont…
+
+- **Ajoutez une section** depuis la liste **Sections** de la palette.
+- Changez le **type** ou le **libellé** d'une section (« Couplet 2 ») en haut de celle-ci. Le bouton en forme d'œil masque son libellé sur la grille.
+- Le menu **⋯** la déplace, la duplique ou la supprime.
+- Une ligne peut être une **note pour le groupe** (« ×2, montée ») plutôt que des paroles.
+
+## Tonalité et transposition
+
+Choisissez la **Tonalité** du chant en haut à droite. **Transposer** − et + déplacent tous les accords et la tonalité d'un demi-ton.
+
+## L'ordre du chant
+
+L'**Ordre du chant**, au-dessus de la grille, est l'ordre dans lequel on le chante ; chaque fois qu'on chante une section est un *passage*.
+
+![L'ordre du chant](../../../assets/screenshots/fr/song-order.jpg)
+
+- **+ Chanter…** ajoute un passage : le refrain une nouvelle fois, par exemple.
+- **Choisissez un passage** pour le nommer (« Dernier refrain »), y changer de tonalité, ajouter une note pour le groupe, le déplacer, le rechanter juste après ou le retirer.
+- **Faites glisser les passages** pour les réordonner.
+- **Suivre les sections** revient à chanter chaque section une fois, dans l'ordre.
+
+Les changements de tonalité et les notes s'affichent sur la grille à ce passage.
+
+## Coller une grille
+
+Collez une grille entière n'importe où - en ChordPro, ou avec les accords écrits au-dessus des paroles - et elle devient des sections avec les accords en place. Coller de simples paroles les tape, tout simplement.
+
+## Enregistrer
+
+**Enregistrer le chant** enregistre la grille et les détails du chant ensemble. Si quelqu'un d'autre a enregistré le chant après que vous l'avez ouvert, SongVerse vous le dit au lieu d'écraser ses modifications.

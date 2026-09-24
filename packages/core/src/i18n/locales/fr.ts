@@ -155,6 +155,7 @@ const fr: typeof en = {
     account: "Paramètres du compte",
     review: "Relecture",
     admin: "Administration",
+    help: "Aide",
     signOut: "Se déconnecter",
     teams: "Équipes",
     noTeams: "Aucune équipe pour l'instant",

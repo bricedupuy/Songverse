@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   Database,
   FileStack,
+  HelpCircle,
   KeyRound,
   LayoutDashboard,
   ListMusic,
@@ -22,6 +23,7 @@ import { authClient } from "#/lib/auth-client";
 import type { AppSession } from "#/lib/server-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
+import { docsUrl } from "#/lib/docs";
 import { setlistTitle } from "#/lib/setlists";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import {
@@ -61,7 +63,7 @@ export function AppSidebar({
   songbooks: SongbookSummary[];
   setlists: SetlistSummary[];
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const inAdmin = pathname.startsWith("/admin");
 
@@ -115,6 +117,12 @@ export function AppSidebar({
                     <KeyRound />
                     {t("nav.account")}
                   </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener">
+                    <HelpCircle />
+                    {t("nav.help")}
+                  </a>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

@@ -1,7 +1,7 @@
 // Page changes reuse the signed-in session and sidebar lists instead of
 // refetching them every time, and still pick up changes made in the app.
 import { chromium } from "playwright";
-import { API, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { API, WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -37,6 +37,21 @@ await step("a set created in the app shows in the sidebar straight away", async 
   await page.waitForURL(/\/sets\/(?!new)[a-z0-9]+/);
   // The page's own heading has the name too; the sidebar's entry is a link to the set.
   await page.getByRole("link", { name: `Fresh set ${stamp}` }).first().waitFor({ timeout: 10000 });
+});
+
+await step("Help opens the docs page about where you are, in your language", async () => {
+  const help = async () => {
+    await page.getByRole("button", { name: "Navigator" }).click();
+    const href = await page.getByRole("menuitem", { name: /Help|Aide/ }).getAttribute("href");
+    await page.keyboard.press("Escape");
+    return href;
+  };
+  await go("/sets");
+  if ((await help()) !== "https://docs.songverse.one/sets/") throw new Error(`on /sets: ${await help()}`);
+  sql(`update "User" set locale='fr' where id='${me.id}'`);
+  await page.goto(`${WEB}/library`);
+  await page.waitForLoadState("networkidle");
+  if ((await help()) !== "https://docs.songverse.one/fr/library/") throw new Error(`in French, on /library: ${await help()}`);
 });
 
 await browser.close();

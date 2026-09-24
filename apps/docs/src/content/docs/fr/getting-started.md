@@ -1,0 +1,43 @@
+---
+title: Pour commencer
+description: Créez votre compte, connectez-vous et repérez-vous dans SongVerse.
+---
+
+## Créer votre compte
+
+1. Ouvrez [SongVerse](https://app.songverse.one) et choisissez **S'inscrire**.
+2. Indiquez votre nom, votre adresse e-mail et un mot de passe, puis **Créer un compte**.
+3. Ouvrez le lien de l'e-mail de vérification que nous vous envoyons. Vous pouvez vous connecter une fois votre adresse vérifiée.
+
+Si votre SongVerse le propose, vous pouvez aussi utiliser **Continuer avec Google** au lieu d'un mot de passe.
+
+## Se connecter
+
+- Avec votre **adresse e-mail et votre mot de passe**. Oublié ? **Mot de passe oublié ?** vous envoie un lien pour en choisir un nouveau.
+- Avec une **clé d'accès (passkey)**, une fois ajoutée (l'empreinte, le visage ou le verrouillage d'écran de votre appareil - voir [Votre compte](/fr/account/#clés-daccès-passkeys)).
+- Avec **Google**, s'il est proposé.
+
+## Se repérer
+
+La barre latérale à gauche mène partout :
+
+- **Bibliothèque** - tous les chants que vous pouvez voir : les vôtres, ceux de vos équipes et ceux du catalogue global. Voir [La bibliothèque](/fr/library/).
+- **Listes de chants** - vos listes, affichées en dessous. Voir [Listes de chants](/fr/sets/).
+- **Recueils** - des collections de chants, numérotées ou non. Voir [Recueils](/fr/songbooks/).
+- **Équipes** - les groupes dont vous faites partie. Voir [Équipes](/fr/teams/).
+
+Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord** (vos chants et vos équipes), les **Paramètres du compte** et **Se déconnecter**.
+
+![Le tableau de bord, avec vos chants, vos équipes et vos paramètres](../../../assets/screenshots/fr/dashboard.jpg)
+
+## Langue
+
+SongVerse existe en français et en anglais. Choisissez la vôtre dans **Paramètres du compte** > **Langue**. Cette documentation existe aussi dans les deux langues : utilisez le menu des langues en haut de chaque page.
+
+## Qui voit quoi
+
+Tout, dans SongVerse, appartient à quelqu'un :
+
+- ce qui est **personnel** n'est qu'à vous, sauf si vous le partagez ;
+- ce qui appartient à une **équipe** est vu par ses membres et modifié par ses administrateurs ;
+- les chants **globaux** sont dans le catalogue commun, pour tout le monde. Un relecteur les vérifie avant de les ajouter (voir [Proposer au catalogue global](/fr/library/#proposer-au-catalogue-global)).

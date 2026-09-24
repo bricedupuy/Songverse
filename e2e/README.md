@@ -51,3 +51,8 @@ verified user with an API token, `call()`/`api()` for API requests,
 that screenshot on failure, `signIn()` for the web app's sign-in form - and
 end with `finish()`, which sets the exit code. Name the file
 `<name>.test.mjs` and `run.mjs` picks it up.
+
+## Docs screenshots
+
+`docs/screenshots.mjs` isn't a suite: it takes the screenshots for the user
+docs, on a fresh database. See [apps/docs/README.md](../apps/docs/README.md).

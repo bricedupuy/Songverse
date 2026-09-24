@@ -10,6 +10,21 @@ check them before creating a duplicate). Reference it in the commits
 the commit. Anything planned but not started gets an issue too, so nothing
 agreed in a conversation lives only there.
 
+## Keep the user docs current
+
+The user documentation lives in `apps/docs` (Starlight, published at
+docs.songverse.one), in English (`src/content/docs/`) and French
+(`src/content/docs/fr/`, same file names). A feature or fix that changes
+what users see updates its page, in both languages, in the same change:
+- name buttons and menus exactly as the app's locale files do
+  (`packages/core/src/i18n/locales/`);
+- link to other pages with absolute paths (`/sets/`, `/fr/sets/`); the
+  build fails on a link to a missing page or heading;
+- new or changed screens: extend `e2e/docs/capture.mjs` and rerun
+  `node e2e/docs/screenshots.mjs` (see `apps/docs/README.md`).
+The in-app Help link picks the page from the URL (`apps/web/src/lib/docs.ts`):
+add new areas of the app there.
+
 ## Keep the Admin UI current
 
 Whenever a change introduces or touches operator-facing configuration

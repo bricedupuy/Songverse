@@ -155,6 +155,7 @@ const en = {
     account: "Account settings",
     review: "Review",
     admin: "Admin",
+    help: "Help",
     signOut: "Sign out",
     teams: "Teams",
     noTeams: "No teams yet",
