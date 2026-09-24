@@ -15,7 +15,8 @@
     "db:migrate": "pnpm --filter @songverse/db exec prisma migrate dev",
     "db:generate": "pnpm --filter @songverse/db exec prisma generate",
     "db:seed": "pnpm --filter @songverse/db exec prisma db seed",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "e2e": "pnpm --filter @songverse/e2e e2e"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

@@ -73,4 +73,5 @@ pnpm dev                                     # web on :3000, API on :3001
 ```
 
 `pnpm lint`, `pnpm type-check` and `pnpm test` run the checks across the
-workspace. See [Deploy.md](Deploy.md) for production setup.
+workspace. `pnpm e2e` runs the end-to-end suites (API and browser) against
+the running app - see [e2e/README.md](e2e/README.md). See [Deploy.md](Deploy.md) for production setup.

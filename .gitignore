@@ -40,3 +40,6 @@ apps/api/.data/
 
 # Expo / React Native (Phase 13+)
 .expo/
+
+# End-to-end test screenshots
+e2e/.artifacts/

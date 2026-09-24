@@ -1,0 +1,120 @@
+// Shared setup for the end-to-end suites: where the running API and web
+// app are, test users, API calls, and pass/fail reporting. Each suite is a
+// plain Node script (`node e2e/api/sets.test.mjs`); `e2e/run.mjs` runs them all.
+import { execSync } from "node:child_process";
+import { mkdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const API = process.env.E2E_API_URL ?? "http://localhost:3001";
+export const WEB = process.env.E2E_WEB_URL ?? "http://localhost:3000";
+/** The web app's origin, which the API trusts for auth calls. */
+export const ORIGIN = WEB;
+/** The API's console output: with no email provider configured, it prints the emails it would send (verification links etc.). */
+export const LOG = process.env.E2E_API_LOG ?? "/tmp/api-dev.log";
+export const DB = (process.env.E2E_DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/songverse_dev").replace(/\?.*$/, "");
+/** Where the API keeps uploads when no object storage is configured (it runs from apps/api). */
+export const STORAGE_DIR =
+  process.env.E2E_STORAGE_DIR ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../apps/api/.data/attachments");
+/** Screenshots of failed steps. */
+export const SP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../.artifacts");
+mkdirSync(SP, { recursive: true });
+
+export const stamp = Date.now();
+export const tag = String(stamp % 100000);
+export const results = [];
+/** The running suite's name, e.g. "sets", which prefixes its users' emails. */
+const suite = path.basename(process.argv[1] ?? "e2e").replace(/\.test\.mjs$/, "").replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+
+/** Runs SQL against the test database and returns the text output. */
+export const sql = (q) => execSync(`psql ${DB} -tAc ${JSON.stringify(q)}`).toString().trim();
+
+export function check(name, ok, detail = "") {
+  results.push(ok);
+  console.log(`${ok ? "OK  " : "FAIL"} ${name}${detail ? ` -> ${detail}` : ""}`);
+}
+
+/** A browser step: failures are recorded (with a screenshot of `getPage()`), not thrown. */
+export function stepper(getPage) {
+  return async function step(name, fn) {
+    try {
+      await fn();
+      results.push(true);
+      console.log(`OK   ${name}`);
+    } catch (err) {
+      results.push(false);
+      console.log(`FAIL ${name} -> ${err.message.split("\n")[0]}`);
+      await getPage()
+        ?.screenshot({ path: `${SP}/${suite}-fail-${results.length}.png`, fullPage: true })
+        .catch(() => {});
+    }
+  };
+}
+
+/** Where the API log ends now, to look for emails sent after this point. */
+export const logOffset = () => readFileSync(LOG, "utf8").length;
+
+/** The first match of `pattern` in the API log after `offset`, waiting up to ~9s for it. */
+export async function waitForLog(offset, pattern) {
+  for (let i = 0; i < 30; i++) {
+    const match = readFileSync(LOG, "utf8").slice(offset).match(pattern);
+    if (match) return match;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw new Error(`nothing matching ${pattern} in the API log`);
+}
+
+const VERIFY_LINK = new RegExp(`${API.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/api/auth/verify-email\\?token=[^\\s&]+`);
+
+/** Signs up a verified user (password "hunter2pass") and returns their email, API token and id. */
+export async function user(name) {
+  const email = `e2e-${suite}-${String(name).toLowerCase().replace(/\s+/g, "-")}-${stamp}@example.com`;
+  const offset = logOffset();
+  await fetch(`${API}/api/auth/sign-up/email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: ORIGIN },
+    body: JSON.stringify({ email, password: "hunter2pass", name: String(name) }),
+  });
+  const [link] = await waitForLog(offset, VERIFY_LINK);
+  await fetch(link, { redirect: "manual" });
+  const res = await fetch(`${API}/api/auth/sign-in/email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: ORIGIN },
+    body: JSON.stringify({ email, password: "hunter2pass" }),
+  });
+  const cookie = res.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
+  const bearer = (await (await fetch(`${API}/api/auth/token`, { headers: { cookie, Origin: ORIGIN } })).json()).token;
+  return { email, bearer, id: sql(`select id from "User" where email='${email}'`) };
+}
+
+/** An API call as `who`; returns the status and parsed body. */
+export async function call(who, method, path, body) {
+  const res = await fetch(`${API}${path}`, {
+    method,
+    headers: { Authorization: `Bearer ${who.bearer}`, ...(body !== undefined && { "Content-Type": "application/json" }) },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  return { status: res.status, body: text ? JSON.parse(text) : undefined };
+}
+
+/** An API call as `who`; returns just the parsed body. */
+export const api = async (who, method, path, body) => (await call(who, method, path, body ?? undefined)).body;
+
+/** Signs `who` in through the web app's sign-in form. */
+export async function signIn(p, who) {
+  await p.goto(WEB);
+  await p.waitForLoadState("networkidle");
+  await p.fill("#signin-email", who.email);
+  await p.fill("#signin-password", "hunter2pass");
+  await p.getByRole("button", { name: /Sign in|Se connecter/, exact: false }).first().click();
+  await p.waitForURL("**/library");
+  await p.waitForLoadState("networkidle");
+}
+
+/** Prints the tally; any failure makes the process exit non-zero. */
+export function finish() {
+  const passed = results.filter(Boolean).length;
+  console.log(`\n${passed}/${results.length} passed`);
+  if (passed !== results.length) process.exitCode = 1;
+}

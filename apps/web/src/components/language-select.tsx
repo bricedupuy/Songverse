@@ -1,5 +1,5 @@
 import { ISO_639_1_CODES, getLanguageDisplayName } from "@songverse/core";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface LanguageSelectProps {
@@ -29,12 +29,17 @@ export function LanguageSelect({
   className,
 }: LanguageSelectProps) {
   const { i18n } = useTranslation();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
+  // Names come from the runtime's ICU data, which can differ between the
+  // server and a browser - and sorting by them can then order the options
+  // differently, which hydration wouldn't repair. So the first render lists
+  // them by code (the same everywhere) and sorts by name once mounted.
   const options = useMemo(() => {
-    return ISO_639_1_CODES.map((code) => ({ code, name: getLanguageDisplayName(code, i18n.language) })).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
-  }, [i18n.language]);
+    const list = ISO_639_1_CODES.map((code) => ({ code, name: getLanguageDisplayName(code, i18n.language) }));
+    return mounted ? list.sort((a, b) => a.name.localeCompare(b.name)) : list;
+  }, [i18n.language, mounted]);
 
   return (
     <select
@@ -49,7 +54,7 @@ export function LanguageSelect({
     >
       {allowEmpty ? <option value="">{emptyLabel ?? ""}</option> : null}
       {options.map(({ code, name }) => (
-        <option key={code} value={code}>
+        <option key={code} value={code} suppressHydrationWarning>
           {name} ({code})
         </option>
       ))}

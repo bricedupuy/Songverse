@@ -39,6 +39,13 @@ Both `StorageSettings` and `AuthSettings` are managed through
 There's no more "settings only used by the web app, so it skips the API"
 case — see the next section for why.
 
+## Tests
+
+Features are covered end to end by the suites in `e2e/` (API calls and
+Playwright browser steps against the running app; CI runs them on every
+push to `main`). Add or extend a suite there with each feature or fix -
+see `e2e/README.md` - rather than keeping test scripts outside the repo.
+
 ## Deleting users
 
 Admin > Users can delete an account, either with everything the user
