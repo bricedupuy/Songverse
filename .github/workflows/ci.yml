@@ -137,8 +137,27 @@ jobs:
             /tmp/web.log
           retention-days: 7
 
+  # Builds the two images Dokploy deploys, so a Dockerfile that no longer
+  # matches the code fails here rather than on the server. Nothing is pushed.
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build Dockerfile.${{ matrix.image }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.${{ matrix.image }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
   deploy-api:
-    needs: build-test
+    needs: [build-test, e2e, docker]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
@@ -149,27 +168,3 @@ jobs:
       - name: Trigger Dokploy deploy
         if: ${{ vars.DOKPLOY_WEBHOOK_URL != '' }}
         run: curl -fsSL -X POST "${{ vars.DOKPLOY_WEBHOOK_URL }}"
-
-  deploy-web:
-    needs: build-test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # The pnpm version comes from package.json's packageManager field.
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Build and deploy to Vercel
-        if: ${{ vars.VERCEL_PROJECT_ID != '' }}
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-        run: |
-          pnpm dlx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          pnpm dlx vercel build --prod --token="$VERCEL_TOKEN"
-          pnpm dlx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
