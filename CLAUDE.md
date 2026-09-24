@@ -1,5 +1,15 @@
 # SongVerse — notes for Claude
 
+## Issues first
+
+Before starting an enhancement or a fix, make sure a GitHub issue describes
+it: create one, or update the existing one (the open issues are the plan -
+check them before creating a duplicate). Reference it in the commits
+(`Closes #n` in the one that finishes it). Once the work is merged to
+`main`, close the issue if the merge didn't already, with a comment naming
+the commit. Anything planned but not started gets an issue too, so nothing
+agreed in a conversation lives only there.
+
 ## Keep the Admin UI current
 
 Whenever a change introduces or touches operator-facing configuration
