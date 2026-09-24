@@ -110,8 +110,22 @@ Sets (#50):
   kept copy. Offline, the set page is read-only.
 - **Search and a lone song in Live** fall back to the songs of kept sets,
   played as written with the player's chord settings.
-- For now nothing is removed from the device except by signing out; #51
-  adds what's kept automatically, catching up and dropping old sets.
+
+Keeping current (#51):
+
+- **`POST /offline/sync`** replaced the planned manifest and change feed
+  (see "API support"). The device sends the sets it keeps with their
+  versions (`offlineCopy()`'s hash of the whole copy). The answer lists the
+  upcoming sets (yesterday to `days` ahead, 14 by default) and the known
+  sets still visible, each with its version, plus a copy only where the
+  device's is out of date. Known sets that are deleted or no longer
+  visible come back as `gone`.
+- **`syncKeptSets()`** (core) stores the copies, removes what's gone and
+  drops sets a day after their date; undated sets stay. The web app runs
+  it on launch, every 5 minutes while open, and when the connection comes
+  back (`useOfflineSync`).
+- The 14 days isn't a setting yet: the API takes `days` (1 to 60), and
+  #52's storage page is where a setting would go.
 
 ### The data (IndexedDB)
 
@@ -174,21 +188,20 @@ store. Choose when building it; TanStack Query is the less custom option.
 
 ### API support
 
-- `GET /offline/manifest` - everything this user should have offline right
-  now: upcoming set IDs, their own song IDs, kept songbook IDs, pins, each
-  with its `revision`/`updatedAt`. The client compares it with what it has
-  and fetches the difference. Server-side, the rules above live in one
-  place for every client.
-- `GET /setlists/:id/offline` and `GET /songbooks/:id/offline` - a set (or
-  songbook) with every song as it's shown, and attachment metadata, in one
-  response. `POST /song-versions/offline` with IDs - a batch of songs. This
-  replaces one request per song.
+- `POST /offline/sync` - what this device should keep now (#51). The
+  device sends the sets it keeps with their versions; the answer lists
+  the upcoming sets and the known ones still visible, each with its
+  current version and, only when it differs, the full copy. Deleted and
+  no longer visible sets are listed as `gone`. One request catches
+  everything up: updates, deletions and **lost access** (a song
+  unshared, a team left). There's no change feed to keep and no
+  deletion records: a version is a hash of what the device would show.
+  Songbooks and pins join it in #52.
+- `GET /setlists/:id/offline` - a set with every song as it's shown, in
+  one response (#50). `GET /songbooks/:id/offline` and
+  `POST /song-versions/offline` (a batch of songs) come with #52.
 - The songbook's **"Keep a local copy"** and pins are stored per user on
   the server, so they follow the user to a new device.
-- `GET /sync/changes?since=<cursor>` - what changed for this user since the
-  cursor: updated sets and songs (IDs and revisions), **deletions** and
-  **lost access** (a song unshared, a team left). The client refreshes
-  what changed and removes the rest.
 - Attachments are content-addressed already, so they can be fetched
   once and cached indefinitely (`Cache-Control: immutable` on the
   attachment's hash URL).

@@ -177,6 +177,19 @@ export interface SetlistSongView {
 export interface SetlistOfflineCopy {
   set: SetlistDetail;
   songs: SetlistSongView[];
+  /** Changes whenever anything in the copy would. */
+  version: string;
+}
+
+/** POST /offline/sync (issue #51): what a device should keep offline now. */
+export interface OfflineSyncResponse {
+  days: number;
+  /** The sets dated from yesterday to `days` ahead. */
+  upcoming: string[];
+  /** Upcoming and known sets still visible; `copy` only when the device's version is out of date. */
+  sets: { id: string; version: string; copy?: SetlistOfflineCopy }[];
+  /** Known sets deleted, or no longer visible: remove them. */
+  gone: string[];
 }
 
 /** A player's own way of reading charts: this chart's preferences, and their settings for every chart. */
@@ -1076,6 +1089,8 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "DELETE" }),
     getSetlistSong: (setlistId: string, itemId: string) => request<SetlistSongView>(`/setlists/${setlistId}/items/${itemId}/song`),
     getSetlistOffline: (setlistId: string) => request<SetlistOfflineCopy>(`/setlists/${setlistId}/offline`),
+    syncOffline: (body: { days?: number; known: { id: string; version: string }[] }) =>
+      request<OfflineSyncResponse>("/offline/sync", { method: "POST", body: JSON.stringify(body) }),
     /** An empty note deletes it. */
     setSetlistNote: (setlistId: string, itemId: string, content: string) =>
       request<{ myNote: string }>(`/setlists/${setlistId}/items/${itemId}/my-note`, { method: "PUT", body: JSON.stringify({ content }) }),

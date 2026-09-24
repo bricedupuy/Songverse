@@ -70,6 +70,13 @@ export async function getOffline<T>(store: OfflineStoreName, key: string): Promi
   return withStore<T | undefined>(userId, store, "readonly", (s) => s.get(key) as IDBRequest<T | undefined>);
 }
 
+/** Removes one thing kept for the last signed-in user. */
+export async function deleteOffline(store: OfflineStoreName, key: string): Promise<void> {
+  const userId = lastUser();
+  if (!available() || !userId) return;
+  await withStore(userId, store, "readwrite", (s) => s.delete(key));
+}
+
 /** The keys kept in a store, for the last signed-in user. */
 export async function keysOffline(store: OfflineStoreName): Promise<string[]> {
   const userId = lastUser();

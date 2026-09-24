@@ -1,10 +1,12 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { createHash } from "node:crypto";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { readSongDocument } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { PrismaService } from "../prisma/prisma.service";
 import type {
   AddSetlistItemDto,
   CreateSetlistDto,
+  OfflineSyncDto,
   UpdateSetlistDto,
   UpdateSetlistItemDto,
 } from "./dto/setlist.dto";
@@ -417,13 +419,48 @@ export class SetlistsService {
     };
   }
 
-  /** The set and each of its songs' views, to keep offline (issue #50). */
+  /**
+   * The set and each of its songs' views, to keep offline (issue #50), and
+   * a version: a hash of all of it, which changes whenever anything the
+   * device shows would (a song edited, an item moved, access lost...).
+   */
   async offlineCopy(user: AuthenticatedUser, setlistId: string) {
     const set = await this.findOne(user, setlistId);
     const songs = [];
     // One at a time: a set is a handful of songs, and each view checks access itself.
     for (const item of set.items) songs.push(await this.songView(user, setlistId, item.id));
-    return { set, songs };
+    const version = createHash("sha256").update(JSON.stringify({ set, songs })).digest("hex").slice(0, 32);
+    return { set, songs, version };
+  }
+
+  /**
+   * What a device should keep offline now (issue #51): every set the user
+   * can open dated from yesterday to `days` ahead, and the sets it already
+   * keeps (`known`) that they still can. Each comes with its version, and
+   * its copy only when that version differs from the device's. Known sets
+   * the user can no longer open (deleted, access lost) are `gone`.
+   */
+  async offlineSync(user: AuthenticatedUser, dto: OfflineSyncDto) {
+    const days = dto.days ?? 14;
+    const today = startOfTodayUtc();
+    const from = new Date(today - DAY_MS).toISOString().slice(0, 10);
+    const to = new Date(today + days * DAY_MS).toISOString().slice(0, 10);
+    const upcoming = (await this.list(user)).filter((set) => set.eventDate && set.eventDate >= from && set.eventDate <= to).map((set) => set.id);
+    const known = new Map((dto.known ?? []).map((set) => [set.id, set.version]));
+
+    const sets: { id: string; version: string; copy?: Awaited<ReturnType<SetlistsService["offlineCopy"]>> }[] = [];
+    const gone: string[] = [];
+    for (const id of new Set([...upcoming, ...known.keys()])) {
+      try {
+        const copy = await this.offlineCopy(user, id);
+        sets.push(copy.version === known.get(id) ? { id, version: copy.version } : { id, version: copy.version, copy });
+      } catch (error) {
+        // Not found and not visible look the same (findViewable): either way it goes.
+        if (error instanceof NotFoundException || error instanceof ForbiddenException) gone.push(id);
+        else throw error;
+      }
+    }
+    return { days, upcoming, sets, gone };
   }
 
   /** The viewer's own chart preferences for one song of the set, as the set plays it (guests too). */

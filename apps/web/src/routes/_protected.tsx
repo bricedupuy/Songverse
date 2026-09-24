@@ -3,6 +3,7 @@ import { useEffect, useMemo } from "react";
 import { I18nextProvider } from "react-i18next";
 import { AppShell } from "#/components/app-shell";
 import { keepAppDataOffline, loadAppData } from "#/lib/app-data";
+import { useOfflineSync } from "#/lib/offline-data";
 import { createI18n, loadLocale } from "#/lib/i18n";
 
 /**
@@ -25,6 +26,8 @@ export const Route = createFileRoute("/_protected")({
 
 function RouteComponent() {
   const { session, teams, songbooks, setlists, offline } = Route.useRouteContext();
+  // Upcoming sets downloaded and kept up to date for offline use (issue #51).
+  useOfflineSync();
   // Kept on the device for an offline launch (issue #49), each time it's confirmed online.
   useEffect(() => {
     if (!offline) keepAppDataOffline({ session, teams, songbooks, setlists });

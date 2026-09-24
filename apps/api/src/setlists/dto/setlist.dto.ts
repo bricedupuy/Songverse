@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Transform } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
   ArrayMaxSize,
   ArrayUnique,
@@ -13,6 +13,7 @@ import {
   MinLength,
   Min,
   ValidateIf,
+  ValidateNested,
 } from "class-validator";
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
@@ -129,4 +130,33 @@ export class MyNoteDto {
   @IsString()
   @MaxLength(5000)
   content!: string;
+}
+
+export class KnownSetDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(64)
+  id!: string;
+
+  @ApiProperty({ description: "The version of the copy the device has (from GET /setlists/:id/offline or an earlier sync)" })
+  @IsString()
+  @MaxLength(64)
+  version!: string;
+}
+
+export class OfflineSyncDto {
+  @ApiProperty({ required: false, description: "How many days ahead count as upcoming (default 14)", minimum: 1, maximum: 60 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(60)
+  days?: number;
+
+  @ApiProperty({ required: false, type: [KnownSetDto], description: "The sets the device keeps, with their versions" })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => KnownSetDto)
+  known?: KnownSetDto[];
 }
