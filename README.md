@@ -20,6 +20,13 @@ playing on Sunday, and share it with the people playing with you.
   page. Adding a song whose title is already in your library offers to
   open it, start from it, or add another version of it; translations and
   other versions are filed together.
+- **Global catalogue** – submit a personal or team song for everyone to
+  use. Reviewers (a role granted in Admin > Users) and global admins
+  approve it, ask for changes, reject it, or merge it into a global song
+  it duplicates; similar global songs are flagged when it's submitted.
+  Approving publishes a copy and links your song to it, so yours stays
+  yours to change. Global admins can also publish their own songs
+  directly, when they choose to.
 - **MusicBrainz matching** – link a song to its MusicBrainz recording and
   work to pull in artist and songwriter credits.
 - **Songbooks** – simple or numbered collections, built by hand, imported
@@ -40,8 +47,8 @@ playing on Sunday, and share it with the people playing with you.
 - **Accounts** – email and password, passkeys and Google sign-in; email
   verification, password reset and email change; avatars; per-user storage
   limits.
-- **Admin** – manage users (ban, delete with or without handing their
-  content over), storage (Cloudflare R2 or local disk), sign-in providers
+- **Admin** – manage users (ban, grant the reviewer role, delete with or
+  without handing their content over), storage (Cloudflare R2 or local disk), sign-in providers
   and email, all editable in the app rather than only through environment
   variables.
 - **English and French**, and usable on a phone.
