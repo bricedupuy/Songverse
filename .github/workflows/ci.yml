@@ -2,7 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # Work branches too, so they're checked before reaching main. Deploys
+    # stay main-only (see deploy-api's condition).
+    branches: [main, "claude/**"]
   pull_request:
 
 env:
