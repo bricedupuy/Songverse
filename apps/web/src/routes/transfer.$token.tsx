@@ -1,22 +1,22 @@
-import { DEFAULT_LOCALE, type TransferPreview } from "@songverse/core";
+import type { TransferPreview } from "@songverse/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Music2 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { I18nextProvider, useTranslation } from "react-i18next";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AuthCard } from "#/components/auth-card";
+import { LocaleProvider } from "#/components/locale-provider";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
 import { formatBytes } from "#/lib/format-bytes";
-import { createI18n } from "#/lib/i18n";
-import { getSession } from "#/lib/server-auth";
+import { getSession, getVisitorLocale } from "#/lib/server-auth";
 
 export const Route = createFileRoute("/transfer/$token")({
   beforeLoad: async ({ params }) => {
     const session = await getSession();
     if (!session) {
-      const { hasGoogleAuth } = await apiClient.getAuthPublicConfig();
-      return { locale: DEFAULT_LOCALE, email: null, preview: null, error: null, hasGoogleAuth };
+      const [{ hasGoogleAuth }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
+      return { locale, email: null, preview: null, error: null, hasGoogleAuth };
     }
     const base = { locale: session.locale, email: session.email, hasGoogleAuth: false };
     try {
@@ -31,11 +31,10 @@ export const Route = createFileRoute("/transfer/$token")({
 // Outside the _protected layout, so it has to supply its own i18n instance.
 function TransferPage() {
   const { locale } = Route.useRouteContext();
-  const i18n = useMemo(() => createI18n(locale), [locale]);
   return (
-    <I18nextProvider i18n={i18n}>
+    <LocaleProvider locale={locale}>
       <TransferContent />
-    </I18nextProvider>
+    </LocaleProvider>
   );
 }
 

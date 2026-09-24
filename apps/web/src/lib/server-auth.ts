@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type LocaleValue } from "@songverse/core";
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, localeFromAcceptLanguage, type LocaleValue } from "@songverse/core";
 import { getApiUrl } from "#/lib/public-env";
 
 export interface AppSession {
@@ -57,6 +57,11 @@ async function loadSession(): Promise<AppSession | null> {
 
 /** Returns the current session, or null when signed out. Safe to call anywhere. */
 export const getSession = createServerFn({ method: "GET" }).handler(loadSession);
+
+/** A signed-out visitor's language, from their browser's Accept-Language. */
+export const getVisitorLocale = createServerFn({ method: "GET" }).handler(() =>
+  localeFromAcceptLanguage(getRequest().headers.get("accept-language")),
+);
 
 async function mintApiToken(cookie: string): Promise<string | null> {
   const response = await fetch(`${getApiUrl()}/api/auth/token`, { headers: { cookie } });

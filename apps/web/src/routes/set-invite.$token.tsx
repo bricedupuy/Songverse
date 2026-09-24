@@ -1,14 +1,14 @@
-import { DEFAULT_LOCALE, type SetInvitePreview } from "@songverse/core";
+import type { SetInvitePreview } from "@songverse/core";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Music2 } from "lucide-react";
-import { useMemo, useState } from "react";
-import { I18nextProvider, useTranslation } from "react-i18next";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { AuthCard } from "#/components/auth-card";
+import { LocaleProvider } from "#/components/locale-provider";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
-import { createI18n } from "#/lib/i18n";
-import { getSession } from "#/lib/server-auth";
+import { getSession, getVisitorLocale } from "#/lib/server-auth";
 import { setlistTitle } from "#/lib/setlists";
 
 /** Where a set's share link leads: sign in if needed, then join the set as a guest. */
@@ -23,7 +23,7 @@ export const Route = createFileRoute("/set-invite/$token")({
       error = err instanceof Error ? err.message : String(err);
     }
     const hasGoogleAuth = session ? false : (await apiClient.getAuthPublicConfig()).hasGoogleAuth;
-    return { locale: session?.locale ?? DEFAULT_LOCALE, signedIn: !!session, preview, error, hasGoogleAuth };
+    return { locale: session?.locale ?? (await getVisitorLocale()), signedIn: !!session, preview, error, hasGoogleAuth };
   },
   component: SetInvitePage,
 });
@@ -31,11 +31,10 @@ export const Route = createFileRoute("/set-invite/$token")({
 // Outside the _protected layout, so it has to supply its own i18n instance.
 function SetInvitePage() {
   const { locale } = Route.useRouteContext();
-  const i18n = useMemo(() => createI18n(locale), [locale]);
   return (
-    <I18nextProvider i18n={i18n}>
+    <LocaleProvider locale={locale}>
       <SetInviteContent />
-    </I18nextProvider>
+    </LocaleProvider>
   );
 }
 

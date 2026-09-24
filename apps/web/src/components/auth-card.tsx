@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { KeyRound } from "lucide-react";
 import { authClient } from "#/lib/auth-client";
 import { Button } from "#/components/ui/button";
@@ -26,7 +27,28 @@ function toAbsoluteUrl(path: string) {
   return `${window.location.origin}${path}`;
 }
 
+// BetterAuth's errors carry a code; the known ones are translated, others
+// show the server's own message.
+const KNOWN_ERRORS = [
+  "INVALID_EMAIL_OR_PASSWORD",
+  "INVALID_EMAIL",
+  "USER_ALREADY_EXISTS",
+  "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
+  "PASSWORD_TOO_SHORT",
+  "INVALID_TOKEN",
+] as const;
+
+export function useAuthErrorText() {
+  const { t } = useTranslation();
+  return (error: { code?: string; message?: string }, fallback: string) => {
+    const known = KNOWN_ERRORS.find((code) => code === error.code);
+    return known ? t(`auth.errors.${known}`) : (error.message ?? fallback);
+  };
+}
+
 export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardProps) {
+  const { t } = useTranslation();
+  const errorText = useAuthErrorText();
   const [view, setView] = useState<View>("auth");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
@@ -58,10 +80,10 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
     if (result.error) {
       if (result.error.code === "EMAIL_NOT_VERIFIED") {
         setUnverifiedEmail(email);
-        setError("Please verify your email before signing in.");
+        setError(t("auth.verifyFirst"));
         return;
       }
-      setError(result.error.message ?? "Something went wrong");
+      setError(errorText(result.error, t("auth.somethingWentWrong")));
       return;
     }
 
@@ -84,10 +106,10 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
     });
     setLoading(false);
     if (result.error) {
-      setError(result.error.message ?? "Something went wrong");
+      setError(errorText(result.error, t("auth.somethingWentWrong")));
       return;
     }
-    setInfo("Verification email sent - check your inbox.");
+    setInfo(t("auth.verificationSent"));
   }
 
   async function requestReset(formEl: HTMLFormElement) {
@@ -98,7 +120,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
     const result = await authClient.requestPasswordReset({ email, redirectTo: toAbsoluteUrl("/reset-password") });
     setLoading(false);
     if (result.error) {
-      setError(result.error.message ?? "Something went wrong");
+      setError(errorText(result.error, t("auth.somethingWentWrong")));
       return;
     }
     setView("forgot-password-sent");
@@ -115,7 +137,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
     const result = await authClient.signIn.passkey();
     setLoading(false);
     if (result?.error) {
-      setError(result.error.message ?? "Passkey sign-in failed");
+      setError(errorText(result.error, t("auth.passkeyFailed")));
       return;
     }
     window.location.href = redirectTo;
@@ -125,17 +147,15 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Reset your password</CardTitle>
+          <CardTitle>{t("auth.resetTitle")}</CardTitle>
           <CardDescription>
-            {view === "forgot-password-sent"
-              ? "If that email is registered, we've sent a reset link to it."
-              : "Enter your email and we'll send you a link to reset your password."}
+            {view === "forgot-password-sent" ? t("auth.resetSentDescription") : t("auth.resetDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {view === "forgot-password-sent" ? (
             <Button variant="outline" className="w-full" onClick={() => setView("auth")}>
-              Back to sign in
+              {t("auth.backToSignIn")}
             </Button>
           ) : (
             <form
@@ -146,15 +166,15 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
               }}
             >
               <div className="flex flex-col gap-2">
-                <Label htmlFor="forgot-email">Email</Label>
+                <Label htmlFor="forgot-email">{t("auth.email")}</Label>
                 <Input id="forgot-email" name="email" type="email" required autoComplete="email" />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" disabled={loading}>
-                {loading ? "Sending…" : "Send reset link"}
+                {loading ? t("auth.sending") : t("auth.sendResetLink")}
               </Button>
               <Button type="button" variant="ghost" onClick={() => setView("auth")}>
-                Back to sign in
+                {t("auth.backToSignIn")}
               </Button>
             </form>
           )}
@@ -167,14 +187,12 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Check your email</CardTitle>
-          <CardDescription>
-            We've sent a verification link to your inbox. Click it to finish creating your account.
-          </CardDescription>
+          <CardTitle>{t("auth.checkEmailTitle")}</CardTitle>
+          <CardDescription>{t("auth.checkEmailDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="outline" className="w-full" onClick={() => setView("auth")}>
-            Back to sign in
+            {t("auth.backToSignIn")}
           </Button>
         </CardContent>
       </Card>
@@ -184,14 +202,14 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>Welcome</CardTitle>
-        <CardDescription>Sign in to your account, or create a new one.</CardDescription>
+        <CardTitle>{t("auth.welcome")}</CardTitle>
+        <CardDescription>{t("auth.welcomeDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Tabs defaultValue="signin" onValueChange={resetMessages}>
           <TabsList className="w-full">
-            <TabsTrigger value="signin">Sign in</TabsTrigger>
-            <TabsTrigger value="signup">Sign up</TabsTrigger>
+            <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
+            <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin" className="mt-4">
@@ -203,12 +221,12 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
               }}
             >
               <div className="flex flex-col gap-2">
-                <Label htmlFor="signin-email">Email</Label>
+                <Label htmlFor="signin-email">{t("auth.email")}</Label>
                 <Input id="signin-email" name="email" type="email" required autoComplete="email" />
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="signin-password">Password</Label>
+                  <Label htmlFor="signin-password">{t("auth.password")}</Label>
                   <button
                     type="button"
                     className="text-xs text-muted-foreground hover:text-primary hover:underline"
@@ -217,7 +235,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
                       setView("forgot-password");
                     }}
                   >
-                    Forgot password?
+                    {t("auth.forgotPassword")}
                   </button>
                 </div>
                 <Input id="signin-password" name="password" type="password" required autoComplete="current-password" />
@@ -226,11 +244,11 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
               {info && <p className="text-sm text-muted-foreground">{info}</p>}
               {unverifiedEmail && (
                 <Button type="button" variant="outline" size="sm" onClick={() => void resendVerification()} disabled={loading}>
-                  Resend verification email
+                  {t("auth.resendVerification")}
                 </Button>
               )}
               <Button type="submit" disabled={loading}>
-                {loading ? "Signing in…" : "Sign in"}
+                {loading ? t("auth.signingIn") : t("auth.signIn")}
               </Button>
             </form>
           </TabsContent>
@@ -244,15 +262,15 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
               }}
             >
               <div className="flex flex-col gap-2">
-                <Label htmlFor="signup-name">Display name</Label>
+                <Label htmlFor="signup-name">{t("auth.displayName")}</Label>
                 <Input id="signup-name" name="name" required autoComplete="name" />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="signup-email">Email</Label>
+                <Label htmlFor="signup-email">{t("auth.email")}</Label>
                 <Input id="signup-email" name="email" type="email" required autoComplete="email" />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="signup-password">Password</Label>
+                <Label htmlFor="signup-password">{t("auth.password")}</Label>
                 <Input
                   id="signup-password"
                   name="password"
@@ -264,7 +282,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" disabled={loading}>
-                {loading ? "Creating account…" : "Create account"}
+                {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
               </Button>
             </form>
           </TabsContent>
@@ -274,11 +292,11 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
           <>
             <div className="flex items-center gap-3">
               <Separator className="flex-1" />
-              <span className="text-xs text-muted-foreground">or</span>
+              <span className="text-xs text-muted-foreground">{t("auth.or")}</span>
               <Separator className="flex-1" />
             </div>
             <Button type="button" variant="outline" className="w-full" onClick={() => void signInWithGoogle()}>
-              Continue with Google
+              {t("auth.continueWithGoogle")}
             </Button>
           </>
         ) : null}
@@ -291,7 +309,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
           disabled={loading}
         >
           <KeyRound />
-          Sign in with a passkey
+          {t("auth.signInWithPasskey")}
         </Button>
       </CardContent>
     </Card>

@@ -1,8 +1,10 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { Music2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { AuthCard } from "#/components/auth-card";
+import { LocaleProvider } from "#/components/locale-provider";
 import { apiClient } from "#/lib/api-client";
-import { getSession } from "#/lib/server-auth";
+import { getSession, getVisitorLocale } from "#/lib/server-auth";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 
@@ -10,8 +12,8 @@ export const Route = createFileRoute("/join/$token")({
   beforeLoad: async ({ params }) => {
     const session = await getSession();
     if (!session) {
-      const { hasGoogleAuth } = await apiClient.getAuthPublicConfig();
-      return { error: null, hasGoogleAuth };
+      const [{ hasGoogleAuth }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
+      return { error: null, hasGoogleAuth, locale };
     }
 
     let team: Awaited<ReturnType<typeof apiClient.joinTeamByToken>> | null = null;
@@ -27,12 +29,22 @@ export const Route = createFileRoute("/join/$token")({
     }
     // Already signed in at this point, so <AuthCard> never renders below -
     // no need to resolve the real value.
-    return { error: joinError, hasGoogleAuth: false };
+    return { error: joinError, hasGoogleAuth: false, locale: session.locale };
   },
   component: JoinTeamPage,
 });
 
 function JoinTeamPage() {
+  const { locale } = Route.useRouteContext();
+  return (
+    <LocaleProvider locale={locale}>
+      <JoinTeamContent />
+    </LocaleProvider>
+  );
+}
+
+function JoinTeamContent() {
+  const { t } = useTranslation();
   const { token } = Route.useParams();
   const { error, hasGoogleAuth } = Route.useRouteContext();
 
@@ -45,20 +57,18 @@ function JoinTeamPage() {
       {error ? (
         <Card className="w-full max-w-sm">
           <CardHeader>
-            <CardTitle>Couldn't join this team</CardTitle>
+            <CardTitle>{t("auth.joinTeamFailed")}</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link to="/dashboard">Go to dashboard</Link>
+              <Link to="/dashboard">{t("auth.goToDashboard")}</Link>
             </Button>
           </CardContent>
         </Card>
       ) : (
         <>
-          <p className="max-w-sm text-center text-sm text-muted-foreground">
-            Sign in or create an account to accept this team invite.
-          </p>
+          <p className="max-w-sm text-center text-sm text-muted-foreground">{t("auth.joinTeamPrompt")}</p>
           <AuthCard redirectTo={`/join/${token}`} hasGoogleAuth={hasGoogleAuth} />
         </>
       )}

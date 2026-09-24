@@ -1,32 +1,42 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Music2 } from "lucide-react";
 import { authClient } from "#/lib/auth-client";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { LocaleProvider } from "#/components/locale-provider";
+import { useAuthErrorText } from "#/components/auth-card";
+import { getSession, getVisitorLocale } from "#/lib/server-auth";
 
 export const Route = createFileRoute("/reset-password")({
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === "string" ? search.token : undefined,
   }),
+  beforeLoad: async () => ({ locale: (await getSession())?.locale ?? (await getVisitorLocale()) }),
   component: ResetPasswordPage,
 });
 
 function ResetPasswordPage() {
+  const { locale } = Route.useRouteContext();
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
-      <div className="flex items-center gap-2 text-lg font-semibold">
-        <Music2 className="size-6" />
-        SongVerse
-      </div>
-      <ResetPasswordCard />
-    </main>
+    <LocaleProvider locale={locale}>
+      <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
+        <div className="flex items-center gap-2 text-lg font-semibold">
+          <Music2 className="size-6" />
+          SongVerse
+        </div>
+        <ResetPasswordCard />
+      </main>
+    </LocaleProvider>
   );
 }
 
 function ResetPasswordCard() {
+  const { t } = useTranslation();
+  const errorText = useAuthErrorText();
   const { token } = Route.useSearch();
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,12 +46,12 @@ function ResetPasswordCard() {
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Invalid link</CardTitle>
-          <CardDescription>This password reset link is missing its token. Request a new one.</CardDescription>
+          <CardTitle>{t("auth.invalidLinkTitle")}</CardTitle>
+          <CardDescription>{t("auth.invalidLinkDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild className="w-full">
-            <Link to="/">Back to sign in</Link>
+            <Link to="/">{t("auth.backToSignIn")}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -52,12 +62,12 @@ function ResetPasswordCard() {
     return (
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Password updated</CardTitle>
-          <CardDescription>Your password has been reset. You can now sign in with it.</CardDescription>
+          <CardTitle>{t("auth.passwordUpdatedTitle")}</CardTitle>
+          <CardDescription>{t("auth.passwordUpdatedDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild className="w-full">
-            <Link to="/">Sign in</Link>
+            <Link to="/">{t("auth.signIn")}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -70,7 +80,7 @@ function ResetPasswordCard() {
     const newPassword = String(form.get("password"));
     const confirmPassword = String(form.get("confirmPassword"));
     if (newPassword !== confirmPassword) {
-      setError("Passwords don't match");
+      setError(t("auth.passwordsDontMatch"));
       return;
     }
 
@@ -79,7 +89,7 @@ function ResetPasswordCard() {
     setLoading(false);
 
     if (result.error) {
-      setError(result.error.message ?? "This reset link is invalid or has expired");
+      setError(errorText(result.error, t("auth.resetLinkInvalid")));
       return;
     }
     setDone(true);
@@ -88,8 +98,8 @@ function ResetPasswordCard() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle>Set a new password</CardTitle>
-        <CardDescription>Choose a new password for your account.</CardDescription>
+        <CardTitle>{t("auth.newPasswordTitle")}</CardTitle>
+        <CardDescription>{t("auth.newPasswordDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
         <form
@@ -100,11 +110,11 @@ function ResetPasswordCard() {
           }}
         >
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password">New password</Label>
+            <Label htmlFor="password">{t("auth.newPassword")}</Label>
             <Input id="password" name="password" type="password" required minLength={8} autoComplete="new-password" />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="confirmPassword">Confirm password</Label>
+            <Label htmlFor="confirmPassword">{t("auth.confirmPassword")}</Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -116,7 +126,7 @@ function ResetPasswordCard() {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={loading}>
-            {loading ? "Saving…" : "Reset password"}
+            {loading ? t("auth.saving") : t("auth.resetPassword")}
           </Button>
         </form>
       </CardContent>

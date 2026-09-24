@@ -7,3 +7,4 @@ export const i18nResources = {
 } as const;
 
 export * from "./translate.js";
+export * from "./accept-language.js";
