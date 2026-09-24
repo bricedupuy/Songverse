@@ -127,6 +127,33 @@ Keeping current (#51):
 - The 14 days isn't a setting yet: the API takes `days` (1 to 60), and
   #52's storage page is where a setting would go.
 
+Songs, songbooks, pins and files (#52):
+
+- **Pins** (`OfflinePin`: a set, song or songbook, and whether its audio
+  comes too) are stored per user on the server, so they follow the user
+  to a new device: `GET/PUT/DELETE /offline/pins`. "Keep a local copy" on
+  a songbook is its pin.
+- **The same sync** carries songs and songbooks (`knownSongs`,
+  `knownSongbooks` in; `songs`, `songbooks`, `goneSongs`, `goneSongbooks`
+  out). Songs: the user's own, pinned, and those in kept sets and
+  songbooks, each with `audio`. A song's version is its `updatedAt` and
+  its files, computed in one query; full copies only where they changed.
+  Songbooks: pinned. It also returns the pins and the user's chord
+  settings (`viewer`), for songs shown on their own offline.
+- **Files:** `syncKeptFiles()` (core) downloads a kept song's files by
+  attachment (they never change once uploaded) - audio only when asked
+  for - and removes the ones no longer wanted.
+- **Offline pages:** a kept song's page is read-only (`OfflineSongPage`:
+  its chart, its files, Live); a kept songbook opens read-only; search
+  finds every kept song.
+- **Storage page** (`/offline`): last sync and "Sync now", persistent
+  storage, the days-ahead setting (kept on the device, sent as `days`),
+  and what's kept with a way to remove it. Removing a pinned item unpins
+  it on the server too.
+- **Shared with the mobile app** in `@songverse/core`: the network helpers
+  and the offline session rule (`offline/network.ts`), and all the keep,
+  read, search and sync functions over `OfflineStorage`.
+
 ### The data (IndexedDB)
 
 One IndexedDB database per signed-in user:

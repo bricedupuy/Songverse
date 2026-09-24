@@ -1,4 +1,4 @@
-import { allKeptSets, deviceOffline, keepSet, syncKeptSets, type KeptSet, type OfflineStorage } from "@songverse/core";
+import { allKeptSets, deviceOffline, keepSet, syncKeptFiles, syncKeptSets, type KeptSet, type OfflineStorage } from "@songverse/core";
 import { useRouteContext } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { apiClient } from "#/lib/api-client";
@@ -56,20 +56,52 @@ export function keptSets(): Promise<KeptSet[]> {
 const SYNC_EVERY_MS = 5 * 60_000;
 let syncing: Promise<void> | null = null;
 
+const DAYS_KEY = "songverse.offline.days";
+export const DEFAULT_OFFLINE_DAYS = 14;
+
+/** How many days ahead this device keeps upcoming sets (the storage page's setting). */
+export function offlineDays(): number {
+  try {
+    const days = Number(localStorage.getItem(DAYS_KEY));
+    return Number.isInteger(days) && days >= 1 && days <= 60 ? days : DEFAULT_OFFLINE_DAYS;
+  } catch {
+    return DEFAULT_OFFLINE_DAYS;
+  }
+}
+
+export function setOfflineDays(days: number): void {
+  try {
+    localStorage.setItem(DAYS_KEY, String(days));
+  } catch {
+    // Storage blocked: the default.
+  }
+}
+
 /**
- * Brings the device's copy up to date (issue #51): upcoming sets downloaded
- * without being opened, changes caught up, sets that are gone or past
- * removed. Online only; a failure waits for the next time.
+ * Brings the device's copy up to date (issues #51, #52): upcoming and
+ * pinned sets, own and pinned songs, kept songbooks - downloaded, caught
+ * up, and removed when gone, unpinned or past - then the songs' files.
+ * Online only; a failure waits for the next time.
  */
 export function syncOffline(userId: string): Promise<void> {
   if (deviceOffline()) return Promise.resolve();
-  syncing ??= syncKeptSets(deviceStorage(userId), (known) => apiClient.syncOffline({ known }))
+  const storage = deviceStorage(userId);
+  syncing ??= syncKeptSets(storage, (known, knownSongs, knownSongbooks) => apiClient.syncOffline({ days: offlineDays(), known, knownSongs, knownSongbooks }))
+    .then(() => syncKeptFiles(storage, ({ songVersionId, attachment }) => apiClient.downloadAttachment(songVersionId, attachment.id)))
     .then(() => undefined)
     .catch(() => undefined)
     .finally(() => {
       syncing = null;
+      for (const listener of syncListeners) listener();
     });
   return syncing;
+}
+
+// Pages showing what's kept (the storage page, pin buttons) refresh when a sync ends.
+const syncListeners = new Set<() => void>();
+export function onOfflineSync(listener: () => void): () => void {
+  syncListeners.add(listener);
+  return () => syncListeners.delete(listener);
 }
 
 /** Keeps the offline copy current while the signed-in app is open. */

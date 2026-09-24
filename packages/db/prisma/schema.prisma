@@ -277,6 +277,7 @@ model User {
   sharedSetlistItems  SetlistItem[]          @relation("SetlistItemSharedBy")
   ownershipRequests   SongOwnershipRequest[]
   contentTransfer     ContentTransfer?
+  offlinePins         OfflinePin[]
 
   // BetterAuth
   sessions Session[]
@@ -1117,6 +1118,33 @@ model Attachment {
 // ============================================================
 // NOTES
 // ============================================================
+
+enum OfflinePinKind {
+  SET
+  SONG
+  SONGBOOK
+}
+
+/// Something a user keeps on their devices to use offline (docs/offline.md,
+/// issue #52): a set or song pinned "Available offline", or a songbook with
+/// "Keep a local copy" on. Stored here, not on the device, so it follows
+/// the user to a new one. `targetId` isn't a foreign key (it points into
+/// one of three tables): a pin whose target is deleted or no longer
+/// visible is skipped by POST /offline/sync, and goes when it's unpinned
+/// or its user is deleted.
+model OfflinePin {
+  id           String         @id @default(cuid())
+  userId       String
+  kind         OfflinePinKind
+  targetId     String
+  /// Download the audio files too (never by default: they're large).
+  includeAudio Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, targetId])
+}
 
 model Note {
   id        String    @id @default(cuid())

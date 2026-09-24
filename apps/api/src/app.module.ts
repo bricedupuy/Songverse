@@ -13,6 +13,7 @@ import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { SongbookCatalogModule } from "./songbook-catalog/songbook-catalog.module";
+import { OfflineModule } from "./offline/offline.module";
 import { SetlistsModule } from "./setlists/setlists.module";
 import { SongbooksModule } from "./songbooks/songbooks.module";
 import { SongVersionsModule } from "./song-versions/song-versions.module";
@@ -41,6 +42,7 @@ import { PublishingModule } from "./publishing/publishing.module";
     ArrangementsModule,
     SongbooksModule,
     SetlistsModule,
+    OfflineModule,
     SongbookCatalogModule,
     TagsModule,
     MusicBrainzModule,

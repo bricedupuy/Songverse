@@ -9,5 +9,6 @@ import { AttachmentsService } from "./attachments.service";
   imports: [ImagesModule, StorageModule, SongVersionsModule],
   controllers: [AttachmentsController],
   providers: [AttachmentsService],
+  exports: [AttachmentsService],
 })
 export class AttachmentsModule {}

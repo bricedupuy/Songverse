@@ -1,4 +1,4 @@
-import type { BulkUploadContentType, BulkUploadFileMatch, SongbookSection, SongVersionSummary } from "@songverse/core";
+import { isNetworkError, keptSongbook, onlineOrKept, type BulkUploadContentType, type BulkUploadFileMatch, type SongbookSection, type SongVersionSummary } from "@songverse/core";
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,12 +10,22 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { NativeSelect } from "#/components/ui/native-select";
 import { ConfirmButton } from "#/components/confirm-button";
+import { OfflinePinButton } from "#/components/offline-pin-button";
+import { deviceStorage } from "#/lib/offline-data";
 
 export const Route = createFileRoute("/_protected/songbooks/$songbookId")({
+  // Offline, the copy kept with "Keep a local copy" (issue #52), read-only.
   loader: async ({ context, params }) => {
-    const songbook = await apiClient.getSongbook(params.songbookId).catch(() => null);
+    const songbook = await onlineOrKept(
+      () =>
+        apiClient.getSongbook(params.songbookId).catch((error: unknown) => {
+          if (isNetworkError(error)) throw error;
+          return null;
+        }),
+      () => keptSongbook(deviceStorage(), params.songbookId),
+    );
     if (!songbook) throw redirect({ to: "/songbooks" });
-    return { session: context.session, teams: context.teams, songbook };
+    return { session: context.session, teams: context.teams, songbook, offline: !!context.offline };
   },
   component: SongbookDetail,
 });
@@ -24,15 +34,16 @@ function SongbookDetail() {
   const { t } = useTranslation();
   const router = useRouter();
   const navigate = useNavigate();
-  const { session, teams, songbook } = Route.useLoaderData();
+  const { session, teams, songbook, offline } = Route.useLoaderData();
 
   const canEdit =
-    session.isGlobalAdmin ||
+    !offline &&
+    (session.isGlobalAdmin ||
     (songbook.ownerScope === "USER"
       ? songbook.ownerUserId === session.userId
       : songbook.ownerScope === "TEAM"
         ? teams.some((team) => team.id === songbook.ownerTeamId && team.currentUserRole === "ADMIN")
-        : false);
+        : false));
   const isNumbered = songbook.kind === "NUMBERED";
 
   const [name, setName] = useState(songbook.name);
@@ -252,6 +263,9 @@ function SongbookDetail() {
             isNumbered ? t("songbooks.kindNumbered") : t("songbooks.kindSimple"),
           ].join(" · ")}
         </p>
+        <div className="mt-2">
+          <OfflinePinButton kind="SONGBOOK" targetId={songbook.id} />
+        </div>
       </div>
 
       <Card>

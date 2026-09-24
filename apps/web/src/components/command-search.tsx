@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
 import { useMode } from "#/lib/mode";
-import { keptSets } from "#/lib/offline-data";
+import { deviceStorage } from "#/lib/offline-data";
 import { formatSetDate, setlistTitle } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 
@@ -124,13 +124,13 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
             versionName: song.versionName,
             artists: artistNames(song.artists),
           })),
-        // Offline: the songs of the sets kept on the device (issue #50).
+        // Offline: the songs kept on the device, on their own or in kept sets (issues #50, #52).
         async () =>
-          searchKeptSongs(await keptSets(), query, SONG_LIMIT).map(({ songVersionId, title, view }) => ({
+          (await searchKeptSongs(deviceStorage(), query, SONG_LIMIT)).map(({ songVersionId, title, versionName, artists }) => ({
             id: songVersionId,
             title,
-            versionName: view.song?.versionName ?? null,
-            artists: null,
+            versionName,
+            artists,
           })),
       )
         .then((found) => current && setSongs(found))

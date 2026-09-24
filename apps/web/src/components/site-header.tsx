@@ -25,6 +25,7 @@ const SECTIONS: { path: string; label: string }[] = [
   { path: "admin", label: "nav.admin" },
   { path: "account", label: "nav.account" },
   { path: "dashboard", label: "nav.dashboard" },
+  { path: "offline", label: "nav.offlineStorage" },
 ];
 const ADMIN_PAGES: Record<string, string> = {
   users: "nav.adminUsers",
@@ -37,6 +38,9 @@ const ADMIN_PAGES: Record<string, string> = {
 /** Names the page's own data gives, whichever page it is. */
 interface PageData {
   version?: { title?: string };
+  // A song's page: online, or kept offline.
+  online?: { version?: { title?: string } };
+  offline?: { title?: string };
   arrangement?: { name?: string };
   catalog?: { name?: string };
   songbook?: { name?: string };
@@ -64,7 +68,7 @@ function useBreadcrumbs(): Crumb[] {
       label = set ? setlistTitle(set, t, i18n.language) : t("breadcrumb.set");
     } else if (section === "songbooks") label = songbooks.find((book) => book.id === id)?.name ?? page.songbook?.name ?? t("breadcrumb.songbook");
     else if (section === "teams") label = teams.find((team) => team.id === id)?.name ?? page.team?.name ?? t("breadcrumb.team");
-    else if (section === "library") label = page.version?.title ?? t("breadcrumb.song");
+    else if (section === "library") label = page.version?.title ?? page.online?.version?.title ?? page.offline?.title ?? t("breadcrumb.song");
     else if (section === "songbook-catalogs") label = page.catalog?.name ?? t("breadcrumb.catalog");
     else if (section === "review") label = page.submission?.song?.title ?? t("breadcrumb.song");
     else label = id;

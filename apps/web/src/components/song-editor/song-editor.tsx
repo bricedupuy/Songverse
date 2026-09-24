@@ -15,6 +15,7 @@ import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router";
 import { FileText, Info, Layers, Link2, MoreHorizontal, Music, PenLine } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { OfflinePinButton } from "#/components/offline-pin-button";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "#/components/ui/dialog";
@@ -405,6 +406,11 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             ) : null}
           </h1>
           <p className="text-sm text-muted-foreground">{subheading}</p>
+          {edit ? (
+            <div className="mt-2">
+              <OfflinePinButton kind="SONG" targetId={edit.version.id} />
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
           {canEdit ? (

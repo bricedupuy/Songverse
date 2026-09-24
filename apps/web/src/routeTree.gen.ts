@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedOfflineRouteImport } from './routes/_protected/offline'
 import { Route as ProtectedReviewRouteImport } from './routes/_protected/review'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as SetInviteTokenRouteImport } from './routes/set-invite.$token'
@@ -74,6 +75,11 @@ const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedOfflineRoute = ProtectedOfflineRouteImport.update({
+  id: '/offline',
+  path: '/offline',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedReviewRoute = ProtectedReviewRouteImport.update({
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof ProtectedAccountRoute
   '/admin': typeof ProtectedAdminRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
+  '/offline': typeof ProtectedOfflineRoute
   '/review': typeof ProtectedReviewRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
@@ -285,6 +292,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof ProtectedAccountRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/offline': typeof ProtectedOfflineRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/_protected/account': typeof ProtectedAccountRoute
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/offline': typeof ProtectedOfflineRoute
   '/_protected/review': typeof ProtectedReviewRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
@@ -364,6 +373,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/dashboard'
+    | '/offline'
     | '/review'
     | '/join/$token'
     | '/set-invite/$token'
@@ -401,6 +411,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/account'
     | '/dashboard'
+    | '/offline'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -439,6 +450,7 @@ export interface FileRouteTypes {
     | '/_protected/account'
     | '/_protected/admin'
     | '/_protected/dashboard'
+    | '/_protected/offline'
     | '/_protected/review'
     | '/join/$token'
     | '/set-invite/$token'
@@ -523,6 +535,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof ProtectedDashboardRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/offline': {
+      id: '/_protected/offline'
+      path: '/offline'
+      fullPath: '/offline'
+      preLoaderRoute: typeof ProtectedOfflineRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/review': {
@@ -785,6 +804,7 @@ interface ProtectedRouteChildren {
   ProtectedAccountRoute: typeof ProtectedAccountRoute
   ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedOfflineRoute: typeof ProtectedOfflineRoute
   ProtectedReviewRoute: typeof ProtectedReviewRouteWithChildren
   ProtectedLibrarySongVersionIdRoute: typeof ProtectedLibrarySongVersionIdRoute
   ProtectedLibraryNewRoute: typeof ProtectedLibraryNewRoute
@@ -811,6 +831,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAccountRoute: ProtectedAccountRoute,
   ProtectedAdminRoute: ProtectedAdminRouteWithChildren,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedOfflineRoute: ProtectedOfflineRoute,
   ProtectedReviewRoute: ProtectedReviewRouteWithChildren,
   ProtectedLibrarySongVersionIdRoute: ProtectedLibrarySongVersionIdRoute,
   ProtectedLibraryNewRoute: ProtectedLibraryNewRoute,

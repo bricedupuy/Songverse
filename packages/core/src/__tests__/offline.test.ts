@@ -1,12 +1,28 @@
 import { describe, expect, it } from "vitest";
 import type { SetlistOfflineCopy, SetlistSongView } from "../api-client/index.js";
 import type { OfflineSyncResponse } from "../api-client/index.js";
-import { allKeptSets, findKeptSong, keepSet, keptSetDetail, keptSetSong, lastOfflineSync, searchKeptSongs, syncKeptSets, type OfflineStorage } from "../offline/index.js";
+import {
+  allKeptSets,
+  findKeptSong,
+  keepSet,
+  keptSetDetail,
+  keptSetSong,
+  keptSongbook,
+  keptSongCopy,
+  lastOfflineSync,
+  offlineViewer,
+  searchKeptSongs,
+  syncKeptFiles,
+  syncKeptSets,
+  wantedFiles,
+  type OfflineStorage,
+  type OfflineStoreKey,
+} from "../offline/index.js";
 
 function memoryStorage(): OfflineStorage {
-  const stores = { sets: new Map<string, unknown>(), meta: new Map<string, unknown>() };
+  const stores: Record<OfflineStoreKey, Map<string, unknown>> = { sets: new Map(), songs: new Map(), songbooks: new Map(), files: new Map(), meta: new Map() };
   return {
-    get: async <T>(store: "sets" | "meta", key: string) => stores[store].get(key) as T | undefined,
+    get: async <T>(store: OfflineStoreKey, key: string) => stores[store].get(key) as T | undefined,
     put: async (store, key, value) => void stores[store].set(key, structuredClone(value)),
     delete: async (store, key) => void stores[store].delete(key),
     keys: async (store) => [...stores[store].keys()],
@@ -14,7 +30,7 @@ function memoryStorage(): OfflineStorage {
 }
 
 const view = (itemId: string, songId: string | null, title = "Song"): SetlistSongView =>
-  ({ item: { id: itemId }, song: songId ? { id: songId, title, versionName: null } : null }) as unknown as SetlistSongView;
+  ({ item: { id: itemId }, song: songId ? { id: songId, title, versionName: null, document: { sections: [] }, suggestedCapo: null } : null }) as unknown as SetlistSongView;
 const copy = (id: string, songs: SetlistSongView[], eventDate: string | null = null, version = "v1"): SetlistOfflineCopy =>
   ({ set: { id, name: `Set ${id}`, eventDate, items: songs.map((s) => ({ id: s.item.id })) }, songs, version }) as unknown as SetlistOfflineCopy;
 
@@ -41,16 +57,17 @@ describe("offline sets", () => {
     const storage = memoryStorage();
     await keepSet(storage, copy("s1", [view("i1", "v1", "Élévation"), view("i2", null)]));
     await keepSet(storage, copy("s2", [view("i3", "v1", "Élévation"), view("i4", "v4", "Other")]));
-    const sets = await allKeptSets(storage);
-    expect(searchKeptSongs(sets, "elev").map((s) => s.songVersionId)).toEqual(["v1"]);
-    expect(searchKeptSongs(sets, "").map((s) => s.title)).toEqual(["Élévation", "Other"]);
-    expect(findKeptSong(sets, "v4")?.view.item.id).toBe("i4");
-    expect(findKeptSong(sets, "missing")).toBeUndefined();
+    expect((await searchKeptSongs(storage, "elev")).map((s) => s.songVersionId)).toEqual(["v1"]);
+    expect((await searchKeptSongs(storage, "")).map((s) => s.title)).toEqual(["Élévation", "Other"]);
+    expect((await findKeptSong(storage, "v4"))?.title).toBe("Other");
+    expect(await findKeptSong(storage, "missing")).toBeUndefined();
   });
 });
 
 describe("syncing kept sets", () => {
   const now = new Date("2026-09-25T10:00:00Z");
+
+  const empty = { songbooks: [], goneSongbooks: [], songs: [], goneSongs: [], pins: [], viewer: { chordNotation: "LETTERS" as const, capoDisplayMode: "SOUNDING" as const } };
 
   it("sends the kept versions; stores what changed or is new, removes what's gone", async () => {
     const storage = memoryStorage();
@@ -59,6 +76,7 @@ describe("syncing kept sets", () => {
     await keepSet(storage, copy("deleted", [view("i3", "v3")], "2026-09-29", "a"));
     let sent: { id: string; version: string }[] = [];
     const response: OfflineSyncResponse = {
+      ...empty,
       days: 14,
       upcoming: ["same", "changed", "new"],
       sets: [
@@ -81,7 +99,56 @@ describe("syncing kept sets", () => {
     await keepSet(storage, copy("yesterday", [], "2026-09-24"));
     await keepSet(storage, copy("old", [], "2026-09-23"));
     await keepSet(storage, copy("undated", []));
-    await syncKeptSets(storage, async () => ({ days: 14, upcoming: [], sets: [], gone: [] }), now);
+    await syncKeptSets(storage, async () => ({ ...empty, days: 14, upcoming: [], sets: [], gone: [] }), now);
     expect((await allKeptSets(storage)).map((k) => k.set.id).sort()).toEqual(["undated", "yesterday"]);
+  });
+});
+
+describe("songs, songbooks and files kept offline", () => {
+  const file = (id: string, type = "PDF") => ({ id, type, songVersionId: "v1", filename: `${id}.pdf`, mimeType: "application/pdf", sizeBytes: 3, createdAt: "" });
+  const songCopy = (id: string, title: string, attachments: ReturnType<typeof file>[] = [], artist = "John Newton") =>
+    ({ song: { id, title, versionName: null, artists: [{ source: artist, userId: null }], documentJson: { sections: [] }, capo: 2 }, attachments, version: "1" }) as never;
+  const base = { days: 14, upcoming: [], sets: [], gone: [], pins: [], viewer: { chordNotation: "SOLFEGE" as const, capoDisplayMode: "FINGERED" as const } };
+
+  it("keeps songs and songbooks, finds songs by artist, removes the gone ones, keeps the viewer's settings", async () => {
+    const storage = memoryStorage();
+    let sent: unknown[] = [];
+    await syncKeptSets(storage, async (...known) => ((sent = known), {
+      ...base,
+      songbooks: [{ id: "b1", version: "1", copy: { songbook: { id: "b1", name: "Hymns", entries: [] }, version: "1" } as never }],
+      goneSongbooks: [],
+      songs: [
+        { id: "v1", version: "1", audio: false, copy: songCopy("v1", "Amazing Grace") },
+        { id: "v2", version: "1", audio: false, copy: songCopy("v2", "Other", [], "Someone else") },
+      ],
+      goneSongs: [],
+    }));
+    expect(sent).toEqual([[], [], []]);
+    expect((await keptSongbook(storage, "b1"))?.name).toBe("Hymns");
+    expect((await searchKeptSongs(storage, "newton")).map((s) => s.songVersionId)).toEqual(["v1"]);
+    expect((await findKeptSong(storage, "v1"))?.capo).toBe(2);
+    expect((await offlineViewer(storage))?.chordNotation).toBe("SOLFEGE");
+
+    await syncKeptSets(storage, async (...known) => ((sent = known), { ...base, songbooks: [], goneSongbooks: ["b1"], songs: [{ id: "v1", version: "1", audio: false }], goneSongs: ["v2"] }));
+    expect(sent[1]).toEqual([{ id: "v1", version: "1" }, { id: "v2", version: "1" }]);
+    expect(await keptSongbook(storage, "b1")).toBeUndefined();
+    expect(await keptSongCopy(storage, "v2")).toBeUndefined();
+    expect((await keptSongCopy(storage, "v1"))?.song.title).toBe("Amazing Grace");
+  });
+
+  it("files: a kept song's, audio only when asked for; unwanted ones go", async () => {
+    const storage = memoryStorage();
+    const files = [file("pdf"), file("mp3", "AUDIO")];
+    await syncKeptSets(storage, async () => ({ ...base, songbooks: [], goneSongbooks: [], songs: [{ id: "v1", version: "1", audio: false, copy: songCopy("v1", "Song", files) }], goneSongs: [] }));
+    expect((await wantedFiles(storage)).map((f) => f.attachment.id)).toEqual(["pdf"]);
+    const downloads: string[] = [];
+    expect(await syncKeptFiles(storage, async (f) => (downloads.push(f.attachment.id), "bytes"))).toEqual({ downloaded: 1, removed: 0 });
+    // Audio asked for later: same version, the flag changes.
+    await syncKeptSets(storage, async () => ({ ...base, songbooks: [], goneSongbooks: [], songs: [{ id: "v1", version: "1", audio: true }], goneSongs: [] }));
+    await syncKeptFiles(storage, async (f) => (downloads.push(f.attachment.id), "bytes"));
+    expect(downloads).toEqual(["pdf", "mp3"]);
+    // The song goes: its files go too.
+    await syncKeptSets(storage, async () => ({ ...base, songbooks: [], goneSongbooks: [], songs: [], goneSongs: ["v1"] }));
+    expect(await syncKeptFiles(storage, async () => "bytes")).toEqual({ downloaded: 0, removed: 2 });
   });
 });

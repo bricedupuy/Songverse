@@ -8,6 +8,7 @@ import {
   Database,
   FileStack,
   HelpCircle,
+  HardDrive,
   KeyRound,
   LayoutDashboard,
   ListMusic,
@@ -117,6 +118,12 @@ export function AppSidebar({
                   <Link to="/dashboard" hash="settings">
                     <KeyRound />
                     {t("nav.account")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/offline">
+                    <HardDrive />
+                    {t("nav.offlineStorage")}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

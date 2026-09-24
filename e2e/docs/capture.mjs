@@ -153,6 +153,8 @@ try {
     await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
     await shoot("songbook", `/songbooks/${songbook.id}`, null, { fullPage: true });
     await shoot("team", `/teams/${team.id}`);
+    // What the device keeps offline, once it has caught up (the set is coming up).
+    await shoot("offline-storage", "/offline", () => page.getByText(/Last caught up|Dernière mise à jour/).waitFor({ timeout: 30_000 }));
     await context.close();
   }
 } finally {

@@ -17,6 +17,7 @@ import { AddSongs } from "./-add-songs";
 import { SetSongList } from "./-set-song-list";
 import { ShareCard } from "./-share-card";
 import { NativeSelect } from "#/components/ui/native-select";
+import { OfflinePinButton } from "#/components/offline-pin-button";
 
 export const Route = createFileRoute("/_protected/sets/$setlistId")({
   // Null when the set doesn't exist or isn't visible to this user (the API
@@ -113,6 +114,7 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
           <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <OfflinePinButton kind="SET" targetId={set.id} />
           {set.items.length > 0 ? (
             <Button asChild onClick={() => setMode("live")}>
               <Link to="/sets/$setlistId/live/$itemId" params={{ setlistId: set.id, itemId: set.items[0]!.id }}>

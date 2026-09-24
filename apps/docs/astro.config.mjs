@@ -49,6 +49,7 @@ export default defineConfig({
             { slug: "sets" },
             { slug: "songbooks" },
             { slug: "teams" },
+            { slug: "offline" },
           ],
         },
         { slug: "admin" },

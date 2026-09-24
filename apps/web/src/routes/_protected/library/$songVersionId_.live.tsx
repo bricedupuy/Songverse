@@ -1,4 +1,4 @@
-import { findKeptSong, isNetworkError, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type SongDocumentV2 } from "@songverse/core";
+import { findKeptSong, isNetworkError, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,7 +6,7 @@ import { LiveView } from "#/components/live-view";
 import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
 import { setMode } from "#/lib/mode";
-import { keptSets } from "#/lib/offline-data";
+import { deviceStorage } from "#/lib/offline-data";
 
 /** What playing a song on its own needs: from the library online, from a kept set offline. */
 export interface LoneSong {
@@ -22,8 +22,8 @@ export interface LoneSong {
 /**
  * A song on its own, full screen, in Live mode (issue #48): one the leader
  * calls that isn't in the set, pulled up with the search. `back` is where
- * it was pulled up from, which the × returns to. Offline, any song in a
- * set kept on the device (issue #50).
+ * it was pulled up from, which the × returns to. Offline, any song kept on
+ * the device, on its own or in a kept set (issues #50, #52).
  */
 export const Route = createFileRoute("/_protected/library/$songVersionId_/live")({
   staticData: { fullScreen: true },
@@ -52,17 +52,17 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
         };
       },
       async () => {
-        const kept = findKeptSong(await keptSets(), params.songVersionId);
-        const song = kept?.view.song;
-        if (!kept || !song) return undefined;
+        const storage = deviceStorage();
+        const [song, viewer] = await Promise.all([findKeptSong(storage, params.songVersionId), offlineViewer(storage)]);
+        if (!song) return undefined;
         return {
-          id: song.id,
+          id: song.songVersionId,
           title: song.title,
-          artists: null,
+          artists: song.artists,
           document: song.document,
-          capo: song.suggestedCapo,
-          notation: kept.view.view.chordNotation,
-          capoDisplay: kept.view.view.capoDisplayMode,
+          capo: song.capo,
+          notation: viewer?.chordNotation ?? "LETTERS",
+          capoDisplay: viewer?.capoDisplayMode ?? "SOUNDING",
         };
       },
     ),

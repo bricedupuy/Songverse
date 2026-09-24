@@ -181,15 +181,47 @@ export interface SetlistOfflineCopy {
   version: string;
 }
 
-/** POST /offline/sync (issue #51): what a device should keep offline now. */
+/** A song to keep offline (issue #52): its details, its files' list, and a version. */
+export interface SongOfflineCopy {
+  song: SongVersionDetail;
+  attachments: Attachment[];
+  version: string;
+}
+
+/** A songbook to keep offline (issue #52): its entries, and a version. */
+export interface SongbookOfflineCopy {
+  songbook: SongbookDetail;
+  version: string;
+}
+
+export type OfflinePinKind = "SET" | "SONG" | "SONGBOOK";
+
+/** Something the user keeps offline on every device ("Available offline", "Keep a local copy"). */
+export interface OfflinePin {
+  kind: OfflinePinKind;
+  targetId: string;
+  includeAudio: boolean;
+  createdAt: string;
+}
+
+/** POST /offline/sync (issues #51, #52): what a device should keep offline now. */
 export interface OfflineSyncResponse {
   days: number;
   /** The sets dated from yesterday to `days` ahead. */
   upcoming: string[];
-  /** Upcoming and known sets still visible; `copy` only when the device's version is out of date. */
+  /** Upcoming, pinned and known sets still visible; `copy` only when the device's version is out of date. */
   sets: { id: string; version: string; copy?: SetlistOfflineCopy }[];
   /** Known sets deleted, or no longer visible: remove them. */
   gone: string[];
+  /** Pinned songbooks. */
+  songbooks: { id: string; version: string; copy?: SongbookOfflineCopy }[];
+  goneSongbooks: string[];
+  /** The user's own songs, pinned ones, and those in kept sets and songbooks; `audio`: download their audio files too. */
+  songs: { id: string; version: string; audio: boolean; copy?: SongOfflineCopy }[];
+  goneSongs: string[];
+  pins: OfflinePin[];
+  /** The user's chord settings, for songs shown on their own. */
+  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue };
 }
 
 /** A player's own way of reading charts: this chart's preferences, and their settings for every chart. */
@@ -1089,8 +1121,18 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "DELETE" }),
     getSetlistSong: (setlistId: string, itemId: string) => request<SetlistSongView>(`/setlists/${setlistId}/items/${itemId}/song`),
     getSetlistOffline: (setlistId: string) => request<SetlistOfflineCopy>(`/setlists/${setlistId}/offline`),
-    syncOffline: (body: { days?: number; known: { id: string; version: string }[] }) =>
-      request<OfflineSyncResponse>("/offline/sync", { method: "POST", body: JSON.stringify(body) }),
+    syncOffline: (body: {
+      days?: number;
+      known: { id: string; version: string }[];
+      knownSongs?: { id: string; version: string }[];
+      knownSongbooks?: { id: string; version: string }[];
+    }) => request<OfflineSyncResponse>("/offline/sync", { method: "POST", body: JSON.stringify(body) }),
+    listOfflinePins: () => request<OfflinePin[]>("/offline/pins"),
+    pinOffline: (kind: OfflinePinKind, targetId: string, includeAudio = false) =>
+      request<OfflinePin>("/offline/pins", { method: "PUT", body: JSON.stringify({ kind, targetId, includeAudio }) }),
+    unpinOffline: (kind: OfflinePinKind, targetId: string) => request<void>(`/offline/pins/${kind}/${targetId}`, { method: "DELETE" }),
+    getOfflineSongs: (ids: string[]) => request<SongOfflineCopy[]>("/offline/songs", { method: "POST", body: JSON.stringify({ ids }) }),
+    getSongbookOffline: (songbookId: string) => request<SongbookOfflineCopy>(`/offline/songbooks/${songbookId}`),
     /** An empty note deletes it. */
     setSetlistNote: (setlistId: string, itemId: string, content: string) =>
       request<{ myNote: string }>(`/setlists/${setlistId}/items/${itemId}/my-note`, { method: "PUT", body: JSON.stringify({ content }) }),
