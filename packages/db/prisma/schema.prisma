@@ -610,10 +610,16 @@ model SongVersion {
   reference String? // e.g. the scripture a song draws on
   notes     String?
 
-  // CCLI kept as a denormalized indexed column for fast worship-context filtering.
-  // The authoritative record is in SongIdentifier with type = CCLI.
-  // Keep these in sync at the application layer.
+  // The song's CCLI number: this column is its only record (no
+  // SongIdentifier row is kept for it), indexed for exact lookups.
   ccli String?
+
+  // What library search matches, "contains" and ignoring case: the title,
+  // subtitle, version name and performers' names in one column, so a
+  // trigram index can serve it. Maintained by database triggers on
+  // SongVersion and VersionContributor (migration 20260929090000) - never
+  // written by the app.
+  searchText String @default("")
 
   // Canonical content
   // SongDocument v2 (docs/song-document-v2.md): the music only. Rows saved
@@ -667,6 +673,10 @@ model SongVersion {
   @@index([ownerScope, publicationState])
   @@index([language])
   @@index([ccli])
+  // Trigram (pg_trgm) indexes for "contains"/"ignoring case" searches.
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([alternateTitle(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 // ============================================================
@@ -697,6 +707,8 @@ model VersionContributor {
   @@unique([songVersionId, userId])
   @@index([songVersionId])
   @@index([userId])
+  // Credit autocomplete ("contains", ignoring case).
+  @@index([source(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 // ============================================================

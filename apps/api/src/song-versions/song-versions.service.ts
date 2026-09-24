@@ -385,8 +385,8 @@ export class SongVersionsService {
   /**
    * One page of the songs the user can see, searched and filtered, with
    * the total across all pages. `q` matches the title, subtitle, version
-   * name or an artist (anywhere in them, ignoring case), or a CCLI number
-   * exactly.
+   * name or an artist (anywhere in them, ignoring case - through the
+   * trigram-indexed searchText column), or a CCLI number exactly.
    */
   async findVisibleToUser(user: AuthenticatedUser, query: ListSongVersionsQueryDto = {}): Promise<SongPage> {
     const page = query.page ?? 1;
@@ -398,17 +398,8 @@ export class SongVersionsService {
         ...(q
           ? [
               {
-                OR: [
-                  { title: { contains: q, mode: "insensitive" as const } },
-                  { alternateTitle: { contains: q, mode: "insensitive" as const } },
-                  { versionName: { contains: q, mode: "insensitive" as const } },
-                  { ccli: q },
-                  {
-                    contributors: {
-                      some: { roles: { has: "PERFORMER" as ContributorRole }, source: { contains: q, mode: "insensitive" as const } },
-                    },
-                  },
-                ],
+                // searchText is the title, subtitle, version name and performers (kept by the database; see the schema).
+                OR: [{ searchText: { contains: q, mode: "insensitive" as const } }, { ccli: q }],
               },
             ]
           : []),
@@ -464,20 +455,34 @@ export class SongVersionsService {
    */
   async searchCredits(user: AuthenticatedUser, query: string): Promise<CreditSuggestion[]> {
     const q = query.trim();
-    const rows = await this.prisma.client.versionContributor.findMany({
-      where: {
-        source: q ? { contains: q, mode: "insensitive" } : { not: null },
-        songVersion: await this.access.songsVisibleTo(user),
-      },
-      select: { source: true, roles: true },
-      take: 1000,
-    });
+    const songVersion = await this.access.songsVisibleTo(user);
+    // Counted in the database, per name and roles: the most credited names
+    // containing the query, and separately those starting with it (so a
+    // rarer name that starts with it isn't pushed out by commoner ones).
+    const credited = (source: Prisma.StringNullableFilter<"VersionContributor">) =>
+      this.prisma.client.versionContributor.groupBy({
+        by: ["source", "roles"],
+        where: { source, songVersion },
+        _count: { _all: true },
+        orderBy: { _count: { source: "desc" } },
+        take: 50,
+      });
+    const groups = (
+      await Promise.all([
+        q ? credited({ startsWith: q, mode: "insensitive" }) : [],
+        credited(q ? { contains: q, mode: "insensitive" } : { not: null }),
+      ])
+    ).flat();
     const byName = new Map<string, CreditSuggestion>();
-    for (const row of rows) {
-      const name = row.source!.trim();
+    const counted = new Set<string>();
+    for (const group of groups) {
+      const name = group.source!.trim();
+      const key = `${group.source}\u0000${group.roles.join()}`;
+      if (counted.has(key)) continue;
+      counted.add(key);
       const entry = byName.get(name.toLowerCase()) ?? { name, roles: [], songCount: 0 };
-      entry.songCount++;
-      for (const role of row.roles) if (!entry.roles.includes(role)) entry.roles.push(role);
+      entry.songCount += group._count._all;
+      for (const role of group.roles) if (!entry.roles.includes(role)) entry.roles.push(role);
       byName.set(name.toLowerCase(), entry);
     }
     const lower = q.toLowerCase();
