@@ -43,6 +43,9 @@ async function loadSession(): Promise<AppSession | null> {
   const response = await fetch(`${getApiUrl()}/api/auth/get-session`, {
     headers: cookie ? { cookie } : undefined,
   });
+  // The auth server failing isn't the same as being signed out: signed out
+  // wipes the device's offline copy (lib/app-data.ts), a failure mustn't.
+  if (response.status >= 500) throw new Error(`The auth server failed (HTTP ${response.status})`);
   if (!response.ok) return null;
 
   const data = (await response.json()) as { user: BetterAuthUser } | null;

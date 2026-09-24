@@ -13,5 +13,5 @@ export default defineConfig({
   // protection is redundant here — allow every host rather than hardcode
   // one domain and hit this again for the next subdomain we add.
   preview: { allowedHosts: true },
-  plugins: [tailwindcss(), tanstackStart(), viteReact()],
+  plugins: [tailwindcss(), tanstackStart({ spa: { enabled: true } }), viteReact()],
 });

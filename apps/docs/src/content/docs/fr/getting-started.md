@@ -48,6 +48,14 @@ Le sélecteur en haut à droite de chaque page change le mode de SongVerse. Chaq
 
 SongVerse retient le mode sur chaque appareil : la tablette sur votre pupitre peut rester en Live pendant que votre ordinateur reste en Édition.
 
+## Hors ligne
+
+Une fois SongVerse utilisé sur un appareil, il s'y ouvre même sans réseau (sur une scène sans Wi-Fi, par exemple). Vous restez connecté, et un bandeau indique que vous êtes hors ligne et quand l'appareil s'est mis à jour pour la dernière fois. Les modifications ne peuvent être enregistrées qu'une fois de retour en ligne.
+
+Pour l'instant, seuls l'application et votre barre latérale sont conservés ; une page qui n'est pas enregistrée sur l'appareil affiche **Indisponible hors ligne**. Les listes et leurs chants suivront.
+
+Ce qui est conservé sur un appareil est lisible par quiconque l'utilise tant qu'il est déverrouillé. **Se déconnecter** l'efface.
+
 ## Langue
 
 SongVerse existe en français et en anglais. Choisissez la vôtre dans **Paramètres du compte** > **Langue**. Cette documentation existe aussi dans les deux langues : utilisez le menu des langues en haut de chaque page.

@@ -70,6 +70,31 @@ What already helps:
 - **Updates:** a new version installs in the background and applies on the
   next launch, never in the middle of a performance.
 
+How it's built (#49):
+
+- **The shell** is TanStack Start's SPA-mode shell (`spa` in
+  `apps/web/vite.config.ts`): the root document with no page in it,
+  prerendered at build time to `dist/client/_shell.html`. Server-drawn
+  pages are unaffected. `server.mjs` serves it at `/_shell`, with this
+  server's `API_URL` and the real stylesheet name put in (both were fixed
+  at build time).
+- **The service worker** is `apps/web/public/sw.js`. `server.mjs` serves
+  it with the build's ID and file list (`/assets/*`, the web app manifest,
+  the icon) filled in, so a deploy is a new service worker. It keeps them
+  all on install. A page request goes to the network first; if there's no
+  answer in 6 seconds, or the server fails (5xx), it gets the shell
+  instead. In development the placeholders stay and it does nothing.
+- **The session:** once in the browser, the signed-in layout keeps the
+  session and sidebar lists (`keepAppDataOffline`). `loadAppData()` falls
+  back to them when a request fails for want of a network, or doesn't
+  answer in 8 seconds. It then marks the data `offline`, which shows the
+  banner. The server saying there's no session deletes the copy, as do the
+  sign-in page and **Sign out**. An auth server error (5xx) is not "signed
+  out" (`server-auth.ts`), so it never deletes the copy.
+- **A page with nothing kept** fails its loader with a network error. The
+  router's default error component (`components/route-error.tsx`) says
+  "Not available offline".
+
 ### The data (IndexedDB)
 
 One IndexedDB database per signed-in user:
@@ -246,7 +271,11 @@ what a Yjs model would snapshot to.
 
 ## Testing
 
-- Playwright can take the browser offline (`context.setOffline(true)`).
+- Playwright can take the browser offline (`context.setOffline(true)`),
+  but that doesn't reach a service worker's own requests. With
+  `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1` set before Playwright
+  loads, `context.route()` does, so the suites also abort every request
+  (see `e2e/web/offline.test.mjs`).
 - An e2e suite would:
   1. mark a set available offline, go offline, reload, and check that the
      set, a chart and a PDF open;

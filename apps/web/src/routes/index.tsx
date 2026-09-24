@@ -1,14 +1,18 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Music2 } from "lucide-react";
+import { useEffect } from "react";
 import { AuthCard } from "#/components/auth-card";
 import { LocaleProvider } from "#/components/locale-provider";
 import { apiClient } from "#/lib/api-client";
-import { getSession, getVisitorLocale } from "#/lib/server-auth";
+import { loadAppData } from "#/lib/app-data";
+import { forgetOffline } from "#/lib/offline-db";
+import { getVisitorLocale } from "#/lib/server-auth";
 import { loadLocale } from "#/lib/i18n";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
-    const session = await getSession();
+    // Through the app data, which offline falls back to the session kept on the device.
+    const session = (await loadAppData())?.session;
     if (session) {
       throw redirect({ to: "/library" });
     }
@@ -20,6 +24,8 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const { hasGoogleAuth, locale } = Route.useRouteContext();
+  // Signed out: nothing of the last user's stays on the device (issue #49).
+  useEffect(() => void forgetOffline(), []);
   return (
     <LocaleProvider locale={locale}>
       <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">

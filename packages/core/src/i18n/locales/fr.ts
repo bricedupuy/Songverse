@@ -820,6 +820,14 @@ const fr: typeof en = {
     showingShapes: "accords affichés comme les formes à jouer",
     showingSounding: "accords affichés tels qu'ils sonnent",
   },
+  offline: {
+    banner: "Vous êtes hors ligne. Voici ce qui a été enregistré sur cet appareil {{when}} ; les modifications ne pourront être enregistrées qu'une fois de retour en ligne.",
+    badge: "Hors ligne",
+    notAvailableTitle: "Indisponible hors ligne",
+    notAvailable: "Cette page n'est pas enregistrée sur cet appareil. Elle s'ouvrira quand vous serez de retour en ligne.",
+    errorTitle: "Un problème est survenu",
+    retry: "Réessayer",
+  },
   search: {
     open: "Rechercher…",
     label: "Rechercher des chants, listes, recueils et équipes",

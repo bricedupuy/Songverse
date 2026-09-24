@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { CommandSearch } from "#/components/command-search";
 import { ModeSwitch } from "#/components/mode-switch";
+import { OfflineBanner } from "#/components/offline-banner";
 import { SongChart } from "#/components/song-chart";
 
 const TEXT_SIZE_KEY = "songverse.liveTextSize";
@@ -164,6 +165,7 @@ export function LiveView({ song }: { song: LiveSong }) {
             {details.join(" · ")}
           </p>
         ) : null}
+        <OfflineBanner compact />
         <CommandSearch />
         {fullScreen.available ? (
           <span className="hidden sm:contents">

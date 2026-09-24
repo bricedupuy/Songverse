@@ -8,6 +8,7 @@
 // caches Vite's content-hashed /assets/* files forever (safe, since a new
 // build gets new hashes) and defers everything else to the built SSR
 // handler.
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { createServerAdapter } from "@whatwg-node/server";
 import { readFile, readdir, stat } from "node:fs/promises";
@@ -82,6 +83,39 @@ async function tryServeStatic(pathname) {
   return new Response(body, { headers });
 }
 
+// Offline (issue #49): the app shell - the page TanStack Start prerenders
+// at build time (spa mode in vite.config.ts) to boot the app in the browser
+// without the server - and the service worker that keeps it and the app's
+// code. Both are filled in here, for this server's environment and build.
+const shellHtml = await readFile(join(clientDir, "_shell.html"), "utf8").catch(() => null);
+// The API URL is read at runtime (see src/lib/public-env.ts), but the shell
+// was drawn at build time: put this server's in.
+const publicEnvScript = `window.__PUBLIC_ENV__=${JSON.stringify({ apiUrl: process.env.API_URL ?? "http://localhost:3001" })};`;
+const shell =
+  shellHtml &&
+  shellHtml
+    .replace(/window\.__PUBLIC_ENV__=\{[^<]*?\};/, publicEnvScript)
+    .replace(staleAppCssPattern, actualAppCssHref ?? "$&");
+// Everything the app needs offline: its content-hashed code, and the web app manifest.
+const precache = [
+  ...(await readdir(join(clientDir, "assets")).catch(() => [])).sort().map((file) => `/assets/${file}`),
+  "/manifest.webmanifest",
+  "/icon.svg",
+];
+// Changes with every build, so browsers install the new service worker.
+const build = createHash("sha256").update(precache.join("\n")).update(shell ?? "").digest("hex").slice(0, 16);
+const serviceWorker = await readFile(join(clientDir, "sw.js"), "utf8")
+  .then((source) => source.replace('"__SONGVERSE_BUILD__"', JSON.stringify(build)).replace('["__SONGVERSE_PRECACHE__"]', JSON.stringify(precache)))
+  .catch(() => null);
+
+function offlineResponse(pathname) {
+  // Never cached by the browser itself: the service worker decides when a new one applies.
+  const headers = { "Cache-Control": "no-cache" };
+  if (pathname === "/_shell" && shell) return new Response(shell, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+  if (pathname === "/sw.js" && serviceWorker) return new Response(serviceWorker, { headers: { ...headers, "Content-Type": "text/javascript" } });
+  return null;
+}
+
 const { default: appHandler } = await import("./dist/server/server.js");
 
 const adapter = createServerAdapter(async (request) => {
@@ -90,6 +124,8 @@ const adapter = createServerAdapter(async (request) => {
 
   if (request.method === "GET" || request.method === "HEAD") {
     const { pathname } = new URL(request.url);
+    const offline = offlineResponse(pathname);
+    if (offline) return offline;
     const staticResponse = await tryServeStatic(decodeURIComponent(pathname));
     if (staticResponse) return staticResponse;
   }

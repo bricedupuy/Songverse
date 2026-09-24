@@ -48,6 +48,14 @@ Edit and Practice follow your device's light or dark setting. The moon button ne
 
 SongVerse remembers the mode on each device, so the tablet on your music stand can stay Live while your computer stays in Edit.
 
+## Working offline
+
+Once you've used SongVerse on a device, it opens there even with no network (on stage with no Wi-Fi, say). You stay signed in, and a banner says you're offline and when the device last caught up. Changes can't be saved until you're back online.
+
+For now, only the app itself and your sidebar are kept; a page that isn't saved on the device says **Not available offline**. Sets and their songs are coming next.
+
+What's kept on a device is readable by anyone using it while it's unlocked. **Sign out** deletes it.
+
 ## Language
 
 SongVerse is in English and French. Pick yours under **Account settings** > **Language**. These docs are in both languages too: use the language menu at the top of any page.

@@ -817,6 +817,14 @@ const en = {
     showingShapes: "chords shown as the shapes to play",
     showingSounding: "chords shown as they sound",
   },
+  offline: {
+    banner: "You're offline. Showing what was saved on this device {{when}}; changes can't be saved until you're back online.",
+    badge: "Offline",
+    notAvailableTitle: "Not available offline",
+    notAvailable: "This page isn't saved on this device. It'll open when you're back online.",
+    errorTitle: "Something went wrong",
+    retry: "Try again",
+  },
   search: {
     open: "Search…",
     label: "Search songs, sets, songbooks and teams",

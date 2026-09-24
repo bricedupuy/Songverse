@@ -24,6 +24,7 @@ import type { AppSession } from "#/lib/server-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { docsUrl } from "#/lib/docs";
+import { forgetOffline } from "#/lib/offline-db";
 import { setlistTitle } from "#/lib/setlists";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import {
@@ -128,7 +129,7 @@ export function AppSidebar({
                 <DropdownMenuItem
                   variant="destructive"
                   onSelect={() => {
-                    void authClient.signOut().then(() => {
+                    void Promise.all([authClient.signOut(), forgetOffline()]).then(() => {
                       window.location.href = "/";
                     });
                   }}
