@@ -52,7 +52,9 @@ SongVerse remembers the mode on each device, so the tablet on your music stand c
 
 Once you've used SongVerse on a device, it opens there even with no network (on stage with no Wi-Fi, say). You stay signed in, and a banner says you're offline and when the device last caught up. Changes can't be saved until you're back online.
 
-For now, only the app itself and your sidebar are kept; a page that isn't saved on the device says **Not available offline**. Sets and their songs are coming next.
+**Every set you open while online is kept on the device**, with its songs, and brought up to date each time you open it again. Offline, the set opens read-only, its songs open with their chords, and it plays in **Live** from start to finish. The search finds the songs of kept sets too, so a song the leader calls can still come up full screen, as long as it's in one of them. Anything else says **Not available offline**.
+
+So before a gig, open the set once while you still have a connection.
 
 What's kept on a device is readable by anyone using it while it's unlocked. **Sign out** deletes it.
 

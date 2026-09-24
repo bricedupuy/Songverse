@@ -52,7 +52,9 @@ SongVerse retient le mode sur chaque appareil : la tablette sur votre pupitre pe
 
 Une fois SongVerse utilisé sur un appareil, il s'y ouvre même sans réseau (sur une scène sans Wi-Fi, par exemple). Vous restez connecté, et un bandeau indique que vous êtes hors ligne et quand l'appareil s'est mis à jour pour la dernière fois. Les modifications ne peuvent être enregistrées qu'une fois de retour en ligne.
 
-Pour l'instant, seuls l'application et votre barre latérale sont conservés ; une page qui n'est pas enregistrée sur l'appareil affiche **Indisponible hors ligne**. Les listes et leurs chants suivront.
+**Chaque liste ouverte en ligne est conservée sur l'appareil**, avec ses chants, et mise à jour chaque fois que vous la rouvrez. Hors ligne, la liste s'ouvre en lecture seule, ses chants s'ouvrent avec leurs accords, et elle se joue en **Live** du début à la fin. La recherche trouve aussi les chants des listes conservées : un chant lancé par le leader peut toujours s'afficher en plein écran, s'il fait partie de l'une d'elles. Le reste affiche **Indisponible hors ligne**.
+
+Avant un concert, ouvrez donc la liste une fois tant que vous avez une connexion.
 
 Ce qui est conservé sur un appareil est lisible par quiconque l'utilise tant qu'il est déverrouillé. **Se déconnecter** l'efface.
 

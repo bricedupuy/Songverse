@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, UnauthorizedException } from "@nestjs/common";
-import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import {
@@ -106,6 +106,21 @@ export class SetlistsController {
     @Param("itemId") itemId: string,
   ) {
     return this.setlists.removeItem(requireUser(user), setlistId, itemId);
+  }
+
+  /**
+   * The set and every song in it as the song view below gives it, in one
+   * request: what a device keeps to play the set offline (issue #50,
+   * docs/offline.md). The mobile app uses it too.
+   */
+  @Get(":setlistId/offline")
+  @ApiOperation({
+    summary: "A set to keep offline",
+    description:
+      "The set (as GET /setlists/:id returns it) and, for every item, its song view (as GET /setlists/:id/items/:itemId/song returns it): arrangement, the set's key, the viewer's chart preferences and notes. Only what the viewer can already read.",
+  })
+  offlineCopy(@CurrentUser() user: AuthenticatedUser | undefined, @Param("setlistId") setlistId: string) {
+    return this.setlists.offlineCopy(requireUser(user), setlistId);
   }
 
   /** One song of the set, readable by anyone who can open the set (guests included), with the viewer's private note. */

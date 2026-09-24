@@ -1,4 +1,4 @@
-import type { SongVersionSummary } from "@songverse/core";
+import { searchKeptSongs } from "@songverse/core";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
 import { BookOpen, ListMusic, Music, Search, Users, type LucideIcon } from "lucide-react";
@@ -7,10 +7,19 @@ import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
 import { useMode } from "#/lib/mode";
+import { keptSets, onlineOrKept } from "#/lib/offline-data";
 import { formatSetDate, setlistTitle } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 
 const SONG_LIMIT = 8;
+
+/** A song found: by the library's search online, among the kept sets offline. */
+interface FoundSong {
+  id: string;
+  title: string;
+  versionName: string | null;
+  artists: string | null;
+}
 const OTHER_LIMIT = 5;
 const DEBOUNCE_MS = 200;
 
@@ -91,7 +100,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   const { mode } = useMode();
   const { setlists, songbooks, teams } = useRouteContext({ from: "/_protected" });
   const [query, setQuery] = useState("");
-  const [songs, setSongs] = useState<SongVersionSummary[]>([]);
+  const [songs, setSongs] = useState<FoundSong[]>([]);
   const [searching, setSearching] = useState(false);
   const [active, setActive] = useState(0);
   const list = useRef<HTMLDivElement>(null);
@@ -107,9 +116,24 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
     setSearching(true);
     let current = true;
     const timer = setTimeout(() => {
-      apiClient
-        .listSongVersions({ q: query.trim(), pageSize: SONG_LIMIT, sort: "title" })
-        .then((page) => current && setSongs(page.items))
+      onlineOrKept<FoundSong[]>(
+        async () =>
+          (await apiClient.listSongVersions({ q: query.trim(), pageSize: SONG_LIMIT, sort: "title" })).items.map((song) => ({
+            id: song.id,
+            title: song.title,
+            versionName: song.versionName,
+            artists: artistNames(song.artists),
+          })),
+        // Offline: the songs of the sets kept on the device (issue #50).
+        async () =>
+          searchKeptSongs(await keptSets(), query, SONG_LIMIT).map(({ songVersionId, title, view }) => ({
+            id: songVersionId,
+            title,
+            versionName: view.song?.versionName ?? null,
+            artists: null,
+          })),
+      )
+        .then((found) => current && setSongs(found))
         .catch(() => current && setSongs([]))
         .finally(() => current && setSearching(false));
     }, DEBOUNCE_MS);
@@ -137,7 +161,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         kind: "songs" as const,
         id: song.id,
         label: song.versionName ? `${song.title} — ${song.versionName}` : song.title,
-        detail: artistNames(song.artists),
+        detail: song.artists,
         open: go(() => void openSong(song.id)),
       })),
       ...sortSets(setlists, q)

@@ -173,6 +173,12 @@ export interface SetlistSongView {
   myNote: string;
 }
 
+/** A set to keep offline (GET /setlists/:id/offline): the set, and each of its songs as the song view gives it. */
+export interface SetlistOfflineCopy {
+  set: SetlistDetail;
+  songs: SetlistSongView[];
+}
+
 /** A player's own way of reading charts: this chart's preferences, and their settings for every chart. */
 export interface ChartViewSettings {
   preferences: ChartPreferences | null;
@@ -1069,6 +1075,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     removeSetlistItem: (setlistId: string, itemId: string) =>
       request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "DELETE" }),
     getSetlistSong: (setlistId: string, itemId: string) => request<SetlistSongView>(`/setlists/${setlistId}/items/${itemId}/song`),
+    getSetlistOffline: (setlistId: string) => request<SetlistOfflineCopy>(`/setlists/${setlistId}/offline`),
     /** An empty note deletes it. */
     setSetlistNote: (setlistId: string, itemId: string, content: string) =>
       request<{ myNote: string }>(`/setlists/${setlistId}/items/${itemId}/my-note`, { method: "PUT", body: JSON.stringify({ content }) }),

@@ -417,6 +417,15 @@ export class SetlistsService {
     };
   }
 
+  /** The set and each of its songs' views, to keep offline (issue #50). */
+  async offlineCopy(user: AuthenticatedUser, setlistId: string) {
+    const set = await this.findOne(user, setlistId);
+    const songs = [];
+    // One at a time: a set is a handful of songs, and each view checks access itself.
+    for (const item of set.items) songs.push(await this.songView(user, setlistId, item.id));
+    return { set, songs };
+  }
+
   /** The viewer's own chart preferences for one song of the set, as the set plays it (guests too). */
   async setMyChartPreferences(user: AuthenticatedUser, setlistId: string, itemId: string, preferences: unknown) {
     await this.sets.findViewable(user, setlistId);

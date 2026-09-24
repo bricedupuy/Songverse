@@ -1,4 +1,4 @@
-import { ApiError, type SetlistSongView } from "@songverse/core";
+import { ApiError, keptSetSong, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,6 +6,7 @@ import { LiveView, type LiveSong } from "#/components/live-view";
 import { renderPlayerChart } from "#/components/player-chart";
 import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
+import { deviceStorage, onlineOrKept, useKeepSet } from "#/lib/offline-data";
 import { setMode } from "#/lib/mode";
 import { setlistTitle } from "#/lib/setlists";
 
@@ -13,17 +14,24 @@ import { setlistTitle } from "#/lib/setlists";
 export const Route = createFileRoute("/_protected/sets/$setlistId_/live/$itemId")({
   staticData: { fullScreen: true },
   // Null when the set or song doesn't exist or isn't visible to this user.
+  // Offline, from the set kept on the device (issue #50).
   loader: ({ params }) =>
-    apiClient.getSetlistSong(params.setlistId, params.itemId).catch((error: unknown) => {
-      if (error instanceof ApiError && error.status === 404) return null;
-      throw error;
-    }),
+    onlineOrKept(
+      () =>
+        apiClient.getSetlistSong(params.setlistId, params.itemId).catch((error: unknown) => {
+          if (error instanceof ApiError && error.status === 404) return null;
+          throw error;
+        }),
+      () => keptSetSong(deviceStorage(), params.setlistId, params.itemId),
+    ),
   component: LiveRoute,
 });
 
 function LiveRoute() {
   const { t } = useTranslation();
   const view = Route.useLoaderData();
+  // Kept on the device as it's opened, to play offline (issue #50).
+  useKeepSet(view?.set.id);
 
   // Opened from a link, it's Live mode from here on.
   useEffect(() => setMode("live"), []);

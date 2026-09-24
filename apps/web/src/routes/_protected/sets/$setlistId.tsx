@@ -1,4 +1,4 @@
-import { ApiError, type SetlistDetail, type SetlistItem, type TeamSummary } from "@songverse/core";
+import { ApiError, keptSetDetail, type SetlistDetail, type SetlistItem, type TeamSummary } from "@songverse/core";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Mic } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { apiClient } from "#/lib/api-client";
+import { deviceStorage, onlineOrKept, useKeepSet } from "#/lib/offline-data";
 import { setMode } from "#/lib/mode";
 import { formatSetDate, setOwnerLabel, setlistTitle } from "#/lib/setlists";
 import { AddSongs } from "./-add-songs";
@@ -20,17 +21,24 @@ import { NativeSelect } from "#/components/ui/native-select";
 export const Route = createFileRoute("/_protected/sets/$setlistId")({
   // Null when the set doesn't exist or isn't visible to this user (the API
   // doesn't tell the two apart).
+  // Offline, the copy kept on the device (issue #50).
   loader: ({ params }) =>
-    apiClient.getSetlist(params.setlistId).catch((error: unknown) => {
-      if (error instanceof ApiError && error.status === 404) return null;
-      throw error;
-    }),
+    onlineOrKept(
+      () =>
+        apiClient.getSetlist(params.setlistId).catch((error: unknown) => {
+          if (error instanceof ApiError && error.status === 404) return null;
+          throw error;
+        }),
+      () => keptSetDetail(deviceStorage(), params.setlistId),
+    ),
   component: SetRoute,
 });
 
 function SetRoute() {
   const { t } = useTranslation();
   const loaded = Route.useLoaderData();
+  const { offline } = Route.useRouteContext();
+  useKeepSet(loaded?.id);
   if (!loaded) {
     return (
       <div className="flex flex-col items-start gap-4">
@@ -42,7 +50,8 @@ function SetRoute() {
       </div>
     );
   }
-  return <SetPage loaded={loaded} />;
+  // Offline it's read-only: nothing could be saved.
+  return <SetPage loaded={offline ? { ...loaded, canEdit: false } : loaded} />;
 }
 
 function SetPage({ loaded }: { loaded: SetlistDetail }) {

@@ -9,7 +9,7 @@
 const USER_KEY = "songverse.offline.user";
 const DB_PREFIX = "songverse-offline-";
 const VERSION = 1;
-/** The stores the design plans for; step 1 (#49) uses `session`. */
+/** The stores the design plans for; #49 uses `session`, #50 `sets`. */
 export const OFFLINE_STORES = ["session", "sets", "songs", "songbooks", "files", "meta"] as const;
 export type OfflineStoreName = (typeof OFFLINE_STORES)[number];
 
@@ -68,6 +68,14 @@ export async function getOffline<T>(store: OfflineStoreName, key: string): Promi
   const userId = lastUser();
   if (!available() || !userId) return undefined;
   return withStore<T | undefined>(userId, store, "readonly", (s) => s.get(key) as IDBRequest<T | undefined>);
+}
+
+/** The keys kept in a store, for the last signed-in user. */
+export async function keysOffline(store: OfflineStoreName): Promise<string[]> {
+  const userId = lastUser();
+  if (!available() || !userId) return [];
+  const keys = await withStore(userId, store, "readonly", (s) => s.getAllKeys());
+  return keys.map(String);
 }
 
 /** Deletes everything kept on this device: on signing out, or when the session is gone. */

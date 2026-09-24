@@ -28,3 +28,4 @@ export * from "./chords/chord.js";
 export * from "./user-roles/index.js";
 export * from "./songbook-catalog-format/index.js";
 export * from "./api-client/index.js";
+export * from "./offline/index.js";

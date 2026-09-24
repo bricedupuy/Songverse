@@ -95,6 +95,24 @@ How it's built (#49):
   router's default error component (`components/route-error.tsx`) says
   "Not available offline".
 
+Sets (#50):
+
+- **`GET /setlists/:id/offline`** returns the set and each item's song view,
+  exactly what the set's song page and Live render. So offline they render
+  the same way; no second renderer.
+- **`@songverse/core`'s `offline/`** holds the logic over an `OfflineStorage`
+  interface: `keepSet`, `keptSetDetail`, `keptSetSong`, `searchKeptSongs`,
+  `findKeptSong`. The web app's adapter is `deviceStorage()` in
+  `apps/web/src/lib/offline-data.ts`, over `offline-db.ts`.
+- **Kept as opened:** the set page, a set's song page and Live download the
+  set once they're in the browser (`useKeepSet`, at most once a minute per
+  set). Their loaders use `onlineOrKept()`: the API, or with no network the
+  kept copy. Offline, the set page is read-only.
+- **Search and a lone song in Live** fall back to the songs of kept sets,
+  played as written with the player's chord settings.
+- For now nothing is removed from the device except by signing out; #51
+  adds what's kept automatically, catching up and dropping old sets.
+
 ### The data (IndexedDB)
 
 One IndexedDB database per signed-in user:
