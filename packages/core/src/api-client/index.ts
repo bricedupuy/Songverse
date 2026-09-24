@@ -11,6 +11,8 @@ export interface ApiClientOptions {
   getToken: () => Promise<string | null>;
   /** Called when the API answers 401, e.g. so a cached token isn't reused. */
   onUnauthorized?: () => void;
+  /** Called after any request that changes something succeeds, e.g. so cached reads are refetched. */
+  onChange?: () => void;
 }
 
 export interface AdminCommandResult {
@@ -681,7 +683,7 @@ function parseErrorBody(body: string): { message?: string; code?: string } {
  * share only the packages/core layer"). Each app supplies its own
  * `getToken`; this client only knows how to attach it and parse JSON.
  */
-export function createApiClient({ baseUrl, getToken, onUnauthorized }: ApiClientOptions) {
+export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }: ApiClientOptions) {
   async function failed(response: Response): Promise<ApiError> {
     if (response.status === 401) onUnauthorized?.();
     return new ApiError(response.status, await response.text());
@@ -699,6 +701,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized }: ApiClient
 
     const response = await fetch(`${baseUrl}${path}`, { ...init, headers });
     if (!response.ok) throw await failed(response);
+    if (init?.method && init.method !== "GET" && init.method !== "HEAD") onChange?.();
     // NestJS sends an empty body (Content-Length: 0) for a handler that
     // returns `null` or `undefined` — not the 4-byte JSON literal "null" —
     // and it does this on a plain 200, not just 204. `response.json()` on

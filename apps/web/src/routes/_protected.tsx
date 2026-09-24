@@ -2,9 +2,8 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { I18nextProvider } from "react-i18next";
 import { AppShell } from "#/components/app-shell";
-import { apiClient } from "#/lib/api-client";
+import { loadAppData } from "#/lib/app-data";
 import { createI18n } from "#/lib/i18n";
-import { getSession } from "#/lib/server-auth";
 
 /**
  * Pathless layout route — gates every route nested under `_protected/` in
@@ -13,16 +12,12 @@ import { getSession } from "#/lib/server-auth";
  */
 export const Route = createFileRoute("/_protected")({
   beforeLoad: async () => {
-    const session = await getSession();
-    if (!session) {
+    // Runs on every navigation (and hover preload); cached between them in the browser.
+    const data = await loadAppData();
+    if (!data) {
       throw redirect({ to: "/" });
     }
-    const [teams, songbooks, setlists] = await Promise.all([
-      apiClient.listTeams(),
-      apiClient.listSongbooks(),
-      apiClient.listSetlists(),
-    ]);
-    return { session, teams, songbooks, setlists };
+    return data;
   },
   component: RouteComponent,
 });

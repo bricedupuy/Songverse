@@ -1,3 +1,4 @@
+import { markAppDataStale } from "#/lib/app-data-version";
 import { createApiClient } from "@songverse/core";
 import { getApiUrl } from "./public-env";
 import { getApiToken } from "./server-auth";
@@ -53,4 +54,5 @@ export const apiClient = createApiClient({
   onUnauthorized: () => {
     cached = null;
   },
+  onChange: markAppDataStale,
 });
