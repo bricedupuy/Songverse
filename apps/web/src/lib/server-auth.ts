@@ -9,6 +9,8 @@ export interface AppSession {
   displayName: string;
   avatarUrl: string | null;
   isGlobalAdmin: boolean;
+  /** May review songs submitted to the global catalogue (global admins always can). */
+  isReviewer: boolean;
   locale: LocaleValue;
 }
 
@@ -18,6 +20,7 @@ interface BetterAuthUser {
   name: string;
   image?: string | null;
   isGlobalAdmin?: boolean;
+  isReviewer?: boolean;
   locale?: string;
 }
 
@@ -51,6 +54,7 @@ async function loadSession(): Promise<AppSession | null> {
     displayName: data.user.name,
     avatarUrl: data.user.image ?? null,
     isGlobalAdmin: Boolean(data.user.isGlobalAdmin),
+    isReviewer: Boolean(data.user.isReviewer),
     locale: asLocale(data.user.locale ?? DEFAULT_LOCALE),
   };
 }

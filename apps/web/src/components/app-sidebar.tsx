@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BookOpen,
   ChevronRight,
+  ClipboardCheck,
   Database,
   FileStack,
   KeyRound,
@@ -81,6 +82,7 @@ export function AppSidebar({
           songbooks={songbooks}
           setlists={setlists}
           isGlobalAdmin={session.isGlobalAdmin}
+          canReview={session.isGlobalAdmin || session.isReviewer}
         />
       )}
       <SidebarFooter>
@@ -150,12 +152,14 @@ function MainNav({
   songbooks,
   setlists,
   isGlobalAdmin,
+  canReview,
 }: {
   pathname: string;
   teams: TeamSummary[];
   songbooks: SongbookSummary[];
   setlists: SetlistSummary[];
   isGlobalAdmin: boolean;
+  canReview: boolean;
 }) {
   const { t, i18n } = useTranslation();
   // Upcoming and undated sets come first (the API's order); past ones are
@@ -292,17 +296,29 @@ function MainNav({
         </SidebarMenu>
       </SidebarGroup>
 
-      {isGlobalAdmin ? (
+      {canReview || isGlobalAdmin ? (
         <SidebarGroup className="mt-auto">
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith("/admin")} tooltip={t("nav.admin")}>
-                <Link to="/admin">
-                  <ShieldCheck />
-                  <span>{t("nav.admin")}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {canReview ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/review")} tooltip={t("nav.review")}>
+                  <Link to="/review">
+                    <ClipboardCheck />
+                    <span>{t("nav.review")}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : null}
+            {isGlobalAdmin ? (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/admin")} tooltip={t("nav.admin")}>
+                  <Link to="/admin">
+                    <ShieldCheck />
+                    <span>{t("nav.admin")}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ) : null}
           </SidebarMenu>
         </SidebarGroup>
       ) : null}

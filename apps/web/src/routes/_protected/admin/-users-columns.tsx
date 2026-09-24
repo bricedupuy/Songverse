@@ -18,7 +18,7 @@ import { formatBytes } from "#/lib/format-bytes";
 import { initials } from "#/lib/initials";
 import { cn } from "#/lib/utils";
 
-export type UserAction = "storage" | "ban" | "unban" | "delete" | "newTransferLink" | "deleteNow";
+export type UserAction = "storage" | "reviewer" | "ban" | "unban" | "delete" | "newTransferLink" | "deleteNow";
 
 function sortableHeader(label: string) {
   return function SortableHeader({ column }: { column: Column<AdminUserSummary, unknown> }) {
@@ -82,6 +82,7 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
                   <span className="truncate">{user.displayName}</span>
                   {user.id === currentUserId ? <span className="text-xs font-normal text-muted-foreground">({t("admin.you")})</span> : null}
                   {user.isGlobalAdmin ? <Badge>{t("admin.globalAdmin")}</Badge> : null}
+                  {user.isReviewer ? <Badge variant="muted">{t("admin.reviewer")}</Badge> : null}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 {/* The Status column is hidden on phones. */}
@@ -153,6 +154,11 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
                 ) : (
                   <>
                     <DropdownMenuItem onSelect={() => onAction("storage", user)}>{t("admin.actionEditStorage")}</DropdownMenuItem>
+                    {user.isGlobalAdmin ? null : (
+                      <DropdownMenuItem onSelect={() => onAction("reviewer", user)}>
+                        {user.isReviewer ? t("admin.actionRemoveReviewer") : t("admin.actionMakeReviewer")}
+                      </DropdownMenuItem>
+                    )}
                     {isSelf ? null : (
                       <>
                         {user.bannedAt ? (

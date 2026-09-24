@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedReviewRouteImport } from './routes/_protected/review'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as SetInviteTokenRouteImport } from './routes/set-invite.$token'
 import { Route as TransferTokenRouteImport } from './routes/transfer.$token'
@@ -27,6 +28,8 @@ import { Route as ProtectedAdminUsersRouteImport } from './routes/_protected/adm
 import { Route as ProtectedLibraryIndexRouteImport } from './routes/_protected/library/index'
 import { Route as ProtectedLibrarySongVersionIdRouteImport } from './routes/_protected/library/$songVersionId'
 import { Route as ProtectedLibraryNewRouteImport } from './routes/_protected/library/new'
+import { Route as ProtectedReviewIndexRouteImport } from './routes/_protected/review/index'
+import { Route as ProtectedReviewSubmissionIdRouteImport } from './routes/_protected/review/$submissionId'
 import { Route as ProtectedSetsIndexRouteImport } from './routes/_protected/sets/index'
 import { Route as ProtectedSetsSetlistIdRouteImport } from './routes/_protected/sets/$setlistId'
 import { Route as ProtectedSetsNewRouteImport } from './routes/_protected/sets/new'
@@ -68,6 +71,11 @@ const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedReviewRoute = ProtectedReviewRouteImport.update({
+  id: '/review',
+  path: '/review',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const JoinTokenRoute = JoinTokenRouteImport.update({
@@ -131,6 +139,17 @@ const ProtectedLibraryNewRoute = ProtectedLibraryNewRouteImport.update({
   path: '/library/new',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedReviewIndexRoute = ProtectedReviewIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProtectedReviewRoute,
+} as any)
+const ProtectedReviewSubmissionIdRoute =
+  ProtectedReviewSubmissionIdRouteImport.update({
+    id: '/$submissionId',
+    path: '/$submissionId',
+    getParentRoute: () => ProtectedReviewRoute,
+  } as any)
 const ProtectedSetsIndexRoute = ProtectedSetsIndexRouteImport.update({
   id: '/sets/',
   path: '/sets/',
@@ -208,6 +227,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof ProtectedAccountRoute
   '/admin': typeof ProtectedAdminRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
+  '/review': typeof ProtectedReviewRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -218,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof ProtectedAdminUsersRoute
   '/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
   '/library/new': typeof ProtectedLibraryNewRoute
+  '/review/$submissionId': typeof ProtectedReviewSubmissionIdRoute
   '/sets/$setlistId': typeof ProtectedSetsSetlistIdRoute
   '/sets/new': typeof ProtectedSetsNewRoute
   '/songbook-catalogs/$catalogId': typeof ProtectedSongbookCatalogsCatalogIdRoute
@@ -228,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/teams/new': typeof ProtectedTeamsNewRoute
   '/admin/': typeof ProtectedAdminIndexRoute
   '/library/': typeof ProtectedLibraryIndexRoute
+  '/review/': typeof ProtectedReviewIndexRoute
   '/sets/': typeof ProtectedSetsIndexRoute
   '/songbook-catalogs/': typeof ProtectedSongbookCatalogsIndexRoute
   '/songbooks/': typeof ProtectedSongbooksIndexRoute
@@ -249,6 +271,7 @@ export interface FileRoutesByTo {
   '/admin/users': typeof ProtectedAdminUsersRoute
   '/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
   '/library/new': typeof ProtectedLibraryNewRoute
+  '/review/$submissionId': typeof ProtectedReviewSubmissionIdRoute
   '/sets/$setlistId': typeof ProtectedSetsSetlistIdRoute
   '/sets/new': typeof ProtectedSetsNewRoute
   '/songbook-catalogs/$catalogId': typeof ProtectedSongbookCatalogsCatalogIdRoute
@@ -259,6 +282,7 @@ export interface FileRoutesByTo {
   '/teams/new': typeof ProtectedTeamsNewRoute
   '/admin': typeof ProtectedAdminIndexRoute
   '/library': typeof ProtectedLibraryIndexRoute
+  '/review': typeof ProtectedReviewIndexRoute
   '/sets': typeof ProtectedSetsIndexRoute
   '/songbook-catalogs': typeof ProtectedSongbookCatalogsIndexRoute
   '/songbooks': typeof ProtectedSongbooksIndexRoute
@@ -273,6 +297,7 @@ export interface FileRoutesById {
   '/_protected/account': typeof ProtectedAccountRoute
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/review': typeof ProtectedReviewRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -283,6 +308,7 @@ export interface FileRoutesById {
   '/_protected/admin/users': typeof ProtectedAdminUsersRoute
   '/_protected/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
   '/_protected/library/new': typeof ProtectedLibraryNewRoute
+  '/_protected/review/$submissionId': typeof ProtectedReviewSubmissionIdRoute
   '/_protected/sets/$setlistId': typeof ProtectedSetsSetlistIdRoute
   '/_protected/sets/new': typeof ProtectedSetsNewRoute
   '/_protected/songbook-catalogs/$catalogId': typeof ProtectedSongbookCatalogsCatalogIdRoute
@@ -293,6 +319,7 @@ export interface FileRoutesById {
   '/_protected/teams/new': typeof ProtectedTeamsNewRoute
   '/_protected/admin/': typeof ProtectedAdminIndexRoute
   '/_protected/library/': typeof ProtectedLibraryIndexRoute
+  '/_protected/review/': typeof ProtectedReviewIndexRoute
   '/_protected/sets/': typeof ProtectedSetsIndexRoute
   '/_protected/songbook-catalogs/': typeof ProtectedSongbookCatalogsIndexRoute
   '/_protected/songbooks/': typeof ProtectedSongbooksIndexRoute
@@ -307,6 +334,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/dashboard'
+    | '/review'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -317,6 +345,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/library/$songVersionId'
     | '/library/new'
+    | '/review/$submissionId'
     | '/sets/$setlistId'
     | '/sets/new'
     | '/songbook-catalogs/$catalogId'
@@ -327,6 +356,7 @@ export interface FileRouteTypes {
     | '/teams/new'
     | '/admin/'
     | '/library/'
+    | '/review/'
     | '/sets/'
     | '/songbook-catalogs/'
     | '/songbooks/'
@@ -348,6 +378,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/library/$songVersionId'
     | '/library/new'
+    | '/review/$submissionId'
     | '/sets/$setlistId'
     | '/sets/new'
     | '/songbook-catalogs/$catalogId'
@@ -358,6 +389,7 @@ export interface FileRouteTypes {
     | '/teams/new'
     | '/admin'
     | '/library'
+    | '/review'
     | '/sets'
     | '/songbook-catalogs'
     | '/songbooks'
@@ -371,6 +403,7 @@ export interface FileRouteTypes {
     | '/_protected/account'
     | '/_protected/admin'
     | '/_protected/dashboard'
+    | '/_protected/review'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -381,6 +414,7 @@ export interface FileRouteTypes {
     | '/_protected/admin/users'
     | '/_protected/library/$songVersionId'
     | '/_protected/library/new'
+    | '/_protected/review/$submissionId'
     | '/_protected/sets/$setlistId'
     | '/_protected/sets/new'
     | '/_protected/songbook-catalogs/$catalogId'
@@ -391,6 +425,7 @@ export interface FileRouteTypes {
     | '/_protected/teams/new'
     | '/_protected/admin/'
     | '/_protected/library/'
+    | '/_protected/review/'
     | '/_protected/sets/'
     | '/_protected/songbook-catalogs/'
     | '/_protected/songbooks/'
@@ -449,6 +484,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof ProtectedDashboardRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/review': {
+      id: '/_protected/review'
+      path: '/review'
+      fullPath: '/review'
+      preLoaderRoute: typeof ProtectedReviewRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/join/$token': {
@@ -534,6 +576,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/library/new'
       preLoaderRoute: typeof ProtectedLibraryNewRouteImport
       parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/review/': {
+      id: '/_protected/review/'
+      path: '/'
+      fullPath: '/review/'
+      preLoaderRoute: typeof ProtectedReviewIndexRouteImport
+      parentRoute: typeof ProtectedReviewRoute
+    }
+    '/_protected/review/$submissionId': {
+      id: '/_protected/review/$submissionId'
+      path: '/$submissionId'
+      fullPath: '/review/$submissionId'
+      preLoaderRoute: typeof ProtectedReviewSubmissionIdRouteImport
+      parentRoute: typeof ProtectedReviewRoute
     }
     '/_protected/sets/': {
       id: '/_protected/sets/'
@@ -651,10 +707,25 @@ const ProtectedAdminRouteWithChildren = ProtectedAdminRoute._addFileChildren(
   ProtectedAdminRouteChildren,
 )
 
+interface ProtectedReviewRouteChildren {
+  ProtectedReviewSubmissionIdRoute: typeof ProtectedReviewSubmissionIdRoute
+  ProtectedReviewIndexRoute: typeof ProtectedReviewIndexRoute
+}
+
+const ProtectedReviewRouteChildren: ProtectedReviewRouteChildren = {
+  ProtectedReviewSubmissionIdRoute: ProtectedReviewSubmissionIdRoute,
+  ProtectedReviewIndexRoute: ProtectedReviewIndexRoute,
+}
+
+const ProtectedReviewRouteWithChildren = ProtectedReviewRoute._addFileChildren(
+  ProtectedReviewRouteChildren,
+)
+
 interface ProtectedRouteChildren {
   ProtectedAccountRoute: typeof ProtectedAccountRoute
   ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedReviewRoute: typeof ProtectedReviewRouteWithChildren
   ProtectedLibrarySongVersionIdRoute: typeof ProtectedLibrarySongVersionIdRoute
   ProtectedLibraryNewRoute: typeof ProtectedLibraryNewRoute
   ProtectedSetsSetlistIdRoute: typeof ProtectedSetsSetlistIdRoute
@@ -677,6 +748,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAccountRoute: ProtectedAccountRoute,
   ProtectedAdminRoute: ProtectedAdminRouteWithChildren,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedReviewRoute: ProtectedReviewRouteWithChildren,
   ProtectedLibrarySongVersionIdRoute: ProtectedLibrarySongVersionIdRoute,
   ProtectedLibraryNewRoute: ProtectedLibraryNewRoute,
   ProtectedSetsSetlistIdRoute: ProtectedSetsSetlistIdRoute,

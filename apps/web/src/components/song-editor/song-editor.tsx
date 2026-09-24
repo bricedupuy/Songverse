@@ -36,6 +36,7 @@ import {
   type SongForm,
 } from "./song-form";
 import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, SongbooksCard } from "./song-info";
+import { PublishCard } from "./publish-card";
 import { AttachmentsTab, EditorTab, LinksTab, SaveFirst } from "./song-tabs";
 import { downloadBlob } from "#/lib/download";
 
@@ -340,6 +341,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           </fieldset>
         ) : null}
         {edit ? <SongbooksCard memberships={edit.songbookMemberships} /> : null}
+        {edit && canEdit && edit.version.ownerScope !== "GLOBAL" ? <PublishCard songVersionId={edit.version.id} /> : null}
       </div>
     </div>
   );

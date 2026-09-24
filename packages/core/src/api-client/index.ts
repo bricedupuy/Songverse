@@ -29,6 +29,7 @@ export interface AdminUserSummary {
   avatarUrl: string | null;
   emailVerified: boolean;
   isGlobalAdmin: boolean;
+  isReviewer: boolean;
   createdAt: string;
   bannedAt: string | null;
   banReason: string | null;
@@ -48,6 +49,7 @@ export interface UpdateUserByAdminInput {
   storageLimitMb?: number | null;
   banned?: boolean;
   banReason?: string;
+  isReviewer?: boolean;
 }
 
 export interface TransferLink {
@@ -183,6 +185,7 @@ export interface UserProfile {
   avatarUrl: string | null;
   locale: string;
   isGlobalAdmin: boolean;
+  isReviewer: boolean;
   instruments: InstrumentValue[];
   techRoles: TechRoleValue[];
 }
@@ -650,6 +653,58 @@ export interface WorkDetail {
  * error ({ message, code? }), otherwise the raw body; `code` is the
  * machine-readable one, when the API sent one (e.g. STORAGE_LIMIT_EXCEEDED).
  */
+export type SubmissionState = "SUBMITTED" | "UNDER_REVIEW" | "NEEDS_CHANGES" | "APPROVED" | "REJECTED" | "WITHDRAWN";
+
+/** A global song that looks like the one being published. */
+export interface CatalogueMatch {
+  id: string;
+  title: string;
+  versionName: string | null;
+  language: string;
+  artists: string[];
+  reason: "titleAndArtist" | "title" | "ccli";
+}
+
+/** A song put forward for the global catalogue. */
+export interface Submission {
+  id: string;
+  state: SubmissionState;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+  submitterMessage: string | null;
+  duplicateReason: string | null;
+  reviewNotes: string | null;
+  mergeTargetId: string | null;
+  publishedVersionId: string | null;
+  submitter: { id: string; displayName: string; email: string };
+  reviewer: { id: string; displayName: string } | null;
+  publishedVersion: { id: string; title: string } | null;
+  /** Global look-alikes when it was submitted. */
+  matches: CatalogueMatch[];
+  song: {
+    id: string;
+    title: string;
+    versionName: string | null;
+    language: string;
+    ownerScope: "GLOBAL" | "TEAM" | "USER";
+    ownerUserId: string | null;
+    ownerTeamId: string | null;
+    teamName: string | null;
+    artists: string[];
+  };
+}
+
+/** Where a song stands with the global catalogue, for its page. */
+export interface SongPublication {
+  submission: Submission | null;
+  /** The global song it's linked to, once approved. */
+  published: { id: string; title: string } | null;
+  matches: CatalogueMatch[];
+  canSubmit: boolean;
+  canPublishDirectly: boolean;
+}
+
 export class ApiError extends Error {
   readonly code?: string;
 
@@ -971,6 +1026,29 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
 
     adminMigrationStatus: () => request<AdminCommandResult>("/admin/migrations/status"),
     adminRunSeed: () => request<AdminCommandResult>("/admin/seed", { method: "POST" }),
+    getSongPublication: (songVersionId: string) => request<SongPublication>(`/song-versions/${songVersionId}/publication`),
+    submitSong: (songVersionId: string, data: { message?: string; duplicateReason?: string }) =>
+      request<Submission>(`/song-versions/${songVersionId}/submissions`, { method: "POST", body: JSON.stringify(data) }),
+    /** Global admins: into the catalogue without a review. */
+    publishSong: (songVersionId: string, data: { duplicateReason?: string; trustLabel?: string }) =>
+      request<Submission>(`/song-versions/${songVersionId}/publish`, { method: "POST", body: JSON.stringify(data) }),
+    /** The review queue (reviewers and global admins). */
+    listSubmissions: (state: "open" | "closed" = "open") => request<Submission[]>(`/submissions?state=${state}`),
+    mySubmissions: () => request<Submission[]>("/submissions/mine"),
+    getSubmission: (submissionId: string) => request<Submission>(`/submissions/${submissionId}`),
+    withdrawSubmission: (submissionId: string) => request<Submission>(`/submissions/${submissionId}/withdraw`, { method: "POST" }),
+    resubmitSubmission: (submissionId: string, data: { message?: string }) =>
+      request<Submission>(`/submissions/${submissionId}/resubmit`, { method: "POST", body: JSON.stringify(data) }),
+    startReview: (submissionId: string) => request<Submission>(`/submissions/${submissionId}/start-review`, { method: "POST" }),
+    approveSubmission: (submissionId: string, data: { notes?: string; trustLabel?: string }) =>
+      request<Submission>(`/submissions/${submissionId}/approve`, { method: "POST", body: JSON.stringify(data) }),
+    mergeSubmission: (submissionId: string, data: { targetId: string; notes?: string }) =>
+      request<Submission>(`/submissions/${submissionId}/merge`, { method: "POST", body: JSON.stringify(data) }),
+    requestSubmissionChanges: (submissionId: string, notes: string) =>
+      request<Submission>(`/submissions/${submissionId}/request-changes`, { method: "POST", body: JSON.stringify({ notes }) }),
+    rejectSubmission: (submissionId: string, notes: string) =>
+      request<Submission>(`/submissions/${submissionId}/reject`, { method: "POST", body: JSON.stringify({ notes }) }),
+
     adminListUsers: () => request<AdminUserSummary[]>("/admin/users"),
     adminUpdateUser: (userId: string, data: UpdateUserByAdminInput) =>
       request<void>(`/admin/users/${userId}`, { method: "PATCH", body: JSON.stringify(data) }),

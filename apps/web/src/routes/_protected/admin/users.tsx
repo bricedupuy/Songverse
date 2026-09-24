@@ -40,9 +40,9 @@ function AdminUsersPage() {
   const onAction = useCallback(
     (action: UserAction, user: AdminUserSummary) => {
       setActionError(null);
-      if (action === "unban") {
+      if (action === "unban" || action === "reviewer") {
         void apiClient
-          .adminUpdateUser(user.id, { banned: false })
+          .adminUpdateUser(user.id, action === "unban" ? { banned: false } : { isReviewer: !user.isReviewer })
           .then(refresh)
           .catch((err: unknown) => setActionError(err instanceof Error ? err.message : String(err)));
         return;
