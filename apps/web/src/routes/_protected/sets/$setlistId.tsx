@@ -1,4 +1,4 @@
-import { ApiError, keptSetDetail, type SetlistDetail, type SetlistItem, type TeamSummary } from "@songverse/core";
+import { ApiError, keptSetDetail, onlineOrKept, type SetlistDetail, type SetlistItem, type TeamSummary } from "@songverse/core";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Mic } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { apiClient } from "#/lib/api-client";
-import { deviceStorage, onlineOrKept, useKeepSet } from "#/lib/offline-data";
+import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setMode } from "#/lib/mode";
 import { formatSetDate, setOwnerLabel, setlistTitle } from "#/lib/setlists";
 import { AddSongs } from "./-add-songs";

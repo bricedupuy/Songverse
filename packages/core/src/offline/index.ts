@@ -126,3 +126,4 @@ export async function syncKeptSets(
 export async function lastOfflineSync(storage: OfflineStorage): Promise<OfflineSyncResult | undefined> {
   return storage.get<OfflineSyncResult>("meta", "lastSync");
 }
+export * from "./network.js";

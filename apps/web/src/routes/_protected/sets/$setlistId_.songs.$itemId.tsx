@@ -1,4 +1,4 @@
-import { ApiError, keptSetSong, transposeKey, type SetlistSongView } from "@songverse/core";
+import { ApiError, keptSetSong, onlineOrKept, transposeKey, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/com
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { apiClient } from "#/lib/api-client";
-import { deviceStorage, onlineOrKept, useKeepSet } from "#/lib/offline-data";
+import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setlistTitle, transposeLabel } from "#/lib/setlists";
 
 /**

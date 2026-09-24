@@ -1,4 +1,4 @@
-import { searchKeptSongs } from "@songverse/core";
+import { onlineOrKept, searchKeptSongs } from "@songverse/core";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
 import { BookOpen, ListMusic, Music, Search, Users, type LucideIcon } from "lucide-react";
@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
 import { useMode } from "#/lib/mode";
-import { keptSets, onlineOrKept } from "#/lib/offline-data";
+import { keptSets } from "#/lib/offline-data";
 import { formatSetDate, setlistTitle } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 

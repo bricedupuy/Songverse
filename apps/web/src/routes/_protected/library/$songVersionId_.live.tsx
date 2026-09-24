@@ -1,4 +1,4 @@
-import { findKeptSong, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type SongDocumentV2 } from "@songverse/core";
+import { findKeptSong, isNetworkError, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,8 +6,7 @@ import { LiveView } from "#/components/live-view";
 import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
 import { setMode } from "#/lib/mode";
-import { isNetworkError } from "#/lib/offline";
-import { keptSets, onlineOrKept } from "#/lib/offline-data";
+import { keptSets } from "#/lib/offline-data";
 
 /** What playing a song on its own needs: from the library online, from a kept set offline. */
 export interface LoneSong {

@@ -1,4 +1,4 @@
-import { ApiError, keptSetSong, type SetlistSongView } from "@songverse/core";
+import { ApiError, keptSetSong, onlineOrKept, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -6,7 +6,7 @@ import { LiveView, type LiveSong } from "#/components/live-view";
 import { renderPlayerChart } from "#/components/player-chart";
 import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
-import { deviceStorage, onlineOrKept, useKeepSet } from "#/lib/offline-data";
+import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setMode } from "#/lib/mode";
 import { setlistTitle } from "#/lib/setlists";
 

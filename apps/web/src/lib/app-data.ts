@@ -1,8 +1,7 @@
-import type { SetlistSummary, SongbookSummary, TeamSummary } from "@songverse/core";
+import { sessionOnlineOrSaved, type SavedSession, type SetlistSummary, type SongbookSummary, type TeamSummary } from "@songverse/core";
 import { apiClient } from "#/lib/api-client";
 import { appDataVersion } from "#/lib/app-data-version";
 import { forgetOffline, getOffline, putOffline } from "#/lib/offline-db";
-import { isNetworkError, OfflineError, withTimeout } from "#/lib/offline";
 import { getSession, type AppSession } from "#/lib/server-auth";
 
 export interface AppData {
@@ -15,10 +14,7 @@ export interface AppData {
 }
 
 /** The last session and sidebar lists confirmed online, as kept on the device. */
-interface SavedAppData {
-  data: AppData;
-  savedAt: string;
-}
+type SavedAppData = SavedSession<AppData>;
 
 // A network that hangs (a venue's Wi-Fi) counts as down after this long.
 const NETWORK_TIMEOUT_MS = 8_000;
@@ -47,19 +43,15 @@ async function loadOnline(): Promise<AppData | null> {
  */
 async function load(): Promise<AppData | null> {
   if (typeof window === "undefined") return loadOnline();
-  let data: AppData | null;
-  try {
-    // The browser knows it has no network: don't wait for a request to fail.
-    if (navigator.onLine === false) throw new OfflineError();
-    data = await withTimeout(loadOnline(), NETWORK_TIMEOUT_MS);
-  } catch (error) {
-    if (!isNetworkError(error)) throw error;
-    const saved = await getOffline<SavedAppData>("session", "current").catch(() => undefined);
-    if (!saved) throw error;
-    return { ...saved.data, offline: { savedAt: saved.savedAt } };
-  }
-  if (!data) void forgetOffline();
-  return data;
+  // The same rule as the mobile app's (@songverse/core): see sessionOnlineOrSaved.
+  const result = await sessionOnlineOrSaved<AppData>({
+    online: loadOnline,
+    saved: () => getOffline<SavedAppData>("session", "current"),
+    forget: forgetOffline,
+    timeoutMs: NETWORK_TIMEOUT_MS,
+  });
+  if (!result) return null;
+  return result.savedAt ? { ...result.data, offline: { savedAt: result.savedAt } } : result.data;
 }
 
 /**
