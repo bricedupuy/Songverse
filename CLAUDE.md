@@ -47,9 +47,12 @@ order it's sung in (`flow`) and a `revision`. Title, credits, rights and
 the capo are columns; never copy them into the document.
 - Read it with `readSongDocument()` from `@songverse/core` (it also
   upgrades a song still stored as v1), never by casting the JSON.
-- Section, line and chord IDs must survive edits: build a new document
-  from edited text with `songDocumentFromText(previous, …)`, which
-  matches the new content to the old IDs and bumps the revision.
+- Section, line and chord IDs must survive edits. The structured editor
+  (`apps/web/src/components/song-editor/structured/`) keeps them itself
+  and saves `sections`, turned into a document by
+  `songDocumentFromSections(previous, …)`; edited text goes through
+  `songDocumentFromText(previous, …)`, which matches the new content to
+  the old IDs. Both bump the revision.
 - ChordPro is only an import/export format (`sectionsFromText`,
   `songToChordPro`), not how songs are stored.
 

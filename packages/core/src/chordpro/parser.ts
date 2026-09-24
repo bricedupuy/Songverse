@@ -1,6 +1,6 @@
 import type { Section } from "../schemas/song-document.js";
 import type { Line, Segment } from "../schemas/shared.js";
-import type { SectionType } from "../constants/index.js";
+import { SECTION_TYPES, type SectionType } from "../constants/index.js";
 import { generateId, ID_PREFIXES } from "../ids/index.js";
 import { LABEL_LINE, normalizeSectionType } from "./section-labels.js";
 
@@ -12,18 +12,25 @@ import { LABEL_LINE, normalizeSectionType } from "./section-labels.js";
 // matters to a user first.
 
 // ChordPro's standard short/long section directives - see
-// https://www.chordpro.org/chordpro/directives-env/
+// https://www.chordpro.org/chordpro/directives-env/ - plus
+// {start_of_x}/{end_of_x} for every other section type (ChordPro 6 allows
+// any section name), which is how SongVerse writes them.
 const SECTION_DIRECTIVES: Record<string, SectionType> = {
   sov: "verse",
-  start_of_verse: "verse",
   soc: "chorus",
-  start_of_chorus: "chorus",
   sob: "bridge",
-  start_of_bridge: "bridge",
   sot: "instrumental",
   start_of_tab: "instrumental",
+  ...Object.fromEntries(SECTION_TYPES.flatMap((type) => [[`start_of_${type}`, type], [`start_of_${type.replace(/-/g, "_")}`, type]])),
 };
-const END_DIRECTIVES = new Set(["eov", "end_of_verse", "eoc", "end_of_chorus", "eob", "end_of_bridge", "eot", "end_of_tab"]);
+const END_DIRECTIVES = new Set([
+  "eov",
+  "eoc",
+  "eob",
+  "eot",
+  "end_of_tab",
+  ...SECTION_TYPES.flatMap((type) => [`end_of_${type}`, `end_of_${type.replace(/-/g, "_")}`]),
+]);
 
 /** Splits one lyric line into segments at each `[Chord]` marker. Text
  * before the first chord (if any) becomes a chord-less leading segment.

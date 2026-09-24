@@ -79,3 +79,119 @@
     max-width: 100%;
   }
 }
+
+/* The structured song editor (components/song-editor/structured): chords
+   drawn above the character they're pinned to, as the chart shows them. */
+.sv-editor .ProseMirror {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  outline: none;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+.sv-section {
+  border-left: 2px solid var(--color-border);
+  padding-left: 0.75rem;
+}
+.sv-section:hover {
+  border-left-color: color-mix(in oklab, var(--color-primary) 40%, transparent);
+}
+/* Tall rows leave room above every wrapped row for its chords. */
+.sv-editor p[data-sv-line] {
+  margin: 0;
+  line-height: 2.6;
+}
+.sv-editor p.sv-note {
+  font-family: var(--font-sans);
+  font-style: italic;
+  color: var(--color-muted-foreground);
+  line-height: 1.8;
+}
+.sv-editor p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: var(--color-muted-foreground);
+}
+/* Inline, not inline-block: an atomic inline would let a line wrap at the chord, mid-word. */
+.sv-chord {
+  position: relative;
+  display: inline;
+}
+.sv-chord-chip {
+  position: absolute;
+  left: -0.15em;
+  bottom: calc(100% + 0.1em);
+  padding: 0 0.15em;
+  border-radius: 0.25rem;
+  line-height: 1.25;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--color-primary);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.sv-chord-chip:hover {
+  background: color-mix(in oklab, var(--color-primary) 12%, transparent);
+}
+.sv-chord-selected .sv-chord-chip {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+.sv-chord-moving .sv-chord-chip {
+  opacity: 0.3;
+}
+/* The character a chord is pinned to, underlined when it's pointed at or selected. */
+.sv-chord:hover::after,
+.sv-chord-selected::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -0.3em;
+  width: 1ch;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--color-primary);
+}
+.sv-chord-gap {
+  display: inline-block;
+  text-align: center;
+  color: var(--color-muted-foreground);
+}
+.sv-drop-caret {
+  display: inline-block;
+  width: 0;
+  height: 1.3em;
+  vertical-align: text-bottom;
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+.sv-drop-target {
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--color-primary) 25%, transparent);
+}
+.sv-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  padding: 0 0.15em;
+  border-radius: 0.25rem;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.25;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
+}
+body.sv-dragging {
+  cursor: grabbing;
+  user-select: none;
+  -webkit-user-select: none;
+}

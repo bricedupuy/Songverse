@@ -2,12 +2,16 @@ import {
   detectImportFormat,
   formatDuration,
   parseDuration,
+  reconcileSections,
+  sectionsFromText,
   sectionsToChordPro,
   type CreateSongVersionInput,
+  type SectionV2,
   type SongVersionDetail,
   type SupportedImportFormat,
   type UpdateSongVersionInput,
 } from "@songverse/core";
+import { sameSections } from "./structured/document";
 
 /** The credit lists the editor edits, and the role each one is. */
 export const CREDIT_FIELDS = {
@@ -46,6 +50,9 @@ export type TextField = (typeof TEXT_FIELDS)[number];
 export type SongForm = Record<TextField, string> &
   Record<CreditField, string[]> & {
     tagIds: string[];
+    /** The chart, as saved: what the Editor tab edits, IDs and all. */
+    sections: SectionV2[];
+    /** The chart as text, for Song Info's text box: kept in step with `sections` (see withContent/withSections). */
     content: string;
     /** The format picked by hand; null to go by what the text looks like. */
     contentFormat: SupportedImportFormat | null;
@@ -57,6 +64,7 @@ export function emptyForm(language: string): SongForm {
     ...(Object.fromEntries(Object.keys(CREDIT_FIELDS).map((field) => [field, []])) as unknown as Record<CreditField, string[]>),
     language,
     tagIds: [],
+    sections: [],
     content: "",
     contentFormat: null,
   };
@@ -90,9 +98,26 @@ export function formFromVersion(version: SongVersionDetail): SongForm {
       Object.entries(CREDIT_FIELDS).map(([field, role]) => [field, creditNames(version, role)]),
     ) as unknown as Record<CreditField, string[]>),
     tagIds: version.tags.map((tag) => tag.id),
+    sections: version.documentJson.sections,
     content: sectionsToChordPro(version.documentJson.sections),
     contentFormat: null,
   };
+}
+
+/** The chart typed or pasted as text: read into sections, keeping the IDs of what's still there. */
+export function withContent(form: SongForm, content: string, contentFormat: SupportedImportFormat | null): SongForm {
+  let sections = form.sections;
+  try {
+    sections = reconcileSections(form.sections, sectionsFromText(content, effectiveFormat({ content, contentFormat })));
+  } catch {
+    // Text that can't be read yet leaves the chart as it was.
+  }
+  return { ...form, content, contentFormat, sections };
+}
+
+/** The chart edited in the Editor tab: the text follows, as ChordPro. */
+export function withSections(form: SongForm, sections: SectionV2[]): SongForm {
+  return { ...form, sections, content: sectionsToChordPro(sections), contentFormat: null };
 }
 
 /** The format the content will be read as. */
@@ -128,9 +153,10 @@ const sameList = (a: string[], b: string[]) => a.length === b.length && a.every(
 export function fieldChanged(form: SongForm, initial: SongForm, field: keyof SongForm): boolean {
   const a = form[field];
   const b = initial[field];
-  if (Array.isArray(a) && Array.isArray(b)) return !sameList(a, b);
-  if (field === "content") return a !== b;
-  if (field === "contentFormat") return false;
+  if (field === "sections") return !sameSections(form.sections, initial.sections);
+  // The text is only a view of the sections.
+  if (field === "content" || field === "contentFormat") return false;
+  if (Array.isArray(a) && Array.isArray(b)) return !sameList(a as string[], b as string[]);
   return (a ?? "").toString().trim() !== (b ?? "").toString().trim();
 }
 
@@ -164,10 +190,7 @@ function changedFields(form: SongForm, initial: SongForm): UpdateSongVersionInpu
     if (fieldChanged(form, initial, field)) data[field] = form[field];
   }
   if (fieldChanged(form, initial, "tagIds")) data.tagIds = form.tagIds;
-  if (fieldChanged(form, initial, "content")) {
-    data.content = form.content;
-    data.contentFormat = effectiveFormat(form);
-  }
+  if (fieldChanged(form, initial, "sections")) data.sections = form.sections;
   return data as UpdateSongVersionInput;
 }
 
@@ -193,7 +216,10 @@ export function fillFrom(form: SongForm, source: SongForm): SongForm {
     if (next[field].length === 0) next[field] = source[field];
   }
   if (next.tagIds.length === 0) next.tagIds = source.tagIds;
-  if (!next.content.trim()) next.content = source.content;
+  if (next.sections.length === 0) {
+    next.sections = source.sections;
+    next.content = source.content;
+  }
   return next;
 }
 

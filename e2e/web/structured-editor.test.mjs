@@ -1,0 +1,285 @@
+// The structured song editor (docs/song-document-v2.md, "Editor rules"):
+// chords drawn over their characters, lyric edits that carry chords along
+// and never lose them, dragging and nudging chords, typing and pasting
+// charts, sections, text mode - and every ID surviving the save.
+import { chromium } from "playwright";
+import { WEB, SP, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+
+let page;
+const step = stepper(() => page);
+const me = await user("Structured editor");
+const CHART =
+  "{start_of_verse}\n[G]Amazing grace how [G7]sweet the [C]sound\nThat [G]saved a [Em]wretch like [D]me\n{end_of_verse}\n\n{start_of_chorus}\n[C]My chains are [G]gone\n{end_of_chorus}\n";
+const song = await api(me, "POST", "/song-versions", { title: `Structured ${stamp}`, language: "en", artists: ["Someone"], key: "G", content: CHART, contentFormat: "CHORDPRO" });
+const stored = async () => (await api(me, "GET", `/song-versions/${song.id}`)).documentJson;
+const original = await stored();
+const lineOf = (doc, s, l) => doc.sections[s].lines[l];
+const chordsOf = (line) => line.chords.map((c) => `${c.raw}@${c.at}`).join(" ");
+
+const browser = await chromium.launch();
+page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+const errors = [];
+page.on("pageerror", (e) => errors.push(e.message));
+await signIn(page, me);
+
+const editor = () => page.getByTestId("structured-editor");
+const chip = (raw, nth = 0) => editor().locator(`[data-sv-chord="${raw}"] .sv-chord-chip`).nth(nth);
+
+/** Puts the cursor (or a selection) at character offsets of the n-th line's lyrics. */
+async function select(line, from, to = from) {
+  await editor().focus();
+  await page.evaluate(
+    ([line, from, to]) => {
+      const p = document.querySelectorAll("[data-testid=structured-editor] p[data-sv-line]")[line];
+      const texts = [];
+      const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (!node.parentElement.closest(".sv-chord, .sv-chord-gap")) texts.push(node);
+      }
+      const at = (offset) => {
+        for (const node of texts) {
+          if (offset <= node.length) return [node, offset];
+          offset -= node.length;
+        }
+        const last = texts.at(-1);
+        return [last, last.length];
+      };
+      const [a, b] = [at(from), at(to)];
+      window.getSelection().setBaseAndExtent(a[0], a[1], b[0], b[1]);
+    },
+    [line, from, to],
+  );
+  await page.waitForTimeout(50);
+}
+
+/** A line's lyrics as shown, without its chords. */
+const lyrics = (line) =>
+  page.evaluate((line) => {
+    const p = document.querySelectorAll("[data-testid=structured-editor] p[data-sv-line]")[line];
+    let text = "";
+    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (!node.parentElement.closest(".sv-chord, .sv-chord-gap")) text += node.data;
+    }
+    return text;
+  }, line);
+
+/** The screen box of one lyric character. */
+async function charBox(line, offset) {
+  return page.evaluate(
+    ([line, offset]) => {
+      const p = document.querySelectorAll("[data-testid=structured-editor] p[data-sv-line]")[line];
+      const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (node.parentElement.closest(".sv-chord, .sv-chord-gap")) continue;
+        if (offset < node.length) {
+          const range = document.createRange();
+          range.setStart(node, offset);
+          range.setEnd(node, offset + 1);
+          const r = range.getBoundingClientRect();
+          return { x: r.left, y: r.top, width: r.width, height: r.height };
+        }
+        offset -= node.length;
+      }
+      return null;
+    },
+    [line, offset],
+  );
+}
+
+async function save() {
+  await page.getByRole("button", { name: "Save song" }).first().click();
+  await page.getByText("Saved.", { exact: true }).waitFor();
+  await page.waitForLoadState("networkidle");
+}
+
+async function openEditor() {
+  await page.goto(`${WEB}/library/${song.id}?tab=editor`);
+  await page.waitForLoadState("networkidle");
+  await editor().waitFor();
+}
+
+await step("chords sit over the characters they're pinned to", async () => {
+  await openEditor();
+  const [g7, s] = [await chip("G7").boundingBox(), await charBox(0, 18)];
+  if (Math.abs(g7.x + g7.width * 0 - s.x) > 4) throw new Error(`G7 chip at ${g7.x}, "s" at ${s.x}`);
+  if (g7.y + g7.height > s.y + 2) throw new Error("G7 isn't above its line");
+  await page.screenshot({ path: `${SP}/structured-editor.png`, fullPage: true });
+});
+
+await step("typing before a chord carries it along; typing after one doesn't", async () => {
+  await select(0, 18);
+  await page.keyboard.type("so ");
+  await select(1, 29);
+  await page.keyboard.type("!");
+  const text = await lyrics(0);
+  if (!text.includes("how so sweet")) throw new Error(text);
+});
+
+await step("deleting words that carry chords keeps the chords", async () => {
+  // "That [G]saved a [Em]wretch": G goes with "saved a " and comes back where it was cut, before Em.
+  await select(1, 5, 13);
+  await page.keyboard.press("Backspace");
+  await chip("G", 1).waitFor();
+  await chip("Em").waitFor();
+});
+
+await step("a chord moves one character at a time with the arrow keys", async () => {
+  await chip("C").click();
+  await page.getByTestId("chord-popover").waitFor();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("ArrowLeft");
+});
+
+await step("a chord is dragged onto another character, which lights up", async () => {
+  const from = await chip("D").boundingBox();
+  const target = await charBox(0, 0); // "A" of "Amazing"
+  const grab = { x: 3, y: from.height / 2 };
+  await page.mouse.move(from.x + grab.x, from.y + grab.y);
+  await page.mouse.down();
+  const to = { x: target.x + grab.x + 1, y: target.y - from.height + grab.y - 2 };
+  await page.mouse.move((from.x + to.x) / 2, (from.y + to.y) / 2, { steps: 5 });
+  await page.mouse.move(to.x, to.y, { steps: 5 });
+  await editor().locator(".sv-drop-target").waitFor();
+  await page.mouse.up();
+  if ((await editor().locator(".sv-drop-target").count()) !== 0) throw new Error("the drop highlight stayed");
+});
+
+await step("typing [Am] adds a chord; Enter splits a line and its chords go with their words", async () => {
+  await select(0, 0);
+  await page.keyboard.type("[Am]");
+  await chip("Am").waitFor();
+  const line = await lyrics(1);
+  if (!line.startsWith("That wretch like")) throw new Error(line);
+  await select(1, "That wretch ".length);
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(100);
+});
+
+await step("the popover changes a chord's symbol from the key's chords, and deletes one", async () => {
+  await chip("G7").click();
+  const popover = page.getByTestId("chord-popover");
+  await popover.getByRole("button", { name: /^Em/ }).click();
+  await chip("Em", 0).waitFor();
+  await chip("C", 1).click();
+  await popover.getByRole("button", { name: "Delete chord" }).click();
+  await popover.waitFor({ state: "hidden" });
+});
+
+await step("saving keeps every ID, and the edits are what was stored", async () => {
+  await save();
+  const doc = await stored();
+  const [before, after] = [original.sections[0], doc.sections[0]];
+  const first = after.lines[0];
+  if (first.text !== "Amazing grace how so sweet the sound") throw new Error(first.text);
+  // G7 became Em (same ID), moved with "sweet"; C nudged one right; D dragged to "A", Am typed there first.
+  const byId = Object.fromEntries(first.chords.map((c) => [c.id, c]));
+  const [g, g7, c] = before.lines[0].chords;
+  if (byId[g.id]?.at !== 0 || byId[g7.id]?.raw !== "Em" || byId[g7.id]?.at !== 21 || byId[c.id]?.at !== 32) throw new Error(chordsOf(first));
+  const d = before.lines[1].chords.find((chord) => chord.raw === "D");
+  if (byId[d.id]?.at !== 0) throw new Error(`D wasn't dragged to the start: ${chordsOf(first)}`);
+  if (!first.chords.some((chord) => chord.raw === "Am" && chord.at === 0)) throw new Error(chordsOf(first));
+  const [second, third] = [after.lines[1], after.lines[2]];
+  if (second.id !== before.lines[1].id || second.text !== "That wretch " || third.text !== "like me!") throw new Error(JSON.stringify(after.lines));
+  if (before.lines.some((line) => line.id === third.id)) throw new Error("the new line kept an old ID");
+  // The deleted words' chords are gathered where they were cut, in order; "me!" after "me" didn't move D (it was dragged).
+  if (chordsOf(second) !== `G@5 Em@5`) throw new Error(chordsOf(second));
+  if (second.chords[0].id !== before.lines[1].chords[0].id) throw new Error("G lost its ID");
+  // The chorus's C was deleted on purpose; G stays.
+  if (chordsOf(doc.sections[1].lines[0]) !== "G@14") throw new Error(chordsOf(doc.sections[1].lines[0]));
+  if (doc.sections.map((s) => s.id).join() !== original.sections.map((s) => s.id).join()) throw new Error("section IDs changed");
+});
+
+await step("undo takes back the last edit", async () => {
+  await openEditor();
+  await select(2, 0);
+  await page.keyboard.type("Oh ");
+  await page.keyboard.press("Control+z");
+  const text = await lyrics(2);
+  if (text.includes("Oh")) throw new Error(text);
+});
+
+await step("pasting a chart adds its sections; pasting words just types them", async () => {
+  const paste = (text) =>
+    editor().evaluate((el, text) => {
+      const data = new DataTransfer();
+      data.setData("text/plain", text);
+      el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, bubbles: true, cancelable: true }));
+    }, text);
+  await select(3, 1000);
+  await paste("{start_of_bridge}\n[Em]Through many [C]dangers\n{end_of_bridge}\n\n{start_of_tag}\n[G]Amen\n{comment: Softly [x2]}\n{end_of_tag}");
+  await chip("Em", 1).waitFor();
+  const pasted = await editor().locator("[data-section-type]").evaluateAll((els) => els.map((el) => el.dataset.sectionType).join());
+  if (pasted !== "verse,chorus,bridge,tag") throw new Error(`sections: ${pasted}`);
+  const note = await editor().locator('p[data-kind="note"]').innerText();
+  if (note !== "Softly [x2]") throw new Error(`the comment isn't a note line: ${note}`);
+  await select(0, 0);
+  await paste("Oh ");
+  const text = await lyrics(0);
+  if (!text.includes("Oh Amazing")) throw new Error(text);
+});
+
+await step("a section can be retyped, relabelled, duplicated and deleted", async () => {
+  const bridge = editor().locator('[data-section-type="bridge"]');
+  await bridge.getByLabel("Section label").fill("Bridge A");
+  await bridge.getByRole("button", { name: /actions$/ }).click();
+  await page.getByRole("menuitem", { name: "Duplicate" }).click();
+  if ((await editor().locator('[data-section-type="bridge"]').count()) !== 2) throw new Error("not duplicated");
+  const copy = editor().locator('[data-section-type="bridge"]').nth(1);
+  await copy.getByLabel("Section type").selectOption("outro");
+  await editor().locator('[data-section-type="outro"]').waitFor();
+  await editor().locator('[data-section-type="tag"]').getByRole("button", { name: /actions$/ }).click();
+  await page.getByRole("menuitem", { name: "Delete section" }).click();
+  await save();
+  const doc = await stored();
+  const types = doc.sections.map((s) => s.type).join();
+  if (types !== "verse,chorus,bridge,outro") throw new Error(types);
+  const [bridgeSection, outro] = [doc.sections[2], doc.sections[3]];
+  if (bridgeSection.label !== "Bridge A" || outro.id === bridgeSection.id || outro.lines[0].id === bridgeSection.lines[0].id) throw new Error(JSON.stringify(doc.sections.slice(2)));
+  if (outro.lines[0].chords[0].id === bridgeSection.lines[0].chords[0].id) throw new Error("the copy shares chord IDs");
+  if (doc.sections.some((section) => section.type === "tag")) throw new Error("the tag wasn't deleted");
+  if (doc.flow.map((item) => item.sectionId).join() !== doc.sections.map((s) => s.id).join()) throw new Error("flow doesn't follow the sections");
+});
+
+await step("text mode edits the chart as ChordPro; IDs survive the way back", async () => {
+  const before = await stored();
+  await page.getByRole("radio", { name: "Text" }).click();
+  const box = page.getByTestId("structured-editor-text");
+  const text = await box.inputValue();
+  if (!text.includes("{start_of_chorus}")) throw new Error(text);
+  await box.fill(text.replace("[G]gone", "[D]gone"));
+  await page.getByRole("radio", { name: "Visual" }).click();
+  await chip("D").waitFor();
+  await save();
+  const doc = await stored();
+  const [was, now] = [lineOf(before, 1, 0), lineOf(doc, 1, 0)];
+  if (now.id !== was.id || now.chords[0].id !== was.chords[0].id || now.chords[0].raw !== "D") throw new Error(JSON.stringify({ was, now }));
+});
+
+await step("transposing moves every chord and the key", async () => {
+  await page.getByRole("button", { name: "Transpose up a semitone" }).click();
+  await chip("Eb").waitFor();
+  const key = await page.getByRole("combobox", { name: "Key", exact: true }).inputValue();
+  if (key !== "Ab") throw new Error(key);
+  await page.getByRole("button", { name: "Transpose down a semitone" }).click();
+  await chip("D").waitFor();
+});
+
+await step("on a phone: the palette scrolls sideways, a tapped chord opens its details", async () => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openEditor();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) throw new Error(`${overflow}px sideways scroll`);
+  await chip("Em").click();
+  const popover = await page.getByTestId("chord-popover").boundingBox();
+  if (popover.x < 0 || popover.x + popover.width > 390) throw new Error(`popover off screen: ${JSON.stringify(popover)}`);
+  await page.screenshot({ path: `${SP}/structured-editor-phone.png`, fullPage: true });
+});
+
+await step("no page errors", async () => {
+  if (errors.length) throw new Error(errors.join("\n"));
+});
+
+await browser.close();
+finish();

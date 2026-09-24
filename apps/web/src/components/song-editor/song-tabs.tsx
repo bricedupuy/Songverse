@@ -1,20 +1,17 @@
 import {
-  sectionsFromText,
   type Attachment,
   type AttachmentType,
   type MusicBrainzWorkMatch,
   type SongVersionDetail,
   type StorageUsage,
   type StreamingLinkType,
-  type SupportedImportFormat,
 } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
 import { Download, FileAudio, Play, Trash2, Upload } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AttachmentThumbnail } from "#/components/attachment-thumbnail";
 import { MusicBrainzMatchPanel } from "#/components/musicbrainz-match-panel";
-import { SongChart } from "#/components/song-chart";
 import { StreamingLinkRow } from "#/components/streaming-link-row";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -23,58 +20,7 @@ import { cn } from "#/lib/utils";
 import { attachmentTypeFor } from "./attachment-types";
 import { downloadBlob } from "#/lib/download";
 import { formatBytes } from "#/lib/format-bytes";
-import { ContentTextarea, FormatToggle } from "./song-content";
-import { effectiveFormat } from "./song-form";
 import { NativeSelect } from "#/components/ui/native-select";
-
-/** Source on one side, the chart as it'll show on the other (stacked on a phone). */
-export function EditorTab({
-  content,
-  format,
-  onContentChange,
-  onFormatChange,
-  readOnly,
-}: {
-  content: string;
-  format: SupportedImportFormat | null;
-  onContentChange: (content: string) => void;
-  onFormatChange: (format: SupportedImportFormat | null) => void;
-  readOnly: boolean;
-}) {
-  const { t } = useTranslation();
-  const sections = useMemo(() => {
-    try {
-      return sectionsFromText(content, effectiveFormat({ content, contentFormat: format }));
-    } catch {
-      return [];
-    }
-  }, [content, format]);
-
-  return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      {readOnly ? null : (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("songEditor.source")}</CardTitle>
-            <CardDescription>{t("songEditor.sourceDescription")}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <ContentTextarea id="song-editor-content" content={content} format={format} onChange={onContentChange} rows={24} />
-            <FormatToggle content={content} format={format} onChange={onFormatChange} />
-          </CardContent>
-        </Card>
-      )}
-      <Card className={cn(readOnly && "lg:col-span-2")}>
-        <CardHeader>
-          <CardTitle>{t("songEditor.preview")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SongChart sections={sections} emptyText={t("songEditor.previewEmpty")} />
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 export function SaveFirst() {
   const { t } = useTranslation();

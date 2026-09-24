@@ -1,4 +1,4 @@
-import type { SectionType, SupportedImportFormat } from "../constants/index.js";
+import type { SupportedImportFormat } from "../constants/index.js";
 import { parseSongText } from "../import-detection/detect-format.js";
 import { parseSongDocument } from "../schemas/song-document.js";
 import { sectionsV1ToV2, songDocumentV1ToV2 } from "../schemas/song-document-v1-to-v2.js";
@@ -10,9 +10,36 @@ import {
 } from "../schemas/song-document-v2.js";
 import { reconcileFlow, reconcileSections } from "./reconcile.js";
 
+// A ChordPro comment ("{comment: x2}") is a note line for the band. The v1
+// parser has no notes, so each goes through it marked, with its brackets
+// hidden so they aren't read as chords, and is turned back afterwards.
+const COMMENT_LINE = /^\s*\{\s*(?:comment|c|comment_italic|ci|comment_box|cb)\s*:\s*(.*?)\s*\}\s*$/i;
+const NOTE_MARK = "\u2063note\u2063";
+const OPEN = "\uE000";
+const CLOSE = "\uE001";
+
 /** Pasted or typed text (ChordPro, chords over lyrics, plain lyrics) as v2 sections, with fresh IDs. */
 export function sectionsFromText(text: string, format: SupportedImportFormat): SectionV2[] {
-  return text.trim() ? sectionsV1ToV2(parseSongText(text, format)) : [];
+  if (!text.trim()) return [];
+  const marked =
+    format === "CHORDPRO"
+      ? text
+          .split(/\r\n|\r|\n/)
+          .map((line) => {
+            const comment = COMMENT_LINE.exec(line);
+            return comment ? NOTE_MARK + comment[1]!.replaceAll("[", OPEN).replaceAll("]", CLOSE) : line;
+          })
+          .join("\n")
+      : text;
+  const sections = sectionsV1ToV2(parseSongText(marked, format));
+  for (const section of sections) {
+    section.lines = section.lines.map((line) =>
+      line.text.startsWith(NOTE_MARK)
+        ? { ...line, kind: "note", text: line.text.slice(NOTE_MARK.length).replaceAll(OPEN, "[").replaceAll(CLOSE, "]"), chords: [] }
+        : line,
+    );
+  }
+  return sections;
 }
 
 /**
@@ -67,20 +94,6 @@ export function readSongDocument(json: unknown): SongDocumentV2 {
   return parseSongDocumentV2(json);
 }
 
-// ChordPro's own section environments; other types get a plain label line.
-const SECTION_DIRECTIVES: Partial<Record<SectionType, [start: string, end: string]>> = {
-  verse: ["start_of_verse", "end_of_verse"],
-  chorus: ["start_of_chorus", "end_of_chorus"],
-  bridge: ["start_of_bridge", "end_of_bridge"],
-  instrumental: ["start_of_tab", "end_of_tab"],
-};
-
-function titleCase(type: string): string {
-  return type
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join("-");
-}
 
 /** A line with its chords inline: "[G]Amazing grace how [G7]sweet". */
 export function lineToInlineText(line: SectionV2["lines"][number]): string {
@@ -97,21 +110,17 @@ export function lineToInlineText(line: SectionV2["lines"][number]): string {
 /**
  * The chart as ChordPro, without the song's details: what the song editor
  * shows as text, and the body of a ChordPro export. Each section once, in
- * stored order.
+ * stored order. sectionsFromText() reads it back to the same sections
+ * (with new IDs).
  */
 export function sectionsToChordPro(sections: SectionV2[]): string {
   const lines: string[] = [];
   for (const section of sections) {
-    const directive = SECTION_DIRECTIVES[section.type];
-    if (directive) {
-      lines.push(section.label ? `{${directive[0]}: ${section.label}}` : `{${directive[0]}}`);
-    } else {
-      const label = section.label ?? (section.type !== "other" ? titleCase(section.type) : null);
-      if (label) lines.push(label);
-    }
+    // Every section as a {start_of_x} environment (ChordPro 6 allows any name), so its type and label read back.
+    const environment = section.type.replace(/-/g, "_");
+    lines.push(section.label ? `{start_of_${environment}: ${section.label}}` : `{start_of_${environment}}`);
     for (const line of section.lines) lines.push(lineToInlineText(line));
-    if (directive) lines.push(`{${directive[1]}}`);
-    lines.push("");
+    lines.push(`{end_of_${environment}}`, "");
   }
   const text = lines.join("\n").trimEnd();
   return text ? text + "\n" : "";

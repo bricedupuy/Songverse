@@ -51,12 +51,12 @@ await step("chart section headings follow the reader's language", async () => {
   await signIn(page, reader);
   await page.goto(`${WEB}/library/${song.id}?tab=editor`);
   await page.waitForLoadState("networkidle");
-  await page.getByText("Chorus", { exact: true }).waitFor();
+  await page.getByText("Chorus", { exact: true }).first().waitFor();
   await api(reader, "PATCH", "/users/me", { locale: "fr" });
   await page.reload();
   await page.waitForLoadState("networkidle");
-  await page.getByText("Refrain", { exact: true }).waitFor();
-  await page.getByText("Couplet", { exact: true }).waitFor();
+  await page.getByText("Refrain", { exact: true }).first().waitFor();
+  await page.getByText("Couplet", { exact: true }).first().waitFor();
 });
 
 await browser.close();

@@ -27,6 +27,7 @@ const box = (locator) => locator.boundingBox();
 await step("chords sit above their characters, close ones pushed apart", async () => {
   await page.goto(`${WEB}/library/${song.id}?tab=editor`);
   await page.waitForLoadState("networkidle");
+  await page.getByRole("radio", { name: "Preview" }).click();
   const g = page.locator('[data-chord="Gmaj7"]').first();
   const dfs = page.locator('[data-chord="D/F#"]').first();
   await dfs.waitFor();

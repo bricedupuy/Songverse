@@ -1,7 +1,6 @@
 import {
   ISO_639_1_CODES,
   getLanguageDisplayName,
-  sectionsFromText,
   songToChordPro,
   type Attachment,
   type MusicBrainzRecordingMatch,
@@ -25,7 +24,6 @@ import { apiClient } from "#/lib/api-client";
 import { attachmentTypeFor, isPdf } from "./attachment-types";
 import { SongContentCard, type SourceFile } from "./song-content";
 import {
-  effectiveFormat,
   emptyForm,
   fillFrom,
   formFromVersion,
@@ -33,11 +31,14 @@ import {
   toCreateInput,
   toUpdateInput,
   validate,
+  withContent,
+  withSections,
   type SongForm,
 } from "./song-form";
 import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, SongbooksCard } from "./song-info";
 import { PublishCard } from "./publish-card";
-import { AttachmentsTab, EditorTab, LinksTab, SaveFirst } from "./song-tabs";
+import { AttachmentsTab, LinksTab, SaveFirst } from "./song-tabs";
+import { StructuredEditor } from "./structured/structured-editor";
 import { downloadBlob } from "#/lib/download";
 
 export const SONG_TABS = ["info", "editor", "files", "audio", "links"] as const;
@@ -116,7 +117,11 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   });
 
   function setField<K extends keyof SongForm>(field: K, value: SongForm[K]) {
-    setForm((current) => ({ ...current, [field]: value }));
+    updateForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updateForm(change: (current: SongForm) => SongForm) {
+    setForm(change);
     setMessage(null);
   }
 
@@ -203,7 +208,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           ? { numerator: Number(form.timeSignature.split("/")[0]), denominator: Number(form.timeSignature.split("/")[1]) }
           : null,
       },
-      sections: sectionsFromText(form.content, effectiveFormat(form)),
+      sections: form.sections,
       flow: [],
     };
     const file = songToChordPro(doc, {
@@ -347,8 +352,8 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
                 <SongContentCard
                   content={form.content}
                   format={form.contentFormat}
-                  onContentChange={(content) => setField("content", content)}
-                  onFormatChange={(format) => setField("contentFormat", format)}
+                  onContentChange={(content) => updateForm((current) => withContent(current, content, current.contentFormat))}
+                  onFormatChange={(format) => updateForm((current) => withContent(current, current.content, format))}
                   sourceFile={sourceFile}
                   onSourceFile={setSourceFile}
                 />
@@ -472,11 +477,11 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         <TabsContent value="info">{songInfo}</TabsContent>
         <TabsContent value="editor">
           <fieldset disabled={saving} className="min-w-0">
-            <EditorTab
-              content={form.content}
-              format={form.contentFormat}
-              onContentChange={(content) => setField("content", content)}
-              onFormatChange={(format) => setField("contentFormat", format)}
+            <StructuredEditor
+              sections={form.sections}
+              onChange={(sections) => updateForm((current) => withSections(current, sections))}
+              songKey={form.key}
+              onSongKeyChange={(key) => setField("key", key)}
               readOnly={!canEdit}
             />
           </fieldset>

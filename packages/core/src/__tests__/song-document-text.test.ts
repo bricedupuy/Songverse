@@ -41,11 +41,22 @@ describe("text <-> v2", () => {
     expect(sectionsToChordPro(doc.sections)).toBe(SONG);
   });
 
-  it("writes types without a ChordPro environment as a label line, and reads them back", () => {
-    const text = "Pre-Chorus\n[Am]So I lift my [F]eyes\n\nTag\n[G]Amen\n";
-    const sections = sectionsFromText(text, "CHORDPRO");
+  it("reads label lines, and writes every section as an environment that reads back the same", () => {
+    const sections = sectionsFromText("Pre-Chorus\n[Am]So I lift my [F]eyes\n\nTag\n[G]Amen\n", "CHORDPRO");
     expect(sections.map((s) => s.type)).toEqual(["pre-chorus", "tag"]);
-    expect(sectionsToChordPro(sections)).toBe(text);
+    const text = sectionsToChordPro(sections);
+    expect(text).toBe("{start_of_pre_chorus: Pre-Chorus}\n[Am]So I lift my [F]eyes\n{end_of_pre_chorus}\n\n{start_of_tag: Tag}\n[G]Amen\n{end_of_tag}\n");
+    const back = sectionsFromText(text, "CHORDPRO");
+    expect(back.map((s) => [s.type, s.label, s.lines.map((l) => l.text)])).toEqual(sections.map((s) => [s.type, s.label, s.lines.map((l) => l.text)]));
+  });
+
+  it("reads a comment as a note line, brackets and all, and writes it back", () => {
+    const text = "{start_of_outro: Ending}\n[G]Amen\n{comment: Softly [x2]}\n{end_of_outro}\n";
+    const [outro] = sectionsFromText(text, "CHORDPRO");
+    expect(outro!.type).toBe("outro");
+    expect(outro!.label).toBe("Ending");
+    expect(outro!.lines[1]).toMatchObject({ kind: "note", text: "Softly [x2]", chords: [] });
+    expect(sectionsToChordPro([outro!])).toBe(text);
   });
 
   it("writes a ChordPro file with the song's details from the columns", () => {

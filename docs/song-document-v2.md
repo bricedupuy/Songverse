@@ -15,8 +15,9 @@ and out (export). None of them is how a song is stored.
 |---|---|
 | Schemas, chord reader, v1→v2 converter, Morning Light examples | Done, in `@songverse/core`, with tests |
 | Songs stored as v2: saving with `revision`, IDs kept through text edits, ChordPro export from the columns, chords-above-lyrics rendering | Done |
-| Structured editor (the rules below) | Next |
-| ChordPro `{comment}` / `{chorus}` import (note lines, repeats in `flow`) | With the editor |
+| Structured editor (the rules below), with text mode and paste | Done: `apps/web/src/components/song-editor/structured/`, covered by `e2e/web/structured-editor.test.mjs` |
+| ChordPro `{comment}` as note lines; every section type as a `{start_of_x}` environment | Done |
+| ChordPro `{chorus}` (a repeat in `flow`); editing `flow` in the editor | Next |
 
 Songs saved before v2 are converted as they're read and written back by
 the API at startup (`SongDocumentUpgradeService`). Until arrangements
@@ -217,8 +218,11 @@ and (later) annotations all refer to them.
 
 ## Saving
 
-- The editor sends the whole document along with the `revision` it
-  started from. The server rejects the save if the stored revision is
+- The editor sends its `sections` (IDs and all) along with the `revision`
+  it started from (`PATCH /song-versions/:id` with `sections`;
+  `songDocumentFromSections()` builds the new document and moves the flow
+  along with added and deleted sections). Text sent as `content` is
+  reconciled instead (`songDocumentFromText()`). The server rejects the save if the stored revision is
   newer (another tab or another admin saved in between), so nothing is
   silently overwritten. Otherwise it stores the document with
   `revision + 1`.
@@ -235,9 +239,24 @@ The editor is a structured editor built on ProseMirror/Tiptap:
 - Saving converts that to this format. Loading converts it back.
 
 **Moving a chord.** Drag it to another character, which is highlighted while
-dragging. Or select it and use ← / → to move it one character at a time,
-which also works for keyboard and screen-reader users. Long-press to drag
-on a phone. Only `at` changes.
+dragging, with a caret where it will land. Or select it (click or tap) and
+use ← / → to move it one character at a time, which also works for
+keyboard and screen-reader users. A drag works the same with a mouse, a
+pen or a finger (the chip doesn't scroll the page). Only `at` changes.
+
+**Adding and changing chords.** Type `[G]` in the lyrics (anything
+`parseChord` can't read, like `[x2]`, stays text), or click a chord in the
+palette - the key's seven chords with their degrees, and the song's own -
+to add it at the cursor, or drag it onto a character. A selected chord
+shows its details under it: its symbol to edit, its degree in the key,
+the key's chords and variations of its root to swap to, ← / → and
+Delete. Delete or Backspace on a selected chord removes it; that's the
+only way a chord is removed (besides deleting its whole line or section).
+
+**Transposing** the song moves every chord and the key by a semitone,
+spelled for the new key, as one undoable step. Hiding a chord belongs to an
+arrangement or a player's own view, not the song, so the song editor has
+no "Hide".
 
 **Editing lyrics** is ordinary text editing. Chords stay with the characters
 around them: typing before a chord moves it along, and typing after it
@@ -251,6 +270,9 @@ doesn't.
   ID.
 - **Joining two lines** keeps the first line's ID. The second line's chords
   move into it, keeping their IDs.
+- Backspace or Delete right beside a chord removes the character beyond it,
+  never the chord.
+- Deleting whole lines (or a section) deletes their chords with them.
 
 **Pasting** is detected with the import detector (`detectImportFormat`):
 
@@ -260,8 +282,11 @@ doesn't.
   section headings or blank-line-separated blocks.
 - Pasted chords get new IDs.
 
-**Text mode** (for developers and tricky fixes) shows a section as inline
-text: `[G]Amazing grace how [G7]sweet the [C]sound`.
+**Text mode** (for developers and tricky fixes) shows the chart as
+ChordPro: each section a `{start_of_x: label}` environment, lines as inline
+text (`[G]Amazing grace how [G7]sweet the [C]sound`), notes as
+`{comment: …}`. It reads back to the same sections. Preview shows the chart
+as players see it.
 
 - Switching back parses it and keeps IDs by matching:
   - lines to their previous version by position, then by the most similar
@@ -273,7 +298,7 @@ text: `[G]Amazing grace how [G7]sweet the [C]sound`.
 
 | Format | In | Out |
 |---|---|---|
-| ChordPro | `{start_of_x}` sections, `[C]` chords, `{comment}` → note line, `{chorus}` → the chorus again in `flow` | Sections, chords inline, notes as `{comment}`; title, key, tempo and CCLI from the columns plus `defaults` |
+| ChordPro | `{start_of_x}` sections, `[C]` chords, `{comment}` → note line, `{chorus}` → the chorus again in `flow` (planned) | Sections, chords inline, notes as `{comment}`; title, key, tempo and CCLI from the columns plus `defaults` |
 | Chords over lyrics | Chord columns pinned to the character below | The same layout |
 | Plain lyrics | Blank lines and "Verse"/"Chorus" labels split sections | Lyrics only |
 | LRC | Line timings as anchors (planned) | Planned |
