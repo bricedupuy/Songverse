@@ -6,6 +6,7 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { ConfirmButton } from "#/components/confirm-button";
 
 export const Route = createFileRoute("/_protected/admin/auth")({
   loader: () => apiClient.adminGetAuthConfig(),
@@ -30,14 +31,12 @@ function AdminAuthPage() {
   const [savingEmail, setSavingEmail] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [clearingEmail, setClearingEmail] = useState(false);
-  const [confirmingClearEmail, setConfirmingClearEmail] = useState(false);
 
   const [googleClientId, setGoogleClientId] = useState(summary.googleClientId ?? "");
   const [googleClientSecret, setGoogleClientSecret] = useState("");
   const [savingGoogle, setSavingGoogle] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [clearingGoogle, setClearingGoogle] = useState(false);
-  const [confirmingClearGoogle, setConfirmingClearGoogle] = useState(false);
 
   async function saveEmail() {
     setSavingEmail(true);
@@ -66,7 +65,6 @@ function AdminAuthPage() {
       setEmailError(err instanceof Error ? err.message : String(err));
     } finally {
       setClearingEmail(false);
-      setConfirmingClearEmail(false);
     }
   }
 
@@ -97,7 +95,6 @@ function AdminAuthPage() {
       setGoogleError(err instanceof Error ? err.message : String(err));
     } finally {
       setClearingGoogle(false);
-      setConfirmingClearGoogle(false);
     }
   }
 
@@ -148,20 +145,14 @@ function AdminAuthPage() {
               {savingEmail ? t("admin.authSaving") : t("admin.authSaveConfig")}
             </Button>
             {summary.hasDatabaseResendKey ? (
-              confirmingClearEmail ? (
-                <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" onClick={() => void clearEmail()} disabled={clearingEmail}>
-                    {clearingEmail ? t("admin.authClearing") : t("admin.authConfirmClear")}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setConfirmingClearEmail(false)} disabled={clearingEmail}>
-                    {t("admin.cancel")}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setConfirmingClearEmail(true)}>
-                  {t("admin.authClearConfig")}
-                </Button>
-              )
+              <ConfirmButton
+                label={t("admin.authClearConfig")}
+                confirmLabel={t("admin.authConfirmClear")}
+                busyLabel={t("admin.authClearing")}
+                cancelLabel={t("admin.cancel")}
+                busy={clearingEmail}
+                onConfirm={clearEmail}
+              />
             ) : null}
           </div>
         </CardContent>
@@ -202,20 +193,14 @@ function AdminAuthPage() {
               {savingGoogle ? t("admin.authSaving") : t("admin.authSaveConfig")}
             </Button>
             {summary.hasDatabaseGoogleSecret ? (
-              confirmingClearGoogle ? (
-                <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" onClick={() => void clearGoogle()} disabled={clearingGoogle}>
-                    {clearingGoogle ? t("admin.authClearing") : t("admin.authConfirmClear")}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setConfirmingClearGoogle(false)} disabled={clearingGoogle}>
-                    {t("admin.cancel")}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setConfirmingClearGoogle(true)}>
-                  {t("admin.authClearConfig")}
-                </Button>
-              )
+              <ConfirmButton
+                label={t("admin.authClearConfig")}
+                confirmLabel={t("admin.authConfirmClear")}
+                busyLabel={t("admin.authClearing")}
+                cancelLabel={t("admin.cancel")}
+                busy={clearingGoogle}
+                onConfirm={clearGoogle}
+              />
             ) : null}
           </div>
         </CardContent>

@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/com
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { initials } from "#/lib/initials";
+import { NativeSelect } from "#/components/ui/native-select";
 
 // Only guards what the browser has to decode for cropping; what's uploaded
 // is the cropped result, at most 512x512.
@@ -329,19 +330,19 @@ export function LanguageCard({ locale }: { locale: string }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-1.5">
         <Label htmlFor="locale">{t("dashboard.languageDescription")}</Label>
-        <select
+        <NativeSelect
           id="locale"
           value={locale}
           disabled={saving}
           onChange={(e) => void changeLocale(e.target.value as LocaleValue)}
-          className="h-9 w-full max-w-xs rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+          className="w-full max-w-xs"
         >
           {SUPPORTED_LOCALES.map((option) => (
             <option key={option} value={option}>
               {LOCALE_NAMES[option]}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </CardContent>
     </Card>
   );

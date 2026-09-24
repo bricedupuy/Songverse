@@ -8,6 +8,7 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { ConfirmButton } from "#/components/confirm-button";
 
 export const Route = createFileRoute("/_protected/admin/storage")({
   loader: async () => {
@@ -34,7 +35,6 @@ function AdminStoragePage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
-  const [confirmingClear, setConfirmingClear] = useState(false);
 
   async function saveConfig() {
     setSaving(true);
@@ -69,7 +69,6 @@ function AdminStoragePage() {
       setSaveError(err instanceof Error ? err.message : String(err));
     } finally {
       setClearing(false);
-      setConfirmingClear(false);
     }
   }
 
@@ -172,20 +171,14 @@ function AdminStoragePage() {
               {saving ? t("admin.storageSaving") : t("admin.storageSaveConfig")}
             </Button>
             {config.hasDatabaseConfig ? (
-              confirmingClear ? (
-                <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" onClick={() => void clearConfig()} disabled={clearing}>
-                    {clearing ? t("admin.storageClearing") : t("admin.storageConfirmClear")}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setConfirmingClear(false)} disabled={clearing}>
-                    {t("admin.cancel")}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setConfirmingClear(true)}>
-                  {t("admin.storageClearConfig")}
-                </Button>
-              )
+              <ConfirmButton
+                label={t("admin.storageClearConfig")}
+                confirmLabel={t("admin.storageConfirmClear")}
+                busyLabel={t("admin.storageClearing")}
+                cancelLabel={t("admin.cancel")}
+                busy={clearing}
+                onConfirm={clearConfig}
+              />
             ) : null}
           </div>
         </CardContent>

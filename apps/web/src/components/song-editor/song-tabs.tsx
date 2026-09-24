@@ -20,10 +20,12 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
 import { cn } from "#/lib/utils";
-import { attachmentTypeFor, formatBytes } from "./attachment-types";
+import { attachmentTypeFor } from "./attachment-types";
+import { downloadBlob } from "#/lib/download";
+import { formatBytes } from "#/lib/format-bytes";
 import { ContentTextarea, FormatToggle } from "./song-content";
 import { effectiveFormat } from "./song-form";
-import { SELECT_CLASS } from "./song-info";
+import { NativeSelect } from "#/components/ui/native-select";
 
 /** Source on one side, the chart as it'll show on the other (stacked on a phone). */
 export function EditorTab({
@@ -178,12 +180,7 @@ export function AttachmentsTab({
     setError(null);
     try {
       const blob = await apiClient.downloadAttachment(songVersionId, attachment.id);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = attachment.filename;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, attachment.filename);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -314,14 +311,14 @@ export function AttachmentsTab({
               {kind === "files" ? (
                 <label className="flex items-center gap-2 text-sm">
                   {t("songEditor.fileType")}
-                  <select value={type} onChange={(event) => setType(event.target.value as AttachmentType | "AUTO")} className={cn(SELECT_CLASS, "w-auto")}>
+                  <NativeSelect value={type} onChange={(event) => setType(event.target.value as AttachmentType | "AUTO")}>
                     <option value="AUTO">{t("songEditor.fileTypeAuto")}</option>
                     {FILE_TYPES.map((option) => (
                       <option key={option} value={option}>
                         {t(`songEditor.fileTypes.${option}`)}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </label>
               ) : (
                 <span />

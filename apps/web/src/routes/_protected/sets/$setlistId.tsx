@@ -13,6 +13,7 @@ import { formatSetDate, setOwnerLabel, setlistTitle } from "#/lib/setlists";
 import { AddSongs } from "./-add-songs";
 import { SetSongList } from "./-set-song-list";
 import { ShareCard } from "./-share-card";
+import { NativeSelect } from "#/components/ui/native-select";
 
 export const Route = createFileRoute("/_protected/sets/$setlistId")({
   // Null when the set doesn't exist or isn't visible to this user (the API
@@ -207,9 +208,6 @@ function LeaveSetButton({ setlistId }: { setlistId: string }) {
   );
 }
 
-const SELECT_CLASS =
-  "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50";
-
 /** Moves the set to a team the user admins, or makes it their personal set - after a confirm step. */
 function OwnerField({
   set,
@@ -249,14 +247,14 @@ function OwnerField({
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor="set-owner">{t("sets.ownerLabel")}</Label>
-      <select id="set-owner" value={set.teamId ?? ""} onChange={(event) => setTarget(event.target.value)} className={SELECT_CLASS}>
+      <NativeSelect id="set-owner" value={set.teamId ?? ""} onChange={(event) => setTarget(event.target.value)} className="w-full">
         <option value="">{t("sets.ownerPersonal")}</option>
         {options.map((team) => (
           <option key={team.id} value={team.id}>
             {team.name}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <Dialog open={target !== null} onOpenChange={(open) => !pending && !open && setTarget(null)}>
         <DialogContent>
           <DialogHeader>

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { initials } from "#/lib/initials";
+import { artistNames } from "#/lib/artists";
 import { EmailCard, LanguageCard, PasskeysCard, ProfileCard, StorageCard } from "./-dashboard/account-cards";
 import { OwnershipRequestsCard } from "./-dashboard/ownership-requests-card";
 import { RolesCard } from "./-dashboard/roles-card";
@@ -25,11 +26,6 @@ export const Route = createFileRoute("/_protected/dashboard")({
   },
   component: Dashboard,
 });
-
-function artistLabel(artists: { userId: string | null; source: string | null }[]): string | null {
-  if (artists.length === 0) return null;
-  return artists.map((a) => a.source ?? a.userId ?? "Unknown artist").join(", ");
-}
 
 function Dashboard() {
   const { t } = useTranslation();
@@ -125,8 +121,8 @@ function Dashboard() {
                           {version.title}
                           {version.versionName ? <span className="font-normal text-muted-foreground"> — {version.versionName}</span> : null}
                         </p>
-                        {artistLabel(version.artists) ? (
-                          <p className="text-sm text-muted-foreground">{artistLabel(version.artists)}</p>
+                        {artistNames(version.artists) ? (
+                          <p className="text-sm text-muted-foreground">{artistNames(version.artists)}</p>
                         ) : null}
                       </div>
                       <span className="text-xs whitespace-nowrap text-muted-foreground">

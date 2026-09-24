@@ -14,6 +14,8 @@ import { Textarea } from "#/components/ui/textarea";
 import { downloadBlob } from "#/lib/download";
 import { CatalogEntriesTable } from "./-catalog-entries-table";
 import { CatalogImportDialog } from "./-catalog-import-dialog";
+import { NativeSelect } from "#/components/ui/native-select";
+import { ConfirmButton } from "#/components/confirm-button";
 
 export const Route = createFileRoute("/_protected/songbook-catalogs/$catalogId")({
   // `q` pre-fills the entries search, e.g. from another entry's "Original song" link.
@@ -59,7 +61,6 @@ function SongbookCatalogDetail() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [deleting, setDeleting] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const [importOpen, setImportOpen] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
@@ -95,7 +96,6 @@ function SongbookCatalogDetail() {
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : String(err));
       setDeleting(false);
-      setConfirmingDelete(false);
     }
   }
 
@@ -186,10 +186,9 @@ function SongbookCatalogDetail() {
         <CardContent className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">{t("songbookCatalog.importDescription")}</p>
           <div className="flex flex-wrap items-center gap-2">
-            <select
+            <NativeSelect
               value={importOwnership}
               onChange={(e) => setImportOwnership(e.target.value as Ownership)}
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <option value="personal">{t("songbooks.personal")}</option>
               {teams.map((team) => (
@@ -198,7 +197,7 @@ function SongbookCatalogDetail() {
                 </option>
               ))}
               {session.isGlobalAdmin ? <option value="global">{t("songbooks.global")}</option> : null}
-            </select>
+            </NativeSelect>
             <Button onClick={() => void startImport()} disabled={startingImport}>
               {startingImport ? t("songbookCatalog.startingImport") : t("songbookCatalog.startImport")}
             </Button>
@@ -282,20 +281,14 @@ function SongbookCatalogDetail() {
               <Button onClick={() => void save()} disabled={saving || !name.trim()}>
                 {saving ? t("songbookCatalog.saving") : t("songbookCatalog.save")}
               </Button>
-              {confirmingDelete ? (
-                <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" onClick={() => void remove()} disabled={deleting}>
-                    {deleting ? t("songbookCatalog.deleting") : t("songbookCatalog.confirmDelete")}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
-                    {t("songbookCatalog.cancel")}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(true)}>
-                  {t("songbookCatalog.deleteCatalog")}
-                </Button>
-              )}
+              <ConfirmButton
+                label={t("songbookCatalog.deleteCatalog")}
+                confirmLabel={t("songbookCatalog.confirmDelete")}
+                busyLabel={t("songbookCatalog.deleting")}
+                cancelLabel={t("songbookCatalog.cancel")}
+                busy={deleting}
+                onConfirm={remove}
+              />
             </div>
           ) : null}
         </CardContent>

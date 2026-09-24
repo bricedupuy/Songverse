@@ -16,9 +16,7 @@ import { useTranslation } from "react-i18next";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { transposeLabel } from "#/lib/setlists";
-
-const SELECT_CLASS =
-  "h-8 rounded-md border border-input bg-transparent px-2 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50";
+import { NativeSelect } from "#/components/ui/native-select";
 
 /** Handing shared personal songs over to a team set's team (see SongOwnershipService in the API). */
 export interface OwnershipActions {
@@ -142,33 +140,35 @@ function SongRow({
       </div>
 
       {song && canEdit && item.versions.length > 1 ? (
-        <select
+        <NativeSelect
           aria-label={t("sets.version")}
           value={song.id}
           onChange={(event) => onChange({ songVersionId: event.target.value })}
-          className={`${SELECT_CLASS} max-w-56`}
+          compact
+          className="max-w-56 text-sm"
         >
           {item.versions.map((version) => (
             <option key={version.id} value={version.id}>
               {version.versionName ? `${version.title} — ${version.versionName}` : version.title} · {scopeLabel(version, t)}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       ) : null}
 
       {song && canEdit ? (
-        <select
+        <NativeSelect
           aria-label={t("sets.key")}
           value={item.transposeSteps}
           onChange={(event) => onChange({ transposeSteps: Number(event.target.value) })}
-          className={SELECT_CLASS}
+          compact
+          className="text-sm"
         >
           {TRANSPOSE_STEP_OPTIONS.map((steps) => (
             <option key={steps} value={steps}>
               {transposeLabel(song.key, steps, t)}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       ) : song ? (
         <span className="text-sm text-muted-foreground">{transposeLabel(song.key, item.transposeSteps, t)}</span>
       ) : null}

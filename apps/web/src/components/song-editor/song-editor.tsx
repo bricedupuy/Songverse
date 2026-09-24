@@ -22,7 +22,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { apiClient } from "#/lib/api-client";
-import { attachmentTypeFor } from "./attachment-types";
+import { attachmentTypeFor, isPdf } from "./attachment-types";
 import { SongContentCard, type SourceFile } from "./song-content";
 import {
   effectiveFormat,
@@ -37,6 +37,7 @@ import {
 } from "./song-form";
 import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, SongbooksCard } from "./song-info";
 import { AttachmentsTab, EditorTab, LinksTab, SaveFirst } from "./song-tabs";
+import { downloadBlob } from "#/lib/download";
 
 export const SONG_TABS = ["info", "editor", "files", "audio", "links"] as const;
 export type SongTab = (typeof SONG_TABS)[number];
@@ -60,16 +61,6 @@ type MatchVersion = SongMatch["versions"][number];
 /** The version a new song is being added as another version of. */
 type BasedOn = { id: string; label: string; copied: boolean };
 
-const isPdf = (file: File) => file.type === "application/pdf" || /\.pdf$/i.test(file.name);
-
-function downloadText(filename: string, text: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 /**
  * The song screen, for adding a song and for editing one: Song Info
@@ -213,7 +204,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
       },
       sections: parseSongText(form.content, effectiveFormat(form)),
     } as SongDocument;
-    downloadText(`${form.title.trim() || "song"}.cho`, serializeChordPro(doc));
+    downloadBlob(new Blob([serializeChordPro(doc)], { type: "text/plain" }), `${form.title.trim() || "song"}.cho`);
   }
 
   async function keepSourceFile(songVersionId: string) {

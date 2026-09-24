@@ -22,9 +22,8 @@ import { apiClient } from "#/lib/api-client";
 import { cn } from "#/lib/utils";
 import { ChipInput, type ChipSuggestion } from "./chip-input";
 import { CAPO_OPTIONS, KEY_OPTIONS, TIME_SIGNATURE_OPTIONS, type CreditField, type FormError, type SongForm, type TextField } from "./song-form";
+import { NativeSelect } from "#/components/ui/native-select";
 
-export const SELECT_CLASS =
-  "h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50";
 
 export type FieldErrors = Partial<Record<TextField | "artists", FormError>>;
 
@@ -419,7 +418,7 @@ function KeySelect({ id, value, onChange }: { id: string; value: string; onChang
   const { t } = useTranslation();
   const known = [...KEY_OPTIONS.major, ...KEY_OPTIONS.minor].includes(value);
   return (
-    <select id={id} value={value} onChange={(event) => onChange(event.target.value)} className={SELECT_CLASS}>
+    <NativeSelect id={id} value={value} onChange={(event) => onChange(event.target.value)} className="w-full">
       <option value="">{t("songEditor.none")}</option>
       {value && !known ? <option value={value}>{value}</option> : null}
       <optgroup label={t("songEditor.major")}>
@@ -436,7 +435,7 @@ function KeySelect({ id, value, onChange }: { id: string; value: string; onChang
           </option>
         ))}
       </optgroup>
-    </select>
+    </NativeSelect>
   );
 }
 
@@ -546,11 +545,11 @@ export function MoreDetailsCard({
               </Field>
               {text("tempo", { inputMode: "numeric", placeholder: "72" })}
               <Field id="song-timeSignature" label={t("songEditor.fields.timeSignature")}>
-                <select
+                <NativeSelect
                   id="song-timeSignature"
                   value={form.timeSignature}
                   onChange={(event) => setField("timeSignature", event.target.value)}
-                  className={SELECT_CLASS}
+                  className="w-full"
                 >
                   <option value="">{t("songEditor.none")}</option>
                   {form.timeSignature && !TIME_SIGNATURE_OPTIONS.includes(form.timeSignature) ? (
@@ -561,17 +560,17 @@ export function MoreDetailsCard({
                       {option}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
               <Field id="song-capo" label={t("songEditor.fields.capo")}>
-                <select id="song-capo" value={form.capo} onChange={(event) => setField("capo", event.target.value)} className={SELECT_CLASS}>
+                <NativeSelect id="song-capo" value={form.capo} onChange={(event) => setField("capo", event.target.value)} className="w-full">
                   <option value="">{t("songEditor.noCapo")}</option>
                   {CAPO_OPTIONS.map((fret) => (
                     <option key={fret} value={fret}>
                       {t("songEditor.fret", { fret })}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
               {text("duration", { placeholder: "3:45" })}
             </div>

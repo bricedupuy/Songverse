@@ -8,6 +8,7 @@ import { LanguageSelect } from "#/components/language-select";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { NativeSelect } from "#/components/ui/native-select";
 
 export const Route = createFileRoute("/_protected/songbooks/new")({
   component: NewSongbook,
@@ -66,15 +67,15 @@ function NewSongbook() {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="songbook-kind">{t("songbooks.kind")}</Label>
-            <select
+            <NativeSelect
               id="songbook-kind"
               value={kind}
               onChange={(e) => setKind(e.target.value as SongbookKind)}
-              className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="w-full"
             >
               <option value="SIMPLE">{t("songbooks.kindSimple")}</option>
               <option value="NUMBERED">{t("songbooks.kindNumbered")}</option>
-            </select>
+            </NativeSelect>
             <p className="text-xs text-muted-foreground">
               {kind === "SIMPLE" ? t("songbooks.kindSimpleDescription") : t("songbooks.kindNumberedDescription")}
             </p>
@@ -114,11 +115,11 @@ function NewSongbook() {
           <CardTitle className="text-sm">{t("songbooks.ownership")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <select
+          <NativeSelect
             id="songbook-ownership"
             value={ownership}
             onChange={(e) => setOwnership(e.target.value as Ownership)}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="w-full"
           >
             <option value="personal">{t("songbooks.personal")}</option>
             {teams.map((team) => (
@@ -127,7 +128,7 @@ function NewSongbook() {
               </option>
             ))}
             {session.isGlobalAdmin ? <option value="global">{t("songbooks.global")}</option> : null}
-          </select>
+          </NativeSelect>
         </CardContent>
       </Card>
 

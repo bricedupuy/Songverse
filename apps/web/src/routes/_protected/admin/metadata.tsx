@@ -5,6 +5,7 @@ import { apiClient } from "#/lib/api-client";
 import type { AdminCommandResult } from "@songverse/core";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
+import { ConfirmButton } from "#/components/confirm-button";
 
 export const Route = createFileRoute("/_protected/admin/metadata")({
   component: AdminMetadataPage,
@@ -31,7 +32,6 @@ function AdminMetadataPage() {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [seedResult, setSeedResult] = useState<AdminCommandResult | null>(null);
   const [seeding, setSeeding] = useState(false);
-  const [confirmingSeed, setConfirmingSeed] = useState(false);
 
   async function checkStatus() {
     setCheckingStatus(true);
@@ -44,7 +44,6 @@ function AdminMetadataPage() {
 
   async function runSeed() {
     setSeeding(true);
-    setConfirmingSeed(false);
     try {
       setSeedResult(await apiClient.adminRunSeed());
     } finally {
@@ -84,20 +83,14 @@ function AdminMetadataPage() {
                 <p className="text-sm font-medium">{t("admin.runSeed")}</p>
                 <p className="text-sm text-muted-foreground">{t("admin.runSeedDescription")}</p>
               </div>
-              {confirmingSeed ? (
-                <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" onClick={() => void runSeed()} disabled={seeding}>
-                    {seeding ? t("admin.running") : t("admin.confirm")}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setConfirmingSeed(false)} disabled={seeding}>
-                    {t("admin.cancel")}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setConfirmingSeed(true)}>
-                  {t("admin.runSeed")}
-                </Button>
-              )}
+              <ConfirmButton
+                label={t("admin.runSeed")}
+                confirmLabel={t("admin.confirm")}
+                busyLabel={t("admin.running")}
+                cancelLabel={t("admin.cancel")}
+                busy={seeding}
+                onConfirm={runSeed}
+              />
             </div>
             <ResultPanel result={seedResult} />
           </div>

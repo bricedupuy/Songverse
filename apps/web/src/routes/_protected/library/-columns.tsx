@@ -4,11 +4,7 @@ import { ArrowUpDown } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
-
-function artistLabel(artists: SongVersionSummary["artists"]): string {
-  if (artists.length === 0) return "—";
-  return artists.map((a) => a.source ?? a.userId ?? "Unknown artist").join(", ");
-}
+import { artistNames } from "#/lib/artists";
 
 function tagLabel(tags: SongVersionSummary["tags"], locale: LocaleValue): string {
   if (tags.length === 0) return "—";
@@ -55,7 +51,7 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
       },
       {
         id: "artist",
-        accessorFn: (version) => artistLabel(version.artists),
+        accessorFn: (version) => artistNames(version.artists) ?? "—",
         // The list is sorted by the server, which sorts by the song's own
         // fields; artists and tags are credits and links, not columns.
         enableSorting: false,

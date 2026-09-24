@@ -8,6 +8,8 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { NativeSelect } from "#/components/ui/native-select";
+import { ConfirmButton } from "#/components/confirm-button";
 
 export const Route = createFileRoute("/_protected/songbooks/$songbookId")({
   loader: async ({ context, params }) => {
@@ -42,7 +44,6 @@ function SongbookDetail() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const [deleting, setDeleting] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const [entryFilter, setEntryFilter] = useState("");
   const [selectedSongVersionId, setSelectedSongVersionId] = useState("");
@@ -124,7 +125,6 @@ function SongbookDetail() {
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : String(err));
       setDeleting(false);
-      setConfirmingDelete(false);
     }
   }
 
@@ -308,20 +308,14 @@ function SongbookDetail() {
               <Button onClick={() => void save()} disabled={saving || !name.trim()}>
                 {saving ? t("songbooks.saving") : t("songbooks.save")}
               </Button>
-              {confirmingDelete ? (
-                <div className="flex items-center gap-2">
-                  <Button variant="destructive" size="sm" onClick={() => void remove()} disabled={deleting}>
-                    {deleting ? t("songbooks.deleting") : t("songbooks.confirmDelete")}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
-                    {t("songbooks.cancel")}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(true)}>
-                  {t("songbooks.deleteSongbook")}
-                </Button>
-              )}
+              <ConfirmButton
+                label={t("songbooks.deleteSongbook")}
+                confirmLabel={t("songbooks.confirmDelete")}
+                busyLabel={t("songbooks.deleting")}
+                cancelLabel={t("songbooks.cancel")}
+                busy={deleting}
+                onConfirm={remove}
+              />
             </div>
           ) : null}
         </CardContent>
@@ -437,10 +431,10 @@ function SongbookDetail() {
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="text-sm">{t("songbooks.entries")}</CardTitle>
           {isNumbered && sections.length > 0 ? (
-            <select
+            <NativeSelect
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
-              className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+              compact
             >
               <option value="">{t("songbooks.allSections")}</option>
               {sections.map((section) => (
@@ -448,7 +442,7 @@ function SongbookDetail() {
                   {section.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
@@ -558,15 +552,14 @@ function SongbookDetail() {
             <div className="flex flex-wrap items-end gap-2">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="bulk-upload-type">{t("songbooks.bulkUploadType")}</Label>
-                <select
+                <NativeSelect
                   id="bulk-upload-type"
                   value={bulkUploadType}
                   onChange={(e) => setBulkUploadType(e.target.value as BulkUploadContentType)}
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   <option value="CHORDPRO">{t("songbooks.bulkUploadTypeChordpro")}</option>
                   <option value="PDF">{t("songbooks.bulkUploadTypePdf")}</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="bulk-upload-files">{t("songbooks.bulkUploadChooseFiles")}</Label>

@@ -6,7 +6,8 @@ import { Button } from "#/components/ui/button";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
-import { formatBytes } from "./attachment-types";
+import { formatBytes } from "#/lib/format-bytes";
+import { isPdf } from "./attachment-types";
 
 export const SOURCE_FILE_ACCEPT = ".cho,.chordpro,.chopro,.crd,.pro,.txt,.pdf,text/plain,application/pdf";
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
@@ -17,7 +18,6 @@ export interface SourceFile {
   keep: boolean;
 }
 
-const isPdf = (file: File) => file.type === "application/pdf" || /\.pdf$/i.test(file.name);
 
 /** ChordPro / Chords over lyrics / Lyrics only, as a segmented control; with "Auto" when a guess is in use. */
 export function FormatToggle({

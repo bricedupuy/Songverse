@@ -11,6 +11,8 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { NativeSelect } from "#/components/ui/native-select";
+import { ConfirmButton } from "#/components/confirm-button";
 
 export const Route = createFileRoute("/_protected/teams/$teamId")({
   loader: async ({ context, params }) => {
@@ -37,12 +39,10 @@ function TeamDetail() {
   const [error, setError] = useState<string | null>(null);
   const [busyUserId, setBusyUserId] = useState<string | null>(null);
   const [leaving, setLeaving] = useState(false);
-  const [confirmingLeave, setConfirmingLeave] = useState(false);
   const [promotingBeforeLeave, setPromotingBeforeLeave] = useState(false);
   const [promoteTargetUserId, setPromoteTargetUserId] = useState("");
 
   const [deleting, setDeleting] = useState(false);
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const [linkRole, setLinkRole] = useState<TeamRole>("MEMBER");
   const [linkExpiresInDays, setLinkExpiresInDays] = useState("");
@@ -88,7 +88,6 @@ function TeamDetail() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setDeleting(false);
-      setConfirmingDelete(false);
     }
   }
 
@@ -101,7 +100,6 @@ function TeamDetail() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setLeaving(false);
-      setConfirmingLeave(false);
     }
   }
 
@@ -168,29 +166,23 @@ function TeamDetail() {
         </div>
         <div className="flex items-center gap-2">
           {isAdmin ? (
-            confirmingDelete ? (
-              <div className="flex items-center gap-2">
-                <Button variant="destructive" size="sm" onClick={() => void deleteTeam()} disabled={deleting}>
-                  {deleting ? t("teams.deletingTeam") : t("teams.confirmDeleteTeam")}
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
-                  {t("teams.cancel")}
-                </Button>
-              </div>
-            ) : (
-              <Button variant="outline" size="sm" onClick={() => setConfirmingDelete(true)}>
-                {t("teams.deleteTeam")}
-              </Button>
-            )
+            <ConfirmButton
+              label={t("teams.deleteTeam")}
+              confirmLabel={t("teams.confirmDeleteTeam")}
+              busyLabel={t("teams.deletingTeam")}
+              cancelLabel={t("teams.cancel")}
+              busy={deleting}
+              onConfirm={deleteTeam}
+            />
           ) : null}
           {isSoleMember ? null : isSoleAdmin ? (
             promotingBeforeLeave ? (
               <div className="flex items-center gap-2">
-                <select
+                <NativeSelect
                   value={promoteTargetUserId}
                   onChange={(e) => setPromoteTargetUserId(e.target.value)}
                   disabled={leaving}
-                  className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                  compact
                 >
                   <option value="">{t("teams.chooseMember")}</option>
                   {otherMembers.map((m) => (
@@ -198,7 +190,7 @@ function TeamDetail() {
                       {m.displayName}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
                 <Button
                   variant="destructive"
                   size="sm"
@@ -216,19 +208,15 @@ function TeamDetail() {
                 {t("teams.leaveTeam")}
               </Button>
             )
-          ) : confirmingLeave ? (
-            <div className="flex items-center gap-2">
-              <Button variant="destructive" size="sm" onClick={() => void leaveTeam()} disabled={leaving}>
-                {leaving ? t("teams.leaving") : t("teams.confirmLeave")}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setConfirmingLeave(false)} disabled={leaving}>
-                {t("teams.cancel")}
-              </Button>
-            </div>
           ) : (
-            <Button variant="outline" size="sm" onClick={() => setConfirmingLeave(true)}>
-              {t("teams.leaveTeam")}
-            </Button>
+            <ConfirmButton
+              label={t("teams.leaveTeam")}
+              confirmLabel={t("teams.confirmLeave")}
+              busyLabel={t("teams.leaving")}
+              cancelLabel={t("teams.cancel")}
+              busy={leaving}
+              onConfirm={leaveTeam}
+            />
           )}
         </div>
       </div>
@@ -266,15 +254,15 @@ function TeamDetail() {
                   </div>
                   <div className="flex items-center gap-2">
                     {isAdmin && !isSelf ? (
-                      <select
+                      <NativeSelect
                         value={member.role}
                         disabled={busyUserId === member.userId}
                         onChange={(e) => void changeRole(member.userId, e.target.value as TeamRole)}
-                        className="h-8 rounded-md border border-input bg-transparent px-2 text-xs shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                        compact
                       >
                         <option value="MEMBER">{t("teams.roleMember")}</option>
                         <option value="ADMIN">{t("teams.roleAdmin")}</option>
-                      </select>
+                      </NativeSelect>
                     ) : (
                       <span className="text-xs text-muted-foreground">
                         {member.role === "ADMIN" ? t("teams.roleAdmin") : t("teams.roleMember")}
@@ -308,15 +296,14 @@ function TeamDetail() {
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="link-role">{t("teams.roleForInvite")}</Label>
-                <select
+                <NativeSelect
                   id="link-role"
                   value={linkRole}
                   onChange={(e) => setLinkRole(e.target.value as TeamRole)}
-                  className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   <option value="MEMBER">{t("teams.roleMember")}</option>
                   <option value="ADMIN">{t("teams.roleAdmin")}</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="link-expires">{t("teams.expiresInDays")}</Label>

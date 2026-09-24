@@ -7,6 +7,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { apiClient } from "#/lib/api-client";
 import { formatSetDate, todayIso } from "#/lib/setlists";
+import { NativeSelect } from "#/components/ui/native-select";
 
 export const Route = createFileRoute("/_protected/sets/new")({
   component: NewSet,
@@ -71,11 +72,11 @@ function NewSet() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="set-owner">{t("sets.ownerLabel")}</Label>
-              <select
+              <NativeSelect
                 id="set-owner"
                 value={owner}
                 onChange={(e) => setOwner(e.target.value)}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="w-full"
               >
                 <option value="">{t("sets.ownerPersonal")}</option>
                 {adminTeams.map((team) => (
@@ -83,7 +84,7 @@ function NewSet() {
                     {team.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               {teams.length > adminTeams.length ? <p className="text-xs text-muted-foreground">{t("sets.ownerTeamHint")}</p> : null}
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
