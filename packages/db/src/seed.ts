@@ -3,10 +3,12 @@ import { fileURLToPath } from "node:url";
 import {
   SEED_TAG_CATEGORIES,
   SEED_TUNING_PRESETS,
+  arrangementDocumentV1ToV2,
   parseArrangementDocument,
   parseMidiItemTriggers,
   parseSongDocument,
   slugify,
+  songDocumentV1ToV2,
 } from "@songverse/core";
 import { prisma } from "./index.js";
 
@@ -160,8 +162,9 @@ async function seedDemoContent(log: (line: string) => void) {
 
   const work = await prisma.work.create({ data: {} });
 
-  const songDocumentRaw = loadFixture("morning-light-song.json");
-  const songDocument = parseSongDocument(songDocumentRaw);
+  // The fixtures are hand-written v1 documents (syllabified lyrics); stored as v2.
+  const songDocument = parseSongDocument(loadFixture("morning-light-song.json"));
+  const songConversion = songDocumentV1ToV2(songDocument, { stripSyllableHyphens: true });
 
   const songVersion = await prisma.songVersion.create({
     data: {
@@ -177,7 +180,8 @@ async function seedDemoContent(log: (line: string) => void) {
       copyrightYear: songDocument.metadata.copyrightYear ?? null,
       publisher: songDocument.metadata.publisher ?? null,
       ccli: songDocument.metadata.ccli ?? null,
-      documentJson: songDocumentRaw as object,
+      documentJson: songConversion.document as object,
+      capo: songConversion.capo,
       relationshipType: "ORIGINAL",
       contributors: {
         create: [
@@ -193,9 +197,9 @@ async function seedDemoContent(log: (line: string) => void) {
     data: { preferredOriginalVersionId: songVersion.id },
   });
 
-  const arrangementRaw = loadFixture("morning-light-arrangement.json") as { songVersionId: string };
-  arrangementRaw.songVersionId = songVersion.id;
-  const arrangementDocument = parseArrangementDocument(arrangementRaw);
+  const arrangementV1 = parseArrangementDocument(loadFixture("morning-light-arrangement.json"));
+  arrangementV1.songVersionId = songVersion.id;
+  const arrangementDocument = arrangementDocumentV1ToV2(arrangementV1, songDocument, { stripSyllableHyphens: true }).document;
 
   const standardTuning = await prisma.tuningPreset.findUniqueOrThrow({ where: { slug: "standard_guitar" } });
 
@@ -206,12 +210,10 @@ async function seedDemoContent(log: (line: string) => void) {
       ownerTeamId: team.id,
       name: "Full Band (Standard Tuning)",
       description: "Standard-tuning full band arrangement with a key change into the final chorus.",
-      documentJson: arrangementRaw as object,
+      documentJson: arrangementDocument as object,
       guitarTuningPresetId: standardTuning.id,
     },
   });
-  // Referenced for parity with the schema validation above; not persisted separately.
-  void arrangementDocument;
 
   const midiTriggersRaw = loadFixture("morning-light-midi.json");
   const midiTriggers = parseMidiItemTriggers(midiTriggersRaw);

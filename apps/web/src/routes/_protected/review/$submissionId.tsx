@@ -148,7 +148,7 @@ function ReviewSubmission() {
             </CardHeader>
             <CardContent className="min-w-0">
               {song ? (
-                <SongChart sections={song.documentJson.sections} emptyText={t("review.noContent")} />
+                <SongChart sections={song.documentJson.sections} flow={song.documentJson.flow} emptyText={t("review.noContent")} />
               ) : (
                 <p className="text-sm text-muted-foreground">{t("review.noContent")}</p>
               )}

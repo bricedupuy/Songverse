@@ -138,7 +138,7 @@ check(
   "a song created from an entry gets its facts",
   created.title === "À toi la gloire" && created.alternateTitle === "Thine be the glory" && created.ccli === "1234" && created.copyright === "© Public domain" && created.year === 1884 &&
     d.defaults.key === "D" && d.defaults.tempo === 96 && d.defaults.timeSignature?.numerator === 4 && d.defaults.timeSignature?.denominator === 4,
-  JSON.stringify({ t: created.title, a: created.alternateTitle, c: created.ccli, m: d.metadata, d: d.defaults }),
+  JSON.stringify({ t: created.title, a: created.alternateTitle, c: created.ccli, d: d.defaults }),
 );
 const credits = (created.contributors ?? []).map((c) => `${c.source}:${[...c.roles].sort().join("+")}`).sort().join(" | ");
 check("...and credits for artist, composer and lyricist", credits === "Choir:PERFORMER | Edmond Budry:LYRICIST | G. F. Handel:COMPOSER", credits);

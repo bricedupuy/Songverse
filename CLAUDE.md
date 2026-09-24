@@ -39,6 +39,20 @@ Both `StorageSettings` and `AuthSettings` are managed through
 There's no more "settings only used by the web app, so it skips the API"
 case — see the next section for why.
 
+## Song content
+
+`SongVersion.documentJson` is a SongDocument v2 (`docs/song-document-v2.md`):
+the music only - sections, lines with chords pinned to characters, the
+order it's sung in (`flow`) and a `revision`. Title, credits, rights and
+the capo are columns; never copy them into the document.
+- Read it with `readSongDocument()` from `@songverse/core` (it also
+  upgrades a song still stored as v1), never by casting the JSON.
+- Section, line and chord IDs must survive edits: build a new document
+  from edited text with `songDocumentFromText(previous, …)`, which
+  matches the new content to the old IDs and bumps the revision.
+- ChordPro is only an import/export format (`sectionsFromText`,
+  `songToChordPro`), not how songs are stored.
+
 ## Tests
 
 Features are covered end to end by the suites in `e2e/` (API calls and

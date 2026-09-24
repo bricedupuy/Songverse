@@ -1,17 +1,21 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   computeSectionLabel,
   MusicBrainzRecordingMatchSchema,
   detectImportFormat,
-  parseSongDocument,
-  parseSongText,
+  flowItemId,
+  parseSongDocumentV2,
   parseStreamingLink,
-  serializeChordPro,
+  readSongDocument,
+  sectionsFromText,
+  songDocumentFromText,
+  songToChordPro,
   splitNames,
   type CatalogEntryData,
   type MusicBrainzRecordingMatch,
   type SongbookSection,
-  type SongDocument,
+  type SongDefaultsV2,
+  type SongDocumentV2,
   type StreamingIdentifierType,
   type SupportedImportFormat,
 } from "@songverse/core";
@@ -26,7 +30,7 @@ import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dt
 import type { SongFieldsDto } from "./dto/song-fields.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 
-/** A version's own fields (the columns, and their mirror in documentJson.metadata). */
+/** A version's own fields: the columns (the document holds only the music). */
 type VersionFields = {
   title: string;
   language: string;
@@ -45,8 +49,9 @@ type VersionFields = {
 };
 
 type CreateExtras = {
-  defaults?: SongDocument["defaults"];
-  sections?: SongDocument["sections"];
+  defaults?: SongDefaultsV2;
+  sections?: SongDocumentV2["sections"];
+  capo?: number | null;
   credits?: { source: string; roles: ContributorRole[] }[];
   tagIds?: string[];
   /** Add to this existing Work. */
@@ -98,13 +103,12 @@ async function replaceAutoAttachedArtist(tx: Prisma.TransactionClient, songVersi
 }
 
 /** The chart's defaults a DTO sets (undefined leaves one alone, null clears it). */
-function defaultsFrom(dto: SongFieldsDto): SongDocument["defaults"] {
+function defaultsFrom(dto: SongFieldsDto): SongDefaultsV2 {
   return {
     ...(dto.key !== undefined && { key: dto.key }),
     ...(dto.tempo !== undefined && { tempo: dto.tempo }),
     ...(dto.timeSignature !== undefined && { timeSignature: parseTimeSignature(dto.timeSignature) }),
     ...(dto.durationSeconds !== undefined && { durationSeconds: dto.durationSeconds }),
-    ...(dto.capo !== undefined && { capo: dto.capo || null }),
   };
 }
 
@@ -192,6 +196,10 @@ async function replaceCredits(
   );
 }
 
+function staleRevision(): ConflictException {
+  return new ConflictException("This song was changed somewhere else since you opened it. Reload it to see the changes.");
+}
+
 function parseTimeSignature(text: string | null): { numerator: number; denominator: number } | null {
   const match = text ? /^(\d+)\/(\d+)$/.exec(text) : null;
   return match ? { numerator: Number(match[1]), denominator: Number(match[2]) } : null;
@@ -254,6 +262,7 @@ const DETAIL_SELECT = {
   // The version this one derives from (e.g. the original of a translation).
   parentVersion: { select: { id: true, title: true, language: true } },
   documentJson: true,
+  capo: true,
   contributors: {
     select: { id: true, userId: true, source: true, roles: true, isAutoAttached: true, displayOrder: true },
     orderBy: { displayOrder: "asc" },
@@ -291,7 +300,9 @@ function toListItem({ contributors, versionTags, ...rest }: ListRow): ListItem {
 }
 
 type DetailRow = Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>;
-type DetailItem = Omit<DetailRow, "versionTags"> & {
+type DetailItem = Omit<DetailRow, "versionTags" | "documentJson"> & {
+  /** Always v2: a song saved before v2 is upgraded as it's read. */
+  documentJson: SongDocumentV2;
   artists: DetailRow["contributors"];
   tags: DetailRow["versionTags"][number]["tag"][];
   /** Whether the current user may change it (see SongVersionOwnerGuard). */
@@ -299,9 +310,10 @@ type DetailItem = Omit<DetailRow, "versionTags"> & {
 };
 
 function toDetailItem(version: DetailRow, canEdit: boolean): DetailItem {
-  const { versionTags, ...rest } = version;
+  const { versionTags, documentJson, ...rest } = version;
   return {
     ...rest,
+    documentJson: readSongDocument(documentJson),
     artists: version.contributors.filter((c) => c.roles.includes("PERFORMER")),
     tags: versionTags.map((vt) => vt.tag),
     canEdit,
@@ -579,7 +591,8 @@ export class SongVersionsService {
         workId: dto.workId,
         parent,
         defaults: defaultsFrom(dto),
-        sections: content ? parseSongText(content, dto.contentFormat ?? detectImportFormat(content)) : [],
+        sections: content ? sectionsFromText(content, dto.contentFormat ?? detectImportFormat(content)) : [],
+        capo: dto.capo || null,
         credits: mergeCredits(
           Object.entries(creditListsFrom(dto)).flatMap(([role, names]) => names.map((name) => [name, role as ContributorRole] as const)),
         ),
@@ -670,23 +683,16 @@ export class SongVersionsService {
   private buildVersionData(
     owner: SongVersionOwner,
     fields: VersionFields,
-    defaults: SongDocument["defaults"] = {},
-    sections: SongDocument["sections"] = [],
+    defaults: SongDefaultsV2 = {},
+    sections: SongDocumentV2["sections"] = [],
+    capo: number | null = null,
   ) {
-    const documentJson: SongDocument = parseSongDocument({
-      $schema: "song-document/v1",
-      metadata: {
-        title: fields.title,
-        alternateTitle: fields.alternateTitle ?? null,
-        language: fields.language,
-        ccli: fields.ccli ?? null,
-        copyright: fields.copyright ?? null,
-        copyrightYear: fields.copyrightYear ?? null,
-        publisher: fields.publisher ?? null,
-        trustLabel: null,
-      },
+    const documentJson: SongDocumentV2 = parseSongDocumentV2({
+      $schema: "song-document/v2",
+      revision: 1,
       defaults,
       sections,
+      flow: sections.map((section) => ({ id: flowItemId(section.id), sectionId: section.id })),
     });
 
     return {
@@ -705,9 +711,8 @@ export class SongVersionsService {
       isrc: fields.isrc ?? null,
       reference: fields.reference ?? null,
       notes: fields.notes ?? null,
+      capo,
       documentJson: documentJson as object,
-      chordproCache: serializeChordPro(documentJson),
-      chordproCacheAt: new Date(),
     };
   }
 
@@ -716,7 +721,7 @@ export class SongVersionsService {
    * `parent`'s derived version in its Work), with its credits and tags.
    */
   private async createVersion(owner: SongVersionOwner, fields: VersionFields, extras: CreateExtras = {}): Promise<ListItem> {
-    const versionData = this.buildVersionData(owner, fields, extras.defaults, extras.sections);
+    const versionData = this.buildVersionData(owner, fields, extras.defaults, extras.sections, extras.capo ?? null);
     const version = await this.prisma.client.$transaction(async (tx) => {
       const existingWorkId = extras.parent?.workId ?? extras.workId;
       const workId = existingWorkId ?? (await tx.work.create({ data: {} })).id;
@@ -745,13 +750,15 @@ export class SongVersionsService {
   }
 
   /**
-   * Partial update, in one transaction. Scalar SongVersion columns and
-   * documentJson.metadata are kept in sync per the schema's own convention
-   * (see the ccli column comment) — the editor will eventually read/write
-   * documentJson directly, but until then these mirrored top-level columns
-   * are what list/filter queries actually use. Given, the artist, composer
-   * and lyricist lists replace those credits, tagIds the tags, and content
-   * the chart (empty content clears it).
+   * Partial update, in one transaction. Given, the artist, composer and
+   * lyricist lists replace those credits, tagIds the tags, and content the
+   * chart (empty content clears it) - parsed from text, keeping the IDs of
+   * everything still there (see reconcileSections). Key, tempo, time
+   * signature and duration live in the document; the rest are columns.
+   *
+   * `revision` is the document revision the editor started from: if the
+   * song was saved since (another tab, another admin), the save is refused
+   * rather than overwriting their changes.
    */
   async update(user: AuthenticatedUser, id: string, dto: UpdateSongVersionDto): Promise<DetailItem> {
     const existing = await this.prisma.client.songVersion.findUnique({
@@ -761,31 +768,22 @@ export class SongVersionsService {
     if (!existing) throw new NotFoundException("Song version not found");
     if (dto.tagIds) await this.assertTagsUsable(user, dto.tagIds);
 
-    const currentDoc = existing.documentJson as SongDocument;
-    const content = dto.content?.trim() ? dto.content : null;
-    const documentJson: SongDocument = parseSongDocument({
-      ...currentDoc,
-      metadata: {
-        ...currentDoc.metadata,
-        ...(dto.title !== undefined && { title: dto.title }),
-        ...(dto.alternateTitle !== undefined && { alternateTitle: dto.alternateTitle }),
-        ...(dto.language !== undefined && { language: dto.language }),
-        ...(dto.ccli !== undefined && { ccli: dto.ccli }),
-        ...(dto.copyright !== undefined && { copyright: dto.copyright }),
-        ...(dto.copyrightYear !== undefined && { copyrightYear: dto.copyrightYear }),
-        ...(dto.publisher !== undefined && { publisher: dto.publisher }),
-      },
-      defaults: { ...currentDoc.defaults, ...defaultsFrom(dto) },
-      ...(dto.content !== undefined && {
-        sections: content ? parseSongText(content, dto.contentFormat ?? detectImportFormat(content)) : [],
-      }),
-    });
+    const previous = readSongDocument(existing.documentJson);
+    if (dto.revision !== undefined && dto.revision !== previous.revision) throw staleRevision();
+    const defaults = defaultsFrom(dto);
+    const touchesDocument = dto.content !== undefined || Object.keys(defaults).length > 0;
+    const content = dto.content?.trim() ? dto.content : "";
+    const documentJson = touchesDocument
+      ? songDocumentFromText(previous, {
+          content: dto.content === undefined ? undefined : content,
+          format: dto.contentFormat ?? detectImportFormat(content),
+          defaults,
+        })
+      : null;
 
-    // Key, tempo, time signature, duration and capo live only in
-    // documentJson.defaults (handled above) - not real SongVersion columns,
-    // so they're left out of this scalar update. undefined leaves a column
-    // alone; null clears it.
+    // undefined leaves a column alone; null clears it.
     const version = await this.prisma.client.$transaction(async (tx) => {
+      if (documentJson) await this.writeDocument(tx, id, existing.documentJson, documentJson);
       await tx.songVersion.update({
         where: { id },
         data: {
@@ -803,9 +801,7 @@ export class SongVersionsService {
           publisher: dto.publisher,
           reference: dto.reference,
           notes: dto.notes,
-          documentJson: documentJson as object,
-          chordproCache: serializeChordPro(documentJson),
-          chordproCacheAt: new Date(),
+          ...(dto.capo !== undefined && { capo: dto.capo || null }),
         },
       });
       await replaceCredits(tx, id, creditListsFrom(dto));
@@ -820,13 +816,24 @@ export class SongVersionsService {
   }
 
   /**
-   * Replaces this version's content with the result of parsing pasted
-   * text - either ChordPro(-ish) or "chords on their own line above the
-   * lyric" (the plain format most tab/chord sites display on-screen) -
-   * leaving metadata untouched. The cache is regenerated from the parsed
-   * result rather than stored verbatim, so it reflects what was actually
-   * understood (whitespace normalized, unknown directives dropped) rather
-   * than whatever the user happened to paste.
+   * Stores `next` in place of `stored`, but only if nobody else saved in
+   * between: the write is conditional on the stored revision (a song not
+   * yet upgraded to v2 has none, and is matched as it was).
+   */
+  private async writeDocument(tx: Prisma.TransactionClient, id: string, stored: Prisma.JsonValue, next: SongDocumentV2) {
+    const storedRevision = (stored as { revision?: unknown } | null)?.revision;
+    const where: Prisma.SongVersionWhereInput =
+      typeof storedRevision === "number"
+        ? { id, documentJson: { path: ["revision"], equals: storedRevision } }
+        : { id, documentJson: { equals: stored as Prisma.InputJsonValue } };
+    const { count } = await tx.songVersion.updateMany({ where, data: { documentJson: next as object } });
+    if (count === 0) throw staleRevision();
+  }
+
+  /**
+   * Replaces this version's content with the result of parsing an uploaded
+   * file (bulk upload), keeping IDs where the content is unchanged, and
+   * leaving everything else untouched.
    */
   async importText(id: string, content: string, format: SupportedImportFormat): Promise<DetailItem> {
     const existing = await this.prisma.client.songVersion.findUnique({
@@ -835,31 +842,43 @@ export class SongVersionsService {
     });
     if (!existing) throw new NotFoundException("Song version not found");
 
-    const currentDoc = existing.documentJson as SongDocument;
-    const documentJson: SongDocument = parseSongDocument({
-      ...currentDoc,
-      sections: parseSongText(content, format),
-    });
-
-    const version = await this.prisma.client.songVersion.update({
-      where: { id },
-      data: {
-        documentJson: documentJson as object,
-        chordproCache: serializeChordPro(documentJson),
-        chordproCacheAt: new Date(),
-      },
-      select: DETAIL_SELECT,
-    });
+    const documentJson = songDocumentFromText(readSongDocument(existing.documentJson), { content, format });
+    await this.prisma.client.$transaction((tx) => this.writeDocument(tx, id, existing.documentJson, documentJson));
+    const version = await this.prisma.client.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     return toDetailItem(version, true);
   }
 
+  /** A ChordPro file of the song: its details from the columns, then the chart. */
   async exportChordPro(id: string): Promise<string> {
     const version = await this.prisma.client.songVersion.findUnique({
       where: { id },
-      select: { chordproCache: true },
+      select: {
+        title: true,
+        alternateTitle: true,
+        album: true,
+        year: true,
+        copyright: true,
+        ccli: true,
+        capo: true,
+        documentJson: true,
+        contributors: { select: { source: true, roles: true }, orderBy: { displayOrder: "asc" } },
+      },
     });
     if (!version) throw new NotFoundException("Song version not found");
-    return version.chordproCache ?? "";
+    const credited = (role: ContributorRole) =>
+      version.contributors.filter((c) => c.source && c.roles.includes(role)).map((c) => c.source!);
+    return songToChordPro(readSongDocument(version.documentJson), {
+      title: version.title,
+      subtitle: version.alternateTitle,
+      artists: credited("PERFORMER"),
+      composers: credited("COMPOSER"),
+      lyricists: credited("LYRICIST"),
+      album: version.album,
+      year: version.year,
+      copyright: version.copyright,
+      ccli: version.ccli,
+      capo: version.capo,
+    });
   }
 
   async setStreamingLink(songVersionId: string, type: StreamingIdentifierType, url: string) {

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { readSongDocument } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { PrismaService } from "../prisma/prisma.service";
 import type {
@@ -321,7 +322,7 @@ export class SetlistsService {
     ]);
     const song = item.songVersion;
     const shown = readable.has(item.id) || inViewersLibrary(song);
-    const document = song.documentJson as { defaults?: { tempo?: unknown }; sections?: unknown[] } | null;
+    const document = shown ? readSongDocument(song.documentJson) : null;
 
     return {
       set: { ...summarize(set), itemCount: set.items.length, canEdit: access.canEdit, isGuest: access.isGuest },
@@ -329,8 +330,10 @@ export class SetlistsService {
       song: shown
         ? {
             ...toSongRef(song),
-            tempo: typeof document?.defaults?.tempo === "number" ? document.defaults.tempo : null,
+            tempo: document?.defaults.tempo ?? null,
             sections: document?.sections ?? [],
+            // The order it's sung in, each pass pointing at a section above.
+            flow: document?.flow ?? [],
           }
         : null,
       inLibrary: inViewersLibrary(song),

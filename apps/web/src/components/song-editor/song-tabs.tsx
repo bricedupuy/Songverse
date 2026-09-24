@@ -1,5 +1,5 @@
 import {
-  parseSongText,
+  sectionsFromText,
   type Attachment,
   type AttachmentType,
   type MusicBrainzWorkMatch,
@@ -44,7 +44,7 @@ export function EditorTab({
   const { t } = useTranslation();
   const sections = useMemo(() => {
     try {
-      return parseSongText(content, effectiveFormat({ content, contentFormat: format }));
+      return sectionsFromText(content, effectiveFormat({ content, contentFormat: format }));
     } catch {
       return [];
     }

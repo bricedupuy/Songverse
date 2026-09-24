@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { readSongDocument } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
 import { AccessPolicyService, OPEN_SUBMISSION_STATES } from "../access/access-policy.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -452,8 +453,8 @@ async function copyToGlobal(tx: Tx, sourceId: string, trustLabel: string | null)
       isrc: true,
       reference: true,
       ccli: true,
+      capo: true,
       documentJson: true,
-      chordproCache: true,
       contributors: { select: { userId: true, source: true, roles: true, displayOrder: true } },
       versionTags: { where: { tag: { scope: "GLOBAL", isApproved: true } }, select: { tagId: true } },
       identifiers: { select: { type: true, value: true, sourceUrl: true, verifiedAt: true, note: true, details: true } },
@@ -464,8 +465,8 @@ async function copyToGlobal(tx: Tx, sourceId: string, trustLabel: string | null)
   const copy = await tx.songVersion.create({
     data: {
       ...fields,
-      documentJson: documentJson as Prisma.InputJsonValue,
-      chordproCacheAt: new Date(),
+      // A new song: its own revision history starts again.
+      documentJson: { ...readSongDocument(documentJson), revision: 1 } as Prisma.InputJsonValue,
       trustLabel,
       workId: work.id,
       ownerScope: "GLOBAL",

@@ -14,12 +14,13 @@ and out (export). None of them is how a song is stored.
 | Part | State |
 |---|---|
 | Schemas, chord reader, v1→v2 converter, Morning Light examples | Done, in `@songverse/core`, with tests |
-| Songs stored as v2 (migration of existing rows, saving with `revision`) | Next |
-| Structured editor (the rules below) | After that |
-| ChordPro `{comment}` / `{chorus}` import, exports from v2 | With the editor |
+| Songs stored as v2: saving with `revision`, IDs kept through text edits, ChordPro export from the columns, chords-above-lyrics rendering | Done |
+| Structured editor (the rules below) | Next |
+| ChordPro `{comment}` / `{chorus}` import (note lines, repeats in `flow`) | With the editor |
 
-Stored songs are still v1 until the migration runs; this document is the
-contract the next steps are built against.
+Songs saved before v2 are converted as they're read and written back by
+the API at startup (`SongDocumentUpgradeService`). Until arrangements
+exist, the capo is a `SongVersion.capo` column.
 
 ## What changed from v1, and why
 

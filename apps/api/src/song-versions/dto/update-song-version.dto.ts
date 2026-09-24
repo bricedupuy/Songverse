@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { ISO_639_1_CODES } from "@songverse/core";
 import { Transform } from "class-transformer";
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from "class-validator";
 import { SongFieldsDto, trimNames } from "./song-fields.dto";
 
 /**
@@ -31,4 +31,13 @@ export class UpdateSongVersionDto extends SongFieldsDto {
   @IsOptional()
   @IsIn(ISO_639_1_CODES)
   language?: string;
+
+  @ApiProperty({
+    required: false,
+    description: "The document revision the edit started from; a save is refused (409) if the song was saved since",
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  revision?: number;
 }

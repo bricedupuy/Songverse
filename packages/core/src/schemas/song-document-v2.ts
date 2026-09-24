@@ -13,12 +13,12 @@ import { GrooveRefSchema } from "./song-document.js";
 
 /** How long a song's text can get before it's clearly not a song. */
 export const SONG_DOCUMENT_LIMITS = {
-  sections: 100,
-  linesPerSection: 200,
-  lineLength: 500,
-  chordsPerLine: 64,
-  chordLength: 32,
-  flowItems: 200,
+  sections: 200,
+  linesPerSection: 500,
+  lineLength: 2000,
+  chordsPerLine: 200,
+  chordLength: 64,
+  flowItems: 500,
 } as const;
 
 /**

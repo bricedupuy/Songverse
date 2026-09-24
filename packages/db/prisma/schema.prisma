@@ -616,9 +616,12 @@ model SongVersion {
   ccli String?
 
   // Canonical content
-  documentJson    Json // SongDocument v1
-  chordproCache   String? // Cached ChordPro export, regenerated on save
-  chordproCacheAt DateTime?
+  // SongDocument v2 (docs/song-document-v2.md): the music only. Rows saved
+  // before v2 are upgraded by the API on read and at startup.
+  documentJson Json
+  // Capo fret the song is played with. It belongs to arrangements; it stays
+  // here until arrangements exist, then seeds each song's default one.
+  capo         Int?
 
   // Version relationship (relationship to parent/source)
   relationshipType VersionRelationshipType?

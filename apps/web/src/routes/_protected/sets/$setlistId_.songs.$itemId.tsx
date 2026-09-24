@@ -1,4 +1,4 @@
-import { ApiError, type SetlistSongView } from "@songverse/core";
+import { ApiError, transposeKey, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -90,7 +90,12 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
         <Card>
           <CardContent>
             {song.sections.length > 0 ? (
-              <SongChart sections={song.sections} />
+              <SongChart
+                sections={song.sections}
+                flow={song.flow}
+                transposeSteps={item.transposeSteps}
+                targetKey={song.key ? transposeKey(song.key, item.transposeSteps) : null}
+              />
             ) : (
               <p className="text-sm text-muted-foreground">{t("sets.noChart")}</p>
             )}

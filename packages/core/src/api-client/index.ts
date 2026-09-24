@@ -2,7 +2,7 @@ import type { InstrumentValue, SupportedImportFormat, TechRoleValue } from "../c
 import type { CatalogEntryData, CatalogEntryFieldKey, CatalogFileProblem } from "../songbook-catalog-format/index.js";
 import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
-import type { SongDocument } from "../schemas/song-document.js";
+import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 
 export interface ApiClientOptions {
@@ -137,7 +137,7 @@ export interface SetlistDetail extends SetlistSummary {
 export interface SetlistSongView {
   set: SetlistSummary;
   item: { id: string; position: number; transposeSteps: number; notes: string | null };
-  song: (SetlistSongRef & { tempo: number | null; sections: SongDocument["sections"] }) | null;
+  song: (SetlistSongRef & { tempo: number | null; sections: SectionV2[]; flow: SectionInstance[] }) | null;
   inLibrary: boolean;
   sharedBy: { id: string; displayName: string } | null;
   previousItemId: string | null;
@@ -532,8 +532,10 @@ export interface SongVersionDetail extends SongVersionSummary {
   relationshipType: string | null;
   /** The version this one derives from, e.g. the original of a translation. */
   parentVersion: { id: string; title: string; language: string } | null;
-  /** Key, tempo, time signature, duration and capo are in `documentJson.defaults`. */
-  documentJson: SongDocument;
+  /** The music (SongDocument v2); key, tempo, time signature and duration are in `documentJson.defaults`. */
+  documentJson: SongDocumentV2;
+  /** Capo fret; moves to arrangements once they exist. */
+  capo: number | null;
   contributors: VersionContributor[];
   identifiers: SongVersionLink[];
   /** Whether the current user may change it. */
@@ -596,6 +598,8 @@ export interface UpdateSongVersionInput extends SongFieldsInput {
   language?: string;
   /** Replace the song's artists (at least one). */
   artists?: string[];
+  /** The document revision the edit started from; the save fails (409) if someone saved since. */
+  revision?: number;
 }
 
 /** A name already credited on songs you can see. */

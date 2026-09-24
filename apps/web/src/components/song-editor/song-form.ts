@@ -2,7 +2,7 @@ import {
   detectImportFormat,
   formatDuration,
   parseDuration,
-  serializeChordProSections,
+  sectionsToChordPro,
   type CreateSongVersionInput,
   type SongVersionDetail,
   type SupportedImportFormat,
@@ -79,7 +79,7 @@ export function formFromVersion(version: SongVersionDetail): SongForm {
     key: defaults.key ?? "",
     tempo: defaults.tempo?.toString() ?? "",
     timeSignature: defaults.timeSignature ? `${defaults.timeSignature.numerator}/${defaults.timeSignature.denominator}` : "",
-    capo: defaults.capo ? String(defaults.capo) : "",
+    capo: version.capo ? String(version.capo) : "",
     duration: defaults.durationSeconds ? formatDuration(defaults.durationSeconds) : "",
     copyright: version.copyright ?? "",
     ccli: version.ccli ?? "",
@@ -90,7 +90,7 @@ export function formFromVersion(version: SongVersionDetail): SongForm {
       Object.entries(CREDIT_FIELDS).map(([field, role]) => [field, creditNames(version, role)]),
     ) as unknown as Record<CreditField, string[]>),
     tagIds: version.tags.map((tag) => tag.id),
-    content: serializeChordProSections(version.documentJson.sections),
+    content: sectionsToChordPro(version.documentJson.sections),
     contentFormat: null,
   };
 }

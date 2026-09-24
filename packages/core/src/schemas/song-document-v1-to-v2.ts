@@ -70,8 +70,24 @@ function convertLine(line: Line, options: ConversionOptions): LineV2 {
   return { id: line.id, kind: "lyric", text, chords };
 }
 
+/**
+ * v1 sections (as the import parsers still produce them) as v2 sections,
+ * without timing. Hyphens are kept: the parsers never add syllable hyphens.
+ */
+export function sectionsV1ToV2(sections: SongDocument["sections"]): SongDocumentV2["sections"] {
+  return sections.map((section) => ({
+    id: section.id,
+    type: section.type,
+    label: section.label ?? null,
+    showLabel: true,
+    lines: section.lines.map((line) => convertLine(line, {})),
+    rhythm: null,
+    groove: section.groove ?? null,
+  }));
+}
+
 /** Flow item IDs derive from the section's, so converting twice gives the same document. */
-function flowItemId(sectionId: string): string {
+export function flowItemId(sectionId: string): string {
   return `fi_${sectionId.replace(/^sec_/, "")}`;
 }
 

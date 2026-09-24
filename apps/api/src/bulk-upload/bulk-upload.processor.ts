@@ -43,8 +43,8 @@ export class BulkUploadProcessor extends WorkerHost {
     }
 
     // Kept alongside the parsed content, not instead of it - this is the
-    // original upload (distinct from SongVersion.chordproCache, which is a
-    // regenerated *export*), and for PDF it's the only artifact at all.
+    // original upload (an export is built from the document on demand),
+    // and for PDF it's the only artifact at all.
     await this.prisma.client.attachment.create({
       data: {
         songVersionId: target.songVersionId,

@@ -132,7 +132,8 @@ await step("the Editor tab shares the text and previews it", async () => {
   await page.waitForURL(/tab=editor/);
   const value = await page.inputValue("#song-editor-content");
   if (!value.includes("Amazing grace how sweet")) throw new Error(value);
-  await page.getByText("[G]").first().waitFor();
+  // The preview draws chords above the lyrics.
+  await page.locator('[data-chord="G"]').first().waitFor();
   await page.fill("#song-editor-content", value + "D\nAmazing love\n");
   await page.getByText("Amazing love").last().waitFor();
   await page.screenshot({ path: `${SP}/editor-tab.png`, fullPage: true });
@@ -163,10 +164,10 @@ await step("saving creates the song with everything", async () => {
   const ok =
     d.artists.map((a) => a.source).join() === "Chris Tomlin,Louie Giglio" &&
     roles["John Newton"] === "COMPOSER" &&
-    d.documentJson.defaults.key === "D" && d.documentJson.defaults.tempo === 72 && d.documentJson.defaults.capo === 2 &&
+    d.documentJson.defaults.key === "D" && d.documentJson.defaults.tempo === 72 && d.capo === 2 &&
     d.documentJson.defaults.timeSignature?.numerator === 3 && d.year === 2006 && d.isrc === "USRC17607839" && d.ccli === "4768151" &&
     d.notes === "Slow intro" && d.tags[0]?.label === "Christmas" &&
-    d.documentJson.sections[0]?.lines.some((l) => l.segments.some((s) => s.chord?.raw === "G"));
+    d.documentJson.sections[0]?.lines.some((l) => l.chords.some((c) => c.raw === "G"));
   if (!ok) throw new Error(JSON.stringify({ artists: d.artists, roles, defaults: d.documentJson.defaults, year: d.year, tags: d.tags }));
   const files = await api(me, "GET", `/song-versions/${songId}/attachments`);
   if (files.length !== 1 || files[0].filename !== "grace.cho" || files[0].type !== "CHORDPRO") throw new Error(JSON.stringify(files));
@@ -256,7 +257,7 @@ await step("use as base copies the details", async () => {
   await page.waitForURL(/\/library\/(?!new)[a-z0-9]+/);
   const id = page.url().split("/library/")[1].split("?")[0];
   const d = await api(me, "GET", `/song-versions/${id}`);
-  if (d.versionName !== "Youth band" || d.documentJson.defaults.capo !== 2 || d.relationshipType !== "ALTERNATE_VERSION") throw new Error(JSON.stringify(d.documentJson.defaults));
+  if (d.versionName !== "Youth band" || d.capo !== 2 || d.relationshipType !== "ALTERNATE_VERSION") throw new Error(JSON.stringify({ capo: d.capo, versionName: d.versionName }));
 });
 
 await step("the library shows version names", async () => {

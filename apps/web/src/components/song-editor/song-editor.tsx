@@ -1,12 +1,12 @@
 import {
   ISO_639_1_CODES,
   getLanguageDisplayName,
-  parseSongText,
-  serializeChordPro,
+  sectionsFromText,
+  songToChordPro,
   type Attachment,
   type MusicBrainzRecordingMatch,
   type MusicBrainzWorkMatch,
-  type SongDocument,
+  type SongDocumentV2,
   type SongMatch,
   type SongVersionDetail,
   type SongVersionSongbookMembership,
@@ -192,20 +192,33 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   }
 
   function exportChordPro() {
-    const doc = {
-      $schema: "song-document/v1",
-      metadata: { title: form.title.trim(), language: form.language, ccli: form.ccli.trim() || null },
+    // What's on screen, saved or not: the chart from the text, the details from the fields.
+    const doc: SongDocumentV2 = {
+      $schema: "song-document/v2",
+      revision: 0,
       defaults: {
         key: form.key || null,
         tempo: form.tempo.trim() ? Number(form.tempo) : null,
         timeSignature: form.timeSignature
           ? { numerator: Number(form.timeSignature.split("/")[0]), denominator: Number(form.timeSignature.split("/")[1]) }
           : null,
-        capo: form.capo ? Number(form.capo) : null,
       },
-      sections: parseSongText(form.content, effectiveFormat(form)),
-    } as SongDocument;
-    downloadBlob(new Blob([serializeChordPro(doc)], { type: "text/plain" }), `${form.title.trim() || "song"}.cho`);
+      sections: sectionsFromText(form.content, effectiveFormat(form)),
+      flow: [],
+    };
+    const file = songToChordPro(doc, {
+      title: form.title.trim(),
+      subtitle: form.alternateTitle.trim() || null,
+      artists: form.artists,
+      composers: form.composers,
+      lyricists: form.lyricists,
+      album: form.album.trim() || null,
+      year: form.year.trim() ? Number(form.year) : null,
+      copyright: form.copyright.trim() || null,
+      ccli: form.ccli.trim() || null,
+      capo: form.capo ? Number(form.capo) : null,
+    });
+    downloadBlob(new Blob([file], { type: "text/plain" }), `${form.title.trim() || "song"}.cho`);
   }
 
   async function keepSourceFile(songVersionId: string) {
@@ -239,7 +252,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         return;
       }
       const update = toUpdateInput(current, initial);
-      if (Object.keys(update).length > 0) await apiClient.updateSongVersion(edit.version.id, update);
+      // The revision this edit started from: refused if someone saved in the meantime.
+      if (Object.keys(update).length > 0) {
+        await apiClient.updateSongVersion(edit.version.id, { ...update, revision: edit.version.documentJson.revision });
+      }
       if (mbChoice) await apiClient.linkSongVersionMusicBrainz(edit.version.id, mbChoice.mbid);
       else if (mbChoice === null) await apiClient.unlinkSongVersionMusicBrainz(edit.version.id);
       setMbChoice(undefined);

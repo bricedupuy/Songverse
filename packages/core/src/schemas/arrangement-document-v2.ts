@@ -34,7 +34,7 @@ export const ArrangementDefaultsV2Schema = z.object({
 export type ArrangementDefaultsV2 = z.infer<typeof ArrangementDefaultsV2Schema>;
 
 /** Replace a chord on this pass. */
-const ChordOverride = z.object({ type: z.literal("chord"), chordId: z.string().min(1), raw: z.string().trim().min(1).max(32) });
+const ChordOverride = z.object({ type: z.literal("chord"), chordId: z.string().min(1), raw: z.string().trim().min(1).max(64) });
 /** Leave a chord out on this pass (for everyone playing the arrangement). */
 const HideChordOverride = z.object({ type: z.literal("hide_chord"), chordId: z.string().min(1) });
 /**
@@ -45,7 +45,7 @@ const HideChordOverride = z.object({ type: z.literal("hide_chord"), chordId: z.s
 const LyricOverride = z.object({
   type: z.literal("lyric"),
   lineId: z.string().min(1),
-  text: z.string().max(500),
+  text: z.string().max(2000),
   chordPositions: z.record(z.string(), z.number().int().nonnegative()).optional(),
 });
 const HideLineOverride = z.object({ type: z.literal("hide_line"), lineId: z.string().min(1) });
