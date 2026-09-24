@@ -9,6 +9,7 @@ import {
   type OverrideV2,
   type SectionInstance,
   type SongDocumentV2,
+  type SetlistSummary,
   type SongVersionDetail,
 } from "@songverse/core";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -26,7 +27,7 @@ import { Label } from "#/components/ui/label";
 import { NativeSelect } from "#/components/ui/native-select";
 import { Textarea } from "#/components/ui/textarea";
 import { apiClient } from "#/lib/api-client";
-import { transposeLabel } from "#/lib/setlists";
+import { setlistTitle, transposeLabel } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 
 type Item = ArrangementItemV2;
@@ -39,8 +40,17 @@ const CAPOS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
  * shown and typed in the key the pass is played in, and stored in the
  * song's key. Changing a line's words and adding lines come later (#24).
  */
-export function ArrangementEditor({ initial, version }: { initial: ArrangementDetail; version: SongVersionDetail }) {
-  const { t } = useTranslation();
+export function ArrangementEditor({
+  initial,
+  version,
+  set,
+}: {
+  initial: ArrangementDetail;
+  version: SongVersionDetail;
+  /** The set it's for, when it's one song's own arrangement for a set. */
+  set: Pick<SetlistSummary, "id" | "name" | "eventDate"> | null;
+}) {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const song = version.documentJson;
   const [detail, setDetail] = useState(initial);
@@ -94,15 +104,26 @@ export function ArrangementEditor({ initial, version }: { initial: ArrangementDe
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        to="/library/$songVersionId"
-        params={{ songVersionId: version.id }}
-        search={{ tab: "arrangements" }}
-        className="flex items-center gap-1 self-start text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        {version.title}
-      </Link>
+      {set ? (
+        <Link
+          to="/sets/$setlistId"
+          params={{ setlistId: set.id }}
+          className="flex items-center gap-1 self-start text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          {setlistTitle(set, t, i18n.language)}
+        </Link>
+      ) : (
+        <Link
+          to="/library/$songVersionId"
+          params={{ songVersionId: version.id }}
+          search={{ tab: "arrangements" }}
+          className="flex items-center gap-1 self-start text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          {version.title}
+        </Link>
+      )}
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -118,7 +139,8 @@ export function ArrangementEditor({ initial, version }: { initial: ArrangementDe
             />
           )}
           <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            {t("arrangements.of", { title: version.title })} · {detail.teamName ?? t("arrangements.mine")}
+            {t("arrangements.of", { title: version.title })} ·{" "}
+            {set ? t("arrangements.forSet", { set: setlistTitle(set, t, i18n.language) }) : (detail.teamName ?? t("arrangements.mine"))}
             {detail.isTeamDefault ? (
               <Badge variant="muted" className="gap-1">
                 <Star className="size-3" aria-hidden />
@@ -129,7 +151,7 @@ export function ArrangementEditor({ initial, version }: { initial: ArrangementDe
         </div>
         {readOnly ? null : (
           <div className="flex flex-wrap items-center gap-2">
-            {detail.ownerScope === "TEAM" ? (
+            {detail.ownerScope === "TEAM" && !detail.setlistId ? (
               <Button
                 type="button"
                 variant="outline"
@@ -259,7 +281,8 @@ export function ArrangementEditor({ initial, version }: { initial: ArrangementDe
                   cancelLabel={t("arrangements.cancel")}
                   onConfirm={async () => {
                     await apiClient.deleteArrangement(detail.id);
-                    await navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id }, search: { tab: "arrangements" } });
+                    if (set) await navigate({ to: "/sets/$setlistId", params: { setlistId: set.id } });
+                    else await navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id }, search: { tab: "arrangements" } });
                   }}
                 />
               )}

@@ -13,12 +13,14 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/arrang
     if (!arrangement || arrangement.songVersionId !== version.id) {
       throw redirect({ to: "/library/$songVersionId", params: { songVersionId: version.id }, search: { tab: "arrangements" } });
     }
-    return { arrangement, version };
+    // One song's own arrangement for a set: the set it's for, to go back to.
+    const set = arrangement.setlistId ? await apiClient.getSetlist(arrangement.setlistId).catch(() => null) : null;
+    return { arrangement, version, set: set && { id: set.id, name: set.name, eventDate: set.eventDate } };
   },
   component: ArrangementPage,
 });
 
 function ArrangementPage() {
-  const { arrangement, version } = Route.useLoaderData();
-  return <ArrangementEditor key={arrangement.id} initial={arrangement} version={version} />;
+  const { arrangement, version, set } = Route.useLoaderData();
+  return <ArrangementEditor key={arrangement.id} initial={arrangement} version={version} set={set} />;
 }

@@ -10,6 +10,7 @@ import {
   Matches,
   Max,
   MaxLength,
+  MinLength,
   Min,
   ValidateIf,
 } from "class-validator";
@@ -103,6 +104,15 @@ export class UpdateSetlistItemDto {
   @ValidateIf((_, value) => value !== null)
   @IsString()
   arrangementId?: string | null;
+}
+
+export class SetArrangementDto {
+  @ApiProperty({ description: "Its name, e.g. \"For Sunday 12 October\"", maxLength: 100 })
+  @IsString()
+  @MaxLength(100)
+  @Transform(trim)
+  @MinLength(1)
+  name!: string;
 }
 
 export class ReorderSetlistItemsDto {

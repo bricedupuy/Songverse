@@ -34,6 +34,13 @@ song's sections, lines and chords by ID and records the differences.
   means editing the arrangement.
 - **Team default:** a team can mark one of its arrangements of a song as
   its usual one. Adding the song to one of the team's sets picks it.
+- **Just for one set** (bricedupuy/SongVerse#16): a set's song can have its
+  own arrangement for that set - to reorder, skip or repeat sections just
+  there. It starts as a copy of the arrangement the set played (or the
+  song's order), is owned like the set (and follows it to a team), isn't
+  listed with the song's arrangements, can't be a team's usual one, and is
+  deleted with the set's song (`Arrangement.setlistItemId`, cascading).
+  Switching the set's song to another version deletes it.
 - **Capo:** the arrangement's `defaults.capo` is the capo. A capo stored on
   the song (`SongVersion.capo`) is only a suggestion - "the recording uses
   capo 2" - shown when no arrangement says otherwise.

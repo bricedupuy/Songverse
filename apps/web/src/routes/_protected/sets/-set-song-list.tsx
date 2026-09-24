@@ -10,13 +10,18 @@ import {
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TRANSPOSE_STEP_OPTIONS, transposeKey, type SetlistItem, type SetlistSongRef } from "@songverse/core";
-import { Link } from "@tanstack/react-router";
-import { GripVertical, X } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { GripVertical, Pencil, X } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
+import { apiClient } from "#/lib/api-client";
 import { transposeLabel } from "#/lib/setlists";
 import { NativeSelect } from "#/components/ui/native-select";
+
+// The arrangement picker's "make one just for this set" choice.
+const SET_ONLY = "__set";
 
 /** Handing shared personal songs over to a team set's team (see SongOwnershipService in the API). */
 export interface OwnershipActions {
@@ -99,8 +104,25 @@ function SongRow({
     id: item.id,
     disabled: !canEdit,
   });
+  const navigate = useNavigate();
+  const [customizing, setCustomizing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const song = item.song;
   const title = song?.title ?? t("sets.hiddenSong");
+
+  // Its own arrangement for this set, opened to change.
+  async function customize() {
+    if (!song) return;
+    setCustomizing(true);
+    setError(null);
+    try {
+      const { arrangementId } = await apiClient.createSetArrangement(setlistId, item.id, t("sets.justThisSet"));
+      await navigate({ to: "/library/$songVersionId/arrangements/$arrangementId", params: { songVersionId: song.id, arrangementId } });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setCustomizing(false);
+    }
+  }
   // The item's own key goes on top of the arrangement's.
   const baseKey = song?.key && item.arrangement ? (transposeKey(song.key, item.arrangement.transposeSteps) ?? song.key) : (song?.key ?? null);
 
@@ -142,6 +164,11 @@ function SongRow({
           <span className="text-xs text-muted-foreground">{t("sets.playedAs", { name: item.arrangement.name })}</span>
         ) : null}
         <OwnershipLine item={item} ownership={ownership} />
+        {error ? (
+          <span className="text-xs text-destructive" role="alert">
+            {error}
+          </span>
+        ) : null}
       </div>
 
       {song && canEdit && item.versions.length > 1 ? (
@@ -160,21 +187,46 @@ function SongRow({
         </NativeSelect>
       ) : null}
 
-      {song && canEdit && item.arrangements.length > 0 ? (
-        <NativeSelect
-          aria-label={t("sets.arrangement")}
-          value={item.arrangement?.id ?? ""}
-          onChange={(event) => onChange({ arrangementId: event.target.value || null })}
-          compact
-          className="max-w-56 text-sm"
-        >
-          <option value="">{t("sets.asWritten")}</option>
-          {item.arrangements.map((arrangement) => (
-            <option key={arrangement.id} value={arrangement.id}>
-              {arrangement.isTeamDefault ? t("sets.usualArrangement", { name: arrangement.name }) : arrangement.name}
-            </option>
-          ))}
-        </NativeSelect>
+      {song && canEdit && (item.arrangements.length > 0 || item.inLibrary) ? (
+        <span className="flex items-center gap-0.5">
+          <NativeSelect
+            aria-label={t("sets.arrangement")}
+            value={item.arrangement?.id ?? ""}
+            disabled={customizing}
+            onChange={(event) => {
+              if (event.target.value === SET_ONLY) void customize();
+              else onChange({ arrangementId: event.target.value || null });
+            }}
+            compact
+            className="max-w-56 text-sm"
+          >
+            <option value="">{t("sets.asWritten")}</option>
+            {item.arrangements.map((arrangement) => (
+              <option key={arrangement.id} value={arrangement.id}>
+                {arrangement.setOnly
+                  ? t("sets.justThisSet")
+                  : arrangement.isTeamDefault
+                    ? t("sets.usualArrangement", { name: arrangement.name })
+                    : arrangement.name}
+              </option>
+            ))}
+            {/* Reorder, skip or repeat its sections just for this set (#16). */}
+            {item.inLibrary && !item.arrangements.some((arrangement) => arrangement.setOnly) ? (
+              <option value={SET_ONLY}>{t("sets.newJustThisSet")}</option>
+            ) : null}
+          </NativeSelect>
+          {item.arrangement?.setOnly ? (
+            <Button asChild variant="ghost" size="icon" className="size-8">
+              <Link
+                to="/library/$songVersionId/arrangements/$arrangementId"
+                params={{ songVersionId: song.id, arrangementId: item.arrangement.id }}
+                aria-label={t("sets.editJustThisSet", { title })}
+              >
+                <Pencil />
+              </Link>
+            </Button>
+          ) : null}
+        </span>
       ) : null}
 
       {song && canEdit ? (

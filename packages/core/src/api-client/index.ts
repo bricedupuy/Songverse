@@ -135,9 +135,9 @@ export interface SetlistItem {
   /** Versions of the same song this item can switch to (editors only). */
   versions: SetlistSongRef[];
   /** The arrangement it's played in (and the semitones it moves the song's key); null plays the song as written. */
-  arrangement: { id: string; name: string; transposeSteps: number } | null;
-  /** The arrangements this set could play for it (editors only). */
-  arrangements: { id: string; name: string; isTeamDefault: boolean }[];
+  arrangement: { id: string; name: string; transposeSteps: number; setOnly: boolean } | null;
+  /** The arrangements this set could play for it (editors only); `setOnly` is its own for this set. */
+  arrangements: { id: string; name: string; isTeamDefault: boolean; setOnly: boolean }[];
 }
 
 export interface SetlistDetail extends SetlistSummary {
@@ -189,6 +189,8 @@ export interface ArrangementSummary {
   teamName: string | null;
   ownerName: string | null;
   isTeamDefault: boolean;
+  /** Set when it's one song's own arrangement for one set: that set's id. */
+  setlistId: string | null;
   /** The key it's played in, when the song has one. */
   key: string | null;
   transposeSteps: number;
@@ -1039,6 +1041,12 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<ChartPreferences>(`/setlists/${setlistId}/items/${itemId}/chart-preferences`, {
         method: "PUT",
         body: JSON.stringify({ preferences }),
+      }),
+    /** Gives a song of the set its own arrangement for this set (a copy of the one it played, or the song's order) and plays it. */
+    createSetArrangement: (setlistId: string, itemId: string, name: string) =>
+      request<{ arrangementId: string }>(`/setlists/${setlistId}/items/${itemId}/set-arrangement`, {
+        method: "POST",
+        body: JSON.stringify({ name }),
       }),
     listArrangements: (songVersionId: string) => request<ArrangementSummary[]>(`/song-versions/${songVersionId}/arrangements`),
     /** A new arrangement: the song's order to start with, or a copy of `copyFromId`; a team's when `teamId` is given. */

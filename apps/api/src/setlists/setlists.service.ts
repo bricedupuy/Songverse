@@ -31,7 +31,8 @@ export interface SongRef {
 const ITEM_INCLUDE = {
   songVersion: { select: SONG_SELECT },
   sharedBy: { select: { id: true, displayName: true } },
-  arrangement: { select: { id: true, name: true, documentJson: true } },
+  arrangement: { select: { id: true, name: true, documentJson: true, setlistItemId: true } },
+  setArrangement: { select: { id: true, name: true } },
 } as const;
 
 /**
@@ -136,6 +137,7 @@ export class SetlistsService {
       ? await this.arrangements.choicesForSet(set, [...new Set(set.items.map((item) => item.songVersionId))])
       : new Map<string, { id: string; name: string; isTeamDefault: boolean }[]>();
 
+
     // Pending requests for the team to take over songs shared into this set.
     const pending = set.ownerTeamId
       ? await this.prisma.client.songOwnershipRequest.findMany({
@@ -171,7 +173,13 @@ export class SetlistsService {
           versions: siblingsByWork.get(song.workId) ?? [],
           // The arrangement it's played in (null: as written), and the others it could be.
           arrangement: shown && item.arrangement ? arrangementRef(item.arrangement) : null,
-          arrangements: choices.get(song.id) ?? [],
+          // Plus its own arrangement for this set, if it has one.
+          arrangements: access.canEdit
+            ? [
+                ...(choices.get(song.id) ?? []).map((choice) => ({ ...choice, setOnly: false })),
+                ...(item.setArrangement ? [{ ...item.setArrangement, isTeamDefault: false, setOnly: true }] : []),
+              ]
+            : [],
         };
       }),
     };
@@ -211,6 +219,11 @@ export class SetlistsService {
 
     await this.prisma.client.$transaction(async (tx) => {
       await tx.setlist.update({ where: { id: set.id }, data: { ownerUserId: next.ownerUserId, ownerTeamId: next.ownerTeamId } });
+      // Its songs' own arrangements for it belong to whoever owns the set.
+      await tx.arrangement.updateMany({
+        where: { setlistItem: { setlistId: set.id } },
+        data: { ownerScope: teamId ? "TEAM" : "USER", ownerUserId: next.ownerUserId, ownerTeamId: next.ownerTeamId },
+      });
       for (const item of items) {
         const sharedByUserId = addable(item.songVersion) ? null : (item.sharedByUserId ?? (actorSees(item.songVersion) ? sharer : null));
         if (sharedByUserId !== item.sharedByUserId) {
@@ -283,10 +296,13 @@ export class SetlistsService {
         : null
       : undefined;
     if (dto.arrangementId !== undefined) {
-      if (dto.arrangementId) await this.arrangements.assertPlayableInSet(set, songVersionId, dto.arrangementId);
+      if (dto.arrangementId) await this.arrangements.assertPlayableInSet(set, songVersionId, dto.arrangementId, itemId);
       arrangementId = dto.arrangementId;
     }
-    await this.prisma.client.setlistItem.update({
+    await this.prisma.client.$transaction(async (tx) => {
+      // Its own arrangement for this set was of the other version.
+      if (switching) await tx.arrangement.deleteMany({ where: { setlistItemId: itemId } });
+      await tx.setlistItem.update({
       where: { id: itemId },
       data: {
         // A version picked from what's addable needs no sharing.
@@ -295,8 +311,21 @@ export class SetlistsService {
         ...(dto.transposeSteps !== undefined && { transposeSteps: dto.transposeSteps }),
         ...(dto.notes !== undefined && { notes: dto.notes || null }),
       },
+      });
     });
     return this.findOne(user, setlistId);
+  }
+
+  /**
+   * Gives a song of the set its own arrangement for this set (issue #16:
+   * reorder, skip or repeat its sections just here) and plays it: a copy of
+   * the arrangement it played, or the song's order. Returns its id, to open
+   * in the arrangement editor.
+   */
+  async setArrangement(user: AuthenticatedUser, setlistId: string, itemId: string, name: string) {
+    const set = await this.sets.findEditable(user, setlistId);
+    const item = await this.findItem(setlistId, itemId);
+    return { arrangementId: await this.arrangements.forSetItem(user, set, item, name) };
   }
 
   async removeItem(user: AuthenticatedUser, setlistId: string, itemId: string) {
@@ -451,9 +480,9 @@ export function toSongRef(song: SongRow): SongRef {
 }
 
 /** A set item's arrangement: its name, and the key it moves the song to (the item's own key goes on top). */
-function arrangementRef(arrangement: { id: string; name: string; documentJson: unknown }) {
+function arrangementRef(arrangement: { id: string; name: string; documentJson: unknown; setlistItemId: string | null }) {
   const steps = (arrangement.documentJson as { defaults?: { transposeSteps?: unknown } } | null)?.defaults?.transposeSteps;
-  return { id: arrangement.id, name: arrangement.name, transposeSteps: typeof steps === "number" ? steps : 0 };
+  return { id: arrangement.id, name: arrangement.name, transposeSteps: typeof steps === "number" ? steps : 0, setOnly: !!arrangement.setlistItemId };
 }
 
 export function summarize(set: {

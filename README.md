@@ -45,7 +45,8 @@ playing on Sunday, and share it with the people playing with you.
 - **Arrangements** – how you or your band play a song, without changing
   it: its order, key, capo and tempo, and chords replaced or hidden, lines
   hidden and notes added on some passes. A team's usual arrangement is
-  picked when the song goes into its sets. Players choose their own view
+  picked when the song goes into its sets, and any set can give a song its
+  own order just for that set. Players choose their own view
   on top: chords hidden for them, simpler chords, capo shapes, solfège
   ([format](docs/arrangement-document-v2.md)).
 - **Teams** – invite links, member and admin roles, and each member's

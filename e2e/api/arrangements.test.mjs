@@ -104,6 +104,40 @@ check(
 r = await call(admin, "PATCH", `/setlists/${teamSet.id}/items/${item.id}`, { arrangementId: null });
 check("or plays the song as written", r.body.items[0].arrangement === null);
 
+// --- just for this set (issue #16: reorder, skip or repeat sections for one set)
+await call(admin, "PATCH", `/setlists/${teamSet.id}/items/${item.id}`, { arrangementId: second.id });
+r = await call(member, "POST", `/setlists/${teamSet.id}/items/${item.id}/set-arrangement`, { name: "Just for this set" });
+check("only those who can change the set give a song its own arrangement for it", r.status === 403, `${r.status}`);
+r = await call(admin, "POST", `/setlists/${teamSet.id}/items/${item.id}/set-arrangement`, { name: "Just for this set" });
+const setOnlyId = r.body.arrangementId;
+const setOnly = (await call(admin, "GET", `/arrangements/${setOnlyId}`)).body;
+item = (await call(admin, "GET", `/setlists/${teamSet.id}`)).body.items[0];
+check(
+  "a song's own arrangement for a set starts as the one it played, is the team's and is played",
+  r.status === 201 && item.arrangement?.id === setOnlyId && item.arrangement.setOnly === true && setOnly.setlistId === teamSet.id &&
+    setOnly.teamId === team.id && setOnly.document.items.length === second.document.items.length && setOnly.document.items[0].id !== second.document.items[0].id,
+  JSON.stringify({ status: r.status, arrangement: item.arrangement, setlistId: setOnly.setlistId }),
+);
+check("the set offers it among the song's arrangements", item.arrangements.some((a) => a.id === setOnlyId && a.setOnly) && item.arrangements.filter((a) => a.setOnly).length === 1);
+r = await call(admin, "POST", `/setlists/${teamSet.id}/items/${item.id}/set-arrangement`, { name: "Again" });
+check("asking again opens the same one", r.body.arrangementId === setOnlyId);
+check("it isn't listed with the song's arrangements", !(await call(admin, "GET", `/song-versions/${songId}/arrangements`)).body.some((a) => a.id === setOnlyId));
+r = await call(admin, "PATCH", `/arrangements/${setOnlyId}`, { isTeamDefault: true });
+check("nor can it be the team's usual one", r.status === 400, `${r.status}`);
+await call(admin, "PATCH", `/setlists/${teamSet.id}/items/${item.id}`, { arrangementId: second.id });
+r = await call(admin, "PATCH", `/setlists/${teamSet.id}/items/${item.id}`, { arrangementId: setOnlyId });
+check("the set can switch away from it and back", r.status === 200 && r.body.items[0].arrangement.id === setOnlyId);
+const otherSet = (await call(admin, "POST", "/setlists", { name: `Other set ${stamp}` })).body;
+const otherItem = (await call(admin, "POST", `/setlists/${otherSet.id}/items`, { songVersionId: songId })).body.items[0];
+r = await call(admin, "PATCH", `/setlists/${otherSet.id}/items/${otherItem.id}`, { arrangementId: setOnlyId });
+check("another set can't play it", r.status === 400, `${r.status}`);
+const otherOwn = (await call(admin, "POST", `/setlists/${otherSet.id}/items/${otherItem.id}/set-arrangement`, { name: "Just for this set" })).body.arrangementId;
+await call(admin, "PATCH", `/setlists/${otherSet.id}`, { teamId: team.id });
+check("a set moving to a team takes its songs' own arrangements with it", sql(`select "ownerScope"||':'||coalesce("ownerTeamId",'') from "Arrangement" where id='${otherOwn}'`) === `TEAM:${team.id}`);
+await call(admin, "DELETE", `/setlists/${otherSet.id}/items/${otherItem.id}`);
+check("removing the song from the set removes its own arrangement", sql(`select count(*) from "Arrangement" where id='${otherOwn}'`) === "0");
+await call(admin, "PATCH", `/setlists/${teamSet.id}/items/${item.id}`, { arrangementId: null });
+
 // --- a player's own view
 r = await call(member, "PUT", `/setlists/${teamSet.id}/items/${item.id}/chart-preferences`, { preferences: { hiddenChordIds: [verse.lines[0].chords[1].id], simplifyChords: true } });
 check("a player hides a chord for themselves, through the set", r.status === 200 && r.body.hiddenChordIds.length === 1 && r.body.simplifyChords === true, JSON.stringify(r.body));

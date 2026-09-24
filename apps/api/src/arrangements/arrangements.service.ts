@@ -30,6 +30,7 @@ const SELECT = {
   isTeamDefault: true,
   documentJson: true,
   updatedAt: true,
+  setlistItem: { select: { setlistId: true } },
   ownerTeam: { select: { name: true } },
   ownerUser: { select: { displayName: true } },
 } satisfies Prisma.ArrangementSelect;
@@ -47,6 +48,8 @@ export interface ArrangementSummary {
   teamName: string | null;
   ownerName: string | null;
   isTeamDefault: boolean;
+  /** Set when it's one song's arrangement for one set (see SetlistsService): the set's id. */
+  setlistId: string | null;
   /** The key it's played in (the song's key moved by its transposition), when the song has one. */
   key: string | null;
   transposeSteps: number;
@@ -76,7 +79,8 @@ export class ArrangementsService {
   async listForSong(user: AuthenticatedUser, songVersionId: string): Promise<ArrangementSummary[]> {
     const song = await this.visibleSong(user, songVersionId);
     const rows = await this.prisma.client.arrangement.findMany({
-      where: { AND: [{ songVersionId }, await this.access.arrangementsVisibleTo(user)] },
+      // A set's own arrangements are found through their set.
+      where: { AND: [{ songVersionId, setlistItemId: null }, await this.access.arrangementsVisibleTo(user)] },
       select: SELECT,
       orderBy: [{ ownerScope: "desc" }, { name: "asc" }],
     });
@@ -117,6 +121,46 @@ export class ArrangementsService {
   }
 
   /**
+   * One song's own arrangement for one set (reordering, skipping or repeating
+   * sections just there), which the set then plays: a copy of the one it
+   * played, or the song's order. Owned like the set; the caller checks the
+   * user can change the set and see the song. Returns the existing one if
+   * the song already has one in this set.
+   */
+  async forSetItem(
+    user: AuthenticatedUser,
+    set: { ownerTeamId: string | null; ownerUserId: string | null },
+    item: { id: string; songVersionId: string; arrangementId: string | null },
+    name: string,
+  ): Promise<string> {
+    const existing = await this.prisma.client.arrangement.findUnique({ where: { setlistItemId: item.id }, select: { id: true } });
+    let id = existing?.id;
+    if (!id) {
+      const song = await this.visibleSong(user, item.songVersionId);
+      let document = newArrangementDocument(song.document, item.songVersionId, itemId);
+      const played = item.arrangementId
+        ? await this.prisma.client.arrangement.findUnique({ where: { id: item.arrangementId }, select: { documentJson: true } })
+        : null;
+      if (played) {
+        const copied = readArrangementDocument(played.documentJson, song.document, item.songVersionId, itemId).document;
+        document = { ...copied, items: copied.items.map((pass) => ({ ...pass, id: itemId() })) };
+      }
+      ({ id } = await this.prisma.client.arrangement.create({
+        data: {
+          songVersionId: item.songVersionId,
+          name,
+          setlistItemId: item.id,
+          ...(set.ownerTeamId ? { ownerScope: "TEAM", ownerTeamId: set.ownerTeamId } : { ownerScope: "USER", ownerUserId: set.ownerUserId }),
+          documentJson: document as object,
+        },
+        select: { id: true },
+      }));
+    }
+    await this.prisma.client.setlistItem.update({ where: { id: item.id }, data: { arrangementId: id } });
+    return id;
+  }
+
+  /**
    * Partial update. `document` replaces the arrangement's (checked against
    * the format; references the song no longer has are allowed and shown as
    * problems). `updatedAt` refuses a save over someone else's newer one.
@@ -135,7 +179,7 @@ export class ArrangementsService {
       if (parsed.data.songVersionId !== row.songVersionId) throw new BadRequestException("document.songVersionId: not this arrangement's song");
       document = parsed.data;
     }
-    if (dto.isTeamDefault && row.ownerScope !== "TEAM") throw new BadRequestException("Only a team arrangement can be the team's usual one");
+    if (dto.isTeamDefault && (row.ownerScope !== "TEAM" || row.setlistItem)) throw new BadRequestException("Only a team arrangement can be the team's usual one");
 
     const updated = await this.prisma.client.$transaction(async (tx) => {
       // Conditional on the version the check above saw, so two saves at once can't both win.
@@ -210,7 +254,7 @@ export class ArrangementsService {
           ],
         };
     const rows = await this.prisma.client.arrangement.findMany({
-      where: { AND: [{ songVersionId: { in: songVersionIds } }, owners] },
+      where: { AND: [{ songVersionId: { in: songVersionIds }, setlistItemId: null }, owners] },
       select: { id: true, name: true, isTeamDefault: true, songVersionId: true },
       orderBy: { name: "asc" },
     });
@@ -219,8 +263,15 @@ export class ArrangementsService {
     return bySong;
   }
 
-  /** Throws unless the set can play this arrangement of this song (see choicesForSet). */
-  async assertPlayableInSet(set: { ownerTeamId: string | null; ownerUserId: string | null }, songVersionId: string, arrangementId: string) {
+  /** Throws unless the set can play this arrangement of this song (see choicesForSet), or it's this set song's own. */
+  async assertPlayableInSet(
+    set: { ownerTeamId: string | null; ownerUserId: string | null },
+    songVersionId: string,
+    arrangementId: string,
+    setlistItemId: string,
+  ) {
+    const own = await this.prisma.client.arrangement.findUnique({ where: { setlistItemId }, select: { id: true } });
+    if (own?.id === arrangementId) return;
     const choices = (await this.choicesForSet(set, [songVersionId])).get(songVersionId) ?? [];
     if (!choices.some((choice) => choice.id === arrangementId)) {
       throw new BadRequestException(
@@ -317,6 +368,7 @@ export class ArrangementsService {
       teamName: row.ownerTeam?.name ?? null,
       ownerName: row.ownerUser?.displayName ?? null,
       isTeamDefault: row.isTeamDefault,
+      setlistId: row.setlistItem?.setlistId ?? null,
       key: songKey ? (transposeKey(songKey, steps) ?? songKey) : null,
       transposeSteps: steps,
       capo: document.defaults.capo || null,

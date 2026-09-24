@@ -777,6 +777,12 @@ model Arrangement {
   // by the API).
   isTeamDefault Boolean @default(false)
 
+  // Set only when it's one song's arrangement for one set (reordering,
+  // skipping or repeating sections just there): not listed with the song's
+  // arrangements, owned like its set, and gone with the set's song.
+  setlistItemId String?      @unique
+  setlistItem   SetlistItem? @relation("SetOnlyArrangement", fields: [setlistItemId], references: [id], onDelete: Cascade)
+
   // Guitar tuning for this arrangement (null = standard tuning)
   // Stored here as a convenience cache — authoritative value is in documentJson.defaults
   guitarTuningPresetId String?
@@ -786,7 +792,7 @@ model Arrangement {
   songVersion      SongVersion           @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
   ownerUser        User?                 @relation("ArrangementOwnerUser", fields: [ownerUserId], references: [id])
   ownerTeam        Team?                 @relation("ArrangementOwnerTeam", fields: [ownerTeamId], references: [id])
-  setlistItems     SetlistItem[]
+  setlistItems     SetlistItem[]         @relation("PlayedArrangement")
   notes            Note[]
   midiConfigs      UserArrangementMidi[]
   grooveOverrides  ArrangementGroove[]
@@ -929,11 +935,13 @@ model SetlistItem {
   // Readable through the set for as long as this user can still see it.
   sharedByUserId String?
 
-  setlist     Setlist      @relation(fields: [setlistId], references: [id], onDelete: Cascade)
-  songVersion SongVersion  @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
-  arrangement Arrangement? @relation(fields: [arrangementId], references: [id], onDelete: SetNull)
-  sharedBy    User?        @relation("SetlistItemSharedBy", fields: [sharedByUserId], references: [id], onDelete: SetNull)
-  fullNotes   Note[]
+  setlist        Setlist      @relation(fields: [setlistId], references: [id], onDelete: Cascade)
+  songVersion    SongVersion  @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  arrangement    Arrangement? @relation("PlayedArrangement", fields: [arrangementId], references: [id], onDelete: SetNull)
+  // Its own arrangement for this set, if one was made (see Arrangement.setlistItemId).
+  setArrangement Arrangement? @relation("SetOnlyArrangement")
+  sharedBy       User?        @relation("SetlistItemSharedBy", fields: [sharedByUserId], references: [id], onDelete: SetNull)
+  fullNotes      Note[]
 
   @@index([setlistId, position])
 }

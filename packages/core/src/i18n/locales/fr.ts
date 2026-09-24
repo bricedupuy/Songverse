@@ -643,6 +643,9 @@ const fr: typeof en = {
     storageUnlimited: "{{used}} utilisés · aucune limite",
   },
   sets: {
+    justThisSet: "Pour cette liste seulement",
+    newJustThisSet: "Pour cette liste seulement…",
+    editJustThisSet: "Modifier {{title}} pour cette liste",
     arrangement: "Arrangement",
     asWritten: "Tel qu'écrit",
     usualArrangement: "{{name}} (habituel)",
@@ -832,6 +835,7 @@ const fr: typeof en = {
     namePlaceholder: "Groupe du dimanche, Acoustique…",
     owner: "Pour",
     create: "Créer",
+    forSet: "seulement pour {{set}}",
     of: "Arrangement de {{title}}",
     save: "Enregistrer",
     saving: "Enregistrement…",

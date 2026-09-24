@@ -7,6 +7,7 @@ import {
   CreateSetlistDto,
   MyNoteDto,
   ReorderSetlistItemsDto,
+  SetArrangementDto,
   UpdateSetlistDto,
   UpdateSetlistItemDto,
 } from "./dto/setlist.dto";
@@ -125,6 +126,17 @@ export class SetlistsController {
     @Body() dto: MyNoteDto,
   ) {
     return this.setlists.setMyNote(requireUser(user), setlistId, itemId, dto.content);
+  }
+
+  /** Gives this song its own arrangement for this set, which the set then plays. */
+  @Post(":setlistId/items/:itemId/set-arrangement")
+  setArrangement(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("setlistId") setlistId: string,
+    @Param("itemId") itemId: string,
+    @Body() dto: SetArrangementDto,
+  ) {
+    return this.setlists.setArrangement(requireUser(user), setlistId, itemId, dto.name);
   }
 
   /** The viewer's own chart preferences (hidden chords, simpler chords) for this song as the set plays it. */

@@ -213,5 +213,37 @@ await step("delete it; the set plays the song as written", async () => {
   if (item.arrangement !== null) throw new Error("the set still points at the deleted arrangement");
 });
 
+await step("a song's order just for this set: repeat the chorus there only", async () => {
+  await page.goto(`${WEB}/sets/${set.id}`);
+  await page.waitForLoadState("networkidle");
+  await page.getByTestId("set-song-row").getByLabel("Arrangement").selectOption({ label: "Just for this set…" });
+  await page.waitForURL("**/arrangements/**");
+  await page.waitForLoadState("networkidle");
+  const back = page.getByRole("main").getByRole("link", { name: `Arranged set ${tag}` });
+  await back.waitFor(); // back to the set
+  await page.getByText(`just for Arranged set ${tag}`).waitFor();
+  if ((await page.getByRole("button", { name: /usual/ }).count()) !== 0) throw new Error("a set's own arrangement can't be the band's usual one");
+  await page.getByTestId("song-order").getByLabel("Add a pass").selectOption({ label: "Chorus" });
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByText("Saved.").waitFor();
+
+  await back.click();
+  await page.waitForURL(`**/sets/${set.id}`);
+  await page.waitForLoadState("networkidle");
+  const row = page.getByTestId("set-song-row");
+  if ((await row.getByLabel("Arrangement").evaluate((el) => el.selectedOptions[0].textContent)) !== "Just for this set") throw new Error("the set doesn't play it");
+  await row.getByRole("link", { name: `Change Arranged Grace ${tag} for this set` }).waitFor();
+  await page.screenshot({ path: `${SP}/set-only-arrangement.png` });
+  await page.goto(`${WEB}/sets/${set.id}/songs/${itemId}`);
+  await page.waitForLoadState("networkidle");
+  await page.getByText("Played as Just for this set").waitFor();
+  if ((await page.locator("[data-pass]").count()) !== 3) throw new Error(`expected 3 passes, got ${await page.locator("[data-pass]").count()}`);
+
+  // The song's own list doesn't show it.
+  await page.goto(`${WEB}/library/${song.id}?tab=arrangements`);
+  await page.waitForLoadState("networkidle");
+  await page.getByText("No arrangements yet.").waitFor();
+});
+
 await browser.close();
 finish();

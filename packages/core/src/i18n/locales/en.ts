@@ -639,6 +639,9 @@ const en = {
     storageUnlimited: "{{used}} used · no limit",
   },
   sets: {
+    justThisSet: "Just for this set",
+    newJustThisSet: "Just for this set…",
+    editJustThisSet: "Change {{title}} for this set",
     arrangement: "Arrangement",
     asWritten: "As written",
     usualArrangement: "{{name}} (usual)",
@@ -829,6 +832,7 @@ const en = {
     namePlaceholder: "Sunday band, Acoustic…",
     owner: "For",
     create: "Create",
+    forSet: "just for {{set}}",
     of: "Arrangement of {{title}}",
     save: "Save",
     saving: "Saving…",
