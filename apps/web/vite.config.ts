@@ -12,6 +12,12 @@ export default defineConfig({
   // already routed for a domain we explicitly configured there, so that
   // protection is redundant here — allow every host rather than hardcode
   // one domain and hit this again for the next subdomain we add.
-  preview: { allowedHosts: true },
+  //
+  // The build also runs a preview server itself, to prerender the offline
+  // app shell (spa mode below, issue #49). It listens on 127.0.0.1, not
+  // "localhost": in some build sandboxes (Dokploy's Docker builds) localhost
+  // resolves to ::1 for the server and 127.0.0.1 for the prerender's fetch,
+  // and the build failed with ECONNREFUSED.
+  preview: { allowedHosts: true, host: "127.0.0.1" },
   plugins: [tailwindcss(), tanstackStart({ spa: { enabled: true } }), viteReact()],
 });
