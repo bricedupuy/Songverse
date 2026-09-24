@@ -5,7 +5,7 @@ description: Create your account, sign in, and find your way around SongVerse.
 
 ## Create your account
 
-1. Open [SongVerse](https://app.songverse.one) and choose **Sign up**.
+1. Open [SongVerse](https://songverse.one) and choose **Sign up**.
 2. Enter your display name, email and a password, then **Create account**.
 3. Open the link in the verification email we send you. You can sign in once your email is verified.
 

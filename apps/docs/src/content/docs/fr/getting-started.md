@@ -5,7 +5,7 @@ description: Créez votre compte, connectez-vous et repérez-vous dans SongVerse
 
 ## Créer votre compte
 
-1. Ouvrez [SongVerse](https://app.songverse.one) et choisissez **S'inscrire**.
+1. Ouvrez [SongVerse](https://songverse.one) et choisissez **S'inscrire**.
 2. Indiquez votre nom, votre adresse e-mail et un mot de passe, puis **Créer un compte**.
 3. Ouvrez le lien de l'e-mail de vérification que nous vous envoyons. Vous pouvez vous connecter une fois votre adresse vérifiée.
 
