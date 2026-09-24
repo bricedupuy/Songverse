@@ -21,6 +21,7 @@ export const ID_PREFIXES = {
   line: "line_",
   segment: "seg_",
   chord: "chd_",
+  flowItem: "fi_",
   arrangementItem: "ai_",
   insertedLine: "ins_line_",
   insertedSegment: "ins_seg_",

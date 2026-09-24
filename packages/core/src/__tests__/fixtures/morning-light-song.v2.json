@@ -1,0 +1,1292 @@
+{
+  "$schema": "song-document/v2",
+  "revision": 1,
+  "defaults": {
+    "key": "G",
+    "tempo": 78,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "durationSeconds": 264
+  },
+  "sections": [
+    {
+      "id": "sec_intro",
+      "type": "intro",
+      "label": "Intro",
+      "showLabel": true,
+      "lines": [
+        {
+          "id": "line_intro_01",
+          "kind": "lyric",
+          "text": "",
+          "chords": [
+            {
+              "id": "chd_intro_01",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_intro_02",
+              "at": 0,
+              "raw": "D/F#"
+            },
+            {
+              "id": "chd_intro_03",
+              "at": 0,
+              "raw": "Em7"
+            },
+            {
+              "id": "chd_intro_04",
+              "at": 0,
+              "raw": "Cadd9"
+            }
+          ]
+        },
+        {
+          "id": "line_intro_02",
+          "kind": "lyric",
+          "text": "",
+          "chords": [
+            {
+              "id": "chd_intro_05",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_intro_06",
+              "at": 0,
+              "raw": "D"
+            },
+            {
+              "id": "chd_intro_07",
+              "at": 0,
+              "raw": "Csus2"
+            },
+            {
+              "id": "chd_intro_08",
+              "at": 0,
+              "raw": "D"
+            }
+          ]
+        }
+      ],
+      "rhythm": {
+        "beatsPerBar": null,
+        "bars": [
+          {
+            "chords": [
+              {
+                "chordId": "chd_intro_01",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": "Fingerpicked guitar"
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_intro_02",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_intro_03",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_intro_04",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_intro_05",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": "Band enters"
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_intro_06",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_intro_07",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_intro_08",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": "Build to verse"
+          }
+        ]
+      },
+      "groove": null
+    },
+    {
+      "id": "sec_verse1",
+      "type": "verse",
+      "label": "Verse 1",
+      "showLabel": true,
+      "lines": [
+        {
+          "id": "line_v1_01",
+          "kind": "lyric",
+          "text": "Still the darkness holds its breath before the dawn",
+          "chords": [
+            {
+              "id": "chd_v1_01",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_v1_02",
+              "at": 29,
+              "raw": "D/F#"
+            },
+            {
+              "id": "chd_v1_03",
+              "at": 47,
+              "raw": "Em7"
+            }
+          ]
+        },
+        {
+          "id": "line_v1_02",
+          "kind": "lyric",
+          "text": "And every shadow waits for what's to come",
+          "chords": [
+            {
+              "id": "chd_v1_04",
+              "at": 0,
+              "raw": "Cadd9"
+            },
+            {
+              "id": "chd_v1_05",
+              "at": 17,
+              "raw": "D"
+            }
+          ]
+        },
+        {
+          "id": "line_v1_03",
+          "kind": "lyric",
+          "text": "Slowly the colours fill the open sky",
+          "chords": [
+            {
+              "id": "chd_v1_06",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_v1_07",
+              "at": 11,
+              "raw": "D/F#"
+            },
+            {
+              "id": "chd_v1_08",
+              "at": 19,
+              "raw": "Em7"
+            },
+            {
+              "id": "chd_v1_09",
+              "at": 33,
+              "raw": "Cadd9"
+            }
+          ]
+        },
+        {
+          "id": "line_v1_04",
+          "kind": "lyric",
+          "text": "And I remember why I'm still alive",
+          "chords": [
+            {
+              "id": "chd_v1_10",
+              "at": 0,
+              "raw": "Am7"
+            },
+            {
+              "id": "chd_v1_11",
+              "at": 15,
+              "raw": "C"
+            },
+            {
+              "id": "chd_v1_12",
+              "at": 23,
+              "raw": "D"
+            }
+          ]
+        }
+      ],
+      "rhythm": {
+        "beatsPerBar": null,
+        "bars": [
+          {
+            "chords": [
+              {
+                "chordId": "chd_v1_01",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v1_01",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v1_02",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v1_01",
+              "at": 29
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v1_03",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v1_01",
+              "at": 47
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v1_04",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v1_02",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v1_05",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v1_02",
+              "at": 17
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v1_06",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v1_03",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v1_07",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_v1_08",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v1_03",
+              "at": 11
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v1_10",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_v1_11",
+                "beat": 2
+              },
+              {
+                "chordId": "chd_v1_12",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v1_04",
+              "at": 0
+            },
+            "cue": null
+          }
+        ]
+      },
+      "groove": null
+    },
+    {
+      "id": "sec_prechorus",
+      "type": "pre-chorus",
+      "label": "Pre-Chorus",
+      "showLabel": true,
+      "lines": [
+        {
+          "id": "line_pc_01",
+          "kind": "lyric",
+          "text": "So I'll lift my eyes to the morning sky",
+          "chords": [
+            {
+              "id": "chd_pc_01",
+              "at": 0,
+              "raw": "Em"
+            },
+            {
+              "id": "chd_pc_02",
+              "at": 16,
+              "raw": "C"
+            },
+            {
+              "id": "chd_pc_03",
+              "at": 36,
+              "raw": "G"
+            }
+          ]
+        },
+        {
+          "id": "line_pc_02",
+          "kind": "lyric",
+          "text": "Where faith becomes what I can see",
+          "chords": [
+            {
+              "id": "chd_pc_04",
+              "at": 0,
+              "raw": "Em"
+            },
+            {
+              "id": "chd_pc_05",
+              "at": 14,
+              "raw": "C"
+            },
+            {
+              "id": "chd_pc_06",
+              "at": 31,
+              "raw": "Dsus4"
+            },
+            {
+              "id": "chd_pc_07",
+              "at": 34,
+              "raw": "D"
+            }
+          ]
+        }
+      ],
+      "rhythm": {
+        "beatsPerBar": null,
+        "bars": [
+          {
+            "chords": [
+              {
+                "chordId": "chd_pc_01",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_pc_01",
+              "at": 0
+            },
+            "cue": "Dynamics drop"
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_pc_02",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_pc_03",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_pc_01",
+              "at": 16
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_pc_04",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_pc_05",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_pc_02",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_pc_06",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_pc_07",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_pc_02",
+              "at": 31
+            },
+            "cue": "Hold Dsus4 → D resolve"
+          }
+        ]
+      },
+      "groove": null
+    },
+    {
+      "id": "sec_chorus",
+      "type": "chorus",
+      "label": "Chorus",
+      "showLabel": true,
+      "lines": [
+        {
+          "id": "line_ch_01",
+          "kind": "lyric",
+          "text": "Morning light break through the night",
+          "chords": [
+            {
+              "id": "chd_ch_01",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_ch_02",
+              "at": 14,
+              "raw": "D"
+            }
+          ]
+        },
+        {
+          "id": "line_ch_02",
+          "kind": "lyric",
+          "text": "Chase away the darkness from my eyes",
+          "chords": [
+            {
+              "id": "chd_ch_03",
+              "at": 0,
+              "raw": "Em7"
+            },
+            {
+              "id": "chd_ch_04",
+              "at": 15,
+              "raw": "Cadd9"
+            }
+          ]
+        },
+        {
+          "id": "line_ch_03",
+          "kind": "lyric",
+          "text": "Everything I need is found in You",
+          "chords": [
+            {
+              "id": "chd_ch_05",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_ch_06",
+              "at": 13,
+              "raw": "D/F#"
+            },
+            {
+              "id": "chd_ch_07",
+              "at": 21,
+              "raw": "Em7"
+            }
+          ]
+        },
+        {
+          "id": "line_ch_04",
+          "kind": "lyric",
+          "text": "Morning light, morning light",
+          "chords": [
+            {
+              "id": "chd_ch_08",
+              "at": 0,
+              "raw": "Cadd9"
+            },
+            {
+              "id": "chd_ch_09",
+              "at": 15,
+              "raw": "Am7"
+            }
+          ]
+        },
+        {
+          "id": "line_ch_05",
+          "kind": "lyric",
+          "text": "You are the dawn that ends the night",
+          "chords": [
+            {
+              "id": "chd_ch_10",
+              "at": 0,
+              "raw": "C"
+            },
+            {
+              "id": "chd_ch_11",
+              "at": 22,
+              "raw": "Dsus4"
+            },
+            {
+              "id": "chd_ch_12",
+              "at": 31,
+              "raw": "D"
+            }
+          ]
+        }
+      ],
+      "rhythm": {
+        "beatsPerBar": null,
+        "bars": [
+          {
+            "chords": [
+              {
+                "chordId": "chd_ch_01",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_ch_01",
+              "at": 0
+            },
+            "cue": "Full band, strong downbeat"
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_ch_02",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_ch_01",
+              "at": 14
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_ch_03",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_ch_02",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_ch_04",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_ch_02",
+              "at": 15
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_ch_05",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_ch_03",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_ch_06",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_ch_07",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_ch_03",
+              "at": 13
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_ch_08",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_ch_09",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_ch_04",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_ch_10",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_ch_11",
+                "beat": 3
+              },
+              {
+                "chordId": "chd_ch_12",
+                "beat": 4
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_ch_05",
+              "at": 0
+            },
+            "cue": "Dsus4 → D on beat 4"
+          }
+        ]
+      },
+      "groove": null
+    },
+    {
+      "id": "sec_verse2",
+      "type": "verse",
+      "label": "Verse 2",
+      "showLabel": true,
+      "lines": [
+        {
+          "id": "line_v2_01",
+          "kind": "lyric",
+          "text": "Out of the deep a voice begins to call",
+          "chords": [
+            {
+              "id": "chd_v2_01",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_v2_02",
+              "at": 18,
+              "raw": "D/F#"
+            },
+            {
+              "id": "chd_v2_03",
+              "at": 34,
+              "raw": "Em7"
+            }
+          ]
+        },
+        {
+          "id": "line_v2_02",
+          "kind": "lyric",
+          "text": "Like water on stone that breaks the fall",
+          "chords": [
+            {
+              "id": "chd_v2_04",
+              "at": 0,
+              "raw": "Cadd9"
+            },
+            {
+              "id": "chd_v2_05",
+              "at": 14,
+              "raw": "D"
+            }
+          ]
+        },
+        {
+          "id": "line_v2_03",
+          "kind": "lyric",
+          "text": "And all my striving fades to still",
+          "chords": [
+            {
+              "id": "chd_v2_06",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_v2_07",
+              "at": 11,
+              "raw": "D/F#"
+            },
+            {
+              "id": "chd_v2_08",
+              "at": 20,
+              "raw": "Em7"
+            },
+            {
+              "id": "chd_v2_09",
+              "at": 29,
+              "raw": "Cadd9"
+            }
+          ]
+        },
+        {
+          "id": "line_v2_04",
+          "kind": "lyric",
+          "text": "As grace becomes all I need to fill",
+          "chords": [
+            {
+              "id": "chd_v2_10",
+              "at": 0,
+              "raw": "Am7"
+            },
+            {
+              "id": "chd_v2_11",
+              "at": 11,
+              "raw": "C"
+            },
+            {
+              "id": "chd_v2_12",
+              "at": 21,
+              "raw": "D"
+            }
+          ]
+        }
+      ],
+      "rhythm": {
+        "beatsPerBar": null,
+        "bars": [
+          {
+            "chords": [
+              {
+                "chordId": "chd_v2_01",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v2_01",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v2_02",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v2_01",
+              "at": 18
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v2_03",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v2_01",
+              "at": 34
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v2_04",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_v2_05",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v2_02",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v2_06",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v2_03",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v2_07",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_v2_08",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v2_03",
+              "at": 11
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v2_09",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v2_03",
+              "at": 29
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_v2_10",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_v2_11",
+                "beat": 2
+              },
+              {
+                "chordId": "chd_v2_12",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_v2_04",
+              "at": 0
+            },
+            "cue": null
+          }
+        ]
+      },
+      "groove": null
+    },
+    {
+      "id": "sec_bridge",
+      "type": "bridge",
+      "label": "Bridge",
+      "showLabel": true,
+      "lines": [
+        {
+          "id": "line_br_01",
+          "kind": "lyric",
+          "text": "You are the flame that never dies",
+          "chords": [
+            {
+              "id": "chd_br_01",
+              "at": 0,
+              "raw": "Em"
+            },
+            {
+              "id": "chd_br_02",
+              "at": 23,
+              "raw": "C"
+            }
+          ]
+        },
+        {
+          "id": "line_br_02",
+          "kind": "lyric",
+          "text": "The dawn eternal in Your eyes",
+          "chords": [
+            {
+              "id": "chd_br_03",
+              "at": 0,
+              "raw": "G"
+            },
+            {
+              "id": "chd_br_04",
+              "at": 20,
+              "raw": "D"
+            }
+          ]
+        },
+        {
+          "id": "line_br_03",
+          "kind": "lyric",
+          "text": "No night can hold what You have freed",
+          "chords": [
+            {
+              "id": "chd_br_05",
+              "at": 0,
+              "raw": "Em"
+            },
+            {
+              "id": "chd_br_06",
+              "at": 13,
+              "raw": "C"
+            },
+            {
+              "id": "chd_br_07",
+              "at": 32,
+              "raw": "G"
+            }
+          ]
+        },
+        {
+          "id": "line_br_04",
+          "kind": "lyric",
+          "text": "And I will sing till all the world believes",
+          "chords": [
+            {
+              "id": "chd_br_08",
+              "at": 0,
+              "raw": "C"
+            },
+            {
+              "id": "chd_br_09",
+              "at": 21,
+              "raw": "Dsus4"
+            },
+            {
+              "id": "chd_br_10",
+              "at": 29,
+              "raw": "D"
+            }
+          ]
+        }
+      ],
+      "rhythm": {
+        "beatsPerBar": null,
+        "bars": [
+          {
+            "chords": [
+              {
+                "chordId": "chd_br_01",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_br_01",
+              "at": 0
+            },
+            "cue": "Strip back — piano and vocals only"
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_br_02",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_br_01",
+              "at": 23
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_br_03",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_br_02",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_br_04",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_br_02",
+              "at": 20
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_br_05",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_br_06",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_br_03",
+              "at": 0
+            },
+            "cue": "Band re-enters"
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_br_07",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_br_03",
+              "at": 32
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_br_08",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_br_04",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_br_09",
+                "beat": 1
+              },
+              {
+                "chordId": "chd_br_10",
+                "beat": 3
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_br_04",
+              "at": 21
+            },
+            "cue": "Build to final chorus"
+          }
+        ]
+      },
+      "groove": null
+    },
+    {
+      "id": "sec_outro",
+      "type": "outro",
+      "label": "Outro / Tag",
+      "showLabel": true,
+      "lines": [
+        {
+          "id": "line_out_01",
+          "kind": "lyric",
+          "text": "Morning light",
+          "chords": [
+            {
+              "id": "chd_out_01",
+              "at": 0,
+              "raw": "G"
+            }
+          ]
+        },
+        {
+          "id": "line_out_02",
+          "kind": "lyric",
+          "text": "Morning light",
+          "chords": [
+            {
+              "id": "chd_out_02",
+              "at": 0,
+              "raw": "Cadd9"
+            }
+          ]
+        },
+        {
+          "id": "line_out_03",
+          "kind": "lyric",
+          "text": "",
+          "chords": [
+            {
+              "id": "chd_out_03",
+              "at": 0,
+              "raw": "Gmaj7"
+            }
+          ]
+        }
+      ],
+      "rhythm": {
+        "beatsPerBar": null,
+        "bars": [
+          {
+            "chords": [
+              {
+                "chordId": "chd_out_01",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_out_01",
+              "at": 0
+            },
+            "cue": "Vocals only"
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_out_02",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_out_02",
+              "at": 0
+            },
+            "cue": null
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_out_01",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": {
+              "lineId": "line_out_01",
+              "at": 0
+            },
+            "cue": "Repeat — softer"
+          },
+          {
+            "chords": [
+              {
+                "chordId": "chd_out_03",
+                "beat": 1
+              }
+            ],
+            "lyricAnchor": null,
+            "cue": "Hold Gmaj7 — fade"
+          }
+        ]
+      },
+      "groove": null
+    }
+  ],
+  "flow": [
+    {
+      "id": "fi_intro",
+      "sectionId": "sec_intro"
+    },
+    {
+      "id": "fi_verse1",
+      "sectionId": "sec_verse1"
+    },
+    {
+      "id": "fi_prechorus",
+      "sectionId": "sec_prechorus"
+    },
+    {
+      "id": "fi_chorus",
+      "sectionId": "sec_chorus"
+    },
+    {
+      "id": "fi_verse2",
+      "sectionId": "sec_verse2"
+    },
+    {
+      "id": "fi_bridge",
+      "sectionId": "sec_bridge"
+    },
+    {
+      "id": "fi_outro",
+      "sectionId": "sec_outro"
+    }
+  ]
+}
