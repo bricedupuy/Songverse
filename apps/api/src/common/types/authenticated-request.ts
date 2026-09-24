@@ -4,6 +4,8 @@ export interface AuthenticatedUser {
   id: string;
   email: string;
   isGlobalAdmin: boolean;
+  /** May review songs submitted to the global catalogue (global admins always can). */
+  isReviewer: boolean;
 }
 
 export interface AuthenticatedRequest extends Request {

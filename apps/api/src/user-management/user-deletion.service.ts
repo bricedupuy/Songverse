@@ -69,6 +69,11 @@ export class UserDeletionService {
       await tx.setlistItem.updateMany({ where: { sharedByUserId: fromUserId }, data: { sharedByUserId: toUserId } });
       // No point being a guest of a set you now own.
       await tx.setlistGuest.deleteMany({ where: { userId: toUserId, setlist: toOwner } });
+      // Their songs' submissions to the global catalogue follow the songs.
+      await tx.submission.updateMany({
+        where: { submitterId: fromUserId, songVersion: { ownerUserId: toUserId } },
+        data: { submitterId: toUserId },
+      });
       // The new owner's storage limit now covers these files.
       await tx.attachment.updateMany({ where: { uploadedByUserId: fromUserId }, data: { uploadedByUserId: toUserId } });
       return this.removeAccount(tx, fromUserId);

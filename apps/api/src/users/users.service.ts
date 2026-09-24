@@ -18,6 +18,7 @@ const SELECT = {
   capoDisplayMode: true,
   voicingPreference: true,
   isGlobalAdmin: true,
+  isReviewer: true,
   instruments: true,
   techRoles: true,
 } as const;

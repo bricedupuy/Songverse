@@ -19,6 +19,7 @@ import { TagsModule } from "./tags/tags.module";
 import { TeamsModule } from "./teams/teams.module";
 import { UsersModule } from "./users/users.module";
 import { WorksModule } from "./works/works.module";
+import { PublishingModule } from "./publishing/publishing.module";
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { WorksModule } from "./works/works.module";
     AttachmentsModule,
     BulkUploadModule,
     AdminModule,
+    PublishingModule,
   ],
   controllers: [AppController],
   providers: [

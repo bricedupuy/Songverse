@@ -25,6 +25,11 @@ export class UpdateUserByAdminDto {
   @IsString()
   @MaxLength(500)
   banReason?: string;
+
+  @ApiProperty({ required: false, description: "Can review songs submitted to the global catalogue" })
+  @IsOptional()
+  @IsBoolean()
+  isReviewer?: boolean;
 }
 
 export class DeleteUserDto {

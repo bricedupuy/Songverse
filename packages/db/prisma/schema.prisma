@@ -212,6 +212,9 @@ model User {
   // rather than renaming these columns.
   emailVerified Boolean  @default(false)
   isGlobalAdmin Boolean  @default(false)
+  // Can review songs submitted to the global catalogue (global admins
+  // always can). Set in Admin > Users.
+  isReviewer    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -249,6 +252,7 @@ model User {
   contributorCredits  VersionContributor[]
   ownedArrangements   Arrangement[]          @relation("ArrangementOwnerUser")
   submissions         Submission[]
+  reviewedSubmissions Submission[]           @relation("SubmissionReviewer")
   proposals           ChangeProposal[]
   notes               Note[]
   auditEvents         AuditEvent[]
@@ -641,7 +645,8 @@ model SongVersion {
   songbookEntries   SongbookEntry[]
   versionTags       SongVersionTag[]
   identifiers       SongVersionIdentifier[]
-  submissions       Submission[]
+  submissions       Submission[]            @relation("SubmissionSong")
+  publishedFrom     Submission[]            @relation("SubmissionPublished")
   importJobs        ImportJob[]
   proposals         ChangeProposal[]
   upstreamLinks     UpstreamLink[]          @relation("UpstreamLinkLocal")
@@ -707,7 +712,7 @@ model SongVersionIdentifier {
   note          String? // e.g. "Based on 2019 Hillsong live recording"
   // What the identifier points at (a MusicBrainz title, artist, album...)
   // as of verifiedAt, so showing it needs no lookup.
-  details    Json?
+  details       Json?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
@@ -1106,8 +1111,15 @@ model Submission {
   // Similarity results snapshot (JSON array of similar song version IDs + scores)
   similarityResults Json?
 
-  songVersion SongVersion @relation(fields: [songVersionId], references: [id])
-  submitter   User        @relation(fields: [submitterId], references: [id])
+  // The global song an approval produced: the copy it made, or the
+  // existing song it was merged into (mergeTargetId).
+  publishedVersionId String?
+  reviewedAt         DateTime?
+
+  songVersion      SongVersion  @relation("SubmissionSong", fields: [songVersionId], references: [id], onDelete: Cascade)
+  submitter        User         @relation(fields: [submitterId], references: [id])
+  reviewer         User?        @relation("SubmissionReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  publishedVersion SongVersion? @relation("SubmissionPublished", fields: [publishedVersionId], references: [id], onDelete: SetNull)
 
   @@index([songVersionId])
   @@index([submitterId])
@@ -1158,7 +1170,7 @@ model UpstreamLink {
   hasUpstreamChanges Boolean   @default(false)
 
   localVersion  SongVersion @relation("UpstreamLinkLocal", fields: [localVersionId], references: [id], onDelete: Cascade)
-  globalVersion SongVersion @relation("UpstreamLinkGlobal", fields: [globalVersionId], references: [id])
+  globalVersion SongVersion @relation("UpstreamLinkGlobal", fields: [globalVersionId], references: [id], onDelete: Cascade)
 
   @@unique([localVersionId, globalVersionId])
   @@index([globalVersionId])
@@ -1463,7 +1475,7 @@ model AuditEvent {
   songVersionId String?
 
   actor       User?        @relation(fields: [actorUserId], references: [id])
-  songVersion SongVersion? @relation(fields: [songVersionId], references: [id])
+  songVersion SongVersion? @relation(fields: [songVersionId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId])
   @@index([actorUserId])

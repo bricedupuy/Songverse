@@ -6,6 +6,7 @@ import { PrismaService } from "../prisma/prisma.service";
 export interface Viewer {
   id: string;
   isGlobalAdmin: boolean;
+  isReviewer?: boolean;
 }
 
 /** Anything owned by a user, a team, or everyone (GLOBAL). */
@@ -17,13 +18,17 @@ export interface OwnedRecord {
 
 type OwnedSong = OwnedRecord & { publicationState: string };
 
+/** A submission to the global catalogue that's still waiting on someone. */
+export const OPEN_SUBMISSION_STATES = ["SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANGES"] as const;
+
 /**
  * The access rules, in one place. Every guard and service asks here
  * rather than restating them (each rule also comes as a database filter,
  * for lists, and as a yes/no, for one record):
  *
  * - Songs: anyone sees approved global songs (global admins, every global
- *   song), a user's own songs, and their teams' songs.
+ *   song), a user's own songs, and their teams' songs. Reviewers can also
+ *   open a song while it's submitted to the global catalogue.
  * - Songbooks: anyone sees global songbooks, plus their own and their teams'.
  * - Tags: approved global tags, the user's own, and their teams'.
  * - Changing a song or songbook: its owner for a personal one, the team's
@@ -65,9 +70,18 @@ export class AccessPolicyService {
     return this.songsVisibleWhere(viewer, await this.teamIds(viewer.id));
   }
 
-  async canSeeSong(viewer: Viewer, song: OwnedSong): Promise<boolean> {
+  async canSeeSong(viewer: Viewer, song: OwnedSong & { id?: string }): Promise<boolean> {
     if (song.ownerScope === "GLOBAL") return viewer.isGlobalAdmin || song.publicationState === "APPROVED";
-    return this.ownsOrBelongsTo(viewer, song);
+    if (await this.ownsOrBelongsTo(viewer, song)) return true;
+    return !!viewer.isReviewer && !!song.id && (await this.isAwaitingReview(song.id));
+  }
+
+  /** Whether the song has a submission to the global catalogue still open. */
+  async isAwaitingReview(songVersionId: string): Promise<boolean> {
+    const open = await this.prisma.client.submission.count({
+      where: { songVersionId, state: { in: [...OPEN_SUBMISSION_STATES] } },
+    });
+    return open > 0;
   }
 
   /** canSeeSong for many songs at once, given the viewer's teams (see teamIds). */
@@ -82,7 +96,7 @@ export class AccessPolicyService {
   async assertCanSeeSong(viewer: Viewer, songVersionId: string): Promise<void> {
     const song = await this.prisma.client.songVersion.findUnique({
       where: { id: songVersionId },
-      select: { ownerScope: true, ownerUserId: true, ownerTeamId: true, publicationState: true },
+      select: { id: true, ownerScope: true, ownerUserId: true, ownerTeamId: true, publicationState: true },
     });
     if (!song) throw new NotFoundException("Song version not found");
     if (!(await this.canSeeSong(viewer, song))) throw new ForbiddenException("Not visible to you");

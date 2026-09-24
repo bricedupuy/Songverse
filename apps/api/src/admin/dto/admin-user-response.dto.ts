@@ -7,6 +7,7 @@ export class AdminUserResponseDto {
   @ApiProperty({ nullable: true, type: String }) avatarUrl!: string | null;
   @ApiProperty() emailVerified!: boolean;
   @ApiProperty() isGlobalAdmin!: boolean;
+  @ApiProperty() isReviewer!: boolean;
   @ApiProperty() createdAt!: Date;
   @ApiProperty({ nullable: true, type: Date }) bannedAt!: Date | null;
   @ApiProperty({ nullable: true, type: String }) banReason!: string | null;

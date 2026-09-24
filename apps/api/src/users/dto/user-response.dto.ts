@@ -11,6 +11,7 @@ export class UserResponseDto {
   @ApiProperty({ enum: CAPO_DISPLAY_MODES }) capoDisplayMode!: (typeof CAPO_DISPLAY_MODES)[number];
   @ApiProperty({ enum: VOICING_PREFERENCES }) voicingPreference!: (typeof VOICING_PREFERENCES)[number];
   @ApiProperty() isGlobalAdmin!: boolean;
+  @ApiProperty() isReviewer!: boolean;
   @ApiProperty({ enum: INSTRUMENTS, isArray: true }) instruments!: (typeof INSTRUMENTS)[number][];
   @ApiProperty({ enum: TECH_ROLES, isArray: true }) techRoles!: (typeof TECH_ROLES)[number][];
 }

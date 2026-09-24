@@ -152,6 +152,7 @@ function buildAuth(settings: EffectiveAuthSettings) {
       },
       additionalFields: {
         isGlobalAdmin: { type: "boolean", input: false, defaultValue: false },
+        isReviewer: { type: "boolean", input: false, defaultValue: false },
         locale: { type: "string", input: false, defaultValue: "en" },
       },
     },

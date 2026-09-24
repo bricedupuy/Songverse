@@ -9,6 +9,7 @@ export interface UpdateUserInput {
   storageLimitMb?: number | null;
   banned?: boolean;
   banReason?: string;
+  isReviewer?: boolean;
 }
 
 export type DeleteContentAction = "delete" | "transfer";
@@ -33,6 +34,7 @@ export class AdminUsersService {
           avatarUrl: true,
           emailVerified: true,
           isGlobalAdmin: true,
+          isReviewer: true,
           createdAt: true,
           bannedAt: true,
           banReason: true,
@@ -54,6 +56,7 @@ export class AdminUsersService {
       avatarUrl: user.avatarUrl,
       emailVerified: user.emailVerified,
       isGlobalAdmin: user.isGlobalAdmin,
+      isReviewer: user.isReviewer,
       createdAt: user.createdAt,
       bannedAt: user.bannedAt,
       banReason: user.banReason,
@@ -80,6 +83,7 @@ export class AdminUsersService {
           ...(input.storageLimitMb !== undefined && { storageLimitMb: input.storageLimitMb }),
           ...(input.banned === true && { bannedAt: new Date(), banReason: input.banReason?.trim() || null }),
           ...(input.banned === false && { bannedAt: null, banReason: null }),
+          ...(input.isReviewer !== undefined && { isReviewer: input.isReviewer }),
         },
       });
       if (input.banned === true) {
