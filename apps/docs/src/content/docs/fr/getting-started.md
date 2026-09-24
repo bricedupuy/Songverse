@@ -30,6 +30,12 @@ Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord
 
 ![Le tableau de bord, avec vos chants, vos équipes et vos paramètres](../../../assets/screenshots/fr/dashboard.jpg)
 
+## Rechercher
+
+Le champ de recherche en haut de chaque page - une loupe sur un téléphone - trouve tout : **Chants** (par titre, sous-titre, version, artiste ou numéro CCLI), **Listes de chants**, **Recueils** et **Équipes**, regroupés par type. **Ctrl K** (**⌘ K** sur un Mac) l'ouvre de n'importe où. Les flèches parcourent les résultats, **Entrée** en ouvre un et **Échap** ferme la recherche. Vide, il affiche les listes à venir.
+
+![Une recherche parmi les chants, listes, recueils et équipes](../../../assets/screenshots/fr/search.jpg)
+
 ## Édition, Session et Live
 
 Le sélecteur en haut à droite de chaque page change le mode de SongVerse. Chaque mode a son propre aspect, pour que vous sachiez toujours où vous en êtes :

@@ -30,6 +30,12 @@ Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your
 
 ![The dashboard, with your songs, teams and settings](../../assets/screenshots/en/dashboard.jpg)
 
+## Search
+
+The search box at the top of every page - a magnifying glass on a phone - finds anything: **Songs** (by title, subtitle, version, artist or CCLI number), **Sets**, **Songbooks** and **Teams**, grouped by kind. **Ctrl K** (**⌘ K** on a Mac) opens it from anywhere. The arrow keys move through the results, **Enter** opens one and **Esc** closes it. Empty, it lists the sets coming up.
+
+![Searching across songs, sets, songbooks and teams](../../assets/screenshots/en/search.jpg)
+
 ## Edit, Practice and Live
 
 The switch at the top right of every page changes SongVerse's mode. Each mode has its own look, so you always know which one you're in:

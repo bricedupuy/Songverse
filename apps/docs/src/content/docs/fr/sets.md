@@ -54,6 +54,10 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 
 Au clavier ou avec un pédalier tourne-page : **Espace** lance et met en pause le défilement, **↑** **↓** (ou Page précédente et Page suivante) font défiler, **←** **→** passent au chant précédent ou suivant.
 
+### Un chant qui n'est pas dans la liste
+
+Quand le leader lance un chant imprévu, utilisez la recherche (la loupe en haut). En Live, le chant choisi s'ouvre lui aussi en plein écran, avec le défilement et votre taille de texte. **Retour** (**×**) revient au chant de la liste où vous étiez.
+
 ## Partager une liste avec des invités
 
 Sous **Partager**, **Créer un lien de partage** et envoyez-le à qui doit voir la liste - un musicien invité, par exemple. Toute personne connectée qui l'ouvre peut lire chaque chant de la liste, même ceux qui ne sont pas dans sa bibliothèque, et garder ses propres notes. Elle ne peut pas la modifier.

@@ -134,6 +134,13 @@ try {
 
     await shoot("dashboard", "/dashboard");
     await shoot("library", "/library");
+    await shoot("search", null, async () => {
+      await page.keyboard.press("Control+k");
+      // A letter in something of every kind in the demo content, in both languages.
+      await page.getByRole("combobox").fill("n");
+      await page.getByRole("group", { name: /Teams|Équipes/ }).waitFor();
+    });
+    await page.keyboard.press("Escape");
     await shoot("song-info", `/library/${grace.id}`);
     await shoot("song-editor", `/library/${grace.id}?tab=editor`, () => page.locator(".ProseMirror").waitFor());
     await shoot("song-order", null, null, { element: page.getByTestId("song-order") });

@@ -817,6 +817,19 @@ const en = {
     showingShapes: "chords shown as the shapes to play",
     showingSounding: "chords shown as they sound",
   },
+  search: {
+    open: "Search…",
+    label: "Search songs, sets, songbooks and teams",
+    placeholder: "Songs, sets, songbooks, teams…",
+    songs: "Songs",
+    sets: "Sets",
+    songbooks: "Songbooks",
+    teams: "Teams",
+    upcomingSets: "Sets coming up",
+    searching: "Searching…",
+    noResults: "Nothing found for “{{query}}”",
+    liveHint: "In Live, a song opens full screen.",
+  },
   mode: {
     label: "Mode",
     edit: "Edit",
@@ -826,6 +839,8 @@ const en = {
     lightTheme: "Light theme",
   },
   live: {
+    back: "Back",
+    keysAlone: "Space: autoscroll · ↑ ↓: scroll",
     start: "Live",
     backToSet: "Back to the set",
     position: "{{position}} / {{count}}",

@@ -1,13 +1,10 @@
-import { chartSeconds, type SetlistSongView } from "@songverse/core";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { chartSeconds, type RenderedChart } from "@songverse/core";
 import { AArrowDown, AArrowUp, ChevronLeft, ChevronRight, Expand, Pause, Play, Rabbit, Shrink, Turtle, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { CommandSearch } from "#/components/command-search";
 import { ModeSwitch } from "#/components/mode-switch";
-import { renderPlayerChart } from "#/components/player-chart";
 import { SongChart } from "#/components/song-chart";
-import { setlistTitle } from "#/lib/setlists";
-import { cn } from "#/lib/utils";
 
 const TEXT_SIZE_KEY = "songverse.liveTextSize";
 const TEXT_SIZES = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
@@ -15,17 +12,36 @@ const DEFAULT_TEXT_SIZE = 1.5;
 const PHONE_TEXT_SIZE = 1.25;
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 
+/** What the Live view shows: a song of a set, or one pulled up on its own (issue #48). */
+export interface LiveSong {
+  /** Changes with the song shown, which then starts at its top. */
+  id: string;
+  title: string;
+  /** Where it's from ("Sunday service · 2 / 5"); null for a song on its own. */
+  context: string | null;
+  /** Null when the player can't read the song. */
+  chart: RenderedChart | null;
+  durationSeconds: number | null | undefined;
+  arrangementName: string | null;
+  notes: { label?: string; text: string }[];
+  /** The × at the top left: back to the set, or wherever the song was pulled up from. */
+  exit: { label: string; go: () => void };
+  /** Going through a set; both null for a song on its own. */
+  previous: (() => void) | null;
+  next: (() => void) | null;
+  /** "Next: …" or "End of the set"; null for a song on its own. */
+  nextLabel: string | null;
+}
+
 /**
- * A song of a set, full screen, to play from (Live mode, issues #29 and #47): the
+ * A song full screen, to play from (Live mode, issues #29, #47 and #48): the
  * chart big, as this player reads it, what's next, and autoscroll paced by
  * the tempo. Keeps the screen awake. Keys (and page-turner pedals, which
  * send them): Space starts and pauses autoscroll, the up and down arrows
  * and Page Up/Down scroll, the left and right arrows change song.
  */
-export function LiveView({ view }: { view: SetlistSongView }) {
-  const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const { set, item, song } = view;
+export function LiveView({ song }: { song: LiveSong }) {
+  const { t } = useTranslation();
   const scroller = useRef<HTMLElement>(null);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
@@ -33,8 +49,8 @@ export function LiveView({ view }: { view: SetlistSongView }) {
   const fullScreen = useFullScreen();
   useWakeLock();
 
-  const chart = useMemo(() => (song ? renderPlayerChart(view) : null), [song, view]);
-  const seconds = chart && song ? chartSeconds(chart, song.document.defaults.durationSeconds) : 0;
+  const { chart } = song;
+  const seconds = chart ? chartSeconds(chart, song.durationSeconds) : 0;
 
   // The player's text size, from the last time (after hydrating: the server can't know it).
   useEffect(() => {
@@ -65,7 +81,7 @@ export function LiveView({ view }: { view: SetlistSongView }) {
     setPlaying(false);
     setSpeed(1);
     scroller.current?.scrollTo({ top: 0 });
-  }, [item.id]);
+  }, [song.id]);
 
   // Autoscroll: the whole chart over the time it takes to play, nudged by `speed`.
   useEffect(() => {
@@ -86,16 +102,12 @@ export function LiveView({ view }: { view: SetlistSongView }) {
     return () => cancelAnimationFrame(frame);
   }, [playing, speed, seconds]);
 
-  const goTo = useCallback(
-    (itemId: string | null) => {
-      if (itemId) void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } });
-    },
-    [navigate, set.id],
-  );
-
+  const { previous, next } = song;
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;
+      // The search dialog, say, has its own keys.
+      if (document.querySelector("[role=dialog]")) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable=true]")) return;
       const element = scroller.current;
@@ -115,10 +127,10 @@ export function LiveView({ view }: { view: SetlistSongView }) {
           element?.scrollBy({ top: -page, behavior: "smooth" });
           break;
         case "ArrowRight":
-          goTo(view.nextItemId);
+          next?.();
           break;
         case "ArrowLeft":
-          goTo(view.previousItemId);
+          previous?.();
           break;
         default:
           return;
@@ -127,37 +139,38 @@ export function LiveView({ view }: { view: SetlistSongView }) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [goTo, view.nextItemId, view.previousItemId]);
+  }, [previous, next]);
 
-  const tempo = chart?.tempo ?? song?.tempo;
   const details = [
     chart?.key,
     chart?.capo ? t("player.capo", { capo: chart.capo }) : null,
-    tempo ? `${tempo} BPM` : null,
-    view.arrangement ? view.arrangement.name : null,
+    chart?.tempo ? `${chart.tempo} BPM` : null,
+    song.arrangementName,
   ].filter(Boolean);
+  const inSet = song.nextLabel !== null;
 
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground" data-testid="live-view">
       <header className="flex shrink-0 items-center gap-2 border-b-2 border-b-primary px-2 py-2 sm:gap-3 sm:px-4">
-        <IconLink to="/sets/$setlistId" params={{ setlistId: set.id }} label={t("live.backToSet")}>
+        <IconButton label={song.exit.label} onClick={song.exit.go}>
           <X />
-        </IconLink>
+        </IconButton>
         <div className="flex min-w-0 flex-1 flex-col">
-          <p className="truncate text-xs text-muted-foreground">
-            {setlistTitle(set, t, i18n.language)} · {t("live.position", { position: item.position + 1, count: set.itemCount })}
-          </p>
-          <h1 className="truncate text-lg font-semibold sm:text-xl">{song?.title ?? t("sets.hiddenSong")}</h1>
+          {song.context ? <p className="truncate text-xs text-muted-foreground">{song.context}</p> : null}
+          <h1 className="truncate text-lg font-semibold sm:text-xl">{song.title}</h1>
         </div>
         {details.length > 0 ? (
-          <p className="hidden shrink-0 text-sm font-medium text-muted-foreground md:block" data-testid="live-details">
+          <p className="hidden shrink-0 text-sm font-medium text-muted-foreground lg:block" data-testid="live-details">
             {details.join(" · ")}
           </p>
         ) : null}
+        <CommandSearch />
         {fullScreen.available ? (
-          <IconButton label={t("live.fullScreen")} pressed={fullScreen.active} onClick={fullScreen.toggle}>
-            {fullScreen.active ? <Shrink /> : <Expand />}
-          </IconButton>
+          <span className="hidden sm:contents">
+            <IconButton label={t("live.fullScreen")} pressed={fullScreen.active} onClick={fullScreen.toggle}>
+              {fullScreen.active ? <Shrink /> : <Expand />}
+            </IconButton>
+          </span>
         ) : null}
         <ModeSwitch />
       </header>
@@ -165,33 +178,28 @@ export function LiveView({ view }: { view: SetlistSongView }) {
       <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll">
         {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-[40vh]" style={{ zoom: textSize }}>
-          {details.length > 0 ? <p className="text-xs text-muted-foreground md:hidden">{details.join(" · ")}</p> : null}
-          {item.notes || view.myNote ? (
+          {details.length > 0 ? <p className="text-xs text-muted-foreground lg:hidden">{details.join(" · ")}</p> : null}
+          {song.notes.length > 0 ? (
             <div className="flex flex-col gap-1 rounded-md border-l-4 border-primary bg-muted px-3 py-2 text-sm">
-              {item.notes ? <p className="whitespace-pre-wrap">{item.notes}</p> : null}
-              {view.myNote ? (
-                <p className="whitespace-pre-wrap text-muted-foreground">
-                  <span className="font-medium">{t("sets.myNotes")}:</span> {view.myNote}
+              {song.notes.map((note, i) => (
+                <p key={i} className={note.label ? "whitespace-pre-wrap text-muted-foreground" : "whitespace-pre-wrap"}>
+                  {note.label ? <span className="font-medium">{note.label}: </span> : null}
+                  {note.text}
                 </p>
-              ) : null}
+              ))}
             </div>
           ) : null}
           {chart ? <SongChart chart={chart} emptyText={t("sets.noChart")} /> : <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>}
-          <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">
-            {view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet")}
-          </p>
+          {inSet ? <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">{song.nextLabel}</p> : null}
         </div>
       </main>
 
       <footer className="flex shrink-0 items-center gap-1 border-t bg-card px-2 py-2 sm:gap-2 sm:px-4">
-        <IconLink
-          to="/sets/$setlistId/live/$itemId"
-          params={{ setlistId: set.id, itemId: view.previousItemId ?? item.id }}
-          label={t("sets.previousSong")}
-          disabled={!view.previousItemId}
-        >
-          <ChevronLeft />
-        </IconLink>
+        {inSet ? (
+          <IconButton label={t("sets.previousSong")} onClick={() => previous?.()} disabled={!previous}>
+            <ChevronLeft />
+          </IconButton>
+        ) : null}
 
         <div className="flex items-center gap-1" role="group" aria-label={t("live.autoscroll")}>
           <IconButton label={t("live.slower")} onClick={() => changeSpeed(-1)} disabled={!chart || speed === SPEEDS[0]}>
@@ -224,23 +232,20 @@ export function LiveView({ view }: { view: SetlistSongView }) {
           </IconButton>
         </div>
 
-        <p className="hidden flex-1 text-center text-xs text-muted-foreground lg:block">{t("live.keys")}</p>
+        <p className="hidden flex-1 text-center text-xs text-muted-foreground lg:block">{inSet ? t("live.keys") : t("live.keysAlone")}</p>
 
-        <Link
-          to="/sets/$setlistId/live/$itemId"
-          params={{ setlistId: set.id, itemId: view.nextItemId ?? item.id }}
-          disabled={!view.nextItemId}
-          className={cn(
-            "ml-auto flex h-10 min-w-0 items-center gap-1 rounded-md border px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0",
-            !view.nextItemId && "pointer-events-none opacity-50",
-          )}
-          data-testid="live-next"
-        >
-          <span className="truncate">
-            {view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet")}
-          </span>
-          <ChevronRight />
-        </Link>
+        {inSet ? (
+          <button
+            type="button"
+            onClick={() => next?.()}
+            disabled={!next}
+            className="ml-auto flex h-10 min-w-0 items-center gap-1 rounded-md border px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0"
+            data-testid="live-next"
+          >
+            <span className="truncate">{song.nextLabel}</span>
+            <ChevronRight />
+          </button>
+        ) : null}
       </footer>
     </div>
   );
@@ -266,33 +271,6 @@ function IconButton({
     <button type="button" className={iconClass} aria-label={label} title={label} aria-pressed={pressed} onClick={onClick} disabled={disabled}>
       {children}
     </button>
-  );
-}
-
-function IconLink({
-  to,
-  params,
-  label,
-  disabled,
-  children,
-}: {
-  to: "/sets/$setlistId" | "/sets/$setlistId/live/$itemId";
-  params: { setlistId: string; itemId?: string };
-  label: string;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      to={to}
-      params={params as never}
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      className={cn(iconClass, disabled && "pointer-events-none opacity-40")}
-    >
-      {children}
-    </Link>
   );
 }
 

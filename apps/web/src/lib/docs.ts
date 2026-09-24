@@ -5,6 +5,8 @@ const DOCS_URL = "https://docs.songverse.one";
 // The docs page for each part of the app, by the path it starts with.
 const PAGES: [RegExp, string][] = [
   [/^\/library\/[^/]+\/arrangements\//, "arrangements"],
+  // A song pulled up on its own in Live: Live is on the Sets page.
+  [/^\/library\/[^/]+\/live/, "sets"],
   [/^\/library\/new/, "library"],
   [/^\/library\/[^/]+/, "song-editor"],
   [/^\/library/, "library"],

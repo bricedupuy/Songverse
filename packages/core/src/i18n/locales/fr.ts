@@ -820,6 +820,19 @@ const fr: typeof en = {
     showingShapes: "accords affichés comme les formes à jouer",
     showingSounding: "accords affichés tels qu'ils sonnent",
   },
+  search: {
+    open: "Rechercher…",
+    label: "Rechercher des chants, listes, recueils et équipes",
+    placeholder: "Chants, listes, recueils, équipes…",
+    songs: "Chants",
+    sets: "Listes de chants",
+    songbooks: "Recueils",
+    teams: "Équipes",
+    upcomingSets: "Listes à venir",
+    searching: "Recherche…",
+    noResults: "Aucun résultat pour « {{query}} »",
+    liveHint: "En Live, un chant s'ouvre en plein écran.",
+  },
   mode: {
     label: "Mode",
     edit: "Édition",
@@ -829,6 +842,8 @@ const fr: typeof en = {
     lightTheme: "Thème clair",
   },
   live: {
+    back: "Retour",
+    keysAlone: "Espace : défilement · ↑ ↓ : faire défiler",
     start: "Live",
     backToSet: "Retour à la liste",
     position: "{{position}} / {{count}}",

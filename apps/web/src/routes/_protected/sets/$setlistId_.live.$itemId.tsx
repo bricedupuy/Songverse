@@ -1,11 +1,13 @@
-import { ApiError } from "@songverse/core";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { ApiError, type SetlistSongView } from "@songverse/core";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { LiveView } from "#/components/live-view";
+import { LiveView, type LiveSong } from "#/components/live-view";
+import { renderPlayerChart } from "#/components/player-chart";
 import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
 import { setMode } from "#/lib/mode";
+import { setlistTitle } from "#/lib/setlists";
 
 /** One song of a set, full screen, in Live mode (components/live-view.tsx). */
 export const Route = createFileRoute("/_protected/sets/$setlistId_/live/$itemId")({
@@ -37,5 +39,29 @@ function LiveRoute() {
       </div>
     );
   }
-  return <LiveView view={view} />;
+  return <SetLiveView view={view} />;
+}
+
+function SetLiveView({ view }: { view: SetlistSongView }) {
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const { set, item, song } = view;
+  const chart = useMemo(() => (song ? renderPlayerChart(view) : null), [song, view]);
+  const goTo = (itemId: string | null) =>
+    itemId ? () => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }) : null;
+
+  const live: LiveSong = {
+    id: item.id,
+    title: song?.title ?? t("sets.hiddenSong"),
+    context: `${setlistTitle(set, t, i18n.language)} · ${t("live.position", { position: item.position + 1, count: set.itemCount })}`,
+    chart,
+    durationSeconds: song?.document.defaults.durationSeconds,
+    arrangementName: view.arrangement?.name ?? null,
+    notes: [...(item.notes ? [{ text: item.notes }] : []), ...(view.myNote ? [{ label: t("sets.myNotes"), text: view.myNote }] : [])],
+    exit: { label: t("live.backToSet"), go: () => void navigate({ to: "/sets/$setlistId", params: { setlistId: set.id } }) },
+    previous: goTo(view.previousItemId),
+    next: goTo(view.nextItemId),
+    nextLabel: view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet"),
+  };
+  return <LiveView song={live} />;
 }

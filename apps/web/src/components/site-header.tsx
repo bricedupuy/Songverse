@@ -1,6 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "#/components/ui/breadcrumb";
+import { CommandSearch } from "#/components/command-search";
 import { ModeSwitch } from "#/components/mode-switch";
 import { Separator } from "#/components/ui/separator";
 import { SidebarTrigger } from "#/components/ui/sidebar";
@@ -60,7 +61,10 @@ export function SiteHeader() {
             ))}
           </BreadcrumbList>
         </Breadcrumb>
-        <ModeSwitch className="ml-auto" />
+        <div className="ml-auto flex items-center gap-2">
+          <CommandSearch />
+          <ModeSwitch />
+        </div>
       </div>
     </header>
   );

@@ -54,6 +54,10 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 
 With a keyboard or a page-turner pedal: **Space** starts and pauses autoscroll, **↑** **↓** (or Page Up and Page Down) scroll, **←** **→** go to the previous or next song.
 
+### A song that isn't in the set
+
+When the leader calls a song that wasn't planned, use the search (the magnifying glass at the top). In Live, a song you pick opens full screen too, with autoscroll and your text size. **Back** (**×**) returns to the set's song you were on.
+
 ## Sharing a set with guests
 
 Under **Share**, **Create a share link** and send it to whoever should see the set - a guest musician, say. Anyone signed in who opens it can read every song in the set, even ones not in their library, and keep their own notes. They can't change it.
