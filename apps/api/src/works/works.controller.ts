@@ -16,12 +16,13 @@ export class WorksController {
   @ApiOkResponse({ type: WorkResponseDto, isArray: true })
   findAll(@CurrentUser() user?: AuthenticatedUser) {
     if (!user) throw new UnauthorizedException();
-    return this.worksService.findVisibleToUser(user.id);
+    return this.worksService.findVisibleToUser(user);
   }
 
   @Get(":workId")
-  findOne(@Param("workId") workId: string): ReturnType<WorksService["findOne"]> {
-    return this.worksService.findOne(workId);
+  findOne(@CurrentUser() user: AuthenticatedUser | undefined, @Param("workId") workId: string): ReturnType<WorksService["findOne"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.worksService.findOne(user, workId);
   }
 
   @Post(":workId/musicbrainz-link")
@@ -42,7 +43,8 @@ export class WorksController {
   }
 
   @Get(":workId/musicbrainz")
-  getMusicBrainz(@Param("workId") workId: string) {
-    return this.worksService.getMusicBrainzInfo(workId);
+  getMusicBrainz(@CurrentUser() user: AuthenticatedUser | undefined, @Param("workId") workId: string) {
+    if (!user) throw new UnauthorizedException();
+    return this.worksService.getMusicBrainzInfo(user, workId);
   }
 }

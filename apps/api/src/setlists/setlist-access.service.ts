@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { AccessPolicyService, type Viewer } from "../access/access-policy.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 export const SONG_SELECT = {
@@ -28,8 +29,6 @@ export interface SetAccess {
 
 const NO_ACCESS: SetAccess = { canView: false, canEdit: false, isGuest: false };
 
-/** Just enough of a user to decide what songs they can see. */
-type Viewer = { id: string; isGlobalAdmin: boolean };
 
 /**
  * Who can open or change a set, and which of its songs they can read.
@@ -45,16 +44,16 @@ type Viewer = { id: string; isGlobalAdmin: boolean };
  */
 @Injectable()
 export class SetlistAccessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly policy: AccessPolicyService,
+  ) {}
 
   async access(user: AuthenticatedUser, set: SetRow): Promise<SetAccess> {
     if (user.isGlobalAdmin || set.ownerUserId === user.id) return { canView: true, canEdit: true, isGuest: false };
     if (set.ownerTeamId) {
-      const membership = await this.prisma.client.teamMembership.findUnique({
-        where: { teamId_userId: { teamId: set.ownerTeamId, userId: user.id } },
-        select: { role: true },
-      });
-      if (membership) return { canView: true, canEdit: membership.role === "ADMIN", isGuest: false };
+      const role = await this.policy.teamRole(user.id, set.ownerTeamId);
+      if (role) return { canView: true, canEdit: role === "ADMIN", isGuest: false };
     }
     const guest = await this.prisma.client.setlistGuest.findUnique({
       where: { setlistId_userId: { setlistId: set.id, userId: user.id } },
@@ -87,16 +86,11 @@ export class SetlistAccessService {
       if (!team) throw new NotFoundException("Team not found");
       return;
     }
-    const membership = await this.prisma.client.teamMembership.findUnique({
-      where: { teamId_userId: { teamId, userId: user.id } },
-      select: { role: true },
-    });
-    if (membership?.role !== "ADMIN") throw new ForbiddenException("Team admin role required");
+    if ((await this.policy.teamRole(user.id, teamId)) !== "ADMIN") throw new ForbiddenException("Team admin role required");
   }
 
   async teamIdsOf(userId: string): Promise<Set<string>> {
-    const memberships = await this.prisma.client.teamMembership.findMany({ where: { userId }, select: { teamId: true } });
-    return new Set(memberships.map((m) => m.teamId));
+    return new Set(await this.policy.teamIds(userId));
   }
 
   /**
@@ -109,14 +103,8 @@ export class SetlistAccessService {
     if (set.ownerTeamId) {
       return { OR: [approvedGlobal, { ownerScope: "TEAM", ownerTeamId: set.ownerTeamId }] };
     }
-    const ownerTeams = await this.teamIdsOf(set.ownerUserId!);
-    return {
-      OR: [
-        approvedGlobal,
-        { ownerScope: "USER", ownerUserId: set.ownerUserId },
-        { ownerScope: "TEAM", ownerTeamId: { in: [...ownerTeams] } },
-      ],
-    };
+    // What the owner sees in their own library (as a regular user, even if they're a global admin).
+    return this.policy.songsVisibleWhere({ id: set.ownerUserId!, isGlobalAdmin: false }, await this.policy.teamIds(set.ownerUserId!));
   }
 
   /** In-memory twin of `addableWhere()`, for songs already loaded. */
@@ -148,13 +136,6 @@ export class SetlistAccessService {
   /** Whether a user can see a song in their own library. */
   async visibilityFor(user: Viewer): Promise<(song: SongRow) => boolean> {
     const teams = await this.teamIdsOf(user.id);
-    return (song) => isVisibleTo(user, teams, song);
+    return (song) => this.policy.songVisibleGivenTeams(user, teams, song);
   }
-}
-
-export function isVisibleTo(user: Viewer, userTeams: Set<string>, song: SongRow): boolean {
-  if (user.isGlobalAdmin) return true;
-  if (song.ownerScope === "GLOBAL") return song.publicationState === "APPROVED";
-  if (song.ownerScope === "USER") return song.ownerUserId === user.id;
-  return !!song.ownerTeamId && userTeams.has(song.ownerTeamId);
 }

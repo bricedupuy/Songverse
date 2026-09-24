@@ -19,7 +19,7 @@ import type { ContributorRole, Prisma, VersionRelationshipType } from "@songvers
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { isOwnedByOrMemberOf } from "../common/utils/ownership-visibility";
+import { AccessPolicyService } from "../access/access-policy.service";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import type { SongFieldsDto } from "./dto/song-fields.dto";
@@ -299,17 +299,6 @@ function toDetailItem(version: DetailRow, canEdit: boolean): DetailItem {
   };
 }
 
-/** What songs `userId` can see (the library's rule). */
-function visibleWhere(userId: string, teamIds: string[]): Prisma.SongVersionWhereInput {
-  return {
-    OR: [
-      { ownerScope: "GLOBAL", publicationState: "APPROVED" },
-      { ownerScope: "USER", ownerUserId: userId },
-      { ownerScope: "TEAM", ownerTeamId: { in: teamIds } },
-    ],
-  };
-}
-
 /** A name someone's already credited under, for autocomplete. */
 export interface CreditSuggestion {
   name: string;
@@ -338,6 +327,7 @@ export class SongVersionsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly musicBrainz: MusicBrainzService,
+    private readonly access: AccessPolicyService,
   ) {}
 
   /**
@@ -346,13 +336,13 @@ export class SongVersionsService {
    * name or an artist (anywhere in them, ignoring case), or a CCLI number
    * exactly.
    */
-  async findVisibleToUser(userId: string, query: ListSongVersionsQueryDto = {}): Promise<SongPage> {
+  async findVisibleToUser(user: AuthenticatedUser, query: ListSongVersionsQueryDto = {}): Promise<SongPage> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 50;
     const q = query.q?.trim();
     const where: Prisma.SongVersionWhereInput = {
       AND: [
-        visibleWhere(userId, await this.teamIdsOf(userId)),
+        await this.access.songsVisibleTo(user),
         ...(q
           ? [
               {
@@ -391,8 +381,8 @@ export class SongVersionsService {
   }
 
   /** How many songs, and distinct artists, the user can see - for the dashboard. */
-  async statsForUser(userId: string): Promise<{ songCount: number; artistCount: number }> {
-    const where = visibleWhere(userId, await this.teamIdsOf(userId));
+  async statsForUser(user: AuthenticatedUser): Promise<{ songCount: number; artistCount: number }> {
+    const where = await this.access.songsVisibleTo(user);
     const [songCount, artists] = await Promise.all([
       this.prisma.client.songVersion.count({ where }),
       this.prisma.client.versionContributor.findMany({
@@ -410,25 +400,8 @@ export class SongVersionsService {
       select: DETAIL_SELECT,
     });
     if (!version) throw new NotFoundException("Song version not found");
-    await this.assertVisible(user, version);
-    return toDetailItem(version, await this.canEdit(user, version));
-  }
-
-  /** SongVersionOwnerGuard's rule, as a yes/no. */
-  private async canEdit(user: AuthenticatedUser, version: { ownerScope: string; ownerUserId: string | null; ownerTeamId: string | null }) {
-    if (user.isGlobalAdmin) return true;
-    if (version.ownerScope === "USER") return version.ownerUserId === user.id;
-    if (version.ownerScope !== "TEAM" || !version.ownerTeamId) return false;
-    const membership = await this.prisma.client.teamMembership.findUnique({
-      where: { teamId_userId: { teamId: version.ownerTeamId, userId: user.id } },
-      select: { role: true },
-    });
-    return membership?.role === "ADMIN";
-  }
-
-  private async teamIdsOf(userId: string): Promise<string[]> {
-    const memberships = await this.prisma.client.teamMembership.findMany({ where: { userId }, select: { teamId: true } });
-    return memberships.map((m) => m.teamId);
+    if (!(await this.access.canSeeSong(user, version))) throw new ForbiddenException("Not visible to you");
+    return toDetailItem(version, await this.access.canEdit(user, version));
   }
 
   /**
@@ -442,7 +415,7 @@ export class SongVersionsService {
     const rows = await this.prisma.client.versionContributor.findMany({
       where: {
         source: q ? { contains: q, mode: "insensitive" } : { not: null },
-        songVersion: visibleWhere(user.id, await this.teamIdsOf(user.id)),
+        songVersion: await this.access.songsVisibleTo(user),
       },
       select: { source: true, roles: true },
       take: 1000,
@@ -471,7 +444,7 @@ export class SongVersionsService {
   async findMatches(user: AuthenticatedUser, title: string) {
     const t = title.trim();
     if (!t) return [];
-    const visible = visibleWhere(user.id, await this.teamIdsOf(user.id));
+    const visible = await this.access.songsVisibleTo(user);
     const matching = await this.prisma.client.songVersion.findMany({
       where: {
         AND: [
@@ -515,45 +488,12 @@ export class SongVersionsService {
     }));
   }
 
-  /** Throws unless every id is a tag the user can see (approved global, their own, their teams'). */
+  /** Throws unless every id is a tag the user can use. */
   private async assertTagsUsable(user: AuthenticatedUser, tagIds: string[]): Promise<void> {
     if (tagIds.length === 0) return;
     const unique = [...new Set(tagIds)];
-    const found = await this.prisma.client.tag.count({
-      where: {
-        id: { in: unique },
-        OR: [
-          { scope: "GLOBAL", isApproved: true },
-          { scope: "USER", ownerUserId: user.id },
-          { scope: "TEAM", ownerTeamId: { in: await this.teamIdsOf(user.id) } },
-        ],
-      },
-    });
+    const found = await this.prisma.client.tag.count({ where: { AND: [{ id: { in: unique } }, await this.access.tagsVisibleTo(user)] } });
     if (found !== unique.length) throw new BadRequestException("Unknown tag");
-  }
-
-  /**
-   * Same visibility rule as findOne(), exposed standalone so other
-   * services nesting resources under a song version (e.g. Attachments)
-   * can enforce it without pulling the full detail payload.
-   */
-  async assertVisibleById(user: AuthenticatedUser, songVersionId: string): Promise<void> {
-    const version = await this.prisma.client.songVersion.findUnique({
-      where: { id: songVersionId },
-      select: { ownerScope: true, ownerUserId: true, ownerTeamId: true, publicationState: true },
-    });
-    if (!version) throw new NotFoundException("Song version not found");
-    await this.assertVisible(user, version);
-  }
-
-  private async assertVisible(
-    user: AuthenticatedUser,
-    version: { ownerScope: string; ownerUserId: string | null; ownerTeamId: string | null; publicationState: string },
-  ): Promise<void> {
-    const visible =
-      (version.ownerScope === "GLOBAL" && (version.publicationState === "APPROVED" || user.isGlobalAdmin)) ||
-      (await isOwnedByOrMemberOf(this.prisma, user, version));
-    if (!visible) throw new ForbiddenException("Not visible to you");
   }
 
   /**
@@ -564,21 +504,11 @@ export class SongVersionsService {
    */
   async findSongbookMemberships(user: AuthenticatedUser, songVersionId: string) {
     const entries = await this.prisma.client.songbookEntry.findMany({
-      where: { songVersionId },
+      where: { songVersionId, songbook: await this.access.songbooksVisibleTo(user) },
       include: { songbook: true },
     });
 
-    const visibility = await Promise.all(
-      entries.map((entry) =>
-        entry.songbook.ownerScope === "GLOBAL"
-          ? Promise.resolve(true)
-          : isOwnedByOrMemberOf(this.prisma, user, entry.songbook),
-      ),
-    );
-
-    return entries
-      .filter((_, index) => visibility[index])
-      .map((entry) => ({
+    return entries.map((entry) => ({
         songbookId: entry.songbookId,
         songbookName: entry.songbook.name,
         entryCode: entry.entryCode,
@@ -596,10 +526,7 @@ export class SongVersionsService {
   async create(user: AuthenticatedUser, dto: CreateSongVersionDto): Promise<ListItem> {
     let ownerTeamId: string | null = null;
     if (dto.teamId) {
-      const membership = await this.prisma.client.teamMembership.findUnique({
-        where: { teamId_userId: { teamId: dto.teamId, userId: user.id } },
-      });
-      if (!membership) throw new ForbiddenException("Not a member of this team");
+      if (!(await this.access.teamRole(user.id, dto.teamId))) throw new ForbiddenException("Not a member of this team");
       ownerTeamId = dto.teamId;
     }
     const ownerScope = ownerTeamId ? "TEAM" : "USER";
@@ -612,7 +539,7 @@ export class SongVersionsService {
         select: { id: true, workId: true, ownerScope: true, ownerUserId: true, ownerTeamId: true, publicationState: true },
       });
       if (!base) throw new NotFoundException("Song version not found");
-      await this.assertVisible(user, base);
+      if (!(await this.access.canSeeSong(user, base))) throw new ForbiddenException("Not visible to you");
       parent = { id: base.id, workId: base.workId, relationshipType: "ALTERNATE_VERSION" };
     } else if (dto.workId) {
       const work = await this.prisma.client.work.findUnique({ where: { id: dto.workId }, select: { id: true } });

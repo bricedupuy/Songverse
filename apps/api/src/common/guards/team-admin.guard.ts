@@ -1,15 +1,15 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
-import { PrismaService } from "../../prisma/prisma.service";
+import { AccessPolicyService } from "../../access/access-policy.service";
 import type { AuthenticatedRequest } from "../types/authenticated-request";
 import { stringParam } from "../utils/route-param";
 
 /**
- * Requires the authenticated user to be an ADMIN member of the team named
- * by the route's `:teamId` param. Global admins always pass.
+ * Requires the authenticated user to be an ADMIN member of the team named by the route's
+ * `:teamId` param. Global admins always pass.
  */
 @Injectable()
 export class TeamAdminGuard implements CanActivate {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly access: AccessPolicyService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
@@ -20,11 +20,8 @@ export class TeamAdminGuard implements CanActivate {
     if (!teamId) {
       throw new ForbiddenException("Route is missing a teamId param");
     }
-
-    const membership = await this.prisma.client.teamMembership.findUnique({
-      where: { teamId_userId: { teamId, userId: request.user.id } },
-    });
-    if (!membership || membership.role !== "ADMIN") {
+    const role = await this.access.teamRole(request.user.id, teamId);
+    if (role !== "ADMIN") {
       throw new ForbiddenException("Team admin role required");
     }
     return true;

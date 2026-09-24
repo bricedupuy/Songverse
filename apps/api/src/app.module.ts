@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { AdminModule } from "./admin/admin.module";
+import { AccessModule } from "./access/access.module";
 import { AppController } from "./app.controller";
 import { AttachmentsModule } from "./attachments/attachments.module";
 import { AuthModule } from "./auth/auth.module";
@@ -29,6 +30,7 @@ import { WorksModule } from "./works/works.module";
       }),
     }),
     PrismaModule,
+    AccessModule,
     AuthModule,
     UsersModule,
     TeamsModule,

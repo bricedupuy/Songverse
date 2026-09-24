@@ -1,10 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
+import { AccessPolicyService } from "../access/access-policy.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class TagsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly access: AccessPolicyService,
+  ) {}
 
   findCategories(): Promise<Prisma.TagCategoryGetPayload<object>[]> {
     return this.prisma.client.tagCategory.findMany({
@@ -17,22 +21,10 @@ export class TagsService {
    * private tags, plus their teams' private tags.
    */
   async findVisibleToUser(userId: string): Promise<Prisma.TagGetPayload<object>[]> {
-    const teamIds = (
-      await this.prisma.client.teamMembership.findMany({
-        where: { userId },
-        select: { teamId: true },
-      })
-    ).map((m) => m.teamId);
-
     return this.prisma.client.tag.findMany({
-      where: {
-        OR: [
-          { scope: "GLOBAL", isApproved: true },
-          { scope: "USER", ownerUserId: userId },
-          { scope: "TEAM", ownerTeamId: { in: teamIds } },
-        ],
-      },
+      where: await this.access.tagsVisibleTo({ id: userId }),
       orderBy: [{ categoryId: "asc" }, { sortOrder: "asc" }],
     });
   }
+
 }

@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
 import { MusicBrainzWorkMatchSchema, type MusicBrainzWorkMatch } from "@songverse/core";
+import { AccessPolicyService } from "../access/access-policy.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -25,6 +26,7 @@ export class WorksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly musicBrainz: MusicBrainzService,
+    private readonly access: AccessPolicyService,
   ) {}
 
   /**
@@ -32,26 +34,9 @@ export class WorksService {
    * with at least one version owned by the user or one of their teams.
    * Phase 1 skeleton — no pagination/search yet (Phase 2/6).
    */
-  async findVisibleToUser(userId: string) {
-    const teamIds = (
-      await this.prisma.client.teamMembership.findMany({
-        where: { userId },
-        select: { teamId: true },
-      })
-    ).map((m) => m.teamId);
-
+  async findVisibleToUser(user: AuthenticatedUser) {
     const works = await this.prisma.client.work.findMany({
-      where: {
-        versions: {
-          some: {
-            OR: [
-              { ownerScope: "GLOBAL", publicationState: "APPROVED" },
-              { ownerScope: "USER", ownerUserId: userId },
-              { ownerScope: "TEAM", ownerTeamId: { in: teamIds } },
-            ],
-          },
-        },
-      },
+      where: { versions: { some: await this.access.songsVisibleTo(user) } },
       include: {
         preferredOriginalVersion: { select: { id: true, title: true } },
       },
@@ -67,14 +52,17 @@ export class WorksService {
     }));
   }
 
-  async findOne(id: string): Promise<Prisma.WorkGetPayload<{ include: typeof DETAIL_INCLUDE }>> {
+  /** A Work with the versions of it the user can see - not found if they can see none. */
+  async findOne(user: AuthenticatedUser, id: string) {
+    const visible = await this.access.songsVisibleTo(user);
     const work = await this.prisma.client.work.findUnique({
       where: { id },
-      include: DETAIL_INCLUDE,
+      include: { ...DETAIL_INCLUDE, versions: { ...DETAIL_INCLUDE.versions, where: visible } },
     });
-    if (!work) throw new NotFoundException("Work not found");
+    if (!work || work.versions.length === 0) throw new NotFoundException("Work not found");
     return work;
   }
+
 
   /**
    * A Work carries no owner of its own — ownership lives on its versions
@@ -83,28 +71,15 @@ export class WorksService {
    * versions, mirroring SongVersionOwnerGuard's per-version rule.
    */
   private async assertCanEditWork(workId: string, user: AuthenticatedUser): Promise<void> {
-    if (user.isGlobalAdmin) return;
-
     const versions = await this.prisma.client.songVersion.findMany({
       where: { workId },
       select: { ownerScope: true, ownerUserId: true, ownerTeamId: true },
     });
     if (versions.length === 0) throw new NotFoundException("Work not found");
-
-    const adminTeamIds = (
-      await this.prisma.client.teamMembership.findMany({
-        where: { userId: user.id, role: "ADMIN" },
-        select: { teamId: true },
-      })
-    ).map((m) => m.teamId);
-
-    const canEdit = versions.some((v) => {
-      if (v.ownerScope === "USER") return v.ownerUserId === user.id;
-      if (v.ownerScope === "TEAM") return v.ownerTeamId !== null && adminTeamIds.includes(v.ownerTeamId);
-      return false; // GLOBAL scope requires global admin, already checked above
-    });
-    if (!canEdit) throw new ForbiddenException("Not authorized to edit this work");
+    for (const version of versions) if (await this.access.canEdit(user, version)) return;
+    throw new ForbiddenException("Not authorized to edit this work");
   }
+
 
   async linkMusicBrainzWork(workId: string, user: AuthenticatedUser, mbid: string) {
     await this.assertCanEditWork(workId, user);
@@ -136,7 +111,8 @@ export class WorksService {
    * SongVersionsService.getMusicBrainzInfo); an older link is looked up
    * once and saved.
    */
-  async getMusicBrainzInfo(workId: string): Promise<MusicBrainzWorkMatch | null> {
+  async getMusicBrainzInfo(user: AuthenticatedUser, workId: string): Promise<MusicBrainzWorkMatch | null> {
+    await this.findOne(user, workId);
     const identifier = await this.prisma.client.workIdentifier.findUnique({
       where: { workId_type: { workId, type: "MUSICBRAINZ_WORK" } },
     });

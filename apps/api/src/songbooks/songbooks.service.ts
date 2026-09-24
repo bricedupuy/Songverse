@@ -3,7 +3,7 @@ import { computeSectionLabel, parseOriginalSongReference, validateSongbookSectio
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { isOwnedByOrMemberOf } from "../common/utils/ownership-visibility";
+import { AccessPolicyService } from "../access/access-policy.service";
 import { SongVersionsService, type SongVersionOwner } from "../song-versions/song-versions.service";
 import type { AddSongbookEntryDto } from "./dto/add-songbook-entry.dto";
 import type { CreateSongbookDto } from "./dto/create-songbook.dto";
@@ -40,31 +40,13 @@ export class SongbooksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly songVersionsService: SongVersionsService,
+    private readonly access: AccessPolicyService,
   ) {}
 
   async findVisibleToUser(user: AuthenticatedUser): Promise<Prisma.SongbookGetPayload<object>[]> {
-    if (user.isGlobalAdmin) {
-      return this.prisma.client.songbook.findMany({ orderBy: { name: "asc" } });
-    }
-
-    const teamIds = (
-      await this.prisma.client.teamMembership.findMany({
-        where: { userId: user.id },
-        select: { teamId: true },
-      })
-    ).map((m) => m.teamId);
-
-    return this.prisma.client.songbook.findMany({
-      where: {
-        OR: [
-          { ownerScope: "GLOBAL" },
-          { ownerScope: "USER", ownerUserId: user.id },
-          { ownerScope: "TEAM", ownerTeamId: { in: teamIds } },
-        ],
-      },
-      orderBy: { name: "asc" },
-    });
+    return this.prisma.client.songbook.findMany({ where: await this.access.songbooksVisibleTo(user), orderBy: { name: "asc" } });
   }
+
 
   async findOne(user: AuthenticatedUser, songbookId: string) {
     const songbook = await this.prisma.client.songbook.findUnique({
@@ -99,10 +81,7 @@ export class SongbooksService {
     user: AuthenticatedUser,
     songbook: { ownerScope: string; ownerUserId: string | null; ownerTeamId: string | null },
   ): Promise<void> {
-    if (songbook.ownerScope === "GLOBAL") return;
-    if (!(await isOwnedByOrMemberOf(this.prisma, user, songbook))) {
-      throw new ForbiddenException("Not visible to you");
-    }
+    if (!(await this.access.canSeeSongbook(user, songbook))) throw new ForbiddenException("Not visible to you");
   }
 
   async create(user: AuthenticatedUser, dto: CreateSongbookDto): Promise<Prisma.SongbookGetPayload<object>> {
@@ -134,10 +113,7 @@ export class SongbooksService {
       return { ownerScope: "GLOBAL", ownerUserId: null, ownerTeamId: null };
     }
     if (opts.teamId) {
-      const membership = await this.prisma.client.teamMembership.findUnique({
-        where: { teamId_userId: { teamId: opts.teamId, userId: user.id } },
-      });
-      if (!membership) throw new ForbiddenException("Not a member of this team");
+      if (!(await this.access.teamRole(user.id, opts.teamId))) throw new ForbiddenException("Not a member of this team");
       return { ownerScope: "TEAM", ownerUserId: null, ownerTeamId: opts.teamId };
     }
     return { ownerScope: "USER", ownerUserId: user.id, ownerTeamId: null };

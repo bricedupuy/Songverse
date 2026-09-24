@@ -16,6 +16,7 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import type { StreamingIdentifierType } from "@songverse/core";
+import { AccessPolicyService } from "../access/access-policy.service";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -42,7 +43,10 @@ function asStreamingType(type: string): StreamingIdentifierType {
 @ApiBearerAuth()
 @Controller("song-versions")
 export class SongVersionsController {
-  constructor(private readonly songVersionsService: SongVersionsService) {}
+  constructor(
+    private readonly songVersionsService: SongVersionsService,
+    private readonly access: AccessPolicyService,
+  ) {}
 
   @Get()
   findAll(
@@ -50,14 +54,14 @@ export class SongVersionsController {
     @Query() query: ListSongVersionsQueryDto,
   ): ReturnType<SongVersionsService["findVisibleToUser"]> {
     if (!user) throw new UnauthorizedException();
-    return this.songVersionsService.findVisibleToUser(user.id, query);
+    return this.songVersionsService.findVisibleToUser(user, query);
   }
 
   /** How many songs and artists you can see. */
   @Get("stats")
   stats(@CurrentUser() user: AuthenticatedUser | undefined): ReturnType<SongVersionsService["statsForUser"]> {
     if (!user) throw new UnauthorizedException();
-    return this.songVersionsService.statsForUser(user.id);
+    return this.songVersionsService.statsForUser(user);
   }
 
   /** Names already credited on songs you can see, for autocomplete. */
@@ -92,11 +96,12 @@ export class SongVersionsController {
 
   @Get(":songVersionId/songbooks")
   @ApiOkResponse({ type: SongVersionSongbookMembershipDto, isArray: true })
-  findSongbookMemberships(
+  async findSongbookMemberships(
     @CurrentUser() user: AuthenticatedUser | undefined,
     @Param("songVersionId") songVersionId: string,
   ): ReturnType<SongVersionsService["findSongbookMemberships"]> {
     if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
     return this.songVersionsService.findSongbookMemberships(user, songVersionId);
   }
 
@@ -156,7 +161,9 @@ export class SongVersionsController {
   }
 
   @Get(":songVersionId/chordpro")
-  async exportChordPro(@Param("songVersionId") songVersionId: string) {
+  async exportChordPro(@CurrentUser() user: AuthenticatedUser | undefined, @Param("songVersionId") songVersionId: string) {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
     return { content: await this.songVersionsService.exportChordPro(songVersionId) };
   }
 
@@ -207,7 +214,9 @@ export class SongVersionsController {
   }
 
   @Get(":songVersionId/musicbrainz")
-  getMusicBrainz(@Param("songVersionId") songVersionId: string) {
+  async getMusicBrainz(@CurrentUser() user: AuthenticatedUser | undefined, @Param("songVersionId") songVersionId: string) {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
     return this.songVersionsService.getMusicBrainzInfo(songVersionId);
   }
 }
