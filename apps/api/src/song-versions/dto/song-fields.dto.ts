@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { SUPPORTED_IMPORT_FORMATS, type SupportedImportFormat } from "@songverse/core";
+import { SONG_DOCUMENT_LIMITS, SUPPORTED_IMPORT_FORMATS, type SupportedImportFormat } from "@songverse/core";
 import { Transform } from "class-transformer";
 import { ArrayMaxSize, IsArray, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, ValidateIf } from "class-validator";
 
@@ -218,4 +218,16 @@ export class SongFieldsDto {
   @IsOptional()
   @IsIn(SUPPORTED_IMPORT_FORMATS)
   contentFormat?: SupportedImportFormat;
+
+  @ApiProperty({
+    required: false,
+    type: "array",
+    items: { type: "object" },
+    description:
+      "The chart as SongDocument v2 sections (docs/song-document-v2.md), IDs and all - what the structured editor saves. Instead of content, not with it.",
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(SONG_DOCUMENT_LIMITS.sections)
+  sections?: unknown[];
 }

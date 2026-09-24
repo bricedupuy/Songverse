@@ -70,6 +70,43 @@ check(
   doc.sections.length === 3 && doc.sections[0].id === before.sections[0] && doc.sections[2].id === before.sections[1] && !before.sections.includes(doc.sections[1].id),
 );
 
+// --- the structured editor saves sections, IDs as they are
+const moved = structuredClone(doc.sections);
+moved[0].lines[0].chords[0].at = 8;
+moved.push({ id: "sec_editor_added", type: "tag", showLabel: false, lines: [{ id: "line_editor_added", kind: "lyric", text: "Amen", chords: [{ id: "chd_editor_added", at: 0, raw: "G" }] }] });
+r = await call(me, "PATCH", `/song-versions/${songId}`, { sections: moved, revision: doc.revision });
+check(
+  "sections saved from the editor keep every ID exactly",
+  r.status === 200 && JSON.stringify(r.body.documentJson.sections) === JSON.stringify(moved) && r.body.documentJson.revision === doc.revision + 1,
+  `${r.status} ${JSON.stringify(r.body).slice(0, 300)}`,
+);
+check("a section added in the editor joins the flow", r.body.documentJson?.flow.at(-1)?.sectionId === "sec_editor_added");
+const saved = r.body.documentJson;
+const clash = structuredClone(saved.sections);
+clash[3].lines[0].id = clash[0].lines[0].id;
+r = await call(me, "PATCH", `/song-versions/${songId}`, { sections: clash, revision: saved.revision });
+check("sections with a duplicate ID are refused", r.status === 400 && /Duplicate id/.test(r.body.message), `${r.status} ${JSON.stringify(r.body)}`);
+const misplaced = structuredClone(saved.sections);
+misplaced[0].lines[0].chords[0].at = 999;
+r = await call(me, "PATCH", `/song-versions/${songId}`, { sections: misplaced, revision: saved.revision });
+check("a chord past the end of its line is refused", r.status === 400 && /past the end/.test(r.body.message), `${r.status} ${JSON.stringify(r.body)}`);
+r = await call(me, "PATCH", `/song-versions/${songId}`, { sections: saved.sections, content: CHART, revision: saved.revision });
+check("content and sections together are refused", r.status === 400);
+r = await call(me, "PATCH", `/song-versions/${songId}`, { sections: moved, revision: saved.revision - 1 });
+check("sections from an older revision are refused", r.status === 409);
+r = await call(me, "POST", "/song-versions", { title: `Doc Sections ${stamp}`, language: "en", artists: ["Someone"], sections: moved.slice(3) });
+const fromSections = r.status === 201 ? (await call(me, "GET", `/song-versions/${r.body.id}`)).body.documentJson : null;
+check(
+  "a new song can be created from sections",
+  fromSections?.sections[0].id === "sec_editor_added" && fromSections.flow.length === 1,
+  `${r.status} ${JSON.stringify(fromSections ?? r.body).slice(0, 200)}`,
+);
+doc = saved;
+moved.pop();
+moved[0].lines[0].chords[0].at = 0;
+r = await call(me, "PATCH", `/song-versions/${songId}`, { sections: moved, revision: saved.revision });
+check("deleting a section in the editor takes it out of the flow", r.status === 200 && !r.body.documentJson.flow.some((item) => item.sectionId === "sec_editor_added"));
+
 // --- ChordPro export: details from the columns, the chart from the document
 r = await call(me, "GET", `/song-versions/${songId}/chordpro`);
 const file = r.body.content;

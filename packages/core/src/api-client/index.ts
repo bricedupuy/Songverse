@@ -580,6 +580,8 @@ export interface SongFieldsInput {
   content?: string;
   /** content's format; guessed when left out. */
   contentFormat?: SupportedImportFormat;
+  /** The chart as the structured editor holds it, IDs kept as they are (instead of content). */
+  sections?: SectionV2[];
 }
 
 export interface CreateSongVersionInput extends SongFieldsInput {

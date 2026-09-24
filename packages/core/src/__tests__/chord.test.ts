@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatChord, keyUsesFlats, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
+import { diatonicChords, formatChord, keyUsesFlats, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 
 const shape = (raw: string) => {
   const chord = parseChord(raw);
@@ -132,5 +132,25 @@ describe("sameChord", () => {
     expect(sameChord("Cmaj7", "CM7")).toBe(true);
     expect(sameChord("D", "D/F#")).toBe(false);
     expect(sameChord("Em", "Em7")).toBe(false);
+  });
+});
+
+describe("diatonicChords", () => {
+  const chords = (key: string) => diatonicChords(key).map((c) => c.chord).join(" ");
+  it("builds the seven chords of a major key", () => {
+    expect(chords("G")).toBe("G Am Bm C D Em F#dim");
+    expect(diatonicChords("G").map((c) => c.degree).join(" ")).toBe("I ii iii IV V vi vii°");
+  });
+  it("spells flat keys with flats", () => {
+    expect(chords("Bb")).toBe("Bb Cm Dm Eb F Gm Adim");
+  });
+  it("builds a minor key's chords", () => {
+    expect(chords("Em")).toBe("Em F#dim G Am Bm C D");
+    expect(chords("Dm")).toBe("Dm Edim F Gm Am Bb C");
+  });
+  it("gives nothing for a key it can't read", () => {
+    expect(diatonicChords("")).toEqual([]);
+    expect(diatonicChords(null)).toEqual([]);
+    expect(diatonicChords("H")).toEqual([]);
   });
 });

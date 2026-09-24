@@ -38,6 +38,25 @@ export function songDocumentFromText(
 }
 
 /**
+ * The song after its sections were edited in the structured editor, which
+ * keeps IDs itself: sections taken as they are, the flow following them,
+ * and the revision moved on.
+ */
+export function songDocumentFromSections(
+  previous: SongDocumentV2 | null,
+  change: { sections?: SectionV2[]; defaults?: SongDefaultsV2 },
+): SongDocumentV2 {
+  const sections = change.sections ?? previous?.sections ?? [];
+  return parseSongDocumentV2({
+    $schema: "song-document/v2",
+    revision: (previous?.revision ?? 0) + 1,
+    defaults: { ...(previous?.defaults ?? {}), ...(change.defaults ?? {}) },
+    sections,
+    flow: reconcileFlow(previous, sections),
+  });
+}
+
+/**
  * Any stored song document as v2. Songs saved before v2 are converted on
  * the fly (and written back by the API's upgrade job); anything unreadable
  * throws.

@@ -7,7 +7,9 @@ import {
   parseSongDocumentV2,
   parseStreamingLink,
   readSongDocument,
+  safeParseSongDocumentV2,
   sectionsFromText,
+  songDocumentFromSections,
   songDocumentFromText,
   songToChordPro,
   splitNames,
@@ -198,6 +200,22 @@ async function replaceCredits(
 
 function staleRevision(): ConflictException {
   return new ConflictException("This song was changed somewhere else since you opened it. Reload it to see the changes.");
+}
+
+/**
+ * The structured editor's sections, checked as a whole document would be
+ * (IDs unique, chords on characters and in order); a 400 naming the first
+ * problem otherwise.
+ */
+function sectionsFrom(dto: SongFieldsDto): SongDocumentV2["sections"] | undefined {
+  if (dto.sections === undefined) return undefined;
+  if (dto.content !== undefined) throw new BadRequestException("Send the chart as content or as sections, not both");
+  const parsed = safeParseSongDocumentV2({ $schema: "song-document/v2", revision: 0, defaults: {}, sections: dto.sections, flow: [] });
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]!;
+    throw new BadRequestException(`sections.${issue.path.slice(1).join(".")}: ${issue.message}`);
+  }
+  return parsed.data.sections;
 }
 
 function parseTimeSignature(text: string | null): { numerator: number; denominator: number } | null {
@@ -569,6 +587,7 @@ export class SongVersionsService {
     if (dto.tagIds) await this.assertTagsUsable(user, dto.tagIds);
 
     const content = dto.content?.trim() ? dto.content : null;
+    const sections = sectionsFrom(dto);
     return this.createVersion(
       owner,
       {
@@ -591,7 +610,7 @@ export class SongVersionsService {
         workId: dto.workId,
         parent,
         defaults: defaultsFrom(dto),
-        sections: content ? sectionsFromText(content, dto.contentFormat ?? detectImportFormat(content)) : [],
+        sections: sections ?? (content ? sectionsFromText(content, dto.contentFormat ?? detectImportFormat(content)) : []),
         capo: dto.capo || null,
         credits: mergeCredits(
           Object.entries(creditListsFrom(dto)).flatMap(([role, names]) => names.map((name) => [name, role as ContributorRole] as const)),
@@ -753,7 +772,8 @@ export class SongVersionsService {
    * Partial update, in one transaction. Given, the artist, composer and
    * lyricist lists replace those credits, tagIds the tags, and content the
    * chart (empty content clears it) - parsed from text, keeping the IDs of
-   * everything still there (see reconcileSections). Key, tempo, time
+   * everything still there (see reconcileSections) - or `sections` the
+   * chart as the structured editor saves it, its IDs taken as they are. Key, tempo, time
    * signature and duration live in the document; the rest are columns.
    *
    * `revision` is the document revision the editor started from: if the
@@ -771,15 +791,18 @@ export class SongVersionsService {
     const previous = readSongDocument(existing.documentJson);
     if (dto.revision !== undefined && dto.revision !== previous.revision) throw staleRevision();
     const defaults = defaultsFrom(dto);
-    const touchesDocument = dto.content !== undefined || Object.keys(defaults).length > 0;
+    const sections = sectionsFrom(dto);
+    const touchesDocument = dto.content !== undefined || sections !== undefined || Object.keys(defaults).length > 0;
     const content = dto.content?.trim() ? dto.content : "";
-    const documentJson = touchesDocument
-      ? songDocumentFromText(previous, {
-          content: dto.content === undefined ? undefined : content,
-          format: dto.contentFormat ?? detectImportFormat(content),
-          defaults,
-        })
-      : null;
+    const documentJson = !touchesDocument
+      ? null
+      : sections
+        ? songDocumentFromSections(previous, { sections, defaults })
+        : songDocumentFromText(previous, {
+            content: dto.content === undefined ? undefined : content,
+            format: dto.contentFormat ?? detectImportFormat(content),
+            defaults,
+          });
 
     // undefined leaves a column alone; null clears it.
     const version = await this.prisma.client.$transaction(async (tx) => {

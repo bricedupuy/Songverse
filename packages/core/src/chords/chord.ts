@@ -252,6 +252,47 @@ export function transposeChord(raw: string, steps: number, targetKey?: string | 
   return rebuild({ ...parts, root: move(parts.root), bass: parts.bass ? move(parts.bass) : null });
 }
 
+export interface DiatonicChord {
+  /** The chord's degree in the key: "I", "ii", "vii°" (major), "i", "III" (minor). */
+  degree: string;
+  chord: string;
+}
+
+const MAJOR_SCALE: [number, string, string][] = [
+  [0, "", "I"],
+  [2, "m", "ii"],
+  [4, "m", "iii"],
+  [5, "", "IV"],
+  [7, "", "V"],
+  [9, "m", "vi"],
+  [11, "dim", "vii°"],
+];
+const MINOR_SCALE: [number, string, string][] = [
+  [0, "m", "i"],
+  [2, "dim", "ii°"],
+  [3, "", "III"],
+  [5, "m", "iv"],
+  [7, "m", "v"],
+  [8, "", "VI"],
+  [10, "", "VII"],
+];
+
+/**
+ * The seven chords built on the key's scale, in order (G: G Am Bm C D Em
+ * F#dim; Em: Em F#dim G Am Bm C D), spelled for the key. Empty for a key
+ * it can't read.
+ */
+export function diatonicChords(key: string | null | undefined): DiatonicChord[] {
+  const match = key ? /^\s*([A-G])([#♯b♭]?)\s*(m(?!aj)|min|minor|-)?\s*$/i.exec(key) : null;
+  if (!match) return [];
+  const tonic = semitoneOf(toNote(match[1]!.toUpperCase(), match[2]!));
+  const spelling = keyUsesFlats(key) ? FLAT_SPELLING : SHARP_SPELLING;
+  return (match[3] ? MINOR_SCALE : MAJOR_SCALE).map(([interval, suffix, degree]) => ({
+    degree,
+    chord: noteText(spelling[mod12(tonic + interval)]!) + suffix,
+  }));
+}
+
 export type ChordNotation = "english" | "solfege";
 const SOLFEGE: Record<NoteLetter, string> = { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" };
 

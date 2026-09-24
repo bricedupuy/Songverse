@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseSongDocumentV2, type SongDocumentV2 } from "../schemas/song-document-v2.js";
-import { readSongDocument, sectionsFromText, sectionsToChordPro, songDocumentFromText, songToChordPro } from "../song-document/text.js";
+import { readSongDocument, sectionsFromText, sectionsToChordPro, songDocumentFromSections, songDocumentFromText, songToChordPro } from "../song-document/text.js";
 import { layoutChordLine } from "../song-document/layout.js";
 
 const read = (path: string) => JSON.parse(readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8")) as unknown;
@@ -160,5 +160,27 @@ describe("layoutChordLine", () => {
 
   it("keeps a chord over a space", () => {
     expect(cells(layoutChordLine("a  b", [{ at: 2, label: "C" }]))).toEqual(["|a", "|  + C| ", "|b"]);
+  });
+});
+
+describe("songDocumentFromSections", () => {
+  const first = songDocumentFromText(null, { content: SONG, format: "CHORDPRO" });
+  it("takes the editor's sections as they are and moves the revision on", () => {
+    const sections = structuredClone(first.sections);
+    sections[0]!.lines[0]!.chords[1]!.at = 25;
+    const next = songDocumentFromSections(first, { sections });
+    expect(next.revision).toBe(first.revision + 1);
+    expect(next.sections).toEqual(sections);
+    expect(next.flow).toEqual(first.flow);
+  });
+  it("adds a new section to the flow and drops a deleted one", () => {
+    const added = { id: "sec_new", type: "bridge" as const, showLabel: true, lines: [{ id: "line_new", kind: "lyric" as const, text: "New", chords: [] }] };
+    const next = songDocumentFromSections(first, { sections: [first.sections[1]!, added] });
+    expect(next.flow.map((item) => item.sectionId)).toEqual([first.sections[1]!.id, "sec_new"]);
+  });
+  it("refuses duplicate IDs", () => {
+    const sections = structuredClone(first.sections);
+    sections[1]!.lines[0]!.id = sections[0]!.lines[0]!.id;
+    expect(() => songDocumentFromSections(first, { sections })).toThrow(/Duplicate id/);
   });
 });
