@@ -1,4 +1,11 @@
-import type { InstrumentValue, SupportedImportFormat, TechRoleValue } from "../constants/index.js";
+import type {
+  CapoDisplayModeValue,
+  ChordNotationValue,
+  InstrumentValue,
+  SupportedImportFormat,
+  TechRoleValue,
+} from "../constants/index.js";
+import type { ArrangementDocumentV2, ChartPreferences } from "../schemas/arrangement-document-v2.js";
 import type { CatalogEntryData, CatalogEntryFieldKey, CatalogFileProblem } from "../songbook-catalog-format/index.js";
 import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
@@ -127,6 +134,10 @@ export interface SetlistItem {
   canRequestOwnership: boolean;
   /** Versions of the same song this item can switch to (editors only). */
   versions: SetlistSongRef[];
+  /** The arrangement it's played in; null plays the song as written. */
+  arrangement: { id: string; name: string } | null;
+  /** The arrangements this set could play for it (editors only). */
+  arrangements: { id: string; name: string; isTeamDefault: boolean }[];
 }
 
 export interface SetlistDetail extends SetlistSummary {
@@ -136,14 +147,63 @@ export interface SetlistDetail extends SetlistSummary {
 /** One song of a set, as anyone who can open the set sees it. */
 export interface SetlistSongView {
   set: SetlistSummary;
-  item: { id: string; position: number; transposeSteps: number; notes: string | null };
-  song: (SetlistSongRef & { tempo: number | null; sections: SectionV2[]; flow: SectionInstance[] }) | null;
+  item: { id: string; position: number; transposeSteps: number; notes: string | null; arrangementId: string | null };
+  song:
+    | (SetlistSongRef & {
+        tempo: number | null;
+        sections: SectionV2[];
+        flow: SectionInstance[];
+        /** The whole document, for renderChart(). */
+        document: SongDocumentV2;
+        /** A capo written on the song: a suggestion when the arrangement sets none. */
+        suggestedCapo: number | null;
+      })
+    | null;
+  /** The arrangement the set plays it in (null: as written). */
+  arrangement: { id: string; name: string; document: ArrangementDocumentV2 } | null;
+  /** How the current user reads it. */
+  view: ChartViewSettings;
   inLibrary: boolean;
   sharedBy: { id: string; displayName: string } | null;
   previousItemId: string | null;
   nextItemId: string | null;
   /** The current user's private note on this song of the set. */
   myNote: string;
+}
+
+/** A player's own way of reading charts: this chart's preferences, and their settings for every chart. */
+export interface ChartViewSettings {
+  preferences: ChartPreferences | null;
+  chordNotation: ChordNotationValue;
+  capoDisplayMode: CapoDisplayModeValue;
+}
+
+/** An arrangement of a song, as listed (docs/arrangement-document-v2.md). */
+export interface ArrangementSummary {
+  id: string;
+  songVersionId: string;
+  name: string;
+  description: string | null;
+  ownerScope: "USER" | "TEAM" | "GLOBAL";
+  teamId: string | null;
+  teamName: string | null;
+  ownerName: string | null;
+  isTeamDefault: boolean;
+  /** The key it's played in, when the song has one. */
+  key: string | null;
+  transposeSteps: number;
+  capo: number | null;
+  /** The song changed since the arrangement was last checked against it. */
+  needsReview: boolean;
+  canEdit: boolean;
+  updatedAt: string;
+}
+
+export interface ArrangementDetail extends ArrangementSummary {
+  document: ArrangementDocumentV2;
+  song: { revision: number; key: string | null };
+  /** References to the song that no longer match (deleted lines or chords). */
+  problems: string[];
 }
 
 export interface SetlistGuest {
@@ -188,6 +248,10 @@ export interface UserProfile {
   isReviewer: boolean;
   instruments: InstrumentValue[];
   techRoles: TechRoleValue[];
+  /** With a capo: chords as they sound, or the shapes a guitarist plays. */
+  capoDisplayMode: CapoDisplayModeValue;
+  /** Chord names in letters or solfège. */
+  chordNotation: ChordNotationValue;
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -778,7 +842,14 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
   return {
     getMe: () => request<UserProfile>("/users/me"),
     /** Omitted fields are left as they are; `instruments`/`techRoles` replace the whole list. */
-    updateMe: (data: { locale?: string; displayName?: string; instruments?: InstrumentValue[]; techRoles?: TechRoleValue[] }) =>
+    updateMe: (data: {
+      locale?: string;
+      displayName?: string;
+      instruments?: InstrumentValue[];
+      techRoles?: TechRoleValue[];
+      capoDisplayMode?: CapoDisplayModeValue;
+      chordNotation?: ChordNotationValue;
+    }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
     getMyStorage: () => request<StorageUsage>("/users/me/storage"),
     uploadAvatar: (file: Blob, filename = "avatar") => {
@@ -961,8 +1032,30 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     updateSetlistItem: (
       setlistId: string,
       itemId: string,
-      data: { songVersionId?: string; transposeSteps?: number; notes?: string | null },
+      data: { songVersionId?: string; transposeSteps?: number; notes?: string | null; arrangementId?: string | null },
     ) => request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    /** The current user's own preferences for this song as the set plays it (guests too). */
+    setSetlistChartPreferences: (setlistId: string, itemId: string, preferences: Partial<ChartPreferences>) =>
+      request<ChartPreferences>(`/setlists/${setlistId}/items/${itemId}/chart-preferences`, {
+        method: "PUT",
+        body: JSON.stringify({ preferences }),
+      }),
+    listArrangements: (songVersionId: string) => request<ArrangementSummary[]>(`/song-versions/${songVersionId}/arrangements`),
+    /** A new arrangement: the song's order to start with, or a copy of `copyFromId`; a team's when `teamId` is given. */
+    createArrangement: (songVersionId: string, data: { name: string; description?: string | null; teamId?: string; copyFromId?: string }) =>
+      request<ArrangementDetail>(`/song-versions/${songVersionId}/arrangements`, { method: "POST", body: JSON.stringify(data) }),
+    getArrangement: (arrangementId: string) => request<ArrangementDetail>(`/arrangements/${arrangementId}`),
+    /** Omitted fields are left alone; `updatedAt` (as loaded) refuses a save over a newer one (409). */
+    updateArrangement: (
+      arrangementId: string,
+      data: { name?: string; description?: string | null; document?: ArrangementDocumentV2; isTeamDefault?: boolean; updatedAt?: string },
+    ) => request<ArrangementDetail>(`/arrangements/${arrangementId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    markArrangementReviewed: (arrangementId: string) => request<ArrangementDetail>(`/arrangements/${arrangementId}/reviewed`, { method: "POST" }),
+    deleteArrangement: (arrangementId: string) => request<void>(`/arrangements/${arrangementId}`, { method: "DELETE" }),
+    getChartPreferences: (songVersionId: string, arrangementId?: string | null) =>
+      request<ChartPreferences>(`/chart-preferences?songVersionId=${songVersionId}${arrangementId ? `&arrangementId=${arrangementId}` : ""}`),
+    saveChartPreferences: (songVersionId: string, arrangementId: string | null, preferences: Partial<ChartPreferences>) =>
+      request<ChartPreferences>("/chart-preferences", { method: "PUT", body: JSON.stringify({ songVersionId, arrangementId, preferences }) }),
     removeSetlistItem: (setlistId: string, itemId: string) =>
       request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "DELETE" }),
     getSetlistSong: (setlistId: string, itemId: string) => request<SetlistSongView>(`/setlists/${setlistId}/items/${itemId}/song`),

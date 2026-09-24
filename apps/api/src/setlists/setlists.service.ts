@@ -9,6 +9,7 @@ import type {
   UpdateSetlistItemDto,
 } from "./dto/setlist.dto";
 import { SetlistAccessService, SONG_SELECT, type SetRow, type SongRow } from "./setlist-access.service";
+import { ArrangementsService } from "../arrangements/arrangements.service";
 import { setOrder } from "../common/utils/set-order";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -30,6 +31,7 @@ export interface SongRef {
 const ITEM_INCLUDE = {
   songVersion: { select: SONG_SELECT },
   sharedBy: { select: { id: true, displayName: true } },
+  arrangement: { select: { id: true, name: true } },
 } as const;
 
 /**
@@ -48,6 +50,7 @@ export class SetlistsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly sets: SetlistAccessService,
+    private readonly arrangements: ArrangementsService,
   ) {}
 
   async list(user: AuthenticatedUser) {
@@ -128,6 +131,11 @@ export class SetlistsService {
       }
     }
 
+    // The arrangements each song could play in this set (editors only).
+    const choices = access.canEdit
+      ? await this.arrangements.choicesForSet(set, [...new Set(set.items.map((item) => item.songVersionId))])
+      : new Map<string, { id: string; name: string; isTeamDefault: boolean }[]>();
+
     // Pending requests for the team to take over songs shared into this set.
     const pending = set.ownerTeamId
       ? await this.prisma.client.songOwnershipRequest.findMany({
@@ -161,6 +169,9 @@ export class SetlistsService {
           // A team admin can ask for (or, owning it, hand over) a personal song shared into a team set.
           canRequestOwnership: access.canEdit && shown && sharedPersonalSong && !requestId,
           versions: siblingsByWork.get(song.workId) ?? [],
+          // The arrangement it's played in (null: as written), and the others it could be.
+          arrangement: shown && item.arrangement ? { id: item.arrangement.id, name: item.arrangement.name } : null,
+          arrangements: choices.get(song.id) ?? [],
         };
       }),
     };
@@ -241,8 +252,10 @@ export class SetlistsService {
     await this.assertAddable(set, dto.songVersionId);
     await this.prisma.client.$transaction(async (tx) => {
       const position = await tx.setlistItem.count({ where: { setlistId } });
+      // A team set plays the team's usual arrangement of the song, if it has one.
+      const arrangementId = set.ownerTeamId ? await this.arrangements.teamDefaultId(set.ownerTeamId, dto.songVersionId) : null;
       await tx.setlistItem.create({
-        data: { setlistId, songVersionId: dto.songVersionId, transposeSteps: dto.transposeSteps ?? 0, position },
+        data: { setlistId, songVersionId: dto.songVersionId, transposeSteps: dto.transposeSteps ?? 0, position, arrangementId },
       });
     });
     return this.findOne(user, setlistId);
@@ -261,11 +274,24 @@ export class SetlistsService {
       }
       await this.assertAddable(set, dto.songVersionId);
     }
+    // Another version plays the team's usual arrangement of it (an arrangement belongs to one version).
+    const switching = dto.songVersionId !== undefined && dto.songVersionId !== item.songVersionId;
+    const songVersionId = switching ? dto.songVersionId! : item.songVersionId;
+    let arrangementId: string | null | undefined = switching
+      ? set.ownerTeamId
+        ? await this.arrangements.teamDefaultId(set.ownerTeamId, songVersionId)
+        : null
+      : undefined;
+    if (dto.arrangementId !== undefined) {
+      if (dto.arrangementId) await this.arrangements.assertPlayableInSet(set, songVersionId, dto.arrangementId);
+      arrangementId = dto.arrangementId;
+    }
     await this.prisma.client.setlistItem.update({
       where: { id: itemId },
       data: {
         // A version picked from what's addable needs no sharing.
-        ...(dto.songVersionId !== undefined && dto.songVersionId !== item.songVersionId && { songVersionId: dto.songVersionId, sharedByUserId: null }),
+        ...(switching && { songVersionId, sharedByUserId: null }),
+        ...(arrangementId !== undefined && { arrangementId }),
         ...(dto.transposeSteps !== undefined && { transposeSteps: dto.transposeSteps }),
         ...(dto.notes !== undefined && { notes: dto.notes || null }),
       },
@@ -315,18 +341,22 @@ export class SetlistsService {
     if (index === -1) throw new NotFoundException("Item not found");
     const item = set.items[index]!;
 
-    const [readable, inViewersLibrary, note] = await Promise.all([
+    const [readable, inViewersLibrary, note, viewer] = await Promise.all([
       this.sets.readableItems(set, [item]),
       this.sets.visibilityFor(user),
       this.myNoteRow(user.id, itemId),
+      this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true } }),
     ]);
     const song = item.songVersion;
     const shown = readable.has(item.id) || inViewersLibrary(song);
     const document = shown ? readSongDocument(song.documentJson) : null;
+    // Played as the set says: anyone who can open the set sees the arrangement it plays.
+    const arrangement = document && item.arrangementId ? await this.arrangements.forChart(item.arrangementId, document) : null;
+    const preferences = shown ? await this.arrangements.preferences(user.id, song.id, arrangement?.id ?? null) : null;
 
     return {
       set: { ...summarize(set), itemCount: set.items.length, canEdit: access.canEdit, isGuest: access.isGuest },
-      item: { id: item.id, position: item.position, transposeSteps: item.transposeSteps, notes: item.notes },
+      item: { id: item.id, position: item.position, transposeSteps: item.transposeSteps, notes: item.notes, arrangementId: arrangement?.id ?? null },
       song: shown
         ? {
             ...toSongRef(song),
@@ -334,14 +364,32 @@ export class SetlistsService {
             sections: document?.sections ?? [],
             // The order it's sung in, each pass pointing at a section above.
             flow: document?.flow ?? [],
+            // The whole document, for renderChart() (key, revision, flow and all).
+            document,
+            // A capo written on the song: only a suggestion, when the arrangement sets none.
+            suggestedCapo: song.capo ?? null,
           }
         : null,
+      arrangement,
+      // How this player reads it: their preferences for this chart, and their chord display settings.
+      view: {
+        preferences,
+        chordNotation: viewer?.chordNotation ?? "LETTERS",
+        capoDisplayMode: viewer?.capoDisplayMode ?? "SOUNDING",
+      },
       inLibrary: inViewersLibrary(song),
       sharedBy: shown && item.sharedBy ? { id: item.sharedBy.id, displayName: item.sharedBy.displayName } : null,
       previousItemId: set.items[index - 1]?.id ?? null,
       nextItemId: set.items[index + 1]?.id ?? null,
       myNote: note?.content ?? "",
     };
+  }
+
+  /** The viewer's own chart preferences for one song of the set, as the set plays it (guests too). */
+  async setMyChartPreferences(user: AuthenticatedUser, setlistId: string, itemId: string, preferences: unknown) {
+    await this.sets.findViewable(user, setlistId);
+    const item = await this.findItem(setlistId, itemId);
+    return this.arrangements.savePreferences(user.id, item.songVersionId, item.arrangementId, preferences);
   }
 
   /** The viewer's private note on one song of the set; an empty one deletes it. */

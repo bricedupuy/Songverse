@@ -16,6 +16,7 @@ const SELECT = {
   locale: true,
   displayMode: true,
   capoDisplayMode: true,
+  chordNotation: true,
   voicingPreference: true,
   isGlobalAdmin: true,
   isReviewer: true,
@@ -50,6 +51,8 @@ export class UsersService {
       data: {
         locale: dto.locale,
         displayName: dto.displayName,
+        capoDisplayMode: dto.capoDisplayMode,
+        chordNotation: dto.chordNotation,
         instruments: dto.instruments && orderInstruments(dto.instruments),
         techRoles: dto.techRoles && orderTechRoles(dto.techRoles),
       },

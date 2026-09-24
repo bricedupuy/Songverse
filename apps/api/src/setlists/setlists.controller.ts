@@ -10,6 +10,7 @@ import {
   UpdateSetlistDto,
   UpdateSetlistItemDto,
 } from "./dto/setlist.dto";
+import { SetChartPreferencesDto } from "../arrangements/dto/arrangement.dto";
 import { SetlistSharingService } from "./setlist-sharing.service";
 import { SetlistsService } from "./setlists.service";
 import { SongOwnershipService } from "./song-ownership.service";
@@ -124,6 +125,17 @@ export class SetlistsController {
     @Body() dto: MyNoteDto,
   ) {
     return this.setlists.setMyNote(requireUser(user), setlistId, itemId, dto.content);
+  }
+
+  /** The viewer's own chart preferences (hidden chords, simpler chords) for this song as the set plays it. */
+  @Put(":setlistId/items/:itemId/chart-preferences")
+  setMyChartPreferences(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("setlistId") setlistId: string,
+    @Param("itemId") itemId: string,
+    @Body() dto: SetChartPreferencesDto,
+  ) {
+    return this.setlists.setMyChartPreferences(requireUser(user), setlistId, itemId, dto.preferences);
   }
 
   /** Asks the song's owner to hand it to the set's team (or hands it over, if it's yours). Returns the updated set. */

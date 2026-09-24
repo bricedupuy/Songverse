@@ -64,6 +64,11 @@ enum CapoDisplayMode {
   FINGERED
 }
 
+enum ChordNotation {
+  LETTERS
+  SOLFEGE
+}
+
 enum MidiEventType {
   PROGRAM_CHANGE
   CONTROL_CHANGE
@@ -242,6 +247,8 @@ model User {
   locale            String            @default("en") // UI language - see SUPPORTED_LOCALES in packages/core
   displayMode       DisplayMode       @default(GUITAR)
   capoDisplayMode   CapoDisplayMode   @default(SOUNDING)
+  // Chord names in letters (G) or solfège (Sol) on every chart.
+  chordNotation     ChordNotation     @default(LETTERS)
   voicingPreference VoicingPreference @default(AUTO)
   pedalMappingJson  Json? // UserPedalMapping — null = use defaults
   midiOutputDevice  String? // Last selected MIDI output device name
@@ -251,6 +258,7 @@ model User {
   ownedVersions       SongVersion[]          @relation("VersionOwnerUser")
   contributorCredits  VersionContributor[]
   ownedArrangements   Arrangement[]          @relation("ArrangementOwnerUser")
+  chartPreferences    ChartPreference[]
   submissions         Submission[]
   reviewedSubmissions Submission[]           @relation("SubmissionReviewer")
   proposals           ChangeProposal[]
@@ -651,6 +659,7 @@ model SongVersion {
   contributors      VersionContributor[]
   attachments       Attachment[]
   arrangements      Arrangement[]
+  chartPreferences  ChartPreference[]
   songbookEntries   SongbookEntry[]
   versionTags       SongVersionTag[]
   identifiers       SongVersionIdentifier[]
@@ -748,7 +757,8 @@ model Arrangement {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Ownership
+  // Ownership: a user or a team, like songs, whoever owns the song itself
+  // (arranging a song you can't edit is the main use).
   ownerScope  OwnershipScope @default(USER)
   ownerUserId String?
   ownerTeamId String?
@@ -756,32 +766,60 @@ model Arrangement {
   name        String
   description String?
 
-  // Canonical content
-  documentJson Json // ArrangementDocument v1
+  // ArrangementDocument v2 (docs/arrangement-document-v2.md): how it's
+  // played - order, key, capo, tempo, per-pass overrides - pointing at the
+  // song's sections, lines and chords by ID. `songRevision` in it is the
+  // song revision it was last checked against.
+  documentJson Json
+
+  // The team's usual arrangement of this song, picked when the song is
+  // added to one of the team's sets. At most one per team and song (kept
+  // by the API).
+  isTeamDefault Boolean @default(false)
 
   // Guitar tuning for this arrangement (null = standard tuning)
   // Stored here as a convenience cache — authoritative value is in documentJson.defaults
   guitarTuningPresetId String?
   guitarTuningPreset   TuningPreset? @relation(fields: [guitarTuningPresetId], references: [id])
 
-  // Freeze state (set when upstream SongDocument changes)
-  frozenAt     DateTime?
-  frozenReason String?
-
-  // Relations
-  songVersion     SongVersion           @relation(fields: [songVersionId], references: [id])
-  ownerUser       User?                 @relation("ArrangementOwnerUser", fields: [ownerUserId], references: [id])
-  ownerTeam       Team?                 @relation("ArrangementOwnerTeam", fields: [ownerTeamId], references: [id])
-  setlistItems    SetlistItem[]
-  notes           Note[]
-  midiConfigs     UserArrangementMidi[]
-  grooveOverrides ArrangementGroove[]
+  // Relations: an arrangement can't outlive its song.
+  songVersion      SongVersion           @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  ownerUser        User?                 @relation("ArrangementOwnerUser", fields: [ownerUserId], references: [id])
+  ownerTeam        Team?                 @relation("ArrangementOwnerTeam", fields: [ownerTeamId], references: [id])
+  setlistItems     SetlistItem[]
+  notes            Note[]
+  midiConfigs      UserArrangementMidi[]
+  grooveOverrides  ArrangementGroove[]
+  chartPreferences ChartPreference[]
 
   @@index([songVersionId])
   @@index([ownerUserId])
   @@index([ownerTeamId])
-  @@index([frozenAt])
   @@index([guitarTuningPresetId])
+}
+
+// A player's own view of one chart (docs/arrangement-document-v2.md,
+// "Personal chart preferences"): chords they hide, simpler chords, no bass
+// notes. Per user, and per arrangement - or per song when it's played as
+// written. Never shared, never changes the song or the arrangement.
+model ChartPreference {
+  id              String   @id @default(cuid())
+  userId          String
+  songVersionId   String
+  arrangementId   String?
+  // arrangementId, or "" for the song as written: one unique index covers both.
+  arrangementKey  String   @default("")
+  // chart-preferences/v1
+  preferencesJson Json
+  updatedAt       DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songVersion SongVersion  @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  arrangement Arrangement? @relation(fields: [arrangementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, songVersionId, arrangementKey])
+  @@index([songVersionId])
+  @@index([arrangementId])
 }
 
 // ============================================================

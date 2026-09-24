@@ -97,6 +97,12 @@ export class UpdateSetlistItemDto {
   @IsString()
   @MaxLength(500)
   notes?: string | null;
+
+  @ApiProperty({ required: false, nullable: true, type: String, description: "The arrangement to play; null plays the song as written" })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  arrangementId?: string | null;
 }
 
 export class ReorderSetlistItemsDto {

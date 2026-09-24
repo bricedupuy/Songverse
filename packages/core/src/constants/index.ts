@@ -65,6 +65,10 @@ export type VoicingPreferenceValue = (typeof VOICING_PREFERENCES)[number];
 export const CAPO_DISPLAY_MODES = ["SOUNDING", "FINGERED"] as const;
 export type CapoDisplayModeValue = (typeof CAPO_DISPLAY_MODES)[number];
 
+/** Chord names on every chart: letters (G) or solfège (Sol). */
+export const CHORD_NOTATIONS = ["LETTERS", "SOLFEGE"] as const;
+export type ChordNotationValue = (typeof CHORD_NOTATIONS)[number];
+
 export const MIDI_EVENT_TYPES = ["program_change", "control_change"] as const;
 export type MidiEventTypeValue = (typeof MIDI_EVENT_TYPES)[number];
 

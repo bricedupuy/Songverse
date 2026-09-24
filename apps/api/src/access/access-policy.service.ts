@@ -31,7 +31,9 @@ export const OPEN_SUBMISSION_STATES = ["SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANG
  *   open a song while it's submitted to the global catalogue.
  * - Songbooks: anyone sees global songbooks, plus their own and their teams'.
  * - Tags: approved global tags, the user's own, and their teams'.
- * - Changing a song or songbook: its owner for a personal one, the team's
+ * - Arrangements: the user's own and their teams' (of songs they can see;
+ *   through a set, anyone who can open the set sees the one it plays).
+ * - Changing a song, songbook or arrangement: its owner for a personal one, the team's
  *   admins for a team one, and only global admins for a global one. Global
  *   admins can change anything.
  */
@@ -118,6 +120,21 @@ export class AccessPolicyService {
     return songbook.ownerScope === "GLOBAL" || this.ownsOrBelongsTo(viewer, songbook);
   }
 
+  /** Arrangements `viewer` can see (their own and their teams'), of a song they can see. */
+  async arrangementsVisibleTo(viewer: Viewer): Promise<Prisma.ArrangementWhereInput> {
+    if (viewer.isGlobalAdmin) return {};
+    return {
+      OR: [
+        { ownerScope: "USER", ownerUserId: viewer.id },
+        { ownerScope: "TEAM", ownerTeamId: { in: await this.teamIds(viewer.id) } },
+      ],
+    };
+  }
+
+  async canSeeArrangement(viewer: Viewer, arrangement: OwnedRecord): Promise<boolean> {
+    return this.ownsOrBelongsTo(viewer, arrangement);
+  }
+
   /** Tags `viewer` can use. */
   async tagsVisibleTo(viewer: Pick<Viewer, "id">): Promise<Prisma.TagWhereInput> {
     return {
@@ -129,7 +146,7 @@ export class AccessPolicyService {
     };
   }
 
-  /** Whether `viewer` can change a song or songbook (see the class comment). */
+  /** Whether `viewer` can change a song, songbook or arrangement (see the class comment). */
   async canEdit(viewer: Viewer, record: OwnedRecord): Promise<boolean> {
     if (viewer.isGlobalAdmin) return true;
     if (record.ownerScope === "USER") return record.ownerUserId === viewer.id;

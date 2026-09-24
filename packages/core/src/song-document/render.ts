@@ -1,6 +1,12 @@
 import { formatChord, simplifyChord, transposeChord, type ChordNotation } from "../chords/chord.js";
 import { transposeKey } from "../music-keys/transpose.js";
-import { placeChords, type ArrangementDocumentV2, type ChartPreferences, type OverrideV2 } from "../schemas/arrangement-document-v2.js";
+import {
+  ArrangementDocumentV2Schema,
+  placeChords,
+  type ArrangementDocumentV2,
+  type ChartPreferences,
+  type OverrideV2,
+} from "../schemas/arrangement-document-v2.js";
 import type { LineKind, SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 
 /**
@@ -230,4 +236,20 @@ export function newArrangementDocument(song: SongDocumentV2, songVersionId: stri
     defaults: { transposeSteps: 0 },
     items: flow.map((item) => ({ ...item, id: makeId(), overrides: [] })),
   };
+}
+
+/**
+ * A stored arrangement as v2. One that can't be read as v2 (saved in an
+ * older format) starts again from the song's order - `readable` says so, and
+ * nothing is lost until it's saved.
+ */
+export function readArrangementDocument(
+  json: unknown,
+  song: SongDocumentV2,
+  songVersionId: string,
+  makeId: () => string,
+): { document: ArrangementDocumentV2; readable: boolean } {
+  const parsed = ArrangementDocumentV2Schema.safeParse(json);
+  if (parsed.success) return { document: parsed.data, readable: true };
+  return { document: { ...newArrangementDocument(song, songVersionId, makeId), songRevision: 0 }, readable: false };
 }

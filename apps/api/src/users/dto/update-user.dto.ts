@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { INSTRUMENTS, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
+import { CAPO_DISPLAY_MODES, CHORD_NOTATIONS, INSTRUMENTS, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
 import { Transform } from "class-transformer";
 import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
@@ -30,4 +30,14 @@ export class UpdateUserDto {
   @ArrayMaxSize(TECH_ROLES.length)
   @IsIn(TECH_ROLES, { each: true })
   techRoles?: (typeof TECH_ROLES)[number][];
+
+  @ApiProperty({ description: "With a capo: chords as they sound, or the shapes a guitarist plays", enum: CAPO_DISPLAY_MODES, required: false })
+  @IsOptional()
+  @IsIn(CAPO_DISPLAY_MODES)
+  capoDisplayMode?: (typeof CAPO_DISPLAY_MODES)[number];
+
+  @ApiProperty({ description: "Chord names in letters (G) or solfège (Sol)", enum: CHORD_NOTATIONS, required: false })
+  @IsOptional()
+  @IsIn(CHORD_NOTATIONS)
+  chordNotation?: (typeof CHORD_NOTATIONS)[number];
 }

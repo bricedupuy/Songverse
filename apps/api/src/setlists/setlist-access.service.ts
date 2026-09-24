@@ -14,6 +14,7 @@ export const SONG_SELECT = {
   ownerTeamId: true,
   publicationState: true,
   documentJson: true,
+  capo: true,
   ownerTeam: { select: { name: true } },
 } satisfies Prisma.SongVersionSelect;
 

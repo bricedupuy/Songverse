@@ -3,6 +3,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { AdminModule } from "./admin/admin.module";
+import { ArrangementsModule } from "./arrangements/arrangements.module";
 import { AccessModule } from "./access/access.module";
 import { AppController } from "./app.controller";
 import { AttachmentsModule } from "./attachments/attachments.module";
@@ -37,6 +38,7 @@ import { PublishingModule } from "./publishing/publishing.module";
     TeamsModule,
     WorksModule,
     SongVersionsModule,
+    ArrangementsModule,
     SongbooksModule,
     SetlistsModule,
     SongbookCatalogModule,
