@@ -110,8 +110,29 @@ does). The rules, all checked by the schema:
   letter written as two code units (`e` + combining accent) or an emoji.
 
 A chord in the middle of a word just has its `at` there: `before` with `D/F#`
-at the `f`. The text never gets a hyphen. Where two chords would collide,
-the renderer stretches the word or adds a hyphen when drawing it.
+at the `f`. The text never gets a hyphen: spacing is the renderer's job.
+
+### Rendering chords above lyrics
+
+Every view that shows chords over words (editor, preview, perform) lays a
+line out the same way:
+
+1. Split the text at each chord's `at`. Each piece starts with its chord
+   (the first piece may have none).
+2. Each piece is at least as wide as its chord symbol plus a small gap, so
+   the next chord still sits over its own character and two chords never
+   overlap, however close they are (one syllable to the next).
+3. Where a piece has to be widened and the split falls inside a word
+   (a letter on both sides), the gap is drawn with a hyphen or line
+   ("Morn — ing") so the word still reads as one. Between words it's just
+   space.
+4. Several chords on the same character (a line of chords only, or a
+   chord change with no words) sit side by side.
+
+No syllable information is needed: a chord always marks where a syllable
+starts, so the break falls exactly at the chord. Transposition, solfège
+and simplified chords change the symbols' widths, so the layout is
+worked out after them.
 
 ### Chord symbols
 
