@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { SongChart } from "#/components/song-chart";
+import { PlayerChart } from "#/components/player-chart";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -48,10 +48,15 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
   const { t, i18n } = useTranslation();
   const { set, item, song } = view;
 
+  // The arrangement's key and tempo, with the set's own key on top.
+  const arrangement = view.arrangement?.document.defaults;
+  const tempo = arrangement?.tempo ?? song?.tempo;
   const details = [
     t("sets.songOfSet", { position: item.position + 1, count: set.itemCount }),
-    song ? transposeLabel(song.key, item.transposeSteps, t) : null,
-    song?.tempo ? `${song.tempo} BPM` : null,
+    // The set's own transposition, from the arrangement's key.
+    song ? transposeLabel(song.key && arrangement ? (transposeKey(song.key, arrangement.transposeSteps) ?? song.key) : song.key, item.transposeSteps, t) : null,
+    view.arrangement ? t("sets.playedAs", { name: view.arrangement.name }) : null,
+    tempo ? `${tempo} BPM` : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -89,16 +94,7 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
       {song ? (
         <Card>
           <CardContent>
-            {song.sections.length > 0 ? (
-              <SongChart
-                sections={song.sections}
-                flow={song.flow}
-                transposeSteps={item.transposeSteps}
-                targetKey={song.key ? transposeKey(song.key, item.transposeSteps) : null}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">{t("sets.noChart")}</p>
-            )}
+            <PlayerChart view={view} />
           </CardContent>
         </Card>
       ) : null}

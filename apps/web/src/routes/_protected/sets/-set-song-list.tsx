@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { TRANSPOSE_STEP_OPTIONS, type SetlistItem, type SetlistSongRef } from "@songverse/core";
+import { TRANSPOSE_STEP_OPTIONS, transposeKey, type SetlistItem, type SetlistSongRef } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { GripVertical, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -31,7 +31,7 @@ interface SetSongListProps {
   canEdit: boolean;
   ownership: OwnershipActions;
   onReorder: (items: SetlistItem[]) => void;
-  onChangeItem: (itemId: string, change: { songVersionId?: string; transposeSteps?: number }) => void;
+  onChangeItem: (itemId: string, change: { songVersionId?: string; transposeSteps?: number; arrangementId?: string | null }) => void;
   onRemoveItem: (itemId: string) => void;
 }
 
@@ -91,7 +91,7 @@ function SongRow({
   ownership: OwnershipActions;
   index: number;
   canEdit: boolean;
-  onChange: (change: { songVersionId?: string; transposeSteps?: number }) => void;
+  onChange: (change: { songVersionId?: string; transposeSteps?: number; arrangementId?: string | null }) => void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
@@ -101,6 +101,8 @@ function SongRow({
   });
   const song = item.song;
   const title = song?.title ?? t("sets.hiddenSong");
+  // The item's own key goes on top of the arrangement's.
+  const baseKey = song?.key && item.arrangement ? (transposeKey(song.key, item.arrangement.transposeSteps) ?? song.key) : (song?.key ?? null);
 
   return (
     <li
@@ -136,6 +138,9 @@ function SongRow({
         ) : (
           <span className="text-sm italic text-muted-foreground">{title}</span>
         )}
+        {item.arrangement && !canEdit ? (
+          <span className="text-xs text-muted-foreground">{t("sets.playedAs", { name: item.arrangement.name })}</span>
+        ) : null}
         <OwnershipLine item={item} ownership={ownership} />
       </div>
 
@@ -155,6 +160,23 @@ function SongRow({
         </NativeSelect>
       ) : null}
 
+      {song && canEdit && item.arrangements.length > 0 ? (
+        <NativeSelect
+          aria-label={t("sets.arrangement")}
+          value={item.arrangement?.id ?? ""}
+          onChange={(event) => onChange({ arrangementId: event.target.value || null })}
+          compact
+          className="max-w-56 text-sm"
+        >
+          <option value="">{t("sets.asWritten")}</option>
+          {item.arrangements.map((arrangement) => (
+            <option key={arrangement.id} value={arrangement.id}>
+              {arrangement.isTeamDefault ? t("sets.usualArrangement", { name: arrangement.name }) : arrangement.name}
+            </option>
+          ))}
+        </NativeSelect>
+      ) : null}
+
       {song && canEdit ? (
         <NativeSelect
           aria-label={t("sets.key")}
@@ -165,12 +187,12 @@ function SongRow({
         >
           {TRANSPOSE_STEP_OPTIONS.map((steps) => (
             <option key={steps} value={steps}>
-              {transposeLabel(song.key, steps, t)}
+              {transposeLabel(baseKey, steps, t)}
             </option>
           ))}
         </NativeSelect>
       ) : song ? (
-        <span className="text-sm text-muted-foreground">{transposeLabel(song.key, item.transposeSteps, t)}</span>
+        <span className="text-sm text-muted-foreground">{transposeLabel(baseKey, item.transposeSteps, t)}</span>
       ) : null}
 
       {canEdit ? (

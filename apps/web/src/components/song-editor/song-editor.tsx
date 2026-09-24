@@ -12,7 +12,7 @@ import {
   type Tag,
 } from "@songverse/core";
 import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router";
-import { FileText, Info, Link2, MoreHorizontal, Music, PenLine } from "lucide-react";
+import { FileText, Info, Layers, Link2, MoreHorizontal, Music, PenLine } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
@@ -38,6 +38,7 @@ import {
 } from "./song-form";
 import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, SongbooksCard } from "./song-info";
 import { PublishCard } from "./publish-card";
+import { ArrangementsTab } from "./arrangements-tab";
 import { AttachmentsTab, LinksTab, SaveFirst } from "./song-tabs";
 import type { SongNotice, SongTab } from "./song-tabs-list";
 
@@ -462,6 +463,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             <PenLine aria-hidden />
             {t("songEditor.tabs.editor")}
           </TabsTrigger>
+          <TabsTrigger value="arrangements" className="flex-none px-3">
+            <Layers aria-hidden />
+            {t("songEditor.tabs.arrangements")}
+          </TabsTrigger>
           <TabsTrigger value="files" className="flex-none px-3">
             <FileText aria-hidden />
             {t("songEditor.tabs.files")}
@@ -493,6 +498,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             </Suspense>
           </fieldset>
         </TabsContent>
+        <TabsContent value="arrangements">{edit ? <ArrangementsTab songVersionId={edit.version.id} /> : <SaveFirst />}</TabsContent>
         <TabsContent value="files">
           {edit ? <AttachmentsTab kind="files" songVersionId={edit.version.id} attachments={attachments} canEdit={canEdit} /> : <SaveFirst />}
         </TabsContent>

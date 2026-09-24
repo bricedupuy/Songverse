@@ -99,5 +99,8 @@ describe("renderChart", () => {
     expect(labels(renderChart(song, doc, { capoDisplay: "shapes" }).passes[0]!)).toEqual(["F Fmaj7 C/E", "Dm Bb"]);
     expect(labels(renderChart(song, doc, { notation: "solfege" }).passes[1]!)).toEqual(["Do Sol"]);
     expect(renderChart(song, doc).capo).toBe(2);
+    // The song's own capo is a suggestion: used only when the arrangement sets none.
+    expect(renderChart(song, null, { suggestedCapo: 5, capoDisplay: "shapes" }).capo).toBe(5);
+    expect(renderChart(song, doc, { suggestedCapo: 5 }).capo).toBe(2);
   });
 });

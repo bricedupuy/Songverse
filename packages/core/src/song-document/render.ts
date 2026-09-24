@@ -26,6 +26,8 @@ export interface ChartView {
   notation?: ChordNotation;
   /** With a capo: chords as they sound (the default), or as the shapes a guitarist plays. */
   capoDisplay?: "sounding" | "shapes";
+  /** The capo written on the song, used when the arrangement sets none (it's only a suggestion). */
+  suggestedCapo?: number | null;
 }
 
 export interface RenderedChord {
@@ -89,7 +91,7 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
       ? song.flow
       : song.sections.map((section) => ({ id: section.id, sectionId: section.id }));
   const defaults = arrangement?.defaults;
-  const capo = defaults?.capo || null;
+  const capo = defaults?.capo || view.suggestedCapo || null;
   const hidden = new Set(view.preferences?.hiddenChordIds ?? []);
   const songKey = song.defaults.key ?? null;
   const baseSteps = (defaults?.transposeSteps ?? 0) + (view.transposeSteps ?? 0);

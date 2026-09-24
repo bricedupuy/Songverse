@@ -1,4 +1,4 @@
-import type { SongVersionDetail } from "@songverse/core";
+import { renderChart, type SongVersionDetail } from "@songverse/core";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
@@ -148,7 +148,7 @@ function ReviewSubmission() {
             </CardHeader>
             <CardContent className="min-w-0">
               {song ? (
-                <SongChart sections={song.documentJson.sections} flow={song.documentJson.flow} emptyText={t("review.noContent")} />
+                <SongChart chart={renderChart(song.documentJson)} emptyText={t("review.noContent")} />
               ) : (
                 <p className="text-sm text-muted-foreground">{t("review.noContent")}</p>
               )}

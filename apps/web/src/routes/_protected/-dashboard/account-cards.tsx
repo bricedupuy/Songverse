@@ -1,4 +1,11 @@
-import { SUPPORTED_LOCALES, type LocaleValue, type StorageUsage, type UserProfile } from "@songverse/core";
+import {
+  SUPPORTED_LOCALES,
+  type CapoDisplayModeValue,
+  type ChordNotationValue,
+  type LocaleValue,
+  type StorageUsage,
+  type UserProfile,
+} from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -343,6 +350,69 @@ export function LanguageCard({ locale }: { locale: string }) {
             </option>
           ))}
         </NativeSelect>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** How every chart reads for this user: chord names, and chords with a capo. */
+export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode"> }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue }) {
+    setSaving(true);
+    setError(null);
+    try {
+      await apiClient.updateMe(change);
+      await router.invalidate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">{t("dashboard.chartDisplay")}</CardTitle>
+        <CardDescription>{t("dashboard.chartDisplayDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="chord-notation">{t("dashboard.chordNotation")}</Label>
+          <NativeSelect
+            id="chord-notation"
+            value={profile.chordNotation}
+            disabled={saving}
+            onChange={(e) => void save({ chordNotation: e.target.value as ChordNotationValue })}
+            className="w-full max-w-xs"
+          >
+            <option value="LETTERS">{t("dashboard.notationLetters")}</option>
+            <option value="SOLFEGE">{t("dashboard.notationSolfege")}</option>
+          </NativeSelect>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="capo-display">{t("dashboard.capoDisplay")}</Label>
+          <NativeSelect
+            id="capo-display"
+            value={profile.capoDisplayMode}
+            disabled={saving}
+            onChange={(e) => void save({ capoDisplayMode: e.target.value as CapoDisplayModeValue })}
+            className="w-full max-w-xs"
+          >
+            <option value="SOUNDING">{t("dashboard.capoSounding")}</option>
+            <option value="FINGERED">{t("dashboard.capoShapes")}</option>
+          </NativeSelect>
+        </div>
+        {error ? (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

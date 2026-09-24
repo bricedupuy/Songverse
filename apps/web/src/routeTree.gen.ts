@@ -42,6 +42,7 @@ import { Route as ProtectedSongbooksNewRouteImport } from './routes/_protected/s
 import { Route as ProtectedTeamsIndexRouteImport } from './routes/_protected/teams/index'
 import { Route as ProtectedTeamsTeamIdRouteImport } from './routes/_protected/teams/$teamId'
 import { Route as ProtectedTeamsNewRouteImport } from './routes/_protected/teams/new'
+import { Route as ProtectedLibrarySongVersionIdArrangementsArrangementIdRouteImport } from './routes/_protected/library/$songVersionId_.arrangements.$arrangementId'
 import { Route as ProtectedSetsSetlistIdSongsItemIdRouteImport } from './routes/_protected/sets/$setlistId_.songs.$itemId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -214,6 +215,12 @@ const ProtectedTeamsNewRoute = ProtectedTeamsNewRouteImport.update({
   path: '/teams/new',
   getParentRoute: () => ProtectedRoute,
 } as any)
+const ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute =
+  ProtectedLibrarySongVersionIdArrangementsArrangementIdRouteImport.update({
+    id: '/library/$songVersionId_/arrangements/$arrangementId',
+    path: '/library/$songVersionId/arrangements/$arrangementId',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
 const ProtectedSetsSetlistIdSongsItemIdRoute =
   ProtectedSetsSetlistIdSongsItemIdRouteImport.update({
     id: '/sets/$setlistId_/songs/$itemId',
@@ -254,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/songbook-catalogs/': typeof ProtectedSongbookCatalogsIndexRoute
   '/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/teams/': typeof ProtectedTeamsIndexRoute
+  '/library/$songVersionId/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/sets/$setlistId/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRoutesByTo {
@@ -287,6 +295,7 @@ export interface FileRoutesByTo {
   '/songbook-catalogs': typeof ProtectedSongbookCatalogsIndexRoute
   '/songbooks': typeof ProtectedSongbooksIndexRoute
   '/teams': typeof ProtectedTeamsIndexRoute
+  '/library/$songVersionId/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/sets/$setlistId/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRoutesById {
@@ -324,6 +333,7 @@ export interface FileRoutesById {
   '/_protected/songbook-catalogs/': typeof ProtectedSongbookCatalogsIndexRoute
   '/_protected/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/_protected/teams/': typeof ProtectedTeamsIndexRoute
+  '/_protected/library/$songVersionId_/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/_protected/sets/$setlistId_/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRouteTypes {
@@ -361,6 +371,7 @@ export interface FileRouteTypes {
     | '/songbook-catalogs/'
     | '/songbooks/'
     | '/teams/'
+    | '/library/$songVersionId/arrangements/$arrangementId'
     | '/sets/$setlistId/songs/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -394,6 +405,7 @@ export interface FileRouteTypes {
     | '/songbook-catalogs'
     | '/songbooks'
     | '/teams'
+    | '/library/$songVersionId/arrangements/$arrangementId'
     | '/sets/$setlistId/songs/$itemId'
   id:
     | '__root__'
@@ -430,6 +442,7 @@ export interface FileRouteTypes {
     | '/_protected/songbook-catalogs/'
     | '/_protected/songbooks/'
     | '/_protected/teams/'
+    | '/_protected/library/$songVersionId_/arrangements/$arrangementId'
     | '/_protected/sets/$setlistId_/songs/$itemId'
   fileRoutesById: FileRoutesById
 }
@@ -675,6 +688,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedTeamsNewRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/library/$songVersionId_/arrangements/$arrangementId': {
+      id: '/_protected/library/$songVersionId_/arrangements/$arrangementId'
+      path: '/library/$songVersionId/arrangements/$arrangementId'
+      fullPath: '/library/$songVersionId/arrangements/$arrangementId'
+      preLoaderRoute: typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/_protected/sets/$setlistId_/songs/$itemId': {
       id: '/_protected/sets/$setlistId_/songs/$itemId'
       path: '/sets/$setlistId/songs/$itemId'
@@ -741,6 +761,7 @@ interface ProtectedRouteChildren {
   ProtectedSongbookCatalogsIndexRoute: typeof ProtectedSongbookCatalogsIndexRoute
   ProtectedSongbooksIndexRoute: typeof ProtectedSongbooksIndexRoute
   ProtectedTeamsIndexRoute: typeof ProtectedTeamsIndexRoute
+  ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute: typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   ProtectedSetsSetlistIdSongsItemIdRoute: typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 
@@ -765,6 +786,8 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedSongbookCatalogsIndexRoute: ProtectedSongbookCatalogsIndexRoute,
   ProtectedSongbooksIndexRoute: ProtectedSongbooksIndexRoute,
   ProtectedTeamsIndexRoute: ProtectedTeamsIndexRoute,
+  ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute:
+    ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute,
   ProtectedSetsSetlistIdSongsItemIdRoute:
     ProtectedSetsSetlistIdSongsItemIdRoute,
 }

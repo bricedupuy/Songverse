@@ -42,6 +42,12 @@ playing on Sunday, and share it with the people playing with you.
   a team; share one with guest musicians by link, who can read every song
   in it and keep private notes. A personal set can move to a team, sharing
   its owner's songs read-only until they hand them over.
+- **Arrangements** – how you or your band play a song, without changing
+  it: its order, key, capo and tempo, and chords replaced or hidden, lines
+  hidden and notes added on some passes. A team's usual arrangement is
+  picked when the song goes into its sets. Players choose their own view
+  on top: chords hidden for them, simpler chords, capo shapes, solfège
+  ([format](docs/arrangement-document-v2.md)).
 - **Teams** – invite links, member and admin roles, and each member's
   instruments and other roles (sound, media, tech) shown on the team.
 - **Accounts** – email and password, passkeys and Google sign-in; email

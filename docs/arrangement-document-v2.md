@@ -1,6 +1,6 @@
 # ArrangementDocument v2
 
-**Status:** implementation contract (schemas in `packages/core/src/schemas/arrangement-document-v2.ts`)
+**Status:** implemented - schemas in `packages/core/src/schemas/arrangement-document-v2.ts`, rendering in `packages/core/src/song-document/render.ts`, API in `apps/api/src/arrangements/`
 **Replaces:** [ArrangementDocument v1](arrangement-document-v1.md)
 **Builds on:** [SongDocument v2](song-document-v2.md)
 **Example:** [`morning-light-arrangement.v2.json`](../packages/core/src/__tests__/fixtures/morning-light-arrangement.v2.json)
@@ -46,6 +46,20 @@ pass or a line). Changing a line's words (`lyric`) and inserting lines
 (`insert_line`) are in the format, validated and rendered, but their
 editing UI comes later (bricedupuy/SongVerse#24).
 
+In the app:
+- A song's **Arrangements** tab lists yours and your teams', and makes one
+  (yours, or for a team you're an admin of). It starts as the song's order,
+  in its key.
+- The arrangement editor (`apps/web/src/components/arrangement-editor.tsx`)
+  shows each pass's chords in the key it's played in, and stores what you
+  type in the song's key.
+- A team admin can make a team arrangement the team's **usual** one: songs
+  added to the team's sets start with it. Each song of a set can switch to
+  another arrangement, or play as written.
+- A set's song page renders the arrangement with the set's key on top, and
+  the player's own view (below) from a "My view" bar; chord names and capo
+  display are also on the dashboard.
+
 ## Top level
 
 ```jsonc
@@ -62,7 +76,7 @@ editing UI comes later (bricedupuy/SongVerse#24).
 |---|---|
 | `songRevision` | The song revision this arrangement was last checked against. When the song is newer, the owner is shown what changed since (and any [problems](#when-the-song-changes)). They then update or confirm the arrangement, which sets this to the current revision. |
 | `defaults.transposeSteps` | Semitones from the song's key, −11 to 11. The arrangement's key follows (G + 2 = A). |
-| `defaults.capo` | Capo fret. The capo lives here only, never on the song. It's for display: chords are stored at concert pitch, and whether guitarists see sounding or fingered shapes is their own preference. |
+| `defaults.capo` | Capo fret. The song's own capo is only a suggestion, used when this is `null`. It's for display: chords are stored at concert pitch, and whether guitarists see sounding or fingered shapes is their own preference. |
 | `defaults.tempo`, `timeSignature` | Override the song's. `null` keeps the song's. |
 | `defaults.guitarTuning`, `guitarTuningNotes` | As in v1. |
 
@@ -151,6 +165,11 @@ to review:
 - The arrangement keeps working meanwhile.
 - A problem is shown on its pass, never silently dropped.
 - Nothing is migrated automatically.
+
+The editor says the song changed and how many changes no longer match; each
+is listed on its pass with a "Remove" button, and a pass whose section was
+deleted can be removed. "Mark as checked" sets `songRevision` and leaves
+the changes as they are.
 
 ## Personal chart preferences
 

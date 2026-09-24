@@ -104,7 +104,7 @@ await step("a bad tempo is caught before saving", async () => {
 await step("collapsed details show a summary", async () => {
   await page.getByRole("button", { name: /More details/ }).click();
   const summary = page.getByTestId("details-summary");
-  for (const chip of ["Key D", "72 BPM", "3/4", "Capo 2", "Christmas", "CCLI 4768151", "Composer: John Newton"]) {
+  for (const chip of ["Key D", "72 BPM", "3/4", "Suggested capo 2", "Christmas", "CCLI 4768151", "Composer: John Newton"]) {
     await summary.getByText(chip, { exact: true }).waitFor({ timeout: 3000 });
   }
 });

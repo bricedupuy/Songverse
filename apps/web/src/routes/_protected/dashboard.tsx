@@ -9,7 +9,7 @@ import { apiClient } from "#/lib/api-client";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { initials } from "#/lib/initials";
 import { artistNames } from "#/lib/artists";
-import { EmailCard, LanguageCard, PasskeysCard, ProfileCard, StorageCard } from "./-dashboard/account-cards";
+import { ChartDisplayCard, EmailCard, LanguageCard, PasskeysCard, ProfileCard, StorageCard } from "./-dashboard/account-cards";
 import { OwnershipRequestsCard } from "./-dashboard/ownership-requests-card";
 import { RolesCard } from "./-dashboard/roles-card";
 
@@ -181,6 +181,7 @@ function Dashboard() {
             <PasskeysCard />
             <StorageCard storage={storage} />
             <LanguageCard locale={profile.locale} />
+            <ChartDisplayCard profile={profile} />
           </div>
         </div>
       </section>

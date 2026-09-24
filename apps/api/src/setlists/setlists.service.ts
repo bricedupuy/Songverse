@@ -31,7 +31,7 @@ export interface SongRef {
 const ITEM_INCLUDE = {
   songVersion: { select: SONG_SELECT },
   sharedBy: { select: { id: true, displayName: true } },
-  arrangement: { select: { id: true, name: true } },
+  arrangement: { select: { id: true, name: true, documentJson: true } },
 } as const;
 
 /**
@@ -170,7 +170,7 @@ export class SetlistsService {
           canRequestOwnership: access.canEdit && shown && sharedPersonalSong && !requestId,
           versions: siblingsByWork.get(song.workId) ?? [],
           // The arrangement it's played in (null: as written), and the others it could be.
-          arrangement: shown && item.arrangement ? { id: item.arrangement.id, name: item.arrangement.name } : null,
+          arrangement: shown && item.arrangement ? arrangementRef(item.arrangement) : null,
           arrangements: choices.get(song.id) ?? [],
         };
       }),
@@ -448,6 +448,12 @@ export function toSongRef(song: SongRow): SongRef {
     ownerScope: song.ownerScope,
     teamName: song.ownerTeam?.name ?? null,
   };
+}
+
+/** A set item's arrangement: its name, and the key it moves the song to (the item's own key goes on top). */
+function arrangementRef(arrangement: { id: string; name: string; documentJson: unknown }) {
+  const steps = (arrangement.documentJson as { defaults?: { transposeSteps?: unknown } } | null)?.defaults?.transposeSteps;
+  return { id: arrangement.id, name: arrangement.name, transposeSteps: typeof steps === "number" ? steps : 0 };
 }
 
 export function summarize(set: {

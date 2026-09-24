@@ -134,8 +134,8 @@ export interface SetlistItem {
   canRequestOwnership: boolean;
   /** Versions of the same song this item can switch to (editors only). */
   versions: SetlistSongRef[];
-  /** The arrangement it's played in; null plays the song as written. */
-  arrangement: { id: string; name: string } | null;
+  /** The arrangement it's played in (and the semitones it moves the song's key); null plays the song as written. */
+  arrangement: { id: string; name: string; transposeSteps: number } | null;
   /** The arrangements this set could play for it (editors only). */
   arrangements: { id: string; name: string; isTeamDefault: boolean }[];
 }

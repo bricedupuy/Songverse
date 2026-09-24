@@ -21,7 +21,7 @@ import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/r
 import { ChevronLeft, ChevronRight, Minus, Plus, Redo2, StickyNote, Trash2, Undo2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { SongChart } from "#/components/song-chart";
+import { chartOfSections, SongChart } from "#/components/song-chart";
 import { Button } from "#/components/ui/button";
 import { NativeSelect } from "#/components/ui/native-select";
 import { Textarea } from "#/components/ui/textarea";
@@ -130,7 +130,7 @@ export function StructuredEditor({
   }, [editor, readOnly]);
 
   if (readOnly) {
-    return <SongChart sections={sections} flow={flow} emptyText={t("songEditor.previewEmpty")} />;
+    return <SongChart chart={chartOfSections(sections, flow, songKey || null)} emptyText={t("songEditor.previewEmpty")} />;
   }
 
   return (
@@ -145,7 +145,7 @@ export function StructuredEditor({
           <p className="mt-4 text-xs text-muted-foreground">{t("structuredEditor.hints")}</p>
         </div>
         {mode === "text" ? <TextMode sections={sections} onChange={(next) => onChangeRef.current(next)} /> : null}
-        {mode === "preview" ? <SongChart sections={sections} flow={flow} emptyText={t("songEditor.previewEmpty")} /> : null}
+        {mode === "preview" ? <SongChart chart={chartOfSections(sections, flow, songKey || null)} emptyText={t("songEditor.previewEmpty")} /> : null}
       </div>
     </div>
   );
