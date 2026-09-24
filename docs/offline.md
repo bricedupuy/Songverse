@@ -1,7 +1,8 @@
 # Working offline
 
-Status: **proposal**, nothing built yet. This is how SongVerse could keep
-working without a network, in phases, and the decisions to make first.
+Status: **agreed design**, nothing built yet. This is how SongVerse keeps
+working without a network, in phases. The decisions it rests on are
+[below](#decisions).
 
 ## Why
 
@@ -12,11 +13,23 @@ nice to have; reading at the venue is essential.
 
 ## Three levels
 
-| Level | What works offline | Conflicts | Size |
+| Level | What works offline | Conflicts | When |
 |---|---|---|---|
-| 1. Read | Chosen sets and songs, their charts, PDFs and audio | None: read-only | Phase 1 |
-| 2. Personal changes | Your notes, chart preferences, set order | Rare, one owner: last write wins per field | Phase 2 |
-| 3. Shared editing | Editing songs other people also edit | Real: needs merging | Phase 3, decided together with real-time collaboration |
+| 1. Read | Upcoming sets, your own songs, songbooks you keep; charts and files | None: read-only | Phase 1 |
+| 2. Create and personal changes | New songs; your notes, chart preferences, set order | None for new songs; rare for personal data (one owner) | Phase 2, soon after |
+| 3. Shared editing | Editing songs other people also edit | Real: needs merging | Much later, with real-time collaboration |
+
+## Decisions
+
+1. **Start read-only.** Creating new songs offline comes soon after.
+2. **Downloaded automatically:** upcoming sets and the songs in them, and
+   every song the user created. A songbook can be set to **keep a local
+   copy**. Audio is never downloaded by default.
+3. **Real-time collaboration someday, in the distant future.** Editing
+   shared songs offline waits for it.
+4. **A mobile app is expected within six months, maybe sooner.** It will
+   be either native or React Native (not decided), so the sync protocol
+   must work for both (see [The mobile app](#the-mobile-app)).
 
 ## Where we start from
 
@@ -42,7 +55,7 @@ What already helps:
 - **Core is shared.** Offline logic (the local store's shape, the sync
   protocol, merging) belongs there, so a mobile app reuses it.
 
-## Phase 1: sets available offline, read-only
+## Phase 1: reading offline
 
 ### The app itself (service worker)
 
@@ -65,21 +78,35 @@ One IndexedDB database per signed-in user:
 |---|---|---|
 | `session` | The last known session (user, locale, roles) and when it was confirmed | singleton |
 | `sets` | `SetlistDetail` as the API returns it | set ID |
-| `songs` | The song as a set shows it (sections, flow, key, tempo, capo), plus the song's `revision` and `updatedAt` | song version ID |
-| `files` | Attachment blobs (PDF, audio, images) | attachment ID |
-| `meta` | Sync cursor, what's pinned, sizes | key |
+| `songs` | The song's detail (details, sections, flow, capo, attachments list) with its `revision` and `updatedAt` | song version ID |
+| `songbooks` | Kept songbooks with their entries | songbook ID |
+| `files` | Attachment blobs (PDF, images, audio when asked for) | content hash |
+| `meta` | The last manifest, pins, sizes | key |
 
-- **What's downloaded:**
-  - sets the user marks **"Available offline"**;
-  - automatically, their next few sets by date (the number is a setting).
-
-  Each set is downloaded with every song in it and, optionally, its files.
+- **What's downloaded automatically:**
+  - **Upcoming sets:** every set the user can open (their own and their
+    teams') whose date is from yesterday to 14 days ahead, with every song
+    in it. The 14 days is a user setting. A set with no date is only
+    downloaded if pinned.
+  - **The user's own songs:** every song they created (owner scope USER).
+  - **Songbooks with "Keep a local copy" on:** the songbook's entries and
+    the songs they link to. Each songbook has the setting, off by default.
+  - **Anything pinned:** the user can pin any set or song ("Available
+    offline").
+- **Files:**
+  - PDFs, images and ChordPro files of those songs come with them.
+  - **Audio is never downloaded by default.** A set, song or songbook can
+    add its audio on request ("Include audio").
+  - Files are content-addressed, so one shared by several songs is stored
+    once.
 - **Storage:**
   - ask for persistent storage with `navigator.storage.persist()`,
     otherwise the browser may evict it;
-  - show how much space is used, per set, with a way to remove it.
-
-  Audio is the big cost, so it's a separate choice ("include audio").
+  - show how much space is used, per set and songbook, with a way to
+    remove it.
+- **Leaving the device:** a set drops off a day after its date unless
+  pinned; a song stays while any reason to keep it holds (in a kept set or
+  songbook, the user's own, pinned).
 
 ### Loading pages
 
@@ -104,8 +131,17 @@ store. Choose when building it; TanStack Query is the less custom option.
 
 ### API support
 
-- `GET /setlists/:id/offline` - the set, every song as the set shows it,
-  and attachment metadata, in one response. It replaces a request per song.
+- `GET /offline/manifest` - everything this user should have offline right
+  now: upcoming set IDs, their own song IDs, kept songbook IDs, pins, each
+  with its `revision`/`updatedAt`. The client compares it with what it has
+  and fetches the difference. Server-side, the rules above live in one
+  place for every client.
+- `GET /setlists/:id/offline` and `GET /songbooks/:id/offline` - a set (or
+  songbook) with every song as it's shown, and attachment metadata, in one
+  response. `POST /song-versions/offline` with IDs - a batch of songs. This
+  replaces one request per song.
+- The songbook's **"Keep a local copy"** and pins are stored per user on
+  the server, so they follow the user to a new device.
 - `GET /sync/changes?since=<cursor>` - what changed for this user since the
   cursor: updated sets and songs (IDs and revisions), **deletions** and
   **lost access** (a song unshared, a team left). The client refreshes
@@ -124,9 +160,36 @@ store. Choose when building it; TanStack Query is the less custom option.
 - **Scope:** only what the user could already see is ever downloaded; the
   endpoints re-check access like every other.
 
-## Phase 2: personal changes offline
+## Phase 2: creating songs and personal changes offline
 
-- Changes to things only the user owns are queued in an **outbox** in
+### New songs
+
+A song created offline has nobody else editing it, so there's nothing to
+merge:
+
+- The editor works as usual. The song is saved to IndexedDB with a
+  **local ID** and marked "Not synced yet". Its sections, lines and chords
+  get their normal IDs, generated on the device.
+- Its creation is queued in the **outbox** with an **idempotency key**
+  (`POST /song-versions` accepts `Idempotency-Key`), so sending it twice
+  after a flaky reconnect still makes one song.
+- **Once it's sent,** the server's ID replaces the local one everywhere on
+  the device: the local song, pins, and any set that already uses it. Set
+  items point at the local ID until then.
+- **Refused (a title clash the user must resolve, a quota reached):** the
+  song stays local and the reason is shown, never lost.
+- **Further offline edits** to a song created offline change the queued
+  creation rather than adding updates on top.
+
+**Editing your own songs offline** can follow, once creation works. Those
+songs have one owner, but possibly two devices. The save carries the
+`revision` it started from, as today. If the song moved on meanwhile, the
+user chooses "Keep mine" or "Keep the other version", with the difference
+shown. No merge.
+
+### Personal changes
+
+- Changes to things only the user owns are queued in the **outbox** in
   IndexedDB and sent in order when back online:
   - personal notes on a set's songs;
   - chart preferences (`chart-preferences/v1`: hidden chords, simplified
@@ -140,11 +203,13 @@ store. Choose when building it; TanStack Query is the less custom option.
 - **Failures:** a change refused on reconnect (access lost, set deleted)
   is shown to the user, never dropped silently.
 
-## Phase 3: editing shared songs offline
+## Phase 3: editing shared songs offline (much later)
 
 This is the same problem as **real-time collaboration**: several people
-changing one song without talking to the server in between. Decide the
-two together.
+changing one song without talking to the server in between. Real-time
+collaboration is for the distant future, so shared songs stay read-only
+offline until then. When it comes, both are built together. The two
+options, for then:
 
 ### Option A: merge on reconnect (fits what we have)
 
@@ -174,9 +239,10 @@ two together.
 - **Cost:** larger - the Yjs model of a song, the sync server, snapshots,
   access control on the socket.
 
-**Recommendation:** if live co-editing is wanted someday, go to Yjs
-directly rather than building the merge first. Otherwise Option A is
-enough.
+**Plan:** live co-editing is wanted someday, so when this is built, go
+to Yjs directly rather than building the merge first. Until then, nothing
+in Phases 1-2 gets in its way. Stable IDs and the stored SongDocument are
+what a Yjs model would snapshot to.
 
 ## Testing
 
@@ -188,36 +254,48 @@ enough.
   3. check that nothing redirects to sign-in;
   4. come back online and check that a song unshared in the meantime is
      removed.
-- Phase 2 adds: change a note offline, reconnect, and see it saved; the
-  same change from two devices keeps the newer one.
+- Phase 2 adds:
+  - create a song offline, reconnect, and check that it exists once with
+    its chords' IDs, even if the connection drops mid-send;
+  - change a note offline, reconnect, and see it saved;
+  - the same change from two devices keeps the newer one.
 
 ## The mobile app
 
-A React Native / Expo app can reuse the same design with SQLite for
-storage (instead of IndexedDB) and the file system for attachments:
+Expected within six months, possibly sooner; native or React Native isn't
+decided. Either way, offline is its core feature (perform mode at the
+venue), so the sync design has to serve it from the start:
 
-- the same sync endpoints;
-- the same outbox;
-- the same merge or Yjs documents.
+- **The protocol is the API, documented.** The manifest, batch downloads,
+  changes feed and outbox rules are plain HTTP + JSON endpoints, described
+  in the OpenAPI docs the API already serves (`/api/docs`), so any client
+  can implement them. Anything a client needs to decide (what to keep
+  offline) is decided by the server's manifest, not reimplemented per
+  client.
+- **The formats are specified:** `docs/song-document-v2.md`,
+  `docs/arrangement-document-v2.md`.
+- **Storage:** IndexedDB on the web; SQLite and the file system on mobile.
+  The same tables either way.
 
-That's the reason to put the store's shape, sync and merge in
-`@songverse/core`, not in `apps/web`.
+What the choice changes:
 
-## Decisions to make first
+| | React Native (Expo) | Native (Swift + Kotlin) |
+|---|---|---|
+| Reuses from `@songverse/core` | Everything in TypeScript: song and arrangement schemas, chord reading and transposition, chart layout (`layoutChordLine`), text import/export, i18n, the API client, and the web app's offline store logic | Nothing: all of it written twice more, and kept in step |
+| Offline storage | SQLite (expo-sqlite), files via expo-file-system | Core Data / Room, and the platforms' file APIs |
+| Chart rendering | Its own components, same layout data as the web | Its own, per platform |
+| Feel, platform APIs | Very good; native modules where needed | Best |
 
-1. **Level:** is Phase 1 (read offline) enough to start with? It's what
-   perform mode needs.
-2. **What downloads automatically:** only pinned sets, or also the next few
-   by date, or the whole library? Audio included or opt-in?
-3. **Live co-editing someday?** That picks Option A or B for Phase 3.
-4. **Mobile app timing:** if it's soon, design the sync protocol with it
-   in mind from the start.
+Since the chart layout, chord logic and sync client are the hard,
+must-match parts, **React Native reuses most of what matters**. Whichever
+is chosen, Phase 1's sync logic goes in core, as plain functions over a
+storage interface, so a React Native app gets it for free. A native app
+would port it from there.
 
 ## Rough sizes
 
 | Phase | Work |
 |---|---|
-| 1 | Service worker and app shell, IndexedDB store, loader fallback, offline session, "Available offline" UI, the two API endpoints, e2e suite - about 1 to 2 weeks |
-| 2 | Outbox, last-write-wins for personal data, conflict notices - about 1 to 2 weeks |
-| 3A | Three-way merge by ID in core, conflict UI - about 2 weeks |
-| 3B | Yjs model, sync server, snapshots, collaboration UI - 3 weeks or more |
+| 1 | Service worker and app shell, IndexedDB store, loader fallback, offline session, manifest and batch endpoints, "Keep a local copy" for songbooks, pins, storage UI, e2e suite - about 2 weeks |
+| 2 | Outbox with idempotent sends, creating songs offline (local IDs swapped for server IDs), personal changes with last write wins, failure notices - about 1 to 2 weeks; editing your own songs offline adds about a week |
+| 3 | Yjs model of a song, sync server, snapshots, collaboration UI - 3 weeks or more, when real-time collaboration is taken on |
