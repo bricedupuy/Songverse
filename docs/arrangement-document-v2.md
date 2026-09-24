@@ -22,6 +22,30 @@ song's sections, lines and chords by ID and records the differences.
 | `instanceLabel`, `performanceNote`, `durationOverrideSeconds` | `label`, `note`, `durationSeconds` | Same names as the song's flow |
 | – | Personal chart preferences | A player's own view, which changes nothing for others |
 
+## Where arrangements live
+
+- **Owners:** a user or a team, like songs, with the same rules for who
+  sees and edits them. An arrangement can be made of any song you can see,
+  including a global catalogue song you can't edit: arranging someone
+  else's song is the main use.
+- **In sets:** each set item plays the song as written or one arrangement
+  of it. The item's own key, tempo and notes still apply, on top of the
+  arrangement ("this Sunday, a tone lower"), so trying another key never
+  means editing the arrangement.
+- **Team default:** a team can mark one of its arrangements of a song as
+  its usual one. Adding the song to one of the team's sets picks it.
+- **Capo:** the arrangement's `defaults.capo` is the capo. A capo stored on
+  the song (`SongVersion.capo`) is only a suggestion - "the recording uses
+  capo 2" - shown when no arrangement says otherwise.
+
+## First version
+
+The arrangement editor starts with the order, key, capo and tempo, and on
+each pass: replacing or hiding a chord, hiding a line, and notes (on the
+pass or a line). Changing a line's words (`lyric`) and inserting lines
+(`insert_line`) are in the format, validated and rendered, but their
+editing UI comes later (bricedupuy/SongVerse#24).
+
 ## Top level
 
 ```jsonc
@@ -55,7 +79,8 @@ final chorus modulates up a minor third to B♭ *and* overrides the chorus's
 `D` with `F`. `F` is just that `D` moved up a minor third. Read as "written
 in the key being played", the override changes nothing. Read as "written in
 the song's key", it becomes A♭ once transposed. The v1→v2 converter uses the
-first reading and drops the override, with a warning.
+first reading and drops the override, with a warning. (The example is a
+generated sample, so there's no author's intent to recover either way.)
 
 ## Items
 
@@ -96,6 +121,11 @@ Overrides that point at a chord (`chord`, `hide_chord`) can name the song's
 chords or chords in this item's inserted lines.
 
 ### Rendering a pass
+
+`renderChart(song, arrangement, view)` in `@songverse/core` does all of
+this, so the web chart, perform mode and a mobile app draw the same thing.
+It returns every pass with its lines and chords as shown, the key in
+effect, whether the pass differs from the song, and any problems.
 
 1. Take the section from the song (`sectionId`).
 2. Remove hidden lines.
@@ -147,6 +177,14 @@ differently.
 
 This is for the player who knows a chord belongs there but can't change
 that fast yet. The arrangement's `hide_chord` is the band-wide equivalent.
+
+Two more display choices are the player's own, but for every chart rather
+than one (kept on the user):
+
+| Setting | Effect |
+|---|---|
+| Chord names | Letters (G) or solfège (Sol), via `formatChord()`. |
+| With a capo | Chords as they sound (the default), or as the shapes a guitarist plays: capo 2 in G shows F shapes. |
 
 ## MIDI
 

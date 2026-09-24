@@ -140,11 +140,11 @@ export function findArrangementProblems(arrangement: ArrangementDocumentV2, song
 }
 
 /** A line's chords over replacement words: moved where `positions` says, otherwise kept in place (within the line). */
-export function placeChords(
-  chords: z.infer<typeof ChordV2Schema>[],
+export function placeChords<T extends Pick<z.infer<typeof ChordV2Schema>, "id" | "at">>(
+  chords: T[],
   text: string,
   positions: Record<string, number> = {},
-): z.infer<typeof ChordV2Schema>[] {
+): T[] {
   return chords
     .map((chord) => ({ ...chord, at: Math.min(positions[chord.id] ?? chord.at, text.length) }))
     .sort((a, b) => a.at - b.at);

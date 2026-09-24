@@ -13,6 +13,7 @@ export * from "./schemas/song-document-v1-to-v2.js";
 export * from "./song-document/text.js";
 export * from "./song-document/reconcile.js";
 export * from "./song-document/layout.js";
+export * from "./song-document/render.js";
 export * from "./schemas/midi.js";
 export * from "./schemas/musicbrainz.js";
 export * from "./chordpro/parser.js";
