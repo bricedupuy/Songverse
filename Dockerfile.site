@@ -1,0 +1,22 @@
+# The website at the root of songverse.one (apps/site): a static Astro page,
+# built here and served by nginx, which sends anything that isn't one of
+# its pages on to the app (APP_URL, see apps/site/nginx.conf.template).
+#
+# Like the other Dockerfiles, it lives at the repo root and is built with
+# the root as context, since the install needs the workspace's lockfile.
+FROM node:22-slim AS build
+# Pinned for the same reason as Dockerfile.web.
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
+WORKDIR /repo
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY apps/site/package.json apps/site/
+RUN pnpm install --frozen-lockfile --filter @songverse/site
+COPY apps/site apps/site
+RUN pnpm --filter @songverse/site build
+
+FROM nginx:1.27-alpine
+# Where the app lives; links the site doesn't serve are redirected there.
+ENV APP_URL=https://app.songverse.one
+COPY apps/site/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /repo/apps/site/dist /usr/share/nginx/html
+EXPOSE 80

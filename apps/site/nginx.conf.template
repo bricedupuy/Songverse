@@ -1,0 +1,24 @@
+# The website at songverse.one (#43). Its own pages are served; any other
+# path - a link to the app from before it moved to its own subdomain (#42):
+# /library, /sets/..., emailed verification and reset links - goes to the
+# same path on the app. APP_URL is filled in when the container starts.
+server {
+  listen 80;
+  root /usr/share/nginx/html;
+
+  gzip on;
+  gzip_types text/css application/javascript image/svg+xml;
+
+  # Built assets have content hashes in their names, so they never change.
+  location /_astro/ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+  }
+
+  location / {
+    try_files $uri $uri/index.html @app;
+  }
+
+  location @app {
+    return 301 ${APP_URL}$request_uri;
+  }
+}

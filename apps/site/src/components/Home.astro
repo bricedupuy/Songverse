@@ -1,0 +1,110 @@
+---
+import "@fontsource-variable/inter";
+import "@fontsource/instrument-serif/400-italic.css";
+import { Image } from "astro:assets";
+import "../styles/site.css";
+import appEn from "../assets/app-en.jpg";
+import appFr from "../assets/app-fr.jpg";
+import { APP_URL, DOCS_URL, type Text } from "../i18n";
+import Logo from "./Logo.astro";
+
+interface Props {
+  t: Text;
+}
+const { t } = Astro.props;
+const docs = t.lang === "fr" ? `${DOCS_URL}/fr/` : `${DOCS_URL}/`;
+const screenshot = t.lang === "fr" ? appFr : appEn;
+const icons = [
+  // A note over a line of words.
+  '<path d="M4 20h16"/><path d="M11 14V4l6 3"/><circle cx="8.5" cy="14" r="2.5"/>',
+  // Layers: arrangements of one song.
+  '<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/>',
+  // A list with a link.
+  '<path d="M8 6h12M8 12h12M8 18h7"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>',
+];
+---
+
+<!doctype html>
+<html lang={t.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.title}</title>
+    <meta name="description" content={t.description} />
+    <meta property="og:title" content={t.title} />
+    <meta property="og:description" content={t.description} />
+    <meta property="og:image" content={new URL("/stage.jpg", Astro.site)} />
+    <meta name="theme-color" content="#0b0b0f" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="alternate" hreflang="en" href={new URL("/", Astro.site)} />
+    <link rel="alternate" hreflang="fr" href={new URL("/fr/", Astro.site)} />
+  </head>
+  <body>
+    <header class="wrap top">
+      <a href={t.lang === "fr" ? "/fr/" : "/"} aria-label="SongVerse"><Logo /></a>
+      <nav>
+        <a href={docs}>{t.docs}</a>
+        <a href={t.otherLanguage.href} lang={t.lang === "fr" ? "en" : "fr"}>{t.otherLanguage.label}</a>
+        <a href={APP_URL}>{t.signIn}</a>
+        <a class="button small" href={APP_URL}>{t.openApp}</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="wrap hero">
+        <h1>{t.heroTitle[0]}<br /><em>{t.heroTitle[1]}</em></h1>
+        <p class="lead">{t.heroText}</p>
+        <p class="actions">
+          <a class="button" href={APP_URL}>{t.getStarted} <span aria-hidden="true">→</span></a>
+          <a class="button ghost" href={docs}>{t.readDocs}</a>
+        </p>
+      </section>
+
+      <figure class="wrap stage">
+        <img src="/stage.svg" alt={t.pictureAlt} width="1200" height="800" />
+      </figure>
+
+      <section class="wrap features">
+        <h2>{t.featuresTitle}</h2>
+        <ul>
+          {t.features.map((feature, i) => (
+            <li>
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={icons[i]} />
+              <h3>{feature.title}</h3>
+              <p>{feature.text}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="wrap screenshot">
+        <div>
+          <h2>{t.screenshotTitle}</h2>
+          <p>{t.screenshotText}</p>
+        </div>
+        <div class="frame">
+          <Image src={screenshot} alt={t.screenshotAlt} widths={[640, 1280]} sizes="(max-width: 900px) 100vw, 720px" />
+        </div>
+      </section>
+
+      <section class="wrap closing">
+        <h2>{t.forWhoTitle}</h2>
+        <p>{t.forWhoText}</p>
+        <p class="cta"><em>{t.ctaTitle}</em></p>
+        <p class="actions center">
+          <a class="button" href={APP_URL}>{t.getStarted} <span aria-hidden="true">→</span></a>
+        </p>
+      </section>
+    </main>
+
+    <footer class="wrap bottom">
+      <Logo />
+      <nav>
+        <a href={APP_URL}>{t.footerApp}</a>
+        <a href={docs}>{t.footerDocs}</a>
+        <a href={t.otherLanguage.href} lang={t.lang === "fr" ? "en" : "fr"}>{t.otherLanguage.label}</a>
+      </nav>
+      <small>© {new Date().getFullYear()} SongVerse</small>
+    </footer>
+  </body>
+</html>

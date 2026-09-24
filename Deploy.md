@@ -4,7 +4,7 @@ This documents the working deployment of SongVerse to a self-hosted [Dokploy](ht
 
 ## Architecture
 
-Six things get created in Dokploy, all in one Project:
+Seven things get created in Dokploy, all in one Project:
 
 | Resource | Type | Built from | Notes |
 |---|---|---|---|
@@ -14,6 +14,7 @@ Six things get created in Dokploy, all in one Project:
 | Worker | Application | `Dockerfile.api` (same as API) | Same image as API, different start command — processes background jobs |
 | Web | Application | `Dockerfile.web` | The TanStack Start web app, listens on port 3000 |
 | Docs | Application | `Dockerfile.docs` | The user documentation, a static site on port 80 |
+| Site | Application | `Dockerfile.site` | The website at the root domain, a static page on port 80 |
 
 The API and Worker share one Docker image because they're the same codebase — only the command that starts the container differs.
 
@@ -153,29 +154,29 @@ mounted in (the API). `PORT` isn't used here either.
 - Dockerfile path: `Dockerfile.web`
 - Build context: `.`
 - Port: `3000`
-- Domain: `app.songverse.one` (and `songverse.one` too, until the website (#43) takes the root domain - see below)
+- Domain: `app.songverse.one`
 
 Environment variables:
 ```
 API_URL=https://api.songverse.one
 PORT=3000
-# Old addresses of the web app, redirected to the same page on WEB_URL.
-WEB_URL=https://app.songverse.one
-REDIRECT_HOSTS=songverse.one
 ```
 
-That's it — the web app no longer talks to Postgres or BetterAuth directly (see the "Where auth lives" note below), so apart from `WEB_URL` (for the redirects below) it doesn't need `DATABASE_URL`, `AUTH_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, or the Resend/Google vars at all anymore; those all live on the API app now (see above).
+That's it — the web app no longer talks to Postgres or BetterAuth directly (see the "Where auth lives" note below), so it doesn't need `DATABASE_URL`, `AUTH_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, or the Resend/Google vars at all anymore; those all live on the API app now (see above).
 
-**Old links keep working.** The web app lived at `songverse.one` until it moved to `app.songverse.one` (#42), and links already sent out still point there: verification and password-reset emails, set share links, claim links, bookmarks. With `REDIRECT_HOSTS=songverse.one` (comma-separated for several) and both domains on this app, a request for `songverse.one/sets/…` is redirected permanently to `app.songverse.one/sets/…` (`apps/web/redirect-hosts.mjs`). Leave both unset and nothing is redirected.
+**Old links keep working.** The web app lived at `songverse.one` until it moved to `app.songverse.one` (#42), and links already sent out still point there: verification and password-reset emails, set share links, claim links, bookmarks. The website now at `songverse.one` sends any path that isn't one of its pages to the same path on the app (see "Site app" below).
+
+(Without a website, the web app can do it itself: give it both domains, and set `WEB_URL=https://app.songverse.one` and `REDIRECT_HOSTS=songverse.one` on it. A request for a listed host is redirected to the same page on `WEB_URL` - see `apps/web/redirect-hosts.mjs`.)
 
 ### Moving the web app from songverse.one to app.songverse.one
 
-A one-time change for a deployment that predates the move (#42). The API accepts sign-ins from one web address at a time (`WEB_URL`), so do steps 2 and 3 back to back, at a quiet time: in between, the app works at only one of the two addresses.
-1. **Web app:** add the domain `app.songverse.one`, keeping `songverse.one`, and add `WEB_URL=https://app.songverse.one` and `REDIRECT_HOSTS=songverse.one` to its environment. Don't redeploy yet.
-2. **API and Worker:** change `WEB_URL` to `https://app.songverse.one`, and redeploy both. The API now trusts, and sends links to, the new address.
-3. **Web app:** redeploy it. `songverse.one` now redirects to `app.songverse.one`.
-4. **Check:**
-   - `https://songverse.one/library` redirects to `https://app.songverse.one/library`;
+A one-time change for a deployment that predates the move (#42). The API accepts sign-ins from one web address at a time (`WEB_URL`), so do steps 3 and 4 back to back, at a quiet time: in between, the app works at only one of the two addresses.
+1. **Site app:** create it (see "Site app" below), without a domain for now, and deploy it.
+2. **Web app:** add the domain `app.songverse.one`, keeping `songverse.one` for now.
+3. **API and Worker:** change `WEB_URL` to `https://app.songverse.one`, and redeploy both. The API now trusts, and sends links to, the new address.
+4. **Move `songverse.one`:** remove it from the web app's domains and add it to the site app's. The website now answers there, and sends app links on to `app.songverse.one`.
+5. **Check:**
+   - `https://songverse.one` shows the website, and `https://songverse.one/library` redirects to `https://app.songverse.one/library`;
    - signing in with a password works, and you're still signed in after reloading;
    - signing in with a passkey made before the move works (its relying-party ID was, and stays, `songverse.one`);
    - Google sign-in works, if it's set up (its redirect URI is on the API, so nothing changes there).
@@ -185,6 +186,21 @@ Sessions survive the move: the session cookie's domain is `songverse.one` before
 Deploy the API and Worker first, then the Web app (Web's build doesn't strictly depend on the others being up, but it's a sane order).
 
 **Where auth lives:** BetterAuth is mounted in `apps/api`, not here — the web app is just another HTTP client of the API for auth, exactly like it already was for every other endpoint. This matters mainly if you're adding a mobile app later: it talks to the same API for both login and data, rather than needing to know about the web app's URL at all. See `apps/api/src/auth/` for the actual auth config, and `apps/web/src/lib/server-auth.ts`/`auth-client.ts` for how the web app calls it.
+
+### Site app
+
+The website at the root domain (`apps/site`, #43): one static page in English and French, served by nginx, which sends any other path on to the app.
+
+**Application**, configured as:
+- Source: this repo, branch `main`
+- Build type: **Dockerfile**
+- Dockerfile path: `Dockerfile.site`
+- Build context: `.`
+- Port: `80`
+- Domain: `songverse.one`
+- Watch paths (if you use auto-deploy): `apps/site/**`
+
+Environment variables: none needed. `APP_URL` (default `https://app.songverse.one`) is where paths that aren't website pages are redirected.
 
 ### Docs app
 
@@ -217,6 +233,7 @@ Don't use `pnpm --filter @songverse/db exec ...` there: the image doesn't includ
 
 - `https://api.songverse.one/health` → `{"status":"ok"}`
 - `https://api.songverse.one/api/docs` → interactive API documentation
+- `https://songverse.one` → the website, in English (`/fr/` in French)
 - `https://app.songverse.one` → the app's sign-in page (and `https://songverse.one/library` redirects there)
 - `https://docs.songverse.one` → the documentation, with a language menu (English, Français)
 - Sign up for an account → should land on `/dashboard`, showing your name and the results of a live call to the API

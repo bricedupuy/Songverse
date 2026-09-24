@@ -73,7 +73,8 @@ User documentation, in English and French: [docs.songverse.one](https://docs.son
 | Shared (`packages/core`) | API client, zod schemas, ChordPro and chords-over-lyrics parsers, key transposition, translations, tested with Vitest |
 | Storage | Cloudflare R2 (S3-compatible) or local disk, content-addressed |
 | Docs (`apps/docs`) | Astro Starlight, English and French, screenshots taken by Playwright |
-| Deployment | Docker images for the API/worker, the web app and the docs, run on Dokploy |
+| Website (`apps/site`) | A static Astro page at the root domain, English and French |
+| Deployment | Docker images for the API/worker, the web app, the docs and the website, run on Dokploy |
 
 ## Getting started
 
@@ -86,7 +87,7 @@ cp apps/api/.env.example apps/api/.env       # then fill in the values
 cp apps/web/.env.example apps/web/.env
 cp packages/db/.env.example packages/db/.env
 pnpm db:migrate
-pnpm dev                                     # web on :3000, API on :3001, docs on :4321
+pnpm dev                                     # web :3000, API :3001, docs :4321, website :4322
 ```
 
 `pnpm lint`, `pnpm type-check` and `pnpm test` run the checks across the
