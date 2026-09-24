@@ -5,6 +5,7 @@ import { jwt } from "better-auth/plugins/jwt";
 import { passkey } from "@better-auth/passkey";
 import { prisma } from "@songverse/db";
 import { getEffectiveAuthSettings, type EffectiveAuthSettings } from "./auth-settings";
+import { passkeyRpId, sharedCookieDomain } from "./auth-domains";
 import {
   sendChangeEmailConfirmation,
   sendNewEmailVerification,
@@ -32,32 +33,6 @@ const bootstrapAdminEmails = new Set(
 // it's a different origin from AUTH_URL - has to be explicitly trusted.
 const authUrl = new URL(process.env.AUTH_URL ?? "http://localhost:3001");
 const webUrl = new URL(process.env.WEB_URL ?? "http://localhost:3000");
-
-/**
- * The parent domain both apps live under (api.songverse.one +
- * songverse.one -> songverse.one), for scoping the session cookie so the
- * web app's own server sees it too. BetterAuth's default when
- * crossSubDomainCookies has no explicit domain is AUTH_URL's full
- * hostname, which would hide the cookie from the web app entirely.
- * `undefined` when both share one host (e.g. localhost in dev), where a
- * plain host-only cookie already reaches both.
- */
-function sharedCookieDomain(a: string, b: string): string | undefined {
-  if (a === b) return undefined;
-  const bLabels = b.split(".").reverse();
-  const shared: string[] = [];
-  for (const [i, label] of a.split(".").reverse().entries()) {
-    if (label !== bLabels[i]) break;
-    shared.push(label);
-  }
-  if (shared.length < 2) {
-    throw new Error(
-      `AUTH_URL (${a}) and WEB_URL (${b}) must be subdomains of one parent domain (e.g. api.example.com and ` +
-        "example.com) - the session cookie set by the API has to be readable by the web app.",
-    );
-  }
-  return shared.reverse().join(".");
-}
 
 const cookieDomain = sharedCookieDomain(authUrl.hostname, webUrl.hostname);
 
@@ -206,8 +181,9 @@ function buildAuth(settings: EffectiveAuthSettings) {
       }),
       passkey({
         // Tied to the web app's origin, not this API's - see the comment
-        // on webUrl above.
-        rpID: webUrl.hostname,
+        // on webUrl above - under the parent domain, so passkeys survive
+        // the web app moving between subdomains (see passkeyRpId).
+        rpID: passkeyRpId(authUrl.hostname, webUrl.hostname),
         rpName: "SongVerse",
         origin: webUrl.origin,
       }),

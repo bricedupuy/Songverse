@@ -13,6 +13,7 @@ import { createServerAdapter } from "@whatwg-node/server";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, extname, sep } from "node:path";
+import { redirectToWebUrl } from "./redirect-hosts.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const clientDir = join(__dirname, "dist", "client");
@@ -84,6 +85,9 @@ async function tryServeStatic(pathname) {
 const { default: appHandler } = await import("./dist/server/server.js");
 
 const adapter = createServerAdapter(async (request) => {
+  const redirect = redirectToWebUrl(request);
+  if (redirect) return redirect;
+
   if (request.method === "GET" || request.method === "HEAD") {
     const { pathname } = new URL(request.url);
     const staticResponse = await tryServeStatic(decodeURIComponent(pathname));

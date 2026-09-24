@@ -126,8 +126,10 @@ Consequences worth knowing before touching auth-adjacent code:
   `apps/web`, that's a sign the logic belongs in `apps/api` instead.
 - **`AUTH_URL` is the API's own address; `WEB_URL` is the web app's** -
   easy to get backwards. `WEB_URL` matters because a WebAuthn passkey is
-  tied to the browser's origin (the web app), not to wherever the auth
-  server lives, and because verification/reset-password redirect links
+  checked against the browser's origin (the web app), not wherever the
+  auth server lives - its relying-party ID is the parent domain the two
+  share (`auth/auth-domains.ts`), so passkeys survive the web app changing
+  subdomain - and because verification/reset-password redirect links
   point back into the web app, which BetterAuth has to explicitly trust
   via `trustedOrigins` now that it's a different origin.
 - **The session cookie is cross-origin (web ↔ API, different

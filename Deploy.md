@@ -1,10 +1,10 @@
 # Deploying SongVerse
 
-This documents the working deployment of SongVerse to a self-hosted [Dokploy](https://dokploy.com) instance, using `songverse.one` as the domain. Follow this in order if you're setting it up from scratch, or use it as a reference if something needs fixing later.
+This documents the working deployment of SongVerse to a self-hosted [Dokploy](https://dokploy.com) instance, using `songverse.one` as the domain: the web app at `app.songverse.one`, the API at `api.songverse.one`, the docs at `docs.songverse.one`, and the root domain for the website (#43). Follow this in order if you're setting it up from scratch, or use it as a reference if something needs fixing later.
 
 ## Architecture
 
-Five things get created in Dokploy, all in one Project:
+Six things get created in Dokploy, all in one Project:
 
 | Resource | Type | Built from | Notes |
 |---|---|---|---|
@@ -13,6 +13,7 @@ Five things get created in Dokploy, all in one Project:
 | API | Application | `Dockerfile.api` | Serves the NestJS API, listens on port 3001 |
 | Worker | Application | `Dockerfile.api` (same as API) | Same image as API, different start command — processes background jobs |
 | Web | Application | `Dockerfile.web` | The TanStack Start web app, listens on port 3000 |
+| Docs | Application | `Dockerfile.docs` | The user documentation, a static site on port 80 |
 
 The API and Worker share one Docker image because they're the same codebase — only the command that starts the container differs.
 
@@ -62,7 +63,7 @@ PORT=3001
 
 # BetterAuth lives here now (apps/api/src/auth/) - see below.
 AUTH_URL=https://api.songverse.one
-WEB_URL=https://songverse.one
+WEB_URL=https://app.songverse.one
 BETTER_AUTH_SECRET=<generate one — see below>
 BOOTSTRAP_ADMIN_EMAILS=<comma-separated emails to auto-promote on sign-up>
 
@@ -90,9 +91,9 @@ Keep this stable once set — BetterAuth encrypts its signing key with it in the
 
 **`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`:** optional, and also settable at **Admin > Auth** instead of these env vars. Leave both unset everywhere to keep email+password (and passkeys) as the only sign-in methods — the "Continue with Google" button only renders once either path is configured. To enable it, create an OAuth 2.0 Client ID at the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) with an authorized redirect URI of `<AUTH_URL>/api/auth/callback/google` (e.g. `https://api.songverse.one/api/auth/callback/google`).
 
-**Passkeys** (`@better-auth/passkey`) need no extra configuration — they're derived from `WEB_URL` at boot (the relying-party ID is its hostname), not `AUTH_URL`.
+**Passkeys** (`@better-auth/passkey`) need no extra configuration. Their relying-party ID is the parent domain `AUTH_URL` and `WEB_URL` share (`songverse.one`, see `apps/api/src/auth/auth-domains.ts`), not the web app's own hostname, so passkeys keep working if the web app moves to another subdomain. The origin they're checked against is `WEB_URL`'s.
 
-**The session cookie is cross-subdomain by design** (`advanced.crossSubDomainCookies` in `better-auth.ts`): the web app (`songverse.one`) and this API (`api.songverse.one`) are different origins but the same *site* (same registrable domain), so a cookie scoped to `songverse.one` reaches both. That parent domain is derived automatically from `AUTH_URL` and `WEB_URL` (their shared suffix), so the two must be subdomains of one domain you own — the API refuses to start otherwise. Two subdomains of a shared hosting domain (e.g. two different `*.up.railway.app` hosts) won't work either: browsers refuse cookies scoped to a public suffix. This is also why the API's CORS config (`main.ts`) names the web app's exact origin with `credentials: true` rather than using a wildcard — browsers refuse to combine a wildcard `Access-Control-Allow-Origin` with credentialed (cookie-bearing) requests.
+**The session cookie is cross-subdomain by design** (`advanced.crossSubDomainCookies` in `better-auth.ts`): the web app (`app.songverse.one`) and this API (`api.songverse.one`) are different origins but the same *site* (same registrable domain), so a cookie scoped to `songverse.one` reaches both. That parent domain is derived automatically from `AUTH_URL` and `WEB_URL` (their shared suffix), so the two must be subdomains of one domain you own — the API refuses to start otherwise. Two subdomains of a shared hosting domain (e.g. two different `*.up.railway.app` hosts) won't work either: browsers refuse cookies scoped to a public suffix. This is also why the API's CORS config (`main.ts`) names the web app's exact origin with `credentials: true` rather than using a wildcard — browsers refuse to combine a wildcard `Access-Control-Allow-Origin` with credentialed (cookie-bearing) requests.
 
 **Object storage (R2) has two setup paths** — pick one:
 
@@ -152,14 +153,34 @@ mounted in (the API). `PORT` isn't used here either.
 - Dockerfile path: `Dockerfile.web`
 - Build context: `.`
 - Port: `3000`
-- Domain: `songverse.one`
+- Domain: `app.songverse.one` (and `songverse.one` too, until the website (#43) takes the root domain - see below)
 
 Environment variables:
 ```
 API_URL=https://api.songverse.one
 PORT=3000
+# Old addresses of the web app, redirected to the same page on WEB_URL.
+WEB_URL=https://app.songverse.one
+REDIRECT_HOSTS=songverse.one
 ```
-That's it — the web app no longer talks to Postgres or BetterAuth directly (see the "Where auth lives" note below), so it doesn't need `DATABASE_URL`, `AUTH_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, or the Resend/Google vars at all anymore; those all live on the API app now (see above).
+
+That's it — the web app no longer talks to Postgres or BetterAuth directly (see the "Where auth lives" note below), so apart from `WEB_URL` (for the redirects below) it doesn't need `DATABASE_URL`, `AUTH_URL`, `BETTER_AUTH_SECRET`, `SETTINGS_ENCRYPTION_KEY`, or the Resend/Google vars at all anymore; those all live on the API app now (see above).
+
+**Old links keep working.** The web app lived at `songverse.one` until it moved to `app.songverse.one` (#42), and links already sent out still point there: verification and password-reset emails, set share links, claim links, bookmarks. With `REDIRECT_HOSTS=songverse.one` (comma-separated for several) and both domains on this app, a request for `songverse.one/sets/…` is redirected permanently to `app.songverse.one/sets/…` (`apps/web/redirect-hosts.mjs`). Leave both unset and nothing is redirected.
+
+### Moving the web app from songverse.one to app.songverse.one
+
+A one-time change for a deployment that predates the move (#42). The API accepts sign-ins from one web address at a time (`WEB_URL`), so do steps 2 and 3 back to back, at a quiet time: in between, the app works at only one of the two addresses.
+1. **Web app:** add the domain `app.songverse.one`, keeping `songverse.one`, and add `WEB_URL=https://app.songverse.one` and `REDIRECT_HOSTS=songverse.one` to its environment. Don't redeploy yet.
+2. **API and Worker:** change `WEB_URL` to `https://app.songverse.one`, and redeploy both. The API now trusts, and sends links to, the new address.
+3. **Web app:** redeploy it. `songverse.one` now redirects to `app.songverse.one`.
+4. **Check:**
+   - `https://songverse.one/library` redirects to `https://app.songverse.one/library`;
+   - signing in with a password works, and you're still signed in after reloading;
+   - signing in with a passkey made before the move works (its relying-party ID was, and stays, `songverse.one`);
+   - Google sign-in works, if it's set up (its redirect URI is on the API, so nothing changes there).
+
+Sessions survive the move: the session cookie's domain is `songverse.one` before and after.
 
 Deploy the API and Worker first, then the Web app (Web's build doesn't strictly depend on the others being up, but it's a sane order).
 
@@ -196,7 +217,7 @@ Don't use `pnpm --filter @songverse/db exec ...` there: the image doesn't includ
 
 - `https://api.songverse.one/health` → `{"status":"ok"}`
 - `https://api.songverse.one/api/docs` → interactive API documentation
-- `https://songverse.one` → the homepage
+- `https://app.songverse.one` → the app's sign-in page (and `https://songverse.one/library` redirects there)
 - `https://docs.songverse.one` → the documentation, with a language menu (English, Français)
 - Sign up for an account → should land on `/dashboard`, showing your name and the results of a live call to the API
 
@@ -222,7 +243,7 @@ Both Dockerfiles now `apt-get install openssl` in the base stage. `node:22-slim`
 `apps/web/src/lib/public-env.ts` reads `API_URL` from the container's environment at request time, rather than through Vite's `VITE_`-prefixed build-time env inlining. The build-time approach requires the hosting platform to correctly pass a value as a Docker *build argument* specifically (not just a regular env var), which didn't work reliably here. If `/users/me` or similar ever starts failing again with something like `Failed to parse URL from /users/me`, it means `API_URL` isn't set on the Web app's environment variables.
 
 #### 6. Auth's session cookie and CORS have to agree on the exact origin
-Since BetterAuth moved into `apps/api`, its session cookie is set by `api.songverse.one` but needs to be usable by pages served from `songverse.one` — a genuinely cross-origin (though same-site) setup. Two things have to be configured together, in `apps/api/src/main.ts` / `auth/better-auth.ts`, or sign-in silently stops persisting:
+Since BetterAuth moved into `apps/api`, its session cookie is set by `api.songverse.one` but needs to be usable by pages served from `app.songverse.one` — a genuinely cross-origin (though same-site) setup. Two things have to be configured together, in `apps/api/src/main.ts` / `auth/better-auth.ts`, or sign-in silently stops persisting:
 - CORS must name the web app's **exact** origin (`WEB_URL`) with `credentials: true` — `cors: true` (reflecting any origin) or a wildcard origin cannot be combined with credentialed requests; the browser will drop the cookie.
 - BetterAuth's `advanced.crossSubDomainCookies` must be enabled **with an explicit `domain`** of the shared parent (`songverse.one`). Enabling it without one doesn't help: BetterAuth then defaults the domain to `AUTH_URL`'s own hostname (`api.songverse.one`), which the web app still never sees. `better-auth.ts` derives this domain from `AUTH_URL`/`WEB_URL`, so in practice this means those two env vars must be right.
 
