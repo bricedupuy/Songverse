@@ -80,17 +80,23 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   const router = useRouter();
 
   const defaultLanguage = (ISO_639_1_CODES as readonly string[]).includes(i18n.language) ? i18n.language : "en";
-  // Reset from the song when a save changes it - not when anything else
-  // reloads the page (an upload, say), which would drop unsaved edits.
+  // Reload from the song when it changes (a save, say) - not when anything
+  // else reloads the page (an upload), which would drop unsaved edits.
   const versionKey = version
     ? JSON.stringify([version.updatedAt, version.contributors.map((c) => [c.id, c.roles]), version.tags.map((tag) => tag.id)])
     : "new";
   const loaded = useMemo(() => (version ? formFromVersion(version) : emptyForm(defaultLanguage)), [versionKey]);
   const [initial, setInitial] = useState(loaded);
   const [form, setForm] = useState(loaded);
+  // The form as last loaded or saved. The reloaded song replaces the form
+  // only if it hasn't been edited since: the reload lands a moment after a
+  // save, and an edit made in between must survive it (#39).
+  const baseline = useRef(loaded);
   useEffect(() => {
+    const base = baseline.current;
+    baseline.current = loaded;
     setInitial(loaded);
-    setForm(loaded);
+    setForm((current) => (isDirty(current, base) ? current : loaded));
   }, [loaded]);
 
   const [showErrors, setShowErrors] = useState(false);
@@ -265,6 +271,8 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
       if (Object.keys(update).length > 0) {
         await apiClient.updateSongVersion(edit.version.id, { ...update, revision: edit.version.documentJson.revision });
       }
+      // Saved: edits made from here on are new ones, kept when the song reloads.
+      baseline.current = current;
       if (mbChoice) await apiClient.linkSongVersionMusicBrainz(edit.version.id, mbChoice.mbid);
       else if (mbChoice === null) await apiClient.unlinkSongVersionMusicBrainz(edit.version.id);
       setMbChoice(undefined);

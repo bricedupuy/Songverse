@@ -302,6 +302,24 @@ await step("changing the song's key renames the key changes after it", async () 
   await page.getByTestId("song-order").getByRole("button", { name: /Last chorus/ }).getByText("→A").waitFor();
 });
 
+await step("an edit made the moment a save finishes isn't lost when the song reloads (#39)", async () => {
+  const key = page.getByRole("combobox", { name: "Key", exact: true });
+  await key.selectOption("A");
+  await page.getByRole("button", { name: "Save song" }).first().click();
+  // The editor is disabled while saving, so this lands as soon as the save
+  // ends - before the page has reloaded the saved song.
+  await key.selectOption("C");
+  // (Editing clears the "Saved." message, so wait on the song itself.)
+  for (let i = 0; i < 50 && (await stored()).defaults.key !== "A"; i++) await page.waitForTimeout(100);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(500);
+  if ((await stored()).defaults.key !== "A") throw new Error(`stored key ${(await stored()).defaults.key}`);
+  if ((await key.inputValue()) !== "C") throw new Error(`the edit was lost: key ${await key.inputValue()}`);
+  if (await page.getByRole("button", { name: "Discard changes" }).isDisabled()) throw new Error("the edit isn't shown as unsaved");
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  if ((await key.inputValue()) !== "A") throw new Error("discarding goes back to the saved song");
+});
+
 await step("on a phone: the palette scrolls sideways, a tapped chord opens its details", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openEditor();
