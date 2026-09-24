@@ -1,10 +1,10 @@
-import en from "./locales/en.js";
-import fr from "./locales/fr.js";
+// The messages themselves are imported one language at a time, from
+// "@songverse/core/i18n/locales/<locale>", so an app ships only the one its
+// reader uses (the web app loads it before rendering; see apps/web/src/lib/i18n.ts).
+import type en from "./locales/en.js";
 
-export const i18nResources = {
-  en: { translation: en },
-  fr: { translation: fr },
-} as const;
+/** A language's messages; English is the key set every language matches. */
+export type Messages = typeof en;
 
 export * from "./translate.js";
 export * from "./accept-language.js";

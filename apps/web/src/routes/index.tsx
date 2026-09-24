@@ -4,6 +4,7 @@ import { AuthCard } from "#/components/auth-card";
 import { LocaleProvider } from "#/components/locale-provider";
 import { apiClient } from "#/lib/api-client";
 import { getSession, getVisitorLocale } from "#/lib/server-auth";
+import { loadLocale } from "#/lib/i18n";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/")({
       throw redirect({ to: "/library" });
     }
     const [{ hasGoogleAuth }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
-    return { hasGoogleAuth, locale };
+    return { hasGoogleAuth, locale: await loadLocale(locale) };
   },
   component: Home,
 });

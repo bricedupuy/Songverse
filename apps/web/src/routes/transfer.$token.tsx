@@ -10,15 +10,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/com
 import { apiClient } from "#/lib/api-client";
 import { formatBytes } from "#/lib/format-bytes";
 import { getSession, getVisitorLocale } from "#/lib/server-auth";
+import { loadLocale } from "#/lib/i18n";
 
 export const Route = createFileRoute("/transfer/$token")({
   beforeLoad: async ({ params }) => {
     const session = await getSession();
     if (!session) {
       const [{ hasGoogleAuth }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
-      return { locale, email: null, preview: null, error: null, hasGoogleAuth };
+      return { locale: await loadLocale(locale), email: null, preview: null, error: null, hasGoogleAuth };
     }
-    const base = { locale: session.locale, email: session.email, hasGoogleAuth: false };
+    const base = { locale: await loadLocale(session.locale), email: session.email, hasGoogleAuth: false };
     try {
       return { ...base, preview: await apiClient.getTransfer(params.token), error: null };
     } catch (error) {

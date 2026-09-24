@@ -8,6 +8,7 @@ import { LocaleProvider } from "#/components/locale-provider";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
+import { loadLocale } from "#/lib/i18n";
 import { getSession, getVisitorLocale } from "#/lib/server-auth";
 import { setlistTitle } from "#/lib/setlists";
 
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/set-invite/$token")({
       error = err instanceof Error ? err.message : String(err);
     }
     const hasGoogleAuth = session ? false : (await apiClient.getAuthPublicConfig()).hasGoogleAuth;
-    return { locale: session?.locale ?? (await getVisitorLocale()), signedIn: !!session, preview, error, hasGoogleAuth };
+    return { locale: await loadLocale(session?.locale ?? (await getVisitorLocale())), signedIn: !!session, preview, error, hasGoogleAuth };
   },
   component: SetInvitePage,
 });

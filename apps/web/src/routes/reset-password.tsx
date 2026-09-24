@@ -10,12 +10,13 @@ import { Label } from "#/components/ui/label";
 import { LocaleProvider } from "#/components/locale-provider";
 import { useAuthErrorText } from "#/components/auth-card";
 import { getSession, getVisitorLocale } from "#/lib/server-auth";
+import { loadLocale } from "#/lib/i18n";
 
 export const Route = createFileRoute("/reset-password")({
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === "string" ? search.token : undefined,
   }),
-  beforeLoad: async () => ({ locale: (await getSession())?.locale ?? (await getVisitorLocale()) }),
+  beforeLoad: async () => ({ locale: await loadLocale((await getSession())?.locale ?? (await getVisitorLocale())) }),
   component: ResetPasswordPage,
 });
 

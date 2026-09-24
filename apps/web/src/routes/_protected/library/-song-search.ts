@@ -1,4 +1,4 @@
-import { SONG_TABS, type SongNotice, type SongTab } from "#/components/song-editor/song-editor";
+import { SONG_TABS, type SongNotice, type SongTab } from "#/components/song-editor/song-tabs-list";
 
 export interface SongSearch {
   tab?: SongTab;

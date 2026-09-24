@@ -828,6 +828,7 @@ const en = {
     textProblem: "This text can't be read as a chart yet.",
   },
   songEditor: {
+    loadingEditor: "Loading the editor…",
     createTitle: "Add a song",
     createDescription: "Title and artist are all it needs; everything else can come later.",
     save: "Save song",

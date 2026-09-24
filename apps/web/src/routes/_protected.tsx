@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { I18nextProvider } from "react-i18next";
 import { AppShell } from "#/components/app-shell";
 import { loadAppData } from "#/lib/app-data";
-import { createI18n } from "#/lib/i18n";
+import { createI18n, loadLocale } from "#/lib/i18n";
 
 /**
  * Pathless layout route — gates every route nested under `_protected/` in
@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_protected")({
     if (!data) {
       throw redirect({ to: "/" });
     }
+    await loadLocale(data.session.locale);
     return data;
   },
   component: RouteComponent,

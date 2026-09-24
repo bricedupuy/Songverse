@@ -7,13 +7,14 @@ import { apiClient } from "#/lib/api-client";
 import { getSession, getVisitorLocale } from "#/lib/server-auth";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
+import { loadLocale } from "#/lib/i18n";
 
 export const Route = createFileRoute("/join/$token")({
   beforeLoad: async ({ params }) => {
     const session = await getSession();
     if (!session) {
       const [{ hasGoogleAuth }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
-      return { error: null, hasGoogleAuth, locale };
+      return { error: null, hasGoogleAuth, locale: await loadLocale(locale) };
     }
 
     let team: Awaited<ReturnType<typeof apiClient.joinTeamByToken>> | null = null;
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/join/$token")({
     }
     // Already signed in at this point, so <AuthCard> never renders below -
     // no need to resolve the real value.
-    return { error: joinError, hasGoogleAuth: false, locale: session.locale };
+    return { error: joinError, hasGoogleAuth: false, locale: await loadLocale(session.locale) };
   },
   component: JoinTeamPage,
 });

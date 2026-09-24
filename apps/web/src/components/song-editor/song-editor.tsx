@@ -13,7 +13,7 @@ import {
 } from "@songverse/core";
 import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router";
 import { FileText, Info, Link2, MoreHorizontal, Music, PenLine } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -39,14 +39,12 @@ import {
 import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, SongbooksCard } from "./song-info";
 import { PublishCard } from "./publish-card";
 import { AttachmentsTab, LinksTab, SaveFirst } from "./song-tabs";
-import { StructuredEditor } from "./structured/structured-editor";
+import type { SongNotice, SongTab } from "./song-tabs-list";
+
+// The editor (Tiptap and ProseMirror) loads when the Editor tab first opens, not with the song page.
+const StructuredEditor = lazy(() => import("./structured/structured-editor").then((module) => ({ default: module.StructuredEditor })));
 import { downloadBlob } from "#/lib/download";
 
-export const SONG_TABS = ["info", "editor", "files", "audio", "links"] as const;
-export type SongTab = (typeof SONG_TABS)[number];
-
-/** Problems left after creating a song, shown once it opens. */
-export type SongNotice = "linkFailed" | "fileFailed";
 
 type EditProps = {
   mode: "edit";
@@ -482,15 +480,17 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         <TabsContent value="info">{songInfo}</TabsContent>
         <TabsContent value="editor">
           <fieldset disabled={saving} className="min-w-0">
-            <StructuredEditor
-              sections={form.sections}
-              onChange={(sections) => updateForm((current) => withSections(current, sections))}
-              flow={form.flow}
-              onFlowChange={(flow) => updateForm((current) => ({ ...current, flow: nameKeyChanges(flow, current.key) }))}
-              songKey={form.key}
-              onSongKeyChange={(key) => setField("key", key)}
-              readOnly={!canEdit}
-            />
+            <Suspense fallback={<p className="py-8 text-center text-sm text-muted-foreground">{t("songEditor.loadingEditor")}</p>}>
+              <StructuredEditor
+                sections={form.sections}
+                onChange={(sections) => updateForm((current) => withSections(current, sections))}
+                flow={form.flow}
+                onFlowChange={(flow) => updateForm((current) => ({ ...current, flow: nameKeyChanges(flow, current.key) }))}
+                songKey={form.key}
+                onSongKeyChange={(key) => setField("key", key)}
+                readOnly={!canEdit}
+              />
+            </Suspense>
           </fieldset>
         </TabsContent>
         <TabsContent value="files">
