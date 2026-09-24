@@ -108,12 +108,13 @@ jobs:
       - name: Apply database migrations
         run: pnpm --filter @songverse/db exec prisma migrate deploy
 
-      # The suites use the built-in tags and other metadata the seed adds.
-      - name: Seed the database
-        run: pnpm --filter @songverse/db seed
-
       - name: Build the API and web app
         run: pnpm turbo build --filter=@songverse/api --filter=@songverse/web
+
+      # The suites use the built-in tags and other metadata the seed adds.
+      # It runs after the build, which builds @songverse/core for it.
+      - name: Seed the database
+        run: pnpm --filter @songverse/db seed
 
       - name: Start the API and web app
         run: |
