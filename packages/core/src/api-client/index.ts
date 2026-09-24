@@ -461,6 +461,31 @@ export interface SongVersionSummary {
   tags: Tag[];
 }
 
+export type SongSort = "title" | "updatedAt" | "createdAt" | "language" | "publicationState";
+
+export interface ListSongVersionsQuery {
+  /** Matches title, subtitle, version name or artist (ignoring case), or a CCLI number exactly. */
+  q?: string;
+  language?: string;
+  tagId?: string;
+  /** Defaults to updatedAt. */
+  sort?: SongSort;
+  /** Defaults to desc for dates, asc otherwise. */
+  dir?: "asc" | "desc";
+  /** 1-based. */
+  page?: number;
+  /** Up to 200; defaults to 50. */
+  pageSize?: number;
+}
+
+/** One page of songs, with the total across all pages. */
+export interface SongPage {
+  items: SongVersionSummary[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface SongVersionSongbookMembership {
   songbookId: string;
   songbookName: string;
@@ -808,7 +833,15 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized }: ApiClient
 
     listWorks: () => request<Array<{ id: string; title: string | null; createdAt: string }>>("/works"),
     getWork: (workId: string) => request<WorkDetail>(`/works/${workId}`),
-    listSongVersions: () => request<SongVersionSummary[]>("/song-versions"),
+    listSongVersions: (query: ListSongVersionsQuery = {}) => {
+      const params = new URLSearchParams(
+        Object.entries(query)
+          .filter(([, value]) => value !== undefined && value !== "")
+          .map(([key, value]) => [key, String(value)]),
+      );
+      return request<SongPage>(`/song-versions${params.size ? `?${params}` : ""}`);
+    },
+    getSongStats: () => request<{ songCount: number; artistCount: number }>("/song-versions/stats"),
     getSongVersion: (songVersionId: string) => request<SongVersionDetail>(`/song-versions/${songVersionId}`),
     getSongVersionSongbooks: (songVersionId: string) =>
       request<SongVersionSongbookMembership[]>(`/song-versions/${songVersionId}/songbooks`),

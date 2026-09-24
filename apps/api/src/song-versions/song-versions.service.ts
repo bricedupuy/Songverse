@@ -19,6 +19,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { isOwnedByOrMemberOf } from "../common/utils/ownership-visibility";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
+import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import type { SongFieldsDto } from "./dto/song-fields.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 
@@ -256,6 +257,13 @@ const DETAIL_SELECT = {
 } satisfies Prisma.SongVersionSelect;
 
 type ListRow = Prisma.SongVersionGetPayload<{ select: typeof LIST_SELECT }>;
+/** One page of a song list, with the total across all pages. */
+export interface SongPage {
+  items: ListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
 type ListItem = Omit<ListRow, "contributors" | "versionTags"> & {
   artists: ListRow["contributors"];
   tags: ListRow["versionTags"][number]["tag"][];
@@ -331,25 +339,67 @@ export class SongVersionsService {
   ) {}
 
   /**
-   * Lists Song Versions visible to the user (same visibility rule as
-   * WorksService — Phase 2 will replace this with Meilisearch-backed
-   * search and proper pagination).
+   * One page of the songs the user can see, searched and filtered, with
+   * the total across all pages. `q` matches the title, subtitle, version
+   * name or an artist (anywhere in them, ignoring case), or a CCLI number
+   * exactly.
    */
-  async findVisibleToUser(userId: string): Promise<ListItem[]> {
-    const teamIds = (
-      await this.prisma.client.teamMembership.findMany({
-        where: { userId },
-        select: { teamId: true },
-      })
-    ).map((m) => m.teamId);
+  async findVisibleToUser(userId: string, query: ListSongVersionsQueryDto = {}): Promise<SongPage> {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? 50;
+    const q = query.q?.trim();
+    const where: Prisma.SongVersionWhereInput = {
+      AND: [
+        visibleWhere(userId, await this.teamIdsOf(userId)),
+        ...(q
+          ? [
+              {
+                OR: [
+                  { title: { contains: q, mode: "insensitive" as const } },
+                  { alternateTitle: { contains: q, mode: "insensitive" as const } },
+                  { versionName: { contains: q, mode: "insensitive" as const } },
+                  { ccli: q },
+                  {
+                    contributors: {
+                      some: { roles: { has: "PERFORMER" as ContributorRole }, source: { contains: q, mode: "insensitive" as const } },
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+        ...(query.language ? [{ language: query.language }] : []),
+        ...(query.tagId ? [{ versionTags: { some: { tagId: query.tagId } } }] : []),
+      ],
+    };
+    const sort = query.sort ?? "updatedAt";
+    const dir = query.dir ?? (sort === "updatedAt" || sort === "createdAt" ? "desc" : "asc");
+    const [total, versions] = await Promise.all([
+      this.prisma.client.songVersion.count({ where }),
+      this.prisma.client.songVersion.findMany({
+        where,
+        select: LIST_SELECT,
+        // Ties (same title, say) keep a stable order across pages.
+        orderBy: [{ [sort]: dir }, { id: "asc" }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+    return { items: versions.map(toListItem), total, page, pageSize };
+  }
 
-    const versions = await this.prisma.client.songVersion.findMany({
-      where: visibleWhere(userId, teamIds),
-      select: LIST_SELECT,
-      orderBy: { updatedAt: "desc" },
-      take: 50,
-    });
-    return versions.map(toListItem);
+  /** How many songs, and distinct artists, the user can see - for the dashboard. */
+  async statsForUser(userId: string): Promise<{ songCount: number; artistCount: number }> {
+    const where = visibleWhere(userId, await this.teamIdsOf(userId));
+    const [songCount, artists] = await Promise.all([
+      this.prisma.client.songVersion.count({ where }),
+      this.prisma.client.versionContributor.findMany({
+        where: { roles: { has: "PERFORMER" }, source: { not: null }, songVersion: where },
+        select: { source: true },
+        distinct: ["source"],
+      }),
+    ]);
+    return { songCount, artistCount: new Set(artists.map((a) => a.source!.trim().toLowerCase())).size };
   }
 
   async findOne(user: AuthenticatedUser, id: string): Promise<DetailItem> {

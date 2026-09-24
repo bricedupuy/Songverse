@@ -1,6 +1,6 @@
-import type { BulkUploadContentType, BulkUploadFileMatch, SongbookSection } from "@songverse/core";
+import type { BulkUploadContentType, BulkUploadFileMatch, SongbookSection, SongVersionSummary } from "@songverse/core";
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { LanguageSelect } from "#/components/language-select";
@@ -11,12 +11,9 @@ import { Label } from "#/components/ui/label";
 
 export const Route = createFileRoute("/_protected/songbooks/$songbookId")({
   loader: async ({ context, params }) => {
-    const [songbook, songVersions] = await Promise.all([
-      apiClient.getSongbook(params.songbookId).catch(() => null),
-      apiClient.listSongVersions(),
-    ]);
+    const songbook = await apiClient.getSongbook(params.songbookId).catch(() => null);
     if (!songbook) throw redirect({ to: "/songbooks" });
-    return { session: context.session, teams: context.teams, songbook, songVersions };
+    return { session: context.session, teams: context.teams, songbook };
   },
   component: SongbookDetail,
 });
@@ -25,7 +22,7 @@ function SongbookDetail() {
   const { t } = useTranslation();
   const router = useRouter();
   const navigate = useNavigate();
-  const { session, teams, songbook, songVersions } = Route.useLoaderData();
+  const { session, teams, songbook } = Route.useLoaderData();
 
   const canEdit =
     session.isGlobalAdmin ||
@@ -72,14 +69,28 @@ function SongbookDetail() {
   const [bulkUploadResult, setBulkUploadResult] = useState<{ queued: number; skipped: string[] } | null>(null);
   const [bulkUploadError, setBulkUploadError] = useState<string | null>(null);
 
+  // Songs matching what's typed, searched on the server (the whole
+  // library, not just what's loaded), minus those already in the book.
+  const [songMatches, setSongMatches] = useState<SongVersionSummary[]>([]);
+  useEffect(() => {
+    const q = entryFilter.trim();
+    if (!q || selectedSongVersionId) return;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      apiClient
+        .listSongVersions({ q, sort: "title", pageSize: 40 })
+        .then(({ items }) => !cancelled && setSongMatches(items))
+        .catch(() => !cancelled && setSongMatches([]));
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [entryFilter, selectedSongVersionId]);
   const filteredSongVersions = useMemo(() => {
     const alreadyAdded = new Set(songbook.entries.map((entry) => entry.songVersionId));
-    const query = entryFilter.trim().toLowerCase();
-    return songVersions
-      .filter((version) => !alreadyAdded.has(version.id))
-      .filter((version) => !query || version.title.toLowerCase().includes(query))
-      .slice(0, 20);
-  }, [songVersions, songbook.entries, entryFilter]);
+    return songMatches.filter((version) => !alreadyAdded.has(version.id)).slice(0, 20);
+  }, [songMatches, songbook.entries]);
 
   const visibleEntries = useMemo(() => {
     if (!sectionFilter) return songbook.entries;
@@ -520,7 +531,11 @@ function SongbookDetail() {
                           }}
                           className="w-full rounded-md border px-3 py-2 text-left text-sm hover:bg-muted"
                         >
-                          {version.title}
+                          <span className="font-medium">{version.title}</span>
+                          {version.versionName ? <span className="text-muted-foreground"> — {version.versionName}</span> : null}
+                          {version.artists.length > 0 ? (
+                            <span className="text-muted-foreground"> · {version.artists.map((a) => a.source).filter(Boolean).join(", ")}</span>
+                          ) : null}
                         </button>
                       </li>
                     ))}

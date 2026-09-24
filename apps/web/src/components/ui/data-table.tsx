@@ -33,6 +33,10 @@ interface DataTableProps<TData, TValue> {
   /** Shows a search box above the table, filtering across every column's
    * rendered value, when set. */
   filterPlaceholder?: string;
+  /** Sorting done elsewhere (e.g. by the server): the table only shows and
+   * reports it, instead of sorting `data` itself. */
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -41,18 +45,27 @@ export function DataTable<TData, TValue>({
   onRowClick,
   emptyMessage = "No results.",
   filterPlaceholder,
+  sorting: controlledSorting,
+  onSortingChange,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [localSorting, setLocalSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const manualSorting = controlledSorting !== undefined;
+  const sorting = controlledSorting ?? localSorting;
 
   const table = useReactTable({
     data,
     columns,
     state: { sorting, globalFilter },
-    onSortingChange: setSorting,
+    manualSorting,
+    onSortingChange: (updater) => {
+      const next = typeof updater === "function" ? updater(sorting) : updater;
+      if (manualSorting) onSortingChange?.(next);
+      else setLocalSorting(next);
+    },
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
   });
 

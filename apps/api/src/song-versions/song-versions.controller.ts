@@ -23,6 +23,7 @@ import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
 import { AddContributorDto } from "./dto/add-contributor.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import { ImportSongTextDto } from "./dto/import-song-text.dto";
+import { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto";
 import { SongVersionResponseDto, SongVersionSongbookMembershipDto } from "./dto/song-version-response.dto";
 import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
@@ -44,10 +45,19 @@ export class SongVersionsController {
   constructor(private readonly songVersionsService: SongVersionsService) {}
 
   @Get()
-  @ApiOkResponse({ type: SongVersionResponseDto, isArray: true })
-  findAll(@CurrentUser() user?: AuthenticatedUser): ReturnType<SongVersionsService["findVisibleToUser"]> {
+  findAll(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Query() query: ListSongVersionsQueryDto,
+  ): ReturnType<SongVersionsService["findVisibleToUser"]> {
     if (!user) throw new UnauthorizedException();
-    return this.songVersionsService.findVisibleToUser(user.id);
+    return this.songVersionsService.findVisibleToUser(user.id, query);
+  }
+
+  /** How many songs and artists you can see. */
+  @Get("stats")
+  stats(@CurrentUser() user: AuthenticatedUser | undefined): ReturnType<SongVersionsService["statsForUser"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.songVersionsService.statsForUser(user.id);
   }
 
   /** Names already credited on songs you can see, for autocomplete. */

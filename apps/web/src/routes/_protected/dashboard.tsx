@@ -14,13 +14,14 @@ import { RolesCard } from "./-dashboard/roles-card";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: async ({ context }) => {
-    const [versions, profile, storage, ownershipRequests] = await Promise.all([
-      apiClient.listSongVersions(),
+    const [recent, stats, profile, storage, ownershipRequests] = await Promise.all([
+      apiClient.listSongVersions({ pageSize: 5 }),
+      apiClient.getSongStats(),
       apiClient.getMe(),
       apiClient.getMyStorage(),
       apiClient.listOwnershipRequests(),
     ]);
-    return { teams: context.teams, versions, profile, storage, ownershipRequests };
+    return { teams: context.teams, recentVersions: recent.items, stats, profile, storage, ownershipRequests };
   },
   component: Dashboard,
 });
@@ -32,11 +33,7 @@ function artistLabel(artists: { userId: string | null; source: string | null }[]
 
 function Dashboard() {
   const { t } = useTranslation();
-  const { teams, versions, profile, storage, ownershipRequests } = Route.useLoaderData();
-  const recentVersions = versions.slice(0, 5);
-  const distinctArtists = new Set(
-    versions.flatMap((v) => v.artists.map((a) => a.source ?? a.userId).filter((a): a is string => Boolean(a))),
-  );
+  const { teams, recentVersions, stats, profile, storage, ownershipRequests } = Route.useLoaderData();
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
@@ -68,7 +65,7 @@ function Dashboard() {
               <Music2 className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-semibold leading-none">{versions.length}</p>
+              <p className="text-2xl font-semibold leading-none">{stats.songCount}</p>
               <p className="text-sm text-muted-foreground">{t("dashboard.songs")}</p>
             </div>
           </CardContent>
@@ -79,7 +76,7 @@ function Dashboard() {
               <Mic2 className="size-5" />
             </div>
             <div>
-              <p className="text-2xl font-semibold leading-none">{distinctArtists.size}</p>
+              <p className="text-2xl font-semibold leading-none">{stats.artistCount}</p>
               <p className="text-sm text-muted-foreground">{t("dashboard.artists")}</p>
             </div>
           </CardContent>

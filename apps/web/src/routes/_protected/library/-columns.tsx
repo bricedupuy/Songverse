@@ -15,6 +15,12 @@ function tagLabel(tags: SongVersionSummary["tags"], locale: LocaleValue): string
   return tags.map((tag) => resolveTranslation(tag.label, tag.translations, locale)).join(", ");
 }
 
+function plainHeader(label: string) {
+  return function PlainHeader() {
+    return <span>{label}</span>;
+  };
+}
+
 function sortableHeader(label: string) {
   return function SortableHeader({ column }: { column: Column<SongVersionSummary, unknown> }) {
     return (
@@ -50,7 +56,10 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
       {
         id: "artist",
         accessorFn: (version) => artistLabel(version.artists),
-        header: sortableHeader(t("library.columnArtist")),
+        // The list is sorted by the server, which sorts by the song's own
+        // fields; artists and tags are credits and links, not columns.
+        enableSorting: false,
+        header: plainHeader(t("library.columnArtist")),
         cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
       },
       {
@@ -69,7 +78,8 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
         id: "tags",
         meta: { secondary: true },
         accessorFn: (version) => tagLabel(version.tags, locale),
-        header: sortableHeader(t("library.columnTags")),
+        enableSorting: false,
+        header: plainHeader(t("library.columnTags")),
         cell: ({ getValue }) => <span className="text-muted-foreground">{getValue<string>()}</span>,
       },
       {

@@ -43,7 +43,7 @@ check("credits merged per person", byName["Chris Tomlin"] === "COMPOSER,PERFORME
 check("artists in order", d.artists.map((x) => x.source).join("|") === "Chris Tomlin|Louie Giglio");
 check("tag saved", d.tags.length === 1 && d.tags[0].id === tag1);
 check("owner can edit", d.canEdit === true);
-check("list includes versionName", (await call(a, "GET", "/song-versions")).body.find((s) => s.id === songId)?.versionName === "Original");
+check("list includes versionName", (await call(a, "GET", "/song-versions")).body.items.find((s) => s.id === songId)?.versionName === "Original");
 
 r = await call(a, "POST", "/song-versions", { title: "Bad tag", language: "en", artists: ["X"], tagIds: ["nope"] });
 check("unknown tag refused", r.status === 400, JSON.stringify(r.body?.message));
