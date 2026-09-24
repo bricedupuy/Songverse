@@ -20,7 +20,7 @@ const holyTeam = await api(leader, "POST", "/song-versions", { artists: ["Test A
 
 const date = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
 const longDate = new Date(`${date}T00:00:00Z`).toLocaleDateString("en", { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch();
 page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
 const rows = () => page.getByTestId("set-song-row");
 const rowTitles = async () => (await rows().allInnerTexts()).map((text) => text.split("\n").find((line) => line.includes(tag)));

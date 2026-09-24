@@ -48,7 +48,7 @@ async function signInUi(page, email) {
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
 
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch();
 let current;
 const step = stepper(() => current);
 

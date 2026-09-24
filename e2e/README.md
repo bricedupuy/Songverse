@@ -6,6 +6,10 @@ its own users, so they can run against a database that already has data.
 
 ## Running them locally
 
+The database needs its migrations and seed applied (`pnpm --filter
+@songverse/db exec prisma migrate deploy`, then `pnpm --filter @songverse/db
+seed`) - some suites use the built-in global tags.
+
 1. Start Postgres and Redis, then the API and web app, with the API's output
    going to a file - with no email provider configured the API prints the
    emails it would send, and the suites read verification links from there:

@@ -37,7 +37,7 @@ const wide = await sharp({ create: { width: 1600, height: 900, channels: 3, back
 writeFileSync(`${SP}/wide.jpg`, wide);
 writeFileSync(`${SP}/broken.png`, "definitely not a picture");
 
-const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" });
+const browser = await chromium.launch();
 page = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
 
 await step("sign in and open account settings", async () => {
