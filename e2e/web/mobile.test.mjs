@@ -22,11 +22,11 @@ await api(admin, "PATCH", "/users/me", { instruments: ["LEAD_VOCALS", "ACOUSTIC_
 const team = await api(admin, "POST", "/teams", { name: `International Worship Collective of Somewhere Rather Long ${tag}` });
 const song = await api(admin, "POST", "/song-versions", { artists: ["Test Artist"], title: `A Remarkably Long Song Title That Keeps Going And Going ${tag}`, language: "en" });
 await api(admin, "PATCH", `/song-versions/${song.id}`, { key: "G", tempo: 72 });
-await api(admin, "POST", `/song-versions/${song.id}/import`, {
-  format: "CHORDPRO",
+await api(admin, "PATCH", `/song-versions/${song.id}`, {
+  contentFormat: "CHORDPRO",
   content: "{title: Long}\n{start_of_verse}\n[G]Amazing grace how [D/F#]sweet the [Em7]sound that [Cadd9]saved a [G]wretch like [D]me I [Em]once was [C]lost but [G]now am [D]found\n{end_of_verse}\n{start_of_chorus}\n[C]Supercalifragilisticexpialidocious[G]Antidisestablishmentarianism\n{end_of_chorus}\n",
 });
-await api(admin, "POST", `/song-versions/${song.id}/contributors`, { source: "Somebody With A Very Long Name Indeed", roles: ["COMPOSER", "LYRICIST"] }).catch(() => {});
+await api(admin, "PATCH", `/song-versions/${song.id}`, { composers: ["Somebody With A Very Long Name Indeed"], lyricists: ["Somebody With A Very Long Name Indeed"] });
 const teamSong = await api(admin, "POST", "/song-versions", { artists: ["Test Artist"], title: `Team Song ${tag}`, language: "fr", teamId: team.id });
 const songbook = await api(admin, "POST", "/songbooks", { name: `Hymns and Spiritual Songs for Every Season ${tag}`, kind: "NUMBERED", abbreviation: "HSS" });
 await api(admin, "POST", `/songbooks/${songbook.id}/entries`, { songVersionId: song.id, entryCode: "123" });

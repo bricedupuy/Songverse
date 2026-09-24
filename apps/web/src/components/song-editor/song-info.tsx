@@ -510,7 +510,7 @@ export function MoreDetailsCard({
       <Collapsible open={open || hasErrors} onOpenChange={onOpenChange}>
         <CardHeader>
           <CollapsibleTrigger asChild>
-            <button type="button" className="-m-2 flex items-center justify-between gap-2 rounded-md p-2 text-left hover:bg-muted/50">
+            <button type="button" className="-m-2 flex min-w-0 items-center justify-between gap-2 rounded-md p-2 text-left hover:bg-muted/50">
               <span>
                 <CardTitle>{t("songEditor.moreDetails")}</CardTitle>
                 <CardDescription className="mt-1">{t("songEditor.moreDetailsDescription")}</CardDescription>
@@ -520,7 +520,7 @@ export function MoreDetailsCard({
           </CollapsibleTrigger>
           {!(open || hasErrors) ? (
             summary.length > 0 ? (
-              <ul className="mt-2 flex flex-wrap gap-1.5" aria-label={t("songEditor.moreDetails")} data-testid="details-summary">
+              <ul className="mt-2 flex min-w-0 flex-wrap gap-1.5" aria-label={t("songEditor.moreDetails")} data-testid="details-summary">
                 {summary.map((chip, index) => (
                   <li key={`${chip}-${index}`} className="max-w-full truncate rounded-full border bg-muted/40 px-2.5 py-0.5 text-xs">
                     {chip}

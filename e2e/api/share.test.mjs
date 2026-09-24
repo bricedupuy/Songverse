@@ -22,7 +22,7 @@ sql(`insert into "TeamMembership" (id, "teamId", "userId", role, "joinedAt", "up
 const otherTeam = (await call(member, "POST", "/teams", { name: `Other Team ${stamp}` })).body;
 
 const personal = await song(owner, `Personal ${stamp}`);
-await call(owner, "POST", `/song-versions/${personal.id}/import`, { format: "CHORDPRO", content: "{start_of_verse}\n[G]Hello [D]world\n{end_of_verse}\n" });
+await call(owner, "PATCH", `/song-versions/${personal.id}`, { contentFormat: "CHORDPRO", content: "{start_of_verse}\n[G]Hello [D]world\n{end_of_verse}\n" });
 await call(owner, "PATCH", `/song-versions/${personal.id}`, { key: "G" });
 const personal2 = await song(owner, `Personal Two ${stamp}`);
 const personal3 = await song(owner, `Personal Three ${stamp}`);

@@ -924,48 +924,6 @@ export class SongVersionsService {
     });
   }
 
-  async addContributor(songVersionId: string, source: string, roles: string[]) {
-    return this.prisma.client.versionContributor.create({
-      data: {
-        songVersionId,
-        userId: null,
-        source,
-        roles: roles.map((r) => r.toUpperCase()) as ContributorRole[],
-      },
-      select: { id: true, userId: true, source: true, roles: true, isAutoAttached: true, displayOrder: true },
-    });
-  }
-
-  /** A song's last artist can't be removed - it needs at least one. */
-  async removeContributor(songVersionId: string, contributorId: string): Promise<void> {
-    const contributor = await this.prisma.client.versionContributor.findFirst({
-      where: { id: contributorId, songVersionId },
-      select: { roles: true },
-    });
-    if (!contributor) throw new NotFoundException("Contributor not found");
-    if (contributor.roles.includes("PERFORMER")) {
-      const artists = await this.prisma.client.versionContributor.count({ where: { songVersionId, roles: { has: "PERFORMER" } } });
-      if (artists <= 1) throw new BadRequestException("A song needs at least one artist. Add another before removing this one.");
-    }
-    await this.prisma.client.versionContributor.delete({ where: { id: contributorId } });
-  }
-
-  async addTag(songVersionId: string, tagId: string) {
-    const tag = await this.prisma.client.tag.findUnique({ where: { id: tagId } });
-    if (!tag) throw new NotFoundException("Tag not found");
-
-    await this.prisma.client.songVersionTag.upsert({
-      where: { songVersionId_tagId: { songVersionId, tagId } },
-      update: {},
-      create: { songVersionId, tagId },
-    });
-    return tag;
-  }
-
-  async removeTag(songVersionId: string, tagId: string): Promise<void> {
-    await this.prisma.client.songVersionTag.deleteMany({ where: { songVersionId, tagId } });
-  }
-
   /**
    * The linked MusicBrainz recording, as saved when it was linked - no
    * lookup, so showing a song never waits on MusicBrainz (whose rate limit

@@ -13,7 +13,7 @@ const member = await user("Milo Member");
 const team = await api(owner, "POST", "/teams", { name: `Worship ${tag}` });
 sql(`insert into "TeamMembership" (id, "teamId", "userId", role, "joinedAt", "updatedAt") values ('tsa${stamp}', '${team.id}', '${admin2.id}', 'ADMIN', now(), now()), ('tsm${stamp}', '${team.id}', '${member.id}', 'MEMBER', now(), now())`);
 const mine = await api(owner, "POST", "/song-versions", { artists: ["Test Artist"], title: `Olivia's Song ${tag}`, language: "en" });
-await api(owner, "POST", `/song-versions/${mine.id}/import`, { format: "CHORDPRO", content: "{start_of_verse}\n[G]Morning has [C]broken\n{end_of_verse}\n" });
+await api(owner, "PATCH", `/song-versions/${mine.id}`, { contentFormat: "CHORDPRO", content: "{start_of_verse}\n[G]Morning has [C]broken\n{end_of_verse}\n" });
 await api(owner, "PATCH", `/song-versions/${mine.id}`, { key: "G" });
 const mine2 = await api(owner, "POST", "/song-versions", { artists: ["Test Artist"], title: `Second Song ${tag}`, language: "en" });
 const set = await api(owner, "POST", "/setlists", { name: `Sunday ${tag}` });

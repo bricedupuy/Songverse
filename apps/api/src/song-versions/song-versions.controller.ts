@@ -21,9 +21,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
-import { AddContributorDto } from "./dto/add-contributor.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
-import { ImportSongTextDto } from "./dto/import-song-text.dto";
 import { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto";
 import { SongVersionResponseDto, SongVersionSongbookMembershipDto } from "./dto/song-version-response.dto";
@@ -134,53 +132,11 @@ export class SongVersionsController {
     return this.songVersionsService.remove(songVersionId);
   }
 
-  @Post(":songVersionId/import")
-  @UseGuards(SongVersionOwnerGuard)
-  @ApiOkResponse({ type: SongVersionResponseDto })
-  importText(
-    @Param("songVersionId") songVersionId: string,
-    @Body() dto: ImportSongTextDto,
-  ): ReturnType<SongVersionsService["importText"]> {
-    return this.songVersionsService.importText(songVersionId, dto.content, dto.format ?? "CHORDPRO");
-  }
-
-  @Post(":songVersionId/contributors")
-  @UseGuards(SongVersionOwnerGuard)
-  addContributor(@Param("songVersionId") songVersionId: string, @Body() dto: AddContributorDto) {
-    return this.songVersionsService.addContributor(songVersionId, dto.source, dto.roles);
-  }
-
-  @Delete(":songVersionId/contributors/:contributorId")
-  @UseGuards(SongVersionOwnerGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  removeContributor(
-    @Param("songVersionId") songVersionId: string,
-    @Param("contributorId") contributorId: string,
-  ) {
-    return this.songVersionsService.removeContributor(songVersionId, contributorId);
-  }
-
   @Get(":songVersionId/chordpro")
   async exportChordPro(@CurrentUser() user: AuthenticatedUser | undefined, @Param("songVersionId") songVersionId: string) {
     if (!user) throw new UnauthorizedException();
     await this.access.assertCanSeeSong(user, songVersionId);
     return { content: await this.songVersionsService.exportChordPro(songVersionId) };
-  }
-
-  @Put(":songVersionId/tags/:tagId")
-  @UseGuards(SongVersionOwnerGuard)
-  addTag(
-    @Param("songVersionId") songVersionId: string,
-    @Param("tagId") tagId: string,
-  ): ReturnType<SongVersionsService["addTag"]> {
-    return this.songVersionsService.addTag(songVersionId, tagId);
-  }
-
-  @Delete(":songVersionId/tags/:tagId")
-  @UseGuards(SongVersionOwnerGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  removeTag(@Param("songVersionId") songVersionId: string, @Param("tagId") tagId: string) {
-    return this.songVersionsService.removeTag(songVersionId, tagId);
   }
 
   @Put(":songVersionId/links/:type")

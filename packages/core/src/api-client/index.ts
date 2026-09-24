@@ -931,18 +931,6 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<void>(`/song-versions/${songVersionId}`, { method: "DELETE" }),
     searchCredits: (query: string) => request<CreditSuggestion[]>(`/song-versions/credits?q=${encodeURIComponent(query)}`),
     findSongMatches: (title: string) => request<SongMatch[]>(`/song-versions/matches?title=${encodeURIComponent(title)}`),
-    importSongText: (songVersionId: string, content: string, format: SupportedImportFormat) =>
-      request<SongVersionDetail>(`/song-versions/${songVersionId}/import`, {
-        method: "POST",
-        body: JSON.stringify({ content, format }),
-      }),
-    addContributor: (songVersionId: string, source: string, roles: string[]) =>
-      request<VersionContributor>(`/song-versions/${songVersionId}/contributors`, {
-        method: "POST",
-        body: JSON.stringify({ source, roles }),
-      }),
-    removeContributor: (songVersionId: string, contributorId: string) =>
-      request<void>(`/song-versions/${songVersionId}/contributors/${contributorId}`, { method: "DELETE" }),
     exportChordPro: (songVersionId: string) =>
       request<{ content: string }>(`/song-versions/${songVersionId}/chordpro`),
     setStreamingLink: (songVersionId: string, type: StreamingLinkType, url: string) =>
@@ -954,11 +942,6 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<void>(`/song-versions/${songVersionId}/links/${type}`, { method: "DELETE" }),
     listTagCategories: () => request<TagCategory[]>("/tags/categories"),
     listTags: () => request<Tag[]>("/tags"),
-    addSongVersionTag: (songVersionId: string, tagId: string) =>
-      request<Tag>(`/song-versions/${songVersionId}/tags/${tagId}`, { method: "PUT" }),
-    removeSongVersionTag: (songVersionId: string, tagId: string) =>
-      request<void>(`/song-versions/${songVersionId}/tags/${tagId}`, { method: "DELETE" }),
-
     searchMusicBrainzRecordings: (title: string, artist?: string) => {
       const params = new URLSearchParams({ title });
       if (artist) params.set("artist", artist);

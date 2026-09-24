@@ -74,6 +74,16 @@ check("empty content clears the chart", r.body.documentJson.sections.length === 
 r = await call(b, "PATCH", `/song-versions/${songId}`, { title: "Hijack" });
 check("someone else can't edit", r.status === 403);
 
+// --- the per-item endpoints the single save replaced are gone
+for (const [method, path] of [
+  ["POST", `/song-versions/${songId}/contributors`],
+  ["PUT", `/song-versions/${songId}/tags/${tag1}`],
+  ["POST", `/song-versions/${songId}/import`],
+]) {
+  r = await call(a, method, path, { source: "X", roles: ["composer"], content: "x" });
+  check(`${method} ${path.replace(songId, ":id").replace(tag1, ":tagId")} is gone`, r.status === 404, String(r.status));
+}
+
 // --- credits autocomplete
 r = await call(a, "GET", "/song-versions/credits?q=tom");
 check("credit search finds names with roles", r.body[0]?.name === "Chris Tomlin" && r.body[0].roles.includes("PERFORMER"), JSON.stringify(r.body));

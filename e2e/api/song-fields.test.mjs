@@ -54,12 +54,10 @@ r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { title: "" });
 check("the title can't be cleared", r.status === 400);
 
 // --- the last artist stays
-const detail = (await call(admin, "GET", `/song-versions/${s1.id}`)).body;
-const [a1, a2] = detail.contributors.filter((c) => c.roles.includes("PERFORMER"));
-r = await call(admin, "DELETE", `/song-versions/${s1.id}/contributors/${a1.id}`);
-check("an artist can be removed while another remains", r.status === 204 || r.status === 200, String(r.status));
-r = await call(admin, "DELETE", `/song-versions/${s1.id}/contributors/${a2.id}`);
-check("the last artist can't be removed", r.status === 400 && /at least one artist/.test(r.body.message), JSON.stringify(r.body));
+r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { artists: ["Only One"] });
+check("artists can be replaced while one remains", r.status === 200 && r.body.artists.length === 1, String(r.status));
+r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { artists: [] });
+check("the last artist can't be removed", r.status === 400 && /at least one artist/.test(JSON.stringify(r.body.message)), JSON.stringify(r.body));
 
 // --- MusicBrainz unlink never strips the only artist
 const solo = await song(admin, `Solo ${stamp}`);
