@@ -8,9 +8,9 @@ import {
   parseStreamingLink,
   readSongDocument,
   safeParseSongDocumentV2,
-  sectionsFromText,
   songDocumentFromSections,
   songDocumentFromText,
+  songFromText,
   songToChordPro,
   splitNames,
   type CatalogEntryData,
@@ -53,6 +53,7 @@ type VersionFields = {
 type CreateExtras = {
   defaults?: SongDefaultsV2;
   sections?: SongDocumentV2["sections"];
+  flow?: SongDocumentV2["flow"];
   capo?: number | null;
   credits?: { source: string; roles: ContributorRole[] }[];
   tagIds?: string[];
@@ -203,19 +204,31 @@ function staleRevision(): ConflictException {
 }
 
 /**
- * The structured editor's sections, checked as a whole document would be
- * (IDs unique, chords on characters and in order); a 400 naming the first
- * problem otherwise.
+ * The chart as the structured editor sends it - its sections and/or the
+ * order they're sung in, IDs as they are - checked as a whole document
+ * would be (IDs unique, chords on characters and in order, the flow only
+ * naming sections that exist); a 400 naming the first problem otherwise.
+ * `current` stands in for sections not sent.
  */
-function sectionsFrom(dto: SongFieldsDto): SongDocumentV2["sections"] | undefined {
-  if (dto.sections === undefined) return undefined;
+function chartFrom(
+  dto: SongFieldsDto,
+  current: SongDocumentV2["sections"],
+): { sections: SongDocumentV2["sections"]; flow: SongDocumentV2["flow"] | undefined } | undefined {
+  if (dto.sections === undefined && dto.flow === undefined) return undefined;
   if (dto.content !== undefined) throw new BadRequestException("Send the chart as content or as sections, not both");
-  const parsed = safeParseSongDocumentV2({ $schema: "song-document/v2", revision: 0, defaults: {}, sections: dto.sections, flow: [] });
+  const sections = dto.sections ?? current;
+  const parsed = safeParseSongDocumentV2({
+    $schema: "song-document/v2",
+    revision: 0,
+    defaults: {},
+    sections,
+    flow: dto.flow ?? (sections as { id?: unknown }[]).map((section) => ({ id: `fi_${String(section?.id)}`, sectionId: section?.id })),
+  });
   if (!parsed.success) {
     const issue = parsed.error.issues[0]!;
-    throw new BadRequestException(`sections.${issue.path.slice(1).join(".")}: ${issue.message}`);
+    throw new BadRequestException(`${issue.path.join(".")}: ${issue.message}`);
   }
-  return parsed.data.sections;
+  return { sections: parsed.data.sections, flow: dto.flow === undefined ? undefined : parsed.data.flow };
 }
 
 function parseTimeSignature(text: string | null): { numerator: number; denominator: number } | null {
@@ -587,7 +600,7 @@ export class SongVersionsService {
     if (dto.tagIds) await this.assertTagsUsable(user, dto.tagIds);
 
     const content = dto.content?.trim() ? dto.content : null;
-    const sections = sectionsFrom(dto);
+    const chart = chartFrom(dto, []) ?? (content ? songFromText(content, dto.contentFormat ?? detectImportFormat(content)) : undefined);
     return this.createVersion(
       owner,
       {
@@ -610,7 +623,8 @@ export class SongVersionsService {
         workId: dto.workId,
         parent,
         defaults: defaultsFrom(dto),
-        sections: sections ?? (content ? sectionsFromText(content, dto.contentFormat ?? detectImportFormat(content)) : []),
+        sections: chart?.sections ?? [],
+        flow: chart?.flow,
         capo: dto.capo || null,
         credits: mergeCredits(
           Object.entries(creditListsFrom(dto)).flatMap(([role, names]) => names.map((name) => [name, role as ContributorRole] as const)),
@@ -705,13 +719,14 @@ export class SongVersionsService {
     defaults: SongDefaultsV2 = {},
     sections: SongDocumentV2["sections"] = [],
     capo: number | null = null,
+    flow?: SongDocumentV2["flow"],
   ) {
     const documentJson: SongDocumentV2 = parseSongDocumentV2({
       $schema: "song-document/v2",
       revision: 1,
       defaults,
       sections,
-      flow: sections.map((section) => ({ id: flowItemId(section.id), sectionId: section.id })),
+      flow: flow ?? sections.map((section) => ({ id: flowItemId(section.id), sectionId: section.id })),
     });
 
     return {
@@ -740,7 +755,7 @@ export class SongVersionsService {
    * `parent`'s derived version in its Work), with its credits and tags.
    */
   private async createVersion(owner: SongVersionOwner, fields: VersionFields, extras: CreateExtras = {}): Promise<ListItem> {
-    const versionData = this.buildVersionData(owner, fields, extras.defaults, extras.sections, extras.capo ?? null);
+    const versionData = this.buildVersionData(owner, fields, extras.defaults, extras.sections, extras.capo ?? null, extras.flow);
     const version = await this.prisma.client.$transaction(async (tx) => {
       const existingWorkId = extras.parent?.workId ?? extras.workId;
       const workId = existingWorkId ?? (await tx.work.create({ data: {} })).id;
@@ -772,8 +787,8 @@ export class SongVersionsService {
    * Partial update, in one transaction. Given, the artist, composer and
    * lyricist lists replace those credits, tagIds the tags, and content the
    * chart (empty content clears it) - parsed from text, keeping the IDs of
-   * everything still there (see reconcileSections) - or `sections` the
-   * chart as the structured editor saves it, its IDs taken as they are. Key, tempo, time
+   * everything still there (see reconcileSections) - or `sections` and/or
+   * `flow` the chart as the structured editor saves it, IDs as they are. Key, tempo, time
    * signature and duration live in the document; the rest are columns.
    *
    * `revision` is the document revision the editor started from: if the
@@ -791,13 +806,13 @@ export class SongVersionsService {
     const previous = readSongDocument(existing.documentJson);
     if (dto.revision !== undefined && dto.revision !== previous.revision) throw staleRevision();
     const defaults = defaultsFrom(dto);
-    const sections = sectionsFrom(dto);
-    const touchesDocument = dto.content !== undefined || sections !== undefined || Object.keys(defaults).length > 0;
+    const chart = chartFrom(dto, previous.sections);
+    const touchesDocument = dto.content !== undefined || chart !== undefined || Object.keys(defaults).length > 0;
     const content = dto.content?.trim() ? dto.content : "";
     const documentJson = !touchesDocument
       ? null
-      : sections
-        ? songDocumentFromSections(previous, { sections, defaults })
+      : chart
+        ? songDocumentFromSections(previous, { ...chart, defaults })
         : songDocumentFromText(previous, {
             content: dto.content === undefined ? undefined : content,
             format: dto.contentFormat ?? detectImportFormat(content),

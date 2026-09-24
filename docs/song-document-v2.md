@@ -17,7 +17,8 @@ and out (export). None of them is how a song is stored.
 | Songs stored as v2: saving with `revision`, IDs kept through text edits, ChordPro export from the columns, chords-above-lyrics rendering | Done |
 | Structured editor (the rules below), with text mode and paste | Done: `apps/web/src/components/song-editor/structured/`, covered by `e2e/web/structured-editor.test.mjs` |
 | ChordPro `{comment}` as note lines; every section type as a `{start_of_x}` environment | Done |
-| ChordPro `{chorus}` (a repeat in `flow`); editing `flow` in the editor | Next |
+| The song's order (`flow`) edited in the editor; `{chorus}`, mid-song `{key}` and between-section comments read and written; key changes shown on the chart | Done |
+| `tempo` / `timeSignature` changes per pass in the editor | Next |
 
 Songs saved before v2 are converted as they're read and written back by
 the API at startup (`SongDocumentUpgradeService`). Until arrangements
@@ -177,6 +178,17 @@ be performed.
 | `tempo`, `timeSignature` | From this pass on. |
 | `note` | For the band. |
 
+In the editor, **Song order** shows the passes in order. Choose one to give
+it a label, a key change (named from the key before it, and renamed when the
+song's key or an earlier change moves) or a note; move it, sing it again
+right after, or remove it; drag passes to reorder; "+ Sing…" adds one at the
+end. Adding a section adds it to the end of the order and deleting one takes
+out its passes (`reconcileFlow`); "Follow the sections" goes back to each
+section once, in order.
+
+The chart shows each pass's label and note, and a key change as "Key: A",
+with the chords from that pass on moved by its steps.
+
 ## Rhythm
 
 An optional timing layer on a section; the lines stay the structure.
@@ -298,7 +310,7 @@ as players see it.
 
 | Format | In | Out |
 |---|---|---|
-| ChordPro | `{start_of_x}` sections, `[C]` chords, `{comment}` → note line, `{chorus}` → the chorus again in `flow` (planned) | Sections, chords inline, notes as `{comment}`; title, key, tempo and CCLI from the columns plus `defaults` |
+| ChordPro | `{start_of_x}` sections, `[C]` chords, `{comment}` in a section → note line, between sections → the next pass's note, `{chorus}` → the last chorus again in `flow`, `{key}` after the first → a key change on the next pass (sections written after it, in the new key, are stored back in the song's key; one that then matches an earlier section is that section sung again) | In the order it's sung: each section in full the first time, a repeated chorus as `{chorus}`, a key change as `{key: A}` with everything after it written out in full in the new key, notes as `{comment}`; title, key, tempo and CCLI from the columns plus `defaults` |
 | Chords over lyrics | Chord columns pinned to the character below | The same layout |
 | Plain lyrics | Blank lines and "Verse"/"Chorus" labels split sections | Lyrics only |
 | LRC | Line timings as anchors (planned) | Planned |

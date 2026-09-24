@@ -1,9 +1,13 @@
 import type { SupportedImportFormat } from "../constants/index.js";
 import { parseSongText } from "../import-detection/detect-format.js";
+import { transposeChord } from "../chords/chord.js";
+import { generateId, ID_PREFIXES } from "../ids/index.js";
+import { parseKey } from "../music-keys/transpose.js";
 import { parseSongDocument } from "../schemas/song-document.js";
-import { sectionsV1ToV2, songDocumentV1ToV2 } from "../schemas/song-document-v1-to-v2.js";
+import { flowItemId, sectionsV1ToV2, songDocumentV1ToV2 } from "../schemas/song-document-v1-to-v2.js";
 import {
   parseSongDocumentV2,
+  type SectionInstance,
   type SectionV2,
   type SongDefaultsV2,
   type SongDocumentV2,
@@ -18,60 +22,192 @@ const NOTE_MARK = "\u2063note\u2063";
 const OPEN = "\uE000";
 const CLOSE = "\uE001";
 
-/** Pasted or typed text (ChordPro, chords over lyrics, plain lyrics) as v2 sections, with fresh IDs. */
-export function sectionsFromText(text: string, format: SupportedImportFormat): SectionV2[] {
-  if (!text.trim()) return [];
-  const marked =
-    format === "CHORDPRO"
-      ? text
-          .split(/\r\n|\r|\n/)
-          .map((line) => {
-            const comment = COMMENT_LINE.exec(line);
-            return comment ? NOTE_MARK + comment[1]!.replaceAll("[", OPEN).replaceAll("]", CLOSE) : line;
-          })
-          .join("\n")
-      : text;
-  const sections = sectionsV1ToV2(parseSongText(marked, format));
-  for (const section of sections) {
-    section.lines = section.lines.map((line) =>
-      line.text.startsWith(NOTE_MARK)
-        ? { ...line, kind: "note", text: line.text.slice(NOTE_MARK.length).replaceAll(OPEN, "[").replaceAll(CLOSE, "]"), chords: [] }
-        : line,
-    );
+// "{chorus}" (or "{chorus: Final chorus}") sings the last chorus again, and
+// "{key: A}" after the first changes key from there on. Each goes through the
+// parser as a section of its own holding just a marker, and becomes part of
+// the flow afterwards.
+const REPEAT_CHORUS = /^\s*\{\s*chorus\s*(?::\s*(.*?)\s*)?\}\s*$/i;
+const KEY_LINE = /^\s*\{\s*key\s*:\s*(.*?)\s*\}\s*$/i;
+const BLOCK_START = /^\s*\{\s*(start_of_\w[\w-]*|so[vcbt])\b/i;
+const BLOCK_END = /^\s*\{\s*(end_of_\w[\w-]*|eo[vcbt])\b/i;
+const REPEAT_MARK = "\u2063repeat\u2063";
+const KEY_MARK = "\u2063key\u2063";
+
+/** A chart: its sections, each once, and the order they're sung in. */
+export interface SongChart {
+  sections: SectionV2[];
+  flow: SectionInstance[];
+}
+
+/** Semitones from one key to another, the shorter way (-5 to +6); null if either can't be read. */
+function keySteps(from: string, to: string): number | null {
+  const [a, b] = [parseKey(from), parseKey(to)];
+  if (!a || !b) return null;
+  const up = (((b.semitone - a.semitone) % 12) + 12) % 12;
+  return up > 6 ? up - 12 : up;
+}
+
+const sameContent = (a: SectionV2, b: SectionV2) =>
+  a.type === b.type &&
+  JSON.stringify(a.lines.map((line) => [line.kind, line.text, line.chords.map((c) => [c.at, c.raw])])) ===
+    JSON.stringify(b.lines.map((line) => [line.kind, line.text, line.chords.map((c) => [c.at, c.raw])]));
+
+/**
+ * Pasted or typed text (ChordPro, chords over lyrics, plain lyrics) as v2
+ * sections with fresh IDs, and the order they're sung in: as written, plus
+ * a pass for each ChordPro "{chorus}". Comments standing between sections
+ * ("{comment: Softer}") become the note of the pass that follows, and a
+ * "{key: A}" after the first a key change on it - with the sections written
+ * after it (in the new key, as ChordPro does) stored back in the song's key,
+ * and one that then matches an earlier section sung as that section again.
+ */
+export function songFromText(text: string, format: SupportedImportFormat): SongChart {
+  if (!text.trim()) return { sections: [], flow: [] };
+  const hide = (value: string) => value.replaceAll("[", OPEN).replaceAll("]", CLOSE);
+  const unmark = (value: string) => value.replaceAll(OPEN, "[").replaceAll(CLOSE, "]");
+  let marked = text;
+  if (format === "CHORDPRO") {
+    let inBlock = false;
+    const marker = (mark: string, value: string) => (inBlock ? "" : `{start_of_other}\n${mark}${hide(value)}\n{end_of_other}`);
+    marked = text
+      .split(/\r\n|\r|\n/)
+      .map((line) => {
+        if (BLOCK_START.test(line)) inBlock = true;
+        else if (BLOCK_END.test(line)) inBlock = false;
+        const comment = COMMENT_LINE.exec(line);
+        if (comment) return NOTE_MARK + hide(comment[1]!);
+        const repeat = REPEAT_CHORUS.exec(line);
+        if (repeat) return marker(REPEAT_MARK, repeat[1] ?? "");
+        const key = KEY_LINE.exec(line);
+        if (key) return marker(KEY_MARK, key[1]!);
+        return line;
+      })
+      .join("\n");
   }
-  return sections;
+
+  const sections: SectionV2[] = [];
+  const flow: SectionInstance[] = [];
+  let lastChorus: SectionV2 | null = null;
+  // Comments standing between sections: a cue for the pass that follows.
+  let cue: SectionV2 | null = null;
+  let songKey: string | null = null;
+  let currentKey: string | null = null;
+  let shift = 0;
+  let keyChange: SectionInstance["keyChange"] = null;
+  const pass = (item: SectionInstance): SectionInstance => {
+    const note = cue ? cue.lines.map((line) => line.text).join(" / ").slice(0, 500) : null;
+    const change = keyChange;
+    cue = null;
+    keyChange = null;
+    return { ...item, ...(note && { note }), ...(change && { keyChange: change }) };
+  };
+  const addSection = (section: SectionV2) => {
+    sections.push(section);
+    flow.push({ id: flowItemId(section.id), sectionId: section.id });
+  };
+
+  for (const section of sectionsV1ToV2(parseSongText(marked, format))) {
+    const only = section.lines.length === 1 ? section.lines[0]!.text : "";
+    if (only.startsWith(KEY_MARK)) {
+      const key = unmark(only.slice(KEY_MARK.length)).trim();
+      if (currentKey === null) {
+        songKey = currentKey = key;
+      } else {
+        const steps = keySteps(currentKey, key);
+        if (steps) {
+          keyChange = { steps, key };
+          shift += steps;
+          currentKey = key;
+        }
+      }
+      continue;
+    }
+    if (only.startsWith(REPEAT_MARK)) {
+      const label = unmark(only.slice(REPEAT_MARK.length)).trim();
+      if (lastChorus) flow.push(pass({ id: generateId(ID_PREFIXES.flowItem), sectionId: lastChorus.id, ...(label && { label }) }));
+      continue;
+    }
+    section.lines = section.lines.map((line) =>
+      line.text.startsWith(NOTE_MARK) ? { ...line, kind: "note", text: unmark(line.text.slice(NOTE_MARK.length)), chords: [] } : line,
+    );
+    if (cue) {
+      // Two cues in a row: the first was a section of notes after all.
+      addSection(cue);
+      cue = null;
+    }
+    if (section.type === "other" && !section.label && section.lines.length > 0 && section.lines.every((line) => line.kind === "note")) {
+      cue = section;
+      continue;
+    }
+    if (shift % 12 !== 0) {
+      // Written in the key it's sung in: stored in the song's key.
+      for (const line of section.lines) {
+        line.chords = line.chords.map((chord) => ({ ...chord, raw: transposeChord(chord.raw, -shift, songKey) }));
+      }
+      const earlier = sections.find((other) => sameContent(other, section));
+      if (earlier) {
+        flow.push(pass({ id: generateId(ID_PREFIXES.flowItem), sectionId: earlier.id, ...(section.label && section.label !== earlier.label && { label: section.label }) }));
+        continue;
+      }
+    }
+    sections.push(section);
+    flow.push(pass({ id: flowItemId(section.id), sectionId: section.id }));
+    if (section.type === "chorus") lastChorus = section;
+  }
+  // Notes at the very end: nothing follows, so they stay a section.
+  if (cue) addSection(cue);
+  return { sections, flow };
+}
+
+/** Pasted or typed text as v2 sections, with fresh IDs (see songFromText). */
+export function sectionsFromText(text: string, format: SupportedImportFormat): SectionV2[] {
+  return songFromText(text, format).sections;
 }
 
 /**
  * The song after its content was edited as text: the text parsed, IDs
  * kept from `previous` wherever the content is still there, and the
- * revision moved on. `content` undefined keeps the previous sections.
+ * revision moved on. `content` undefined keeps the previous sections. The
+ * flow follows the text when it repeats a section ("{chorus}"); otherwise
+ * the previous flow keeps its shape (see reconcileFlow).
  */
 export function songDocumentFromText(
   previous: SongDocumentV2 | null,
   change: { content?: string; format: SupportedImportFormat; defaults?: SongDefaultsV2 },
 ): SongDocumentV2 {
-  const sections =
-    change.content === undefined
-      ? (previous?.sections ?? [])
-      : reconcileSections(previous?.sections ?? [], sectionsFromText(change.content, change.format));
+  const parsed = change.content === undefined ? null : songFromText(change.content, change.format);
+  const sections = parsed ? reconcileSections(previous?.sections ?? [], parsed.sections) : (previous?.sections ?? []);
+  let flow: SectionInstance[];
+  if (parsed && parsed.flow.length > parsed.sections.length) {
+    // The reconciled sections line up with the parsed ones.
+    const ids = new Map(parsed.sections.map((section, i) => [section.id, sections[i]!.id]));
+    const seen = new Set<string>();
+    flow = parsed.flow.map((item) => {
+      const sectionId = ids.get(item.sectionId)!;
+      const first = !seen.has(sectionId);
+      seen.add(sectionId);
+      return { ...item, id: first ? flowItemId(sectionId) : item.id, sectionId };
+    });
+  } else {
+    flow = reconcileFlow(previous, sections);
+  }
   return parseSongDocumentV2({
     $schema: "song-document/v2",
     revision: (previous?.revision ?? 0) + 1,
     defaults: { ...(previous?.defaults ?? {}), ...(change.defaults ?? {}) },
     sections,
-    flow: reconcileFlow(previous, sections),
+    flow,
   });
 }
 
 /**
- * The song after its sections were edited in the structured editor, which
- * keeps IDs itself: sections taken as they are, the flow following them,
- * and the revision moved on.
+ * The song after its sections (and/or its flow) were edited in the
+ * structured editor, which keeps IDs itself: taken as they are - the flow
+ * following the sections when it isn't given - and the revision moved on.
  */
 export function songDocumentFromSections(
   previous: SongDocumentV2 | null,
-  change: { sections?: SectionV2[]; defaults?: SongDefaultsV2 },
+  change: { sections?: SectionV2[]; flow?: SectionInstance[]; defaults?: SongDefaultsV2 },
 ): SongDocumentV2 {
   const sections = change.sections ?? previous?.sections ?? [];
   return parseSongDocumentV2({
@@ -79,7 +215,7 @@ export function songDocumentFromSections(
     revision: (previous?.revision ?? 0) + 1,
     defaults: { ...(previous?.defaults ?? {}), ...(change.defaults ?? {}) },
     sections,
-    flow: reconcileFlow(previous, sections),
+    flow: change.flow ?? reconcileFlow(previous, sections),
   });
 }
 
@@ -140,7 +276,47 @@ export interface ChordProDetails {
   capo?: number | null;
 }
 
-/** A ChordPro file for the song: its details as directives, then the chart. */
+/**
+ * The chart in the order it's sung, as ChordPro: each section in full the
+ * first time; a chorus sung again as "{chorus}", any other section written
+ * out again. A key change is a "{key: A}" before its pass, and from there on
+ * sections are written out in full in the new key (as other ChordPro apps
+ * expect); a pass's note is a comment before it.
+ */
+export function flowToChordPro(doc: Pick<SongDocumentV2, "sections" | "flow">): string {
+  if (doc.flow.length === 0) return sectionsToChordPro(doc.sections);
+  const byId = new Map(doc.sections.map((section) => [section.id, section]));
+  const seen = new Set<string>();
+  const blocks: string[] = [];
+  let shift = 0;
+  let key: string | null = null;
+  for (const item of doc.flow) {
+    const section = byId.get(item.sectionId);
+    if (!section) continue;
+    const before: string[] = [];
+    if (item.keyChange) {
+      shift += item.keyChange.steps;
+      key = item.keyChange.key;
+      before.push(`{key: ${item.keyChange.key}}`);
+    }
+    if (item.note) before.push(`{comment: ${item.note}}`);
+    const label = item.label ?? section.label ?? null;
+    let body: string;
+    if (seen.has(section.id) && section.type === "chorus" && shift % 12 === 0) {
+      body = label ? `{chorus: ${label}}` : "{chorus}";
+    } else {
+      const lines = section.lines.map((line) =>
+        shift % 12 === 0 ? line : { ...line, chords: line.chords.map((chord) => ({ ...chord, raw: transposeChord(chord.raw, shift, key) })) },
+      );
+      body = sectionsToChordPro([{ ...section, label, lines }]).trimEnd();
+    }
+    seen.add(section.id);
+    blocks.push([...before, body].join("\n"));
+  }
+  return blocks.join("\n\n") + "\n";
+}
+
+/** A ChordPro file for the song: its details as directives, then the chart in the order it's sung. */
 export function songToChordPro(doc: SongDocumentV2, details: ChordProDetails): string {
   const header: string[] = [];
   const directive = (name: string, value: string | number | null | undefined) => {
@@ -159,6 +335,6 @@ export function songToChordPro(doc: SongDocumentV2, details: ChordProDetails): s
   directive("tempo", doc.defaults.tempo);
   if (doc.defaults.timeSignature) directive("time", `${doc.defaults.timeSignature.numerator}/${doc.defaults.timeSignature.denominator}`);
   if (details.capo) directive("capo", details.capo);
-  const body = sectionsToChordPro(doc.sections);
+  const body = doc.sections.length > 0 ? flowToChordPro(doc) : "";
   return [header.join("\n"), body].filter(Boolean).join("\n\n").trimEnd() + "\n";
 }

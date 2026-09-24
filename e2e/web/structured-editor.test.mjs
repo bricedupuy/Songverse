@@ -266,6 +266,42 @@ await step("transposing moves every chord and the key", async () => {
   await chip("D").waitFor();
 });
 
+await step("the song order: sing the chorus again, in a new key, with a note for the band", async () => {
+  const order = page.getByTestId("song-order");
+  if ((await order.locator("li button").count()) !== 4) throw new Error("the order doesn't start as the four sections");
+  const chorusId = (await stored()).sections[1].id;
+  await order.getByLabel("Add a pass").selectOption(chorusId);
+  const pass = page.getByTestId("song-order-pass");
+  await pass.getByLabel("Label for this pass").fill("Last chorus");
+  await pass.getByLabel("Key change").selectOption("2");
+  await pass.getByLabel("Note for the band").fill("All in");
+  await order.getByRole("button", { name: /Last chorus/ }).getByText("→A").waitFor();
+  // Moved up one, then back to the end.
+  await pass.getByRole("button", { name: "Earlier" }).click();
+  await pass.getByRole("button", { name: "Later" }).click();
+  await page.getByRole("radio", { name: "Preview" }).click();
+  const last = page.locator("[data-pass]").last();
+  await last.getByText("Last chorus").waitFor();
+  await last.locator('[data-key-change="A"]').waitFor();
+  await last.getByText("All in").waitFor();
+  // The chorus's D, two semitones up.
+  await last.locator('[data-chord="E"]').first().waitFor();
+  await page.getByRole("radio", { name: "Visual" }).click();
+  await save();
+  const doc = await stored();
+  const added = doc.flow.at(-1);
+  if (doc.flow.length !== 5 || added.sectionId !== chorusId || added.label !== "Last chorus" || added.note !== "All in" || added.keyChange?.steps !== 2 || added.keyChange?.key !== "A") {
+    throw new Error(JSON.stringify(doc.flow));
+  }
+});
+
+await step("changing the song's key renames the key changes after it", async () => {
+  await page.getByRole("combobox", { name: "Key", exact: true }).selectOption("A");
+  await page.getByTestId("song-order").getByRole("button", { name: /Last chorus/ }).getByText("→B").waitFor();
+  await page.getByRole("button", { name: "Discard changes" }).click();
+  await page.getByTestId("song-order").getByRole("button", { name: /Last chorus/ }).getByText("→A").waitFor();
+});
+
 await step("on a phone: the palette scrolls sideways, a tapped chord opens its details", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openEditor();

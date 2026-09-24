@@ -166,4 +166,42 @@ check(
   `${r.status}`,
 );
 
+// --- the order it's sung in
+r = await call(me, "POST", "/song-versions", {
+  title: `Doc Order ${stamp}`,
+  language: "en",
+  artists: ["Someone"],
+  key: "G",
+  content: "{start_of_verse}\n[G]Verse words\n{end_of_verse}\n\n{start_of_chorus}\n[C]Chorus words\n{end_of_chorus}\n\n{chorus}\n",
+  contentFormat: "CHORDPRO",
+});
+const orderId = r.body.id;
+doc = (await call(me, "GET", `/song-versions/${orderId}`)).body.documentJson;
+const [verseId, chorusId] = doc.sections.map((s) => s.id);
+check("{chorus} in pasted ChordPro is the chorus sung again", doc.sections.length === 2 && doc.flow.map((i) => i.sectionId).join() === [verseId, chorusId, chorusId].join(), JSON.stringify(doc.flow));
+const order = [
+  { id: "fi_one", sectionId: verseId },
+  { id: "fi_two", sectionId: chorusId, note: "Build" },
+  { id: "fi_three", sectionId: verseId, label: "Verse 2" },
+  { id: "fi_four", sectionId: chorusId, label: "Last chorus", keyChange: { steps: 2, key: "A" } },
+];
+r = await call(me, "PATCH", `/song-versions/${orderId}`, { flow: order, revision: doc.revision });
+check(
+  "the order alone can be saved, the sections untouched",
+  r.status === 200 && JSON.stringify(r.body.documentJson.flow) === JSON.stringify(order) && JSON.stringify(r.body.documentJson.sections) === JSON.stringify(doc.sections),
+  `${r.status} ${JSON.stringify(r.body).slice(0, 300)}`,
+);
+r = await call(me, "PATCH", `/song-versions/${orderId}`, { flow: [...order, { id: "fi_five", sectionId: "sec_missing" }] });
+check("an order naming a missing section is refused", r.status === 400 && /flow\.4\.sectionId/.test(r.body.message), `${r.status} ${JSON.stringify(r.body)}`);
+r = await call(me, "PATCH", `/song-versions/${orderId}`, { flow: order, content: "x" });
+check("the order can't be sent with content", r.status === 400);
+const exported = (await call(me, "GET", `/song-versions/${orderId}/chordpro`)).body.content;
+check(
+  "the export follows the order: a note, a relabelled verse, then {key: A} and the chorus written out in A",
+  exported.includes("{comment: Build}\n{start_of_chorus}\n[C]Chorus words") &&
+    exported.includes("{start_of_verse: Verse 2}\n[G]Verse words") &&
+    exported.includes("{key: A}\n{start_of_chorus: Last chorus}\n[D]Chorus words"),
+  exported,
+);
+
 finish();

@@ -230,4 +230,16 @@ export class SongFieldsDto {
   @IsArray()
   @ArrayMaxSize(SONG_DOCUMENT_LIMITS.sections)
   sections?: unknown[];
+
+  @ApiProperty({
+    required: false,
+    type: "array",
+    items: { type: "object" },
+    description:
+      "The order the song is sung in (SongDocument v2 `flow`: repeats, a pass's label, key change and note). Left out, it follows the sections.",
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(SONG_DOCUMENT_LIMITS.flowItems)
+  flow?: unknown[];
 }

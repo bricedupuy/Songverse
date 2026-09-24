@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseSongDocumentV2, type SongDocumentV2 } from "../schemas/song-document-v2.js";
-import { readSongDocument, sectionsFromText, sectionsToChordPro, songDocumentFromSections, songDocumentFromText, songToChordPro } from "../song-document/text.js";
+import { flowToChordPro, readSongDocument, sectionsFromText, sectionsToChordPro, songDocumentFromSections, songDocumentFromText, songFromText, songToChordPro } from "../song-document/text.js";
 import { layoutChordLine } from "../song-document/layout.js";
 
 const read = (path: string) => JSON.parse(readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8")) as unknown;
@@ -193,5 +193,71 @@ describe("songDocumentFromSections", () => {
     const sections = structuredClone(first.sections);
     sections[1]!.lines[0]!.id = sections[0]!.lines[0]!.id;
     expect(() => songDocumentFromSections(first, { sections })).toThrow(/Duplicate id/);
+  });
+});
+
+describe("the order a song is sung in", () => {
+  const TEXT = "{start_of_verse}\n[G]Verse words\n{end_of_verse}\n\n{start_of_chorus}\n[C]Chorus words\n{end_of_chorus}\n\n{start_of_verse}\n[G]Second verse\n{end_of_verse}\n\n{chorus}\n\n{chorus: Final chorus}\n";
+
+  it("reads {chorus} as the last chorus sung again", () => {
+    const { sections, flow } = songFromText(TEXT, "CHORDPRO");
+    expect(sections.map((s) => s.type)).toEqual(["verse", "chorus", "verse"]);
+    const chorus = sections[1]!.id;
+    expect(flow.map((item) => item.sectionId)).toEqual([sections[0]!.id, chorus, sections[2]!.id, chorus, chorus]);
+    expect(flow.map((item) => item.label ?? null)).toEqual([null, null, null, null, "Final chorus"]);
+    expect(new Set(flow.map((item) => item.id)).size).toBe(5);
+  });
+
+  it("drops a {chorus} with no chorus before it", () => {
+    const { sections, flow } = songFromText("{chorus}\n{start_of_verse}\nWords\n{end_of_verse}\n", "CHORDPRO");
+    expect(sections).toHaveLength(1);
+    expect(flow).toHaveLength(1);
+  });
+
+  it("saving text with repeats keeps IDs and takes its order", () => {
+    const first = songDocumentFromText(null, { content: TEXT, format: "CHORDPRO" });
+    const again = songDocumentFromText(first, { content: TEXT.replace("Chorus words", "Chorus word"), format: "CHORDPRO" });
+    expect(again.sections.map((s) => s.id)).toEqual(first.sections.map((s) => s.id));
+    expect(again.flow.map((item) => item.sectionId)).toEqual(first.flow.map((item) => item.sectionId));
+  });
+
+  it("an order set in the editor is kept as given", () => {
+    const first = songDocumentFromText(null, { content: SONG, format: "CHORDPRO" });
+    const [verse, chorus] = first.sections;
+    const flow = [
+      { id: "fi_a", sectionId: verse!.id },
+      { id: "fi_b", sectionId: chorus!.id },
+      { id: "fi_c", sectionId: chorus!.id, label: "Last time", keyChange: { steps: 2, key: "A" }, note: "Big" },
+    ];
+    expect(songDocumentFromSections(first, { flow }).flow).toEqual(flow);
+    expect(() => songDocumentFromSections(first, { flow: [{ id: "fi_x", sectionId: "sec_nope" }] })).toThrow(/No section/);
+  });
+
+  it("exports in the order it's sung: {chorus} for a repeat, a note before its pass", () => {
+    const doc = songDocumentFromText(null, { content: TEXT, format: "CHORDPRO" });
+    doc.flow[4] = { ...doc.flow[4]!, note: "All in" };
+    const text = flowToChordPro(doc);
+    expect(text).toContain("{end_of_verse}\n\n{chorus}\n\n{comment: All in}\n{chorus: Final chorus}\n");
+    const back = songFromText(text, "CHORDPRO");
+    expect(back.flow.map((item) => back.sections.findIndex((s) => s.id === item.sectionId))).toEqual([0, 1, 2, 1, 1]);
+    expect(back.flow[4]).toMatchObject({ label: "Final chorus", note: "All in" });
+  });
+
+  it("a key change is exported as {key: A} with what follows in the new key, and reads back the same", () => {
+    const doc = songDocumentFromText(null, { content: `{key: G}\n${TEXT}`, format: "CHORDPRO" });
+    doc.defaults = { key: "G" };
+    doc.flow[4] = { ...doc.flow[4]!, keyChange: { steps: 2, key: "A" } };
+    const text = songToChordPro(doc, { title: "Song" });
+    expect(text).toContain("{chorus}\n\n{key: A}\n{start_of_chorus: Final chorus}\n[D]Chorus words\n{end_of_chorus}\n");
+    const back = songFromText(text, "CHORDPRO");
+    expect(back.sections).toHaveLength(3);
+    expect(back.flow.map((item) => back.sections.findIndex((s) => s.id === item.sectionId))).toEqual([0, 1, 2, 1, 1]);
+    expect(back.flow[4]).toMatchObject({ label: "Final chorus", keyChange: { steps: 2, key: "A" } });
+  });
+
+  it("a section first written after a key change is stored in the song's key", () => {
+    const { sections, flow } = songFromText("{key: G}\n{start_of_verse}\n[G]One\n{end_of_verse}\n{key: A}\n{start_of_bridge}\n[E]Two\n{end_of_bridge}\n", "CHORDPRO");
+    expect(sections[1]!.lines[0]!.chords[0]!.raw).toBe("D");
+    expect(flow[1]!.keyChange).toEqual({ steps: 2, key: "A" });
   });
 });

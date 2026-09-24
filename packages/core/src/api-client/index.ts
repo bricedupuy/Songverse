@@ -582,6 +582,8 @@ export interface SongFieldsInput {
   contentFormat?: SupportedImportFormat;
   /** The chart as the structured editor holds it, IDs kept as they are (instead of content). */
   sections?: SectionV2[];
+  /** The order the song is sung in (repeats, labels, key changes, notes); left out, it follows the sections. */
+  flow?: SectionInstance[];
 }
 
 export interface CreateSongVersionInput extends SongFieldsInput {

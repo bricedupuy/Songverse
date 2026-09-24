@@ -28,6 +28,7 @@ import {
   fillFrom,
   formFromVersion,
   isDirty,
+  nameKeyChanges,
   toCreateInput,
   toUpdateInput,
   validate,
@@ -117,7 +118,11 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   });
 
   function setField<K extends keyof SongForm>(field: K, value: SongForm[K]) {
-    updateForm((current) => ({ ...current, [field]: value }));
+    updateForm((current) => {
+      const next = { ...current, [field]: value };
+      // Key changes in the song's order are named from the song's key.
+      return field === "key" ? { ...next, flow: nameKeyChanges(next.flow, next.key) } : next;
+    });
   }
 
   function updateForm(change: (current: SongForm) => SongForm) {
@@ -209,7 +214,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           : null,
       },
       sections: form.sections,
-      flow: [],
+      flow: form.flow,
     };
     const file = songToChordPro(doc, {
       title: form.title.trim(),
@@ -480,6 +485,8 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             <StructuredEditor
               sections={form.sections}
               onChange={(sections) => updateForm((current) => withSections(current, sections))}
+              flow={form.flow}
+              onFlowChange={(flow) => updateForm((current) => ({ ...current, flow: nameKeyChanges(flow, current.key) }))}
               songKey={form.key}
               onSongKeyChange={(key) => setField("key", key)}
               readOnly={!canEdit}

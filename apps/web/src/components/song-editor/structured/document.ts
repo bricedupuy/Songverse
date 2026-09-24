@@ -1,4 +1,12 @@
-import { characterBoundaries, generateId, ID_PREFIXES, type LineV2, type SectionType, type SectionV2 } from "@songverse/core";
+import {
+  characterBoundaries,
+  generateId,
+  ID_PREFIXES,
+  type LineV2,
+  type SectionInstance,
+  type SectionType,
+  type SectionV2,
+} from "@songverse/core";
 import type { JSONContent } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 
@@ -106,6 +114,23 @@ export function sameSections(a: SectionV2[], b: SectionV2[]): boolean {
         section.rhythm ?? null,
         section.groove ?? null,
         section.lines.map((line) => [line.id, line.kind ?? "lyric", line.text, line.chords.map((chord) => [chord.id, chord.at, chord.raw])]),
+      ]),
+    );
+  return canonical(a) === canonical(b);
+}
+
+/** The same order, passes and all, however it was built. */
+export function sameFlow(a: SectionInstance[], b: SectionInstance[]): boolean {
+  const canonical = (flow: SectionInstance[]) =>
+    JSON.stringify(
+      flow.map((item) => [
+        item.id,
+        item.sectionId,
+        item.label ?? null,
+        item.keyChange ? [item.keyChange.steps, item.keyChange.key] : null,
+        item.tempo ?? null,
+        item.timeSignature ?? null,
+        item.note ?? null,
       ]),
     );
   return canonical(a) === canonical(b);

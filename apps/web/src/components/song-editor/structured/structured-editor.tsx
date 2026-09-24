@@ -10,6 +10,7 @@ import {
   simplifyChord,
   transposeChord,
   transposeKey,
+  type SectionInstance,
   type SectionType,
   type SectionV2,
 } from "@songverse/core";
@@ -28,6 +29,7 @@ import { cn } from "#/lib/utils";
 import { KEY_OPTIONS } from "../song-form";
 import { editorToSections, sameSections, sectionsToEditorJSON } from "./document";
 import { startChordDrag } from "./drag";
+import { SongOrder } from "./song-order";
 import {
   addSection,
   deleteChord,
@@ -55,12 +57,16 @@ const MODES: EditorMode[] = ["visual", "text", "preview"];
 export function StructuredEditor({
   sections,
   onChange,
+  flow,
+  onFlowChange,
   songKey,
   onSongKeyChange,
   readOnly,
 }: {
   sections: SectionV2[];
   onChange: (sections: SectionV2[]) => void;
+  flow: SectionInstance[];
+  onFlowChange: (flow: SectionInstance[]) => void;
   songKey: string;
   onSongKeyChange: (key: string) => void;
   readOnly: boolean;
@@ -124,12 +130,13 @@ export function StructuredEditor({
   }, [editor, readOnly]);
 
   if (readOnly) {
-    return <SongChart sections={sections} emptyText={t("songEditor.previewEmpty")} />;
+    return <SongChart sections={sections} flow={flow} emptyText={t("songEditor.previewEmpty")} />;
   }
 
   return (
     <div className="flex flex-col gap-3">
       <Toolbar editor={editor} mode={mode} onModeChange={setMode} songKey={songKey} onSongKeyChange={onSongKeyChange} />
+      {sections.length > 0 && mode !== "text" ? <SongOrder sections={sections} flow={flow} onChange={onFlowChange} songKey={songKey} /> : null}
       <div className={cn("grid grid-cols-1 gap-4", mode === "visual" && "lg:grid-cols-[13rem_minmax(0,1fr)]")}>
         {mode === "visual" && editor ? <Palette editor={editor} songKey={songKey} sections={sections} /> : null}
         <div className={cn("relative min-w-0", mode !== "visual" && "hidden")} data-editor-container="">
@@ -138,7 +145,7 @@ export function StructuredEditor({
           <p className="mt-4 text-xs text-muted-foreground">{t("structuredEditor.hints")}</p>
         </div>
         {mode === "text" ? <TextMode sections={sections} onChange={(next) => onChangeRef.current(next)} /> : null}
-        {mode === "preview" ? <SongChart sections={sections} emptyText={t("songEditor.previewEmpty")} /> : null}
+        {mode === "preview" ? <SongChart sections={sections} flow={flow} emptyText={t("songEditor.previewEmpty")} /> : null}
       </div>
     </div>
   );

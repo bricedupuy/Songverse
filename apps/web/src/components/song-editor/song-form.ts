@@ -2,16 +2,19 @@ import {
   detectImportFormat,
   formatDuration,
   parseDuration,
-  reconcileSections,
-  sectionsFromText,
+  reconcileFlow,
+  transposeKey,
   sectionsToChordPro,
+  songDocumentFromText,
   type CreateSongVersionInput,
+  type SectionInstance,
   type SectionV2,
+  type SongDocumentV2,
   type SongVersionDetail,
   type SupportedImportFormat,
   type UpdateSongVersionInput,
 } from "@songverse/core";
-import { sameSections } from "./structured/document";
+import { sameFlow, sameSections } from "./structured/document";
 
 /** The credit lists the editor edits, and the role each one is. */
 export const CREDIT_FIELDS = {
@@ -52,6 +55,8 @@ export type SongForm = Record<TextField, string> &
     tagIds: string[];
     /** The chart, as saved: what the Editor tab edits, IDs and all. */
     sections: SectionV2[];
+    /** The order they're sung in: repeats, and each pass's label, key change and note. */
+    flow: SectionInstance[];
     /** The chart as text, for Song Info's text box: kept in step with `sections` (see withContent/withSections). */
     content: string;
     /** The format picked by hand; null to go by what the text looks like. */
@@ -65,6 +70,7 @@ export function emptyForm(language: string): SongForm {
     language,
     tagIds: [],
     sections: [],
+    flow: [],
     content: "",
     contentFormat: null,
   };
@@ -99,25 +105,50 @@ export function formFromVersion(version: SongVersionDetail): SongForm {
     ) as unknown as Record<CreditField, string[]>),
     tagIds: version.tags.map((tag) => tag.id),
     sections: version.documentJson.sections,
+    flow: version.documentJson.flow,
     content: sectionsToChordPro(version.documentJson.sections),
     contentFormat: null,
   };
 }
 
-/** The chart typed or pasted as text: read into sections, keeping the IDs of what's still there. */
-export function withContent(form: SongForm, content: string, contentFormat: SupportedImportFormat | null): SongForm {
-  let sections = form.sections;
-  try {
-    sections = reconcileSections(form.sections, sectionsFromText(content, effectiveFormat({ content, contentFormat })));
-  } catch {
-    // Text that can't be read yet leaves the chart as it was.
-  }
-  return { ...form, content, contentFormat, sections };
+/** The form's chart as a document, for the core helpers that work on one. */
+function chartOf(form: SongForm): SongDocumentV2 {
+  return { $schema: "song-document/v2", revision: 0, defaults: {}, sections: form.sections, flow: form.flow };
 }
 
-/** The chart edited in the Editor tab: the text follows, as ChordPro. */
+/**
+ * The chart typed or pasted as text: read into sections, keeping the IDs of
+ * what's still there, and the order it's sung in ("{chorus}" repeats; a
+ * hand-set order otherwise keeps its shape).
+ */
+export function withContent(form: SongForm, content: string, contentFormat: SupportedImportFormat | null): SongForm {
+  try {
+    const doc = songDocumentFromText(chartOf(form), { content, format: effectiveFormat({ content, contentFormat }) });
+    return { ...form, content, contentFormat, sections: doc.sections, flow: doc.flow };
+  } catch {
+    // Text that can't be read yet leaves the chart as it was.
+    return { ...form, content, contentFormat };
+  }
+}
+
+/** The chart edited in the Editor tab: the order follows added and deleted sections, and the text follows as ChordPro. */
 export function withSections(form: SongForm, sections: SectionV2[]): SongForm {
-  return { ...form, sections, content: sectionsToChordPro(sections), contentFormat: null };
+  return { ...form, sections, flow: reconcileFlow(chartOf(form), sections), content: sectionsToChordPro(sections), contentFormat: null };
+}
+
+/**
+ * Key changes named for the key they reach: each is a number of semitones
+ * from the key before it, so changing the song's key (or an earlier change)
+ * renames every one after.
+ */
+export function nameKeyChanges(flow: SectionInstance[], songKey: string): SectionInstance[] {
+  let key: string | null = songKey || null;
+  return flow.map((item) => {
+    if (!item.keyChange) return item;
+    const name = key ? transposeKey(key, item.keyChange.steps) : null;
+    key = name ?? item.keyChange.key;
+    return name && name !== item.keyChange.key ? { ...item, keyChange: { ...item.keyChange, key: name } } : item;
+  });
 }
 
 /** The format the content will be read as. */
@@ -154,6 +185,7 @@ export function fieldChanged(form: SongForm, initial: SongForm, field: keyof Son
   const a = form[field];
   const b = initial[field];
   if (field === "sections") return !sameSections(form.sections, initial.sections);
+  if (field === "flow") return !sameFlow(form.flow, initial.flow);
   // The text is only a view of the sections.
   if (field === "content" || field === "contentFormat") return false;
   if (Array.isArray(a) && Array.isArray(b)) return !sameList(a as string[], b as string[]);
@@ -191,6 +223,7 @@ function changedFields(form: SongForm, initial: SongForm): UpdateSongVersionInpu
   }
   if (fieldChanged(form, initial, "tagIds")) data.tagIds = form.tagIds;
   if (fieldChanged(form, initial, "sections")) data.sections = form.sections;
+  if (fieldChanged(form, initial, "flow")) data.flow = form.flow;
   return data as UpdateSongVersionInput;
 }
 
@@ -218,6 +251,7 @@ export function fillFrom(form: SongForm, source: SongForm): SongForm {
   if (next.tagIds.length === 0) next.tagIds = source.tagIds;
   if (next.sections.length === 0) {
     next.sections = source.sections;
+    next.flow = source.flow;
     next.content = source.content;
   }
   return next;
