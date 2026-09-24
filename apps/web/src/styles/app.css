@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* dark: follows the app's mode (lib/mode.ts), not the system setting. */
+/* dark: follows the app's mode and theme (lib/mode.ts), which may follow the device's. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
@@ -31,20 +31,74 @@
   --sidebar-border: oklch(0.922 0 0);
 }
 
-/* Perform mode (lib/mode.ts) looks like a stage, not a desk: blue accents
-   and chords, and dark unless the player picks the light theme. */
-:root[data-mode="perform"] {
-  --primary: oklch(0.5 0.2 262);
-  --primary-foreground: oklch(0.985 0 0);
-  --accent: oklch(0.95 0.03 262);
-  --accent-foreground: oklch(0.35 0.15 262);
-  --ring: oklch(0.6 0.17 262);
-  --sidebar: oklch(0.97 0.015 262);
-  --sidebar-accent: oklch(0.93 0.035 262);
-  --sidebar-accent-foreground: oklch(0.35 0.15 262);
-  --sidebar-border: oklch(0.9 0.03 262);
+/* Each mode (lib/mode.ts) has its own look, so it's clear which one you're
+   in. Edit is neutral; its dark theme is a plain dark grey. */
+:root[data-mode="edit"].dark {
+  --background: oklch(0.2 0 0);
+  --foreground: oklch(0.96 0 0);
+  --card: oklch(0.24 0 0);
+  --card-foreground: oklch(0.96 0 0);
+  --popover: oklch(0.26 0 0);
+  --popover-foreground: oklch(0.96 0 0);
+  --primary: oklch(0.92 0 0);
+  --primary-foreground: oklch(0.2 0 0);
+  --secondary: oklch(0.3 0 0);
+  --secondary-foreground: oklch(0.96 0 0);
+  --muted: oklch(0.3 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.32 0 0);
+  --accent-foreground: oklch(0.96 0 0);
+  --destructive: oklch(0.68 0.2 22);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.6 0 0);
+  --sidebar: oklch(0.17 0 0);
+  --sidebar-foreground: oklch(0.96 0 0);
+  --sidebar-accent: oklch(0.3 0 0);
+  --sidebar-accent-foreground: oklch(0.96 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
 }
-:root[data-mode="perform"].dark {
+
+/* Practice: green, light or dark (a deep green-grey). */
+:root[data-mode="practice"] {
+  --primary: oklch(0.52 0.13 160);
+  --primary-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.95 0.03 160);
+  --accent-foreground: oklch(0.36 0.09 160);
+  --ring: oklch(0.62 0.12 160);
+  --sidebar: oklch(0.975 0.012 160);
+  --sidebar-accent: oklch(0.93 0.035 160);
+  --sidebar-accent-foreground: oklch(0.36 0.09 160);
+  --sidebar-border: oklch(0.9 0.03 160);
+}
+:root[data-mode="practice"].dark {
+  --background: oklch(0.21 0.015 170);
+  --foreground: oklch(0.96 0.005 160);
+  --card: oklch(0.25 0.018 170);
+  --card-foreground: oklch(0.96 0.005 160);
+  --popover: oklch(0.27 0.018 170);
+  --popover-foreground: oklch(0.96 0.005 160);
+  --primary: oklch(0.8 0.14 160);
+  --primary-foreground: oklch(0.2 0.03 170);
+  --secondary: oklch(0.3 0.02 170);
+  --secondary-foreground: oklch(0.96 0.005 160);
+  --muted: oklch(0.3 0.02 170);
+  --muted-foreground: oklch(0.74 0.02 160);
+  --accent: oklch(0.32 0.04 165);
+  --accent-foreground: oklch(0.96 0.005 160);
+  --destructive: oklch(0.68 0.2 22);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.7 0.12 160);
+  --sidebar: oklch(0.18 0.015 170);
+  --sidebar-foreground: oklch(0.96 0.005 160);
+  --sidebar-accent: oklch(0.32 0.04 165);
+  --sidebar-accent-foreground: oklch(0.96 0.005 160);
+  --sidebar-border: oklch(1 0 0 / 10%);
+}
+
+/* Live looks like a stage: always dark, near black, blue chords. */
+:root[data-mode="live"] {
   --background: oklch(0.13 0.01 262);
   --foreground: oklch(0.96 0 0);
   --card: oklch(0.17 0.012 262);

@@ -117,7 +117,7 @@ try {
     for (const [i, { id }] of songs.entries()) await api(me, "POST", `/songbooks/${songbook.id}/entries`, { songVersionId: id, entryCode: String(i + 1) });
 
     // --- the screenshots
-    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: locale === "fr" ? "fr-FR" : "en-US" });
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: locale === "fr" ? "fr-FR" : "en-US", colorScheme: "light" });
     const page = await context.newPage();
     await signIn(page, me);
     const shoot = async (name, url, ready, options = {}) => {
@@ -141,9 +141,9 @@ try {
     await shoot("arrangement-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
     await shoot("set", `/sets/${set.id}`, () => page.getByTestId("set-song-row").first().waitFor());
     await shoot("set-song", `/sets/${set.id}/songs/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor(), { fullPage: true });
-    // Perform mode (it's remembered, so back to Build for the rest).
-    await shoot("perform", `/sets/${set.id}/perform/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
-    await page.evaluate(() => localStorage.setItem("songverse.mode", "build"));
+    // Live mode (it's remembered, so back to Edit for the rest).
+    await shoot("live", `/sets/${set.id}/live/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
+    await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
     await shoot("songbook", `/songbooks/${songbook.id}`, null, { fullPage: true });
     await shoot("team", `/teams/${team.id}`);
     await context.close();

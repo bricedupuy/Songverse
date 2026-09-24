@@ -43,7 +43,7 @@ import { Route as ProtectedTeamsIndexRouteImport } from './routes/_protected/tea
 import { Route as ProtectedTeamsTeamIdRouteImport } from './routes/_protected/teams/$teamId'
 import { Route as ProtectedTeamsNewRouteImport } from './routes/_protected/teams/new'
 import { Route as ProtectedLibrarySongVersionIdArrangementsArrangementIdRouteImport } from './routes/_protected/library/$songVersionId_.arrangements.$arrangementId'
-import { Route as ProtectedSetsSetlistIdPerformItemIdRouteImport } from './routes/_protected/sets/$setlistId_.perform.$itemId'
+import { Route as ProtectedSetsSetlistIdLiveItemIdRouteImport } from './routes/_protected/sets/$setlistId_.live.$itemId'
 import { Route as ProtectedSetsSetlistIdSongsItemIdRouteImport } from './routes/_protected/sets/$setlistId_.songs.$itemId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -222,10 +222,10 @@ const ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute =
     path: '/library/$songVersionId/arrangements/$arrangementId',
     getParentRoute: () => ProtectedRoute,
   } as any)
-const ProtectedSetsSetlistIdPerformItemIdRoute =
-  ProtectedSetsSetlistIdPerformItemIdRouteImport.update({
-    id: '/sets/$setlistId_/perform/$itemId',
-    path: '/sets/$setlistId/perform/$itemId',
+const ProtectedSetsSetlistIdLiveItemIdRoute =
+  ProtectedSetsSetlistIdLiveItemIdRouteImport.update({
+    id: '/sets/$setlistId_/live/$itemId',
+    path: '/sets/$setlistId/live/$itemId',
     getParentRoute: () => ProtectedRoute,
   } as any)
 const ProtectedSetsSetlistIdSongsItemIdRoute =
@@ -269,7 +269,7 @@ export interface FileRoutesByFullPath {
   '/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/teams/': typeof ProtectedTeamsIndexRoute
   '/library/$songVersionId/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
-  '/sets/$setlistId/perform/$itemId': typeof ProtectedSetsSetlistIdPerformItemIdRoute
+  '/sets/$setlistId/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
   '/sets/$setlistId/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRoutesByTo {
@@ -304,7 +304,7 @@ export interface FileRoutesByTo {
   '/songbooks': typeof ProtectedSongbooksIndexRoute
   '/teams': typeof ProtectedTeamsIndexRoute
   '/library/$songVersionId/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
-  '/sets/$setlistId/perform/$itemId': typeof ProtectedSetsSetlistIdPerformItemIdRoute
+  '/sets/$setlistId/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
   '/sets/$setlistId/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRoutesById {
@@ -343,7 +343,7 @@ export interface FileRoutesById {
   '/_protected/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/_protected/teams/': typeof ProtectedTeamsIndexRoute
   '/_protected/library/$songVersionId_/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
-  '/_protected/sets/$setlistId_/perform/$itemId': typeof ProtectedSetsSetlistIdPerformItemIdRoute
+  '/_protected/sets/$setlistId_/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
   '/_protected/sets/$setlistId_/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 export interface FileRouteTypes {
@@ -382,7 +382,7 @@ export interface FileRouteTypes {
     | '/songbooks/'
     | '/teams/'
     | '/library/$songVersionId/arrangements/$arrangementId'
-    | '/sets/$setlistId/perform/$itemId'
+    | '/sets/$setlistId/live/$itemId'
     | '/sets/$setlistId/songs/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -417,7 +417,7 @@ export interface FileRouteTypes {
     | '/songbooks'
     | '/teams'
     | '/library/$songVersionId/arrangements/$arrangementId'
-    | '/sets/$setlistId/perform/$itemId'
+    | '/sets/$setlistId/live/$itemId'
     | '/sets/$setlistId/songs/$itemId'
   id:
     | '__root__'
@@ -455,7 +455,7 @@ export interface FileRouteTypes {
     | '/_protected/songbooks/'
     | '/_protected/teams/'
     | '/_protected/library/$songVersionId_/arrangements/$arrangementId'
-    | '/_protected/sets/$setlistId_/perform/$itemId'
+    | '/_protected/sets/$setlistId_/live/$itemId'
     | '/_protected/sets/$setlistId_/songs/$itemId'
   fileRoutesById: FileRoutesById
 }
@@ -708,11 +708,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRouteImport
       parentRoute: typeof ProtectedRoute
     }
-    '/_protected/sets/$setlistId_/perform/$itemId': {
-      id: '/_protected/sets/$setlistId_/perform/$itemId'
-      path: '/sets/$setlistId/perform/$itemId'
-      fullPath: '/sets/$setlistId/perform/$itemId'
-      preLoaderRoute: typeof ProtectedSetsSetlistIdPerformItemIdRouteImport
+    '/_protected/sets/$setlistId_/live/$itemId': {
+      id: '/_protected/sets/$setlistId_/live/$itemId'
+      path: '/sets/$setlistId/live/$itemId'
+      fullPath: '/sets/$setlistId/live/$itemId'
+      preLoaderRoute: typeof ProtectedSetsSetlistIdLiveItemIdRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/sets/$setlistId_/songs/$itemId': {
@@ -782,7 +782,7 @@ interface ProtectedRouteChildren {
   ProtectedSongbooksIndexRoute: typeof ProtectedSongbooksIndexRoute
   ProtectedTeamsIndexRoute: typeof ProtectedTeamsIndexRoute
   ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute: typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
-  ProtectedSetsSetlistIdPerformItemIdRoute: typeof ProtectedSetsSetlistIdPerformItemIdRoute
+  ProtectedSetsSetlistIdLiveItemIdRoute: typeof ProtectedSetsSetlistIdLiveItemIdRoute
   ProtectedSetsSetlistIdSongsItemIdRoute: typeof ProtectedSetsSetlistIdSongsItemIdRoute
 }
 
@@ -809,8 +809,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedTeamsIndexRoute: ProtectedTeamsIndexRoute,
   ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute:
     ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute,
-  ProtectedSetsSetlistIdPerformItemIdRoute:
-    ProtectedSetsSetlistIdPerformItemIdRoute,
+  ProtectedSetsSetlistIdLiveItemIdRoute: ProtectedSetsSetlistIdLiveItemIdRoute,
   ProtectedSetsSetlistIdSongsItemIdRoute:
     ProtectedSetsSetlistIdSongsItemIdRoute,
 }

@@ -30,14 +30,17 @@ Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord
 
 ![Le tableau de bord, avec vos chants, vos équipes et vos paramètres](../../../assets/screenshots/fr/dashboard.jpg)
 
-## Préparer et Jouer
+## Édition, Session et Live
 
-Le sélecteur en haut à droite de chaque page change le mode de SongVerse :
+Le sélecteur en haut à droite de chaque page change le mode de SongVerse. Chaque mode a son propre aspect, pour que vous sachiez toujours où vous en êtes :
 
-- **Préparer** - pour écrire les chants, préparer les arrangements et les listes. Clair, comme vous le connaissez.
-- **Jouer** - pour jouer. Toute l'application passe en sombre, et les chants d'une liste s'ouvrent en plein écran (voir [Jouer une liste sur scène](/fr/sets/#jouer-une-liste-sur-scène)). Le bouton soleil à côté du sélecteur donne au mode Jouer un thème clair, pour la lumière du jour ou une scène en plein air ; la lune ramène le sombre.
+- **Édition** - pour écrire les chants, préparer les arrangements et les listes. Des gris neutres.
+- **Session** - pour apprendre et répéter, seul ou avec le groupe. Vert.
+- **Live** - sur scène. Toujours sombre, presque noir avec des accords bleus, et les chants d'une liste s'ouvrent en plein écran (voir [Jouer une liste en live](/fr/sets/#jouer-une-liste-en-live)).
 
-SongVerse retient le mode sur chaque appareil : la tablette sur votre pupitre peut rester en mode Jouer pendant que votre ordinateur reste en mode Préparer.
+Édition et Session suivent le réglage clair ou sombre de votre appareil. Le bouton lune à côté du sélecteur les passe en sombre, le soleil les repasse en clair ; revenez au réglage de votre appareil et SongVerse suit de nouveau l'appareil. Le mode Live n'a pas ce bouton : il est toujours sombre.
+
+SongVerse retient le mode sur chaque appareil : la tablette sur votre pupitre peut rester en Live pendant que votre ordinateur reste en Édition.
 
 ## Langue
 

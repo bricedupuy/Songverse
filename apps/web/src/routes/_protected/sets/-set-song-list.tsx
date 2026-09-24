@@ -152,8 +152,8 @@ function SongRow({
       <div className="flex min-w-40 flex-1 flex-col gap-1">
         {song ? (
           <Link
-            // Perform opens it full screen.
-            to={mode === "perform" ? "/sets/$setlistId/perform/$itemId" : "/sets/$setlistId/songs/$itemId"}
+            // Live opens it full screen.
+            to={mode === "live" ? "/sets/$setlistId/live/$itemId" : "/sets/$setlistId/songs/$itemId"}
             params={{ setlistId, itemId: item.id }}
             className="font-medium hover:underline"
           >

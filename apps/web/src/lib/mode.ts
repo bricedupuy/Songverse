@@ -1,37 +1,42 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * The app's mode (issue #11): Build to write songs and prepare sets,
- * Perform to play them on stage. Each mode has its own look - Perform is
- * dark unless the player picks its light theme - and set songs open full
- * screen in Perform. Remembered on this device, not the account: the tablet
- * on the music stand performs while the laptop builds.
+ * The app's mode (issues #11, #47): Edit to write songs and prepare sets,
+ * Practice to learn and rehearse them, Live to play them on stage. Each
+ * mode has its own look; a set's songs open full screen in Live.
+ *
+ * Edit and Practice follow the device's light or dark setting until the
+ * player picks one; Live is always dark. Remembered on this device, not
+ * the account: the tablet on the music stand stays Live while the laptop
+ * edits.
  */
-export type AppMode = "build" | "perform";
-export type PerformTheme = "dark" | "light";
+export type AppMode = "edit" | "practice" | "live";
+export type Theme = "light" | "dark";
 
 const MODE_KEY = "songverse.mode";
-const THEME_KEY = "songverse.performTheme";
+// Edit and Practice's theme, when the player picked one; unset follows the device.
+const THEME_KEY = "songverse.theme";
+const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 /**
- * Sets <html>'s mode and theme: the ones given, or else what's stored.
+ * Sets <html>'s mode and theme from what's stored and the device's setting.
  * Self-contained (no imports, literal keys) because it also runs as an
- * inline script before the page paints (MODE_SCRIPT), so a reload in
- * Perform never flashes light.
+ * inline script before the page paints (MODE_SCRIPT), so a reload never
+ * flashes the wrong theme.
  */
-function applyMode(mode?: string, theme?: string) {
-  if (!mode || !theme) {
-    mode = "build";
-    theme = "dark";
-    try {
-      mode = localStorage.getItem("songverse.mode") === "perform" ? "perform" : "build";
-      theme = localStorage.getItem("songverse.performTheme") === "light" ? "light" : "dark";
-    } catch {
-      // Storage blocked: the defaults.
-    }
+function applyMode() {
+  let mode = "edit";
+  let theme = null;
+  try {
+    const stored = localStorage.getItem("songverse.mode");
+    // "build" and "perform" were the first two modes' names.
+    mode = stored === "live" || stored === "perform" ? "live" : stored === "practice" ? "practice" : "edit";
+    theme = localStorage.getItem("songverse.theme");
+  } catch {
+    // Storage blocked: the defaults.
   }
+  const dark = mode === "live" || (theme ? theme === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches);
   const root = document.documentElement;
-  const dark = mode === "perform" && theme === "dark";
   root.dataset.mode = mode;
   root.classList.toggle("dark", dark);
   root.style.colorScheme = dark ? "dark" : "light";
@@ -39,61 +44,65 @@ function applyMode(mode?: string, theme?: string) {
 
 export const MODE_SCRIPT = `(${applyMode.toString()})()`;
 
-type Snapshot = { mode: AppMode; performTheme: PerformTheme };
-const SERVER: Snapshot = { mode: "build", performTheme: "dark" };
+type Snapshot = { mode: AppMode; theme: Theme };
+const SERVER: Snapshot = { mode: "edit", theme: "light" };
 let current: Snapshot | null = null;
 const listeners = new Set<() => void>();
 
+// Read back from <html>, which applyMode() has just set.
 function snapshot(): Snapshot {
   if (!current) {
-    let performTheme: PerformTheme = "dark";
-    try {
-      performTheme = localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark";
-    } catch {
-      // Storage blocked: the default.
-    }
-    current = { mode: document.documentElement.dataset.mode === "perform" ? "perform" : "build", performTheme };
+    const root = document.documentElement;
+    const mode = root.dataset.mode === "live" ? "live" : root.dataset.mode === "practice" ? "practice" : "edit";
+    current = { mode, theme: root.classList.contains("dark") ? "dark" : "light" };
   }
   return current;
 }
 
-function save(next: Snapshot) {
-  try {
-    localStorage.setItem(MODE_KEY, next.mode);
-    localStorage.setItem(THEME_KEY, next.performTheme);
-  } catch {
-    // Storage blocked: it lasts until the page is reloaded.
-  }
-  current = next;
-  applyMode(next.mode, next.performTheme);
+function changed() {
+  applyMode();
+  current = null;
   for (const listener of listeners) listener();
+}
+
+function store(key: string, value: string | null) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    // Storage blocked: nothing to remember it by.
+  }
 }
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  // Another tab switching mode switches this one too.
+  // Another tab switching, or the device going dark at sunset.
   const onStorage = (event: StorageEvent) => {
-    if (event.key !== MODE_KEY && event.key !== THEME_KEY) return;
-    applyMode();
-    current = null;
-    listener();
+    if (event.key === MODE_KEY || event.key === THEME_KEY) changed();
   };
+  const media = window.matchMedia(DARK_QUERY);
   window.addEventListener("storage", onStorage);
+  media.addEventListener("change", changed);
   return () => {
     listeners.delete(listener);
     window.removeEventListener("storage", onStorage);
+    media.removeEventListener("change", changed);
   };
 }
 
 export function setMode(mode: AppMode) {
-  save({ ...snapshot(), mode });
+  store(MODE_KEY, mode);
+  changed();
 }
 
-export function setPerformTheme(performTheme: PerformTheme) {
-  save({ ...snapshot(), performTheme });
+/** Edit and Practice's theme. The device's own setting goes back to following the device. */
+export function setTheme(theme: Theme) {
+  const device: Theme = window.matchMedia(DARK_QUERY).matches ? "dark" : "light";
+  store(THEME_KEY, theme === device ? null : theme);
+  changed();
 }
 
-/** The current mode and Perform theme; Build while rendering on the server. */
+/** The current mode and theme (Live's is always dark); Edit, light, while rendering on the server. */
 export function useMode(): Snapshot {
   return useSyncExternalStore(subscribe, snapshot, () => SERVER);
 }

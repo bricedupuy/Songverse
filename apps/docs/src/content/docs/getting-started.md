@@ -30,14 +30,17 @@ Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your
 
 ![The dashboard, with your songs, teams and settings](../../assets/screenshots/en/dashboard.jpg)
 
-## Build and Perform
+## Edit, Practice and Live
 
-The switch at the top right of every page changes SongVerse's mode:
+The switch at the top right of every page changes SongVerse's mode. Each mode has its own look, so you always know which one you're in:
 
-- **Build** - to write songs, prepare arrangements and sets. Light, as you know it.
-- **Perform** - to play. The whole app turns dark, and a set's songs open full screen (see [Performing a set](/sets/#performing-a-set)). The sun button next to the switch gives Perform a light theme instead, for daylight or outdoor stages; the moon brings the dark back.
+- **Edit** - to write songs, prepare arrangements and sets. Neutral greys.
+- **Practice** - to learn and rehearse, alone or with the band. Green.
+- **Live** - on stage. Always dark, near black with blue chords, and a set's songs open full screen (see [Playing a set live](/sets/#playing-a-set-live)).
 
-SongVerse remembers the mode on each device, so the tablet on your music stand can stay in Perform while your computer stays in Build.
+Edit and Practice follow your device's light or dark setting. The moon button next to the switch makes them dark, and the sun makes them light again; choose your device's own setting and SongVerse follows the device again. Live has no such button: it's always dark.
+
+SongVerse remembers the mode on each device, so the tablet on your music stand can stay Live while your computer stays in Edit.
 
 ## Language
 

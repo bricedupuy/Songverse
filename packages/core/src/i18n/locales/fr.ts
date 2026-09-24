@@ -822,13 +822,14 @@ const fr: typeof en = {
   },
   mode: {
     label: "Mode",
-    build: "Préparer",
-    perform: "Jouer",
-    darkTheme: "Scène sombre",
-    lightTheme: "Scène claire",
+    edit: "Édition",
+    practice: "Session",
+    live: "Live",
+    darkTheme: "Thème sombre",
+    lightTheme: "Thème clair",
   },
-  perform: {
-    start: "Jouer",
+  live: {
+    start: "Live",
     backToSet: "Retour à la liste",
     position: "{{position}} / {{count}}",
     nextUp: "Ensuite : {{title}}",

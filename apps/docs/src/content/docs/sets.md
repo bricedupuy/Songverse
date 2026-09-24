@@ -39,11 +39,11 @@ Click a song in the set to open its chart, as the set plays it: its arrangement,
 - **My view** changes the chart for you only - hide chords, simpler chords, solfège, capo shapes. See [Your own view of a chart](/arrangements/#your-own-view-of-a-chart).
 - **My notes** are private: capo, cues, reminders. Only you see them.
 
-## Performing a set
+## Playing a set live
 
-On stage, switch to **Perform** - the button on the set's page, or the mode switch at the top right of every page. SongVerse turns dark (easy on the eyes in a dim room) and each song of the set opens full screen, big, as you read it with [My view](/arrangements/#your-own-view-of-a-chart).
+On stage, switch to **Live** - the button on the set's page, or the mode switch at the top right of every page. SongVerse turns dark (easy on the eyes in a dim room) and each song of the set opens full screen, big, as you read it with [My view](/arrangements/#your-own-view-of-a-chart).
 
-![A song of a set in Perform mode](../../assets/screenshots/en/perform.jpg)
+![A song of a set in Live mode](../../assets/screenshots/en/live.jpg)
 
 - The top shows the song, where it is in the set, and its key, capo and tempo. **×** goes back to the set.
 - The bottom shows what's next - **Next: …** takes you there - and the previous song's arrow.

@@ -2,13 +2,13 @@ import { ApiError } from "@songverse/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { PerformView } from "#/components/perform-view";
+import { LiveView } from "#/components/live-view";
 import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
 import { setMode } from "#/lib/mode";
 
-/** One song of a set, full screen, in Perform mode (components/perform-view.tsx). */
-export const Route = createFileRoute("/_protected/sets/$setlistId_/perform/$itemId")({
+/** One song of a set, full screen, in Live mode (components/live-view.tsx). */
+export const Route = createFileRoute("/_protected/sets/$setlistId_/live/$itemId")({
   staticData: { fullScreen: true },
   // Null when the set or song doesn't exist or isn't visible to this user.
   loader: ({ params }) =>
@@ -16,15 +16,15 @@ export const Route = createFileRoute("/_protected/sets/$setlistId_/perform/$item
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;
     }),
-  component: PerformRoute,
+  component: LiveRoute,
 });
 
-function PerformRoute() {
+function LiveRoute() {
   const { t } = useTranslation();
   const view = Route.useLoaderData();
 
-  // Opened from a link, it's Perform mode from here on.
-  useEffect(() => setMode("perform"), []);
+  // Opened from a link, it's Live mode from here on.
+  useEffect(() => setMode("live"), []);
 
   if (!view) {
     return (
@@ -37,5 +37,5 @@ function PerformRoute() {
       </div>
     );
   }
-  return <PerformView view={view} />;
+  return <LiveView view={view} />;
 }

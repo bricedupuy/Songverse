@@ -39,11 +39,11 @@ Cliquez sur un chant de la liste pour ouvrir sa grille, telle que la liste la jo
 - **Mon affichage** change la grille pour vous seul - accords masqués, simplifiés, solfège, formes de capo. Voir [Votre propre affichage d'une grille](/fr/arrangements/#votre-propre-affichage-dune-grille).
 - **Mes notes** sont privées : capo, repères, rappels. Vous seul les voyez.
 
-## Jouer une liste sur scène
+## Jouer une liste en live
 
-Sur scène, passez en mode **Jouer** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. SongVerse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste s'ouvre en plein écran, en grand, tel que vous le lisez avec [Mon affichage](/fr/arrangements/#votre-propre-affichage-dune-grille).
+Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. SongVerse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste s'ouvre en plein écran, en grand, tel que vous le lisez avec [Mon affichage](/fr/arrangements/#votre-propre-affichage-dune-grille).
 
-![Un chant d'une liste en mode Jouer](../../../assets/screenshots/fr/perform.jpg)
+![Un chant d'une liste en mode Live](../../../assets/screenshots/fr/live.jpg)
 
 - En haut : le chant, sa place dans la liste, sa tonalité, son capo et son tempo. **×** revient à la liste.
 - En bas : ce qui vient ensuite - **Ensuite : …** y mène - et la flèche du chant précédent.

@@ -38,7 +38,7 @@ export function SiteHeader() {
   const { mode } = useMode();
 
   return (
-    <header className={cn("flex h-14 shrink-0 items-center gap-2 border-b", mode === "perform" && "border-b-2 border-b-primary")}>
+    <header className={cn("flex h-14 shrink-0 items-center gap-2 border-b", mode !== "edit" && "border-b-2 border-b-primary")}>
       <div className="flex w-full min-w-0 items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
         <Separator orientation="vertical" className="mr-2 h-4" />

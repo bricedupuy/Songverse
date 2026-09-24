@@ -9,20 +9,20 @@ import { SongChart } from "#/components/song-chart";
 import { setlistTitle } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 
-const TEXT_SIZE_KEY = "songverse.performTextSize";
+const TEXT_SIZE_KEY = "songverse.liveTextSize";
 const TEXT_SIZES = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
 const DEFAULT_TEXT_SIZE = 1.5;
 const PHONE_TEXT_SIZE = 1.25;
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 
 /**
- * A song of a set, full screen, to play from (Perform mode, issue #29): the
+ * A song of a set, full screen, to play from (Live mode, issues #29 and #47): the
  * chart big, as this player reads it, what's next, and autoscroll paced by
  * the tempo. Keeps the screen awake. Keys (and page-turner pedals, which
  * send them): Space starts and pauses autoscroll, the up and down arrows
  * and Page Up/Down scroll, the left and right arrows change song.
  */
-export function PerformView({ view }: { view: SetlistSongView }) {
+export function LiveView({ view }: { view: SetlistSongView }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { set, item, song } = view;
@@ -88,7 +88,7 @@ export function PerformView({ view }: { view: SetlistSongView }) {
 
   const goTo = useCallback(
     (itemId: string | null) => {
-      if (itemId) void navigate({ to: "/sets/$setlistId/perform/$itemId", params: { setlistId: set.id, itemId } });
+      if (itemId) void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } });
     },
     [navigate, set.id],
   );
@@ -138,31 +138,31 @@ export function PerformView({ view }: { view: SetlistSongView }) {
   ].filter(Boolean);
 
   return (
-    <div className="flex h-dvh flex-col bg-background text-foreground" data-testid="perform-view">
+    <div className="flex h-dvh flex-col bg-background text-foreground" data-testid="live-view">
       <header className="flex shrink-0 items-center gap-2 border-b-2 border-b-primary px-2 py-2 sm:gap-3 sm:px-4">
-        <IconLink to="/sets/$setlistId" params={{ setlistId: set.id }} label={t("perform.backToSet")}>
+        <IconLink to="/sets/$setlistId" params={{ setlistId: set.id }} label={t("live.backToSet")}>
           <X />
         </IconLink>
         <div className="flex min-w-0 flex-1 flex-col">
           <p className="truncate text-xs text-muted-foreground">
-            {setlistTitle(set, t, i18n.language)} · {t("perform.position", { position: item.position + 1, count: set.itemCount })}
+            {setlistTitle(set, t, i18n.language)} · {t("live.position", { position: item.position + 1, count: set.itemCount })}
           </p>
           <h1 className="truncate text-lg font-semibold sm:text-xl">{song?.title ?? t("sets.hiddenSong")}</h1>
         </div>
         {details.length > 0 ? (
-          <p className="hidden shrink-0 text-sm font-medium text-muted-foreground md:block" data-testid="perform-details">
+          <p className="hidden shrink-0 text-sm font-medium text-muted-foreground md:block" data-testid="live-details">
             {details.join(" · ")}
           </p>
         ) : null}
         {fullScreen.available ? (
-          <IconButton label={t("perform.fullScreen")} pressed={fullScreen.active} onClick={fullScreen.toggle}>
+          <IconButton label={t("live.fullScreen")} pressed={fullScreen.active} onClick={fullScreen.toggle}>
             {fullScreen.active ? <Shrink /> : <Expand />}
           </IconButton>
         ) : null}
         <ModeSwitch />
       </header>
 
-      <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="perform-scroll">
+      <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll">
         {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-[40vh]" style={{ zoom: textSize }}>
           {details.length > 0 ? <p className="text-xs text-muted-foreground md:hidden">{details.join(" · ")}</p> : null}
@@ -178,14 +178,14 @@ export function PerformView({ view }: { view: SetlistSongView }) {
           ) : null}
           {chart ? <SongChart chart={chart} emptyText={t("sets.noChart")} /> : <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>}
           <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">
-            {view.nextItemId ? (view.nextTitle ? t("perform.nextUp", { title: view.nextTitle }) : t("perform.nextHidden")) : t("perform.endOfSet")}
+            {view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet")}
           </p>
         </div>
       </main>
 
       <footer className="flex shrink-0 items-center gap-1 border-t bg-card px-2 py-2 sm:gap-2 sm:px-4">
         <IconLink
-          to="/sets/$setlistId/perform/$itemId"
+          to="/sets/$setlistId/live/$itemId"
           params={{ setlistId: set.id, itemId: view.previousItemId ?? item.id }}
           label={t("sets.previousSong")}
           disabled={!view.previousItemId}
@@ -193,51 +193,51 @@ export function PerformView({ view }: { view: SetlistSongView }) {
           <ChevronLeft />
         </IconLink>
 
-        <div className="flex items-center gap-1" role="group" aria-label={t("perform.autoscroll")}>
-          <IconButton label={t("perform.slower")} onClick={() => changeSpeed(-1)} disabled={!chart || speed === SPEEDS[0]}>
+        <div className="flex items-center gap-1" role="group" aria-label={t("live.autoscroll")}>
+          <IconButton label={t("live.slower")} onClick={() => changeSpeed(-1)} disabled={!chart || speed === SPEEDS[0]}>
             <Turtle />
           </IconButton>
           <button
             type="button"
             onClick={() => setPlaying(!playing)}
             disabled={!chart || seconds <= 0}
-            aria-label={playing ? t("perform.pause") : t("perform.play")}
+            aria-label={playing ? t("live.pause") : t("live.play")}
             aria-pressed={playing}
             className="flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50 [&_svg]:size-4"
           >
             {playing ? <Pause /> : <Play />}
-            <span className="tabular-nums" data-testid="perform-speed">
+            <span className="tabular-nums" data-testid="live-speed">
               {Math.round(speed * 100)}%
             </span>
           </button>
-          <IconButton label={t("perform.faster")} onClick={() => changeSpeed(1)} disabled={!chart || speed === SPEEDS.at(-1)}>
+          <IconButton label={t("live.faster")} onClick={() => changeSpeed(1)} disabled={!chart || speed === SPEEDS.at(-1)}>
             <Rabbit />
           </IconButton>
         </div>
 
         <div className="hidden items-center gap-1 sm:flex">
-          <IconButton label={t("perform.smaller")} onClick={() => changeTextSize(-1)} disabled={textSize === TEXT_SIZES[0]}>
+          <IconButton label={t("live.smaller")} onClick={() => changeTextSize(-1)} disabled={textSize === TEXT_SIZES[0]}>
             <AArrowDown />
           </IconButton>
-          <IconButton label={t("perform.bigger")} onClick={() => changeTextSize(1)} disabled={textSize === TEXT_SIZES.at(-1)}>
+          <IconButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={textSize === TEXT_SIZES.at(-1)}>
             <AArrowUp />
           </IconButton>
         </div>
 
-        <p className="hidden flex-1 text-center text-xs text-muted-foreground lg:block">{t("perform.keys")}</p>
+        <p className="hidden flex-1 text-center text-xs text-muted-foreground lg:block">{t("live.keys")}</p>
 
         <Link
-          to="/sets/$setlistId/perform/$itemId"
+          to="/sets/$setlistId/live/$itemId"
           params={{ setlistId: set.id, itemId: view.nextItemId ?? item.id }}
           disabled={!view.nextItemId}
           className={cn(
             "ml-auto flex h-10 min-w-0 items-center gap-1 rounded-md border px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground [&_svg]:size-4 [&_svg]:shrink-0",
             !view.nextItemId && "pointer-events-none opacity-50",
           )}
-          data-testid="perform-next"
+          data-testid="live-next"
         >
           <span className="truncate">
-            {view.nextItemId ? (view.nextTitle ? t("perform.nextUp", { title: view.nextTitle }) : t("perform.nextHidden")) : t("perform.endOfSet")}
+            {view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet")}
           </span>
           <ChevronRight />
         </Link>
@@ -276,7 +276,7 @@ function IconLink({
   disabled,
   children,
 }: {
-  to: "/sets/$setlistId" | "/sets/$setlistId/perform/$itemId";
+  to: "/sets/$setlistId" | "/sets/$setlistId/live/$itemId";
   params: { setlistId: string; itemId?: string };
   label: string;
   disabled?: boolean;

@@ -819,13 +819,14 @@ const en = {
   },
   mode: {
     label: "Mode",
-    build: "Build",
-    perform: "Perform",
-    darkTheme: "Dark stage",
-    lightTheme: "Light stage",
+    edit: "Edit",
+    practice: "Practice",
+    live: "Live",
+    darkTheme: "Dark theme",
+    lightTheme: "Light theme",
   },
-  perform: {
-    start: "Perform",
+  live: {
+    start: "Live",
     backToSet: "Back to the set",
     position: "{{position}} / {{count}}",
     nextUp: "Next: {{title}}",

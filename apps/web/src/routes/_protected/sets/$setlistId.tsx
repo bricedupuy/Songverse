@@ -105,10 +105,10 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {set.items.length > 0 ? (
-            <Button asChild onClick={() => setMode("perform")}>
-              <Link to="/sets/$setlistId/perform/$itemId" params={{ setlistId: set.id, itemId: set.items[0]!.id }}>
+            <Button asChild onClick={() => setMode("live")}>
+              <Link to="/sets/$setlistId/live/$itemId" params={{ setlistId: set.id, itemId: set.items[0]!.id }}>
                 <Mic />
-                {t("perform.start")}
+                {t("live.start")}
               </Link>
             </Button>
           ) : null}
