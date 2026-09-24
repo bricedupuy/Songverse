@@ -15,7 +15,7 @@ export const text = {
     heroText: "Charts, arrangements and set lists in one place — chords right above the words, in the key you're playing, on any screen.",
     getStarted: "Get started",
     readDocs: "Read the docs",
-    pictureAlt: "A keyboard on stage, with a tablet on its music rest showing a chord chart",
+    pictureAlt: "A keyboard player on stage, a chord chart on a tablet above the keys, the band behind in the lights",
     featuresTitle: "Made for playing, not paperwork",
     features: [
       {
@@ -31,9 +31,6 @@ export const text = {
         text: "Plan a set, pick each song's key and arrangement, and share it with a link: guest musicians can read every chart in it.",
       },
     ],
-    screenshotTitle: "The editor, as you'll use it",
-    screenshotText: "Type or paste a chart, drag chords into place, and set the order the song is sung in.",
-    screenshotAlt: "The SongVerse song editor, with chords above the lyrics and the song's order",
     forWhoTitle: "For anyone who plays with others",
     forWhoText: "Bands, choirs, worship teams, session players, the friend who always brings a guitar. In English and French, in any browser.",
     ctaTitle: "Ready when you are.",
@@ -52,7 +49,7 @@ export const text = {
     heroText: "Grilles, arrangements et listes de chants au même endroit — les accords juste au-dessus des paroles, dans la tonalité jouée, sur tous les écrans.",
     getStarted: "Commencer",
     readDocs: "Lire la documentation",
-    pictureAlt: "Un clavier sur scène, avec une tablette sur son pupitre affichant une grille d'accords",
+    pictureAlt: "Un claviériste sur scène, une grille d'accords sur une tablette au-dessus du clavier, le groupe derrière dans les lumières",
     featuresTitle: "Fait pour jouer, pas pour la paperasse",
     features: [
       {
@@ -68,9 +65,6 @@ export const text = {
         text: "Préparez une liste, choisissez la tonalité et l'arrangement de chaque chant, et partagez-la par lien : les musiciens invités lisent chaque grille.",
       },
     ],
-    screenshotTitle: "L'éditeur, tel que vous l'utiliserez",
-    screenshotText: "Tapez ou collez une grille, placez les accords en les faisant glisser, et choisissez l'ordre dans lequel le chant se chante.",
-    screenshotAlt: "L'éditeur de chants de SongVerse, avec les accords au-dessus des paroles et l'ordre du chant",
     forWhoTitle: "Pour tous ceux qui jouent ensemble",
     forWhoText: "Groupes, chorales, équipes de louange, musiciens de studio, l'ami qui vient toujours avec sa guitare. En français et en anglais, dans tous les navigateurs.",
     ctaTitle: "Prêt quand vous l'êtes.",

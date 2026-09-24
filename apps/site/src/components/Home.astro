@@ -3,8 +3,7 @@ import "@fontsource-variable/inter";
 import "@fontsource/instrument-serif/400-italic.css";
 import { Image } from "astro:assets";
 import "../styles/site.css";
-import appEn from "../assets/app-en.jpg";
-import appFr from "../assets/app-fr.jpg";
+import stage from "../assets/stage.webp";
 import { APP_URL, DOCS_URL, type Text } from "../i18n";
 import Logo from "./Logo.astro";
 
@@ -13,7 +12,6 @@ interface Props {
 }
 const { t } = Astro.props;
 const docs = t.lang === "fr" ? `${DOCS_URL}/fr/` : `${DOCS_URL}/`;
-const screenshot = t.lang === "fr" ? appFr : appEn;
 const icons = [
   // A note over a line of words.
   '<path d="M4 20h16"/><path d="M11 14V4l6 3"/><circle cx="8.5" cy="14" r="2.5"/>',
@@ -40,18 +38,18 @@ const icons = [
     <link rel="alternate" hreflang="fr" href={new URL("/fr/", Astro.site)} />
   </head>
   <body>
-    <header class="wrap top">
-      <a href={t.lang === "fr" ? "/fr/" : "/"} aria-label="SongVerse"><Logo /></a>
-      <nav>
-        <a href={docs}>{t.docs}</a>
-        <a href={t.otherLanguage.href} lang={t.lang === "fr" ? "en" : "fr"}>{t.otherLanguage.label}</a>
-        <a href={APP_URL}>{t.signIn}</a>
-        <a class="button small" href={APP_URL}>{t.openApp}</a>
-      </nav>
-    </header>
-
-    <main>
-      <section class="wrap hero">
+    <div class="hero">
+      <Image class="hero-photo" src={stage} alt={t.pictureAlt} widths={[800, 1280, 1672]} sizes="100vw" loading="eager" fetchpriority="high" />
+      <header class="wrap top">
+        <a href={t.lang === "fr" ? "/fr/" : "/"} aria-label="SongVerse"><Logo /></a>
+        <nav>
+          <a href={docs}>{t.docs}</a>
+          <a href={t.otherLanguage.href} lang={t.lang === "fr" ? "en" : "fr"}>{t.otherLanguage.label}</a>
+          <a href={APP_URL}>{t.signIn}</a>
+          <a class="button small" href={APP_URL}>{t.openApp}</a>
+        </nav>
+      </header>
+      <section class="wrap hero-text">
         <h1>{t.heroTitle[0]}<br /><em>{t.heroTitle[1]}</em></h1>
         <p class="lead">{t.heroText}</p>
         <p class="actions">
@@ -59,11 +57,9 @@ const icons = [
           <a class="button ghost" href={docs}>{t.readDocs}</a>
         </p>
       </section>
+    </div>
 
-      <figure class="wrap stage">
-        <img src="/stage.svg" alt={t.pictureAlt} width="1200" height="800" />
-      </figure>
-
+    <main>
       <section class="wrap features">
         <h2>{t.featuresTitle}</h2>
         <ul>
@@ -75,16 +71,6 @@ const icons = [
             </li>
           ))}
         </ul>
-      </section>
-
-      <section class="wrap screenshot">
-        <div>
-          <h2>{t.screenshotTitle}</h2>
-          <p>{t.screenshotText}</p>
-        </div>
-        <div class="frame">
-          <Image src={screenshot} alt={t.screenshotAlt} widths={[640, 1280]} sizes="(max-width: 900px) 100vw, 720px" />
-        </div>
       </section>
 
       <section class="wrap closing">
