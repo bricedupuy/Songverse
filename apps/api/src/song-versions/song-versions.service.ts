@@ -20,6 +20,7 @@ import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { AccessPolicyService } from "../access/access-policy.service";
+import { setOrder } from "../common/utils/set-order";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import type { SongFieldsDto } from "./dto/song-fields.dto";
@@ -147,7 +148,9 @@ async function replaceCredits(
     select: { id: true, source: true, roles: true },
     orderBy: { displayOrder: "asc" },
   });
-  const kept: { id: string; source: string | null; roles: ContributorRole[] }[] = [];
+  // `id` is null for the people added now.
+  const kept: { id: string | null; source: string | null; roles: ContributorRole[] }[] = [];
+  const removed: string[] = [];
   for (const row of rows) {
     const nextRoles = row.roles.filter((role) => !roles.includes(role));
     const match = row.source ? wanted.get(row.source.toLowerCase()) : undefined;
@@ -156,7 +159,7 @@ async function replaceCredits(
       wanted.delete(row.source!.toLowerCase());
     }
     if (nextRoles.length === 0) {
-      await tx.versionContributor.delete({ where: { id: row.id } });
+      removed.push(row.id);
       continue;
     }
     if (nextRoles.length !== row.roles.length || nextRoles.some((role) => !row.roles.includes(role))) {
@@ -164,23 +167,29 @@ async function replaceCredits(
     }
     kept.push({ id: row.id, source: row.source, roles: nextRoles });
   }
-  for (const entry of wanted.values()) {
-    const created = await tx.versionContributor.create({
-      data: { songVersionId, userId: null, source: entry.name, roles: entry.roles },
-      select: { id: true },
-    });
-    kept.push({ id: created.id, source: entry.name, roles: entry.roles });
-  }
+  for (const entry of wanted.values()) kept.push({ id: null, source: entry.name, roles: entry.roles });
 
   const artistOrder = (lists.PERFORMER ?? []).map((name) => name.toLowerCase());
   const rank = (row: (typeof kept)[number]) => {
     const index = row.source ? artistOrder.indexOf(row.source.toLowerCase()) : -1;
     return row.roles.includes("PERFORMER") ? (index === -1 ? artistOrder.length : index) : artistOrder.length + 1;
   };
-  const ordered = kept.map((row, index) => ({ row, index })).sort((a, b) => rank(a.row) - rank(b.row) || a.index - b.index);
-  for (const [displayOrder, { row }] of ordered.entries()) {
-    await tx.versionContributor.update({ where: { id: row.id }, data: { displayOrder } });
-  }
+  const ordered = kept
+    .map((row, index) => ({ row, index }))
+    .sort((a, b) => rank(a.row) - rank(b.row) || a.index - b.index)
+    .map(({ row }, order) => ({ ...row, order }));
+
+  if (removed.length > 0) await tx.versionContributor.deleteMany({ where: { id: { in: removed } } });
+  await tx.versionContributor.createMany({
+    data: ordered
+      .filter((row) => row.id === null)
+      .map((row) => ({ songVersionId, userId: null, source: row.source, roles: row.roles, displayOrder: row.order })),
+  });
+  await setOrder(
+    tx,
+    "VersionContributor",
+    ordered.flatMap(({ id, order }) => (id ? [{ id, order }] : [])),
+  );
 }
 
 function parseTimeSignature(text: string | null): { numerator: number; denominator: number } | null {

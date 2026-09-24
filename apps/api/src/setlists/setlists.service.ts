@@ -8,6 +8,7 @@ import type {
   UpdateSetlistItemDto,
 } from "./dto/setlist.dto";
 import { SetlistAccessService, SONG_SELECT, type SetRow, type SongRow } from "./setlist-access.service";
+import { setOrder } from "../common/utils/set-order";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CANDIDATE_LIMIT = 20;
@@ -277,7 +278,7 @@ export class SetlistsService {
     await this.prisma.client.$transaction(async (tx) => {
       await tx.setlistItem.delete({ where: { id: itemId } });
       const remaining = await tx.setlistItem.findMany({ where: { setlistId }, orderBy: { position: "asc" }, select: { id: true } });
-      await Promise.all(remaining.map(({ id }, position) => tx.setlistItem.update({ where: { id }, data: { position } })));
+      await setOrder(tx, "SetlistItem", remaining.map(({ id }) => id));
     });
     return this.findOne(user, setlistId);
   }
@@ -290,9 +291,7 @@ export class SetlistsService {
     if (itemIds.length !== existingIds.size || !itemIds.every((id) => existingIds.has(id))) {
       throw new BadRequestException("itemIds must list every item of the set exactly once");
     }
-    await this.prisma.client.$transaction(
-      itemIds.map((id, position) => this.prisma.client.setlistItem.update({ where: { id }, data: { position } })),
-    );
+    await setOrder(this.prisma.client, "SetlistItem", itemIds);
     return this.findOne(user, setlistId);
   }
 

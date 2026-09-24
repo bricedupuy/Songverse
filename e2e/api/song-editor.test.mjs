@@ -55,6 +55,15 @@ r = await call(a, "PATCH", `/song-versions/${songId}`, { artists: ["Louie Giglio
 d = r.body;
 const byName2 = Object.fromEntries(d.contributors.map((c) => [c.source, c.roles.sort().join(",")]));
 check("reordering artists", d.artists.map((x) => x.source).join("|") === "Louie Giglio|Chris Tomlin", d.artists.map((x) => x.source).join("|"));
+r = await call(a, "PATCH", `/song-versions/${songId}`, { artists: ["Matt Redman", "Louie Giglio", "Chris Tomlin"], arrangers: ["New Arranger"] });
+check(
+  "a new artist and arranger slot in: artists first in the order given, then the rest, numbered from 0",
+  r.body.contributors.map((c) => `${c.displayOrder}:${c.source}`).slice(0, 3).join("|") === "0:Matt Redman|1:Louie Giglio|2:Chris Tomlin" &&
+    r.body.contributors.every((c, i) => c.displayOrder === i) &&
+    r.body.contributors.some((c) => c.source === "New Arranger"),
+  JSON.stringify(r.body.contributors.map((c) => [c.displayOrder, c.source])),
+);
+r = await call(a, "PATCH", `/song-versions/${songId}`, { artists: ["Louie Giglio", "Chris Tomlin"], arrangers: [] });
 check("removing a composer role keeps the artist role", byName2["Chris Tomlin"] === "PERFORMER" && byName2["John Newton"] === "COMPOSER,LYRICIST", JSON.stringify(byName2));
 r = await call(a, "PATCH", `/song-versions/${songId}`, { lyricists: [] , composers: []});
 const byName3 = Object.fromEntries(r.body.contributors.map((c) => [c.source, c.roles.join(",")]));
