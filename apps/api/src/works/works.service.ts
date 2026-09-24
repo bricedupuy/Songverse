@@ -1,5 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
+import { MusicBrainzWorkMatchSchema, type MusicBrainzWorkMatch } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -116,8 +117,9 @@ export class WorksService {
         value: mbid,
         sourceUrl: match.sourceUrl,
         verifiedAt: new Date(),
+        details: match,
       },
-      update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date() },
+      update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date(), details: match },
     });
     return match;
   }
@@ -129,11 +131,20 @@ export class WorksService {
     });
   }
 
-  async getMusicBrainzInfo(workId: string) {
+  /**
+   * The linked MusicBrainz work, as saved when it was linked (see
+   * SongVersionsService.getMusicBrainzInfo); an older link is looked up
+   * once and saved.
+   */
+  async getMusicBrainzInfo(workId: string): Promise<MusicBrainzWorkMatch | null> {
     const identifier = await this.prisma.client.workIdentifier.findUnique({
       where: { workId_type: { workId, type: "MUSICBRAINZ_WORK" } },
     });
     if (!identifier) return null;
-    return this.musicBrainz.getWork(identifier.value);
+    const saved = MusicBrainzWorkMatchSchema.safeParse(identifier.details);
+    if (saved.success && saved.data.mbid === identifier.value) return saved.data;
+    const match = await this.musicBrainz.getWork(identifier.value);
+    await this.prisma.client.workIdentifier.update({ where: { id: identifier.id }, data: { details: match } });
+    return match;
   }
 }

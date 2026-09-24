@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   computeSectionLabel,
+  MusicBrainzRecordingMatchSchema,
   detectImportFormat,
   parseSongDocument,
   parseSongText,
@@ -8,6 +9,7 @@ import {
   serializeChordPro,
   splitNames,
   type CatalogEntryData,
+  type MusicBrainzRecordingMatch,
   type SongbookSection,
   type SongDocument,
   type StreamingIdentifierType,
@@ -979,8 +981,9 @@ export class SongVersionsService {
           value: mbid,
           sourceUrl: match.sourceUrl,
           verifiedAt: new Date(),
+          details: match,
         },
-        update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date() },
+        update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date(), details: match },
       });
       await replaceAutoAttachedArtist(tx, songVersionId, match.artist ?? null);
     });
@@ -1036,11 +1039,21 @@ export class SongVersionsService {
     await this.prisma.client.songVersionTag.deleteMany({ where: { songVersionId, tagId } });
   }
 
-  async getMusicBrainzInfo(songVersionId: string) {
+  /**
+   * The linked MusicBrainz recording, as saved when it was linked - no
+   * lookup, so showing a song never waits on MusicBrainz (whose rate limit
+   * is shared by every user). A link saved before these summaries were
+   * kept is looked up once and saved.
+   */
+  async getMusicBrainzInfo(songVersionId: string): Promise<MusicBrainzRecordingMatch | null> {
     const identifier = await this.prisma.client.songVersionIdentifier.findUnique({
       where: { songVersionId_type: { songVersionId, type: "MUSICBRAINZ_RECORDING" } },
     });
     if (!identifier) return null;
-    return this.musicBrainz.getRecording(identifier.value);
+    const saved = MusicBrainzRecordingMatchSchema.safeParse(identifier.details);
+    if (saved.success && saved.data.mbid === identifier.value) return saved.data;
+    const match = await this.musicBrainz.getRecording(identifier.value);
+    await this.prisma.client.songVersionIdentifier.update({ where: { id: identifier.id }, data: { details: match } });
+    return match;
   }
 }

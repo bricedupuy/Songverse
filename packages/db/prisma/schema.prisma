@@ -457,6 +457,9 @@ model WorkIdentifier {
   sourceUrl  String? // e.g. https://musicbrainz.org/work/uuid
   verifiedAt DateTime? // Set when confirmed against external source
   note       String?
+  // What the identifier points at (a MusicBrainz title, artist, album...)
+  // as of verifiedAt, so showing it needs no lookup.
+  details    Json?
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
 
@@ -702,6 +705,9 @@ model SongVersionIdentifier {
   sourceUrl     String? // e.g. https://musicbrainz.org/recording/uuid
   verifiedAt    DateTime? // Set when confirmed against external source
   note          String? // e.g. "Based on 2019 Hillsong live recording"
+  // What the identifier points at (a MusicBrainz title, artist, album...)
+  // as of verifiedAt, so showing it needs no lookup.
+  details    Json?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
