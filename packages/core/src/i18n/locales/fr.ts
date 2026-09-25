@@ -871,9 +871,10 @@ const fr: typeof en = {
     retry: "Réessayer",
   },
   search: {
+    entries: "Dans les recueils",
     open: "Rechercher…",
     label: "Rechercher des chants, listes, recueils et équipes",
-    placeholder: "Chants, listes, recueils, équipes…",
+    placeholder: "Chants, listes, recueils, équipes… ou un numéro : HY 42",
     songs: "Chants",
     sets: "Listes de chants",
     songbooks: "Recueils",

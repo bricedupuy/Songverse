@@ -30,7 +30,7 @@ Tant que SongVerse est ouvert avec une connexion, il se met à jour toutes les q
 - **Les listes** s'ouvrent en lecture seule. Leurs chants s'ouvrent avec leurs accords, et une liste se joue en **Live** du début à la fin.
 - **Les chants** s'ouvrent en lecture seule : leur grille, les fichiers conservés avec eux (**Ouvrir**), et **Live**.
 - **Les recueils** dont vous gardez une copie s'ouvrent avec leurs entrées.
-- **La recherche** trouve tous les chants conservés sur l'appareil : un chant lancé par le leader peut toujours s'afficher en plein écran.
+- **La recherche** trouve tous les chants conservés sur l'appareil, et par leur numéro les entrées des recueils dont vous gardez une copie : un chant lancé par le leader peut toujours s'afficher en plein écran.
 - Le reste affiche **Indisponible hors ligne**.
 
 ## Stockage hors ligne

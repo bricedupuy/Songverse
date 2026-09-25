@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UnauthorizedException, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UnauthorizedException, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -93,5 +93,25 @@ export class SongbooksController {
     @Param("catalogEntryId") catalogEntryId: string,
   ): ReturnType<SongbooksService["materializeEntry"]> {
     return this.songbooksService.materializeEntry(songbookId, catalogEntryId);
+  }
+}
+
+/** Songbook entries by reference, for search (issue #48). */
+@ApiTags("songbooks")
+@ApiBearerAuth()
+@Controller("songbook-entries")
+export class SongbookEntriesController {
+  constructor(private readonly songbooksService: SongbooksService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: "Songbook entries by reference",
+    description:
+      'Reads `q` as a songbook reference - "HY 42", "HY42", "Hymns 42", "42", "A-17" - and returns up to 8 matching entries in songbooks the user can see, whose songs they can see too. Empty when `q` has no number.',
+  })
+  @ApiQuery({ name: "q", required: true })
+  search(@CurrentUser() user: AuthenticatedUser | undefined, @Query("q") q: string | undefined) {
+    if (!user) throw new UnauthorizedException();
+    return this.songbooksService.searchEntries(user, q ?? "");
   }
 }

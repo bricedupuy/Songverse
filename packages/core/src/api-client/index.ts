@@ -194,6 +194,16 @@ export interface SongbookOfflineCopy {
   version: string;
 }
 
+/** A songbook entry found by reference ("HY 42"), for search (issue #48). */
+export interface SongbookEntryHit {
+  songbookId: string;
+  songbookName: string;
+  abbreviation: string | null;
+  entryCode: string;
+  songVersionId: string;
+  title: string;
+}
+
 export type OfflinePinKind = "SET" | "SONG" | "SONGBOOK";
 
 /** Something the user keeps offline on every device ("Available offline", "Keep a local copy"). */
@@ -1133,6 +1143,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     unpinOffline: (kind: OfflinePinKind, targetId: string) => request<void>(`/offline/pins/${kind}/${targetId}`, { method: "DELETE" }),
     getOfflineSongs: (ids: string[]) => request<SongOfflineCopy[]>("/offline/songs", { method: "POST", body: JSON.stringify({ ids }) }),
     getSongbookOffline: (songbookId: string) => request<SongbookOfflineCopy>(`/offline/songbooks/${songbookId}`),
+    searchSongbookEntries: (q: string) => request<SongbookEntryHit[]>(`/songbook-entries?q=${encodeURIComponent(q)}`),
     /** An empty note deletes it. */
     setSetlistNote: (setlistId: string, itemId: string, content: string) =>
       request<{ myNote: string }>(`/setlists/${setlistId}/items/${itemId}/my-note`, { method: "PUT", body: JSON.stringify({ content }) }),

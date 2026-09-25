@@ -868,9 +868,10 @@ const en = {
     retry: "Try again",
   },
   search: {
+    entries: "In songbooks",
     open: "Search…",
     label: "Search songs, sets, songbooks and teams",
-    placeholder: "Songs, sets, songbooks, teams…",
+    placeholder: "Songs, sets, songbooks, teams… or a number: HY 42",
     songs: "Songs",
     sets: "Sets",
     songbooks: "Songbooks",

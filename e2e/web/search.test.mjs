@@ -2,13 +2,15 @@
 // magnifying glass on a phone), Ctrl K, results grouped by kind, and in
 // Live a song that isn't in the set pulled up full screen.
 import { chromium } from "playwright";
-import { WEB, api, finish, signIn, stepper, tag, user } from "../lib/harness.mjs";
+import { WEB, api, call, check, finish, signIn, stepper, tag, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
 const me = await user("Searcher");
 const team = await api(me, "POST", "/teams", { name: `Band ${tag}` });
-const songbook = await api(me, "POST", "/songbooks", { name: `Hymnal ${tag}`, kind: "NUMBERED" });
+// Letters only, and this run's own: "HY 42" style references.
+const abbr = [...tag].map((digit) => "ABCDEFGHIJ"[Number(digit)]).join("");
+const songbook = await api(me, "POST", "/songbooks", { name: `Hymnal ${tag}`, kind: "NUMBERED", abbreviation: abbr });
 const planned = await api(me, "POST", "/song-versions", {
   title: `Planned ${tag}`,
   language: "en",
@@ -27,6 +29,21 @@ const unplanned = await api(me, "POST", "/song-versions", {
 const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
 const set = await api(me, "POST", "/setlists", { name: `Pâques ${tag}`, eventDate: date });
 const [item] = (await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: planned.id })).items;
+
+await api(me, "POST", `/songbooks/${songbook.id}/entries`, { songVersionId: unplanned.id, entryCode: "7" });
+const outsider = await user("Outsider");
+
+// --- songbook references (the API)
+let r = await call(me, "GET", `/songbook-entries?q=${encodeURIComponent(`${abbr} 7`)}`);
+check("an entry by its songbook's abbreviation and number", r.status === 200 && r.body.length === 1 && r.body[0].songVersionId === unplanned.id && r.body[0].entryCode === "7", JSON.stringify(r.body));
+r = await call(me, "GET", `/songbook-entries?q=${abbr}7`);
+check("run together", r.body.length === 1 && r.body[0].title === `Called ${tag}`);
+r = await call(me, "GET", `/songbook-entries?q=${encodeURIComponent(`hymnal ${tag} 7`)}`);
+check("by part of the songbook's name", r.body.length === 1);
+r = await call(me, "GET", `/songbook-entries?q=${encodeURIComponent(`${abbr} 8`)}`);
+check("a number it doesn't have", r.body.length === 0);
+r = await call(outsider, "GET", `/songbook-entries?q=${encodeURIComponent(`${abbr} 7`)}`);
+check("not in someone else's songbook", r.status === 200 && r.body.length === 0);
 
 const browser = await chromium.launch();
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -89,14 +106,27 @@ await step("the arrow keys and Enter open a result; in Edit a song opens its pag
   await dialog().waitFor({ state: "detached" });
 });
 
+await step("a songbook number finds its entry, first; Enter opens the song", async () => {
+  await page.goto(`${WEB}/library`);
+  await page.waitForLoadState("networkidle");
+  await page.keyboard.press("Control+k");
+  await field().fill(`${abbr} 7`);
+  const entry = group("In songbooks").getByRole("option", { name: new RegExp(`${abbr} 7 — Called ${tag}`) });
+  await entry.waitFor();
+  if ((await dialog().getByRole("option").first().textContent()) !== (await entry.textContent())) throw new Error("the entry isn't first");
+  await page.keyboard.press("Enter");
+  await page.waitForURL(`**/library/${unplanned.id}`);
+});
+
 await step("in Live, a song that isn't in the set opens full screen, and × comes back", async () => {
   await page.goto(`${WEB}/sets/${set.id}/live/${item.id}`);
   await page.getByTestId("live-view").waitFor();
   await page.waitForLoadState("networkidle");
   await trigger().click();
   await dialog().getByText("In Live, a song opens full screen.").waitFor();
-  await field().fill(`Called ${tag}`);
-  await group("Songs").getByRole("option", { name: new RegExp(`Called ${tag}`) }).click();
+  // "Hymn 7!": by its number.
+  await field().fill(`${abbr} 7`);
+  await group("In songbooks").getByRole("option", { name: new RegExp(`Called ${tag}`) }).click();
   await page.waitForURL(`**/library/${unplanned.id}/live?**`);
   await page.getByRole("heading", { name: `Called ${tag}` }).waitFor();
   await page.locator('[data-chord="D"]').first().waitFor();

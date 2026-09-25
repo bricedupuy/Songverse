@@ -11,6 +11,7 @@ import {
   keptSongCopy,
   lastOfflineSync,
   offlineViewer,
+  searchKeptEntries,
   searchKeptSongs,
   syncKeptFiles,
   syncKeptSets,
@@ -150,5 +151,24 @@ describe("songs, songbooks and files kept offline", () => {
     // The song goes: its files go too.
     await syncKeptSets(storage, async () => ({ ...base, songbooks: [], goneSongbooks: [], songs: [], goneSongs: ["v1"] }));
     expect(await syncKeptFiles(storage, async () => "bytes")).toEqual({ downloaded: 0, removed: 2 });
+  });
+});
+
+describe("songbook references offline", () => {
+  it("finds entries of kept songbooks by reference", async () => {
+    const storage = memoryStorage();
+    const book = (id: string, name: string, abbreviation: string | null, entries: [string, string, string][]) =>
+      storage.put("songbooks", id, {
+        songbook: { id, name, abbreviation, entries: entries.map(([entryCode, songVersionId, songVersionTitle]) => ({ id: `${id}-${entryCode}`, entryCode, songVersionId, songVersionTitle })) },
+        version: "1",
+        savedAt: "",
+      });
+    await book("hy", "Hymns", "HY", [["42", "v1", "Amazing Grace"], ["43", "v2", "Other"]]);
+    await book("cv", "Chants de victoire", "CV", [["42", "v3", "Chant 42"]]);
+    expect((await searchKeptEntries(storage, "HY 42")).map((hit) => hit.title)).toEqual(["Amazing Grace"]);
+    expect((await searchKeptEntries(storage, "hy42")).map((hit) => hit.title)).toEqual(["Amazing Grace"]);
+    expect((await searchKeptEntries(storage, "victoire 42")).map((hit) => hit.songVersionId)).toEqual(["v3"]);
+    expect((await searchKeptEntries(storage, "42")).map((hit) => hit.songbookName)).toEqual(["Chants de victoire", "Hymns"]);
+    expect(await searchKeptEntries(storage, "grace")).toEqual([]);
   });
 });

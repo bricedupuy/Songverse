@@ -168,6 +168,9 @@ await step("offline: songs open read-only with their files; the songbook opens; 
   const songs = page.getByRole("group", { name: "Songs", exact: true });
   await songs.getByRole("option", { name: new RegExp(`Pinned ${stamp}`) }).waitFor();
   await songs.getByRole("option", { name: new RegExp(`In the book ${stamp}`) }).waitFor();
+  // By its number, in the kept songbook.
+  await page.getByRole("combobox").fill(`hymns ${stamp} 42`);
+  await page.getByRole("group", { name: "In songbooks", exact: true }).getByRole("option", { name: new RegExp(`42 — In the book ${stamp}`) }).waitFor();
   await page.keyboard.press("Escape");
   await goOnline();
 });

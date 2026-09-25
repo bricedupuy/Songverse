@@ -1,5 +1,13 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { computeSectionLabel, parseOriginalSongReference, validateSongbookSections, type SongbookSection } from "@songverse/core";
+import {
+  computeSectionLabel,
+  entryCodeMatches,
+  parseOriginalSongReference,
+  songbookMatches,
+  songbookReferences,
+  validateSongbookSections,
+  type SongbookSection,
+} from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -42,6 +50,47 @@ export class SongbooksService {
     private readonly songVersionsService: SongVersionsService,
     private readonly access: AccessPolicyService,
   ) {}
+
+  /**
+   * Songbook entries a search reads as a reference - "HY 42", "Hymns 42",
+   * "42" (issue #48) - in songbooks the user can see, whose songs they can
+   * see too. Matched as @songverse/core's songbookReferences() reads it, the
+   * same way offline search does.
+   */
+  async searchEntries(user: AuthenticatedUser, query: string, limit = 8) {
+    const references = songbookReferences(query);
+    if (references.length === 0) return [];
+    const [books, songs] = await Promise.all([this.access.songbooksVisibleTo(user), this.access.songsVisibleTo(user)]);
+    const rows = await this.prisma.client.songbookEntry.findMany({
+      where: {
+        AND: [
+          { songbook: books },
+          { songVersion: songs },
+          { OR: references.map((reference) => ({ entryCode: { equals: reference.code, mode: "insensitive" as const } })) },
+        ],
+      },
+      select: {
+        entryCode: true,
+        songbook: { select: { id: true, name: true, abbreviation: true } },
+        songVersion: { select: { id: true, title: true } },
+      },
+      take: 200,
+    });
+    const rank = (row: (typeof rows)[number]) =>
+      references.findIndex((reference) => entryCodeMatches(row.entryCode, reference.code) && songbookMatches(row.songbook, reference.book));
+    return rows
+      .filter((row) => rank(row) !== -1)
+      .sort((a, b) => rank(a) - rank(b) || a.songbook.name.localeCompare(b.songbook.name))
+      .slice(0, limit)
+      .map((row) => ({
+        songbookId: row.songbook.id,
+        songbookName: row.songbook.name,
+        abbreviation: row.songbook.abbreviation,
+        entryCode: row.entryCode!,
+        songVersionId: row.songVersion.id,
+        title: row.songVersion.title,
+      }));
+  }
 
   async findVisibleToUser(user: AuthenticatedUser): Promise<Prisma.SongbookGetPayload<object>[]> {
     return this.prisma.client.songbook.findMany({ where: await this.access.songbooksVisibleTo(user), orderBy: { name: "asc" } });

@@ -1,7 +1,7 @@
-import { onlineOrKept, searchKeptSongs } from "@songverse/core";
+import { onlineOrKept, searchKeptEntries, searchKeptSongs, songbookReferences, type SongbookEntryHit } from "@songverse/core";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
-import { BookOpen, ListMusic, Music, Search, Users, type LucideIcon } from "lucide-react";
+import { BookOpen, Hash, ListMusic, Music, Search, Users, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
@@ -23,7 +23,7 @@ interface FoundSong {
 const OTHER_LIMIT = 5;
 const DEBOUNCE_MS = 200;
 
-type Kind = "songs" | "sets" | "songbooks" | "teams";
+type Kind = "entries" | "songs" | "sets" | "songbooks" | "teams";
 interface Result {
   kind: Kind;
   id: string;
@@ -31,7 +31,7 @@ interface Result {
   detail: string | null;
   open: () => void;
 }
-const ICONS: Record<Kind, LucideIcon> = { songs: Music, sets: ListMusic, songbooks: BookOpen, teams: Users };
+const ICONS: Record<Kind, LucideIcon> = { entries: Hash, songs: Music, sets: ListMusic, songbooks: BookOpen, teams: Users };
 
 /** Lower case, without accents: "Élévation" is found by "elev". */
 function fold(text: string): string {
@@ -101,6 +101,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   const { setlists, songbooks, teams } = useRouteContext({ from: "/_protected" });
   const [query, setQuery] = useState("");
   const [songs, setSongs] = useState<FoundSong[]>([]);
+  const [entries, setEntries] = useState<SongbookEntryHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [active, setActive] = useState(0);
   const list = useRef<HTMLDivElement>(null);
@@ -110,6 +111,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     if (!q) {
       setSongs([]);
+      setEntries([]);
       setSearching(false);
       return;
     }
@@ -136,6 +138,15 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         .then((found) => current && setSongs(found))
         .catch(() => current && setSongs([]))
         .finally(() => current && setSearching(false));
+      // "HY 42", "42": songbook entries by reference (issue #48); offline, in kept songbooks.
+      if (songbookReferences(query).length === 0) setEntries([]);
+      else
+        onlineOrKept(
+          () => apiClient.searchSongbookEntries(query.trim()),
+          () => searchKeptEntries(deviceStorage(), query),
+        )
+          .then((hits) => current && setEntries(hits))
+          .catch(() => current && setEntries([]));
     }, DEBOUNCE_MS);
     return () => {
       current = false;
@@ -157,6 +168,13 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
     };
     const matches = (...texts: (string | null | undefined)[]) => texts.some((text) => text && fold(text).includes(q));
     const byKind: Result[] = [
+      ...entries.map((entry) => ({
+        kind: "entries" as const,
+        id: `${entry.songbookId}-${entry.entryCode}`,
+        label: `${entry.abbreviation ?? entry.songbookName} ${entry.entryCode} — ${entry.title}`,
+        detail: entry.abbreviation ? entry.songbookName : null,
+        open: go(() => void openSong(entry.songVersionId)),
+      })),
       ...songs.map((song) => ({
         kind: "songs" as const,
         id: song.id,
@@ -200,7 +218,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         : []),
     ];
     return byKind;
-  }, [songs, setlists, songbooks, teams, q, mode, t, i18n.language, navigate, router, onDone]);
+  }, [entries, songs, setlists, songbooks, teams, q, mode, t, i18n.language, navigate, router, onDone]);
 
   // The first result is picked as the results change.
   useEffect(() => setActive(0), [results]);
@@ -216,7 +234,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
     event.preventDefault();
   }
 
-  const groups = (["songs", "sets", "songbooks", "teams"] as const)
+  const groups = (["entries", "songs", "sets", "songbooks", "teams"] as const)
     .map((kind) => ({ kind, items: results.map((result, index) => ({ result, index })).filter(({ result }) => result.kind === kind) }))
     .filter((group) => group.items.length > 0);
 

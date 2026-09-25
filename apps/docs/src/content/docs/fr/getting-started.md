@@ -34,6 +34,8 @@ Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord
 
 Le champ de recherche en haut de chaque page - une loupe sur un téléphone - trouve tout : **Chants** (par titre, sous-titre, version, artiste ou numéro CCLI), **Listes de chants**, **Recueils** et **Équipes**, regroupés par type. **Ctrl K** (**⌘ K** sur un Mac) l'ouvre de n'importe où. Les flèches parcourent les résultats, **Entrée** en ouvre un et **Échap** ferme la recherche. Vide, il affiche les listes à venir.
 
+Un numéro de recueil trouve son entrée : tapez l'abréviation du recueil ou une partie de son nom et le numéro - **HY 42**, **HY42**, **Cantiques 42** - ou seulement **42** pour ce numéro dans tous les recueils. Les entrées viennent en premier, sous **Dans les recueils**.
+
 ![Une recherche parmi les chants, listes, recueils et équipes](../../../assets/screenshots/fr/search.jpg)
 
 ## Édition, Session et Live

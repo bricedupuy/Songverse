@@ -6,11 +6,13 @@ import type {
   SetlistOfflineCopy,
   SetlistSongView,
   SongbookDetail,
+  SongbookEntryHit,
   SongbookOfflineCopy,
   SongOfflineCopy,
 } from "../api-client/index.js";
 import type { CapoDisplayModeValue, ChordNotationValue } from "../constants/index.js";
 import type { SongDocumentV2 } from "../schemas/song-document-v2.js";
+import { entryCodeMatches, songbookMatches, songbookReferences } from "../songbook-references/index.js";
 
 /**
  * What a device keeps to work offline (docs/offline.md, issues #25 and
@@ -136,6 +138,32 @@ export async function searchKeptSongs(storage: OfflineStorage, query: string, li
 
 export async function findKeptSong(storage: OfflineStorage, songVersionId: string): Promise<FoundSong | undefined> {
   return (await allFoundSongs(storage)).find((song) => song.songVersionId === songVersionId);
+}
+
+/** Entries of the songbooks kept on the device that `query` reads as ("HY 42"), as the API's search finds them. */
+export async function searchKeptEntries(storage: OfflineStorage, query: string, limit = 8): Promise<SongbookEntryHit[]> {
+  const references = songbookReferences(query);
+  if (references.length === 0) return [];
+  const hits: (SongbookEntryHit & { rank: number })[] = [];
+  for (const { songbook } of await allKeptSongbooks(storage)) {
+    for (const entry of songbook.entries) {
+      const rank = references.findIndex((reference) => entryCodeMatches(entry.entryCode, reference.code) && songbookMatches(songbook, reference.book));
+      if (rank === -1) continue;
+      hits.push({
+        rank,
+        songbookId: songbook.id,
+        songbookName: songbook.name,
+        abbreviation: songbook.abbreviation,
+        entryCode: entry.entryCode!,
+        songVersionId: entry.songVersionId,
+        title: entry.songVersionTitle ?? "",
+      });
+    }
+  }
+  return hits
+    .sort((a, b) => a.rank - b.rank || a.songbookName.localeCompare(b.songbookName))
+    .slice(0, limit)
+    .map(({ rank: _rank, ...hit }) => hit);
 }
 
 /** The user's chord settings, as of the last sync, for songs shown on their own. */
