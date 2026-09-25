@@ -897,6 +897,7 @@ const en = {
       OTHER: "Other",
       CLICK: "Click and cues",
     },
+    fullMix: "Recording",
     part: "Stem",
     partOf: "Stem for {{name}}",
     notAStem: "Not a stem",
@@ -926,6 +927,12 @@ const en = {
     keyLabel: "Key",
     tempoLabel: "BPM",
     recordedIn: "Recorded in {{details}}",
+  },
+  youtube: {
+    title: "YouTube",
+    label: "The song's YouTube video",
+    caption: "The song's video, to play along with: its parts can't be separated.",
+    failed: "YouTube couldn't be reached.",
   },
   mode: {
     label: "Mode",

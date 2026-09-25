@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SongChart } from "#/components/song-chart";
 import { StemDock } from "#/components/stem-dock";
-import { stemsOf } from "#/lib/stem-engine";
+import { playableOf } from "#/lib/stem-engine";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { formatBytes } from "#/lib/format-bytes";
@@ -55,7 +55,7 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
     void keysOffline("files").then((keys) => setKeptFiles(new Set(keys)));
   }, [song.songVersionId]);
 
-  const stems = stemsOf(song.attachments).filter((file) => keptFiles.has(file.id));
+  const stems = playableOf(song.attachments.filter((file) => keptFiles.has(file.id)));
 
   async function open(file: Attachment) {
     const blob = await keptFile<Blob>(deviceStorage(), file.id);

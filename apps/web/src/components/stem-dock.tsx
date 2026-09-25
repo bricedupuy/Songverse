@@ -1,6 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
 import type { StemPart } from "@songverse/core";
 import {
+  AudioLines,
   ChevronDown,
   ChevronUp,
   ClefBass,
@@ -67,7 +68,7 @@ function formatTime(seconds: number): string {
 
 function useTrackName() {
   const { t } = useTranslation();
-  return (track: StemTrack) => `${t(`stems.parts.${track.part}`)}${track.number ? ` ${track.number}` : ""}`;
+  return (track: StemTrack) => (track.part ? `${t(`stems.parts.${track.part}`)}${track.number ? ` ${track.number}` : ""}` : t("stems.fullMix"));
 }
 
 /**
@@ -84,6 +85,8 @@ export function StemDock({ song }: { song: StemSong }) {
   const key = stemKey(song);
   const active = engine.key === key;
   const tracks = active ? engine.tracks : tracksOf(song.stems);
+  // A song without stems: its whole recording (issue #66).
+  const whole = tracks.length === 1 && tracks[0]?.part === null;
   const playing = active && engine.playing;
   const loading = active && engine.status === "loading";
   const position = active ? engine.position : 0;
@@ -206,7 +209,7 @@ export function StemDock({ song }: { song: StemSong }) {
               const name = nameOf(track);
               const on = isAudible(engine, track.id);
               return (
-                <li key={track.id} className="flex items-center gap-2 py-1.5 sm:gap-3" data-testid="stem-track" data-part={track.part} data-audible={String(on)}>
+                <li key={track.id} className="flex items-center gap-2 py-1.5 sm:gap-3" data-testid="stem-track" data-part={track.part ?? "MIX"} data-audible={String(on)}>
                   <PartButton track={track} name={name} on={on} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} />
                   <span className={cn("w-20 shrink-0 min-w-0 sm:w-36", !on && "opacity-50")}>
                     <span className="block truncate text-sm font-medium">{name}</span>
@@ -217,17 +220,20 @@ export function StemDock({ song }: { song: StemSong }) {
                   ) : (
                     <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} dim={!on} onSeek={active && engine.status === "ready" ? (at) => seekStems(at * duration) : undefined} />
                   )}
-                  <Button
-                    type="button"
-                    size="icon"
-                    className="shrink-0"
-                    variant={engine.soloed.has(track.id) ? "secondary" : "ghost"}
-                    aria-pressed={engine.soloed.has(track.id)}
-                    aria-label={t("stems.solo", { part: name })}
-                    onClick={() => toggleStemSolo(track.id)}
-                  >
-                    <Headphones />
-                  </Button>
+                  {/* A whole recording has nothing to solo against. */}
+                  {whole ? null : (
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="shrink-0"
+                      variant={engine.soloed.has(track.id) ? "secondary" : "ghost"}
+                      aria-pressed={engine.soloed.has(track.id)}
+                      aria-label={t("stems.solo", { part: name })}
+                      onClick={() => toggleStemSolo(track.id)}
+                    >
+                      <Headphones />
+                    </Button>
+                  )}
                 </li>
               );
             })}
@@ -237,9 +243,16 @@ export function StemDock({ song }: { song: StemSong }) {
         <div className={cn("mx-auto flex w-full max-w-7xl items-center gap-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
           {play}
           <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1.5 py-1">
-            {tracks.map((track) => (
-              <PartButton key={track.id} track={track} name={nameOf(track)} on={isAudible(engine, track.id)} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} chip />
-            ))}
+            {whole ? (
+              <span className="flex min-w-0 items-center gap-2 text-sm" data-testid="stem-recording-name">
+                <AudioLines className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="truncate">{tracks[0]?.filename}</span>
+              </span>
+            ) : (
+              tracks.map((track) => (
+                <PartButton key={track.id} track={track} name={nameOf(track)} on={isAudible(engine, track.id)} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} chip />
+              ))
+            )}
           </div>
           {status ? <span className="hidden sm:block">{status}</span> : duration ? <span className="hidden sm:block">{time}</span> : null}
           <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => expand(true)} aria-label={t("stems.expand")}>
@@ -278,7 +291,7 @@ function PartButton({
   chip?: boolean;
 }) {
   const { t } = useTranslation();
-  const Icon = PART_ICONS[track.part];
+  const Icon = track.part ? PART_ICONS[track.part] : AudioLines;
   return (
     <button
       type="button"
@@ -287,7 +300,7 @@ function PartButton({
       aria-pressed={soloing ? soloed : muted}
       onClick={() => (soloing ? toggleStemSolo(track.id) : toggleStemMute(track.id))}
       data-testid={chip ? "stem-chip" : "stem-part"}
-      data-part={track.part}
+      data-part={track.part ?? "MIX"}
       data-audible={String(on)}
       className={cn(
         "relative flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",

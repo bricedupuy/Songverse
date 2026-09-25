@@ -5,6 +5,7 @@ import { AppSidebar } from "#/components/app-sidebar";
 import { OfflineBanner } from "#/components/offline-banner";
 import { SiteHeader } from "#/components/site-header";
 import { StemDockSlot, StemReturnButton } from "#/components/stem-dock";
+import { YouTubeHost } from "#/components/youtube-dock";
 import { unloadStems } from "#/lib/stem-engine";
 import type { AppSession } from "#/lib/server-auth";
 import { SidebarInset, SidebarProvider } from "#/components/ui/sidebar";
@@ -31,6 +32,7 @@ export function AppShell({
       <>
         {children}
         <StemReturnButton />
+        <YouTubeHost />
       </>
     );
   }
@@ -49,6 +51,7 @@ export function AppShell({
         </SidebarInset>
       </SidebarProvider>
       <StemReturnButton />
+      <YouTubeHost />
     </StemDockSlot.Provider>
   );
 }

@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PlayerChart } from "#/components/player-chart";
 import { StemDock } from "#/components/stem-dock";
-import { stemsOf } from "#/lib/stem-engine";
+import { YouTubeDock } from "#/components/youtube-dock";
+import { playableOf } from "#/lib/stem-engine";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -226,15 +227,18 @@ function MyNotesCard({ view }: { view: SetlistSongView }) {
  */
 function SetSongStems({ songVersionId, title, returnTo }: { songVersionId: string; title: string; returnTo: string }) {
   const { mode } = useMode();
-  const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean }>({ attachments: [], offline: false });
+  const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean; youtubeId: string | null }>({ attachments: [], offline: false, youtubeId: null });
 
   useEffect(() => {
     if (mode !== "practice") return;
     let cancelled = false;
-    apiClient
-      .listAttachments(songVersionId)
-      .then((attachments) => ({ attachments, offline: false }))
-      .catch(async () => ({ attachments: (await keptSongCopy(deviceStorage(), songVersionId))?.attachments ?? [], offline: true }))
+    Promise.all([apiClient.listAttachments(songVersionId), apiClient.getSongVersion(songVersionId).catch(() => null)])
+      .then(([attachments, version]) => ({
+        attachments,
+        offline: false,
+        youtubeId: version?.identifiers.find((identifier) => identifier.type === "YOUTUBE")?.value ?? null,
+      }))
+      .catch(async () => ({ attachments: (await keptSongCopy(deviceStorage(), songVersionId))?.attachments ?? [], offline: true, youtubeId: null }))
       .then((next) => {
         if (!cancelled) setFiles(next);
       })
@@ -244,8 +248,12 @@ function SetSongStems({ songVersionId, title, returnTo }: { songVersionId: strin
     };
   }, [mode, songVersionId]);
 
-  const stems = stemsOf(files.attachments);
-  if (mode !== "practice" || stems.length === 0) return null;
+  const stems = playableOf(files.attachments);
+  if (mode !== "practice") return null;
+  // No audio of its own: its YouTube video, if it has one (issue #66).
+  if (stems.length === 0) {
+    return files.youtubeId ? <YouTubeDock video={{ songVersionId, videoId: files.youtubeId, title, returnTo }} /> : null;
+  }
   return (
     <StemDock
       song={{

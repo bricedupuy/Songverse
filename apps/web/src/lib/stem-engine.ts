@@ -13,7 +13,8 @@ import { useSyncExternalStore } from "react";
  * separate <audio> elements drift apart.
  */
 
-export type StemFile = Attachment & { stemPart: StemPart };
+/** A file the player plays: a stem (with its part), or a whole recording (null) when a song has no stems. */
+export type StemFile = Attachment & { stemPart: StemPart | null };
 
 /** A song's stems as a page offers them to the player. */
 export interface StemSong {
@@ -28,7 +29,8 @@ export interface StemSong {
 
 export interface StemTrack {
   id: string;
-  part: StemPart;
+  /** Null: a whole recording, played when the song has no stems. */
+  part: StemPart | null;
   filename: string;
   /** 1, 2… when two files are the same part ("Guitar 1"), else 0. */
   number: number;
@@ -100,10 +102,21 @@ function set(change: Partial<StemState>) {
 }
 
 /** A song's stems in the player's order: by part, then by name. */
-export function stemsOf(attachments: Attachment[]): StemFile[] {
+export function stemsOf(attachments: Attachment[]): (Attachment & { stemPart: StemPart })[] {
   return attachments
-    .filter((file): file is StemFile => file.type === "AUDIO" && file.stemPart !== null)
+    .filter((file): file is Attachment & { stemPart: StemPart } => file.type === "AUDIO" && file.stemPart !== null)
     .sort((a, b) => STEM_PARTS.indexOf(a.stemPart) - STEM_PARTS.indexOf(b.stemPart) || a.filename.localeCompare(b.filename));
+}
+
+/**
+ * What the player plays for a song (issue #66): its stems, or when it has
+ * none its latest whole recording, or nothing.
+ */
+export function playableOf(attachments: Attachment[]): StemFile[] {
+  const stems = stemsOf(attachments);
+  if (stems.length > 0) return stems;
+  const [latest] = attachments.filter((file) => file.type === "AUDIO").sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return latest ? [latest] : [];
 }
 
 export function stemKey(song: Pick<StemSong, "songVersionId" | "stems">): string {
@@ -408,9 +421,13 @@ export function prefetchStems(song: StemSong) {
   void load(song);
 }
 
+/** Other players (YouTube, #66) paused when the stems start: one thing plays at a time. */
+export const otherPlayers = new Set<() => void>();
+
 /** Plays `song`, loading it first (and stopping another one) if it isn't what's loaded. */
 export async function playStems(song: StemSong) {
   lastSong = song;
+  for (const pause of otherPlayers) pause();
   // load() sets up the audio before its first wait: start it here, still inside the tap,
   // which is the only time iOS lets sound start.
   const loaded = load(song);

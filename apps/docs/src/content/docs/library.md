@@ -57,6 +57,8 @@ The song keeps playing while you go to another page or leave Practice, and on a 
 
 ![The button back to the song playing](../../assets/screenshots/en/stems-return.jpg)
 
+A song without stems plays its latest recording in the same player, as one part. A song with no audio at all but a YouTube link (on the **Links** tab) plays its YouTube video there instead: the video shows beside the controls, as YouTube requires, and the parts can't be separated. It keeps playing in a small window at the bottom right while you go to other pages; the song's name there takes you back. YouTube stops when the phone locks and doesn't play offline, so for those, add the recording to the **Audio** tab.
+
 Stems kept on your device for offline use (**Include audio**, see [Working offline](/offline/)) play offline too.
 
 ## Submitting to the global catalogue

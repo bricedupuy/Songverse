@@ -57,6 +57,8 @@ Le chant continue de jouer quand vous allez sur une autre page ou quittez le mod
 
 ![Le bouton pour revenir au chant en lecture](../../../assets/screenshots/fr/stems-return.jpg)
 
+Un chant sans pistes joue son dernier enregistrement dans le même lecteur, comme une seule partie. Un chant sans aucun audio mais avec un lien YouTube (onglet **Liens**) y joue sa vidéo YouTube : la vidéo s'affiche à côté des commandes, comme YouTube l'exige, et les parties ne peuvent pas être séparées. Elle continue dans une petite fenêtre en bas à droite quand vous allez sur d'autres pages ; le nom du chant vous y ramène. YouTube s'arrête quand le téléphone se verrouille et ne joue pas hors ligne : dans ces cas, ajoutez l'enregistrement dans l'onglet **Audio**.
+
 Les pistes gardées sur votre appareil pour le hors ligne (**Avec l'audio**, voir [Hors ligne](/fr/offline/)) se lisent aussi hors ligne.
 
 ## Proposer au catalogue global

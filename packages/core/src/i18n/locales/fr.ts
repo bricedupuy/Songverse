@@ -900,6 +900,7 @@ const fr: typeof en = {
       OTHER: "Autres",
       CLICK: "Clic et repères",
     },
+    fullMix: "Enregistrement",
     part: "Piste",
     partOf: "Piste de {{name}}",
     notAStem: "Pas une piste",
@@ -929,6 +930,12 @@ const fr: typeof en = {
     keyLabel: "Tonalité",
     tempoLabel: "BPM",
     recordedIn: "Enregistré en {{details}}",
+  },
+  youtube: {
+    title: "YouTube",
+    label: "La vidéo YouTube du chant",
+    caption: "La vidéo du chant, pour jouer avec : ses parties ne peuvent pas être séparées.",
+    failed: "YouTube n'a pas pu être joint.",
   },
   mode: {
     label: "Mode",
