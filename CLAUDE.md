@@ -85,6 +85,13 @@ the capo are columns; never copy them into the document.
   `SongHistoryService.before()`/`record()` in the same transaction (see
   `SongVersionsService.update`). A new way of changing a song needs it too,
   or that change can't be seen or undone.
+- A song is never copied into another (issue #75). A duplicate goes into
+  the song it duplicates through `SongFoldService.fold`
+  (`apps/api/src/publishing/`): arrangements are pointed at the other
+  song's IDs (`mapChartIds`/`remapArrangement` in `@songverse/core`), and how
+  its owner had it becomes their arrangement (`arrangementFromChart`). A new
+  model with a foreign key to `SongVersion` that should follow the song
+  needs handling there too.
 
 ## Tests
 

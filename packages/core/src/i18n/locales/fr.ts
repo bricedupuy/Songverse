@@ -111,7 +111,6 @@ const fr: typeof en = {
     resubmitting: "Envoi…",
     resubmitLabel: "Qu'avez-vous modifié ? (facultatif)",
     published: "Ce chant est dans le catalogue global.",
-    mergedOwnVersion: "Un relecteur a trouvé ce chant déjà dans le catalogue global. Celui-ci reste le vôtre, comme votre propre version.",
     openGlobal: "Ouvrir le chant global",
     cancel: "Annuler",
   },

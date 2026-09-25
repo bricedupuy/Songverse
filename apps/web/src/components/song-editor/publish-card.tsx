@@ -65,8 +65,7 @@ export function PublishCard({ songVersionId }: { songVersionId: string }) {
       <CardContent className="flex flex-col gap-3">
         {published ? (
           <>
-            {/* Merged into a catalogue song it duplicates: this one stays the user's own version of it (issue #73). */}
-            <p className="text-sm">{t(submission?.mergeTargetId ? "publish.mergedOwnVersion" : "publish.published")}</p>
+            <p className="text-sm">{t("publish.published")}</p>
             <Button asChild variant="outline" size="sm" className="self-start">
               <Link to="/library/$songVersionId" params={{ songVersionId: published.id }}>
                 {t("publish.openGlobal")}

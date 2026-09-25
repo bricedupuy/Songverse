@@ -135,14 +135,9 @@ check("merging needs a global target", r.status === 400, String(r.status));
 r = await call(reviewer, "POST", `/submissions/${sub2}/merge`, { targetId: globalId, notes: "Same song" });
 check("merge into the existing song", r.status === 201 && r.body.state === "APPROVED" && r.body.mergeTargetId === globalId && r.body.publishedVersionId === globalId);
 check("no second catalogue song", Number(sql(`select count(*) from "SongVersion" where "ownerScope"='GLOBAL' and lower(title)=lower('${title}')`)) === 1);
-const bobsNow = await api(bob, "GET", `/song-versions/${bobSong.id}`);
-check(
-  "bob's song stays his, as his own version of the catalogue one",
-  bobsNow.ownerScope === "USER" && bobsNow.publicationState === "DRAFT" && bobsNow.parentVersion?.id === globalId && bobsNow.workId === published.workId,
-  JSON.stringify({ scope: bobsNow.ownerScope, state: bobsNow.publicationState, parent: bobsNow.parentVersion, work: bobsNow.workId === published.workId }),
-);
-r = await call(bob, "GET", `/song-versions/${bobSong.id}/publication`);
-check("and says which song it was merged into", r.body.published?.id === globalId && r.body.canSubmit === false, JSON.stringify(r.body.published));
+r = await call(bob, "GET", `/song-versions/${bobSong.id}`);
+check("bob's song is folded into it (#75): no copy left", r.status === 404, String(r.status));
+check("his library lists the catalogue song", (await api(bob, "GET", `/song-versions?q=${encodeURIComponent(title)}`)).items.some((s) => s.id === globalId));
 
 // --- rejecting, withdrawing, reviewing your own
 const other = await api(bob, "POST", "/song-versions", { title: `Reject Me ${stamp}`, language: "en", artists: ["Bob"] });

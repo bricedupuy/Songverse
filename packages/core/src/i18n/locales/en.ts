@@ -111,7 +111,6 @@ const en = {
     resubmitting: "Resubmitting…",
     resubmitLabel: "What did you change? (optional)",
     published: "This song is in the global catalogue.",
-    mergedOwnVersion: "A reviewer found this song in the global catalogue already. This one stays yours, as your own version of it.",
     openGlobal: "Open the global song",
     cancel: "Cancel",
   },

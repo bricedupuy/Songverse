@@ -1,0 +1,233 @@
+import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
+import {
+  arrangementFromChart,
+  mapChartIds,
+  newArrangementDocument,
+  readSongDocument,
+  remapArrangement,
+  safeParseArrangementDocumentV2,
+  snapshotChanges,
+  type SongSnapshot,
+} from "@songverse/core";
+import type { Prisma } from "@songverse/db";
+import { PrismaService } from "../prisma/prisma.service";
+import { SongHistoryService } from "../song-versions/song-history.service";
+
+type Tx = Prisma.TransactionClient;
+
+/** One fold at a time, whichever process runs it. */
+const FOLD_LOCK = 7_502_075;
+
+/**
+ * Folds a song into a catalogue song it duplicates (issue #75), so there's
+ * one song rather than a copy: a song published as a copy before #73, or
+ * one merged into a duplicate at review.
+ *
+ * Everything on it moves to the catalogue song - its arrangements (pointed
+ * at the catalogue song's sections, lines and chords, by ID or by content),
+ * files (kept to its owner, or its team), tags, set and songbook entries,
+ * offline pins, chart settings, notes, submissions, the versions derived
+ * from it - and how its owner had it becomes their arrangement of the
+ * catalogue song (with its own notes as the description). Details and
+ * credits that differ become a suggestion (#74) from its owner. Then it's
+ * deleted, with its history.
+ */
+@Injectable()
+export class SongFoldService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(SongFoldService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly history: SongHistoryService,
+  ) {}
+
+  /** Songs published as copies before #73 (each with an UpstreamLink) are folded into their catalogue song, once. */
+  async onApplicationBootstrap(): Promise<void> {
+    await this.foldCopies();
+  }
+
+  /** Folds every song still linked to a catalogue copy of it; how many were. */
+  async foldCopies(): Promise<number> {
+    let folded = 0;
+    const links = await this.prisma.client.upstreamLink.findMany({
+      where: { localVersion: { ownerScope: { not: "GLOBAL" } }, globalVersion: { ownerScope: "GLOBAL" } },
+      select: { localVersionId: true, globalVersionId: true },
+    });
+    for (const link of links) {
+      try {
+        await this.prisma.client.$transaction(
+          async (tx) => {
+            await tx.$executeRaw`SELECT pg_advisory_xact_lock(${FOLD_LOCK})`;
+            // Another process may have folded it meanwhile.
+            const still = await tx.upstreamLink.count({ where: { localVersionId: link.localVersionId, globalVersionId: link.globalVersionId } });
+            if (still > 0) await this.fold(tx, link.localVersionId, link.globalVersionId, null);
+          },
+          { timeout: 60_000 },
+        );
+        folded++;
+        this.logger.log(`Folded ${link.localVersionId} into ${link.globalVersionId}`);
+      } catch (error) {
+        this.logger.error(`Couldn't fold ${link.localVersionId} into ${link.globalVersionId}: ${String(error)}`);
+      }
+    }
+    return folded;
+  }
+
+  /**
+   * Folds `songId` into `targetId`, in `tx`. `proposerId` suggests its
+   * details and credits where they differ (its owner, if a person, when
+   * left out).
+   */
+  async fold(tx: Tx, songId: string, targetId: string, proposerId: string | null): Promise<{ arrangementId: string | null }> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(${FOLD_LOCK})`;
+    const song = await tx.songVersion.findUniqueOrThrow({
+      where: { id: songId },
+      select: {
+        id: true,
+        workId: true,
+        title: true,
+        versionName: true,
+        notes: true,
+        capo: true,
+        documentJson: true,
+        ownerScope: true,
+        ownerUserId: true,
+        ownerTeamId: true,
+        ownerUser: { select: { displayName: true, locale: true } },
+        ownerTeam: { select: { name: true } },
+      },
+    });
+    const target = await tx.songVersion.findUniqueOrThrow({ where: { id: targetId }, select: { id: true, workId: true, capo: true, documentJson: true } });
+    const songDoc = readSongDocument(song.documentJson);
+    const targetDoc = readSongDocument(target.documentJson);
+    const map = mapChartIds(songDoc, targetDoc);
+    const owner = { ownerScope: song.ownerScope, ownerUserId: song.ownerUserId, ownerTeamId: song.ownerTeamId };
+
+    // Its arrangements, pointed at the catalogue song (what doesn't map is left for their owners to review).
+    const arrangements = await tx.arrangement.findMany({ where: { songVersionId: songId }, select: { id: true, documentJson: true, isTeamDefault: true, ownerTeamId: true } });
+    for (const arrangement of arrangements) {
+      const parsed = safeParseArrangementDocumentV2(arrangement.documentJson);
+      const teamHasDefault =
+        arrangement.isTeamDefault &&
+        (await tx.arrangement.count({ where: { songVersionId: targetId, ownerTeamId: arrangement.ownerTeamId, isTeamDefault: true } })) > 0;
+      await tx.arrangement.update({
+        where: { id: arrangement.id },
+        data: {
+          songVersionId: targetId,
+          ...(parsed.success && { documentJson: remapArrangement(parsed.data, map, targetId) as object }),
+          ...(teamHasDefault && { isTeamDefault: false }),
+        },
+      });
+    }
+
+    // How its owner had it: their arrangement of the catalogue song.
+    let ownArrangementId: string | null = null;
+    const played = arrangementFromChart(songDoc, targetDoc, map, targetId, { capo: song.capo, toCapo: target.capo });
+    const notes = song.notes?.trim() || null;
+    // (A song with no chart has nothing to play.)
+    if ((played || notes) && song.ownerScope !== "GLOBAL" && songDoc.sections.length > 0) {
+      const document = played ?? newArrangementDocument(targetDoc, targetId, () => `f${Math.random().toString(36).slice(2, 10)}`);
+      const french = song.ownerUser?.locale?.startsWith("fr");
+      const name = song.versionName ?? song.ownerTeam?.name ?? (french ? `Version de ${song.ownerUser?.displayName ?? ""}` : `${song.ownerUser?.displayName ?? ""}'s`);
+      const teamDefault =
+        song.ownerScope === "TEAM" && (await tx.arrangement.count({ where: { songVersionId: targetId, ownerTeamId: song.ownerTeamId, isTeamDefault: true } })) === 0;
+      const created = await tx.arrangement.create({
+        data: { songVersionId: targetId, ...owner, name: name.trim() || song.title, description: notes, documentJson: document as object, isTeamDefault: teamDefault },
+        select: { id: true },
+      });
+      ownArrangementId = created.id;
+    }
+
+    // Its details and credits, where they differ: a suggestion (not its own notes, which stay private).
+    const proposer = proposerId ?? song.ownerUserId;
+    const [songNow, targetNow] = await Promise.all([this.history.before(tx, songId), this.history.before(tx, targetId)]);
+    if (proposer && songNow && targetNow) {
+      const proposed: SongSnapshot = {
+        ...targetNow.snapshot,
+        details: { ...songNow.snapshot.details, notes: targetNow.snapshot.details.notes, versionName: targetNow.snapshot.details.versionName },
+        credits: songNow.snapshot.credits,
+      };
+      if (snapshotChanges(targetNow.snapshot, proposed).length > 0) {
+        await tx.changeProposal.create({
+          data: {
+            songVersionId: targetId,
+            proposerId: proposer,
+            type: "METADATA_UPDATE",
+            title: song.title,
+            proposedChange: { $schema: "song-change/v1", base: targetNow.snapshot, proposed } as unknown as Prisma.InputJsonValue,
+          },
+        });
+      }
+    }
+
+    // Files: still its owner's (or team's) only, as publishing does (#73).
+    if (song.ownerScope === "TEAM" && song.ownerTeamId) {
+      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: "SONG" }, data: { visibility: "TEAM", visibleToTeamId: song.ownerTeamId } });
+    } else {
+      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: "SONG", uploadedByUserId: null }, data: { uploadedByUserId: song.ownerUserId } });
+      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: "SONG" }, data: { visibility: "PRIVATE" } });
+    }
+    await tx.attachment.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
+
+    // Tags it has that the catalogue song doesn't.
+    const tags = await tx.songVersionTag.findMany({ where: { songVersionId: songId }, select: { tagId: true } });
+    await tx.songVersionTag.createMany({ data: tags.map(({ tagId }) => ({ songVersionId: targetId, tagId })), skipDuplicates: true });
+
+    // Sets: its owner's own sets play their arrangement where they played the song as written.
+    if (ownArrangementId) {
+      await tx.setlistItem.updateMany({
+        where: {
+          songVersionId: songId,
+          arrangementId: null,
+          setlist: song.ownerScope === "TEAM" ? { ownerTeamId: song.ownerTeamId } : { ownerUserId: song.ownerUserId },
+        },
+        data: { arrangementId: ownArrangementId },
+      });
+    }
+    await tx.setlistItem.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
+
+    // Songbooks: one entry per song and songbook.
+    for (const entry of await tx.songbookEntry.findMany({ where: { songVersionId: songId }, select: { id: true, songbookId: true } })) {
+      const there = await tx.songbookEntry.count({ where: { songVersionId: targetId, songbookId: entry.songbookId } });
+      if (there > 0) await tx.songbookEntry.delete({ where: { id: entry.id } });
+      else await tx.songbookEntry.update({ where: { id: entry.id }, data: { songVersionId: targetId } });
+    }
+
+    // Offline pins: one per user and song.
+    for (const pin of await tx.offlinePin.findMany({ where: { kind: "SONG", targetId: songId }, select: { id: true, userId: true } })) {
+      const there = await tx.offlinePin.count({ where: { userId: pin.userId, kind: "SONG", targetId } });
+      if (there > 0) await tx.offlinePin.delete({ where: { id: pin.id } });
+      else await tx.offlinePin.update({ where: { id: pin.id }, data: { targetId } });
+    }
+
+    // Chart settings: an arrangement's follow it; the song-as-written ones go to its owner's arrangement, or the song.
+    await tx.chartPreference.updateMany({ where: { songVersionId: songId, arrangementId: { not: null } }, data: { songVersionId: targetId } });
+    for (const preference of await tx.chartPreference.findMany({ where: { songVersionId: songId, arrangementKey: "" }, select: { id: true, userId: true } })) {
+      const key = ownArrangementId ?? "";
+      const there = await tx.chartPreference.count({ where: { userId: preference.userId, songVersionId: targetId, arrangementKey: key } });
+      if (there > 0) await tx.chartPreference.delete({ where: { id: preference.id } });
+      else await tx.chartPreference.update({ where: { id: preference.id }, data: { songVersionId: targetId, arrangementKey: key, arrangementId: ownArrangementId } });
+    }
+
+    await tx.note.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
+    await tx.submission.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
+    await tx.changeProposal.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
+
+    // Versions derived from it (a translation) now derive from the catalogue song, in its Work.
+    await tx.songVersion.updateMany({ where: { parentVersionId: songId }, data: { parentVersionId: targetId } });
+    if (song.workId !== target.workId) {
+      await tx.songVersion.updateMany({ where: { workId: song.workId, NOT: { id: songId } }, data: { workId: target.workId } });
+    }
+
+    // References that don't cascade, then the song, and its Work if nothing's left in it.
+    await tx.work.updateMany({ where: { preferredOriginalVersionId: songId }, data: { preferredOriginalVersionId: null } });
+    await tx.importJob.updateMany({ where: { draftVersionId: songId }, data: { draftVersionId: null } });
+    await tx.auditEvent.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
+    await tx.songVersion.delete({ where: { id: songId } });
+    await tx.work.deleteMany({ where: { id: song.workId, versions: { none: {} } } });
+    await tx.auditEvent.create({
+      data: { action: "UPDATED", entityType: "SongVersion", entityId: targetId, songVersionId: targetId, metadata: { folded: songId, arrangement: ownArrangementId } },
+    });
+    return { arrangementId: ownArrangementId };
+  }
+}

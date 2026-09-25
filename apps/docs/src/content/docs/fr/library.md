@@ -99,7 +99,9 @@ La carte **Catalogue global** de votre chant (ou d'un chant d'équipe que vous a
 
 Une fois publié, le chant lui-même passe au catalogue - il n'y a pas de seconde copie. Votre bibliothèque le liste une seule fois, marqué **Publié par vous**, et sa page dit de qui il vient. Sa grille et ses détails (ses notes aussi) sont désormais à tout le monde, et seuls les administrateurs les modifient ; son [historique](/fr/song-editor/#historique) continue. Ce qui était à vous le reste : vos fichiers restent à vous (ou à l'équipe avec qui vous les avez partagés - voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), vos arrangements restent les vôtres, tout comme vos propres étiquettes.
 
-Si un relecteur trouve que le chant est déjà dans le catalogue, il le fusionne avec celui-ci : le vôtre reste alors à vous, comme votre propre version du chant du catalogue, regroupée avec lui.
+Si un relecteur trouve que le chant est déjà dans le catalogue, il le fusionne avec celui-ci, et le vôtre y est intégré - il n'y a toujours qu'un seul chant. Vos [arrangements](/fr/arrangements/) passent au chant du catalogue (vérifiez-les : chacun dit ce qu'il faut revoir), tout comme vos fichiers (toujours à vous seul·e), vos étiquettes et leurs places dans les listes et les recueils. Votre façon d'avoir le chant - vos paroles, accords, ordre et tonalité - devient un de vos arrangements du chant, à votre nom, avec vos notes ; vos listes le jouent ainsi. Les détails que vous aviez modifiés (titre, crédits, droits) sont proposés aux relecteurs.
+
+Les chants publiés avant que SongVerse fonctionne ainsi avaient été copiés dans le catalogue ; ils ont été intégrés à leur chant du catalogue de la même façon.
 
 ## Proposer une modification
 

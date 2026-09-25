@@ -4,6 +4,7 @@ import type { Prisma } from "@songverse/db";
 import { AccessPolicyService, OPEN_SUBMISSION_STATES } from "../access/access-policy.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { PrismaService } from "../prisma/prisma.service";
+import { SongFoldService } from "./song-fold.service";
 
 type Tx = Prisma.TransactionClient;
 type SubmissionState = "SUBMITTED" | "UNDER_REVIEW" | "NEEDS_CHANGES" | "APPROVED" | "REJECTED" | "WITHDRAWN";
@@ -70,8 +71,9 @@ const fold = (text: string) => foldForSearch(text).trim().replace(/\s+/g, " ");
  * global song it duplicates. Approving moves the song itself into the
  * catalogue (issue #73), as handing it to a team does: one song, with its
  * history, files, arrangements and notes, crediting who contributed it.
- * What was personal stays so (see promoteToGlobal). Merging keeps the
- * submitter's song as their own version of the catalogue one. Global
+ * What was personal stays so (see promoteToGlobal). Merging folds the
+ * submitter's song into the catalogue one (SongFoldService, #75): one
+ * song, their way of singing it becoming their arrangement of it. Global
  * admins can also publish a song straight away - only when they choose
  * to, never automatically. Copyright and CCLI details aren't required.
  *
@@ -83,6 +85,7 @@ export class PublishingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AccessPolicyService,
+    private readonly folds: SongFoldService,
   ) {}
 
   /** What the song page shows: the latest submission, the global song it's linked to, and look-alikes. */
@@ -234,9 +237,10 @@ export class PublishingService {
   }
 
   /**
-   * The song is already in the catalogue: the submitter's song stays
-   * theirs, as their own version of the catalogue one (in its Work, when
-   * it's alone in its own), rather than a second catalogue song.
+   * The song is already in the catalogue: the submitter's song is folded
+   * into that one (#75) - its arrangements, files, sets and the rest move
+   * over, and how they had it becomes their arrangement of it - rather than
+   * becoming a second catalogue song or staying a copy.
    */
   async merge(user: AuthenticatedUser, submissionId: string, input: { targetId: string; notes?: string }) {
     const submission = await this.reviewable(user, submissionId, ["SUBMITTED", "UNDER_REVIEW"]);
@@ -248,21 +252,25 @@ export class PublishingService {
     if (!target || target.ownerScope !== "GLOBAL" || target.publicationState !== "APPROVED") {
       throw new BadRequestException("Merge into a song that's in the global catalogue");
     }
-    await this.prisma.client.$transaction(async (tx) => {
-      await tx.submission.update({
-        where: { id: submissionId },
-        data: {
-          state: "APPROVED",
-          reviewerId: user.id,
-          reviewedAt: new Date(),
-          reviewNotes: input.notes?.trim() || null,
-          mergeTargetId: input.targetId,
-          publishedVersionId: input.targetId,
-        },
-      });
-      await joinAsOwnVersion(tx, submission.songVersionId, input.targetId);
-      await audit(tx, "APPROVED", submissionId, user.id, submission.songVersionId, { mergedInto: input.targetId });
-    });
+    await this.prisma.client.$transaction(
+      async (tx) => {
+        await tx.submission.update({
+          where: { id: submissionId },
+          data: {
+            state: "APPROVED",
+            reviewerId: user.id,
+            reviewedAt: new Date(),
+            reviewNotes: input.notes?.trim() || null,
+            mergeTargetId: input.targetId,
+            publishedVersionId: input.targetId,
+          },
+        });
+        await audit(tx, "APPROVED", submissionId, user.id, submission.songVersionId, { mergedInto: input.targetId });
+        // The submission moves with the song, to the catalogue one.
+        await this.folds.fold(tx, submission.songVersionId, input.targetId, submission.submitterId);
+      },
+      { timeout: 60_000 },
+    );
     return this.findOneRow(submissionId);
   }
 
@@ -489,20 +497,3 @@ async function promoteToGlobal(tx: Tx, songVersionId: string, trustLabel: string
   });
 }
 
-/**
- * A submitted song merged into a catalogue song it duplicates: it stays
- * its owner's, as their own version of that song - in the catalogue
- * song's Work when it was alone in its own, and back to a draft.
- */
-async function joinAsOwnVersion(tx: Tx, songVersionId: string, targetId: string): Promise<void> {
-  const [song, target] = await Promise.all([
-    tx.songVersion.findUniqueOrThrow({ where: { id: songVersionId }, select: { workId: true } }),
-    tx.songVersion.findUniqueOrThrow({ where: { id: targetId }, select: { workId: true } }),
-  ]);
-  const alone = song.workId !== target.workId && (await tx.songVersion.count({ where: { workId: song.workId } })) === 1;
-  await tx.songVersion.update({
-    where: { id: songVersionId },
-    data: { publicationState: "DRAFT", parentVersionId: targetId, relationshipType: "ALTERNATE_VERSION", ...(alone && { workId: target.workId }) },
-  });
-  if (alone) await tx.work.deleteMany({ where: { id: song.workId, versions: { none: {} } } });
-}

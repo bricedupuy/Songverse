@@ -99,7 +99,9 @@ The **Global catalogue** card on your own song (or a team song you administer) o
 
 Once published, the song itself moves to the catalogue - there's no second copy. Your library lists it once, marked **Published by you**, and its page says who it came from. Its chart and details (its notes too) are now everyone's, and only admins change them; its [history](/song-editor/#history) goes on. What was yours stays yours: your files keep to you (or the team you shared them with - see [Who sees a file](/library/#who-sees-a-file)), your arrangements stay yours, and so do your own tags.
 
-If a reviewer finds the song is already in the catalogue, they merge it into that one: yours then stays yours, as your own version of the catalogue song, grouped with it.
+If a reviewer finds the song is already in the catalogue, they merge it into that one, and yours is folded into it - there's still only one song. Your [arrangements](/arrangements/) move to the catalogue song (check them: each says what to review), and so do your files (still only yours), tags and places in sets and songbooks. The way you had the song - your words, chords, order and key - becomes one of your arrangements of it, named after you, with your notes; your sets play it that way. Details you'd changed (title, credits, rights) are suggested to the reviewers.
+
+Songs published before SongVerse worked this way were copied into the catalogue; they've been folded into their catalogue song the same way.
 
 ## Suggesting a change
 

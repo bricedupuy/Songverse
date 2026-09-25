@@ -107,6 +107,8 @@ export function findArrangementProblems(arrangement: ArrangementDocumentV2, song
     const insertedChords = new Set(
       item.overrides.flatMap((override) => (override.type === "insert_line" ? override.line.chords.map((chord) => chord.id) : [])),
     );
+    // A line added after another added line (earlier in the pass) follows it.
+    const insertedLines = new Set<string>();
     for (const override of item.overrides) {
       switch (override.type) {
         case "chord":
@@ -120,7 +122,10 @@ export function findArrangementProblems(arrangement: ArrangementDocumentV2, song
           if (!lineIds.has(override.lineId)) problems.push(`${where}: line ${override.lineId} not found`);
           break;
         case "insert_line":
-          if (override.afterLineId && !lineIds.has(override.afterLineId)) problems.push(`${where}: line ${override.afterLineId} not found`);
+          if (override.afterLineId && !lineIds.has(override.afterLineId) && !insertedLines.has(override.afterLineId)) {
+            problems.push(`${where}: line ${override.afterLineId} not found`);
+          }
+          insertedLines.add(override.line.id);
           break;
         case "lyric": {
           const line = lineIds.get(override.lineId);

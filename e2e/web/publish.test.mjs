@@ -146,11 +146,13 @@ await step("the reviewer merges it into the existing song", async () => {
   if (globals !== "1") throw new Error(`${globals} global copies`);
 });
 
-await step("the merged song stays the submitter's, as their own version", async () => {
+await step("the merged song is folded into the catalogue one: the library lists it once (#75)", async () => {
   page = await pageFor(bob);
-  await openSong(page, bobSong.id);
-  await page.getByText("This one stays yours, as your own version of it.").waitFor();
-  await page.getByRole("link", { name: "Open the global song" }).waitFor();
+  await page.goto(`${WEB}/library?q=${encodeURIComponent(title)}`);
+  await page.waitForLoadState("networkidle");
+  const rows = page.getByRole("row").filter({ hasText: title });
+  await rows.first().waitFor();
+  if ((await rows.count()) !== 1) throw new Error(`${await rows.count()} rows`);
   await page.close();
 });
 
