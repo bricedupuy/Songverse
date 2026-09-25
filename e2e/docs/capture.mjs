@@ -144,6 +144,7 @@ try {
 
     await shoot("dashboard", "/dashboard");
     await shoot("library", "/library");
+    await shoot("artists", "/library/artists", () => page.getByTestId("artist-list").waitFor());
     await shoot("search", null, async () => {
       await page.keyboard.press("Control+k");
       // A letter in something of every kind in the demo content, in both languages.

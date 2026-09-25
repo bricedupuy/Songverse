@@ -18,6 +18,7 @@ import { SetlistsModule } from "./setlists/setlists.module";
 import { SongbooksModule } from "./songbooks/songbooks.module";
 import { SongVersionsModule } from "./song-versions/song-versions.module";
 import { TagsModule } from "./tags/tags.module";
+import { SmartListsModule } from "./smart-lists/smart-lists.module";
 import { TeamsModule } from "./teams/teams.module";
 import { UsersModule } from "./users/users.module";
 import { WorksModule } from "./works/works.module";
@@ -45,6 +46,7 @@ import { PublishingModule } from "./publishing/publishing.module";
     OfflineModule,
     SongbookCatalogModule,
     TagsModule,
+    SmartListsModule,
     MusicBrainzModule,
     AttachmentsModule,
     BulkUploadModule,

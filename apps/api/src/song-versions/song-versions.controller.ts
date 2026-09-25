@@ -62,6 +62,13 @@ export class SongVersionsController {
     return this.songVersionsService.statsForUser(user);
   }
 
+  /** The artists of the songs you can see, with how many songs each (issue #58). */
+  @Get("artists")
+  artists(@CurrentUser() user: AuthenticatedUser | undefined, @Query("q") query: string | undefined): ReturnType<SongVersionsService["artistsForUser"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.songVersionsService.artistsForUser(user, query ?? "");
+  }
+
   /** Names already credited on songs you can see, for autocomplete. */
   @Get("credits")
   searchCredits(

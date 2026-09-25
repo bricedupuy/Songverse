@@ -11,6 +11,7 @@ import {
   HardDrive,
   KeyRound,
   LayoutDashboard,
+  ListFilter,
   ListMusic,
   LogOut,
   Music2,
@@ -26,6 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { docsUrl } from "#/lib/docs";
 import { forgetOffline } from "#/lib/offline-db";
+import { forgetSmartLists, smartListSearch, useSmartLists } from "#/lib/smart-lists";
 import { setlistTitle } from "#/lib/setlists";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
 import {
@@ -136,6 +138,7 @@ export function AppSidebar({
                 <DropdownMenuItem
                   variant="destructive"
                   onSelect={() => {
+                    forgetSmartLists();
                     void Promise.all([authClient.signOut(), forgetOffline()]).then(() => {
                       window.location.href = "/";
                     });
@@ -181,20 +184,59 @@ function MainNav({
   // Upcoming and undated sets come first (the API's order); past ones are
   // on the Sets page.
   const shownSetlists = setlists.slice(0, SIDEBAR_SET_LIMIT);
+  const smartLists = useSmartLists();
+  const listId = useRouterState({ select: (s) => (s.location.search as { list?: string }).list });
 
   return (
     <SidebarContent>
       <SidebarGroup>
         <SidebarGroupLabel>{t("nav.platform")}</SidebarGroupLabel>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith("/library")} tooltip={t("nav.library")}>
-              <Link to="/library">
-                <Music2 />
-                <span>{t("nav.library")}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.startsWith("/library")} tooltip={t("nav.library")}>
+                <Link to="/library">
+                  <Music2 />
+                  <span>{t("nav.library")}</span>
+                </Link>
+              </SidebarMenuButton>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuAction>
+                  <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                  <span className="sr-only">{t("nav.toggle")}</span>
+                </SidebarMenuAction>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                {/* Songs (what Library opens on), artists, and the user's smart lists (issue #58). */}
+                <SidebarMenuSub data-testid="library-sections">
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={pathname === "/library" && !listId}>
+                      <Link to="/library">
+                        <span>{t("nav.songs")}</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={pathname === "/library/artists"}>
+                      <Link to="/library/artists">
+                        <span>{t("nav.artists")}</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  {smartLists.map((list) => (
+                    <SidebarMenuSubItem key={list.id}>
+                      <SidebarMenuSubButton asChild isActive={pathname === "/library" && listId === list.id}>
+                        <Link to="/library" search={smartListSearch(list)}>
+                          <ListFilter className="size-3.5" />
+                          <span className="truncate">{list.name}</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
 
           <Collapsible defaultOpen className="group/collapsible">
             <SidebarMenuItem>

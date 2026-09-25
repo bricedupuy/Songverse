@@ -62,6 +62,7 @@ function useBreadcrumbs(): Crumb[] {
   if (id) {
     let label: string;
     if (id === "new") label = section === "library" ? t("breadcrumb.addASong") : t("breadcrumb.new");
+    else if (section === "library" && id === "artists") label = t("nav.artists");
     else if (section === "admin") label = ADMIN_PAGES[id] ? t(ADMIN_PAGES[id]) : id;
     else if (section === "sets") {
       const set = setlists.find((candidate) => candidate.id === id);

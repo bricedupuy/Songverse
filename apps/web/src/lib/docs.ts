@@ -8,6 +8,7 @@ const PAGES: [RegExp, string][] = [
   // A song pulled up on its own in Live: Live is on the Sets page.
   [/^\/library\/[^/]+\/live/, "sets"],
   [/^\/library\/new/, "library"],
+  [/^\/library\/artists/, "library"],
   [/^\/library\/[^/]+/, "song-editor"],
   [/^\/library/, "library"],
   [/^\/sets/, "sets"],

@@ -3,12 +3,26 @@ title: La bibliothèque
 description: Trouver des chants, en ajouter, et garder leurs détails, fichiers, enregistrements et liens.
 ---
 
-La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, ceux de vos équipes et ceux du catalogue global.
+La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, ceux de vos équipes et ceux du catalogue global. Dans la barre latérale, elle s'ouvre sur **Chants** (où vous mène **Bibliothèque**), **Artistes** et vos listes intelligentes.
 
 ![La bibliothèque](../../../assets/screenshots/fr/library.jpg)
 
 - **Recherchez** par titre, artiste, nom de version ou numéro CCLI.
+- **Filtrez** par langue (**Toutes les langues**) et étiquette (**Toutes les étiquettes**).
 - **Triez** par colonne en cliquant sur son titre.
+- La colonne **Statut** dit où en est un chant : **Personnel** ou **Équipe** s'il n'a jamais été proposé au catalogue global, puis où en est sa proposition (**En attente de relecture**, **Publié**…).
+
+## Artistes
+
+**Artistes** liste toutes les personnes créditées comme artiste sur les chants que vous pouvez voir, avec le nombre de chants de chacune ; la recherche les filtre. Les noms écrits différemment (avec ou sans majuscules ou accents) comptent pour un seul artiste. Choisissez-en un pour voir ses chants : la liste **Chants** affiche **De** suivi du nom, et le **×** à côté montre de nouveau tout le monde.
+
+![Les artistes](../../../assets/screenshots/fr/artists.jpg)
+
+## Listes intelligentes
+
+Une recherche, des filtres et un tri que vous utilisez souvent peuvent devenir une liste intelligente : réglez-les dans **Chants**, puis **Enregistrer comme liste intelligente** et donnez-lui un nom. Elle apparaît sous **Bibliothèque** dans la barre latérale. Une liste intelligente garde les filtres, pas les chants : un nouveau chant qui correspond y apparaît tout seul.
+
+Sur une liste intelligente, changez les filtres et **Enregistrer les changements de la liste** garde les nouveaux ; **Renommer** et **Supprimer la liste** font ce qu'ils disent. Les listes intelligentes sont les vôtres : personne d'autre ne les voit.
 
 ## Ajouter un chant
 

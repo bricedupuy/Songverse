@@ -28,6 +28,13 @@ export class ListSongVersionsQueryDto {
   @IsString()
   tagId?: string;
 
+  @ApiProperty({ required: false, description: "Only songs by this artist (the whole name, ignoring case and accents)" })
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @MaxLength(200)
+  artist?: string;
+
   @ApiProperty({ required: false, enum: SONG_SORTS, default: "updatedAt" })
   @IsOptional()
   @IsIn(SONG_SORTS)

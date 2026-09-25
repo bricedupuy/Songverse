@@ -618,6 +618,8 @@ export interface ListSongVersionsQuery {
   q?: string;
   language?: string;
   tagId?: string;
+  /** Only this artist's songs: the whole name, ignoring case and accents. */
+  artist?: string;
   /** Defaults to updatedAt. */
   sort?: SongSort;
   /** Defaults to desc for dates, asc otherwise. */
@@ -626,6 +628,31 @@ export interface ListSongVersionsQuery {
   page?: number;
   /** Up to 200; defaults to 50. */
   pageSize?: number;
+}
+
+/** What a smart list (issue #58) filters the library by: the library's own search. */
+export interface SmartListFilters {
+  q?: string;
+  language?: string;
+  tagId?: string;
+  artist?: string;
+  sort?: SongSort;
+  dir?: "asc" | "desc";
+}
+
+/** A saved library filter, the user's own. */
+export interface SmartList {
+  id: string;
+  name: string;
+  filters: SmartListFilters;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** An artist credited on songs the user can see. */
+export interface ArtistCount {
+  name: string;
+  songCount: number;
 }
 
 /** One page of songs, with the total across all pages. */
@@ -1063,6 +1090,12 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       );
       return request<SongPage>(`/song-versions${params.size ? `?${params}` : ""}`);
     },
+    listArtists: (q?: string) => request<ArtistCount[]>(`/song-versions/artists${q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`),
+    listSmartLists: () => request<SmartList[]>("/smart-lists"),
+    createSmartList: (name: string, filters: SmartListFilters) => request<SmartList>("/smart-lists", { method: "POST", body: JSON.stringify({ name, filters }) }),
+    updateSmartList: (id: string, change: { name?: string; filters?: SmartListFilters }) =>
+      request<SmartList>(`/smart-lists/${id}`, { method: "PATCH", body: JSON.stringify(change) }),
+    deleteSmartList: (id: string) => request<void>(`/smart-lists/${id}`, { method: "DELETE" }),
     getSongStats: () => request<{ songCount: number; artistCount: number }>("/song-versions/stats"),
     getSongVersion: (songVersionId: string) => request<SongVersionDetail>(`/song-versions/${songVersionId}`),
     getSongVersionSongbooks: (songVersionId: string) =>

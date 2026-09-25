@@ -299,6 +299,8 @@ model User {
   passkeys Passkey[]
 
   @@index([email])
+  smartLists           SmartList[]
+
 }
 
 // ============================================================
@@ -1659,4 +1661,20 @@ model AuthSettings {
   googleClientId        String?
   googleClientSecretEnc String?
   updatedAt             DateTime @updatedAt
+}
+
+// A user's saved library filter (issue #58): a songs list kept under a
+// name - its search, filters and sort, not the songs themselves, so it's
+// always current. `filters` is { q?, language?, tagId?, artist?, sort?, dir? }.
+model SmartList {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  filters   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

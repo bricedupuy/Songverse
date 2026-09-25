@@ -407,6 +407,10 @@ export class SongVersionsService {
           : []),
         ...(query.language ? [{ language: query.language }] : []),
         ...(query.tagId ? [{ versionTags: { some: { tagId: query.tagId } } }] : []),
+        // An artist's songs (issue #58): the whole name, ignoring case and accents.
+        ...(query.artist
+          ? [{ contributors: { some: { roles: { has: "PERFORMER" as const }, sourceSearch: { equals: await this.unaccent(query.artist), mode: "insensitive" as const } } } }]
+          : []),
       ],
     };
     const sort = query.sort ?? "updatedAt";
@@ -423,6 +427,35 @@ export class SongVersionsService {
       }),
     ]);
     return { items: versions.map(toListItem), total, page, pageSize };
+  }
+
+  /**
+   * The artists credited on songs the user can see (issue #58), with how
+   * many songs each, by name; `q` narrows them (ignoring accents). Names
+   * differing only in case or accents are one artist.
+   */
+  async artistsForUser(user: AuthenticatedUser, query = ""): Promise<{ name: string; songCount: number }[]> {
+    const q = query.trim();
+    const groups = await this.prisma.client.versionContributor.groupBy({
+      by: ["source"],
+      where: {
+        source: { not: null },
+        roles: { has: "PERFORMER" },
+        songVersion: await this.access.songsVisibleTo(user),
+        ...(q && { sourceSearch: { contains: await this.unaccent(q), mode: "insensitive" } }),
+      },
+      _count: { _all: true },
+    });
+    const byName = new Map<string, { name: string; songCount: number }>();
+    for (const group of groups) {
+      const name = group.source!.trim();
+      if (!name) continue;
+      const key = foldForSearch(name);
+      const entry = byName.get(key) ?? { name, songCount: 0 };
+      entry.songCount += group._count._all;
+      byName.set(key, entry);
+    }
+    return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   }
 
   /** How many songs, and distinct artists, the user can see - for the dashboard. */
