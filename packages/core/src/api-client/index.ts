@@ -446,6 +446,8 @@ export interface PendingSongbookEntry {
 export interface SongbookDetail extends SongbookSummary {
   entries: SongbookEntry[];
   pendingEntries?: PendingSongbookEntry[];
+  /** Imported from a catalogue whose printed volumes differ from the songbook's: offered to use (issue #55). */
+  catalogSections?: SongbookSection[] | null;
 }
 
 export interface CreateSongbookInput {
@@ -506,6 +508,8 @@ export interface SongbookCatalogSummary {
   officialUrl: string | null;
   language: string | null;
   licensed: boolean;
+  /** The printed volumes' number ranges ("JEM1": 1-371...), copied into imported songbooks (issue #55). */
+  sections: SongbookSection[] | null;
 }
 
 export interface SongbookCatalogDetail extends SongbookCatalogSummary {
@@ -524,7 +528,7 @@ export interface CreateSongbookCatalogInput {
   licensed?: boolean;
 }
 
-export type UpdateSongbookCatalogInput = Partial<CreateSongbookCatalogInput>;
+export type UpdateSongbookCatalogInput = Partial<CreateSongbookCatalogInput> & { sections?: SongbookSection[] };
 
 /** Any fields of an entry; null or "" clears, a field left out is left alone. */
 export type SongbookCatalogEntryInput = { [K in keyof CatalogEntryData]?: CatalogEntryData[K] | null };

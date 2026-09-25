@@ -19,7 +19,7 @@ them.
 
 | CSV column | JSON key | What it holds | Rules |
 | --- | --- | --- | --- |
-| `Number` | `number` | The song's number in the book: `245`, `12a`, `A-17` | **Required.** Unique in the catalogue. Up to 20 characters |
+| `Number` | `number` | The song's number in the book: `245`, `12a`, `A-17` | **Required.** Unique in the catalogue. Up to 20 characters. A plain number is stored without leading zeros (`0245` is `245`) |
 | `Title` | `title` | The title as printed | **Required** for new entries. Up to 300 characters |
 | `SortTitle` | `sortTitle` | How to sort it, if not by title — e.g. without a leading "The" or accents | Up to 300 |
 | `Subtitle` | `subtitle` | A second title or the first line | Up to 300 |
@@ -110,7 +110,11 @@ Number,Title,Lyricist,Composer,Key,Time,Tempo,Tags,Reference
     "isbn": null,
     "description": null,
     "officialUrl": null,
-    "language": "en"
+    "language": "en",
+    "sections": [
+      { "label": "HOF1", "start": 1, "end": 400 },
+      { "label": "HOF2", "start": 401, "end": 800 }
+    ]
   },
   "entries": [
     { "number": "1", "title": "Amazing Grace", "lyricist": "John Newton", "year": 1779, "key": "G", "time": "3/4", "tempo": 72, "tags": ["grace", "hymn"] }
@@ -120,6 +124,9 @@ Number,Title,Lyricist,Composer,Key,Time,Tempo,Tags,Reference
 
 - `catalog` is optional; when importing into an existing catalogue it's
   ignored (edit details on the page instead).
+- `catalog.sections` are the printed volumes: number ranges with a label,
+  which may not overlap (issue #55). They're copied into songbooks
+  imported from the catalogue. CSV has nowhere to carry them.
 - A plain list of entries (`[ {...}, {...} ]`) is accepted too.
 - Keys follow the same loose matching as CSV columns. A key set to `null`
   clears that field; a key left out leaves it alone.

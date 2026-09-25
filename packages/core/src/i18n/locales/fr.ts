@@ -429,6 +429,8 @@ const fr: typeof en = {
     expires: "expire",
   },
   songbooks: {
+    catalogSections: "Les volumes du catalogue : {{sections}}.",
+    useCatalogSections: "Utiliser les volumes du catalogue",
     title: "Recueils",
     browseCatalog: "Parcourir le catalogue",
     createSongbook: "Créer un recueil",
@@ -491,6 +493,7 @@ const fr: typeof en = {
     bulkUploadSkipped: "Ignorés (non associés) : {{files}}",
   },
   songbookCatalog: {
+    sectionsHint: "Les volumes imprimés et les numéros de chacun. Ils sont copiés dans les recueils importés de ce catalogue, et indiqués avec le numéro d'un chant : JEM 855 · JEM3.",
     title: "Catalogue de recueils",
     description: "Un répertoire de recueils publiés connus - informations bibliographiques seulement, sans paroles ni accords.",
     createCatalog: "Ajouter un catalogue",

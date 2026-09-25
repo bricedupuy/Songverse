@@ -16,6 +16,7 @@ import { CatalogEntriesTable } from "./-catalog-entries-table";
 import { CatalogImportDialog } from "./-catalog-import-dialog";
 import { NativeSelect } from "#/components/ui/native-select";
 import { ConfirmButton } from "#/components/confirm-button";
+import { SectionsEditor } from "#/components/sections-editor";
 
 export const Route = createFileRoute("/_protected/songbook-catalogs/$catalogId")({
   // `q` pre-fills the entries search, e.g. from another entry's "Original song" link.
@@ -57,6 +58,7 @@ function SongbookCatalogDetail() {
   const [officialUrl, setOfficialUrl] = useState(catalog.officialUrl ?? "");
   const [language, setLanguage] = useState(catalog.language ?? "");
   const [licensed, setLicensed] = useState(catalog.licensed);
+  const [sections, setSections] = useState(catalog.sections ?? []);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -294,6 +296,16 @@ function SongbookCatalogDetail() {
         </CardContent>
       </Card>
 
+      {/* The printed volumes, copied into songbooks imported from it (issue #55). */}
+      <SectionsEditor
+        sections={sections}
+        canEdit={canEdit}
+        description={t("songbookCatalog.sectionsHint")}
+        onSave={async (next) => {
+          await apiClient.updateSongbookCatalog(catalog.id, { sections: next });
+          setSections(next);
+        }}
+      />
     </div>
   );
 }

@@ -1041,6 +1041,10 @@ model SongbookCatalog {
   // actual content - reserved for a future import path that would populate
   // real content instead of blank stubs. Not used by anything yet.
   licensed      Boolean  @default(false)
+  // The printed volumes' number ranges, as a songbook's sections (issue #55):
+  // [{ label: "JEM1", start: 1, end: 371 }, ...]. Copied into a songbook
+  // imported from the catalogue.
+  sections      Json?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

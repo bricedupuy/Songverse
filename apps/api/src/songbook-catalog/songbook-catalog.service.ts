@@ -8,10 +8,12 @@ import {
   serializeCatalogJson,
   slugify,
   validateCatalogEntryPatch,
+  validateSongbookSections,
   type CatalogEntryData,
   type CatalogEntryFieldKey,
   type CatalogEntryPatch,
   type CatalogFileProblem,
+  type SongbookSection,
 } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service";
@@ -83,7 +85,11 @@ export class SongbookCatalogService {
 
   async update(catalogId: string, dto: UpdateCatalogDto) {
     await this.ensureExists(catalogId);
-    return this.prisma.client.songbookCatalog.update({ where: { id: catalogId }, data: dto });
+    const { sections, ...rest } = dto;
+    return this.prisma.client.songbookCatalog.update({
+      where: { id: catalogId },
+      data: { ...rest, ...(sections !== undefined && { sections: validSections(sections) }) },
+    });
   }
 
   async remove(catalogId: string): Promise<void> {
@@ -220,8 +226,10 @@ export class SongbookCatalogService {
     const fatal = file.problems.find((problem) => problem.row === null);
     if (fatal) throw new BadRequestException(fatal.message);
     if (!file.details?.name) throw new BadRequestException('The file has no catalogue name ("catalog": { "name": ... })');
-    const { name, ...details } = file.details;
-    const catalog = await this.prisma.client.songbookCatalog.create({ data: { name, ...details } });
+    const { name, sections, ...details } = file.details;
+    const catalog = await this.prisma.client.songbookCatalog.create({
+      data: { name, ...details, ...(sections && { sections: validSections(sections) }) },
+    });
     const result = await this.importEntries(catalog.id, { content: input.content, filename: input.filename });
     return { catalog, import: result };
   }
@@ -235,10 +243,11 @@ export class SongbookCatalogService {
       return { filename: `${base}.csv`, contentType: "text/csv; charset=utf-8", body: serializeCatalogCsv(entries) };
     }
     const { name, abbreviation, publisher, isbn, description, officialUrl, language } = catalog;
+    const sections = (catalog.sections as SongbookSection[] | null) ?? null;
     return {
       filename: `${base}.json`,
       contentType: "application/json; charset=utf-8",
-      body: serializeCatalogJson({ name, abbreviation, publisher, isbn, description, officialUrl, language }, entries),
+      body: serializeCatalogJson({ name, abbreviation, publisher, isbn, description, officialUrl, language, sections }, entries),
     };
   }
 
@@ -325,4 +334,15 @@ function changedFields(current: EntryRow, data: CatalogEntryPatch): CatalogEntry
 
 function pick(data: CatalogEntryPatch, fields: CatalogEntryFieldKey[]): CatalogEntryPatch {
   return Object.fromEntries(fields.map((key) => [key, data[key]])) as CatalogEntryPatch;
+}
+
+/** Printed volumes as stored, or a 400 saying what's wrong with them (overlapping ranges, say). */
+function validSections(sections: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  if (sections === null) return Prisma.JsonNull;
+  try {
+    const valid = validateSongbookSections(sections);
+    return valid.length > 0 ? (valid as unknown as Prisma.InputJsonValue) : Prisma.JsonNull;
+  } catch (error) {
+    throw new BadRequestException(error instanceof Error ? error.message : String(error));
+  }
 }

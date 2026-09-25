@@ -136,7 +136,17 @@ export class SongbooksService {
         .map((entry) => ({ catalogEntryId: entry.id, entryCode: entry.entryCode, title: entry.title }));
     }
 
-    return { ...toDetail(songbook), pendingEntries };
+    // The catalogue's printed volumes, when they differ from the songbook's:
+    // offered ("Use the catalogue's volumes"), never applied silently (issue #55).
+    let catalogSections: SongbookSection[] | null = null;
+    if (songbook.sourceCatalogId) {
+      const catalog = await this.prisma.client.songbookCatalog.findUnique({ where: { id: songbook.sourceCatalogId }, select: { sections: true } });
+      const sections = (catalog?.sections as SongbookSection[] | null) ?? null;
+      const key = (list: SongbookSection[] | null) => JSON.stringify((list ?? []).map(({ label, start, end }) => [label, start, end]));
+      if (sections?.length && key(sections) !== key(songbook.sections as SongbookSection[] | null)) catalogSections = sections;
+    }
+
+    return { ...toDetail(songbook), pendingEntries, catalogSections };
   }
 
   private async assertVisible(
@@ -203,6 +213,8 @@ export class SongbooksService {
         abbreviation: catalog.abbreviation,
         language: catalog.language,
         publisher: catalog.publisher,
+        // The printed volumes, which the songbook can still adjust (issue #55).
+        sections: catalog.sections ?? Prisma.JsonNull,
         sourceCatalogId: catalog.id,
         ...owner,
       },

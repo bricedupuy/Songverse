@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { ISO_639_1_CODES } from "@songverse/core";
-import { IsBoolean, IsIn, IsOptional, IsString, IsUrl, MaxLength, MinLength } from "class-validator";
+import { ISO_639_1_CODES, type SongbookSection } from "@songverse/core";
+import { IsArray, IsBoolean, IsIn, IsOptional, IsString, IsUrl, MaxLength, MinLength } from "class-validator";
 
 export class UpdateCatalogDto {
   @ApiProperty({ required: false })
@@ -53,4 +53,12 @@ export class UpdateCatalogDto {
   @IsOptional()
   @IsBoolean()
   licensed?: boolean;
+
+  @ApiProperty({
+    required: false,
+    description: 'The printed volumes: an ordered list of {label, start, end} number ranges ("JEM1": 1-371...). Copied into songbooks imported from the catalogue.',
+  })
+  @IsOptional()
+  @IsArray()
+  sections?: SongbookSection[];
 }

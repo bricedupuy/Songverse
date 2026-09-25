@@ -85,6 +85,17 @@ to a volume label (JEM 1–371 = "JEM1", 372–721 = "JEM2", etc.).
   match any range — sections are an optional feature per numbered songbook,
   not a requirement.
 
+**Numbers and references (issue #55).** A plain number is stored without
+leading zeros (`normalizeEntryCode()` in core; a migration converted the
+old ones, leaving an entry alone where another in the same book would clash).
+Entries are listed in reading order (`compareEntryCodes()`), not the
+database's text order. A song's place is given as one reference,
+generated, never stored: the abbreviation (or name), the number and the
+volume - "JEM 855 · JEM3" (`formatSongbookReference()`). A **catalogue**
+has sections too (`SongbookCatalog.sections`, in its JSON file); importing
+it copies them, and a songbook imported earlier is offered them
+(`catalogSections` on the songbook) rather than changed silently.
+
 ## 5. Reverse lookup (which songbooks is this song in?)
 
 **Status: Implemented**, along with a related fix: `SongVersion.findOne` had

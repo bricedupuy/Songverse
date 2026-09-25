@@ -20,11 +20,17 @@ Give it a name, and optionally an abbreviation, language, publisher and year. Ch
 
 Under **Entries**, **Add a song** by searching for it and, in a numbered songbook, giving its number.
 
-A numbered songbook can have **sections**: ranges of numbers with a label, like a hymnal's volumes (1-371 is "JEM1", 372-721 "JEM2"…). You can then filter the songbook by section.
+Songs are listed in number order (1, 2, 10, 100), and a plain number is kept without leading zeros: "0245" is 245.
+
+A numbered songbook can have **sections**: ranges of numbers with a label, like a hymnal's printed volumes (1-371 is "JEM1", 372-721 "JEM2"…). You can then filter the songbook by section.
+
+A song's page lists its songbooks with its full reference - the songbook's abbreviation, the number and the volume: **JEM 855 · JEM3** - and **Copy** puts "Title — JEM 855 · JEM3" on the clipboard, to give someone who doesn't use SongVerse. A set shows it under each song too.
 
 ## From a published songbook's catalog
 
 The **Songbook catalog** (**Browse catalog**) is a directory of known published songbooks: their numbers, titles, credits, keys and more - but no lyrics or chords.
+
+A catalog can list its printed volumes, the same way as a songbook's sections. Starting a songbook from it copies them; a songbook started before the catalog had them offers **Use the catalogue's volumes**.
 
 Starting a songbook from a catalog gives you every entry at once. Entries whose song isn't in your library yet are listed under **Pending entries**: **Start** one to create the song with the catalog's details filled in, then add its words and chords.
 

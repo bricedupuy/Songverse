@@ -199,6 +199,23 @@ await step("the page fits a phone; the table scrolls in its own box", async () =
   await page.screenshot({ path: `${SP}/catalog-desktop.png` });
 });
 
+await step("a catalogue's printed volumes; a songbook imported before offers them", async () => {
+  const earlier = await api(admin, "POST", "/songbooks/import-from-catalog", { catalogId: cat.id });
+  await page.goto(`${WEB}/songbook-catalogs/${cat.id}`);
+  await page.waitForLoadState("networkidle");
+  const volumes = page.getByTestId("sections-editor");
+  await volumes.getByLabel("Label, e.g. JEM1").fill(`BB${tag}1`);
+  await volumes.getByLabel("Start").fill("1");
+  await volumes.getByLabel("End").fill("500");
+  await volumes.getByRole("button", { name: "Add" }).click();
+  await volumes.getByText(`BB${tag}1`).waitFor();
+  await page.goto(`${WEB}/songbooks/${earlier.id}`);
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Use the catalogue's volumes" }).click();
+  await page.getByRole("button", { name: "Use the catalogue's volumes" }).waitFor({ state: "detached" });
+  await page.getByTestId("sections-editor").getByText(`BB${tag}1`).waitFor();
+});
+
 const readerPage = await context.browser().newContext({ viewport: { width: 1280, height: 900 } }).then((c) => c.newPage());
 page = readerPage;
 await signIn(readerPage, reader);

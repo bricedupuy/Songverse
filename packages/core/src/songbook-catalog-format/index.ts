@@ -13,6 +13,8 @@
  * - Rows are matched to existing entries by Number.
  */
 
+import { validateSongbookSections, type SongbookSection } from "../songbook-sections/index.js";
+
 export type CatalogFieldKind = "text" | "int" | "list" | "duration";
 
 export interface CatalogFieldDef {
@@ -146,6 +148,8 @@ export interface CatalogDetailsInput {
   description?: string | null;
   officialUrl?: string | null;
   language?: string | null;
+  /** The printed volumes' number ranges (issue #55); JSON files only. */
+  sections?: SongbookSection[] | null;
 }
 
 const CATALOG_DETAIL_KEYS = ["name", "abbreviation", "publisher", "isbn", "description", "officialUrl", "language"] as const;
@@ -489,6 +493,13 @@ function readDetails(input: Record<string, unknown>, result: ParsedCatalogFile):
       details[key] = text;
     }
   }
+  if (input.sections !== undefined && input.sections !== null) {
+    try {
+      details.sections = validateSongbookSections(input.sections);
+    } catch (error) {
+      result.problems.push({ row: null, message: `catalog.sections: ${error instanceof Error ? error.message : String(error)}` });
+    }
+  }
   return details;
 }
 
@@ -496,7 +507,7 @@ export function serializeCatalogJson(details: Required<CatalogDetailsInput>, ent
   const file = {
     format: CATALOG_JSON_FORMAT,
     version: CATALOG_JSON_VERSION,
-    catalog: Object.fromEntries(CATALOG_DETAIL_KEYS.map((key) => [key, details[key]])),
+    catalog: { ...Object.fromEntries(CATALOG_DETAIL_KEYS.map((key) => [key, details[key]])), sections: details.sections ?? [] },
     entries: entries.map((entry) => Object.fromEntries(CATALOG_ENTRY_FIELDS.map((field) => [field.jsonKey, entry[field.key]]))),
   };
   return `${JSON.stringify(file, null, 2)}\n`;

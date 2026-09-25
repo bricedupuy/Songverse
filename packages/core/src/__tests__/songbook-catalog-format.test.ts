@@ -116,11 +116,34 @@ describe("CSV and JSON round trips", () => {
   });
 
   it("JSON export reads back the same, with the catalogue details", () => {
-    const details = { name: "Hymns", abbreviation: "HYM", publisher: null, isbn: null, description: null, officialUrl: null, language: "en" };
+    const details = {
+      name: "Hymns",
+      abbreviation: "HYM",
+      publisher: null,
+      isbn: null,
+      description: null,
+      officialUrl: null,
+      language: "en",
+      // The printed volumes (issue #55).
+      sections: [
+        { label: "HYM1", start: 1, end: 400 },
+        { label: "HYM2", start: 401, end: 855 },
+      ],
+    };
     const back = parseCatalogJson(serializeCatalogJson(details, [entry]));
     expect(back.problems).toEqual([]);
     expect(back.details).toEqual(details);
     expect(back.rows[0]!.data).toEqual(entry);
+  });
+
+  it("volumes that overlap are a problem with the file", () => {
+    const file = JSON.stringify({ catalog: { name: "Hymns", sections: [{ label: "A", start: 1, end: 10 }, { label: "B", start: 5, end: 20 }] }, entries: [] });
+    expect(parseCatalogJson(file).problems[0]?.message).toMatch(/^catalog\.sections: /);
+  });
+
+  it("entry numbers are stored without a plain number's leading zeros", () => {
+    const back = parseCatalogCsv("Number,Title\n0245,Amazing Grace\nFR-092,Grâce infinie\n");
+    expect(back.rows.map((row) => row.data.entryCode)).toEqual(["245", "FR-092"]);
   });
 });
 

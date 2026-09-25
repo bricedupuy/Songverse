@@ -20,11 +20,17 @@ Donnez-lui un nom, et si vous voulez une abréviation, une langue, un éditeur e
 
 Sous **Chansons**, **Ajouter une chanson** en la cherchant et, dans un recueil numéroté, en indiquant son numéro.
 
-Un recueil numéroté peut avoir des **sections** : des plages de numéros avec un libellé, comme les volumes d'un recueil (1-371 « JEM1 », 372-721 « JEM2 »…). Vous pouvez ensuite filtrer le recueil par section.
+Les chants sont listés dans l'ordre des numéros (1, 2, 10, 100), et un numéro simple est gardé sans zéros devant : « 0245 » est 245.
+
+Un recueil numéroté peut avoir des **sections** : des plages de numéros avec un libellé, comme les volumes imprimés d'un recueil (1-371 « JEM1 », 372-721 « JEM2 »…). Vous pouvez ensuite filtrer le recueil par section.
+
+La page d'un chant liste ses recueils avec sa référence complète - l'abréviation du recueil, le numéro et le volume : **JEM 855 · JEM3** - et **Copier** met « Titre — JEM 855 · JEM3 » dans le presse-papiers, pour la donner à quelqu'un qui n'utilise pas SongVerse. Une liste l'indique aussi sous chaque chant.
 
 ## À partir du catalogue d'un recueil publié
 
 Le **Catalogue de recueils** (**Parcourir le catalogue**) est un annuaire de recueils publiés : numéros, titres, crédits, tonalités et plus - mais ni paroles ni accords.
+
+Un catalogue peut indiquer ses volumes imprimés, comme les sections d'un recueil. Commencer un recueil à partir de lui les copie ; un recueil commencé avant que le catalogue les ait propose **Utiliser les volumes du catalogue**.
 
 Commencer un recueil à partir d'un catalogue vous donne toutes ses entrées d'un coup. Celles dont le chant n'est pas encore dans votre bibliothèque sont listées dans **Entrées en attente** : **Démarrer** l'une d'elles crée le chant avec les détails du catalogue, puis vous ajoutez paroles et accords.
 

@@ -11,6 +11,7 @@ import { Label } from "#/components/ui/label";
 import { NativeSelect } from "#/components/ui/native-select";
 import { ConfirmButton } from "#/components/confirm-button";
 import { OfflinePinButton } from "#/components/offline-pin-button";
+import { SectionsEditor } from "#/components/sections-editor";
 import { deviceStorage } from "#/lib/offline-data";
 
 export const Route = createFileRoute("/_protected/songbooks/$songbookId")({
@@ -64,11 +65,6 @@ function SongbookDetail() {
   const [sectionFilter, setSectionFilter] = useState("");
 
   const [sections, setSections] = useState<SongbookSection[]>(songbook.sections ?? []);
-  const [newSectionLabel, setNewSectionLabel] = useState("");
-  const [newSectionStart, setNewSectionStart] = useState("");
-  const [newSectionEnd, setNewSectionEnd] = useState("");
-  const [savingSections, setSavingSections] = useState(false);
-  const [sectionsError, setSectionsError] = useState<string | null>(null);
 
   const [materializingId, setMaterializingId] = useState<string | null>(null);
   const [materializeError, setMaterializeError] = useState<string | null>(null);
@@ -221,32 +217,8 @@ function SongbookDetail() {
   }
 
   async function saveSections(next: SongbookSection[]) {
-    setSavingSections(true);
-    setSectionsError(null);
-    try {
-      await apiClient.updateSongbook(songbook.id, { sections: next });
-      setSections(next);
-      await router.invalidate();
-    } catch (err) {
-      setSectionsError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSavingSections(false);
-    }
-  }
-
-  function addSection() {
-    const start = Number(newSectionStart);
-    const end = Number(newSectionEnd);
-    if (!newSectionLabel.trim() || !Number.isInteger(start) || !Number.isInteger(end)) return;
-    void saveSections([...sections, { label: newSectionLabel.trim(), start, end }]).then(() => {
-      setNewSectionLabel("");
-      setNewSectionStart("");
-      setNewSectionEnd("");
-    });
-  }
-
-  function removeSection(index: number) {
-    void saveSections(sections.filter((_, i) => i !== index));
+    await apiClient.updateSongbook(songbook.id, { sections: next });
+    setSections(next);
   }
 
   return (
@@ -336,70 +308,19 @@ function SongbookDetail() {
       </Card>
 
       {isNumbered ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">{t("songbooks.sections")}</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {sections.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("songbooks.noSectionsYet")}</p>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {sections.map((section, index) => (
-                  <li key={`${section.label}-${index}`} className="flex items-center justify-between gap-4 text-sm">
-                    <span>
-                      <span className="font-medium">{section.label}</span>{" "}
-                      <span className="text-muted-foreground">
-                        ({section.start}–{section.end})
-                      </span>
-                    </span>
-                    {canEdit ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeSection(index)}
-                        disabled={savingSections}
-                      >
-                        {t("songbooks.remove")}
-                      </Button>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {canEdit ? (
-              <div className="flex flex-wrap items-end gap-2 border-t pt-4">
-                <Input
-                  value={newSectionLabel}
-                  onChange={(e) => setNewSectionLabel(e.target.value)}
-                  placeholder={t("songbooks.sectionLabelPlaceholder")}
-                  className="w-28"
-                />
-                <Input
-                  type="number"
-                  value={newSectionStart}
-                  onChange={(e) => setNewSectionStart(e.target.value)}
-                  placeholder={t("songbooks.sectionStartPlaceholder")}
-                  className="w-24"
-                />
-                <Input
-                  type="number"
-                  value={newSectionEnd}
-                  onChange={(e) => setNewSectionEnd(e.target.value)}
-                  placeholder={t("songbooks.sectionEndPlaceholder")}
-                  className="w-24"
-                />
-                <Button
-                  onClick={addSection}
-                  disabled={savingSections || !newSectionLabel.trim() || !newSectionStart.trim() || !newSectionEnd.trim()}
-                >
-                  {savingSections ? t("songbooks.saving") : t("songbooks.add")}
-                </Button>
-              </div>
-            ) : null}
-            {sectionsError ? <p className="text-sm text-destructive">{sectionsError}</p> : null}
-          </CardContent>
-        </Card>
+        <SectionsEditor sections={sections} canEdit={canEdit} onSave={saveSections}>
+          {canEdit && songbook.catalogSections?.length ? (
+            // The catalogue's printed volumes differ: offered, never applied silently (issue #55).
+            <div className="flex flex-wrap items-center gap-3 rounded-md bg-muted px-3 py-2 text-sm">
+              <span className="text-muted-foreground">
+                {t("songbooks.catalogSections", { sections: songbook.catalogSections.map((section) => `${section.label} (${section.start}–${section.end})`).join(", ") })}
+              </span>
+              <Button variant="outline" size="sm" onClick={() => void saveSections(songbook.catalogSections!).then(() => router.invalidate())}>
+                {t("songbooks.useCatalogSections")}
+              </Button>
+            </div>
+          ) : null}
+        </SectionsEditor>
       ) : null}
 
       {songbook.pendingEntries && songbook.pendingEntries.length > 0 ? (

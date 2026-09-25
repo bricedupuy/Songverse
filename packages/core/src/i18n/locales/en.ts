@@ -426,6 +426,8 @@ const en = {
     expires: "expires",
   },
   songbooks: {
+    catalogSections: "The catalogue's volumes: {{sections}}.",
+    useCatalogSections: "Use the catalogue's volumes",
     title: "Songbooks",
     browseCatalog: "Browse catalog",
     createSongbook: "Create songbook",
@@ -488,6 +490,7 @@ const en = {
     bulkUploadSkipped: "Skipped (not matched): {{files}}",
   },
   songbookCatalog: {
+    sectionsHint: "The printed volumes and the numbers in each. They're copied into songbooks imported from this catalogue, and shown with a song's number: JEM 855 · JEM3.",
     title: "Songbook catalog",
     description: "A directory of known published songbooks - bibliographic info only, no lyrics or chords.",
     createCatalog: "Add a catalog",
