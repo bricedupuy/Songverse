@@ -253,8 +253,8 @@ function SetSongStems({ songVersionId, title, returnTo }: { songVersionId: strin
         title,
         returnTo,
         stems,
-        load: async (file) => {
-          if (!files.offline) return apiClient.downloadAttachment(songVersionId, file.id);
+        load: async (file, onProgress) => {
+          if (!files.offline) return apiClient.downloadAttachment(songVersionId, file.id, onProgress);
           const blob = await keptFile<Blob>(deviceStorage(), file.id);
           if (!blob) throw new Error("not kept");
           return blob;

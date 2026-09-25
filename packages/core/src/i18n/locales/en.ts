@@ -904,7 +904,7 @@ const en = {
     practiceHint: "Switch to Practice to play the stems together.",
     play: "Play",
     pause: "Pause",
-    loading: "Loading the stems… {{done}} of {{count}}",
+    loading: "Loading the stems… {{percent}}%",
     position: "Position",
     mute: "Mute {{part}}",
     solo: "Solo {{part}}",

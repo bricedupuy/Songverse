@@ -907,7 +907,7 @@ const fr: typeof en = {
     practiceHint: "Passez en Session pour jouer les pistes ensemble.",
     play: "Lecture",
     pause: "Pause",
-    loading: "Chargement des pistes… {{done}} sur {{count}}",
+    loading: "Chargement des pistes… {{percent}} %",
     position: "Position",
     mute: "Couper {{part}}",
     solo: "Solo {{part}}",

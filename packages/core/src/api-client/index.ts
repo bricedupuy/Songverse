@@ -1076,7 +1076,12 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify({ stemPart }) }),
     deleteAttachment: (songVersionId: string, attachmentId: string) =>
       request<void>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "DELETE" }),
-    downloadAttachment: async (songVersionId: string, attachmentId: string): Promise<Blob> => {
+    /** The file; `onProgress` hears each chunk as it arrives (bytes so far, and the size if the server says). */
+    downloadAttachment: async (
+      songVersionId: string,
+      attachmentId: string,
+      onProgress?: (received: number, total: number | null) => void,
+    ): Promise<Blob> => {
       const token = await getToken();
       const headers = new Headers();
       if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -1085,7 +1090,19 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
         { headers },
       );
       if (!response.ok) throw await failed(response);
-      return response.blob();
+      if (!onProgress || !response.body) return response.blob();
+      const total = Number(response.headers.get("Content-Length")) || null;
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let received = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.byteLength;
+        onProgress(received, total);
+      }
+      return new Blob(chunks as BlobPart[], { type: response.headers.get("Content-Type") ?? undefined });
     },
     /**
      * A short-lived link to the file (issue #33), for an <audio src> that

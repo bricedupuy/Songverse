@@ -136,9 +136,16 @@ const seconds = (text) => {
 
 await step("in Edit there's no player, just the way to Practice", async () => {
   if (await player().count()) throw new Error("a player in Edit");
+  // Slowed down, to see them download.
+  const slow = (route) => setTimeout(() => void route.continue(), 800);
+  await page.route("**/attachments/*/download", slow);
   await page.getByRole("button", { name: "Switch to Practice to play the stems together." }).click();
   await player().waitFor();
   if ((await page.evaluate(() => document.documentElement.dataset.mode)) !== "practice") throw new Error("not Practice");
+  // They start downloading as the page opens in Practice, with the progress along the top.
+  await player().getByRole("progressbar", { name: /Loading the stems… \d+%/ }).waitFor();
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor();
+  await page.unroute("**/attachments/*/download", slow);
 });
 
 await step("docked at the bottom, one row: play and a round button per part, with its instrument", async () => {

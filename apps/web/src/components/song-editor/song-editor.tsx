@@ -480,7 +480,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             title: edit.version.title,
             returnTo: `/library/${edit.version.id}`,
             stems,
-            load: (file) => apiClient.downloadAttachment(edit.version.id, file.id),
+            load: (file, onProgress) => apiClient.downloadAttachment(edit.version.id, file.id, onProgress),
           }}
         />
       ) : null}

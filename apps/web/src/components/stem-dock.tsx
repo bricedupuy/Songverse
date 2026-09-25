@@ -28,6 +28,7 @@ import {
   isAudible,
   pauseStems,
   playStems,
+  prefetchStems,
   seekStems,
   stemKey,
   toggleStemMute,
@@ -102,6 +103,12 @@ export function StemDock({ song }: { song: StemSong }) {
     return () => undockStems(song.songVersionId);
   }, [song.songVersionId]);
 
+  // Downloaded as the page opens in Practice, so Play is usually instant.
+  useEffect(() => {
+    prefetchStems(song);
+    // Once per set of stems (`key`); `song` is a new object on every render.
+  }, [key]);
+
   function expand(next: boolean) {
     setExpanded(next);
     try {
@@ -131,7 +138,7 @@ export function StemDock({ song }: { song: StemSong }) {
   const status =
     loading ? (
       <p className="text-xs text-muted-foreground" role="status">
-        {t("stems.loading", { done: engine.loaded, count: tracks.length })}
+        {t("stems.loading", { percent: Math.round(engine.downloaded * 100) })}
       </p>
     ) : active && engine.status === "error" ? (
       <p className="text-xs text-destructive" role="alert">
@@ -148,9 +155,23 @@ export function StemDock({ song }: { song: StemSong }) {
       data-view={expanded ? "expanded" : "compact"}
     >
       {/* How far through, along the top edge. */}
-      <div className="absolute inset-x-0 top-0 h-0.5 bg-muted" aria-hidden>
-        <div className="h-full bg-primary" style={{ width: duration ? `${(position / duration) * 100}%` : "0%" }} />
-      </div>
+      {loading ? (
+        <div
+          className="absolute inset-x-0 top-0 h-0.5 bg-muted"
+          role="progressbar"
+          aria-label={t("stems.loading", { percent: Math.round(engine.downloaded * 100) })}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(engine.downloaded * 100)}
+          data-testid="stem-download"
+        >
+          <div className="h-full bg-muted-foreground/60 transition-[width]" style={{ width: `${engine.downloaded * 100}%` }} />
+        </div>
+      ) : (
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-muted" aria-hidden>
+          <div className="h-full bg-primary" style={{ width: duration ? `${(position / duration) * 100}%` : "0%" }} />
+        </div>
+      )}
       {expanded ? (
         <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-2 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", EDGES)}>
           <div className="flex items-center gap-3">

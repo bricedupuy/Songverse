@@ -47,7 +47,7 @@ En mode **Session** (voir [Édition, Session et Live](/fr/getting-started/#édit
 
 ![Le lecteur de pistes sur une ligne, la voix coupée](../../../assets/screenshots/fr/stems-compact.jpg)
 
-La flèche au bout l'agrandit : une ligne par partie avec le même bouton rond, sa forme d'onde et un bouton solo (le solo ne joue que les parties en solo), et une barre de position. Pendant un solo, un bouton rond, dans les deux vues, retire sa partie du solo ou l'y ajoute ; retirez la dernière pour entendre de nouveau toutes les parties. Cliquez sur une forme d'onde pour vous y rendre. La flèche du haut le réduit de nouveau, et SongVerse retient votre préférence. Les fichiers se chargent la première fois que vous appuyez sur **Lecture**.
+La flèche au bout l'agrandit : une ligne par partie avec le même bouton rond, sa forme d'onde et un bouton solo (le solo ne joue que les parties en solo), et une barre de position. Pendant un solo, un bouton rond, dans les deux vues, retire sa partie du solo ou l'y ajoute ; retirez la dernière pour entendre de nouveau toutes les parties. Cliquez sur une forme d'onde pour vous y rendre. La flèche du haut le réduit de nouveau, et SongVerse retient votre préférence. Les fichiers commencent à se télécharger dès que la page du chant s'ouvre en mode Session (la ligne du haut montre où il en est), si bien que **Lecture** est en général immédiat. Une fois téléchargés, ils ne le sont plus de nouveau.
 
 ![Le lecteur de pistes agrandi, avec la forme d'onde de chaque partie](../../../assets/screenshots/fr/stems.jpg)
 

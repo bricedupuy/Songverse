@@ -22,7 +22,8 @@ export interface StemSong {
   /** The page to come back to: the song's, or its page in a set. */
   returnTo: string;
   stems: StemFile[];
-  load: (file: Attachment) => Promise<Blob>;
+  /** The file's bytes; `onProgress` hears them arrive, when the source can tell. */
+  load: (file: Attachment, onProgress?: (received: number, total: number | null) => void) => Promise<Blob>;
 }
 
 export interface StemTrack {
@@ -43,7 +44,8 @@ export interface StemState {
   title: string;
   returnTo: string;
   status: "idle" | "loading" | "ready" | "error";
-  loaded: number;
+  /** How much of the stems has downloaded, 0-1, while loading. */
+  downloaded: number;
   tracks: StemTrack[];
   playing: boolean;
   position: number;
@@ -62,7 +64,7 @@ const EMPTY: StemState = {
   title: "",
   returnTo: "",
   status: "idle",
-  loaded: 0,
+  downloaded: 0,
   tracks: [],
   playing: false,
   position: 0,
@@ -89,6 +91,8 @@ let offset = 0;
 let timer: ReturnType<typeof setInterval> | null = null;
 // Bumped by each load, so a load that's been replaced drops its results.
 let generation = 0;
+// The load under way, so Play during a prefetch waits for it rather than starting over.
+let loading: { key: string; done: Promise<boolean> } | null = null;
 
 function set(change: Partial<StemState>) {
   state = { ...state, ...change };
@@ -314,9 +318,19 @@ export function unloadStems() {
   updateMediaSession();
 }
 
-async function load(song: StemSong): Promise<boolean> {
+function load(song: StemSong): Promise<boolean> {
   const key = stemKey(song);
-  if (state.key === key && state.status === "ready") return true;
+  if (state.key === key && state.status === "ready") return Promise.resolve(true);
+  if (loading?.key === key) return loading.done;
+  const done = loadNow(song, key);
+  loading = { key, done };
+  void done.finally(() => {
+    if (loading?.done === done) loading = null;
+  });
+  return done;
+}
+
+async function loadNow(song: StemSong, key: string): Promise<boolean> {
   // Parts muted or soloed before the first Play stay so.
   const ids = new Set(song.stems.map((stem) => stem.id));
   const muted = new Set([...state.muted].filter((id) => ids.has(id)));
@@ -334,20 +348,35 @@ async function load(song: StemSong): Promise<boolean> {
     title: song.title,
     returnTo: song.returnTo,
     status: "loading",
-    loaded: 0,
+    downloaded: 0,
     tracks: tracksOf(song.stems),
     muted,
     soloed,
   });
+  // Bytes so far per file, against the sizes the song lists (or the server says).
+  const received = new Map<string, number>();
+  const sizes = new Map(song.stems.map((stem) => [stem.id, stem.sizeBytes ?? 0]));
+  let reported = 0;
+  const progress = (id: string, bytes: number, total: number | null, last = false) => {
+    received.set(id, bytes);
+    if (total && !sizes.get(id)) sizes.set(id, total);
+    const now = Date.now();
+    // A tenth of a second between updates is plenty for a progress bar.
+    if (mine !== generation || (!last && now - reported < 100)) return;
+    reported = now;
+    const all = [...sizes.values()].reduce((sum, size) => sum + size, 0);
+    if (all) set({ downloaded: Math.min(1, [...received.values()].reduce((sum, size) => sum + size, 0) / all) });
+  };
   const decoded = await Promise.all(
     song.stems.map(async (stem) => {
       let buffer: AudioBuffer | null = null;
       try {
-        buffer = await ctx.decodeAudioData(await (await song.load(stem)).arrayBuffer());
+        const blob = await song.load(stem, (bytes, total) => progress(stem.id, bytes, total));
+        progress(stem.id, blob.size, blob.size, true);
+        buffer = await ctx.decodeAudioData(await blob.arrayBuffer());
       } catch {
         // Shown on its row; the other parts still play.
       }
-      if (mine === generation) set({ loaded: state.loaded + 1 });
       return { stem, buffer };
     }),
   );
@@ -369,15 +398,25 @@ async function load(song: StemSong): Promise<boolean> {
   return true;
 }
 
+/**
+ * Starts loading a song's stems before Play (issue #64), when its page
+ * opens in Practice, so Play is usually instant. Never while another song
+ * plays; a paused one makes way.
+ */
+export function prefetchStems(song: StemSong) {
+  if (state.playing) return;
+  void load(song);
+}
+
 /** Plays `song`, loading it first (and stopping another one) if it isn't what's loaded. */
 export async function playStems(song: StemSong) {
   lastSong = song;
   // load() sets up the audio before its first wait: start it here, still inside the tap,
   // which is the only time iOS lets sound start.
-  const loading = load(song);
+  const loaded = load(song);
   void context?.resume();
   const starting = startElement();
-  if (!(await loading) || !context) return;
+  if (!(await loaded) || !context) return;
   await context.resume();
   await starting;
   // Gains before the first sound, so a part muted while loading stays silent.
