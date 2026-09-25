@@ -55,7 +55,21 @@ That's the song in **Edit** mode. In **Practice** its page is the chart itself, 
 
 The **Suggested capo** is only a suggestion (for example, the capo used on the recording): it's used when an arrangement doesn't set its own.
 
-If a song isn't yours to change (a global song, or a team song when you're not one of the team's admins), you can read it and arrange it, but not edit it.
+If a song isn't yours to change (a global song, or a team song when you're not one of the team's admins), you can read it, arrange it and add files of your own to it (see [Who sees a file](/library/#who-sees-a-file)), but not edit it.
+
+## Who sees a file
+
+Each file on the **Files** and **Audio** tabs has its own **Who sees it**, set by whoever added it:
+
+- **Only me** - just you. New files start this way: recordings and stems are often someone else's copyright.
+- **Morning Band (team)** - you and that team's members (one of your teams).
+- **Everyone who can see this song** - for those who can edit the song.
+
+Choose it before adding files, under the drop area, or change it under a file afterwards. Others see who shared a file ("Shared by Sam with Morning Band"); a file you can't see doesn't show at all, in the song, its sets, Practice or offline.
+
+Anyone who can see a song can add files of their own to it, even a song they can't edit: they're yours, and only you see them unless you share them with one of your teams. The song's editors can remove the files they see, but only a file's owner decides who sees it.
+
+![Who sees each file](../../assets/screenshots/en/song-files.jpg)
 
 ## Stems
 

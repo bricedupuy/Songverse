@@ -568,7 +568,25 @@ export interface Attachment {
   /** For audio: the recording's key and tempo (BPM) when they aren't the song's, else null. */
   recordingKey: string | null;
   recordingTempo: number | null;
+  /** Who sees it besides its uploader (issue #72): nobody, a team, or everyone who sees the song. */
+  visibility: AttachmentVisibility;
+  visibleToTeamId: string | null;
+  visibleToTeam: { id: string; name: string } | null;
+  uploadedByUserId: string | null;
+  uploadedBy: { id: string; displayName: string } | null;
+  /** The viewer may change its part, key and tempo, or remove it. */
+  canChange: boolean;
+  /** The viewer may change who sees it. */
+  canChangeVisibility: boolean;
   createdAt: string;
+}
+
+export type AttachmentVisibility = "PRIVATE" | "TEAM" | "SONG";
+
+/** Who sees a file: `teamId` for TEAM. */
+export interface AttachmentAudience {
+  visibility: AttachmentVisibility;
+  teamId?: string | null;
 }
 
 export interface ArtistSummary {
@@ -1124,10 +1142,13 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     getSongVersionSongbooks: (songVersionId: string) =>
       request<SongVersionSongbookMembership[]>(`/song-versions/${songVersionId}/songbooks`),
     listAttachments: (songVersionId: string) => request<Attachment[]>(`/song-versions/${songVersionId}/attachments`),
-    uploadAttachment: (songVersionId: string, type: AttachmentType, file: File, stemPart?: StemPart | null) => {
+    /** A file of your own on the song; only you see it unless `audience` says otherwise (issue #72). */
+    uploadAttachment: (songVersionId: string, type: AttachmentType, file: File, stemPart?: StemPart | null, audience?: AttachmentAudience) => {
       const form = new FormData();
       form.append("type", type);
       if (stemPart) form.append("stemPart", stemPart);
+      if (audience) form.append("visibility", audience.visibility);
+      if (audience?.teamId) form.append("teamId", audience.teamId);
       form.append("file", file);
       return request<Attachment>(`/song-versions/${songVersionId}/attachments`, { method: "POST", body: form });
     },
@@ -1135,7 +1156,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     updateAttachment: (
       songVersionId: string,
       attachmentId: string,
-      change: { stemPart?: StemPart | null; recordingKey?: string | null; recordingTempo?: number | null },
+      change: { stemPart?: StemPart | null; recordingKey?: string | null; recordingTempo?: number | null; visibility?: AttachmentVisibility; teamId?: string | null },
     ) => request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify(change) }),
     deleteAttachment: (songVersionId: string, attachmentId: string) =>
       request<void>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "DELETE" }),

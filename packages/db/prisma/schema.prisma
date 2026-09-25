@@ -405,17 +405,18 @@ model Team {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  memberships       TeamMembership[]
-  inviteLinks       TeamInviteLink[]
-  ownedVersions     SongVersion[]          @relation("VersionOwnerTeam")
-  ownedArrangements Arrangement[]          @relation("ArrangementOwnerTeam")
-  notes             Note[]
-  accessGrants      AccessGrant[]
-  shareLinks        ShareLink[]
-  ownedTags         Tag[]
-  ownedSongbooks    Songbook[]             @relation("SongbookOwnerTeam")
-  ownedSetlists     Setlist[]              @relation("SetlistOwnerTeam")
-  ownershipRequests SongOwnershipRequest[]
+  memberships        TeamMembership[]
+  inviteLinks        TeamInviteLink[]
+  ownedVersions      SongVersion[]          @relation("VersionOwnerTeam")
+  ownedArrangements  Arrangement[]          @relation("ArrangementOwnerTeam")
+  notes              Note[]
+  accessGrants       AccessGrant[]
+  shareLinks         ShareLink[]
+  ownedTags          Tag[]
+  ownedSongbooks     Songbook[]             @relation("SongbookOwnerTeam")
+  ownedSetlists      Setlist[]              @relation("SetlistOwnerTeam")
+  ownershipRequests  SongOwnershipRequest[]
+  visibleAttachments Attachment[]           @relation("AttachmentVisibleToTeam")
 
   @@index([slug])
 }
@@ -1121,7 +1122,7 @@ model SongbookCatalogEntry {
 // ============================================================
 
 model Attachment {
-  id               String         @id @default(cuid())
+  id               String               @id @default(cuid())
   songVersionId    String
   type             AttachmentType
   filename         String
@@ -1137,13 +1138,29 @@ model Attachment {
   // uploaded before this was tracked into a team-owned song, or whose
   // uploader has since been deleted.
   uploadedByUserId String?
-  createdAt        DateTime       @default(now())
+  // Who sees it, besides its uploader (issue #72): each person's files on
+  // a song are their own layer. Files uploaded through the app start
+  // PRIVATE; the default here is for rows from before, and bulk uploads.
+  visibility       AttachmentVisibility @default(SONG)
+  // TEAM: the team that sees it (one its uploader belongs to).
+  visibleToTeamId  String?
+  createdAt        DateTime             @default(now())
 
-  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
-  uploadedBy  User?       @relation("AttachmentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  songVersion   SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  uploadedBy    User?       @relation("AttachmentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
+  visibleToTeam Team?       @relation("AttachmentVisibleToTeam", fields: [visibleToTeamId], references: [id], onDelete: SetNull)
 
   @@index([songVersionId])
   @@index([uploadedByUserId])
+}
+
+enum AttachmentVisibility {
+  // Its uploader only.
+  PRIVATE
+  // Its uploader and the members of visibleToTeam.
+  TEAM
+  // Everyone who can see the song.
+  SONG
 }
 
 // ============================================================

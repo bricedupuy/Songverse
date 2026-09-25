@@ -64,7 +64,7 @@ export class OfflineService {
   /** A song to keep offline: its details and its files' list, and a version that changes when either does. */
   async songCopy(user: AuthenticatedUser, songVersionId: string) {
     const song = await this.songs.findOne(user, songVersionId);
-    const attachments = await this.attachments.listForSongVersion(songVersionId);
+    const attachments = await this.attachments.listForSongVersion(user, songVersionId);
     return { song, attachments, version: songVersion(song.updatedAt, attachments) };
   }
 
@@ -163,9 +163,15 @@ export class OfflineService {
       }
     }
     // Versions in one query; full copies only for what the device doesn't have.
+    // Only the files this user sees (issue #72).
+    const visibleFiles = AttachmentsService.visibleWhere(user, await this.access.teamIds(user.id));
     const current = await this.prisma.client.songVersion.findMany({
       where: { AND: [await this.access.songsVisibleTo(user), { id: { in: [...wanted] } }] },
-      select: { id: true, updatedAt: true, attachments: { select: { id: true, createdAt: true, stemPart: true, recordingKey: true, recordingTempo: true } } },
+      select: {
+        id: true,
+        updatedAt: true,
+        attachments: { where: visibleFiles, select: { id: true, createdAt: true, stemPart: true, recordingKey: true, recordingTempo: true, visibility: true, visibleToTeamId: true } },
+      },
     });
     const knownSongs = new Map((dto.knownSongs ?? []).map((song) => [song.id, song.version]));
     const songs: { id: string; version: string; audio: boolean; copy?: Awaited<ReturnType<OfflineService["songCopy"]>> }[] = [];
@@ -195,10 +201,21 @@ export class OfflineService {
 /** A song's version: its last change and its files (a file added or removed, or its part, key or tempo changed, changes it too). */
 function songVersion(
   updatedAt: Date | string,
-  attachments: { id: string; createdAt: Date | string; stemPart: string | null; recordingKey: string | null; recordingTempo: number | null }[],
+  attachments: {
+    id: string;
+    createdAt: Date | string;
+    stemPart: string | null;
+    recordingKey: string | null;
+    recordingTempo: number | null;
+    visibility: string;
+    visibleToTeamId: string | null;
+  }[],
 ): string {
   const files = attachments
-    .map((file) => `${file.id}@${new Date(file.createdAt).toISOString()}:${file.stemPart ?? ""}:${file.recordingKey ?? ""}:${file.recordingTempo ?? ""}`)
+    .map(
+      (file) =>
+        `${file.id}@${new Date(file.createdAt).toISOString()}:${file.stemPart ?? ""}:${file.recordingKey ?? ""}:${file.recordingTempo ?? ""}:${file.visibility}:${file.visibleToTeamId ?? ""}`,
+    )
     .sort();
   return hash({ updatedAt: new Date(updatedAt).toISOString(), files });
 }

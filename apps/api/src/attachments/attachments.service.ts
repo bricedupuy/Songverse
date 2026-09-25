@@ -1,6 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
 import { parseKey, type StemPart } from "@songverse/core";
-import type { UpdateAttachmentDto } from "./dto/upload-attachment.dto";
+import type { Prisma } from "@songverse/db";
+import { AccessPolicyService, type Viewer } from "../access/access-policy.service";
+import type { AttachmentVisibilityValue, UpdateAttachmentDto } from "./dto/upload-attachment.dto";
 import { ImageService, type ProcessedImage } from "../images/image.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageQuotaService } from "../storage/storage-quota.service";
@@ -14,39 +16,75 @@ export class AttachmentsService {
     private readonly storage: StorageService,
     private readonly quota: StorageQuotaService,
     private readonly images: ImageService,
+    private readonly access: AccessPolicyService,
   ) {}
 
-  listForSongVersion(songVersionId: string) {
-    return this.prisma.client.attachment.findMany({
-      where: { songVersionId },
-      orderBy: { createdAt: "desc" },
-    });
+  /**
+   * The files `viewer` sees (issue #72): their own, the song's (SONG), and
+   * their teams' (TEAM); a global admin sees them all. Seeing the song
+   * itself is checked separately.
+   */
+  static visibleWhere(viewer: Viewer, teamIds: string[]): Prisma.AttachmentWhereInput {
+    if (viewer.isGlobalAdmin) return {};
+    return {
+      OR: [{ visibility: "SONG" }, { uploadedByUserId: viewer.id }, { visibility: "TEAM", visibleToTeamId: { in: teamIds } }],
+    };
   }
 
+  /** The song's files the viewer sees, newest first, with what they may do with each. */
+  async listForSongVersion(viewer: Viewer, songVersionId: string) {
+    const [teamIds, canEditSong] = await Promise.all([this.access.teamIds(viewer.id), this.canEditSong(viewer, songVersionId)]);
+    const rows = await this.prisma.client.attachment.findMany({
+      where: { songVersionId, ...AttachmentsService.visibleWhere(viewer, teamIds) },
+      include: ATTACHMENT_INCLUDE,
+      orderBy: { createdAt: "desc" },
+    });
+    return rows.map((row) => present(row, viewer, canEditSong));
+  }
+
+  /**
+   * A file on the song, for its uploader. Anyone who can see the song may
+   * add their own (PRIVATE, or for a team of theirs); only who can edit
+   * the song may show one to everyone who sees it (SONG).
+   */
   async upload(
-    uploaderId: string,
+    viewer: Viewer,
     songVersionId: string,
     type: AttachmentTypeValue,
     filename: string,
     mimeType: string,
     body: Buffer,
     stemPart: StemPart | null = null,
+    visibility: AttachmentVisibilityValue = "PRIVATE",
+    teamId: string | null = null,
   ) {
     if (stemPart && type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
-    await this.quota.assertCanStore(uploaderId, body.length);
+    const canEditSong = await this.canEditSong(viewer, songVersionId);
+    const audience = await this.audience(viewer, canEditSong, visibility, teamId);
+    await this.quota.assertCanStore(viewer.id, body.length);
     const { hash, sizeBytes } = await this.storage.put(body, mimeType);
-    return this.prisma.client.attachment.create({
-      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes, uploadedByUserId: uploaderId, stemPart },
+    const row = await this.prisma.client.attachment.create({
+      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes, uploadedByUserId: viewer.id, stemPart, ...audience },
+      include: ATTACHMENT_INCLUDE,
     });
+    return present(row, viewer, canEditSong);
   }
 
   /**
-   * An audio file's part of the song (a stem, #64) and its recording's key
-   * and tempo (#65). What's left out stays; null clears.
+   * An audio file's part of the song (a stem, #64), its recording's key
+   * and tempo (#65) - for its uploader or who can edit the song - and who
+   * sees it (#72), for its uploader. What's left out stays; null clears.
    */
-  async update(songVersionId: string, attachmentId: string, change: UpdateAttachmentDto) {
-    const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
-    const data: { stemPart?: StemPart | null; recordingKey?: string | null; recordingTempo?: number | null } = {};
+  async update(viewer: Viewer, songVersionId: string, attachmentId: string, change: UpdateAttachmentDto) {
+    const { attachment, canEditSong } = await this.findVisible(viewer, songVersionId, attachmentId);
+    const rights = present(attachment, viewer, canEditSong);
+    const data: {
+      stemPart?: StemPart | null;
+      recordingKey?: string | null;
+      recordingTempo?: number | null;
+      visibility?: AttachmentVisibilityValue;
+      visibleToTeamId?: string | null;
+    } = {};
     if (change.stemPart !== undefined) data.stemPart = change.stemPart;
     if (change.recordingKey !== undefined) {
       // Kept as written ("Gb" stays "Gb"), once it reads as a key.
@@ -58,17 +96,23 @@ export class AttachmentsService {
     if (attachment.type !== "AUDIO" && Object.values(data).some((value) => value !== null)) {
       throw new BadRequestException("Only audio files can be stems or have a recording's key and tempo");
     }
-    return this.prisma.client.attachment.update({ where: { id: attachment.id }, data });
+    if (Object.keys(data).length > 0 && !rights.canChange) throw new ForbiddenException("Only its uploader or the song's editors can change this file");
+    if (change.visibility !== undefined) {
+      if (!rights.canChangeVisibility) throw new ForbiddenException("Only its uploader decides who sees this file");
+      Object.assign(data, await this.audience(viewer, canEditSong, change.visibility, change.teamId ?? null));
+    }
+    const row = await this.prisma.client.attachment.update({ where: { id: attachment.id }, data, include: ATTACHMENT_INCLUDE });
+    return present(row, viewer, canEditSong);
   }
 
-  /** One of the song's files, or 404. */
-  find(songVersionId: string, attachmentId: string) {
-    return this.findOwnedAttachment(songVersionId, attachmentId);
+  /** One of the song's files the viewer sees, or 404. */
+  async find(viewer: Viewer, songVersionId: string, attachmentId: string) {
+    return (await this.findVisible(viewer, songVersionId, attachmentId)).attachment;
   }
 
   /** A resized WebP rendition of an image attachment (see ImageService.resize for sizing rules). */
-  async resizedImage(songVersionId: string, attachmentId: string, width: number): Promise<ProcessedImage> {
-    const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
+  async resizedImage(viewer: Viewer, songVersionId: string, attachmentId: string, width: number): Promise<ProcessedImage> {
+    const attachment = await this.find(viewer, songVersionId, attachmentId);
     if (attachment.type !== "IMAGE" && !attachment.mimeType.startsWith("image/")) {
       throw new UnsupportedMediaTypeException("This attachment isn't an image");
     }
@@ -82,17 +126,66 @@ export class AttachmentsService {
    * §8. Checked on demand rather than via a maintained counter, which
    * could drift out of sync with the actual row count.
    */
-  async remove(songVersionId: string, attachmentId: string): Promise<void> {
-    const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
+  async remove(viewer: Viewer, songVersionId: string, attachmentId: string): Promise<void> {
+    const { attachment, canEditSong } = await this.findVisible(viewer, songVersionId, attachmentId);
+    if (!present(attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can remove this file");
     await this.prisma.client.attachment.delete({ where: { id: attachment.id } });
     await this.storage.deleteUnreferenced([attachment.storageKey]);
   }
 
-  private async findOwnedAttachment(songVersionId: string, attachmentId: string) {
-    const attachment = await this.prisma.client.attachment.findUnique({ where: { id: attachmentId } });
-    if (!attachment || attachment.songVersionId !== songVersionId) {
-      throw new NotFoundException("Attachment not found");
-    }
-    return attachment;
+  private async canEditSong(viewer: Viewer, songVersionId: string): Promise<boolean> {
+    const song = await this.prisma.client.songVersion.findUnique({
+      where: { id: songVersionId },
+      select: { ownerScope: true, ownerUserId: true, ownerTeamId: true },
+    });
+    if (!song) throw new NotFoundException("Song version not found");
+    return this.access.canEdit(viewer, song);
   }
+
+  /** Checks who a file may be shown to, as the columns that say so. */
+  private async audience(
+    viewer: Viewer,
+    canEditSong: boolean,
+    visibility: AttachmentVisibilityValue,
+    teamId: string | null,
+  ): Promise<{ visibility: AttachmentVisibilityValue; visibleToTeamId: string | null }> {
+    if (visibility === "SONG" && !canEditSong) throw new ForbiddenException("Only who can edit the song can show a file to everyone who sees it");
+    if (visibility !== "TEAM") return { visibility, visibleToTeamId: null };
+    if (!teamId) throw new BadRequestException("Choose the team that sees it");
+    if (!viewer.isGlobalAdmin && !(await this.access.teamRole(viewer.id, teamId))) throw new ForbiddenException("Not a member of that team");
+    return { visibility, visibleToTeamId: teamId };
+  }
+
+  /** A file of the song the viewer sees (404 otherwise, not telling hidden from missing). */
+  private async findVisible(viewer: Viewer, songVersionId: string, attachmentId: string) {
+    const [teamIds, canEditSong] = await Promise.all([this.access.teamIds(viewer.id), this.canEditSong(viewer, songVersionId)]);
+    const attachment = await this.prisma.client.attachment.findFirst({
+      where: { id: attachmentId, songVersionId, ...AttachmentsService.visibleWhere(viewer, teamIds) },
+      include: ATTACHMENT_INCLUDE,
+    });
+    if (!attachment) throw new NotFoundException("Attachment not found");
+    return { attachment, canEditSong };
+  }
+}
+
+const ATTACHMENT_INCLUDE = {
+  uploadedBy: { select: { id: true, displayName: true } },
+  visibleToTeam: { select: { id: true, name: true } },
+} satisfies Prisma.AttachmentInclude;
+
+type AttachmentRow = Prisma.AttachmentGetPayload<{ include: typeof ATTACHMENT_INCLUDE }>;
+
+/**
+ * A file as the viewer gets it: `canChange` (its part, key and tempo, or
+ * removing it) for its uploader and who can edit the song;
+ * `canChangeVisibility` for its uploader (or, for a file whose uploader
+ * isn't known, the song's editors).
+ */
+function present(row: AttachmentRow, viewer: Viewer, canEditSong: boolean) {
+  const mine = row.uploadedByUserId === viewer.id;
+  return {
+    ...row,
+    canChange: viewer.isGlobalAdmin || canEditSong || mine,
+    canChangeVisibility: viewer.isGlobalAdmin || mine || (row.uploadedByUserId === null && canEditSong),
+  };
 }

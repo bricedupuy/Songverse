@@ -110,6 +110,13 @@ export class UserDeletionService {
       where: { songVersionId: { in: versionIds } },
       select: { storageKey: true },
     });
+    // Their private files on other people's songs (issue #72) would have no
+    // one left to see them: they go too. Files they shared stay.
+    const privateFiles = await tx.attachment.findMany({
+      where: { uploadedByUserId: userId, visibility: "PRIVATE", songVersionId: { notIn: versionIds } },
+      select: { id: true, storageKey: true },
+    });
+    await tx.attachment.deleteMany({ where: { id: { in: privateFiles.map((file) => file.id) } } });
 
     // Arrangements they own, plus any arrangement (anyone's) of a version
     // that's about to disappear - an arrangement can't outlive its version.
@@ -145,7 +152,7 @@ export class UserDeletionService {
     await tx.tag.deleteMany({ where: { ownerUserId: userId } });
     await tx.setlist.deleteMany({ where: { ownerUserId: userId } });
 
-    return attachments.map((attachment) => attachment.storageKey);
+    return [...attachments, ...privateFiles].map((attachment) => attachment.storageKey);
   }
 
   /** Removes the user row and personal activity. Returns the avatar key, if any, for storage cleanup. */

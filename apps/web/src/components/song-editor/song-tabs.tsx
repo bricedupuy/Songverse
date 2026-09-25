@@ -3,12 +3,14 @@ import {
   STEM_PARTS,
   stemPartFromFilename,
   type Attachment,
+  type AttachmentAudience,
   type AttachmentType,
   type MusicBrainzWorkMatch,
   type SongVersionDetail,
   type StorageUsage,
   type StemPart,
   type StreamingLinkType,
+  type TeamSummary,
 } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
 import { Download, FileAudio, Play, Trash2, Upload } from "lucide-react";
@@ -40,6 +42,55 @@ export function SaveFirst() {
 }
 
 const FILE_TYPES: AttachmentType[] = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE", "OTHER"];
+
+/** A file's audience as one select value: "PRIVATE", "SONG" or "TEAM:<id>". */
+const audienceValue = (audience: AttachmentAudience) => (audience.visibility === "TEAM" ? `TEAM:${audience.teamId}` : audience.visibility);
+const audienceOf = (value: string): AttachmentAudience =>
+  value.startsWith("TEAM:") ? { visibility: "TEAM", teamId: value.slice(5) } : { visibility: value as "PRIVATE" | "SONG" };
+
+/**
+ * Who sees a file (issue #72): only me, one of my teams, or everyone who
+ * can see the song (for the song's editors).
+ */
+function AudienceSelect({
+  value,
+  teams,
+  canShowToSong,
+  disabled,
+  label,
+  onChange,
+}: {
+  value: AttachmentAudience;
+  teams: TeamSummary[];
+  canShowToSong: boolean;
+  disabled?: boolean;
+  label: string;
+  onChange: (audience: AttachmentAudience) => void;
+}) {
+  const { t } = useTranslation();
+  // A team the file is shown to but that isn't in the list (left since) still shows.
+  const listed = value.visibility === "TEAM" && value.teamId && !teams.some((team) => team.id === value.teamId);
+  return (
+    <NativeSelect compact value={audienceValue(value)} disabled={disabled} aria-label={label} onChange={(event) => onChange(audienceOf(event.target.value))}>
+      <option value="PRIVATE">{t("fileVisibility.private")}</option>
+      {teams.map((team) => (
+        <option key={team.id} value={`TEAM:${team.id}`}>
+          {t("fileVisibility.team", { team: team.name })}
+        </option>
+      ))}
+      {listed ? <option value={audienceValue(value)}>{t("fileVisibility.team", { team: "…" })}</option> : null}
+      {canShowToSong || value.visibility === "SONG" ? <option value="SONG">{t("fileVisibility.song")}</option> : null}
+    </NativeSelect>
+  );
+}
+
+/** Who sees a file, for someone who can't change it. */
+function audienceText(attachment: Attachment, t: (key: string, options?: Record<string, unknown>) => string): string {
+  const by = attachment.uploadedBy?.displayName;
+  if (attachment.visibility === "TEAM") return t(by ? "fileVisibility.sharedByWithTeam" : "fileVisibility.sharedWithTeam", { name: by, team: attachment.visibleToTeam?.name ?? "" });
+  if (attachment.visibility === "PRIVATE") return t("fileVisibility.privateOf", { name: by ?? "" });
+  return by ? t("fileVisibility.addedBy", { name: by }) : "";
+}
 
 function AudioPlayer({ songVersionId, attachment }: { songVersionId: string; attachment: Attachment }) {
   const { t } = useTranslation();
@@ -201,6 +252,7 @@ export function AttachmentsTab({
   kind: "files" | "audio";
   songVersionId: string;
   attachments: Attachment[];
+  /** Can edit the song: can show files to everyone who sees it. Anyone who sees it adds their own. */
   canEdit: boolean;
   /** The song's own, which a recording's key and tempo default to (#65). */
   songKey?: string;
@@ -216,16 +268,25 @@ export function AttachmentsTab({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [usage, setUsage] = useState<StorageUsage | null>(null);
+  const [teams, setTeams] = useState<TeamSummary[]>([]);
+  // Who sees what's added: only its uploader, until they choose otherwise (issue #72).
+  const [audience, setAudience] = useState<AttachmentAudience>({ visibility: "PRIVATE" });
   const stems = kind === "audio" ? stemsOf(attachments) : [];
+  const changeableStems = stems.filter((stem) => stem.canChange);
   const shown = attachments.filter((a) => (kind === "audio" ? a.type === "AUDIO" : a.type !== "AUDIO"));
 
   useEffect(() => {
-    if (!canEdit) return;
     apiClient
       .getMyStorage()
       .then(setUsage)
       .catch(() => {});
-  }, [canEdit, attachments.length]);
+  }, [attachments.length]);
+  useEffect(() => {
+    apiClient
+      .listTeams()
+      .then(setTeams)
+      .catch(() => {});
+  }, []);
 
   async function upload(files: File[]) {
     setError(null);
@@ -240,7 +301,7 @@ export function AttachmentsTab({
       try {
         // "Song - Vocals.mp3" is the vocals stem (issue #64); the part can be changed below the file.
         const stemPart = kind === "audio" ? stemPartFromFilename(file.name) : null;
-        await apiClient.uploadAttachment(songVersionId, fileType === "AUDIO" && kind === "files" ? "OTHER" : fileType, file, stemPart);
+        await apiClient.uploadAttachment(songVersionId, fileType === "AUDIO" && kind === "files" ? "OTHER" : fileType, file, stemPart, audience);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
@@ -306,12 +367,12 @@ export function AttachmentsTab({
                 <p className="text-sm font-medium">{t("stems.recording")}</p>
                 <p className="text-xs text-muted-foreground">{t("stems.recordingHint")}</p>
                 <RecordingFields
-                  files={stems}
+                  files={changeableStems.length > 0 ? changeableStems : stems}
                   songKey={songKey}
                   songTempo={songTempo}
-                  canEdit={canEdit}
+                  canEdit={changeableStems.length > 0}
                   busy={busyId !== null}
-                  onChange={(change) => void update(stems, change)}
+                  onChange={(change) => void update(changeableStems, change)}
                 />
               </div>
             ) : null}
@@ -341,7 +402,7 @@ export function AttachmentsTab({
                       >
                         <Download />
                       </Button>
-                      {canEdit ? (
+                      {attachment.canChange ? (
                         <Button
                           type="button"
                           variant="ghost"
@@ -355,7 +416,24 @@ export function AttachmentsTab({
                       ) : null}
                     </span>
                   </div>
-                  {kind === "audio" && canEdit ? (
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" data-testid="file-visibility">
+                    {attachment.canChangeVisibility ? (
+                      <label className="flex items-center gap-2">
+                        {t("fileVisibility.label")}
+                        <AudienceSelect
+                          value={{ visibility: attachment.visibility, teamId: attachment.visibleToTeamId }}
+                          teams={teams}
+                          canShowToSong={canEdit}
+                          disabled={busyId !== null}
+                          label={t("fileVisibility.labelFor", { name: attachment.filename })}
+                          onChange={(next) => void update([attachment], { visibility: next.visibility, teamId: next.teamId ?? null })}
+                        />
+                      </label>
+                    ) : (
+                      <span>{audienceText(attachment, t)}</span>
+                    )}
+                  </div>
+                  {kind === "audio" && attachment.canChange ? (
                     <label className="flex items-center gap-2 text-xs text-muted-foreground">
                       {t("stems.part")}
                       <NativeSelect
@@ -383,7 +461,7 @@ export function AttachmentsTab({
                       label={attachment.filename}
                       songKey={songKey}
                       songTempo={songTempo}
-                      canEdit={canEdit}
+                      canEdit={attachment.canChange}
                       busy={busyId !== null}
                       onChange={(change) => void update([attachment], change)}
                     />
@@ -394,7 +472,7 @@ export function AttachmentsTab({
             </ul>
             </>
           )}
-          {kind === "audio" && canEdit ? <p className="text-xs text-muted-foreground">{t("stems.detectHint")}</p> : null}
+          {kind === "audio" ? <p className="text-xs text-muted-foreground">{t("stems.detectHint")}</p> : null}
           {kind === "audio" && mode !== "practice" && stems.length > 0 ? (
             <Button type="button" variant="link" className="h-auto self-start p-0" onClick={() => setMode("practice")}>
               {t("stems.practiceHint")}
@@ -408,49 +486,51 @@ export function AttachmentsTab({
         </CardContent>
       </Card>
 
-      {canEdit ? (
-        <Card>
-          <CardContent className="flex flex-col gap-3">
-            <div
-              className={cn(
-                "flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center text-sm",
-                dragging ? "border-primary bg-primary/5" : "border-input",
-              )}
-              onDragOver={(event) => {
-                event.preventDefault();
-                setDragging(true);
+      {/* Anyone who sees the song adds files of their own to it (issue #72). */}
+      <Card>
+        <CardContent className="flex flex-col gap-3">
+          <div
+            className={cn(
+              "flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center text-sm",
+              dragging ? "border-primary bg-primary/5" : "border-input",
+            )}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setDragging(false);
+              void upload([...event.dataTransfer.files]);
+            }}
+          >
+            <Upload className="size-5 text-muted-foreground" aria-hidden />
+            <p>
+              {t(kind === "audio" ? "songEditor.dropAudio" : "songEditor.dropFiles")}{" "}
+              <button type="button" className="font-medium text-primary hover:underline" onClick={() => inputRef.current?.click()}>
+                {t("songEditor.browse")}
+              </button>
+            </p>
+            <p className="text-xs text-muted-foreground">{t(kind === "audio" ? "songEditor.audioLimit" : "songEditor.filesLimit")}</p>
+            {!canEdit ? <p className="text-xs text-muted-foreground">{t("fileVisibility.ownHint")}</p> : null}
+            <input
+              ref={inputRef}
+              type="file"
+              multiple
+              accept={kind === "audio" ? "audio/*,.opus,.ogg,.mp3,.m4a,.wav,.flac" : undefined}
+              className="sr-only"
+              aria-label={t(kind === "audio" ? "songEditor.uploadAudio" : "songEditor.uploadFiles")}
+              data-testid={`${kind}-input`}
+              onChange={(event) => {
+                const files = [...(event.target.files ?? [])];
+                event.target.value = "";
+                if (files.length) void upload(files);
               }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={(event) => {
-                event.preventDefault();
-                setDragging(false);
-                void upload([...event.dataTransfer.files]);
-              }}
-            >
-              <Upload className="size-5 text-muted-foreground" aria-hidden />
-              <p>
-                {t(kind === "audio" ? "songEditor.dropAudio" : "songEditor.dropFiles")}{" "}
-                <button type="button" className="font-medium text-primary hover:underline" onClick={() => inputRef.current?.click()}>
-                  {t("songEditor.browse")}
-                </button>
-              </p>
-              <p className="text-xs text-muted-foreground">{t(kind === "audio" ? "songEditor.audioLimit" : "songEditor.filesLimit")}</p>
-              <input
-                ref={inputRef}
-                type="file"
-                multiple
-                accept={kind === "audio" ? "audio/*,.opus,.ogg,.mp3,.m4a,.wav,.flac" : undefined}
-                className="sr-only"
-                aria-label={t(kind === "audio" ? "songEditor.uploadAudio" : "songEditor.uploadFiles")}
-                data-testid={`${kind}-input`}
-                onChange={(event) => {
-                  const files = [...(event.target.files ?? [])];
-                  event.target.value = "";
-                  if (files.length) void upload(files);
-                }}
-              />
-            </div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-4">
               {kind === "files" ? (
                 <label className="flex items-center gap-2 text-sm">
                   {t("songEditor.fileType")}
@@ -463,24 +543,32 @@ export function AttachmentsTab({
                     ))}
                   </NativeSelect>
                 </label>
-              ) : (
-                <span />
-              )}
-              {uploading ? (
-                <span className="text-sm text-muted-foreground" role="status">
-                  {t("songEditor.uploading", { name: uploading })}
-                </span>
-              ) : usage ? (
-                <span className="text-xs text-muted-foreground">
-                  {usage.limitBytes === null
-                    ? t("songEditor.storageUsedUnlimited", { used: formatBytes(usage.usedBytes) })
-                    : t("songEditor.storageUsed", { used: formatBytes(usage.usedBytes), limit: formatBytes(usage.limitBytes) })}
-                </span>
               ) : null}
+              <label className="flex items-center gap-2 text-sm">
+                {t("fileVisibility.label")}
+                <AudienceSelect
+                  value={audience}
+                  teams={teams}
+                  canShowToSong={canEdit}
+                  label={t("fileVisibility.forNew")}
+                  onChange={setAudience}
+                />
+              </label>
             </div>
-          </CardContent>
-        </Card>
-      ) : null}
+            {uploading ? (
+              <span className="text-sm text-muted-foreground" role="status">
+                {t("songEditor.uploading", { name: uploading })}
+              </span>
+            ) : usage ? (
+              <span className="text-xs text-muted-foreground">
+                {usage.limitBytes === null
+                  ? t("songEditor.storageUsedUnlimited", { used: formatBytes(usage.usedBytes) })
+                  : t("songEditor.storageUsed", { used: formatBytes(usage.usedBytes), limit: formatBytes(usage.limitBytes) })}
+              </span>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

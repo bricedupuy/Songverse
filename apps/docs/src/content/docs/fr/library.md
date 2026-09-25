@@ -55,7 +55,21 @@ Voilà le chant en mode **Édition**. En **Session**, sa page est la grille elle
 
 Le **Capo suggéré** n'est qu'une suggestion (par exemple le capo de l'enregistrement) : il s'applique quand un arrangement n'indique pas le sien.
 
-Si un chant n'est pas à vous (un chant global, ou un chant d'équipe dont vous n'êtes pas administrateur), vous pouvez le lire et l'arranger, mais pas le modifier.
+Si un chant n'est pas à vous (un chant global, ou un chant d'équipe dont vous n'êtes pas administrateur), vous pouvez le lire, l'arranger et y ajouter vos propres fichiers (voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), mais pas le modifier.
+
+## Qui voit un fichier
+
+Chaque fichier des onglets **Fichiers** et **Audio** a son propre réglage **Visible par**, choisi par qui l'a ajouté :
+
+- **Moi seulement** - vous seul·e. C'est le réglage des nouveaux fichiers : enregistrements et pistes sont souvent sous le droit d'auteur de quelqu'un d'autre.
+- **Groupe du matin (équipe)** - vous et les membres de cette équipe (une de vos équipes).
+- **Tous ceux qui voient ce chant** - pour qui peut modifier le chant.
+
+Choisissez-le avant d'ajouter des fichiers, sous la zone de dépôt, ou changez-le ensuite sous le fichier. Les autres voient qui a partagé un fichier (« Partagé par Hugo avec Groupe du matin ») ; un fichier que vous ne pouvez pas voir n'apparaît nulle part, ni dans le chant, ni dans ses listes, ni en Session, ni hors ligne.
+
+Toute personne qui voit un chant peut y ajouter ses propres fichiers, même sans pouvoir le modifier : ils sont à elle, et elle seule les voit sauf si elle les partage avec une de ses équipes. Ceux qui modifient le chant peuvent supprimer les fichiers qu'ils voient, mais seul·e le ou la propriétaire d'un fichier choisit qui le voit.
+
+![Qui voit chaque fichier](../../../assets/screenshots/fr/song-files.jpg)
 
 ## Pistes
 

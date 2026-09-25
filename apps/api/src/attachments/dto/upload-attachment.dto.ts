@@ -5,6 +5,8 @@ import { IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class
 
 const ATTACHMENT_TYPES = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE", "AUDIO", "OTHER"] as const;
 export type AttachmentTypeValue = (typeof ATTACHMENT_TYPES)[number];
+export const ATTACHMENT_VISIBILITIES = ["PRIVATE", "TEAM", "SONG"] as const;
+export type AttachmentVisibilityValue = (typeof ATTACHMENT_VISIBILITIES)[number];
 
 export class UploadAttachmentDto {
   @ApiProperty({ enum: ATTACHMENT_TYPES })
@@ -17,6 +19,22 @@ export class UploadAttachmentDto {
   @Transform(({ value }) => (value === "" ? undefined : value))
   @IsIn(STEM_PARTS)
   stemPart?: StemPart;
+
+  @ApiProperty({
+    enum: ATTACHMENT_VISIBILITIES,
+    required: false,
+    description: "Who sees it besides you: PRIVATE (nobody, the default), TEAM (teamId's members), SONG (everyone who sees the song; needs edit rights on it).",
+  })
+  @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
+  @IsIn(ATTACHMENT_VISIBILITIES)
+  visibility?: AttachmentVisibilityValue;
+
+  @ApiProperty({ required: false, description: "For TEAM: a team you belong to." })
+  @IsOptional()
+  @Transform(({ value }) => (value === "" ? undefined : value))
+  @IsString()
+  teamId?: string;
 }
 
 /** What's left out stays as it is; null clears it. */
@@ -38,4 +56,14 @@ export class UpdateAttachmentDto {
   @Min(20)
   @Max(400)
   recordingTempo?: number | null;
+
+  @ApiProperty({ enum: ATTACHMENT_VISIBILITIES, required: false, description: "Who sees it (its uploader only): see UploadAttachmentDto." })
+  @IsOptional()
+  @IsIn(ATTACHMENT_VISIBILITIES)
+  visibility?: AttachmentVisibilityValue;
+
+  @ApiProperty({ required: false, description: "For TEAM: a team you belong to." })
+  @IsOptional()
+  @IsString()
+  teamId?: string;
 }

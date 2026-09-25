@@ -13,5 +13,10 @@ export class AttachmentResponseDto {
   @ApiProperty({ enum: STEM_PARTS, nullable: true }) stemPart!: StemPart | null;
   @ApiProperty({ nullable: true }) recordingKey!: string | null;
   @ApiProperty({ nullable: true }) recordingTempo!: number | null;
+  @ApiProperty({ enum: ["PRIVATE", "TEAM", "SONG"] }) visibility!: "PRIVATE" | "TEAM" | "SONG";
+  @ApiProperty({ nullable: true }) visibleToTeamId!: string | null;
+  @ApiProperty({ nullable: true }) uploadedByUserId!: string | null;
+  @ApiProperty({ description: "May change its part, key and tempo, or remove it." }) canChange!: boolean;
+  @ApiProperty({ description: "May change who sees it." }) canChangeVisibility!: boolean;
   @ApiProperty() createdAt!: Date;
 }

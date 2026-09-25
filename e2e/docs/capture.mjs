@@ -131,7 +131,17 @@ try {
       const form = new FormData();
       form.append("type", "AUDIO");
       form.append("stemPart", stemPart);
+      // The band's to share (issue #72).
+      form.append("visibility", "TEAM");
+      form.append("teamId", team.id);
       form.append("file", new Blob([readFileSync(path.join(STEMS, file))], { type: "application/octet-stream" }), file);
+      await fetch(`${API}/song-versions/${grace.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form });
+    }
+
+    {
+      const form = new FormData();
+      form.append("type", "AUDIO");
+      form.append("file", new Blob([readFileSync(path.join(STEMS, "Morning Light - Vocals.opus"))], { type: "application/octet-stream" }), locale === "fr" ? "Ma prise.opus" : "My take.opus");
       await fetch(`${API}/song-versions/${grace.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form });
     }
 
@@ -171,6 +181,8 @@ try {
     await shoot("song-info", `/library/${grace.id}`);
     await shoot("song-editor", `/library/${grace.id}?tab=editor`, () => page.locator(".ProseMirror").waitFor());
     await shoot("song-order", null, null, { element: page.getByTestId("song-order") });
+    // Who sees each file (issue #72): the stems shared with the band, a recording kept to oneself.
+    await shoot("song-files", `/library/${grace.id}?tab=audio`, () => page.getByTestId("audio-list").waitFor());
     await shoot("song-history", `/library/${grace.id}?tab=history`, () => page.getByTestId("history-chart-diff").waitFor());
     await shoot("arrangements", `/library/${grace.id}?tab=arrangements`, () => page.getByTestId("arrangement-list").waitFor());
     await shoot("arrangement-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
