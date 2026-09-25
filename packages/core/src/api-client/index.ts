@@ -727,6 +727,29 @@ export interface SongRevisionDetail extends SongRevisionEntry {
   previous: SongSnapshot | null;
 }
 
+/** A suggested change to a catalogue song (issue #74). */
+export interface Suggestion {
+  id: string;
+  state: "OPEN" | "UNDER_REVIEW" | "ACCEPTED" | "REJECTED" | "PARTIALLY_APPLIED" | "WITHDRAWN";
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+  /** What it changes and why, for the reviewer. */
+  description: string | null;
+  reviewNotes: string | null;
+  proposer: { id: string; displayName: string };
+  reviewer: { id: string; displayName: string } | null;
+  song: { id: string; title: string; versionName: string | null; ownerScope: string };
+  changes: SongChange[];
+}
+
+/** A suggestion with the song as it was when it was made and as it would leave it; `conflicts` are the parts changed since in the same place. */
+export interface SuggestionDetail extends Suggestion {
+  base: SongSnapshot;
+  proposed: SongSnapshot;
+  conflicts: string[];
+}
+
 export type StreamingLinkType = "SPOTIFY" | "APPLE_MUSIC" | "YOUTUBE";
 
 export interface SongVersionLink {
@@ -1302,6 +1325,19 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<SongVersionDetail>(`/song-versions/${songVersionId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteSongVersion: (songVersionId: string) =>
       request<void>(`/song-versions/${songVersionId}`, { method: "DELETE" }),
+    /** A change to a catalogue song, made as the song editor would save it, for a reviewer to accept (issue #74). */
+    suggestChange: (songVersionId: string, data: UpdateSongVersionInput & { message?: string }) =>
+      request<Suggestion>(`/song-versions/${songVersionId}/suggestions`, { method: "POST", body: JSON.stringify(data) }),
+    /** Your own suggestions on a song. */
+    listSongSuggestions: (songVersionId: string) => request<Suggestion[]>(`/song-versions/${songVersionId}/suggestions`),
+    listSuggestions: (state: "open" | "closed" = "open") => request<Suggestion[]>(`/suggestions?state=${state}`),
+    mySuggestions: () => request<Suggestion[]>("/suggestions/mine"),
+    getSuggestion: (id: string) => request<SuggestionDetail>(`/suggestions/${id}`),
+    acceptSuggestion: (id: string, notes?: string) =>
+      request<Suggestion>(`/suggestions/${id}/accept`, { method: "POST", body: JSON.stringify({ notes }) }),
+    declineSuggestion: (id: string, notes: string) =>
+      request<Suggestion>(`/suggestions/${id}/decline`, { method: "POST", body: JSON.stringify({ notes }) }),
+    withdrawSuggestion: (id: string) => request<Suggestion>(`/suggestions/${id}/withdraw`, { method: "POST" }),
     getSongHistory: (songVersionId: string) => request<SongRevisionEntry[]>(`/song-versions/${songVersionId}/history`),
     getSongRevision: (songVersionId: string, revisionId: string) =>
       request<SongRevisionDetail>(`/song-versions/${songVersionId}/history/${revisionId}`),

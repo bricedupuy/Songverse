@@ -189,11 +189,18 @@ function summary(entry: SongRevisionEntry, t: (key: string, options?: Record<str
 
 /** What an entry changed from the one before; the first, the song as it was then. */
 function EntryChanges({ detail }: { detail: SongRevisionDetail }) {
+  if (!detail.previous) return <SnapshotView snapshot={detail.snapshot} />;
+  return <SnapshotDiff before={detail.previous} after={detail.snapshot} />;
+}
+
+/**
+ * What changed from `before` to `after`: details and credits struck out
+ * and new, the chart's lines removed and added - and the whole song as it
+ * is in `after`, on demand. A history entry, a suggestion (issue #74).
+ */
+export function SnapshotDiff({ before: previous, after: snapshot, showLabel }: { before: SongSnapshot; after: SongSnapshot; showLabel?: string }) {
   const { t } = useTranslation();
   const [wholeChart, setWholeChart] = useState(false);
-  const { snapshot, previous } = detail;
-
-  if (!previous) return <SnapshotView snapshot={snapshot} />;
   const details = detailChanges(previous, snapshot);
   const credits = creditLines(previous, snapshot);
   const chartDiff = diffHunks(diffLines(chartLines(previous), chartLines(snapshot)));
@@ -267,7 +274,7 @@ function EntryChanges({ detail }: { detail: SongRevisionDetail }) {
       ) : null}
       <div>
         <Button type="button" variant="link" className="h-auto p-0" onClick={() => setWholeChart((open) => !open)} aria-expanded={wholeChart}>
-          {wholeChart ? t("history.hideSong") : t("history.showSong")}
+          {wholeChart ? t("history.hideSong") : (showLabel ?? t("history.showSong"))}
         </Button>
       </div>
       {wholeChart ? <SnapshotView snapshot={snapshot} /> : null}

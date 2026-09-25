@@ -39,6 +39,8 @@ import {
 } from "./song-form";
 import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, SongbooksCard } from "./song-info";
 import { PublishCard } from "./publish-card";
+import { MySuggestionsCard } from "./my-suggestions-card";
+import { Textarea } from "#/components/ui/textarea";
 import { ArrangementsTab } from "./arrangements-tab";
 import { HistoryTab } from "./history-tab";
 import { AttachmentsTab, LinksTab, SaveFirst } from "./song-tabs";
@@ -77,6 +79,14 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   const edit = props.mode === "edit" ? props : null;
   const version = edit?.version ?? null;
   const canEdit = version ? version.canEdit : true;
+  // A catalogue song someone can't edit: they can suggest a change instead (issue #74).
+  const canSuggest = !!version && !version.canEdit && version.ownerScope === "GLOBAL";
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestMessage, setSuggestMessage] = useState("");
+  const [suggestionsKey, setSuggestionsKey] = useState(0);
+  // The chart and details: the song's editors change them, and so does someone suggesting a change.
+  const canChangeChart = canEdit || suggesting;
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const router = useRouter();
@@ -290,6 +300,44 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
     }
   }
 
+  function openSuggest() {
+    setShowErrors(true);
+    if (Object.keys(validate(form)).length > 0) {
+      onTabChange("info");
+      setMessage({ kind: "error", text: t("songEditor.fixErrors") });
+      return;
+    }
+    setSuggestOpen(true);
+  }
+
+  function stopSuggesting() {
+    discard();
+    setSuggesting(false);
+  }
+
+  /** Sends what's been changed as a suggestion (issue #74), and puts the song back as it is. */
+  async function sendSuggestion() {
+    if (!edit) return;
+    setSaving(true);
+    try {
+      await apiClient.suggestChange(edit.version.id, {
+        ...toUpdateInput(form, initial),
+        revision: edit.version.documentJson.revision,
+        message: suggestMessage.trim() || undefined,
+      });
+      setSuggestOpen(false);
+      setSuggestMessage("");
+      stopSuggesting();
+      setSuggestionsKey((key) => key + 1);
+      setMessage({ kind: "ok", text: t("suggestions.sent") });
+    } catch (err) {
+      setSuggestOpen(false);
+      setMessage({ kind: "error", text: err instanceof Error && err.message ? err.message : t("suggestions.sendFailed") });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function discard() {
     setForm(initial);
     setMbChoice(undefined);
@@ -319,7 +367,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
 
   const songInfo = (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      <fieldset disabled={!canEdit || saving} className="flex min-w-0 flex-col gap-6">
+      <fieldset disabled={!canChangeChart || saving} className="flex min-w-0 flex-col gap-6">
         {basedOn ? (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm" role="status">
             <span className="min-w-0 flex-1">
@@ -352,7 +400,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         <MoreDetailsCard form={form} setField={setField} errors={errors} tags={tags} open={detailsOpen} onOpenChange={setDetailsOpen} />
       </fieldset>
       <div className="flex min-w-0 flex-col gap-6">
-        {canEdit ? (
+        {canChangeChart ? (
           <fieldset disabled={saving} className="min-w-0">
             <Card>
               <CardHeader>
@@ -377,6 +425,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         ) : null}
         {edit ? <SongbooksCard memberships={edit.songbookMemberships} title={edit.version.title} /> : null}
         {edit && canEdit && edit.version.ownerScope !== "GLOBAL" ? <PublishCard songVersionId={edit.version.id} /> : null}
+        {edit && edit.version.ownerScope === "GLOBAL" ? <MySuggestionsCard songVersionId={edit.version.id} refreshKey={suggestionsKey} /> : null}
       </div>
     </div>
   );
@@ -396,11 +445,12 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
 
   return (
     <form
-      className={`flex flex-col gap-6 ${canEdit && dirty ? "pb-16 md:pb-0" : ""}`}
+      className={`flex flex-col gap-6 ${canChangeChart && dirty ? "pb-16 md:pb-0" : ""}`}
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        if (canEdit) void save();
+        if (suggesting) openSuggest();
+        else if (canEdit) void save();
       }}
     >
       {/* Sticky on wider screens; a phone gets the save bar at the bottom instead. */}
@@ -420,6 +470,22 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           ) : null}
         </div>
         <div className="flex items-center gap-2">
+          {canSuggest && !suggesting ? (
+            <Button type="button" variant="outline" onClick={() => setSuggesting(true)}>
+              <PenLine />
+              {t("suggestions.suggest")}
+            </Button>
+          ) : null}
+          {suggesting ? (
+            <>
+              <Button type="button" variant="outline" onClick={stopSuggesting} disabled={saving}>
+                {t("songEditor.cancel")}
+              </Button>
+              <Button type="submit" disabled={saving || !dirty}>
+                {t("suggestions.send")}
+              </Button>
+            </>
+          ) : null}
           {canEdit ? (
             <>
               {edit ? (
@@ -472,7 +538,12 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           {edit.notices.map((notice) => t(`songEditor.notices.${notice}`)).join(" ")}
         </p>
       ) : null}
-      {version && !canEdit ? <p className="text-sm text-muted-foreground">{t("songEditor.readOnly")}</p> : null}
+      {version && !canChangeChart ? <p className="text-sm text-muted-foreground">{t(canSuggest ? "suggestions.readOnly" : "songEditor.readOnly")}</p> : null}
+      {suggesting ? (
+        <p className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm" role="status">
+          {t("suggestions.suggesting")}
+        </p>
+      ) : null}
 
       <Tabs value={tab} onValueChange={(value) => onTabChange(value as SongTab)} className="gap-6">
         <TabsList className="h-auto w-full justify-start overflow-x-auto sm:w-fit">
@@ -520,7 +591,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
                 onFlowChange={(flow) => updateForm((current) => ({ ...current, flow: nameKeyChanges(flow, current.key) }))}
                 songKey={form.key}
                 onSongKeyChange={(key) => setField("key", key)}
-                readOnly={!canEdit}
+                readOnly={!canChangeChart}
               />
             </Suspense>
           </fieldset>
@@ -538,14 +609,35 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         </TabsContent>
       </Tabs>
 
-      {canEdit && dirty ? (
+      {canChangeChart && dirty ? (
         <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t bg-background px-4 py-3 md:hidden" data-testid="mobile-save-bar">
           <span className="text-sm text-muted-foreground">{t("songEditor.unsaved")}</span>
           <Button type="submit" disabled={saving}>
-            {saving ? t("songEditor.saving") : t("songEditor.save")}
+            {suggesting ? t("suggestions.send") : saving ? t("songEditor.saving") : t("songEditor.save")}
           </Button>
         </div>
       ) : null}
+
+      <Dialog open={suggestOpen} onOpenChange={(open) => !saving && setSuggestOpen(open)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("suggestions.dialogTitle")}</DialogTitle>
+            <DialogDescription>{t("suggestions.dialogDescription")}</DialogDescription>
+          </DialogHeader>
+          <label className="flex flex-col gap-2 text-sm font-medium">
+            {t("suggestions.messageLabel")}
+            <Textarea value={suggestMessage} onChange={(event) => setSuggestMessage(event.target.value)} className="min-h-20 font-normal" />
+          </label>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setSuggestOpen(false)} disabled={saving}>
+              {t("songEditor.cancel")}
+            </Button>
+            <Button type="button" onClick={() => void sendSuggestion()} disabled={saving}>
+              {saving ? t("suggestions.sending") : t("suggestions.send")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={confirmingDelete} onOpenChange={(open) => !deleting && setConfirmingDelete(open)}>
         <DialogContent>

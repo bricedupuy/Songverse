@@ -100,3 +100,11 @@ The **Global catalogue** card on your own song (or a team song you administer) o
 Once published, the song itself moves to the catalogue - there's no second copy. Your library lists it once, marked **Published by you**, and its page says who it came from. Its chart and details (its notes too) are now everyone's, and only admins change them; its [history](/song-editor/#history) goes on. What was yours stays yours: your files keep to you (or the team you shared them with - see [Who sees a file](/library/#who-sees-a-file)), your arrangements stay yours, and so do your own tags.
 
 If a reviewer finds the song is already in the catalogue, they merge it into that one: yours then stays yours, as your own version of the catalogue song, grouped with it.
+
+## Suggesting a change
+
+Only admins change a song in the global catalogue, but anyone can suggest a change - including whoever contributed it. On the song's page, **Suggest a change**: its **Song info** and **Editor** tabs open as for your own song. Make your change, then **Send suggestion**, with a word for the reviewer if you like. The song itself isn't changed yet.
+
+A reviewer reads what it changes - details and credits struck out and new, the chart's lines removed and added - and accepts or declines it. An accepted suggestion is saved to the song in your name, in its [history](/song-editor/#history), on top of anything changed since. If the same part (the chart, a detail, the credits) was changed since in another way, it can't be accepted as it is.
+
+**Your suggestions**, on the song's page, shows where each one stands and the reviewer's note; **Withdraw** takes back one that's still waiting.

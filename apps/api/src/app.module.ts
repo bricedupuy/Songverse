@@ -23,6 +23,7 @@ import { TeamsModule } from "./teams/teams.module";
 import { UsersModule } from "./users/users.module";
 import { WorksModule } from "./works/works.module";
 import { PublishingModule } from "./publishing/publishing.module";
+import { SuggestionsModule } from "./suggestions/suggestions.module";
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { PublishingModule } from "./publishing/publishing.module";
     BulkUploadModule,
     AdminModule,
     PublishingModule,
+    SuggestionsModule,
   ],
   controllers: [AppController],
   providers: [

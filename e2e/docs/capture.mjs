@@ -61,8 +61,8 @@ Early in the [Bm]morning our [E]song shall rise to [A]Thee;
 ];
 
 const LOCALES = {
-  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only" },
-  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul" },
+  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", reviewer: "Robin Lee", why: "It's 'relieved', with one l.", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only" },
+  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", reviewer: "Alice Moreau", why: "C'est « relieved », avec un seul l.", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul" },
 };
 
 const nextSunday = () => {
@@ -222,6 +222,29 @@ try {
     // What the device keeps offline, once it has caught up (the set is coming up).
     await shoot("offline-storage", "/offline", () => page.getByText(/Last caught up|Dernière mise à jour/).waitFor({ timeout: 30_000 }));
     await context.close();
+
+    // A suggested change to a catalogue song (issue #74), as the reviewer reads it - last, so the library above doesn't list the song.
+    const admin = await user(text.reviewer);
+    sql(`update "User" set "isGlobalAdmin"=true, locale='${locale}', email='${text.reviewer.toLowerCase().replace(" ", ".")}@example.com' where id='${admin.id}'`);
+    admin.email = `${text.reviewer.toLowerCase().replace(" ", ".")}@example.com`;
+    const hymn = await api(admin, "POST", "/song-versions", { ...SONGS[0], title: `${SONGS[0].title} (catalogue)`, language: "en", contentFormat: "CHORDPRO" });
+    await api(admin, "POST", `/song-versions/${hymn.id}/publish`, { duplicateReason: "Demo" });
+    const hymnDoc = (await api(me, "GET", `/song-versions/${hymn.id}`)).documentJson;
+    const suggestion = await api(me, "POST", `/song-versions/${hymn.id}/suggestions`, {
+      content: SONGS[0].content.replace("And [G]grace my [Em]fears re[D]lieved;", "And [G]grace my [Em]fears re[D]lieved,"),
+      copyright: "Public domain",
+      revision: hymnDoc.revision,
+      message: text.why,
+    });
+    const reviewing = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: locale === "fr" ? "fr-FR" : "en-US", colorScheme: "light" });
+    const reviewPage = await reviewing.newPage();
+    await signIn(reviewPage, admin);
+    await reviewPage.goto(`${WEB}/review/suggestions/${suggestion.id}`);
+    await reviewPage.getByTestId("history-chart-diff").waitFor();
+    await reviewPage.waitForTimeout(300);
+    await reviewPage.screenshot({ path: path.join(dir, "suggestion-review.jpg"), type: "jpeg", quality: 85, fullPage: true });
+    console.log("  suggestion-review");
+    await reviewing.close();
   }
 } finally {
   await browser.close();

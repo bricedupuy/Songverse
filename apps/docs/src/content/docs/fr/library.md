@@ -100,3 +100,11 @@ La carte **Catalogue global** de votre chant (ou d'un chant d'équipe que vous a
 Une fois publié, le chant lui-même passe au catalogue - il n'y a pas de seconde copie. Votre bibliothèque le liste une seule fois, marqué **Publié par vous**, et sa page dit de qui il vient. Sa grille et ses détails (ses notes aussi) sont désormais à tout le monde, et seuls les administrateurs les modifient ; son [historique](/fr/song-editor/#historique) continue. Ce qui était à vous le reste : vos fichiers restent à vous (ou à l'équipe avec qui vous les avez partagés - voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), vos arrangements restent les vôtres, tout comme vos propres étiquettes.
 
 Si un relecteur trouve que le chant est déjà dans le catalogue, il le fusionne avec celui-ci : le vôtre reste alors à vous, comme votre propre version du chant du catalogue, regroupée avec lui.
+
+## Proposer une modification
+
+Seuls les administrateurs modifient un chant du catalogue global, mais tout le monde peut proposer une modification - y compris la personne qui l'a proposé au catalogue. Sur la page du chant, **Proposer une modification** : ses onglets **Infos** et **Éditeur** s'ouvrent comme pour votre propre chant. Faites votre modification, puis **Envoyer la proposition**, avec un mot pour le relecteur si vous le souhaitez. Le chant lui-même ne change pas encore.
+
+Un relecteur voit ce qu'elle change - détails et crédits barrés et nouveaux, lignes de la grille supprimées et ajoutées - et l'accepte ou la refuse. Une proposition acceptée est enregistrée dans le chant à votre nom, dans son [historique](/fr/song-editor/#historique), par-dessus ce qui a changé depuis. Si la même partie (la grille, un détail, les crédits) a été modifiée autrement entre-temps, elle ne peut pas être acceptée telle quelle.
+
+**Vos propositions**, sur la page du chant, montre où en est chacune et la note du relecteur ; **Retirer** reprend une proposition encore en attente.

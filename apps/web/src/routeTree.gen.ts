@@ -45,6 +45,7 @@ import { Route as ProtectedTeamsIndexRouteImport } from './routes/_protected/tea
 import { Route as ProtectedTeamsTeamIdRouteImport } from './routes/_protected/teams/$teamId'
 import { Route as ProtectedTeamsNewRouteImport } from './routes/_protected/teams/new'
 import { Route as ProtectedLibrarySongVersionIdLiveRouteImport } from './routes/_protected/library/$songVersionId_.live'
+import { Route as ProtectedReviewSuggestionsSuggestionIdRouteImport } from './routes/_protected/review/suggestions.$suggestionId'
 import { Route as ProtectedLibrarySongVersionIdArrangementsArrangementIdRouteImport } from './routes/_protected/library/$songVersionId_.arrangements.$arrangementId'
 import { Route as ProtectedSetsSetlistIdLiveItemIdRouteImport } from './routes/_protected/sets/$setlistId_.live.$itemId'
 import { Route as ProtectedSetsSetlistIdSongsItemIdRouteImport } from './routes/_protected/sets/$setlistId_.songs.$itemId'
@@ -235,6 +236,12 @@ const ProtectedLibrarySongVersionIdLiveRoute =
     path: '/library/$songVersionId/live',
     getParentRoute: () => ProtectedRoute,
   } as any)
+const ProtectedReviewSuggestionsSuggestionIdRoute =
+  ProtectedReviewSuggestionsSuggestionIdRouteImport.update({
+    id: '/suggestions/$suggestionId',
+    path: '/suggestions/$suggestionId',
+    getParentRoute: () => ProtectedReviewRoute,
+  } as any)
 const ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute =
   ProtectedLibrarySongVersionIdArrangementsArrangementIdRouteImport.update({
     id: '/library/$songVersionId_/arrangements/$arrangementId',
@@ -290,6 +297,7 @@ export interface FileRoutesByFullPath {
   '/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/teams/': typeof ProtectedTeamsIndexRoute
   '/library/$songVersionId/live': typeof ProtectedLibrarySongVersionIdLiveRoute
+  '/review/suggestions/$suggestionId': typeof ProtectedReviewSuggestionsSuggestionIdRoute
   '/library/$songVersionId/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/sets/$setlistId/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
   '/sets/$setlistId/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
@@ -328,6 +336,7 @@ export interface FileRoutesByTo {
   '/songbooks': typeof ProtectedSongbooksIndexRoute
   '/teams': typeof ProtectedTeamsIndexRoute
   '/library/$songVersionId/live': typeof ProtectedLibrarySongVersionIdLiveRoute
+  '/review/suggestions/$suggestionId': typeof ProtectedReviewSuggestionsSuggestionIdRoute
   '/library/$songVersionId/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/sets/$setlistId/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
   '/sets/$setlistId/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
@@ -370,6 +379,7 @@ export interface FileRoutesById {
   '/_protected/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/_protected/teams/': typeof ProtectedTeamsIndexRoute
   '/_protected/library/$songVersionId_/live': typeof ProtectedLibrarySongVersionIdLiveRoute
+  '/_protected/review/suggestions/$suggestionId': typeof ProtectedReviewSuggestionsSuggestionIdRoute
   '/_protected/library/$songVersionId_/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/_protected/sets/$setlistId_/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
   '/_protected/sets/$setlistId_/songs/$itemId': typeof ProtectedSetsSetlistIdSongsItemIdRoute
@@ -412,6 +422,7 @@ export interface FileRouteTypes {
     | '/songbooks/'
     | '/teams/'
     | '/library/$songVersionId/live'
+    | '/review/suggestions/$suggestionId'
     | '/library/$songVersionId/arrangements/$arrangementId'
     | '/sets/$setlistId/live/$itemId'
     | '/sets/$setlistId/songs/$itemId'
@@ -450,6 +461,7 @@ export interface FileRouteTypes {
     | '/songbooks'
     | '/teams'
     | '/library/$songVersionId/live'
+    | '/review/suggestions/$suggestionId'
     | '/library/$songVersionId/arrangements/$arrangementId'
     | '/sets/$setlistId/live/$itemId'
     | '/sets/$setlistId/songs/$itemId'
@@ -491,6 +503,7 @@ export interface FileRouteTypes {
     | '/_protected/songbooks/'
     | '/_protected/teams/'
     | '/_protected/library/$songVersionId_/live'
+    | '/_protected/review/suggestions/$suggestionId'
     | '/_protected/library/$songVersionId_/arrangements/$arrangementId'
     | '/_protected/sets/$setlistId_/live/$itemId'
     | '/_protected/sets/$setlistId_/songs/$itemId'
@@ -759,6 +772,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedLibrarySongVersionIdLiveRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/review/suggestions/$suggestionId': {
+      id: '/_protected/review/suggestions/$suggestionId'
+      path: '/suggestions/$suggestionId'
+      fullPath: '/review/suggestions/$suggestionId'
+      preLoaderRoute: typeof ProtectedReviewSuggestionsSuggestionIdRouteImport
+      parentRoute: typeof ProtectedReviewRoute
+    }
     '/_protected/library/$songVersionId_/arrangements/$arrangementId': {
       id: '/_protected/library/$songVersionId_/arrangements/$arrangementId'
       path: '/library/$songVersionId/arrangements/$arrangementId'
@@ -808,11 +828,14 @@ const ProtectedAdminRouteWithChildren = ProtectedAdminRoute._addFileChildren(
 interface ProtectedReviewRouteChildren {
   ProtectedReviewSubmissionIdRoute: typeof ProtectedReviewSubmissionIdRoute
   ProtectedReviewIndexRoute: typeof ProtectedReviewIndexRoute
+  ProtectedReviewSuggestionsSuggestionIdRoute: typeof ProtectedReviewSuggestionsSuggestionIdRoute
 }
 
 const ProtectedReviewRouteChildren: ProtectedReviewRouteChildren = {
   ProtectedReviewSubmissionIdRoute: ProtectedReviewSubmissionIdRoute,
   ProtectedReviewIndexRoute: ProtectedReviewIndexRoute,
+  ProtectedReviewSuggestionsSuggestionIdRoute:
+    ProtectedReviewSuggestionsSuggestionIdRoute,
 }
 
 const ProtectedReviewRouteWithChildren = ProtectedReviewRoute._addFileChildren(

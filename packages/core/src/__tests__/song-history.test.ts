@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detailChanges, diffHunks, diffLines, snapshotChanges, songSnapshot, type SnapshotSource } from "../song-history/index.js";
+import { detailChanges, diffHunks, diffLines, mergeSnapshots, snapshotChanges, songSnapshot, type SnapshotSource } from "../song-history/index.js";
 import { songDocumentFromText } from "../song-document/text.js";
 
 const verse = songDocumentFromText(null, { content: "{start_of_verse}\n[G]Amazing grace\n{end_of_verse}\n", format: "CHORDPRO", defaults: { key: "G" } });
@@ -92,5 +92,38 @@ describe("line diffs", () => {
       null,
     ]);
     expect(diffHunks(diffLines(before, before))).toEqual([]);
+  });
+});
+
+describe("merging a suggestion", () => {
+  const base = songSnapshot(song());
+  const withTitle = (s: ReturnType<typeof songSnapshot>, title: string) => ({ ...s, details: { ...s.details, title } });
+
+  it("applies what it changed, keeps what changed since", () => {
+    const proposed = withTitle(base, "Grace");
+    const current = { ...base, credits: [] };
+    const { merged, conflicts } = mergeSnapshots(base, proposed, current);
+    expect(conflicts).toEqual([]);
+    expect(merged.details.title).toBe("Grace");
+    expect(merged.credits).toEqual([]);
+  });
+
+  it("refuses a part changed since to something else", () => {
+    const { merged, conflicts } = mergeSnapshots(base, withTitle(base, "Grace"), withTitle(base, "Amazing"));
+    expect(conflicts).toEqual(["details.title"]);
+    expect(merged.details.title).toBe("Amazing");
+  });
+
+  it("the same change made since isn't a conflict", () => {
+    expect(mergeSnapshots(base, withTitle(base, "Grace"), withTitle(base, "Grace")).conflicts).toEqual([]);
+  });
+
+  it("the key and the chart are parts of their own", () => {
+    const proposed = { ...base, chart: { ...base.chart, defaults: { ...base.chart.defaults, key: "A" } } };
+    const current = songSnapshot(song({}, "{start_of_verse}\n[G]Amazing grace, how sweet\n{end_of_verse}\n"));
+    const { merged, conflicts } = mergeSnapshots(base, proposed, current);
+    expect(conflicts).toEqual([]);
+    expect(merged.chart.defaults.key).toBe("A");
+    expect(merged.chart.sections[0]!.lines[0]!.text).toBe("Amazing grace, how sweet");
   });
 });

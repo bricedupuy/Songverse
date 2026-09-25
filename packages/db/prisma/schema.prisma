@@ -300,6 +300,7 @@ model User {
   smartLists          SmartList[]
   songRevisions       SongVersionRevision[]
   contributedVersions SongVersion[]         @relation("VersionContributedBy")
+  reviewedProposals   ChangeProposal[]      @relation("ProposalReviewer")
 
   @@index([email])
 }
@@ -672,7 +673,7 @@ model SongVersion {
   ownerTeam         Team?         @relation("VersionOwnerTeam", fields: [ownerTeamId], references: [id])
   contributedBy     User?         @relation("VersionContributedBy", fields: [contributedByUserId], references: [id], onDelete: SetNull)
   contributedByTeam Team?         @relation("VersionContributedByTeam", fields: [contributedByTeamId], references: [id], onDelete: SetNull)
-  parentVersion     SongVersion?  @relation("VersionChildren", fields: [parentVersionId], references: [id])
+  parentVersion     SongVersion?  @relation("VersionChildren", fields: [parentVersionId], references: [id], onDelete: SetNull)
   childVersions     SongVersion[] @relation("VersionChildren")
 
   // Preferred original back-relation
@@ -1294,9 +1295,11 @@ model ChangeProposal {
   // Admin review
   reviewerId  String?
   reviewNotes String?
+  reviewedAt  DateTime?
 
-  songVersion SongVersion @relation(fields: [songVersionId], references: [id])
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
   proposer    User        @relation(fields: [proposerId], references: [id])
+  reviewer    User?       @relation("ProposalReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
 
   @@index([songVersionId])
   @@index([proposerId])

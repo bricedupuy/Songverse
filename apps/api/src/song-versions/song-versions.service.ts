@@ -10,6 +10,7 @@ import {
   parseStreamingLink,
   readSongDocument,
   safeParseSongDocumentV2,
+  snapshotChanges,
   songDocumentFromSections,
   songDocumentFromText,
   songFromText,
@@ -881,6 +882,55 @@ export class SongVersionsService {
    * rather than overwriting their changes.
    */
   async update(user: AuthenticatedUser, id: string, dto: UpdateSongVersionDto): Promise<DetailItem> {
+    const prepared = await this.prepareUpdate(user, id, dto);
+    const version = await this.prisma.client.$transaction(async (tx) => {
+      const before = await this.history.before(tx, id);
+      await this.writeUpdate(tx, user, id, dto, prepared);
+      await this.history.record(tx, id, { kind: "EDITED", authorUserId: user.id, before });
+      return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
+    });
+    return toDetailItem(version, true, await this.seesTag(user));
+  }
+
+  /**
+   * The song as it is, and as `dto` would leave it, without saving it (a
+   * suggestion, issue #74): the same save, rolled back. Tags aren't part
+   * of it.
+   */
+  async previewUpdate(user: AuthenticatedUser, id: string, dto: UpdateSongVersionDto): Promise<{ before: SongSnapshot; after: SongSnapshot }> {
+    const change = { ...dto, tagIds: undefined };
+    const prepared = await this.prepareUpdate(user, id, change);
+    try {
+      await this.prisma.client.$transaction(async (tx) => {
+        const before = await this.history.before(tx, id);
+        await this.writeUpdate(tx, user, id, change, prepared);
+        const after = await this.history.before(tx, id);
+        throw new Preview({ before: before!.snapshot, after: after!.snapshot });
+      });
+    } catch (error) {
+      if (error instanceof Preview) return error.result;
+      throw error;
+    }
+    throw new Error("unreachable");
+  }
+
+  /**
+   * Saves `snapshot` as the song's chart, details and credits, with the
+   * history entry credited to `authorUserId` - an accepted suggestion
+   * (issue #74). Refused if the song moved on since `expected` was read.
+   */
+  async saveSnapshot(user: AuthenticatedUser, id: string, snapshot: SongSnapshot, authorUserId: string, expected: SongSnapshot): Promise<void> {
+    await this.prisma.client.$transaction(async (tx) => {
+      const before = await this.history.before(tx, id);
+      if (!before) throw new NotFoundException("Song version not found");
+      if (snapshotChanges(expected, before.snapshot).length > 0) throw staleRevision();
+      await this.writeSnapshot(tx, id, snapshot);
+      await this.history.record(tx, id, { kind: "EDITED", authorUserId, before });
+    });
+  }
+
+  /** Checks an update and works out its chart, before it's written. */
+  private async prepareUpdate(user: AuthenticatedUser, id: string, dto: UpdateSongVersionDto) {
     const existing = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: { documentJson: true },
@@ -903,44 +953,47 @@ export class SongVersionsService {
             format: dto.contentFormat ?? detectImportFormat(content),
             defaults,
           });
+    return { stored: existing.documentJson, documentJson };
+  }
 
-    // undefined leaves a column alone; null clears it.
-    const version = await this.prisma.client.$transaction(async (tx) => {
-      const before = await this.history.before(tx, id);
-      if (documentJson) await this.writeDocument(tx, id, existing.documentJson, documentJson);
-      await tx.songVersion.update({
-        where: { id },
-        data: {
-          title: dto.title,
-          alternateTitle: dto.alternateTitle,
-          versionName: dto.versionName,
-          sortTitle: dto.sortTitle,
-          language: dto.language,
-          album: dto.album,
-          year: dto.year,
-          ccli: dto.ccli,
-          isrc: dto.isrc,
-          copyright: dto.copyright,
-          copyrightYear: dto.copyrightYear,
-          publisher: dto.publisher,
-          reference: dto.reference,
-          notes: dto.notes,
-          ...(dto.capo !== undefined && { capo: dto.capo || null }),
-        },
-      });
-      await replaceCredits(tx, id, creditListsFrom(dto));
-      if (dto.tagIds) {
-        const tagIds = [...new Set(dto.tagIds)];
-        // Others' own tags on the song (a catalogue song's contributor's, #73) aren't this user's to remove.
-        await tx.songVersionTag.deleteMany({
-          where: { songVersionId: id, tagId: { notIn: tagIds }, tag: tagsVisibleWhere(user.id, await this.access.teamIds(user.id)) },
-        });
-        await tx.songVersionTag.createMany({ data: tagIds.map((tagId) => ({ songVersionId: id, tagId })), skipDuplicates: true });
-      }
-      await this.history.record(tx, id, { kind: "EDITED", authorUserId: user.id, before });
-      return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
+  /** Writes a prepared update: undefined leaves a column alone; null clears it. */
+  private async writeUpdate(
+    tx: Prisma.TransactionClient,
+    user: AuthenticatedUser,
+    id: string,
+    dto: UpdateSongVersionDto,
+    { stored, documentJson }: Awaited<ReturnType<SongVersionsService["prepareUpdate"]>>,
+  ) {
+    if (documentJson) await this.writeDocument(tx, id, stored, documentJson);
+    await tx.songVersion.update({
+      where: { id },
+      data: {
+        title: dto.title,
+        alternateTitle: dto.alternateTitle,
+        versionName: dto.versionName,
+        sortTitle: dto.sortTitle,
+        language: dto.language,
+        album: dto.album,
+        year: dto.year,
+        ccli: dto.ccli,
+        isrc: dto.isrc,
+        copyright: dto.copyright,
+        copyrightYear: dto.copyrightYear,
+        publisher: dto.publisher,
+        reference: dto.reference,
+        notes: dto.notes,
+        ...(dto.capo !== undefined && { capo: dto.capo || null }),
+      },
     });
-    return toDetailItem(version, true, await this.seesTag(user));
+    await replaceCredits(tx, id, creditListsFrom(dto));
+    if (dto.tagIds) {
+      const tagIds = [...new Set(dto.tagIds)];
+      // Others' own tags on the song (a catalogue song's contributor's, #73) aren't this user's to remove.
+      await tx.songVersionTag.deleteMany({
+        where: { songVersionId: id, tagId: { notIn: tagIds }, tag: tagsVisibleWhere(user.id, await this.access.teamIds(user.id)) },
+      });
+      await tx.songVersionTag.createMany({ data: tagIds.map((tagId) => ({ songVersionId: id, tagId })), skipDuplicates: true });
+    }
   }
 
   /**
@@ -953,30 +1006,39 @@ export class SongVersionsService {
     const snapshot: SongSnapshot = await this.history.snapshotToRestore(id, revisionId);
     const version = await this.prisma.client.$transaction(async (tx) => {
       const before = await this.history.before(tx, id);
-      const existing = await tx.songVersion.findUniqueOrThrow({ where: { id }, select: { documentJson: true } });
-      const current = readSongDocument(existing.documentJson);
-      const next = parseSongDocumentV2({
-        ...songDocumentFromSections(current, { sections: snapshot.chart.sections, flow: snapshot.chart.flow }),
-        defaults: snapshot.chart.defaults,
-      });
-      await this.writeDocument(tx, id, existing.documentJson, next);
-      const { capo, ...details } = snapshot.details;
-      await tx.songVersion.update({ where: { id }, data: { ...details, capo } });
-      // Every role, so one the song has now but didn't then is cleared.
-      const currentRoles = await tx.versionContributor.findMany({ where: { songVersionId: id }, select: { roles: true } });
-      const roles = new Set<ContributorRole>([
-        ...currentRoles.flatMap((row) => row.roles),
-        ...snapshot.credits.flatMap((credit) => credit.roles as ContributorRole[]),
-      ]);
-      await replaceCredits(
-        tx,
-        id,
-        Object.fromEntries([...roles].map((role) => [role, snapshot.credits.filter((c) => c.roles.includes(role)).map((c) => c.name)])),
-      );
+      await this.writeSnapshot(tx, id, snapshot);
       await this.history.record(tx, id, { kind: "RESTORED", authorUserId: user.id, before, restoredFromId: revisionId });
       return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     });
     return toDetailItem(version, true, await this.seesTag(user));
+  }
+
+  /**
+   * Writes a history snapshot back: its chart (IDs as they were), details
+   * and credits, as a new revision of the document. Tags, files and links
+   * aren't touched.
+   */
+  private async writeSnapshot(tx: Prisma.TransactionClient, id: string, snapshot: SongSnapshot) {
+    const existing = await tx.songVersion.findUniqueOrThrow({ where: { id }, select: { documentJson: true } });
+    const current = readSongDocument(existing.documentJson);
+    const next = parseSongDocumentV2({
+      ...songDocumentFromSections(current, { sections: snapshot.chart.sections, flow: snapshot.chart.flow }),
+      defaults: snapshot.chart.defaults,
+    });
+    await this.writeDocument(tx, id, existing.documentJson, next);
+    const { capo, ...details } = snapshot.details;
+    await tx.songVersion.update({ where: { id }, data: { ...details, capo } });
+    // Every role, so one the song has now but didn't then is cleared.
+    const currentRoles = await tx.versionContributor.findMany({ where: { songVersionId: id }, select: { roles: true } });
+    const roles = new Set<ContributorRole>([
+      ...currentRoles.flatMap((row) => row.roles),
+      ...snapshot.credits.flatMap((credit) => credit.roles as ContributorRole[]),
+    ]);
+    await replaceCredits(
+      tx,
+      id,
+      Object.fromEntries([...roles].map((role) => [role, snapshot.credits.filter((c) => c.roles.includes(role)).map((c) => c.name)])),
+    );
   }
 
   /**
@@ -1136,5 +1198,12 @@ export class SongVersionsService {
     const match = await this.musicBrainz.getRecording(identifier.value);
     await this.prisma.client.songVersionIdentifier.update({ where: { id: identifier.id }, data: { details: match } });
     return match;
+  }
+}
+
+/** Carries a previewed update out of the transaction it rolls back. */
+class Preview extends Error {
+  constructor(readonly result: { before: SongSnapshot; after: SongSnapshot }) {
+    super("preview");
   }
 }

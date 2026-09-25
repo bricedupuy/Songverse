@@ -8,6 +8,6 @@ import { SongVersionsService } from "./song-versions.service";
   imports: [MusicBrainzModule],
   controllers: [SongVersionsController],
   providers: [SongVersionsService, SongHistoryService],
-  exports: [SongVersionsService],
+  exports: [SongVersionsService, SongHistoryService],
 })
 export class SongVersionsModule {}

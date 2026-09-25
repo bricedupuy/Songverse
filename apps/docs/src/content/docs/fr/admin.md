@@ -13,6 +13,10 @@ Un relecteur (ou un administrateur global) vérifie les chants proposés au cata
 
 Vous ne pouvez pas relire vos propres propositions. Les administrateurs globaux peuvent aussi **Publier maintenant** leurs propres chants sans relecture.
 
+La page **Relecture** liste aussi les **Modifications proposées** pour les chants du catalogue (voir [Proposer une modification](/fr/library/#proposer-une-modification)). Chacune montre ce qu'elle change, depuis le chant tel qu'il était quand elle a été proposée ; **Accepter** l'enregistre dans le chant au nom de son auteur, **Refuser** demande une note. Si le chant a été modifié depuis au même endroit, elle dit où, et ne peut qu'être refusée.
+
+![Une modification proposée, pour le relecteur](../../../assets/screenshots/fr/suggestion-review.jpg)
+
 ## Administrateurs globaux
 
 Les administrateurs globaux gèrent tout le serveur depuis **Administration** dans la barre latérale.

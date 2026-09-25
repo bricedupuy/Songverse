@@ -112,7 +112,7 @@ await step("the submitter's song is now in the catalogue, credited to them, and 
   page = alicePage;
   await openSong(page, aliceSong.id);
   await page.getByText("In the catalogue, from Pub web alice").waitFor();
-  await page.getByText("You can view this song but not change it.").waitFor();
+  await page.getByText("only admins change it. You can suggest a change.").waitFor();
   if (await page.getByText("Global catalogue", { exact: true }).count()) throw new Error("the publish card on a catalogue song");
   await page.goto(`${WEB}/library?q=${encodeURIComponent(title)}`);
   await page.waitForLoadState("networkidle");

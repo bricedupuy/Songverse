@@ -13,6 +13,10 @@ A reviewer (or a global admin) checks songs submitted to the global catalogue. T
 
 You can't review your own submissions. Global admins can also **Publish now** their own songs without a review.
 
+The **Review** page also lists **Suggested changes** to catalogue songs (see [Suggesting a change](/library/#suggesting-a-change)). Each shows what it changes, from the song as it was when it was suggested; **Accept** saves it to the song in its author's name, **Decline** needs a note. If the song was changed since in the same place, it says where, and it can only be declined.
+
+![A suggested change, for the reviewer](../../assets/screenshots/en/suggestion-review.jpg)
+
 ## Global admins
 
 Global admins manage the whole server from **Admin** in the sidebar.

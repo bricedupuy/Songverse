@@ -176,3 +176,51 @@ export function diffHunks(diff: LineDiff, context = 2): (LineDiff[number] | null
   });
   return out;
 }
+
+/**
+ * The parts of a song a suggestion (issue #74) can change on their own:
+ * the chart (its sections and the order they're sung in, together, since
+ * one names the other), each of its defaults, each detail, the credits.
+ */
+function snapshotParts(snapshot: SongSnapshot): Map<string, unknown> {
+  const parts = new Map<string, unknown>([["chart", { sections: snapshot.chart.sections, flow: snapshot.chart.flow }]]);
+  for (const key of ["key", "tempo", "timeSignature", "durationSeconds"] as const) parts.set(`defaults.${key}`, snapshot.chart.defaults[key] ?? null);
+  for (const field of SNAPSHOT_DETAIL_FIELDS) parts.set(`details.${field}`, snapshot.details[field]);
+  parts.set("credits", snapshot.credits);
+  return parts;
+}
+
+/**
+ * A suggestion made on `base`, applied to the song as it is now
+ * (`current`): each part it changed takes its value; the others stay as
+ * they are now. A part it changed that was also changed since, to
+ * something else, is a conflict ("chart", "defaults.key",
+ * "details.title", "credits"…), and nothing is merged.
+ */
+export function mergeSnapshots(base: SongSnapshot, proposed: SongSnapshot, current: SongSnapshot): { merged: SongSnapshot; conflicts: string[] } {
+  const [b, p, c] = [snapshotParts(base), snapshotParts(proposed), snapshotParts(current)];
+  const conflicts: string[] = [];
+  const changed: string[] = [];
+  for (const [part, value] of p) {
+    if (same(value, b.get(part))) continue;
+    changed.push(part);
+    if (!same(c.get(part), b.get(part)) && !same(c.get(part), value)) conflicts.push(part);
+  }
+  if (conflicts.length > 0) return { merged: current, conflicts };
+  const merged: SongSnapshot = structuredClone(current);
+  for (const part of changed) {
+    if (part === "chart") {
+      merged.chart.sections = proposed.chart.sections;
+      merged.chart.flow = proposed.chart.flow;
+    } else if (part === "credits") {
+      merged.credits = proposed.credits;
+    } else if (part.startsWith("defaults.")) {
+      const key = part.slice("defaults.".length) as "key";
+      merged.chart.defaults = { ...merged.chart.defaults, [key]: proposed.chart.defaults[key] ?? null };
+    } else {
+      const field = part.slice("details.".length) as keyof SongSnapshotDetails;
+      (merged.details as unknown as Record<string, unknown>)[field] = proposed.details[field];
+    }
+  }
+  return { merged, conflicts };
+}
