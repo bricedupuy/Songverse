@@ -248,6 +248,11 @@ const fr: typeof en = {
     columnStatus: "Statut",
     columnTags: "Étiquettes",
     columnUpdated: "Mis à jour",
+    // La colonne Statut (issue #46) : où en est un chant, lisiblement.
+    statusPersonal: "Personnel",
+    statusTeam: "Équipe",
+    statusDraft: "Brouillon",
+    statusArchived: "Archivé",
   },
   breadcrumb: {
     new: "Nouveau",

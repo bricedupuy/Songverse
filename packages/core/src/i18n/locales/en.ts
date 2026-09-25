@@ -248,6 +248,11 @@ const en = {
     columnStatus: "Status",
     columnTags: "Tags",
     columnUpdated: "Updated",
+    // The Status column (issue #46): where a song stands, readably.
+    statusPersonal: "Personal",
+    statusTeam: "Team",
+    statusDraft: "Draft",
+    statusArchived: "Archived",
   },
   breadcrumb: {
     new: "New",

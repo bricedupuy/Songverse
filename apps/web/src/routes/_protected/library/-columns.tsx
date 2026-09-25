@@ -3,6 +3,7 @@ import type { Column, ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Button } from "#/components/ui/button";
 import { artistNames } from "#/lib/artists";
 
@@ -68,7 +69,7 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
         accessorKey: "publicationState",
         meta: { secondary: true },
         header: sortableHeader(t("library.columnStatus")),
-        cell: ({ row }) => <span className="text-muted-foreground">{row.original.publicationState}</span>,
+        cell: ({ row }) => <span className="text-muted-foreground">{statusLabel(row.original, t)}</span>,
       },
       {
         id: "tags",
@@ -89,4 +90,27 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
     ],
     [t, locale],
   );
+}
+
+/**
+ * Where a song stands, readably (issue #46): one never offered to the
+ * catalogue is simply the user's or their team's; after that, where its
+ * submission is, in the publish card's words.
+ */
+function statusLabel(version: Pick<SongVersionSummary, "publicationState" | "ownerScope">, t: TFunction): string {
+  switch (version.publicationState) {
+    case "DRAFT":
+      return version.ownerScope === "USER" ? t("library.statusPersonal") : version.ownerScope === "TEAM" ? t("library.statusTeam") : t("library.statusDraft");
+    case "ARCHIVED":
+      return t("library.statusArchived");
+    case "SUBMITTED":
+    case "UNDER_REVIEW":
+    case "NEEDS_CHANGES":
+    case "APPROVED":
+    case "REJECTED":
+    case "WITHDRAWN":
+      return t(`publish.state${version.publicationState}`);
+    default:
+      return version.publicationState;
+  }
 }

@@ -9,6 +9,8 @@ for (let i = 1; i <= 55; i++) {
   await api(me, "POST", "/song-versions", { title: `Shelf ${stamp} ${String(i).padStart(2, "0")}`, language: "en", artists: ["Test Artist"] });
 }
 await api(me, "POST", "/song-versions", { title: `Zephyr ${stamp}`, language: "en", artists: ["Unique Singer"], versionName: "Live" });
+const band = await api(me, "POST", "/teams", { name: `Shelf band ${stamp}` });
+await api(me, "POST", "/song-versions", { title: `Band song ${stamp}`, language: "en", artists: ["Test Artist"], teamId: band.id });
 
 const browser = await chromium.launch();
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -47,6 +49,16 @@ await step("sorting by title is done across all songs", async () => {
   await page.getByRole("button", { name: "Title" }).click();
   await page.waitForURL(/dir=desc/);
   await page.waitForFunction((s) => document.querySelector("tbody tr td")?.textContent?.includes(`Shelf ${s} 55`), stamp);
+});
+
+await step("the Status column reads as words: a song never offered is Personal, or Team", async () => {
+  const status = async (title) => (await page.locator("tbody tr").filter({ hasText: title }).locator("td").nth(3).innerText()).trim();
+  await page.getByRole("searchbox").fill(`Zephyr ${stamp}`);
+  await rangeIs("1–1 of 1");
+  if ((await status(`Zephyr ${stamp}`)) !== "Personal") throw new Error(await status(`Zephyr ${stamp}`));
+  await page.getByRole("searchbox").fill(`Band song ${stamp}`);
+  await rangeIs("1–1 of 1");
+  if ((await status(`Band song ${stamp}`)) !== "Team") throw new Error(await status(`Band song ${stamp}`));
 });
 
 await step("no matches says so", async () => {
