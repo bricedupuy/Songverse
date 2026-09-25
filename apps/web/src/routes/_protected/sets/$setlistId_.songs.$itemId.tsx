@@ -4,7 +4,8 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PlayerChart } from "#/components/player-chart";
-import { StemPlayer, stemsOf } from "#/components/stem-player";
+import { StemDock } from "#/components/stem-dock";
+import { stemsOf } from "#/lib/stem-engine";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -101,7 +102,7 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
         ) : null}
       </div>
 
-      {song ? <SetSongStems songVersionId={song.id} /> : null}
+      {song ? <SetSongStems songVersionId={song.id} title={song.title} returnTo={`/sets/${set.id}/songs/${item.id}`} /> : null}
 
       {song ? (
         <Card>
@@ -223,7 +224,7 @@ function MyNotesCard({ view }: { view: SetlistSongView }) {
  * Practice: the song's stems (issue #64), for someone who can open the song
  * itself - from the API, or from the device's copy when offline.
  */
-function SetSongStems({ songVersionId }: { songVersionId: string }) {
+function SetSongStems({ songVersionId, title, returnTo }: { songVersionId: string; title: string; returnTo: string }) {
   const { mode } = useMode();
   const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean }>({ attachments: [], offline: false });
 
@@ -246,14 +247,18 @@ function SetSongStems({ songVersionId }: { songVersionId: string }) {
   const stems = stemsOf(files.attachments);
   if (mode !== "practice" || stems.length === 0) return null;
   return (
-    <StemPlayer
-      key={stems.map((stem) => `${stem.id}:${stem.stemPart}`).join()}
-      stems={stems}
-      load={async (file) => {
-        if (!files.offline) return apiClient.downloadAttachment(songVersionId, file.id);
-        const blob = await keptFile<Blob>(deviceStorage(), file.id);
-        if (!blob) throw new Error("not kept");
-        return blob;
+    <StemDock
+      song={{
+        songVersionId,
+        title,
+        returnTo,
+        stems,
+        load: async (file) => {
+          if (!files.offline) return apiClient.downloadAttachment(songVersionId, file.id);
+          const blob = await keptFile<Blob>(deviceStorage(), file.id);
+          if (!blob) throw new Error("not kept");
+          return blob;
+        },
       }}
     />
   );

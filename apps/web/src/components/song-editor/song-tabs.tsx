@@ -26,7 +26,7 @@ import { downloadBlob } from "#/lib/download";
 import { formatBytes } from "#/lib/format-bytes";
 import { NativeSelect } from "#/components/ui/native-select";
 import { setMode, useMode } from "#/lib/mode";
-import { stemsOf } from "#/components/stem-player";
+import { stemsOf } from "#/lib/stem-engine";
 
 export function SaveFirst() {
   const { t } = useTranslation();

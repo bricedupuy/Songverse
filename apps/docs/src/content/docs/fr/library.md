@@ -43,9 +43,17 @@ Si un chant n'est pas à vous (un chant global, ou un chant d'équipe dont vous 
 
 Les pistes (ou stems) sont les parties du chant enregistrées séparément : voix, batterie, basse, etc. Importez-les dans l'onglet **Audio**. Un fichier nommé d'après sa partie (« Voix.mp3 », « 03 drums.opus », « Basse.mp3 ») devient cette piste tout seul. Pour les autres fichiers, choisissez la partie dans la liste **Piste** sous le fichier : **Voix**, **Chœurs**, **Batterie**, **Basse**, **Guitare**, **Piano et claviers**, **Autres** ou **Clic et repères**, ou **Pas une piste** pour un enregistrement complet.
 
-En mode **Session** (voir [Édition, Session et Live](/fr/getting-started/#édition-session-et-live)), un chant qui a des pistes affiche le lecteur **Pistes** en haut de sa page, et sur sa page dans une liste. **Lecture** joue toutes les parties ensemble, synchronisées. Chaque partie a un bouton pour la couper, pour jouer avec le reste, et un bouton solo, pour n'entendre qu'elle. Faites glisser la barre de position pour vous déplacer. Les fichiers se chargent la première fois que vous appuyez sur **Lecture**.
+En mode **Session** (voir [Édition, Session et Live](/fr/getting-started/#édition-session-et-live)), un chant qui a des pistes affiche le lecteur de pistes en bas de sa page, et de sa page dans une liste. Il commence sur une seule ligne : **Lecture**, puis un bouton rond par partie (**V** voix, **Ch** chœurs, **Pe** batterie, **B** basse, **G** guitare, **P** piano et claviers, **A** autres, **Cl** clic et repères). Touchez-en un pour couper cette partie et jouer avec le reste ; touchez-le de nouveau pour la remettre.
 
-![Le lecteur Pistes, la voix coupée](../../../assets/screenshots/fr/stems.jpg)
+![Le lecteur de pistes sur une ligne, la voix coupée](../../../assets/screenshots/fr/stems-compact.jpg)
+
+La flèche au bout l'agrandit : une ligne par partie avec sa forme d'onde, un bouton pour la couper et un bouton solo (le solo ne joue que les parties en solo), et une barre de position. Cliquez sur une forme d'onde pour vous y rendre. La flèche du haut le réduit de nouveau, et SongVerse retient votre préférence. Les fichiers se chargent la première fois que vous appuyez sur **Lecture**.
+
+![Le lecteur de pistes agrandi, avec la forme d'onde de chaque partie](../../../assets/screenshots/fr/stems.jpg)
+
+Le chant continue de jouer quand vous allez sur une autre page ou quittez le mode Session. Un petit bouton en bas à droite montre ce qui joue : touchez le nom du chant pour y revenir, ou mettez-le en pause de là.
+
+![Le bouton pour revenir au chant en lecture](../../../assets/screenshots/fr/stems-return.jpg)
 
 Les pistes gardées sur votre appareil pour le hors ligne (**Avec l'audio**, voir [Hors ligne](/fr/offline/)) se lisent aussi hors ligne.
 

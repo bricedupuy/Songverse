@@ -43,9 +43,17 @@ If a song isn't yours to change (a global song, or a team song when you're not o
 
 Stems are the song's parts as separate recordings: vocals, drums, bass and so on. Upload them on the **Audio** tab. A file named after its part ("Vocals.mp3", "03 drums.opus", "Basse.mp3") becomes that stem on its own. For any other file, choose the part in the **Stem** list under it: **Vocals**, **Backing vocals**, **Drums**, **Bass**, **Guitar**, **Piano and keys**, **Other** or **Click and cues**, or **Not a stem** for a full recording.
 
-In **Practice** mode (see [Edit, Practice and Live](/getting-started/#edit-practice-and-live)), a song with stems shows the **Stems** player at the top of its page, and on its page in a set. **Play** plays every part together, in time. Each part has a mute button, to play along with the rest, and a solo button, to hear only that part. Drag the position bar to jump. The files load the first time you press **Play**.
+In **Practice** mode (see [Edit, Practice and Live](/getting-started/#edit-practice-and-live)), a song with stems has the stem player docked at the bottom of its page, and of its page in a set. It starts as one row: **Play**, then a round button per part (**V** vocals, **BV** backing vocals, **D** drums, **B** bass, **G** guitar, **P** piano and keys, **O** other, **C** click and cues). Tap one to mute that part and play along with the rest; tap it again to bring it back.
 
-![The Stems player, with the vocals muted](../../assets/screenshots/en/stems.jpg)
+![The stem player, one row, the vocals muted](../../assets/screenshots/en/stems-compact.jpg)
+
+The arrow at the end expands it: a row per part with its waveform, a mute and a solo button (solo plays only the parts soloed), and a position bar. Click a waveform to jump there. The arrow at the top minimizes it again, and SongVerse remembers which you prefer. The files load the first time you press **Play**.
+
+![The stem player expanded, with each part's waveform](../../assets/screenshots/en/stems.jpg)
+
+The song keeps playing while you go to another page or leave Practice. A small button at the bottom right shows what's playing: tap the song's name to go back to it, or pause it from there.
+
+![The button back to the song playing](../../assets/screenshots/en/stems-return.jpg)
 
 Stems kept on your device for offline use (**Include audio**, see [Working offline](/offline/)) play offline too.
 

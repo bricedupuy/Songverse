@@ -4,7 +4,8 @@ import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SongChart } from "#/components/song-chart";
-import { StemPlayer, stemsOf } from "#/components/stem-player";
+import { StemDock } from "#/components/stem-dock";
+import { stemsOf } from "#/lib/stem-engine";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { formatBytes } from "#/lib/format-bytes";
@@ -82,15 +83,19 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
         </Button>
       </div>
 
-      {/* Practice: the stems kept on the device (with "Include audio"). */}
+      {/* Practice: the stems kept on the device (with "Include audio"), docked at the bottom. */}
       {mode === "practice" && stems.length > 0 ? (
-        <StemPlayer
-          key={stems.map((stem) => stem.id).join()}
-          stems={stems}
-          load={async (file) => {
-            const blob = await keptFile<Blob>(deviceStorage(), file.id);
-            if (!blob) throw new Error("not kept");
-            return blob;
+        <StemDock
+          song={{
+            songVersionId: song.songVersionId,
+            title: song.title,
+            returnTo: `/library/${song.songVersionId}`,
+            stems,
+            load: async (file) => {
+              const blob = await keptFile<Blob>(deviceStorage(), file.id);
+              if (!blob) throw new Error("not kept");
+              return blob;
+            },
           }}
         />
       ) : null}

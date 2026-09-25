@@ -84,7 +84,7 @@ await step("a recording plays from a streamed link, and seeks", async () => {
     if (res.url().includes("/files/")) ranges.push(res.status());
   });
   const row = page.getByTestId("audio-list").locator("li").filter({ hasText: "Morning Light - Bass.mp3" });
-  await row.getByRole("button", { name: "Play" }).click();
+  await row.getByRole("button", { name: "Play", exact: true }).click();
   const audio = row.locator("audio");
   await audio.waitFor();
   if (!(await audio.getAttribute("src")).includes("/files/")) throw new Error(await audio.getAttribute("src"));
@@ -110,7 +110,7 @@ await step("a link that stopped working is replaced, and it plays on", async () 
     (route) => route.fulfill({ status: 403, body: "expired" }),
   );
   const row = page.getByTestId("audio-list").locator("li").filter({ hasText: "03 drums.mp3" });
-  await row.getByRole("button", { name: "Play" }).click();
+  await row.getByRole("button", { name: "Play", exact: true }).click();
   const audio = row.locator("audio");
   await audio.waitFor();
   await page.waitForFunction((el) => el.duration > 3, await audio.elementHandle());
@@ -125,6 +125,14 @@ await step("a file the name doesn't tell is assigned by hand", async () => {
   if ((await partOf("track4.opus").inputValue()) !== "KEYS") throw new Error("not saved");
 });
 
+const chips = () => player().getByTestId("stem-chip");
+const floating = () => page.getByTestId("stem-return");
+const time = async () => (await player().getByTestId("stem-time").textContent()).trim();
+const seconds = (text) => {
+  const [m, s] = text.split(" / ")[0].split(":").map(Number);
+  return m * 60 + s;
+};
+
 await step("in Edit there's no player, just the way to Practice", async () => {
   if (await player().count()) throw new Error("a player in Edit");
   await page.getByRole("button", { name: "Switch to Practice to play the stems together." }).click();
@@ -132,47 +140,101 @@ await step("in Edit there's no player, just the way to Practice", async () => {
   if ((await page.evaluate(() => document.documentElement.dataset.mode)) !== "practice") throw new Error("not Practice");
 });
 
-await step("Practice lists the parts in order; Play plays them all together", async () => {
-  const parts = await player().getByTestId("stem-track").evaluateAll((rows) => rows.map((row) => row.dataset.part));
-  if (parts.join() !== "VOCALS,DRUMS,BASS,KEYS") throw new Error(parts.join());
-  await player().getByRole("button", { name: "Play" }).click();
-  await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
-  await page.waitForFunction(() => document.querySelector('[data-testid="stem-time"]')?.textContent?.startsWith("0:01"));
-  if (!(await player().getByTestId("stem-time").textContent()).endsWith("/ 0:04")) throw new Error("not the stems' length");
-  if (await player().getByText("can't be played").count()) throw new Error("a stem didn't decode");
+await step("docked at the bottom, one row: play and a round button per part", async () => {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const box = await player().boundingBox();
+  if (Math.abs(box.y + box.height - 900) > 2) throw new Error(`not at the bottom: ${JSON.stringify(box)}`);
+  if ((await player().getAttribute("data-view")) !== "compact") throw new Error("not compact");
+  if (box.height > 64) throw new Error(`${box.height}px high`);
+  const parts = await chips().evaluateAll((els) => els.map((el) => `${el.dataset.part}:${el.textContent}`));
+  if (parts.join() !== "VOCALS:V,DRUMS:D,BASS:B,KEYS:P") throw new Error(parts.join());
+  // Muted before anything has loaded.
+  await chips().filter({ hasText: "B" }).click();
 });
 
-await step("mute one part, solo another", async () => {
-  await player().getByRole("button", { name: "Mute Vocals" }).click();
+await step("Play plays every part together; a round button mutes its part", async () => {
+  await player().getByRole("button", { name: "Play", exact: true }).click();
+  await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
+  await page.waitForFunction(() => document.querySelector('[data-testid="stem-time"]')?.textContent?.startsWith("0:01"));
+  if (!(await time()).endsWith("/ 0:20")) throw new Error(await time());
+  await player().locator('[data-testid="stem-chip"][data-part="BASS"][data-audible="false"]').waitFor({ timeout: 1000 });
+  await chips().filter({ hasText: "B" }).click();
+  await chips().filter({ hasText: "V" }).click();
+  await player().locator('[data-testid="stem-chip"][data-part="VOCALS"][aria-pressed="true"][data-audible="false"]').waitFor();
+});
+
+await step("expanded: a row per part with its waveform, mute and solo; the waveform seeks", async () => {
+  await player().getByRole("button", { name: "Expand the player" }).click();
+  await page.locator('[data-testid="stem-player"][data-view="expanded"]').waitFor();
+  await player().getByTestId("stem-waveform").nth(3).waitFor();
+  if (await player().getByText("can't be played").count()) throw new Error("a stem didn't decode");
+  // Still muted from the compact row.
   await track("VOCALS").and(page.locator('[data-audible="false"]')).waitFor();
   await player().getByRole("button", { name: "Solo Drums" }).click();
   const audible = await player().getByTestId("stem-track").evaluateAll((rows) => rows.map((row) => `${row.dataset.part}:${row.dataset.audible}`));
   if (audible.join() !== "VOCALS:false,DRUMS:true,BASS:false,KEYS:false") throw new Error(audible.join());
   await player().getByRole("button", { name: "Solo Drums" }).click();
   await track("BASS").and(page.locator('[data-audible="true"]')).waitFor();
-  await track("VOCALS").and(page.locator('[data-audible="false"]')).waitFor();
+  const wave = await track("BASS").getByTestId("stem-waveform").boundingBox();
+  await page.mouse.click(wave.x + wave.width * 0.6, wave.y + wave.height / 2);
+  await page.waitForFunction(() => {
+    const [m, s] = document.querySelector('[data-testid="stem-time"]').textContent.split(" / ")[0].split(":").map(Number);
+    return m * 60 + s >= 11;
+  });
+});
+
+await step("it plays on elsewhere, with a button back to the song", async () => {
+  const before = seconds(await time());
+  await page.getByRole("link", { name: "Sets", exact: true }).first().click();
+  await page.waitForURL(`${WEB}/sets`);
+  await floating().getByText(`Stems ${stamp}`).waitFor();
+  if (await player().count()) throw new Error("the dock followed");
+  await page.waitForTimeout(1500);
+  await floating().getByRole("button", { name: `Back to Stems ${stamp}` }).click();
+  await page.waitForURL(`**/library/${webSong.id}`);
+  await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
+  if (seconds(await time()) < before + 1) throw new Error(`${await time()}, was ${before}s`);
+  if (await floating().count()) throw new Error("the floating button stayed");
+});
+
+await step("leaving Practice keeps it playing; the floating button pauses it", async () => {
+  await page.getByRole("radiogroup", { name: "Mode" }).getByRole("radio", { name: "Edit" }).click();
+  await floating().waitFor();
+  if (await player().count()) throw new Error("a dock in Edit");
+  await floating().getByRole("button", { name: "Pause", exact: true }).click();
+  await floating().waitFor({ state: "detached" });
+  await page.getByRole("radiogroup", { name: "Mode" }).getByRole("radio", { name: "Practice" }).click();
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor();
+  if (seconds(await time()) < 11) throw new Error(`lost its place: ${await time()}`);
 });
 
 await step("at the end it stops and goes back to the start", async () => {
+  await player().getByLabel("Position").fill("19");
+  await player().getByRole("button", { name: "Play", exact: true }).click();
+  await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 10_000 });
-  if ((await player().getByTestId("stem-time").textContent()) !== "0:00 / 0:04") throw new Error(await player().getByTestId("stem-time").textContent());
+  if ((await time()) !== "0:00 / 0:20") throw new Error(await time());
 });
 
-await step("a set's song has the player too, in Practice", async () => {
+await step("a set's song has the player too, in Practice, as it was left (expanded)", async () => {
   await page.goto(`${WEB}/sets/${set.id}/songs/${item.id}`);
   await page.waitForLoadState("networkidle");
   await track("KEYS").waitFor();
-  await player().getByRole("button", { name: "Play" }).click();
+  await player().getByRole("button", { name: "Play", exact: true }).click();
   await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
-  await player().getByRole("button", { name: "Pause" }).click();
+  await player().getByRole("button", { name: "Pause", exact: true }).click();
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor();
+  await player().getByRole("button", { name: "Minimize the player" }).click();
+  await chips().first().waitFor();
 });
 
 await step("on a phone it fits", async () => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto(`${WEB}/library/${webSong.id}`);
   await page.waitForLoadState("networkidle");
-  await player().waitFor();
+  await chips().nth(3).waitFor();
+  const box = await player().boundingBox();
+  if (box.x < 0 || box.x + box.width > 360 || Math.abs(box.y + box.height - 740) > 2) throw new Error(JSON.stringify(box));
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (overflow > 0) throw new Error(`${overflow}px sideways scroll`);
 });

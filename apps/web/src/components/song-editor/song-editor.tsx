@@ -46,7 +46,8 @@ import type { SongNotice, SongTab } from "./song-tabs-list";
 // The editor (Tiptap and ProseMirror) loads when the Editor tab first opens, not with the song page.
 const StructuredEditor = lazy(() => import("./structured/structured-editor").then((module) => ({ default: module.StructuredEditor })));
 import { downloadBlob } from "#/lib/download";
-import { StemPlayer, stemsOf } from "#/components/stem-player";
+import { StemDock } from "#/components/stem-dock";
+import { stemsOf } from "#/lib/stem-engine";
 import { useMode } from "#/lib/mode";
 
 
@@ -471,12 +472,16 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
       ) : null}
       {version && !canEdit ? <p className="text-sm text-muted-foreground">{t("songEditor.readOnly")}</p> : null}
 
-      {/* Practice: the song's stems, to play along with (issue #64). */}
+      {/* Practice: the song's stems, docked at the bottom (issue #64). */}
       {edit && mode === "practice" && stems.length > 0 ? (
-        <StemPlayer
-          key={stems.map((stem) => `${stem.id}:${stem.stemPart}`).join()}
-          stems={stems}
-          load={(file) => apiClient.downloadAttachment(edit.version.id, file.id)}
+        <StemDock
+          song={{
+            songVersionId: edit.version.id,
+            title: edit.version.title,
+            returnTo: `/library/${edit.version.id}`,
+            stems,
+            load: (file) => apiClient.downloadAttachment(edit.version.id, file.id),
+          }}
         />
       ) : null}
 

@@ -160,12 +160,30 @@ try {
     await shoot("set-song", `/sets/${set.id}/songs/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor(), { fullPage: true });
     // Live mode (it's remembered, so back to Edit for the rest).
     await shoot("live", `/sets/${set.id}/live/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
-    // Practice: the song's stems, one muted.
-    await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
-    await shoot("stems", `/library/${grace.id}`, async () => {
-      await page.getByTestId("stem-track").nth(3).waitFor();
-      await page.getByTestId("stem-track").first().getByRole("button").first().click();
-    }, { element: page.getByTestId("stem-player") });
+    // Practice: the song's stems, docked at the bottom - one row, then expanded - one muted.
+    await page.evaluate(() => {
+      localStorage.setItem("songverse.mode", "practice");
+      localStorage.removeItem("songverse.stems.expanded");
+    });
+    const dock = page.getByTestId("stem-player");
+    await shoot("stems-compact", `/library/${grace.id}`, async () => {
+      await dock.getByTestId("stem-chip").nth(3).waitFor();
+      await dock.getByTestId("stem-chip").first().click();
+    }, { element: dock });
+    await shoot("stems", null, async () => {
+      await dock.getByRole("button", { name: /Expand|Agrandir/ }).click();
+      await dock.getByRole("button", { name: /^(Play|Lecture)$/ }).click();
+      await dock.getByTestId("stem-waveform").nth(3).waitFor();
+      await dock.getByRole("slider").fill("8");
+      await dock.getByRole("button", { name: /^(Pause)$/ }).click();
+    }, { element: dock });
+    // Playing on elsewhere: the button back to the song.
+    await dock.getByRole("button", { name: /^(Play|Lecture)$/ }).click();
+    await shoot("stems-return", null, async () => {
+      await page.getByRole("link", { name: /^(Library|Bibliothèque)$/ }).first().click();
+      await page.getByTestId("stem-return").waitFor();
+    });
+    await page.getByTestId("stem-return").getByRole("button", { name: "Pause" }).click();
     await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
     await shoot("songbook", `/songbooks/${songbook.id}`, null, { fullPage: true });
     await shoot("team", `/teams/${team.id}`);

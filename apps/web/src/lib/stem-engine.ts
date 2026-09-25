@@ -1,0 +1,326 @@
+import { STEM_PARTS, type Attachment, type StemPart } from "@songverse/core";
+import { useSyncExternalStore } from "react";
+
+/**
+ * The stem player's audio (issue #64), kept outside any page so a song
+ * keeps playing while the user moves around the app or leaves Practice:
+ * one per tab, with the song it has loaded, what's muted and where it is.
+ * The dock on a song's page drives it; elsewhere a floating button leads
+ * back there.
+ *
+ * Web Audio keeps the parts on one clock: every part starts at the same
+ * instant of the same AudioContext, so they stay sample-locked, where
+ * separate <audio> elements drift apart.
+ */
+
+export type StemFile = Attachment & { stemPart: StemPart };
+
+/** A song's stems as a page offers them to the player. */
+export interface StemSong {
+  songVersionId: string;
+  title: string;
+  /** The page to come back to: the song's, or its page in a set. */
+  returnTo: string;
+  stems: StemFile[];
+  load: (file: Attachment) => Promise<Blob>;
+}
+
+export interface StemTrack {
+  id: string;
+  part: StemPart;
+  filename: string;
+  /** 1, 2… when two files are the same part ("Guitar 1"), else 0. */
+  number: number;
+  /** The waveform, 0-1 per slice; null until decoded. */
+  peaks: number[] | null;
+  failed: boolean;
+}
+
+export interface StemState {
+  /** What's loaded: which song, and which files (a part reassigned is another set of stems). */
+  key: string | null;
+  songVersionId: string | null;
+  title: string;
+  returnTo: string;
+  status: "idle" | "loading" | "ready" | "error";
+  loaded: number;
+  tracks: StemTrack[];
+  playing: boolean;
+  position: number;
+  duration: number;
+  muted: ReadonlySet<string>;
+  soloed: ReadonlySet<string>;
+  /** The song whose dock is on screen, if any: elsewhere a playing song gets the floating button. */
+  docked: string | null;
+}
+
+const PEAK_SLICES = 400;
+
+const EMPTY: StemState = {
+  key: null,
+  songVersionId: null,
+  title: "",
+  returnTo: "",
+  status: "idle",
+  loaded: 0,
+  tracks: [],
+  playing: false,
+  position: 0,
+  duration: 0,
+  muted: new Set(),
+  soloed: new Set(),
+  docked: null,
+};
+
+let state: StemState = EMPTY;
+const listeners = new Set<() => void>();
+let context: AudioContext | null = null;
+let buffers = new Map<string, AudioBuffer>();
+let gains = new Map<string, GainNode>();
+let sources: AudioBufferSourceNode[] = [];
+// The context's time at which the song's 0:00 is (or would be) playing.
+let startedAt = 0;
+let offset = 0;
+let timer: ReturnType<typeof setInterval> | null = null;
+// Bumped by each load, so a load that's been replaced drops its results.
+let generation = 0;
+
+function set(change: Partial<StemState>) {
+  state = { ...state, ...change };
+  for (const listener of listeners) listener();
+}
+
+/** A song's stems in the player's order: by part, then by name. */
+export function stemsOf(attachments: Attachment[]): StemFile[] {
+  return attachments
+    .filter((file): file is StemFile => file.type === "AUDIO" && file.stemPart !== null)
+    .sort((a, b) => STEM_PARTS.indexOf(a.stemPart) - STEM_PARTS.indexOf(b.stemPart) || a.filename.localeCompare(b.filename));
+}
+
+export function stemKey(song: Pick<StemSong, "songVersionId" | "stems">): string {
+  return `${song.songVersionId}|${song.stems.map((stem) => `${stem.id}:${stem.stemPart}`).join()}`;
+}
+
+/** Tracks as listed before anything is decoded. */
+export function tracksOf(stems: StemFile[]): StemTrack[] {
+  return stems.map((stem) => {
+    const same = stems.filter((other) => other.stemPart === stem.stemPart);
+    return {
+      id: stem.id,
+      part: stem.stemPart,
+      filename: stem.filename,
+      number: same.length > 1 ? same.indexOf(stem) + 1 : 0,
+      peaks: null,
+      failed: false,
+    };
+  });
+}
+
+export function isAudible(current: Pick<StemState, "muted" | "soloed">, id: string): boolean {
+  return current.soloed.size > 0 ? current.soloed.has(id) : !current.muted.has(id);
+}
+
+function applyGains(immediately = false) {
+  if (!context) return;
+  for (const [id, gain] of gains) {
+    const value = isAudible(state, id) ? 1 : 0;
+    if (immediately) gain.gain.setValueAtTime(value, context.currentTime);
+    else gain.gain.setTargetAtTime(value, context.currentTime, 0.01);
+  }
+}
+
+function peaksOf(buffer: AudioBuffer): number[] {
+  const channels = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
+  const size = Math.max(1, Math.floor(buffer.length / PEAK_SLICES));
+  // Enough samples per slice to see its loudest moments, without reading them all.
+  const step = Math.max(1, Math.floor(size / 256));
+  const peaks: number[] = [];
+  for (let slice = 0; slice < PEAK_SLICES; slice++) {
+    let peak = 0;
+    const end = Math.min(buffer.length, (slice + 1) * size);
+    for (let i = slice * size; i < end; i += step) {
+      for (const data of channels) peak = Math.max(peak, Math.abs(data[i] ?? 0));
+    }
+    peaks.push(peak);
+  }
+  // Each part at its own scale, so a quiet one still shows its shape.
+  const loudest = Math.max(...peaks, 0.0001);
+  return peaks.map((peak) => peak / loudest);
+}
+
+function stopSources() {
+  for (const source of sources) {
+    source.onended = null;
+    try {
+      source.stop();
+    } catch {
+      // Never started.
+    }
+  }
+  sources = [];
+}
+
+function stopTimer() {
+  if (timer) clearInterval(timer);
+  timer = null;
+}
+
+function now(): number {
+  return context ? Math.min(state.duration, Math.max(0, context.currentTime - startedAt)) : offset;
+}
+
+function startAt(from: number) {
+  if (!context) return;
+  stopSources();
+  stopTimer();
+  // A moment ahead, so every part is scheduled before the first one starts.
+  const when = context.currentTime + 0.05;
+  for (const [id, buffer] of buffers) {
+    const gain = gains.get(id);
+    if (!gain || from >= buffer.duration) continue;
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(gain);
+    source.start(when, from);
+    sources.push(source);
+  }
+  startedAt = when - from;
+  // A timer rather than animation frames, which stop in a background tab.
+  timer = setInterval(() => {
+    const at = now();
+    if (at >= state.duration) {
+      stopSources();
+      stopTimer();
+      offset = 0;
+      set({ playing: false, position: 0 });
+    } else {
+      set({ position: at });
+    }
+  }, 100);
+}
+
+/** Forgets the loaded song and frees its audio. */
+export function unloadStems() {
+  generation++;
+  stopSources();
+  stopTimer();
+  void context?.close().catch(() => {});
+  context = null;
+  buffers = new Map();
+  gains = new Map();
+  offset = 0;
+  set({ ...EMPTY, docked: state.docked });
+}
+
+async function load(song: StemSong): Promise<boolean> {
+  const key = stemKey(song);
+  if (state.key === key && state.status === "ready") return true;
+  // Parts muted or soloed before the first Play stay so.
+  const ids = new Set(song.stems.map((stem) => stem.id));
+  const muted = new Set([...state.muted].filter((id) => ids.has(id)));
+  const soloed = new Set([...state.soloed].filter((id) => ids.has(id)));
+  unloadStems();
+  const mine = generation;
+  const ctx = new AudioContext();
+  context = ctx;
+  set({
+    key,
+    songVersionId: song.songVersionId,
+    title: song.title,
+    returnTo: song.returnTo,
+    status: "loading",
+    loaded: 0,
+    tracks: tracksOf(song.stems),
+    muted,
+    soloed,
+  });
+  const decoded = await Promise.all(
+    song.stems.map(async (stem) => {
+      let buffer: AudioBuffer | null = null;
+      try {
+        buffer = await ctx.decodeAudioData(await (await song.load(stem)).arrayBuffer());
+      } catch {
+        // Shown on its row; the other parts still play.
+      }
+      if (mine === generation) set({ loaded: state.loaded + 1 });
+      return { stem, buffer };
+    }),
+  );
+  if (mine !== generation) return false;
+  for (const { stem, buffer } of decoded) {
+    if (!buffer) continue;
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+    buffers.set(stem.id, buffer);
+    gains.set(stem.id, gain);
+  }
+  const peaks = new Map(decoded.map(({ stem, buffer }) => [stem.id, buffer ? peaksOf(buffer) : null]));
+  const tracks = state.tracks.map((track) => ({ ...track, peaks: peaks.get(track.id) ?? null, failed: !peaks.get(track.id) }));
+  if (buffers.size === 0) {
+    set({ status: "error", tracks });
+    return false;
+  }
+  set({ status: "ready", tracks, duration: Math.max(...[...buffers.values()].map((buffer) => buffer.duration)) });
+  return true;
+}
+
+/** Plays `song`, loading it first (and stopping another one) if it isn't what's loaded. */
+export async function playStems(song: StemSong) {
+  if (!(await load(song)) || !context) return;
+  await context.resume();
+  // Gains before the first sound, so a part muted while loading stays silent.
+  applyGains(true);
+  startAt(offset);
+  set({ playing: true, returnTo: song.returnTo, title: song.title });
+}
+
+export function pauseStems() {
+  if (!state.playing) return;
+  offset = now();
+  stopSources();
+  stopTimer();
+  set({ playing: false, position: offset });
+}
+
+export function seekStems(to: number) {
+  offset = Math.min(Math.max(0, to), state.duration);
+  set({ position: offset });
+  if (state.playing) startAt(offset);
+}
+
+export function toggleStemMute(id: string) {
+  const muted = new Set(state.muted);
+  if (!muted.delete(id)) muted.add(id);
+  set({ muted });
+  applyGains();
+}
+
+export function toggleStemSolo(id: string) {
+  const soloed = new Set(state.soloed);
+  if (!soloed.delete(id)) soloed.add(id);
+  set({ soloed });
+  applyGains();
+}
+
+/** A song's dock is on screen. */
+export function dockStems(songVersionId: string) {
+  if (state.docked !== songVersionId) set({ docked: songVersionId });
+}
+
+/** …and gone (unless another song's dock took its place meanwhile). */
+export function undockStems(songVersionId: string) {
+  if (state.docked === songVersionId) set({ docked: null });
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+export function useStems(): StemState {
+  return useSyncExternalStore(
+    subscribe,
+    () => state,
+    () => EMPTY,
+  );
+}
