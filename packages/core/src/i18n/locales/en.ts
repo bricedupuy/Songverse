@@ -908,6 +908,7 @@ const en = {
     position: "Position",
     mute: "Mute {{part}}",
     solo: "Solo {{part}}",
+    unsolo: "Stop soloing {{part}}",
     failed: "{{name}} can't be played in this browser.",
     loadFailed: "The stems couldn't be loaded.",
     expand: "Expand the player",

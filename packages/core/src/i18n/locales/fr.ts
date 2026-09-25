@@ -911,6 +911,7 @@ const fr: typeof en = {
     position: "Position",
     mute: "Couper {{part}}",
     solo: "Solo {{part}}",
+    unsolo: "Retirer {{part}} du solo",
     failed: "{{name}} ne peut pas être lu dans ce navigateur.",
     loadFailed: "Les pistes n'ont pas pu être chargées.",
     expand: "Agrandir le lecteur",

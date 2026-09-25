@@ -234,6 +234,30 @@ await step("a set's song has the player too, in Practice, as it was left (expand
   await chips().first().waitFor();
 });
 
+await step("one row: a soloed part's button takes it out of the solo, the others stay soloed", async () => {
+  await player().getByRole("button", { name: "Expand the player" }).click();
+  await track("DRUMS").getByRole("button", { name: "Solo Drums" }).last().click();
+  // The headphones; the round button says the same while a solo is on.
+  await track("BASS").getByRole("button", { name: "Solo Bass" }).last().click();
+  await player().getByRole("button", { name: "Minimize the player" }).click();
+  // The ring has room: nothing around the buttons cuts it off.
+  const [row, drums] = await Promise.all([chips().first().locator("..").boundingBox(), chip("DRUMS").boundingBox()]);
+  if (drums.y - 4 < row.y || drums.y + drums.height + 4 > row.y + row.height) throw new Error(`the ring is cut: ${JSON.stringify({ row, drums })}`);
+  await player().getByRole("button", { name: "Stop soloing Drums" }).click();
+  const audible = async () => (await chips().evaluateAll((els) => els.map((el) => `${el.dataset.part}:${el.dataset.audible}`))).join();
+  if ((await audible()) !== "VOCALS:false,DRUMS:false,BASS:true,KEYS:false") throw new Error(await audible());
+  // A part outside the solo joins it.
+  await player().getByRole("button", { name: "Solo Vocals" }).click();
+  if ((await audible()) !== "VOCALS:true,DRUMS:false,BASS:true,KEYS:false") throw new Error(await audible());
+  await player().getByRole("button", { name: "Stop soloing Vocals" }).click();
+  await player().getByRole("button", { name: "Stop soloing Bass" }).click();
+  if ((await audible()) !== "VOCALS:true,DRUMS:true,BASS:true,KEYS:true") throw new Error(await audible());
+  // Back to muting.
+  await chip("DRUMS").and(page.getByRole("button", { name: "Mute Drums" })).click();
+  if ((await audible()) !== "VOCALS:true,DRUMS:false,BASS:true,KEYS:true") throw new Error(await audible());
+  await chip("DRUMS").click();
+});
+
 await step("through an <audio> element (as on iPhone, to play on with the screen locked)", async () => {
   await page.evaluate(() => localStorage.setItem("songverse.stems.output", "element"));
   await page.goto(`${WEB}/library/${webSong.id}`);

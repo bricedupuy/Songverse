@@ -172,13 +172,13 @@ export function StemDock({ song }: { song: StemSong }) {
             </Button>
           </div>
           {status}
-          <ul className="flex max-h-[45vh] flex-col divide-y overflow-y-auto">
+          <ul className="-mx-1.5 flex max-h-[45vh] flex-col divide-y overflow-y-auto px-1.5">
             {tracks.map((track) => {
               const name = nameOf(track);
               const on = isAudible(engine, track.id);
               return (
                 <li key={track.id} className="flex items-center gap-2 py-1.5 sm:gap-3" data-testid="stem-track" data-part={track.part} data-audible={String(on)}>
-                  <PartButton track={track} name={name} on={on} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} />
+                  <PartButton track={track} name={name} on={on} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} />
                   <span className={cn("w-20 shrink-0 min-w-0 sm:w-36", !on && "opacity-50")}>
                     <span className="block truncate text-sm font-medium">{name}</span>
                     <span className="hidden truncate text-xs text-muted-foreground sm:block">{track.filename}</span>
@@ -207,9 +207,9 @@ export function StemDock({ song }: { song: StemSong }) {
       ) : (
         <div className={cn("mx-auto flex w-full max-w-7xl items-center gap-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
           {play}
-          <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5">
+          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1.5 py-1">
             {tracks.map((track) => (
-              <PartButton key={track.id} track={track} name={nameOf(track)} on={isAudible(engine, track.id)} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} chip />
+              <PartButton key={track.id} track={track} name={nameOf(track)} on={isAudible(engine, track.id)} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} chip />
             ))}
           </div>
           {status ? <span className="hidden sm:block">{status}</span> : duration ? <span className="hidden sm:block">{time}</span> : null}
@@ -227,17 +227,36 @@ export function StemDock({ song }: { song: StemSong }) {
 /**
  * A part's round button, its instrument's icon: tap to mute it, again to
  * bring it back. Filled while heard, hollow when muted, ringed when soloed.
+ * While some parts are soloed, a tap moves this one in or out of the solo
+ * instead (muting a part that isn't heard anyway would change nothing).
  */
-function PartButton({ track, name, on, muted, soloed, chip = false }: { track: StemTrack; name: string; on: boolean; muted: boolean; soloed: boolean; chip?: boolean }) {
+function PartButton({
+  track,
+  name,
+  on,
+  muted,
+  soloed,
+  soloing,
+  chip = false,
+}: {
+  track: StemTrack;
+  name: string;
+  on: boolean;
+  muted: boolean;
+  soloed: boolean;
+  /** Some part is soloed. */
+  soloing: boolean;
+  chip?: boolean;
+}) {
   const { t } = useTranslation();
   const Icon = PART_ICONS[track.part];
   return (
     <button
       type="button"
       title={name}
-      aria-label={t("stems.mute", { part: name })}
-      aria-pressed={muted}
-      onClick={() => toggleStemMute(track.id)}
+      aria-label={soloed ? t("stems.unsolo", { part: name }) : soloing ? t("stems.solo", { part: name }) : t("stems.mute", { part: name })}
+      aria-pressed={soloing ? soloed : muted}
+      onClick={() => (soloing ? toggleStemSolo(track.id) : toggleStemMute(track.id))}
       data-testid={chip ? "stem-chip" : "stem-part"}
       data-part={track.part}
       data-audible={String(on)}
