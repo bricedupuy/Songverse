@@ -99,8 +99,8 @@ v1 left this open, and its Morning Light example shows the problem. The
 final chorus modulates up a minor third to B♭ *and* overrides the chorus's
 `D` with `F`. `F` is just that `D` moved up a minor third. Read as "written
 in the key being played", the override changes nothing. Read as "written in
-the song's key", it becomes A♭ once transposed. The v1→v2 converter uses the
-first reading and drops the override, with a warning. (The example is a
+the song's key", it becomes A♭ once transposed. The v1→v2 converter used the
+first reading and dropped the override, with a warning. (The example is a
 generated sample, so there's no author's intent to recover either way.)
 
 ## Items
@@ -220,19 +220,8 @@ v2 keeps.
 
 ## Migrating from v1
 
-`arrangementDocumentV1ToV2(arrangement, songV1)`:
-
-- **Item fields:** `instanceLabel` → `label`, `performanceNote` → `note`,
-  `durationOverrideSeconds` → `durationSeconds`, `keyOverride` →
-  `keyChange` (`transposeSteps` → `steps`).
-- **Arrangement key:** `defaults.transposeSteps` is kept. If it's missing,
-  it's worked out from `defaults.key`.
-- **Chord overrides:** read as written in the key being played at that
-  point, then rewritten in the song's key (see above). One that turns out
-  to be the song's own chord is dropped, with a warning.
-- **Lyric overrides:** all segment replacements on one line become one
-  `lyric` override for the line, with the positions of any chords that
-  moved.
-- **Inserted lines:** converted like song lines, keeping their `ins_` IDs.
-- **`frozenAt`:** dropped with a warning to review. `songRevision` starts
-  at the converted song's revision.
+Done, with the songs (see [SongDocument v2](song-document-v2.md#migrating-from-v1)):
+item fields were renamed (`instanceLabel` → `label`, `performanceNote` →
+`note`, `keyOverride` → `keyChange`), chord overrides rewritten in the
+song's key, and segment replacements turned into one `lyric` override per
+line. The converter has since been removed (issue #60).

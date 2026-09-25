@@ -3,9 +3,9 @@ import { parseSongText } from "../import-detection/detect-format.js";
 import { transposeChord } from "../chords/chord.js";
 import { generateId, ID_PREFIXES } from "../ids/index.js";
 import { parseKey } from "../music-keys/transpose.js";
-import { parseSongDocument } from "../schemas/song-document.js";
-import { flowItemId, sectionsV1ToV2, songDocumentV1ToV2 } from "../schemas/song-document-v1-to-v2.js";
+import { parsedSectionsToV2 } from "../schemas/parsed-song.js";
 import {
+  flowItemId,
   parseSongDocumentV2,
   type SectionInstance,
   type SectionV2,
@@ -14,8 +14,8 @@ import {
 } from "../schemas/song-document-v2.js";
 import { reconcileFlow, reconcileSections } from "./reconcile.js";
 
-// A ChordPro comment ("{comment: x2}") is a note line for the band. The v1
-// parser has no notes, so each goes through it marked, with its brackets
+// A ChordPro comment ("{comment: x2}") is a note line for the band. The import
+// parsers have no notes, so each goes through it marked, with its brackets
 // hidden so they aren't read as chords, and is turned back afterwards.
 const COMMENT_LINE = /^\s*\{\s*(?:comment|c|comment_italic|ci|comment_box|cb)\s*:\s*(.*?)\s*\}\s*$/i;
 const NOTE_MARK = "\u2063note\u2063";
@@ -106,7 +106,7 @@ export function songFromText(text: string, format: SupportedImportFormat): SongC
     flow.push({ id: flowItemId(section.id), sectionId: section.id });
   };
 
-  for (const section of sectionsV1ToV2(parseSongText(marked, format))) {
+  for (const section of parsedSectionsToV2(parseSongText(marked, format))) {
     const only = section.lines.length === 1 ? section.lines[0]!.text : "";
     if (only.startsWith(KEY_MARK)) {
       const key = unmark(only.slice(KEY_MARK.length)).trim();
@@ -220,13 +220,12 @@ export function songDocumentFromSections(
 }
 
 /**
- * Any stored song document as v2. Songs saved before v2 are converted on
- * the fly (and written back by the API's upgrade job); anything unreadable
- * throws.
+ * A stored song document, checked. Anything but SongDocument v2 throws,
+ * naming the format it found.
  */
 export function readSongDocument(json: unknown): SongDocumentV2 {
   const schema = (json as { $schema?: unknown } | null)?.$schema;
-  if (schema === "song-document/v1") return songDocumentV1ToV2(parseSongDocument(json)).document;
+  if (schema !== "song-document/v2") throw new Error(`Not a SongDocument v2 (its $schema is ${JSON.stringify(schema ?? null)})`);
   return parseSongDocumentV2(json);
 }
 

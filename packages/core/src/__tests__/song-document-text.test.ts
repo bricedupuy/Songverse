@@ -132,16 +132,12 @@ describe("saving text keeps IDs", () => {
 });
 
 describe("readSongDocument", () => {
-  it("upgrades a stored v1 document on the fly, keeping IDs and hyphens", () => {
-    const doc = readSongDocument(read("../../../db/seeds/fixtures/morning-light-song.json"));
-    expect(doc.$schema).toBe("song-document/v2");
-    expect(doc.sections[1]!.lines[0]!.text).toBe("Still the darkness holds its breath be-fore the dawn");
-  });
-
   it("reads v2 as it is, and refuses anything else", () => {
     const v2 = read("./fixtures/morning-light-song.v2.json");
     expect(readSongDocument(v2)).toEqual(parseSongDocumentV2(v2));
-    expect(() => readSongDocument({ $schema: "nope" })).toThrow();
+    expect(() => readSongDocument({ $schema: "nope" })).toThrow(/"nope"/);
+    expect(() => readSongDocument({ $schema: "song-document/v1", sections: [] })).toThrow(/Not a SongDocument v2/);
+    expect(() => readSongDocument(null)).toThrow();
   });
 });
 

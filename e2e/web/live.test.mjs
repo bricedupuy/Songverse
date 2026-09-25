@@ -199,7 +199,7 @@ await step("on a phone: no sideways scroll, the switch still in the header", asy
 });
 await context.close();
 
-await step("on a dark device, Edit starts dark; a mode saved as Perform is Live", async () => {
+await step("on a dark device, Edit starts dark; the saved mode comes back, an unknown one is Edit", async () => {
   const dark = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: "dark" });
   page = await dark.newPage();
   await signIn(page, me);
@@ -207,12 +207,18 @@ await step("on a dark device, Edit starts dark; a mode saved as Perform is Live"
   await page.waitForLoadState("networkidle");
   let state = await html();
   if (state.mode !== "edit" || !state.dark) throw new Error(JSON.stringify(state));
-  await page.evaluate(() => localStorage.setItem("songverse.mode", "perform"));
+  await page.evaluate(() => localStorage.setItem("songverse.mode", "live"));
   await page.reload();
   await page.waitForLoadState("networkidle");
   state = await html();
   if (state.mode !== "live") throw new Error(JSON.stringify(state));
   await checked("Live");
+  await page.evaluate(() => localStorage.setItem("songverse.mode", "perform"));
+  await page.reload();
+  await page.waitForLoadState("networkidle");
+  state = await html();
+  if (state.mode !== "edit") throw new Error(JSON.stringify(state));
+  await checked("Edit");
   await dark.close();
 });
 

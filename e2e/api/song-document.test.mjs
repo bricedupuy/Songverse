@@ -128,44 +128,6 @@ check(
   JSON.stringify(r.body.song).slice(0, 300),
 );
 
-// --- a song saved before v2 is served as v2, and saving it writes v2
-const old = (await call(me, "POST", "/song-versions", { title: `Old Song ${stamp}`, language: "en", artists: ["Old"] })).body;
-const v1 = {
-  $schema: "song-document/v1",
-  metadata: { title: "Old Song", language: "en" },
-  defaults: { key: "D", capo: 3 },
-  sections: [
-    {
-      id: "sec_old",
-      type: "verse",
-      lines: [
-        {
-          id: "line_old",
-          segments: [
-            { id: "seg_1", lyric: "Breath be-", chord: { id: "chd_1", raw: "D", normalized: null } },
-            { id: "seg_2", lyric: "fore", chord: { id: "chd_2", raw: "A", normalized: null } },
-          ],
-        },
-      ],
-    },
-  ],
-};
-// sql() goes through a shell: "$" is written as a JSON escape so it isn't expanded.
-sql(`update "SongVersion" set "documentJson" = '${JSON.stringify(v1).replace(/\$/g, "\\u0024")}'::jsonb where id = '${old.id}'`);
-doc = (await call(me, "GET", `/song-versions/${old.id}`)).body.documentJson;
-check(
-  "a v1 song is read as v2, IDs kept, its words as saved",
-  doc.$schema === "song-document/v2" && doc.sections[0].id === "sec_old" && doc.sections[0].lines[0].text === "Breath be-fore" &&
-    doc.sections[0].lines[0].chords.map((c) => `${c.id}@${c.at}`).join() === "chd_1@0,chd_2@10",
-  JSON.stringify(doc),
-);
-r = await call(me, "PATCH", `/song-versions/${old.id}`, { tempo: 90 });
-check(
-  "saving it writes it as v2",
-  r.status === 200 && sql(`select "documentJson"->>(chr(36) || 'schema') from "SongVersion" where id = '${old.id}'`) === "song-document/v2",
-  `${r.status}`,
-);
-
 // --- the order it's sung in
 r = await call(me, "POST", "/song-versions", {
   title: `Doc Order ${stamp}`,

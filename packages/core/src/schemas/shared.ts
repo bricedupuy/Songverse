@@ -54,11 +54,3 @@ export const LineSchema = z.object({
   segments: z.array(SegmentSchema),
 });
 export type Line = z.infer<typeof LineSchema>;
-
-export const ContributorSnapshotSchema = z.object({
-  userId: z.string().min(1),
-  displayName: z.string().min(1),
-  source: z.string().nullable().optional(),
-  roles: z.array(ContributorRoleSchema).min(1),
-});
-export type ContributorSnapshot = z.infer<typeof ContributorSnapshotSchema>;

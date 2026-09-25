@@ -9,8 +9,8 @@ const nano = customAlphabet(alphabet, 16);
  *
  * These IDs are generated once at creation and must never be regenerated on
  * save — they are referenced by arrangement overrides, notes, ink
- * annotations, rhythm maps, and diffs. See song-document-v1.md and
- * arrangement-document-v1.md "ID Stability Rules".
+ * annotations, rhythm maps, and diffs. See docs/song-document-v2.md and
+ * docs/arrangement-document-v2.md.
  */
 export function generateId(prefix: IdPrefix): string {
   return `${prefix}${nano()}`;

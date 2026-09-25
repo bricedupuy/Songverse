@@ -1,5 +1,5 @@
 import type { SupportedImportFormat } from "../constants/index.js";
-import type { Section } from "../schemas/song-document.js";
+import type { ParsedSection } from "../schemas/parsed-song.js";
 import { parseChordPro } from "../chordpro/parser.js";
 import { LABEL_LINE } from "../chordpro/section-labels.js";
 import { isChordLine, parseChordsOverLyrics } from "../chords-over-lyrics/parser.js";
@@ -54,8 +54,8 @@ export function detectImportFormat(text: string): SupportedImportFormat {
   return detectImportFormatDetails(text).format;
 }
 
-/** Parses song text in the given format into SongDocument sections. */
-export function parseSongText(text: string, format: SupportedImportFormat): Section[] {
+/** Parses song text in the given format into parsed sections (see schemas/parsed-song.ts). */
+export function parseSongText(text: string, format: SupportedImportFormat): ParsedSection[] {
   switch (format) {
     case "CHORDS_OVER_LYRICS":
       return parseChordsOverLyrics(text);

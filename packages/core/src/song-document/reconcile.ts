@@ -1,5 +1,5 @@
 import type { ChordV2, LineV2, SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
-import { flowItemId } from "../schemas/song-document-v1-to-v2.js";
+import { flowItemId } from "../schemas/song-document-v2.js";
 
 /**
  * Keeps IDs stable when a song is edited as text: the new text is parsed

@@ -13,7 +13,7 @@ and out (export). None of them is how a song is stored.
 
 | Part | State |
 |---|---|
-| Schemas, chord reader, v1→v2 converter, Morning Light examples | Done, in `@songverse/core`, with tests |
+| Schemas, chord reader, Morning Light examples | Done, in `@songverse/core`, with tests |
 | Songs stored as v2: saving with `revision`, IDs kept through text edits, ChordPro export from the columns, chords-above-lyrics rendering | Done |
 | Structured editor (the rules below), with text mode and paste | Done: `apps/web/src/components/song-editor/structured/`, covered by `e2e/web/structured-editor.test.mjs` |
 | ChordPro `{comment}` as note lines; every section type as a `{start_of_x}` environment | Done |
@@ -318,28 +318,11 @@ as players see it.
 
 ## Migrating from v1
 
-`songDocumentV1ToV2()` and `arrangementDocumentV1ToV2()` in `@songverse/core`,
-covered by `song-document-v2.test.ts` against the Morning Light files:
-
-- **Lines:** a line's segments are joined into one text, and each chord is
-  pinned to the character where its segment started. Section, line and chord
-  IDs are kept, so everything pointing at them still resolves. Segment IDs
-  go.
-- **Hyphens:** v1 documents written by hand (the spec examples, Morning
-  Light) split words into syllables ("Morn-ing"). `stripSyllableHyphens`
-  removes those hyphens. It stays **off** for songs saved through the app:
-  the app's parsers never add syllable hyphens (ChordPro writes
-  `be[D]fore`), so a hyphen there is part of the words.
-- **Rhythm maps:** point at the segment's chord and at the character where
-  the segment started.
-- **Dropped:** `metadata` (returned as `droppedMetadata` for checking; the
-  columns are the truth) and `keyNormalized`.
-- **Capo:** a song-level capo is returned as `capo`, for the song's default
-  arrangement.
-- **Flow:** v1 has none, so `flow` lists the sections once each, as
-  written. Flow item IDs derive from section IDs, so converting twice gives
-  the same result.
-- **Revision:** starts at 1.
+Done. Songs saved as v1 were converted at API startup (IDs kept, segments
+joined into one text per line, chords pinned where their segment started),
+and once no v1 song was left the converter and the v1 schemas were removed
+(issue #60). Reading a document that isn't v2 now fails with an error
+naming its `$schema`. The seed's Morning Light files are stored as v2.
 
 ## Planned extensions
 

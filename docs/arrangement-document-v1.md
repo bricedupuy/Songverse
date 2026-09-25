@@ -1,4 +1,4 @@
-> **Superseded by [ArrangementDocument v2](arrangement-document-v2.md).** Kept for reference.
+> **Superseded by [ArrangementDocument v2](arrangement-document-v2.md).** Kept for history: every stored document is v2, and the code that read v1 has been removed (issue #60).
 
 # ArrangementDocument v1 — JSON Specification
 

@@ -1,4 +1,4 @@
-import type { Section } from "../schemas/song-document.js";
+import type { ParsedSection } from "../schemas/parsed-song.js";
 import type { Line, Segment } from "../schemas/shared.js";
 import { SECTION_TYPES, type SectionType } from "../constants/index.js";
 import { generateId, ID_PREFIXES } from "../ids/index.js";
@@ -68,19 +68,19 @@ export function parseLine(raw: string): Line {
 }
 
 /**
- * Parses ChordPro-ish text into SongDocument sections. Supports the
+ * Parses ChordPro-ish text into parsed sections (see schemas/parsed-song.ts). Supports the
  * standard {start_of_x}/{end_of_x} directives, plain-text section labels
  * ("Verse 1", "[Chorus]"), and falls back to one blank-line-separated
  * section per block when neither is present. Any other `{directive}`
  * line (title, key, tempo, comments, etc.) is silently skipped - those
  * map to the song's own metadata/defaults fields, entered separately.
  */
-export function parseChordPro(text: string): Section[] {
-  const sections: Section[] = [];
-  let current: Section | null = null;
+export function parseChordPro(text: string): ParsedSection[] {
+  const sections: ParsedSection[] = [];
+  let current: ParsedSection | null = null;
   let explicitBlock = false;
 
-  let currentLines: Section["lines"] = [];
+  let currentLines: ParsedSection["lines"] = [];
   const startSection = (type: SectionType, label: string | null) => {
     currentLines = [];
     current = { id: generateId(ID_PREFIXES.section), type, label, lines: currentLines };

@@ -1,4 +1,4 @@
-import type { Section } from "../schemas/song-document.js";
+import type { ParsedSection } from "../schemas/parsed-song.js";
 import type { SectionType } from "../constants/index.js";
 import { generateId, ID_PREFIXES } from "../ids/index.js";
 import { parseLine } from "../chordpro/parser.js";
@@ -72,10 +72,10 @@ function overlayChords(chordLine: string, lyricLine: string): string {
  * under each chord. Section labels ("Verse 1", "[Chorus]") work the same
  * way they do for ChordPro-ish paste-in text.
  */
-export function parseChordsOverLyrics(text: string): Section[] {
-  const sections: Section[] = [];
-  let current: Section | null = null;
-  let currentLines: Section["lines"] = [];
+export function parseChordsOverLyrics(text: string): ParsedSection[] {
+  const sections: ParsedSection[] = [];
+  let current: ParsedSection | null = null;
+  let currentLines: ParsedSection["lines"] = [];
 
   const startSection = (type: SectionType, label: string | null) => {
     currentLines = [];

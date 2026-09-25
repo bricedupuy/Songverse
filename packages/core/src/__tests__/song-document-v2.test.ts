@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { parseArrangementDocument } from "../schemas/arrangement-document.js";
 import {
   ChartPreferencesSchema,
   findArrangementProblems,
@@ -9,14 +8,9 @@ import {
   placeChords,
   type ArrangementDocumentV2,
 } from "../schemas/arrangement-document-v2.js";
-import { parseSongDocument } from "../schemas/song-document.js";
-import { arrangementDocumentV1ToV2, songDocumentV1ToV2 } from "../schemas/song-document-v1-to-v2.js";
-import { collectSongDocumentIds } from "../schemas/song-document.js";
-import { collectSongDocumentV2Ids, parseSongDocumentV2, safeParseSongDocumentV2, type SongDocumentV2 } from "../schemas/song-document-v2.js";
+import { parseSongDocumentV2, safeParseSongDocumentV2, type SongDocumentV2 } from "../schemas/song-document-v2.js";
 
 const read = (path: string) => JSON.parse(readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8")) as unknown;
-const songV1 = parseSongDocument(read("../../../db/seeds/fixtures/morning-light-song.json"));
-const arrangementV1 = parseArrangementDocument(read("../../../db/seeds/fixtures/morning-light-arrangement.json"));
 const songV2 = parseSongDocumentV2(read("./fixtures/morning-light-song.v2.json"));
 const arrangementV2 = parseArrangementDocumentV2(read("./fixtures/morning-light-arrangement.v2.json"));
 
@@ -92,23 +86,8 @@ describe("SongDocument v2", () => {
   });
 });
 
-describe("v1 -> v2", () => {
-  it("converts Morning Light to the v2 example", () => {
-    const { document, warnings, capo } = songDocumentV1ToV2(songV1, { stripSyllableHyphens: true });
-    expect(document).toEqual(songV2);
-    expect(warnings).toEqual([]);
-    expect(capo).toBeNull();
-  });
-
-  it("keeps every section, line and chord ID", () => {
-    const before = collectSongDocumentIds(songV1);
-    const after = collectSongDocumentV2Ids(songV2);
-    expect([...after.sectionIds]).toEqual([...before.sectionIds]);
-    expect([...after.lineIds.keys()]).toEqual([...before.lineIds]);
-    expect([...after.chordIds]).toEqual([...before.chordIds]);
-  });
-
-  it("joins a line into one text, chords on the character their segment started at", () => {
+describe("the Morning Light example", () => {
+  it("has one text per line, chords pinned to characters", () => {
     const first = songV2.sections[1]!.lines[0]!;
     expect(first.text).toBe("Still the darkness holds its breath before the dawn");
     expect(first.chords.map((chord) => `${chord.raw}:${first.text.slice(chord.at, chord.at + 6)}`)).toEqual([
@@ -120,26 +99,13 @@ describe("v1 -> v2", () => {
     expect(endChord.chords.at(-1)).toMatchObject({ raw: "D", at: endChord.text.length });
   });
 
-  it("keeps hyphens unless asked to remove syllable breaks", () => {
-    const kept = songDocumentV1ToV2(songV1).document.sections[1]!.lines[0]!;
-    expect(kept.text).toBe("Still the darkness holds its breath be-fore the dawn");
-  });
-
   it("points rhythm maps at chords and characters", () => {
     const bar = songV2.sections[1]!.rhythm!.bars[1]!;
     expect(bar.chords).toEqual([{ chordId: "chd_v1_02", beat: 1 }]);
     expect(bar.lyricAnchor).toEqual({ lineId: "line_v1_01", at: 29 });
   });
 
-  it("converts the Morning Light arrangement to the v2 example", () => {
-    const { document, warnings } = arrangementDocumentV1ToV2(arrangementV1, songV1, { stripSyllableHyphens: true });
-    expect(document).toEqual(arrangementV2);
-    // v1's final-chorus override (D -> "F" while playing a minor third up) is D itself in the song's key.
-    expect(warnings).toEqual([expect.objectContaining({ message: expect.stringContaining("chd_ch_02 -> F is the song's own D") })]);
-    expect(findArrangementProblems(document, songV2)).toEqual([]);
-  });
-
-  it("turns a segment lyric change into a line change that keeps the chords", () => {
+  it("changes a line's words in an arrangement, keeping its chords", () => {
     const bridge = arrangementV2.items.find((item) => item.id === "ai_08")!;
     expect(bridge.overrides).toEqual([
       {
@@ -154,13 +120,10 @@ describe("v1 -> v2", () => {
     expect(placed.map((chord) => chord.at)).toEqual([0, 22, 30]);
   });
 
-  it("writes a chord override back in the song's key", () => {
-    const v1 = structuredClone(arrangementV1);
-    const final = v1.items.find((item) => item.id === "ai_09")!;
-    final.overrides[0] = { type: "chord", chordId: "chd_ch_02", raw: "Ab", normalized: null };
-    const { document, warnings } = arrangementDocumentV1ToV2(v1, songV1, { stripSyllableHyphens: true });
-    expect(document.items.find((item) => item.id === "ai_09")!.overrides[0]).toEqual({ type: "chord", chordId: "chd_ch_02", raw: "F" });
-    expect(warnings[0]!.message).toContain("now F");
+  it("is what the seed stores", () => {
+    expect(parseSongDocumentV2(read("../../../db/seeds/fixtures/morning-light-song.json"))).toEqual(songV2);
+    expect(parseArrangementDocumentV2(read("../../../db/seeds/fixtures/morning-light-arrangement.json"))).toEqual(arrangementV2);
+    expect(findArrangementProblems(arrangementV2, songV2)).toEqual([]);
   });
 });
 

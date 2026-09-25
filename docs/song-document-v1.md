@@ -1,4 +1,4 @@
-> **Superseded by [SongDocument v2](song-document-v2.md).** Kept for reference: stored songs are still v1 until they are migrated.
+> **Superseded by [SongDocument v2](song-document-v2.md).** Kept for history: every stored document is v2, and the code that read v1 has been removed (issue #60).
 
 # SongDocument v1 — JSON Specification
 

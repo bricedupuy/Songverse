@@ -1,15 +1,15 @@
 {
-  "$schema": "arrangement-document/v1",
+  "$schema": "arrangement-document/v2",
   "songVersionId": "__SONG_VERSION_ID__",
-  "songDocumentSchema": "song-document/v1",
-  "frozenAt": null,
+  "songRevision": 1,
   "defaults": {
-    "key": "G",
-    "keyNormalized": { "root": "G", "accidental": null, "mode": "major" },
-    "tempo": 78,
-    "timeSignature": { "numerator": 4, "denominator": 4 },
-    "capo": 0,
     "transposeSteps": 0,
+    "tempo": 78,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "capo": 0,
     "guitarTuning": null,
     "guitarTuningNotes": null
   },
@@ -17,60 +17,68 @@
     {
       "id": "ai_01",
       "sectionId": "sec_intro",
-      "instanceLabel": "Intro",
+      "label": "Intro",
+      "keyChange": null,
+      "note": "Fingerpicked guitar, band enters bar 5",
       "overrides": [],
-      "performanceNote": "Fingerpicked guitar, band enters bar 5",
-      "durationOverrideSeconds": null
+      "durationSeconds": null
     },
     {
       "id": "ai_02",
       "sectionId": "sec_verse1",
-      "instanceLabel": "Verse 1",
+      "label": "Verse 1",
+      "keyChange": null,
+      "note": null,
       "overrides": [],
-      "performanceNote": null,
-      "durationOverrideSeconds": null
+      "durationSeconds": null
     },
     {
       "id": "ai_03",
       "sectionId": "sec_prechorus",
-      "instanceLabel": "Pre-Chorus 1",
+      "label": "Pre-Chorus 1",
+      "keyChange": null,
+      "note": null,
       "overrides": [],
-      "performanceNote": null,
-      "durationOverrideSeconds": null
+      "durationSeconds": null
     },
     {
       "id": "ai_04",
       "sectionId": "sec_chorus",
-      "instanceLabel": "Chorus 1",
+      "label": "Chorus 1",
+      "keyChange": null,
+      "note": null,
       "overrides": [],
-      "performanceNote": null,
-      "durationOverrideSeconds": null
+      "durationSeconds": null
     },
     {
       "id": "ai_05",
       "sectionId": "sec_verse2",
-      "instanceLabel": "Verse 2",
+      "label": "Verse 2",
+      "keyChange": null,
+      "note": null,
       "overrides": [],
-      "performanceNote": null,
-      "durationOverrideSeconds": null
+      "durationSeconds": null
     },
     {
       "id": "ai_06",
       "sectionId": "sec_prechorus",
-      "instanceLabel": "Pre-Chorus 2",
+      "label": "Pre-Chorus 2",
+      "keyChange": null,
+      "note": "Shortened — skip second line",
       "overrides": [
         {
           "type": "hide_line",
           "lineId": "line_pc_02"
         }
       ],
-      "performanceNote": "Shortened — skip second line",
-      "durationOverrideSeconds": null
+      "durationSeconds": null
     },
     {
       "id": "ai_07",
       "sectionId": "sec_chorus",
-      "instanceLabel": "Chorus 2",
+      "label": "Chorus 2",
+      "keyChange": null,
+      "note": null,
       "overrides": [
         {
           "type": "performance_note",
@@ -78,74 +86,64 @@
           "note": "Add harmony vocal"
         }
       ],
-      "performanceNote": null,
-      "durationOverrideSeconds": null
+      "durationSeconds": null
     },
     {
       "id": "ai_08",
       "sectionId": "sec_bridge",
-      "instanceLabel": "Bridge",
+      "label": "Bridge",
+      "keyChange": null,
+      "note": "Strip back to piano and vocals, band re-enters bar 5",
       "overrides": [
         {
           "type": "lyric",
-          "segmentId": "seg_br_14",
-          "value": "sing un-til "
+          "lineId": "line_br_04",
+          "text": "And I will sing until all the world believes",
+          "chordPositions": {
+            "chd_br_09": 22,
+            "chd_br_10": 30
+          }
         }
       ],
-      "performanceNote": "Strip back to piano and vocals, band re-enters bar 5",
-      "durationOverrideSeconds": null
+      "durationSeconds": null
     },
     {
       "id": "ai_09",
       "sectionId": "sec_chorus",
-      "instanceLabel": "Final Chorus",
-      "keyOverride": {
-        "key": "Bb",
-        "keyNormalized": { "root": "B", "accidental": "flat", "mode": "major" },
-        "transposeSteps": 3
+      "label": "Final Chorus",
+      "keyChange": {
+        "steps": 3,
+        "key": "Bb"
       },
+      "note": "Modulate up a minor third, full band, key change on downbeat",
       "overrides": [
-        {
-          "type": "chord",
-          "chordId": "chd_ch_02",
-          "raw": "F",
-          "normalized": {
-            "root": "F", "accidental": null, "quality": "major",
-            "extensions": [], "bass": null, "bassAccidental": null
-          }
-        },
         {
           "type": "insert_line",
           "afterLineId": "line_ch_05",
           "line": {
             "id": "ins_line_01",
-            "segments": [
+            "kind": "lyric",
+            "text": "Amen, amen",
+            "chords": [
               {
-                "id": "ins_seg_01",
-                "lyric": "A-men, a-men",
-                "chord": {
-                  "id": "ins_chd_01",
-                  "raw": "Bb",
-                  "normalized": {
-                    "root": "B", "accidental": "flat", "quality": "major",
-                    "extensions": [], "bass": null, "bassAccidental": null
-                  }
-                }
+                "id": "ins_chd_01",
+                "at": 0,
+                "raw": "Bb"
               }
             ]
           }
         }
       ],
-      "performanceNote": "Modulate up a minor third, full band, key change on downbeat",
-      "durationOverrideSeconds": 20
+      "durationSeconds": 20
     },
     {
       "id": "ai_10",
       "sectionId": "sec_outro",
-      "instanceLabel": "Outro / Tag",
+      "label": "Outro / Tag",
+      "keyChange": null,
+      "note": "Vocals only, fade on final Gmaj7",
       "overrides": [],
-      "performanceNote": "Vocals only, fade on final Gmaj7",
-      "durationOverrideSeconds": 16
+      "durationSeconds": 16
     }
   ]
 }

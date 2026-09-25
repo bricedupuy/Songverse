@@ -29,8 +29,7 @@ function applyMode() {
   let theme = null;
   try {
     const stored = localStorage.getItem("songverse.mode");
-    // "build" and "perform" were the first two modes' names.
-    mode = stored === "live" || stored === "perform" ? "live" : stored === "practice" ? "practice" : "edit";
+    mode = stored === "live" ? "live" : stored === "practice" ? "practice" : "edit";
     theme = localStorage.getItem("songverse.theme");
   } catch {
     // Storage blocked: the defaults.

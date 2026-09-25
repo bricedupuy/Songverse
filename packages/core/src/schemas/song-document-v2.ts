@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { SECTION_TYPES } from "../constants/index.js";
 import { TimeSignatureSchema } from "./shared.js";
-import { GrooveRefSchema } from "./song-document.js";
 
 /**
  * SongDocument v2 - a song's music: its sections, lines, chords and timing.
@@ -86,6 +85,13 @@ export const RhythmSchema = z.object({
   bars: z.array(BarSchema).max(512),
 });
 export type Rhythm = z.infer<typeof RhythmSchema>;
+
+export const GrooveRefSchema = z.object({
+  styleId: z.string().min(1),
+  variant: z.string().min(1),
+  tempoRelative: z.number().positive().default(1.0),
+});
+export type GrooveRef = z.infer<typeof GrooveRefSchema>;
 
 export const SectionV2Schema = z.object({
   id: z.string().min(1),
@@ -247,4 +253,9 @@ export function collectSongDocumentV2Ids(doc: SongDocumentV2) {
     }
   }
   return { sectionIds, lineIds, chordIds };
+}
+
+/** A section's first flow item's ID derives from the section's, so building a flow twice gives the same one. */
+export function flowItemId(sectionId: string): string {
+  return `fi_${sectionId.replace(/^sec_/, "")}`;
 }
