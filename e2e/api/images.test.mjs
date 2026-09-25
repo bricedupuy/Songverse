@@ -1,7 +1,8 @@
 // API-level checks for avatar normalization and dynamic image resizing.
 import sharp from "sharp";
-import { readFileSync } from "node:fs";
-import { API, ORIGIN, LOG, stamp, tag, check, finish } from "../lib/harness.mjs";
+import { readFileSync, renameSync } from "node:fs";
+import path from "node:path";
+import { API, ORIGIN, LOG, STORAGE_DIR, stamp, tag, check, finish } from "../lib/harness.mjs";
 
 
 async function signUpAndToken(tag) {
@@ -101,10 +102,16 @@ const firstMs = Date.now() - t0;
 m = await meta(res);
 check("image attachment resized to 256 wide (aspect kept)", m.format === "webp" && m.width === 256 && m.height === 171, `${m.width}x${m.height}`);
 check("attachment rendition is private-cacheable", res.headers.get("cache-control")?.startsWith("private"), res.headers.get("cache-control"));
-t0 = Date.now();
-await (await call(alice.bearer, "GET", `${imagePath}?w=256`)).arrayBuffer();
-const secondMs = Date.now() - t0;
-check("second request served from cache (faster)", secondMs < firstMs, `${firstMs}ms -> ${secondMs}ms`);
+// With the original moved out of storage, only the cache can answer (timing a ~5 ms resize can't tell).
+const original = path.join(STORAGE_DIR, imageAttachment.storageKey);
+renameSync(original, `${original}.away`);
+try {
+  res = await call(alice.bearer, "GET", `${imagePath}?w=256`);
+  m = res.ok ? await meta(res) : null;
+  check("second request served from cache", res.status === 200 && m?.width === 256, `${res.status} (first took ${firstMs}ms)`);
+} finally {
+  renameSync(`${original}.away`, original);
+}
 res = await call(null, "GET", `${imagePath}?w=256`);
 check("signed-out request rejected", res.status === 401, String(res.status));
 res = await call(bob.bearer, "GET", `${imagePath}?w=256`);
