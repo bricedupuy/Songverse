@@ -1,5 +1,23 @@
 import { useRouter } from "@tanstack/react-router";
-import { ChevronDown, ChevronUp, Headphones, Loader2, Music, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import type { StemPart } from "@songverse/core";
+import {
+  ChevronDown,
+  ChevronUp,
+  ClefBass,
+  Drum,
+  Ellipsis,
+  Guitar,
+  Headphones,
+  Loader2,
+  Metronome,
+  MicVocal,
+  Music,
+  Pause,
+  Piano,
+  Play,
+  UserRoundPlus,
+  type LucideIcon,
+} from "lucide-react";
 import { createContext, useContext, useEffect, useId, useMemo, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -27,17 +45,28 @@ export const StemDockSlot = createContext<HTMLElement | null>(null);
 
 const EXPANDED_KEY = "songverse.stems.expanded";
 
+const PART_ICONS: Record<StemPart, LucideIcon> = {
+  VOCALS: MicVocal,
+  BACKING_VOCALS: UserRoundPlus,
+  DRUMS: Drum,
+  BASS: ClefBass,
+  GUITAR: Guitar,
+  KEYS: Piano,
+  OTHER: Ellipsis,
+  CLICK: Metronome,
+};
+
+// Clear of the screen's rounded corners and the home indicator on a phone.
+const EDGES = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:px-6";
+
 function formatTime(seconds: number): string {
   const whole = Math.max(0, Math.floor(seconds));
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
 
-function useTrackNames() {
+function useTrackName() {
   const { t } = useTranslation();
-  return (track: StemTrack) => {
-    const suffix = track.number ? ` ${track.number}` : "";
-    return { name: `${t(`stems.parts.${track.part}`)}${suffix}`, short: `${t(`stems.short.${track.part}`)}${track.number || ""}` };
-  };
+  return (track: StemTrack) => `${t(`stems.parts.${track.part}`)}${track.number ? ` ${track.number}` : ""}`;
 }
 
 /**
@@ -50,7 +79,7 @@ export function StemDock({ song }: { song: StemSong }) {
   const slot = useContext(StemDockSlot);
   const { t } = useTranslation();
   const engine = useStems();
-  const names = useTrackNames();
+  const nameOf = useTrackName();
   const key = stemKey(song);
   const active = engine.key === key;
   const tracks = active ? engine.tracks : tracksOf(song.stems);
@@ -86,7 +115,7 @@ export function StemDock({ song }: { song: StemSong }) {
     <Button
       type="button"
       size="icon"
-      className="shrink-0 rounded-full"
+      className="size-10 shrink-0 rounded-full"
       onClick={() => void (playing ? pauseStems() : playStems(song))}
       disabled={loading}
       aria-label={playing ? t("stems.pause") : t("stems.play")}
@@ -123,7 +152,7 @@ export function StemDock({ song }: { song: StemSong }) {
         <div className="h-full bg-primary" style={{ width: duration ? `${(position / duration) * 100}%` : "0%" }} />
       </div>
       {expanded ? (
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-3 pt-3 pb-2 md:px-6">
+        <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-2 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", EDGES)}>
           <div className="flex items-center gap-3">
             {play}
             {time}
@@ -145,11 +174,11 @@ export function StemDock({ song }: { song: StemSong }) {
           {status}
           <ul className="flex max-h-[45vh] flex-col divide-y overflow-y-auto">
             {tracks.map((track) => {
-              const { name, short } = names(track);
+              const name = nameOf(track);
               const on = isAudible(engine, track.id);
               return (
                 <li key={track.id} className="flex items-center gap-2 py-1.5 sm:gap-3" data-testid="stem-track" data-part={track.part} data-audible={String(on)}>
-                  <PartBadge short={short} on={on} soloed={engine.soloed.has(track.id)} failed={track.failed} />
+                  <PartButton track={track} name={name} on={on} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} />
                   <span className={cn("w-20 shrink-0 min-w-0 sm:w-36", !on && "opacity-50")}>
                     <span className="block truncate text-sm font-medium">{name}</span>
                     <span className="hidden truncate text-xs text-muted-foreground sm:block">{track.filename}</span>
@@ -159,17 +188,6 @@ export function StemDock({ song }: { song: StemSong }) {
                   ) : (
                     <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} dim={!on} onSeek={active && engine.status === "ready" ? (at) => seekStems(at * duration) : undefined} />
                   )}
-                  <Button
-                    type="button"
-                    size="icon"
-                    className="shrink-0"
-                    variant={engine.muted.has(track.id) ? "secondary" : "ghost"}
-                    aria-pressed={engine.muted.has(track.id)}
-                    aria-label={t("stems.mute", { part: name })}
-                    onClick={() => toggleStemMute(track.id)}
-                  >
-                    {engine.muted.has(track.id) ? <VolumeX /> : <Volume2 />}
-                  </Button>
                   <Button
                     type="button"
                     size="icon"
@@ -187,29 +205,12 @@ export function StemDock({ song }: { song: StemSong }) {
           </ul>
         </div>
       ) : (
-        <div className="mx-auto flex w-full max-w-7xl items-center gap-2 px-3 py-2 md:px-6">
+        <div className={cn("mx-auto flex w-full max-w-7xl items-center gap-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
           {play}
           <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5">
-            {tracks.map((track) => {
-              const { name, short } = names(track);
-              const on = isAudible(engine, track.id);
-              return (
-                <button
-                  key={track.id}
-                  type="button"
-                  title={name}
-                  aria-label={t("stems.mute", { part: name })}
-                  aria-pressed={engine.muted.has(track.id)}
-                  onClick={() => toggleStemMute(track.id)}
-                  data-testid="stem-chip"
-                  data-part={track.part}
-                  data-audible={String(on)}
-                  className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  <PartBadge short={short} on={on} soloed={engine.soloed.has(track.id)} failed={track.failed} />
-                </button>
-              );
-            })}
+            {tracks.map((track) => (
+              <PartButton key={track.id} track={track} name={nameOf(track)} on={isAudible(engine, track.id)} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} chip />
+            ))}
           </div>
           {status ? <span className="hidden sm:block">{status}</span> : duration ? <span className="hidden sm:block">{time}</span> : null}
           <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => expand(true)} aria-label={t("stems.expand")}>
@@ -223,20 +224,37 @@ export function StemDock({ song }: { song: StemSong }) {
   return slot ? createPortal(dock, slot) : null;
 }
 
-/** A part's round badge: filled while heard, hollow when muted, ringed when soloed. */
-function PartBadge({ short, on, soloed, failed }: { short: string; on: boolean; soloed: boolean; failed: boolean }) {
+/**
+ * A part's round button, its instrument's icon: tap to mute it, again to
+ * bring it back. Filled while heard, hollow when muted, ringed when soloed.
+ */
+function PartButton({ track, name, on, muted, soloed, chip = false }: { track: StemTrack; name: string; on: boolean; muted: boolean; soloed: boolean; chip?: boolean }) {
+  const { t } = useTranslation();
+  const Icon = PART_ICONS[track.part];
   return (
-    <span
-      aria-hidden
+    <button
+      type="button"
+      title={name}
+      aria-label={t("stems.mute", { part: name })}
+      aria-pressed={muted}
+      onClick={() => toggleStemMute(track.id)}
+      data-testid={chip ? "stem-chip" : "stem-part"}
+      data-part={track.part}
+      data-audible={String(on)}
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold transition-colors",
+        "relative flex size-9 shrink-0 items-center justify-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         on ? "border-primary bg-primary text-primary-foreground" : "border-dashed border-muted-foreground/50 text-muted-foreground",
         soloed && "ring-2 ring-primary ring-offset-2 ring-offset-background",
-        failed && "opacity-40",
+        track.failed && "opacity-40",
       )}
     >
-      {short}
-    </span>
+      <Icon className="size-4" aria-hidden />
+      {track.number ? (
+        <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border bg-background text-[10px] font-semibold text-foreground" aria-hidden>
+          {track.number}
+        </span>
+      ) : null}
+    </button>
   );
 }
 

@@ -126,6 +126,7 @@ await step("a file the name doesn't tell is assigned by hand", async () => {
 });
 
 const chips = () => player().getByTestId("stem-chip");
+const chip = (part) => player().locator(`[data-testid="stem-chip"][data-part="${part}"]`);
 const floating = () => page.getByTestId("stem-return");
 const time = async () => (await player().getByTestId("stem-time").textContent()).trim();
 const seconds = (text) => {
@@ -140,16 +141,16 @@ await step("in Edit there's no player, just the way to Practice", async () => {
   if ((await page.evaluate(() => document.documentElement.dataset.mode)) !== "practice") throw new Error("not Practice");
 });
 
-await step("docked at the bottom, one row: play and a round button per part", async () => {
+await step("docked at the bottom, one row: play and a round button per part, with its instrument", async () => {
   await page.evaluate(() => window.scrollTo(0, 0));
   const box = await player().boundingBox();
   if (Math.abs(box.y + box.height - 900) > 2) throw new Error(`not at the bottom: ${JSON.stringify(box)}`);
   if ((await player().getAttribute("data-view")) !== "compact") throw new Error("not compact");
   if (box.height > 64) throw new Error(`${box.height}px high`);
-  const parts = await chips().evaluateAll((els) => els.map((el) => `${el.dataset.part}:${el.textContent}`));
-  if (parts.join() !== "VOCALS:V,DRUMS:D,BASS:B,KEYS:P") throw new Error(parts.join());
+  const parts = await chips().evaluateAll((els) => els.map((el) => `${el.dataset.part}:${el.getAttribute("title")}:${el.querySelector("svg")?.getAttribute("class")?.match(/lucide-([a-z-]+)/)?.[1]}`));
+  if (parts.join() !== "VOCALS:Vocals:mic-vocal,DRUMS:Drums:drum,BASS:Bass:clef-bass,KEYS:Piano and keys:piano") throw new Error(parts.join());
   // Muted before anything has loaded.
-  await chips().filter({ hasText: "B" }).click();
+  await chip("BASS").click();
 });
 
 await step("Play plays every part together; a round button mutes its part", async () => {
@@ -158,8 +159,8 @@ await step("Play plays every part together; a round button mutes its part", asyn
   await page.waitForFunction(() => document.querySelector('[data-testid="stem-time"]')?.textContent?.startsWith("0:01"));
   if (!(await time()).endsWith("/ 0:20")) throw new Error(await time());
   await player().locator('[data-testid="stem-chip"][data-part="BASS"][data-audible="false"]').waitFor({ timeout: 1000 });
-  await chips().filter({ hasText: "B" }).click();
-  await chips().filter({ hasText: "V" }).click();
+  await chip("BASS").click();
+  await chip("VOCALS").click();
   await player().locator('[data-testid="stem-chip"][data-part="VOCALS"][aria-pressed="true"][data-audible="false"]').waitFor();
 });
 
@@ -170,6 +171,11 @@ await step("expanded: a row per part with its waveform, mute and solo; the wavef
   if (await player().getByText("can't be played").count()) throw new Error("a stem didn't decode");
   // Still muted from the compact row.
   await track("VOCALS").and(page.locator('[data-audible="false"]')).waitFor();
+  // Its round button toggles here too.
+  await track("KEYS").getByRole("button", { name: "Mute Piano and keys" }).click();
+  await track("KEYS").and(page.locator('[data-audible="false"]')).waitFor();
+  await track("KEYS").getByRole("button", { name: "Mute Piano and keys" }).click();
+  await track("KEYS").and(page.locator('[data-audible="true"]')).waitFor();
   await player().getByRole("button", { name: "Solo Drums" }).click();
   const audible = await player().getByTestId("stem-track").evaluateAll((rows) => rows.map((row) => `${row.dataset.part}:${row.dataset.audible}`));
   if (audible.join() !== "VOCALS:false,DRUMS:true,BASS:false,KEYS:false") throw new Error(audible.join());
@@ -228,6 +234,20 @@ await step("a set's song has the player too, in Practice, as it was left (expand
   await chips().first().waitFor();
 });
 
+await step("through an <audio> element (as on iPhone, to play on with the screen locked)", async () => {
+  await page.evaluate(() => localStorage.setItem("songverse.stems.output", "element"));
+  await page.goto(`${WEB}/library/${webSong.id}`);
+  await page.waitForLoadState("networkidle");
+  await player().getByRole("button", { name: "Play", exact: true }).click();
+  await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
+  await page.waitForFunction(() => document.querySelector('[data-testid="stem-time"]')?.textContent?.startsWith("0:02"));
+  const session = await page.evaluate(() => [navigator.mediaSession.playbackState, navigator.mediaSession.metadata?.title]);
+  if (session.join() !== `playing,Stems ${stamp}`) throw new Error(`lock screen: ${session.join()}`);
+  await player().getByRole("button", { name: "Pause", exact: true }).click();
+  if ((await page.evaluate(() => navigator.mediaSession.playbackState)) !== "paused") throw new Error("still playing on the lock screen");
+  await page.evaluate(() => localStorage.removeItem("songverse.stems.output"));
+});
+
 await step("on a phone it fits", async () => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto(`${WEB}/library/${webSong.id}`);
@@ -235,6 +255,9 @@ await step("on a phone it fits", async () => {
   await chips().nth(3).waitFor();
   const box = await player().boundingBox();
   if (box.x < 0 || box.x + box.width > 360 || Math.abs(box.y + box.height - 740) > 2) throw new Error(JSON.stringify(box));
+  // Clear of a phone's rounded corners.
+  const play = await player().getByRole("button", { name: "Play", exact: true }).boundingBox();
+  if (play.x < 16 || box.y + box.height - (play.y + play.height) < 12) throw new Error(`the Play button is at ${JSON.stringify(play)}`);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (overflow > 0) throw new Error(`${overflow}px sideways scroll`);
 });

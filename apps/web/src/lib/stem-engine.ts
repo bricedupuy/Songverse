@@ -75,6 +75,11 @@ const EMPTY: StemState = {
 let state: StemState = EMPTY;
 const listeners = new Set<() => void>();
 let context: AudioContext | null = null;
+// Where every part goes: the speakers, or on iPhone and iPad an <audio> element (see outputFor).
+let bus: GainNode | null = null;
+let element: HTMLAudioElement | null = null;
+// The song last played, for the lock screen's Play button.
+let lastSong: StemSong | null = null;
 let buffers = new Map<string, AudioBuffer>();
 let gains = new Map<string, GainNode>();
 let sources: AudioBufferSourceNode[] = [];
@@ -192,11 +197,103 @@ function startAt(from: number) {
       stopSources();
       stopTimer();
       offset = 0;
+      element?.pause();
       set({ playing: false, position: 0 });
+      updateMediaSession();
     } else {
       set({ position: at });
     }
   }, 100);
+}
+
+/**
+ * iOS suspends Web Audio when the screen locks, but lets a media element
+ * play on: there the parts are mixed into a stream an <audio> element
+ * plays, in the "playback" audio session (which the ring/silent switch
+ * doesn't mute either). Elsewhere they go straight to the speakers.
+ * `songverse.stems.output` = "element" forces the element (for tests).
+ */
+function viaElement(): boolean {
+  try {
+    if (localStorage.getItem("songverse.stems.output") === "element") return true;
+  } catch {
+    // Storage blocked.
+  }
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function outputFor(ctx: AudioContext): GainNode {
+  const mix = ctx.createGain();
+  if (viaElement() && typeof ctx.createMediaStreamDestination === "function") {
+    const stream = ctx.createMediaStreamDestination();
+    mix.connect(stream);
+    element = new Audio();
+    element.setAttribute("playsinline", "");
+    element.srcObject = stream.stream;
+  } else {
+    mix.connect(ctx.destination);
+  }
+  return mix;
+}
+
+/** The element refused to play (no gesture, say): straight to the speakers instead. */
+async function startElement() {
+  if (!element || !bus || !context) return;
+  try {
+    await element.play();
+  } catch {
+    bus.disconnect();
+    bus.connect(context.destination);
+    element = null;
+  }
+}
+
+function setAudioSession() {
+  // Safari 16.4+: play like a music app, on with the screen locked and the silent switch on.
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session) session.type = "playback";
+}
+
+/** The lock screen and headphones' controls, and what they show. */
+function updateMediaSession() {
+  if (!("mediaSession" in navigator)) return;
+  const media = navigator.mediaSession;
+  media.playbackState = state.playing ? "playing" : state.key ? "paused" : "none";
+  if (!state.key) {
+    media.metadata = null;
+    return;
+  }
+  if (media.metadata?.title !== state.title) media.metadata = new MediaMetadata({ title: state.title, artist: "SongVerse" });
+  try {
+    if (state.duration) media.setPositionState({ duration: state.duration, position: Math.min(state.position, state.duration), playbackRate: 1 });
+  } catch {
+    // Not supported here.
+  }
+}
+
+function setMediaActions() {
+  if (!("mediaSession" in navigator)) return;
+  const actions: [MediaSessionAction, MediaSessionActionHandler][] = [
+    ["play", () => void (lastSong && playStems(lastSong))],
+    ["pause", () => pauseStems()],
+    ["seekto", (details) => seekStems(details.seekTime ?? 0)],
+    ["seekbackward", (details) => seekStems(now() - (details.seekOffset ?? 10))],
+    ["seekforward", (details) => seekStems(now() + (details.seekOffset ?? 10))],
+  ];
+  for (const [action, handler] of actions) {
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch {
+      // Not supported here.
+    }
+  }
+}
+
+// Back from the lock screen or another app with the context interrupted: carry on.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && state.playing && context && context.state !== "running") void context.resume();
+  });
 }
 
 /** Forgets the loaded song and frees its audio. */
@@ -206,10 +303,15 @@ export function unloadStems() {
   stopTimer();
   void context?.close().catch(() => {});
   context = null;
+  bus = null;
+  element?.pause();
+  if (element) element.srcObject = null;
+  element = null;
   buffers = new Map();
   gains = new Map();
   offset = 0;
   set({ ...EMPTY, docked: state.docked });
+  updateMediaSession();
 }
 
 async function load(song: StemSong): Promise<boolean> {
@@ -221,8 +323,11 @@ async function load(song: StemSong): Promise<boolean> {
   const soloed = new Set([...state.soloed].filter((id) => ids.has(id)));
   unloadStems();
   const mine = generation;
+  setAudioSession();
   const ctx = new AudioContext();
   context = ctx;
+  const mix = outputFor(ctx);
+  bus = mix;
   set({
     key,
     songVersionId: song.songVersionId,
@@ -250,7 +355,7 @@ async function load(song: StemSong): Promise<boolean> {
   for (const { stem, buffer } of decoded) {
     if (!buffer) continue;
     const gain = ctx.createGain();
-    gain.connect(ctx.destination);
+    gain.connect(mix);
     buffers.set(stem.id, buffer);
     gains.set(stem.id, gain);
   }
@@ -266,12 +371,21 @@ async function load(song: StemSong): Promise<boolean> {
 
 /** Plays `song`, loading it first (and stopping another one) if it isn't what's loaded. */
 export async function playStems(song: StemSong) {
-  if (!(await load(song)) || !context) return;
+  lastSong = song;
+  // load() sets up the audio before its first wait: start it here, still inside the tap,
+  // which is the only time iOS lets sound start.
+  const loading = load(song);
+  void context?.resume();
+  const starting = startElement();
+  if (!(await loading) || !context) return;
   await context.resume();
+  await starting;
   // Gains before the first sound, so a part muted while loading stays silent.
   applyGains(true);
   startAt(offset);
   set({ playing: true, returnTo: song.returnTo, title: song.title });
+  setMediaActions();
+  updateMediaSession();
 }
 
 export function pauseStems() {
@@ -279,13 +393,16 @@ export function pauseStems() {
   offset = now();
   stopSources();
   stopTimer();
+  element?.pause();
   set({ playing: false, position: offset });
+  updateMediaSession();
 }
 
 export function seekStems(to: number) {
   offset = Math.min(Math.max(0, to), state.duration);
   set({ position: offset });
   if (state.playing) startAt(offset);
+  updateMediaSession();
 }
 
 export function toggleStemMute(id: string) {
