@@ -1088,6 +1088,14 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       return response.blob();
     },
     /**
+     * A short-lived link to the file (issue #33), for an <audio src> that
+     * streams and seeks without the Bearer token. Ask again once it expires.
+     */
+    getAttachmentLink: async (songVersionId: string, attachmentId: string): Promise<{ url: string; expiresAt: string }> => {
+      const { path, expiresAt } = await request<{ path: string; expiresAt: string }>(`/song-versions/${songVersionId}/attachments/${attachmentId}/link`, { method: "POST" });
+      return { url: `${baseUrl}${path}`, expiresAt };
+    },
+    /**
      * A resized WebP rendition of an image attachment. `width` snaps up to
      * one of 32-2048 on the server, and images are never enlarged.
      */

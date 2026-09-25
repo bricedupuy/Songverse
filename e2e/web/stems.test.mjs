@@ -78,6 +78,46 @@ await step("uploading stems: named parts are recognised, MP3 and Opus", async ()
   }
 });
 
+await step("a recording plays from a streamed link, and seeks", async () => {
+  const ranges = [];
+  page.on("response", (res) => {
+    if (res.url().includes("/files/")) ranges.push(res.status());
+  });
+  const row = page.getByTestId("audio-list").locator("li").filter({ hasText: "Morning Light - Bass.mp3" });
+  await row.getByRole("button", { name: "Play" }).click();
+  const audio = row.locator("audio");
+  await audio.waitFor();
+  if (!(await audio.getAttribute("src")).includes("/files/")) throw new Error(await audio.getAttribute("src"));
+  await page.waitForFunction((el) => el.duration > 3, await audio.elementHandle());
+  await audio.evaluate((el) => {
+    el.pause();
+    el.currentTime = 2.5;
+  });
+  await page.waitForFunction((el) => el.readyState >= 2 && Math.abs(el.currentTime - 2.5) < 0.2, await audio.elementHandle());
+  if (!ranges.includes(206)) throw new Error(`no partial response: ${ranges.join()}`);
+});
+
+await step("a link that stopped working is replaced, and it plays on", async () => {
+  const drumsId = (await api(me, "GET", `/song-versions/${webSong.id}/attachments`)).find((a) => a.filename === "03 drums.mp3").id;
+  const links = new Set();
+  // The first link fails, as an expired one would; the ones after work.
+  await page.route(
+    (url) => {
+      if (url.pathname !== `/files/${drumsId}`) return false;
+      links.add(url.search);
+      return links.size === 1;
+    },
+    (route) => route.fulfill({ status: 403, body: "expired" }),
+  );
+  const row = page.getByTestId("audio-list").locator("li").filter({ hasText: "03 drums.mp3" });
+  await row.getByRole("button", { name: "Play" }).click();
+  const audio = row.locator("audio");
+  await audio.waitFor();
+  await page.waitForFunction((el) => el.duration > 3, await audio.elementHandle());
+  if (links.size !== 2) throw new Error(`${links.size} links`);
+  if (await row.getByText("Couldn't load it.").count()) throw new Error("shown as failed");
+});
+
 await step("a file the name doesn't tell is assigned by hand", async () => {
   await partOf("track4.opus").selectOption({ label: "Piano and keys" });
   await page.waitForLoadState("networkidle");

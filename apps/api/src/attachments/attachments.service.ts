@@ -46,10 +46,9 @@ export class AttachmentsService {
     return this.prisma.client.attachment.update({ where: { id: attachment.id }, data: { stemPart } });
   }
 
-  async download(songVersionId: string, attachmentId: string): Promise<{ attachment: { filename: string; mimeType: string }; body: Buffer }> {
-    const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
-    const body = await this.storage.get(attachment.storageKey);
-    return { attachment, body };
+  /** One of the song's files, or 404. */
+  find(songVersionId: string, attachmentId: string) {
+    return this.findOwnedAttachment(songVersionId, attachmentId);
   }
 
   /** A resized WebP rendition of an image attachment (see ImageService.resize for sizing rules). */

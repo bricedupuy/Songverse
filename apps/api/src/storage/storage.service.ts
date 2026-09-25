@@ -6,7 +6,8 @@ import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { PrismaService } from "../prisma/prisma.service";
 import { LocalDiskStorageDriver } from "./local-disk-storage.driver";
-import type { ObjectStorageDriver } from "./object-storage-driver";
+import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver";
+import type { Readable } from "node:stream";
 import { S3StorageDriver } from "./s3-storage.driver";
 
 export interface StoredObject {
@@ -115,6 +116,17 @@ export class StorageService {
   async get(hash: string): Promise<Buffer> {
     const { driver } = await this.resolveDriver();
     return driver.getObject(hash);
+  }
+
+  /** The object, or bytes of it, as a stream (issue #33): for downloads, which never load a file whole. */
+  async stream(hash: string, range?: ByteRange): Promise<Readable> {
+    const { driver } = await this.resolveDriver();
+    return driver.streamObject(hash, range);
+  }
+
+  async size(hash: string): Promise<number> {
+    const { driver } = await this.resolveDriver();
+    return driver.objectSize(hash);
   }
 
   async delete(hash: string): Promise<void> {

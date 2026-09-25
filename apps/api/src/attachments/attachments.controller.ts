@@ -12,6 +12,7 @@ import {
   PayloadTooLargeException,
   Post,
   Query,
+  Req,
   Res,
   StreamableFile,
   UnauthorizedException,
@@ -21,7 +22,7 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 import { AccessPolicyService } from "../access/access-policy.service";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
@@ -30,6 +31,9 @@ import { AttachmentsService } from "./attachments.service";
 import { AttachmentResponseDto } from "./dto/attachment-response.dto";
 import { UpdateAttachmentDto, UploadAttachmentDto } from "./dto/upload-attachment.dto";
 import { sniffAudioType } from "./sniff-audio";
+import { FileLinksService } from "../files/file-links.service";
+import { sendFile } from "../files/send-file";
+import { StorageService } from "../storage/storage.service";
 
 const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
 /** Recordings run bigger than sheets and charts. */
@@ -42,6 +46,8 @@ export class AttachmentsController {
   constructor(
     private readonly attachmentsService: AttachmentsService,
     private readonly access: AccessPolicyService,
+    private readonly links: FileLinksService,
+    private readonly storage: StorageService,
   ) {}
 
   @Get()
@@ -91,21 +97,37 @@ export class AttachmentsController {
     return this.attachmentsService.setStemPart(songVersionId, attachmentId, dto.stemPart);
   }
 
+  /** Streamed, with byte ranges (issue #33). */
   @Get(":attachmentId/download")
   async download(
     @Param("songVersionId") songVersionId: string,
     @Param("attachmentId") attachmentId: string,
     @CurrentUser() user: AuthenticatedUser | undefined,
-    @Res({ passthrough: true }) res: Response,
-  ): Promise<StreamableFile> {
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
     if (!user) throw new UnauthorizedException();
     await this.access.assertCanSeeSong(user, songVersionId);
-    const { attachment, body } = await this.attachmentsService.download(songVersionId, attachmentId);
-    res.set({
-      "Content-Type": attachment.mimeType,
-      "Content-Disposition": `attachment; filename="${encodeURIComponent(attachment.filename)}"`,
-    });
-    return new StreamableFile(body);
+    const attachment = await this.attachmentsService.find(songVersionId, attachmentId);
+    await sendFile(this.storage, attachment, req, res, "attachment");
+  }
+
+  /**
+   * A short-lived link to the file (GET /files/:id), for what can't send a
+   * Bearer token - an <audio src> streaming and seeking (issue #33).
+   */
+  @Post(":attachmentId/link")
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: "`path` is under the API's own address; the link stops working at `expiresAt`." })
+  async link(
+    @Param("songVersionId") songVersionId: string,
+    @Param("attachmentId") attachmentId: string,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ): Promise<{ path: string; expiresAt: string }> {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
+    const attachment = await this.attachmentsService.find(songVersionId, attachmentId);
+    return this.links.create(attachment.id);
   }
 
   /** Resized for display, e.g. thumbnails: `w` snaps up to a fixed set of widths (32-2048) and never enlarges. */

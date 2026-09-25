@@ -1,7 +1,9 @@
 import { NotFoundException } from "@nestjs/common";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ObjectStorageDriver } from "./object-storage-driver";
+import type { Readable } from "node:stream";
+import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver";
 
 /**
  * Dev/test fallback when R2 isn't configured (see StorageService) - a real
@@ -24,6 +26,19 @@ export class LocalDiskStorageDriver implements ObjectStorageDriver {
   async getObject(hash: string): Promise<Buffer> {
     try {
       return await readFile(this.pathFor(hash));
+    } catch {
+      throw new NotFoundException("Object not found in storage");
+    }
+  }
+
+  async streamObject(hash: string, range?: ByteRange): Promise<Readable> {
+    await this.objectSize(hash);
+    return createReadStream(this.pathFor(hash), range ? { start: range.start, end: range.end } : {});
+  }
+
+  async objectSize(hash: string): Promise<number> {
+    try {
+      return (await stat(this.pathFor(hash))).size;
     } catch {
       throw new NotFoundException("Object not found in storage");
     }

@@ -44,18 +44,17 @@ function AudioPlayer({ songVersionId, attachment }: { songVersionId: string; att
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
-
-  useEffect(() => () => {
-    if (url) URL.revokeObjectURL(url);
-  }, [url]);
+  const audio = useRef<HTMLAudioElement>(null);
+  // Where to carry on from once a fresh link has loaded.
+  const resumeAt = useRef<number | null>(null);
+  const renewed = useRef(false);
 
   async function load() {
     setLoading(true);
     setError(false);
     try {
-      // The file needs the Bearer token, which an <audio src> can't send.
-      const blob = await apiClient.downloadAttachment(songVersionId, attachment.id);
-      setUrl(URL.createObjectURL(blob));
+      // A signed link (issue #33): the <audio> streams and seeks by itself, which it can't with the Bearer token.
+      setUrl((await apiClient.getAttachmentLink(songVersionId, attachment.id)).url);
     } catch {
       setError(true);
     } finally {
@@ -63,8 +62,40 @@ function AudioPlayer({ songVersionId, attachment }: { songVersionId: string; att
     }
   }
 
+  // A link that ran out mid-rehearsal: a new one, from where it was.
+  async function renew() {
+    if (renewed.current) {
+      setError(true);
+      return;
+    }
+    renewed.current = true;
+    resumeAt.current = audio.current?.currentTime ?? 0;
+    await load();
+  }
+
   if (url) {
-    return <audio controls autoPlay src={url} className="h-9 w-full" aria-label={attachment.filename} />;
+    return (
+      <>
+        <audio
+          ref={audio}
+          controls
+          autoPlay
+          preload="metadata"
+          src={url}
+          className="h-9 w-full"
+          aria-label={attachment.filename}
+          onError={() => void renew()}
+          onLoadedMetadata={(event) => {
+            if (resumeAt.current !== null) event.currentTarget.currentTime = resumeAt.current;
+            resumeAt.current = null;
+          }}
+          onPlaying={() => {
+            renewed.current = false;
+          }}
+        />
+        {error ? <span className="text-xs text-destructive">{t("songEditor.audioFailed")}</span> : null}
+      </>
+    );
   }
   return (
     <div className="flex items-center gap-2">

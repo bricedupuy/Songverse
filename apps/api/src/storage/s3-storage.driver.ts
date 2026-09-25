@@ -1,11 +1,20 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { NotFoundException } from "@nestjs/common";
-import type { ObjectStorageDriver } from "./object-storage-driver";
+import { Readable } from "node:stream";
+import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver";
+
+const notFound = (error: unknown): never => {
+  if (error instanceof Error && (error.name === "NoSuchKey" || error.name === "NotFound")) {
+    throw new NotFoundException("Object not found in storage");
+  }
+  throw error;
+};
 
 export interface S3StorageConfig {
   accountId: string;
@@ -53,6 +62,20 @@ export class S3StorageDriver implements ObjectStorageDriver {
     const bytes = await result.Body?.transformToByteArray();
     if (!bytes) throw new NotFoundException("Object not found in storage");
     return Buffer.from(bytes);
+  }
+
+  async streamObject(hash: string, range?: ByteRange): Promise<Readable> {
+    const result = await this.client
+      .send(new GetObjectCommand({ Bucket: this.bucket, Key: hash, Range: range ? `bytes=${range.start}-${range.end}` : undefined }))
+      .catch(notFound);
+    // In Node the SDK's body is already a Readable.
+    if (!(result.Body instanceof Readable)) throw new NotFoundException("Object not found in storage");
+    return result.Body;
+  }
+
+  async objectSize(hash: string): Promise<number> {
+    const result = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: hash })).catch(notFound);
+    return result.ContentLength ?? 0;
   }
 
   async deleteObject(hash: string): Promise<void> {
