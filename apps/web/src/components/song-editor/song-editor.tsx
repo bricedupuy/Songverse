@@ -397,7 +397,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
       }}
     >
       {/* Sticky on wider screens; a phone gets the save bar at the bottom instead. */}
-      <div className="z-30 -mt-4 flex flex-wrap md:sticky md:top-0 items-center justify-between gap-3 border-b bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+      <div className="z-30 -mt-4 flex flex-wrap md:sticky md:top-14 items-center justify-between gap-3 border-b bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="min-w-0">
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold">
             <span className="min-w-0 break-words">{heading}</span>

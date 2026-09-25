@@ -286,7 +286,7 @@ function Palette({ editor, songKey, sections }: { editor: Editor; songKey: strin
   const heading = "text-xs font-semibold tracking-wide text-muted-foreground uppercase";
   const row = "flex gap-1.5 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible";
   return (
-    <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:self-start" aria-label={t("structuredEditor.palette")}>
+    <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-36 lg:self-start" aria-label={t("structuredEditor.palette")}>
       <div className="flex flex-col gap-1.5">
         <h3 className={heading}>{t("structuredEditor.sections")}</h3>
         <div className={row}>

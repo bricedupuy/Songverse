@@ -105,6 +105,17 @@ export function LiveView({ song }: { song: LiveSong }) {
     return () => cancelAnimationFrame(frame);
   }, [playing, speed, seconds]);
 
+  // Another song (the next, a swipe away): from its top, autoscroll off. The
+  // router's scroll restoration puts the last song's position back on the
+  // scroller as the page changes, so this runs again once it has.
+  useEffect(() => {
+    setPlaying(false);
+    const toTop = () => scroller.current?.scrollTo({ top: 0 });
+    toTop();
+    const frame = requestAnimationFrame(toTop);
+    return () => cancelAnimationFrame(frame);
+  }, [song.id]);
+
   const { previous, next } = song;
   useEffect(() => {
     function onKey(event: KeyboardEvent) {

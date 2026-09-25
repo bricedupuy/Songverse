@@ -9,8 +9,10 @@ let page;
 const step = stepper(() => page);
 const me = await user("Viewer");
 const song = (title, content, artist = "Someone") => api(me, "POST", "/song-versions", { title, language: "en", artists: [artist], key: "G", content, contentFormat: "CHORDPRO" });
-const first = await song(`First ${stamp}`, "{start_of_verse}\n[G]First song [C]words\n{end_of_verse}\n", `Grid One ${stamp}`);
-const second = await song(`Second ${stamp}`, "{start_of_verse}\n[D]Second song [A]words\n{end_of_verse}\n", `Grid Two ${stamp}`);
+// Long enough to scroll.
+const verses = Array.from({ length: 40 }, (_, i) => `[G]First song [C]words, line ${i + 1}`).join("\n");
+const first = await song(`First ${stamp}`, `{start_of_verse}\n${verses}\n{end_of_verse}\n`, `Grid One ${stamp}`);
+const second = await song(`Second ${stamp}`, `{start_of_verse}\n${verses.replaceAll("First", "Second")}\n{end_of_verse}\n`, `Grid Two ${stamp}`);
 const set = await api(me, "POST", "/setlists", { name: `Swipe set ${stamp}` });
 await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: first.id });
 const items = (await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: second.id })).items;
@@ -27,12 +29,20 @@ await step("Edit: the editor, its tabs", async () => {
   await page.getByRole("tab", { name: "Song info" }).waitFor();
 });
 
+await step("the header stays at the top as the page scrolls", async () => {
+  await page.mouse.wheel(0, 2000);
+  await page.waitForFunction(() => window.scrollY > 300);
+  const header = await page.locator("header").first().boundingBox();
+  if (Math.abs(header.y) > 1) throw new Error(`the header is at ${header.y}`);
+  await page.evaluate(() => window.scrollTo(0, 0));
+});
+
 await step("Practice: the chart, no tabs; Edit goes back to the editor", async () => {
   await page.getByRole("radiogroup", { name: "Mode" }).getByRole("radio", { name: "Practice" }).click();
   const practice = page.getByTestId("practice-song");
   await practice.getByRole("heading", { name: `First ${stamp}` }).waitFor();
   await practice.locator('[data-chord="G"]').first().waitFor();
-  await practice.getByText("First song").waitFor();
+  await practice.getByText("First song").first().waitFor();
   if (await page.getByRole("tab", { name: "Song info" }).count()) throw new Error("the editor's tabs in Practice");
   await practice.getByRole("button", { name: "Edit" }).click();
   await page.getByRole("tab", { name: "Song info" }).waitFor();
@@ -61,8 +71,13 @@ await step("Live in a set: swiping left goes to the next song, right to the prev
       },
       [from, to],
     );
+  // Scrolled down the first song…
+  await page.getByTestId("live-scroll").evaluate((el) => el.scrollTo({ top: 600 }));
+  await page.waitForFunction(() => document.querySelector('[data-testid="live-scroll"]').scrollTop > 500);
   await swipe(900, 300);
   await page.waitForURL(`**/sets/${set.id}/live/${items[1].id}`);
+  // …the next one starts at its top.
+  await page.waitForFunction(() => document.querySelector('[data-testid="live-scroll"]').scrollTop === 0);
   await page.getByTestId("live-view").getByRole("heading", { name: `Second ${stamp}` }).waitFor();
   // A short or mostly vertical move isn't a swipe.
   await swipe(600, 560);

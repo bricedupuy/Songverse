@@ -13,7 +13,8 @@ export function SiteHeader() {
   const { mode } = useMode();
 
   return (
-    <header className={cn("flex h-14 shrink-0 items-center gap-2 border-b", mode !== "edit" && "border-b-2 border-b-primary")}>
+    // Always in view at the top, as the page scrolls under it.
+    <header className={cn("sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b bg-background", mode !== "edit" && "border-b-2 border-b-primary")}>
       <div className="flex w-full min-w-0 items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
         <div className="ml-auto flex items-center gap-2">
