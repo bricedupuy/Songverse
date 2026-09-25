@@ -91,7 +91,7 @@ await step("stored avatar is a square WebP of at most 512px", async () => {
 await step("page and sidebar request right-sized avatars", async () => {
   await page.waitForFunction(() => {
     const srcs = [...document.querySelectorAll("img")].map((img) => img.getAttribute("src") ?? "");
-    return srcs.some((s) => s.endsWith("?size=128")) && srcs.some((s) => s.endsWith("?size=48"));
+    return srcs.some((s) => s.endsWith("?size=128")) && srcs.some((s) => s.endsWith("?size=64"));
   });
   await page.waitForFunction(() =>
     [...document.querySelectorAll("img")].filter((img) => img.src.includes("/avatar/")).every((img) => img.complete && img.naturalWidth > 0),

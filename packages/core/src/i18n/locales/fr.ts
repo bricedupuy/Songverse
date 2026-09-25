@@ -278,15 +278,6 @@ const fr: typeof en = {
     artistCount_one: "{{count}} artiste",
     artistCount_other: "{{count}} artistes",
   },
-  breadcrumb: {
-    new: "Nouveau",
-    set: "Liste",
-    songbook: "Recueil",
-    team: "Équipe",
-    catalog: "Catalogue",
-    addASong: "Ajouter une chanson",
-    song: "Chanson",
-  },
   admin: {
     title: "Administration",
     description: "Outils opérationnels pour les administrateurs globaux.",
@@ -965,6 +956,9 @@ const fr: typeof en = {
     label: "La vidéo YouTube du chant",
     caption: "La vidéo du chant, pour jouer avec : ses parties ne peuvent pas être séparées.",
     failed: "YouTube n'a pas pu être joint.",
+  },
+  practice: {
+    edit: "Modifier",
   },
   mode: {
     label: "Mode",

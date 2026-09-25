@@ -1,6 +1,6 @@
 import { chartSeconds, type RenderedChart } from "@songverse/core";
 import { AArrowDown, AArrowUp, ChevronLeft, ChevronRight, Expand, Pause, Play, Rabbit, Shrink, Turtle, X } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { CommandSearch } from "#/components/command-search";
 import { ModeSwitch } from "#/components/mode-switch";
@@ -144,6 +144,25 @@ export function LiveView({ song }: { song: LiveSong }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [previous, next]);
 
+  // Swiping left or right goes to the next or previous song (issue #67):
+  // a quick, mostly sideways move of one finger; scrolling stays vertical.
+  const swipe = useRef<{ x: number; y: number; at: number } | null>(null);
+  const onTouchStart = (event: TouchEvent<HTMLElement>) => {
+    const touch = event.touches[0];
+    swipe.current = event.touches.length === 1 && touch ? { x: touch.clientX, y: touch.clientY, at: Date.now() } : null;
+  };
+  const onTouchEnd = (event: TouchEvent<HTMLElement>) => {
+    const start = swipe.current;
+    const touch = event.changedTouches[0];
+    swipe.current = null;
+    if (!start || !touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 2 || Date.now() - start.at > 800) return;
+    if (dx < 0) next?.();
+    else previous?.();
+  };
+
   const details = [
     ...song.references,
     chart?.key,
@@ -180,7 +199,7 @@ export function LiveView({ song }: { song: LiveSong }) {
         <ModeSwitch />
       </header>
 
-      <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll">
+      <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-[40vh]" style={{ zoom: textSize }}>
           {details.length > 0 ? <p className="text-xs text-muted-foreground lg:hidden">{details.join(" · ")}</p> : null}

@@ -14,7 +14,7 @@ The **Library** lists every song you can see: your own, your teams', and the glo
 
 ## Artists
 
-**Artists** lists everyone credited as an artist on the songs you can see, with how many songs each; the search box narrows them. Names written differently (with or without capitals or accents) count as one artist. Choose one to see their songs: the **Songs** list shows **By** and the name, and the **×** beside it shows everyone again.
+**Artists** shows everyone credited as an artist on the songs you can see, as a grid: a round picture (their initials, for now), their name and how many songs they have; the search box narrows them. Names written differently (with or without capitals or accents) count as one artist. Choose one to see their songs: the **Songs** list shows **By** and the name, and the **×** beside it shows everyone again.
 
 ![The artists](../../assets/screenshots/en/artists.jpg)
 
@@ -48,6 +48,10 @@ A song has tabs:
 - **Links** - the song on Spotify, Apple Music and YouTube.
 
 Edits on **Song info** and **Editor** are saved together by **Save song**; files, audio and links are saved as you add them. **Discard changes** takes back what you haven't saved. The **⋯** menu can **Export as ChordPro** or **Delete song**.
+
+That's the song in **Edit** mode. In **Practice** its page is the chart itself, read with your chord settings, with its key, capo and tempo, and the song's recording or stems at the bottom (see [Stems](/library/#stems)); **Edit** takes you back to editing. In **Live** it opens full screen, as a set's songs do; **×** goes back to the library.
+
+![A song in Practice](../../assets/screenshots/en/practice-song.jpg)
 
 The **Suggested capo** is only a suggestion (for example, the capo used on the recording): it's used when an arrangement doesn't set its own.
 

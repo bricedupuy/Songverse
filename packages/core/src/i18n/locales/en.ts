@@ -278,15 +278,6 @@ const en = {
     artistCount_one: "{{count}} artist",
     artistCount_other: "{{count}} artists",
   },
-  breadcrumb: {
-    new: "New",
-    set: "Set",
-    songbook: "Songbook",
-    team: "Team",
-    catalog: "Catalog",
-    addASong: "Add a song",
-    song: "Song",
-  },
   admin: {
     title: "Admin",
     description: "Operational tools for global admins.",
@@ -962,6 +953,9 @@ const en = {
     label: "The song's YouTube video",
     caption: "The song's video, to play along with: its parts can't be separated.",
     failed: "YouTube couldn't be reached.",
+  },
+  practice: {
+    edit: "Edit",
   },
   mode: {
     label: "Mode",

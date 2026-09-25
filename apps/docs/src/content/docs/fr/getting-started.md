@@ -46,7 +46,7 @@ Le sélecteur en haut à droite de chaque page change le mode de SongVerse. Chaq
 - **Session** - pour apprendre et répéter, seul ou avec le groupe. Vert. Les pistes d'un chant s'y écoutent (voir [Pistes](/fr/library/#pistes)).
 - **Live** - sur scène. Toujours sombre, presque noir avec des accords bleus, et les chants d'une liste s'ouvrent en plein écran (voir [Jouer une liste en live](/fr/sets/#jouer-une-liste-en-live)).
 
-Édition et Session suivent le réglage clair ou sombre de votre appareil. Le bouton lune à côté du sélecteur les passe en sombre, le soleil les repasse en clair ; revenez au réglage de votre appareil et SongVerse suit de nouveau l'appareil. Le mode Live n'a pas ce bouton : il est toujours sombre.
+Édition et Session suivent le réglage clair ou sombre de votre appareil. Le bouton lune dans le menu de votre compte (votre nom, en bas de la barre latérale) les passe en sombre, le soleil les repasse en clair ; revenez au réglage de votre appareil et SongVerse suit de nouveau l'appareil. Le mode Live n'a pas ce bouton : il est toujours sombre.
 
 SongVerse retient le mode sur chaque appareil : la tablette sur votre pupitre peut rester en Live pendant que votre ordinateur reste en Édition.
 

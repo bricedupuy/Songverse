@@ -1,21 +1,22 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { Headphones, Mic, Moon, Pencil, Sun } from "lucide-react";
+import { Headphones, Mic, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { setMode, setTheme, useMode, type AppMode } from "#/lib/mode";
+import { setMode, useMode, type AppMode } from "#/lib/mode";
 import { cn } from "#/lib/utils";
 
 const SET_SONG = /^\/sets\/([^/]+)\/(songs|live)\/([^/]+)\/?$/;
+const LIBRARY_LIVE = /^\/library\/([^/]+)\/live\/?$/;
 
 /**
- * Edit / Practice / Live, at the top right of every page, and in Edit and
- * Practice a sun or moon for their light or dark theme (Live is always
- * dark). On a song of a set, switching to or from Live also moves between
+ * Edit / Practice / Live, at the top right of every page (the light or
+ * dark theme is in the account menu, at the bottom of the sidebar). On a
+ * song of a set, switching to or from Live also moves between
  * its page and its full-screen Live view.
  */
 export function ModeSwitch({ className }: { className?: string }) {
   const { t } = useTranslation();
-  const { mode, theme } = useMode();
+  const { mode } = useMode();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
 
@@ -27,9 +28,11 @@ export function ModeSwitch({ className }: { className?: string }) {
       const params = { setlistId: setSong[1]!, itemId: setSong[3]! };
       void navigate(next === "live" ? { to: "/sets/$setlistId/live/$itemId", params } : { to: "/sets/$setlistId/songs/$itemId", params });
     }
+    // A library song full screen, leaving Live: back to its page (which opens Live by itself).
+    const librarySong = LIBRARY_LIVE.exec(pathname);
+    if (librarySong && mode === "live") void navigate({ to: "/library/$songVersionId", params: { songVersionId: librarySong[1]! } });
   }
 
-  const themeLabel = theme === "dark" ? t("mode.lightTheme") : t("mode.darkTheme");
   return (
     <div className={cn("flex shrink-0 items-center gap-1", className)}>
       <div role="radiogroup" aria-label={t("mode.label")} className="flex rounded-lg border bg-muted p-0.5" data-testid="mode-switch">
@@ -43,17 +46,6 @@ export function ModeSwitch({ className }: { className?: string }) {
           <Mic />
         </ModeButton>
       </div>
-      {mode !== "live" ? (
-        <button
-          type="button"
-          className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground [&_svg]:size-4"
-          aria-label={themeLabel}
-          title={themeLabel}
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          {theme === "dark" ? <Sun /> : <Moon />}
-        </button>
-      ) : null}
     </div>
   );
 }

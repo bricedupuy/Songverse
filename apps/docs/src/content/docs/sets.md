@@ -54,6 +54,8 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 
 With a keyboard or a page-turner pedal: **Space** starts and pauses autoscroll, **↑** **↓** (or Page Up and Page Down) scroll, **←** **→** go to the previous or next song.
 
+On a phone or tablet, swipe left for the next song and right for the previous one.
+
 ### A song that isn't in the set
 
 When the leader calls a song that wasn't planned, use the search (the magnifying glass at the top): by its title, or by its number when it's called that way ("Hymn 42!": **HY 42**). In Live, a song you pick opens full screen too, with autoscroll and your text size. **Back** (**×**) returns to the set's song you were on.

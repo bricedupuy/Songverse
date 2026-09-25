@@ -54,6 +54,8 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 
 Au clavier ou avec un pédalier tourne-page : **Espace** lance et met en pause le défilement, **↑** **↓** (ou Page précédente et Page suivante) font défiler, **←** **→** passent au chant précédent ou suivant.
 
+Sur un téléphone ou une tablette, balayez vers la gauche pour le chant suivant et vers la droite pour le précédent.
+
 ### Un chant qui n'est pas dans la liste
 
 Quand le leader lance un chant imprévu, utilisez la recherche (la loupe en haut) : par son titre, ou par son numéro s'il est annoncé ainsi (« Cantique 42 ! » : **CA 42**). En Live, le chant choisi s'ouvre lui aussi en plein écran, avec le défilement et votre taille de texte. **Retour** (**×**) revient au chant de la liste où vous étiez.

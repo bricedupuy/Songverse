@@ -88,7 +88,8 @@ await step("profile name change still works from the dashboard", async () => {
 await step("team page shows members' roles", async () => {
   await page.goto(`${WEB}/teams/${team.id}`);
   await page.waitForLoadState("networkidle");
-  const row = page.locator("li", { hasText: member.email }).first();
+  // The team's list, not the sidebar's account button (which shows the email too).
+  const row = page.getByRole("main").locator("li", { hasText: member.email }).first();
   await row.getByText("Lead vocals").waitFor();
   await row.getByText("Sound engineer").waitFor();
 });

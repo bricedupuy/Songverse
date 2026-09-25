@@ -166,6 +166,8 @@ try {
       localStorage.setItem("songverse.mode", "practice");
       localStorage.removeItem("songverse.stems.expanded");
     });
+    // Practice: a library song is its chart (issue #67).
+    await shoot("practice-song", `/library/${grace.id}`, () => page.getByTestId("practice-song").locator("[data-chord]").first().waitFor());
     const dock = page.getByTestId("stem-player");
     await shoot("stems-compact", `/library/${grace.id}`, async () => {
       await dock.getByTestId("stem-chip").nth(3).waitFor();

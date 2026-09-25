@@ -67,6 +67,12 @@ const brightness = () =>
 const modeSwitch = () => page.getByRole("radiogroup", { name: "Mode" });
 const checked = (name) => modeSwitch().getByRole("radio", { name }).and(page.locator("[aria-checked=true]")).waitFor();
 const looks = {};
+// The light or dark theme: in the account menu at the bottom of the sidebar (issue #67).
+const theme = async (name) => {
+  await page.getByTestId("account-menu").click();
+  await page.getByRole("button", { name }).click();
+  await page.keyboard.press("Escape");
+};
 
 await step("Edit to start with, following the device (light), switch at the top right", async () => {
   await page.goto(`${WEB}/sets/${set.id}`);
@@ -79,15 +85,16 @@ await step("Edit to start with, following the device (light), switch at the top 
   looks.editLight = state;
 });
 
-await step("Edit's moon makes it dark, remembered; the sun follows the device again", async () => {
-  await page.getByRole("button", { name: "Dark theme" }).click();
+await step("the account menu's moon makes Edit dark, remembered; the sun follows the device again", async () => {
+  if (await page.locator("header").getByRole("button", { name: /Light theme|Dark theme/ }).count()) throw new Error("a theme button in the header");
+  await theme("Dark theme");
   let state = await html();
   if (!state.dark) throw new Error("not dark");
   looks.editDark = state;
   await page.reload();
   await page.waitForLoadState("networkidle");
   if (!(await html()).dark) throw new Error("light again after reloading");
-  await page.getByRole("button", { name: "Light theme" }).click();
+  await theme("Light theme");
   state = await html();
   const stored = await page.evaluate(() => localStorage.getItem("songverse.theme"));
   if (state.dark || stored !== null) throw new Error(`dark: ${state.dark}, stored theme: ${stored}`);
@@ -98,14 +105,14 @@ await step("Practice has its own look, light and dark, and a set's songs open as
   let state = await html();
   if (state.mode !== "practice" || state.dark) throw new Error(JSON.stringify(state));
   if (state.primary === looks.editLight.primary) throw new Error("the same colours as Edit");
-  await page.getByRole("button", { name: "Dark theme" }).click();
+  await theme("Dark theme");
   state = await html();
   if (!state.dark) throw new Error("not dark");
   looks.practiceDark = state;
   await page.getByTestId("set-song-row").getByRole("link", { name: `Opener ${stamp}` }).click();
   await page.waitForURL(`**/sets/${set.id}/songs/${firstItem.id}`);
   await page.getByText("My view").waitFor();
-  await page.getByRole("button", { name: "Light theme" }).click();
+  await theme("Light theme");
 });
 
 await step("Live on a set opens its first song full screen, dark, with no theme button", async () => {

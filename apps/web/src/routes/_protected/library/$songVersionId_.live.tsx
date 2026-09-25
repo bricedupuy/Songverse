@@ -24,7 +24,8 @@ export interface LoneSong {
 /**
  * A song on its own, full screen, in Live mode (issue #48): one the leader
  * calls that isn't in the set, pulled up with the search. `back` is where
- * it was pulled up from, which the × returns to. Offline, any song kept on
+ * it was pulled up from, which the × returns to (else the library; a
+ * library song opened in Live comes here too, issue #67). Offline, any song kept on
  * the device, on its own or in a kept set (issues #50, #52).
  */
 export const Route = createFileRoute("/_protected/library/$songVersionId_/live")({
@@ -111,7 +112,8 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         notes: [],
         exit: {
           label: t("live.back"),
-          go: () => (back ? router.history.push(back) : void router.navigate({ to: "/library/$songVersionId", params: { songVersionId: song.id } })),
+          // The song's own page would open Live again: the library instead.
+          go: () => (back ? router.history.push(back) : void router.navigate({ to: "/library" })),
         },
         previous: null,
         next: null,

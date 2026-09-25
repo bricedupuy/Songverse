@@ -7,9 +7,6 @@ let page;
 const step = stepper(() => page);
 const me = await user("Navigator");
 const navSet = await api(me, "POST", "/setlists", { name: `Nav set ${stamp}` });
-const navSong = await api(me, "POST", "/song-versions", { title: `Nav song ${stamp}`, language: "en", artists: ["Someone"] });
-const [navItem] = (await api(me, "POST", `/setlists/${navSet.id}/items`, { songVersionId: navSong.id })).items;
-const navBook = await api(me, "POST", "/songbooks", { name: `Nav book ${stamp}`, kind: "NUMBERED" });
 
 const browser = await chromium.launch();
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -42,23 +39,11 @@ await step("a set created in the app shows in the sidebar straight away", async 
   await page.getByRole("link", { name: `Fresh set ${stamp}` }).first().waitFor({ timeout: 10000 });
 });
 
-await step("the breadcrumb names where you are, not always Library", async () => {
-  const crumbs = async () => (await page.getByRole("navigation", { name: "breadcrumb" }).innerText()).split("\n").map((c) => c.trim()).filter(Boolean);
-  const expect = async (url, want) => {
-    await page.goto(`${WEB}${url}`);
-    await page.waitForLoadState("networkidle");
-    const got = await crumbs();
-    if (got.join(" > ") !== want.join(" > ")) throw new Error(`on ${url}: ${got.join(" > ")}`);
-  };
-  await expect(`/sets/${navSet.id}`, ["Sets", `Nav set ${stamp}`]);
-  await expect(`/sets/${navSet.id}/songs/${navItem.id}`, ["Sets", `Nav set ${stamp}`, `Nav song ${stamp}`]);
-  await expect(`/songbooks/${navBook.id}`, ["Songbooks", `Nav book ${stamp}`]);
-  await expect("/sets/new", ["Sets", "New"]);
-  await expect("/teams/new", ["Teams", "New"]);
-  // The set's crumb goes back to it.
-  await page.goto(`${WEB}/sets/${navSet.id}/songs/${navItem.id}`);
-  await page.getByRole("navigation", { name: "breadcrumb" }).getByRole("link", { name: `Nav set ${stamp}` }).click();
-  await page.waitForURL(`${WEB}/sets/${navSet.id}`);
+await step("no breadcrumb: the sidebar marks where you are", async () => {
+  await page.goto(`${WEB}/sets/${navSet.id}`);
+  await page.waitForLoadState("networkidle");
+  if (await page.getByRole("navigation", { name: "breadcrumb" }).count()) throw new Error("a breadcrumb");
+  await page.locator('[data-slot="sidebar-menu-sub-button"][data-active="true"]').getByText(`Nav set ${stamp}`).waitFor();
 });
 
 await step("Help opens the docs page about where you are, in your language", async () => {

@@ -14,7 +14,7 @@ La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, c
 
 ## Artistes
 
-**Artistes** liste toutes les personnes créditées comme artiste sur les chants que vous pouvez voir, avec le nombre de chants de chacune ; la recherche les filtre. Les noms écrits différemment (avec ou sans majuscules ou accents) comptent pour un seul artiste. Choisissez-en un pour voir ses chants : la liste **Chants** affiche **De** suivi du nom, et le **×** à côté montre de nouveau tout le monde.
+**Artistes** montre toutes les personnes créditées comme artiste sur les chants que vous pouvez voir, en grille : une image ronde (ses initiales, pour l'instant), son nom et son nombre de chants ; la recherche les filtre. Les noms écrits différemment (avec ou sans majuscules ou accents) comptent pour un seul artiste. Choisissez-en un pour voir ses chants : la liste **Chants** affiche **De** suivi du nom, et le **×** à côté montre de nouveau tout le monde.
 
 ![Les artistes](../../../assets/screenshots/fr/artists.jpg)
 
@@ -48,6 +48,10 @@ Un chant a des onglets :
 - **Liens** - le chant sur Spotify, Apple Music et YouTube.
 
 Les modifications des onglets **Infos** et **Éditeur** sont enregistrées ensemble par **Enregistrer le chant** ; les fichiers, l'audio et les liens sont enregistrés dès que vous les ajoutez. **Annuler les modifications** retire ce qui n'est pas enregistré. Le menu **⋯** permet d'**Exporter en ChordPro** ou de **Supprimer le chant**.
+
+Voilà le chant en mode **Édition**. En **Session**, sa page est la grille elle-même, lue avec vos réglages d'accords, avec sa tonalité, son capo et son tempo, et l'enregistrement ou les pistes du chant en bas (voir [Pistes](/fr/library/#pistes)) ; **Modifier** vous ramène à l'édition. En **Live**, il s'ouvre en plein écran, comme les chants d'une liste ; **×** revient à la bibliothèque.
+
+![Un chant en mode Session](../../../assets/screenshots/fr/practice-song.jpg)
 
 Le **Capo suggéré** n'est qu'une suggestion (par exemple le capo de l'enregistrement) : il s'applique quand un arrangement n'indique pas le sien.
 

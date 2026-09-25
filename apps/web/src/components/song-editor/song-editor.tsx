@@ -46,10 +46,6 @@ import type { SongNotice, SongTab } from "./song-tabs-list";
 // The editor (Tiptap and ProseMirror) loads when the Editor tab first opens, not with the song page.
 const StructuredEditor = lazy(() => import("./structured/structured-editor").then((module) => ({ default: module.StructuredEditor })));
 import { downloadBlob } from "#/lib/download";
-import { StemDock } from "#/components/stem-dock";
-import { YouTubeDock } from "#/components/youtube-dock";
-import { playableOf } from "#/lib/stem-engine";
-import { useMode } from "#/lib/mode";
 
 
 type EditProps = {
@@ -81,7 +77,6 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   const version = edit?.version ?? null;
   const canEdit = version ? version.canEdit : true;
   const { t, i18n } = useTranslation();
-  const { mode } = useMode();
   const navigate = useNavigate();
   const router = useRouter();
 
@@ -317,8 +312,6 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   }
 
   const attachments = edit?.attachments ?? [];
-  const stems = playableOf(attachments);
-  const youtubeId = edit?.version.identifiers.find((identifier) => identifier.type === "YOUTUBE")?.value ?? null;
   const audioCount = attachments.filter((a) => a.type === "AUDIO").length;
   const fileCount = attachments.length - audioCount;
   const shownRecording = mbChoice === undefined ? (edit?.recordingMatch ?? null) : mbChoice;
@@ -473,23 +466,6 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         </p>
       ) : null}
       {version && !canEdit ? <p className="text-sm text-muted-foreground">{t("songEditor.readOnly")}</p> : null}
-
-      {/* Practice: the song's stems, docked at the bottom (issue #64). */}
-      {edit && mode === "practice" && stems.length > 0 ? (
-        <StemDock
-          song={{
-            songVersionId: edit.version.id,
-            title: edit.version.title,
-            returnTo: `/library/${edit.version.id}`,
-            stems,
-            load: (file, onProgress) => apiClient.downloadAttachment(edit.version.id, file.id, onProgress),
-          }}
-        />
-      ) : null}
-      {/* …or, with no audio at all, its YouTube video (issue #66). */}
-      {edit && mode === "practice" && stems.length === 0 && youtubeId ? (
-        <YouTubeDock video={{ songVersionId: edit.version.id, videoId: youtubeId, title: edit.version.title, returnTo: `/library/${edit.version.id}` }} />
-      ) : null}
 
       <Tabs value={tab} onValueChange={(value) => onTabChange(value as SongTab)} className="gap-6">
         <TabsList className="h-auto w-full justify-start overflow-x-auto sm:w-fit">

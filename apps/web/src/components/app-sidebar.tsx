@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BookOpen,
   ChevronRight,
+  ChevronsUpDown,
   ClipboardCheck,
   Database,
   FileStack,
@@ -14,8 +15,10 @@ import {
   ListFilter,
   ListMusic,
   LogOut,
+  Moon,
   Music2,
   ShieldCheck,
+  Sun,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -27,6 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { docsUrl } from "#/lib/docs";
 import { forgetOffline } from "#/lib/offline-db";
+import { setTheme, useMode } from "#/lib/mode";
 import { forgetSmartLists, smartListSearch, useSmartLists } from "#/lib/smart-lists";
 import { setlistTitle } from "#/lib/setlists";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "#/components/ui/collapsible";
@@ -96,18 +100,28 @@ export function AppSidebar({
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="h-12">
-                  <Avatar className="size-6 shrink-0">
-                    {session.avatarUrl ? <AvatarImage src={sizedAvatarUrl(session.avatarUrl, 24)} alt="" /> : null}
-                    <AvatarFallback className="text-[10px]">{initials(session.displayName)}</AvatarFallback>
+                <SidebarMenuButton className="h-12" data-testid="account-menu">
+                  <Avatar className="size-8 shrink-0">
+                    {session.avatarUrl ? <AvatarImage src={sizedAvatarUrl(session.avatarUrl, 32)} alt="" /> : null}
+                    <AvatarFallback className="text-xs">{initials(session.displayName)}</AvatarFallback>
                   </Avatar>
-                  <SidebarLabel className="flex-1 truncate text-left">{session.displayName}</SidebarLabel>
+                  <SidebarLabel className="grid min-w-0 flex-1 text-left leading-tight">
+                    <span className="truncate font-semibold">{session.displayName}</span>
+                    <span className="truncate text-xs text-muted-foreground">{session.email}</span>
+                  </SidebarLabel>
+                  <SidebarLabel>
+                    <ChevronsUpDown className="size-4 text-muted-foreground" />
+                  </SidebarLabel>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top" className="w-56">
-                <DropdownMenuLabel>
-                  <p className="font-medium">{session.displayName}</p>
-                  <p className="text-xs font-normal text-muted-foreground">{session.email}</p>
+              <DropdownMenuContent align="end" side="top" className="w-60">
+                <DropdownMenuLabel className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{session.displayName}</span>
+                    <span className="block truncate text-xs font-normal text-muted-foreground">{session.email}</span>
+                  </span>
+                  {/* Edit and Practice's light or dark theme; Live is always dark (issue #67). */}
+                  <ThemeToggle />
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -157,6 +171,25 @@ export function AppSidebar({
 }
 
 const SIDEBAR_SET_LIMIT = 8;
+
+/** A sun or a moon: Edit and Practice's theme, the other way. Not in Live, which is always dark. */
+function ThemeToggle() {
+  const { t } = useTranslation();
+  const { mode, theme } = useMode();
+  if (mode === "live") return null;
+  const label = theme === "dark" ? t("mode.lightTheme") : t("mode.darkTheme");
+  return (
+    <button
+      type="button"
+      className="flex size-8 shrink-0 items-center justify-center rounded-md border text-muted-foreground hover:bg-accent hover:text-accent-foreground [&_svg]:size-4"
+      aria-label={label}
+      title={label}
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+    >
+      {theme === "dark" ? <Sun /> : <Moon />}
+    </button>
+  );
+}
 
 /** Hides its children in icon-rail (collapsed, non-mobile) mode - same rule SidebarGroupLabel follows. */
 function SidebarLabel({ children, className }: { children: ReactNode; className?: string }) {

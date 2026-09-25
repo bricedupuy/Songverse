@@ -46,7 +46,7 @@ The switch at the top right of every page changes SongVerse's mode. Each mode ha
 - **Practice** - to learn and rehearse, alone or with the band. Green. A song's stems play here (see [Stems](/library/#stems)).
 - **Live** - on stage. Always dark, near black with blue chords, and a set's songs open full screen (see [Playing a set live](/sets/#playing-a-set-live)).
 
-Edit and Practice follow your device's light or dark setting. The moon button next to the switch makes them dark, and the sun makes them light again; choose your device's own setting and SongVerse follows the device again. Live has no such button: it's always dark.
+Edit and Practice follow your device's light or dark setting. The moon button in your account menu (your name, at the bottom of the sidebar) makes them dark, and the sun makes them light again; choose your device's own setting and SongVerse follows the device again. Live has no such button: it's always dark.
 
 SongVerse remembers the mode on each device, so the tablet on your music stand can stay Live while your computer stays in Edit.
 
