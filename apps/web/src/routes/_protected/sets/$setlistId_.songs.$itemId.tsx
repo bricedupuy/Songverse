@@ -1,15 +1,17 @@
-import { ApiError, keptSetSong, onlineOrKept, transposeKey, type SetlistSongView } from "@songverse/core";
+import { ApiError, keptFile, keptSetSong, keptSongCopy, onlineOrKept, transposeKey, type Attachment, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { PlayerChart } from "#/components/player-chart";
+import { StemPlayer, stemsOf } from "#/components/stem-player";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { apiClient } from "#/lib/api-client";
+import { useMode } from "#/lib/mode";
 import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setlistTitle, transposeLabel } from "#/lib/setlists";
 
@@ -98,6 +100,8 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
           </Button>
         ) : null}
       </div>
+
+      {song ? <SetSongStems songVersionId={song.id} /> : null}
 
       {song ? (
         <Card>
@@ -212,5 +216,45 @@ function MyNotesCard({ view }: { view: SetlistSongView }) {
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Practice: the song's stems (issue #64), for someone who can open the song
+ * itself - from the API, or from the device's copy when offline.
+ */
+function SetSongStems({ songVersionId }: { songVersionId: string }) {
+  const { mode } = useMode();
+  const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean }>({ attachments: [], offline: false });
+
+  useEffect(() => {
+    if (mode !== "practice") return;
+    let cancelled = false;
+    apiClient
+      .listAttachments(songVersionId)
+      .then((attachments) => ({ attachments, offline: false }))
+      .catch(async () => ({ attachments: (await keptSongCopy(deviceStorage(), songVersionId))?.attachments ?? [], offline: true }))
+      .then((next) => {
+        if (!cancelled) setFiles(next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, songVersionId]);
+
+  const stems = stemsOf(files.attachments);
+  if (mode !== "practice" || stems.length === 0) return null;
+  return (
+    <StemPlayer
+      key={stems.map((stem) => `${stem.id}:${stem.stemPart}`).join()}
+      stems={stems}
+      load={async (file) => {
+        if (!files.offline) return apiClient.downloadAttachment(songVersionId, file.id);
+        const blob = await keptFile<Blob>(deviceStorage(), file.id);
+        if (!blob) throw new Error("not kept");
+        return blob;
+      }}
+    />
   );
 }

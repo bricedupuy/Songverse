@@ -30,7 +30,7 @@ Un chant a des onglets :
 - **Éditeur** - la grille elle-même. Voir [L'éditeur de chants](/fr/song-editor/).
 - **Arrangements** - la façon dont vous et vos équipes le jouez. Voir [Arrangements](/fr/arrangements/).
 - **Fichiers** - partitions, fichier d'origine de la grille, images (25 Mo maximum chacun).
-- **Audio** - des enregistrements pour apprendre ou répéter (MP3, M4A, WAV, OGG… 50 Mo maximum chacun).
+- **Audio** - des enregistrements pour apprendre ou répéter (MP3, Opus, M4A, WAV, OGG… 50 Mo maximum chacun), et les pistes du chant (voir plus bas).
 - **Liens** - le chant sur Spotify, Apple Music et YouTube.
 
 Les modifications des onglets **Infos** et **Éditeur** sont enregistrées ensemble par **Enregistrer le chant** ; les fichiers, l'audio et les liens sont enregistrés dès que vous les ajoutez. **Annuler les modifications** retire ce qui n'est pas enregistré. Le menu **⋯** permet d'**Exporter en ChordPro** ou de **Supprimer le chant**.
@@ -38,6 +38,16 @@ Les modifications des onglets **Infos** et **Éditeur** sont enregistrées ensem
 Le **Capo suggéré** n'est qu'une suggestion (par exemple le capo de l'enregistrement) : il s'applique quand un arrangement n'indique pas le sien.
 
 Si un chant n'est pas à vous (un chant global, ou un chant d'équipe dont vous n'êtes pas administrateur), vous pouvez le lire et l'arranger, mais pas le modifier.
+
+## Pistes
+
+Les pistes (ou stems) sont les parties du chant enregistrées séparément : voix, batterie, basse, etc. Importez-les dans l'onglet **Audio**. Un fichier nommé d'après sa partie (« Voix.mp3 », « 03 drums.opus », « Basse.mp3 ») devient cette piste tout seul. Pour les autres fichiers, choisissez la partie dans la liste **Piste** sous le fichier : **Voix**, **Chœurs**, **Batterie**, **Basse**, **Guitare**, **Piano et claviers**, **Autres** ou **Clic et repères**, ou **Pas une piste** pour un enregistrement complet.
+
+En mode **Session** (voir [Édition, Session et Live](/fr/getting-started/#édition-session-et-live)), un chant qui a des pistes affiche le lecteur **Pistes** en haut de sa page, et sur sa page dans une liste. **Lecture** joue toutes les parties ensemble, synchronisées. Chaque partie a un bouton pour la couper, pour jouer avec le reste, et un bouton solo, pour n'entendre qu'elle. Faites glisser la barre de position pour vous déplacer. Les fichiers se chargent la première fois que vous appuyez sur **Lecture**.
+
+![Le lecteur Pistes, la voix coupée](../../../assets/screenshots/fr/stems.jpg)
+
+Les pistes gardées sur votre appareil pour le hors ligne (**Avec l'audio**, voir [Hors ligne](/fr/offline/)) se lisent aussi hors ligne.
 
 ## Proposer au catalogue global
 

@@ -165,7 +165,7 @@ export class OfflineService {
     // Versions in one query; full copies only for what the device doesn't have.
     const current = await this.prisma.client.songVersion.findMany({
       where: { AND: [await this.access.songsVisibleTo(user), { id: { in: [...wanted] } }] },
-      select: { id: true, updatedAt: true, attachments: { select: { id: true, createdAt: true } } },
+      select: { id: true, updatedAt: true, attachments: { select: { id: true, createdAt: true, stemPart: true } } },
     });
     const knownSongs = new Map((dto.knownSongs ?? []).map((song) => [song.id, song.version]));
     const songs: { id: string; version: string; audio: boolean; copy?: Awaited<ReturnType<OfflineService["songCopy"]>> }[] = [];
@@ -192,8 +192,8 @@ export class OfflineService {
   }
 }
 
-/** A song's version: its last change and its files (a file added or removed changes it too). */
-function songVersion(updatedAt: Date | string, attachments: { id: string; createdAt: Date | string }[]): string {
-  const files = attachments.map((file) => `${file.id}@${new Date(file.createdAt).toISOString()}`).sort();
+/** A song's version: its last change and its files (a file added or removed, or a stem's part changed, changes it too). */
+function songVersion(updatedAt: Date | string, attachments: { id: string; createdAt: Date | string; stemPart: string | null }[]): string {
+  const files = attachments.map((file) => `${file.id}@${new Date(file.createdAt).toISOString()}${file.stemPart ? `:${file.stemPart}` : ""}`).sort();
   return hash({ updatedAt: new Date(updatedAt).toISOString(), files });
 }

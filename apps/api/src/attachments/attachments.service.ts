@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
+import type { StemPart } from "@songverse/core";
 import { ImageService, type ProcessedImage } from "../images/image.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageQuotaService } from "../storage/storage-quota.service";
@@ -28,12 +29,21 @@ export class AttachmentsService {
     filename: string,
     mimeType: string,
     body: Buffer,
+    stemPart: StemPart | null = null,
   ) {
+    if (stemPart && type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
     await this.quota.assertCanStore(uploaderId, body.length);
     const { hash, sizeBytes } = await this.storage.put(body, mimeType);
     return this.prisma.client.attachment.create({
-      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes, uploadedByUserId: uploaderId },
+      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes, uploadedByUserId: uploaderId, stemPart },
     });
+  }
+
+  /** Marks an audio file as one part of the song (a stem), or as none. */
+  async setStemPart(songVersionId: string, attachmentId: string, stemPart: StemPart | null) {
+    const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
+    if (stemPart && attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
+    return this.prisma.client.attachment.update({ where: { id: attachment.id }, data: { stemPart } });
   }
 
   async download(songVersionId: string, attachmentId: string): Promise<{ attachment: { filename: string; mimeType: string }; body: Buffer }> {

@@ -30,7 +30,7 @@ A song has tabs:
 - **Editor** - the chart itself. See [The song editor](/song-editor/).
 - **Arrangements** - how you and your teams play it. See [Arrangements](/arrangements/).
 - **Files** - sheet music, the original chart file, images (up to 25 MB each).
-- **Audio** - recordings to learn or rehearse with (MP3, M4A, WAV, OGG… up to 50 MB each).
+- **Audio** - recordings to learn or rehearse with (MP3, Opus, M4A, WAV, OGG… up to 50 MB each), and the song's stems (see below).
 - **Links** - the song on Spotify, Apple Music and YouTube.
 
 Edits on **Song info** and **Editor** are saved together by **Save song**; files, audio and links are saved as you add them. **Discard changes** takes back what you haven't saved. The **⋯** menu can **Export as ChordPro** or **Delete song**.
@@ -38,6 +38,16 @@ Edits on **Song info** and **Editor** are saved together by **Save song**; files
 The **Suggested capo** is only a suggestion (for example, the capo used on the recording): it's used when an arrangement doesn't set its own.
 
 If a song isn't yours to change (a global song, or a team song when you're not one of the team's admins), you can read it and arrange it, but not edit it.
+
+## Stems
+
+Stems are the song's parts as separate recordings: vocals, drums, bass and so on. Upload them on the **Audio** tab. A file named after its part ("Vocals.mp3", "03 drums.opus", "Basse.mp3") becomes that stem on its own. For any other file, choose the part in the **Stem** list under it: **Vocals**, **Backing vocals**, **Drums**, **Bass**, **Guitar**, **Piano and keys**, **Other** or **Click and cues**, or **Not a stem** for a full recording.
+
+In **Practice** mode (see [Edit, Practice and Live](/getting-started/#edit-practice-and-live)), a song with stems shows the **Stems** player at the top of its page, and on its page in a set. **Play** plays every part together, in time. Each part has a mute button, to play along with the rest, and a solo button, to hear only that part. Drag the position bar to jump. The files load the first time you press **Play**.
+
+![The Stems player, with the vocals muted](../../assets/screenshots/en/stems.jpg)
+
+Stems kept on your device for offline use (**Include audio**, see [Working offline](/offline/)) play offline too.
 
 ## Submitting to the global catalogue
 

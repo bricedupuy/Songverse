@@ -4,10 +4,11 @@ import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SongChart } from "#/components/song-chart";
+import { StemPlayer, stemsOf } from "#/components/stem-player";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { formatBytes } from "#/lib/format-bytes";
-import { setMode } from "#/lib/mode";
+import { setMode, useMode } from "#/lib/mode";
 import { keysOffline } from "#/lib/offline-db";
 import { deviceStorage } from "#/lib/offline-data";
 
@@ -37,6 +38,7 @@ export async function loadOfflineSong(songVersionId: string): Promise<OfflineSon
  */
 export function OfflineSongPage({ song }: { song: OfflineSong }) {
   const { t } = useTranslation();
+  const { mode } = useMode();
   const [keptFiles, setKeptFiles] = useState<Set<string>>(new Set());
   const chart = useMemo(
     () =>
@@ -51,6 +53,8 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
   useEffect(() => {
     void keysOffline("files").then((keys) => setKeptFiles(new Set(keys)));
   }, [song.songVersionId]);
+
+  const stems = stemsOf(song.attachments).filter((file) => keptFiles.has(file.id));
 
   async function open(file: Attachment) {
     const blob = await keptFile<Blob>(deviceStorage(), file.id);
@@ -77,6 +81,19 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
           </Link>
         </Button>
       </div>
+
+      {/* Practice: the stems kept on the device (with "Include audio"). */}
+      {mode === "practice" && stems.length > 0 ? (
+        <StemPlayer
+          key={stems.map((stem) => stem.id).join()}
+          stems={stems}
+          load={async (file) => {
+            const blob = await keptFile<Blob>(deviceStorage(), file.id);
+            if (!blob) throw new Error("not kept");
+            return blob;
+          }}
+        />
+      ) : null}
 
       <Card>
         <CardContent>

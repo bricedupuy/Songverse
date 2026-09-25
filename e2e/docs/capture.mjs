@@ -1,13 +1,14 @@
 // Demo content and the docs' screenshots, in each language (run by
 // screenshots.mjs, which starts a fresh copy of the app for it). The songs
 // are in the public domain.
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { WEB, api, signIn, sql, user } from "../lib/harness.mjs";
+import { API, WEB, api, signIn, sql, user } from "../lib/harness.mjs";
 
 const OUT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../apps/docs/src/assets/screenshots");
+const STEMS = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures/stems");
 
 const SONGS = [
   {
@@ -109,6 +110,15 @@ try {
     arrangement = await api(me, "PATCH", `/arrangements/${arrangement.id}`, { document, updatedAt: arrangement.updatedAt });
     arrangement = await api(me, "PATCH", `/arrangements/${arrangement.id}`, { isTeamDefault: true, updatedAt: arrangement.updatedAt });
 
+    // Its stems, for the Practice player.
+    for (const [file, stemPart] of [["Morning Light - Vocals.opus", "VOCALS"], ["03 drums.mp3", "DRUMS"], ["Morning Light - Bass.mp3", "BASS"], ["track4.opus", "KEYS"]]) {
+      const form = new FormData();
+      form.append("type", "AUDIO");
+      form.append("stemPart", stemPart);
+      form.append("file", new Blob([readFileSync(path.join(STEMS, file))], { type: "application/octet-stream" }), file);
+      await fetch(`${API}/song-versions/${grace.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form });
+    }
+
     const set = await api(me, "POST", "/setlists", { name: text.set, eventDate: nextSunday(), teamId: team.id });
     for (const { id } of songs) await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: id });
     const items = (await api(me, "GET", `/setlists/${set.id}`)).items;
@@ -150,6 +160,12 @@ try {
     await shoot("set-song", `/sets/${set.id}/songs/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor(), { fullPage: true });
     // Live mode (it's remembered, so back to Edit for the rest).
     await shoot("live", `/sets/${set.id}/live/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
+    // Practice: the song's stems, one muted.
+    await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
+    await shoot("stems", `/library/${grace.id}`, async () => {
+      await page.getByTestId("stem-track").nth(3).waitFor();
+      await page.getByTestId("stem-track").first().getByRole("button").first().click();
+    }, { element: page.getByTestId("stem-player") });
     await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
     await shoot("songbook", `/songbooks/${songbook.id}`, null, { fullPage: true });
     await shoot("team", `/teams/${team.id}`);

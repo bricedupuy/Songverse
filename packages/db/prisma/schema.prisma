@@ -170,6 +170,20 @@ enum AttachmentType {
   OTHER
 }
 
+// Which part of the song an AUDIO attachment is (issue #64), for the stem
+// player; null for a full mix. The order the player lists them in is
+// STEM_PARTS in @songverse/core.
+enum StemPart {
+  VOCALS
+  BACKING_VOCALS
+  DRUMS
+  BASS
+  GUITAR
+  KEYS
+  OTHER
+  CLICK
+}
+
 enum DisplayMode {
   SINGER
   GUITAR
@@ -1111,6 +1125,7 @@ model Attachment {
   mimeType         String
   storageKey       String // S3 object key
   sizeBytes        Int?
+  stemPart         StemPart?
   // Who the upload counts against for storage limits. Null for files
   // uploaded before this was tracked into a team-owned song, or whose
   // uploader has since been deleted.

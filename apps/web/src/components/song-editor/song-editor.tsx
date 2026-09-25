@@ -46,6 +46,8 @@ import type { SongNotice, SongTab } from "./song-tabs-list";
 // The editor (Tiptap and ProseMirror) loads when the Editor tab first opens, not with the song page.
 const StructuredEditor = lazy(() => import("./structured/structured-editor").then((module) => ({ default: module.StructuredEditor })));
 import { downloadBlob } from "#/lib/download";
+import { StemPlayer, stemsOf } from "#/components/stem-player";
+import { useMode } from "#/lib/mode";
 
 
 type EditProps = {
@@ -77,6 +79,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   const version = edit?.version ?? null;
   const canEdit = version ? version.canEdit : true;
   const { t, i18n } = useTranslation();
+  const { mode } = useMode();
   const navigate = useNavigate();
   const router = useRouter();
 
@@ -312,6 +315,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   }
 
   const attachments = edit?.attachments ?? [];
+  const stems = stemsOf(attachments);
   const audioCount = attachments.filter((a) => a.type === "AUDIO").length;
   const fileCount = attachments.length - audioCount;
   const shownRecording = mbChoice === undefined ? (edit?.recordingMatch ?? null) : mbChoice;
@@ -466,6 +470,15 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         </p>
       ) : null}
       {version && !canEdit ? <p className="text-sm text-muted-foreground">{t("songEditor.readOnly")}</p> : null}
+
+      {/* Practice: the song's stems, to play along with (issue #64). */}
+      {edit && mode === "practice" && stems.length > 0 ? (
+        <StemPlayer
+          key={stems.map((stem) => `${stem.id}:${stem.stemPart}`).join()}
+          stems={stems}
+          load={(file) => apiClient.downloadAttachment(edit.version.id, file.id)}
+        />
+      ) : null}
 
       <Tabs value={tab} onValueChange={(value) => onTabChange(value as SongTab)} className="gap-6">
         <TabsList className="h-auto w-full justify-start overflow-x-auto sm:w-fit">

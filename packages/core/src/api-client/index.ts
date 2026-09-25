@@ -11,6 +11,7 @@ import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
+import type { StemPart } from "../stems/index.js";
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -559,6 +560,8 @@ export interface Attachment {
   filename: string;
   mimeType: string;
   sizeBytes: number | null;
+  /** For audio: the part of the song it is (a stem), or null for a full mix. */
+  stemPart: StemPart | null;
   createdAt: string;
 }
 
@@ -1062,12 +1065,15 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     getSongVersionSongbooks: (songVersionId: string) =>
       request<SongVersionSongbookMembership[]>(`/song-versions/${songVersionId}/songbooks`),
     listAttachments: (songVersionId: string) => request<Attachment[]>(`/song-versions/${songVersionId}/attachments`),
-    uploadAttachment: (songVersionId: string, type: AttachmentType, file: File) => {
+    uploadAttachment: (songVersionId: string, type: AttachmentType, file: File, stemPart?: StemPart | null) => {
       const form = new FormData();
       form.append("type", type);
+      if (stemPart) form.append("stemPart", stemPart);
       form.append("file", file);
       return request<Attachment>(`/song-versions/${songVersionId}/attachments`, { method: "POST", body: form });
     },
+    setAttachmentStemPart: (songVersionId: string, attachmentId: string, stemPart: StemPart | null) =>
+      request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify({ stemPart }) }),
     deleteAttachment: (songVersionId: string, attachmentId: string) =>
       request<void>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "DELETE" }),
     downloadAttachment: async (songVersionId: string, attachmentId: string): Promise<Blob> => {

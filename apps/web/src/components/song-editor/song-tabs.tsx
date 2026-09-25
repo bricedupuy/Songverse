@@ -1,9 +1,13 @@
 import {
+  isAudioFilename,
+  STEM_PARTS,
+  stemPartFromFilename,
   type Attachment,
   type AttachmentType,
   type MusicBrainzWorkMatch,
   type SongVersionDetail,
   type StorageUsage,
+  type StemPart,
   type StreamingLinkType,
 } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
@@ -21,6 +25,8 @@ import { attachmentTypeFor } from "./attachment-types";
 import { downloadBlob } from "#/lib/download";
 import { formatBytes } from "#/lib/format-bytes";
 import { NativeSelect } from "#/components/ui/native-select";
+import { setMode, useMode } from "#/lib/mode";
+import { stemsOf } from "#/components/stem-player";
 
 export function SaveFirst() {
   const { t } = useTranslation();
@@ -85,6 +91,7 @@ export function AttachmentsTab({
 }) {
   const { t } = useTranslation();
   const router = useRouter();
+  const { mode } = useMode();
   const inputRef = useRef<HTMLInputElement>(null);
   const [type, setType] = useState<AttachmentType | "AUTO">("AUTO");
   const [dragging, setDragging] = useState(false);
@@ -106,13 +113,16 @@ export function AttachmentsTab({
     setError(null);
     for (const file of files) {
       const fileType = kind === "audio" ? "AUDIO" : type === "AUTO" ? attachmentTypeFor(file) : type;
-      if (kind === "audio" && !file.type.startsWith("audio/")) {
+      // Some browsers give an .opus file no type: its name says it's audio.
+      if (kind === "audio" && !file.type.startsWith("audio/") && !isAudioFilename(file.name)) {
         setError(t("songEditor.notAudio", { name: file.name }));
         continue;
       }
       setUploading(file.name);
       try {
-        await apiClient.uploadAttachment(songVersionId, fileType === "AUDIO" && kind === "files" ? "OTHER" : fileType, file);
+        // "Song - Vocals.mp3" is the vocals stem (issue #64); the part can be changed below the file.
+        const stemPart = kind === "audio" ? stemPartFromFilename(file.name) : null;
+        await apiClient.uploadAttachment(songVersionId, fileType === "AUDIO" && kind === "files" ? "OTHER" : fileType, file, stemPart);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
@@ -127,6 +137,19 @@ export function AttachmentsTab({
     try {
       const blob = await apiClient.downloadAttachment(songVersionId, attachment.id);
       downloadBlob(blob, attachment.filename);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function setStemPart(attachment: Attachment, stemPart: StemPart | null) {
+    setBusyId(attachment.id);
+    setError(null);
+    try {
+      await apiClient.setAttachmentStemPart(songVersionId, attachment.id, stemPart);
+      await router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -198,11 +221,38 @@ export function AttachmentsTab({
                       ) : null}
                     </span>
                   </div>
+                  {kind === "audio" && canEdit ? (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {t("stems.part")}
+                      <NativeSelect
+                        compact
+                        value={attachment.stemPart ?? ""}
+                        disabled={busyId !== null}
+                        aria-label={t("stems.partOf", { name: attachment.filename })}
+                        onChange={(event) => void setStemPart(attachment, (event.target.value || null) as StemPart | null)}
+                      >
+                        <option value="">{t("stems.notAStem")}</option>
+                        {STEM_PARTS.map((part) => (
+                          <option key={part} value={part}>
+                            {t(`stems.parts.${part}`)}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    </label>
+                  ) : kind === "audio" && attachment.stemPart ? (
+                    <span className="self-start rounded-md bg-muted px-2 py-1 text-xs font-medium">{t(`stems.parts.${attachment.stemPart}`)}</span>
+                  ) : null}
                   {kind === "audio" ? <AudioPlayer songVersionId={songVersionId} attachment={attachment} /> : null}
                 </li>
               ))}
             </ul>
           )}
+          {kind === "audio" && canEdit ? <p className="text-xs text-muted-foreground">{t("stems.detectHint")}</p> : null}
+          {kind === "audio" && mode !== "practice" && stemsOf(attachments).length > 0 ? (
+            <Button type="button" variant="link" className="h-auto self-start p-0" onClick={() => setMode("practice")}>
+              {t("stems.practiceHint")}
+            </Button>
+          ) : null}
           {error ? (
             <p className="text-sm text-destructive" role="alert">
               {error}
@@ -242,7 +292,7 @@ export function AttachmentsTab({
                 ref={inputRef}
                 type="file"
                 multiple
-                accept={kind === "audio" ? "audio/*" : undefined}
+                accept={kind === "audio" ? "audio/*,.opus,.ogg,.mp3,.m4a,.wav,.flac" : undefined}
                 className="sr-only"
                 aria-label={t(kind === "audio" ? "songEditor.uploadAudio" : "songEditor.uploadFiles")}
                 data-testid={`${kind}-input`}

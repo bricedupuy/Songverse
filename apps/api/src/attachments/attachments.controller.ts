@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   PayloadTooLargeException,
   Post,
   Query,
@@ -27,7 +28,8 @@ import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { AttachmentsService } from "./attachments.service";
 import { AttachmentResponseDto } from "./dto/attachment-response.dto";
-import { UploadAttachmentDto } from "./dto/upload-attachment.dto";
+import { UpdateAttachmentDto, UploadAttachmentDto } from "./dto/upload-attachment.dto";
+import { sniffAudioType } from "./sniff-audio";
 
 const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
 /** Recordings run bigger than sheets and charts. */
@@ -66,12 +68,27 @@ export class AttachmentsController {
   ): ReturnType<AttachmentsService["upload"]> {
     if (!user) throw new UnauthorizedException();
     if (!file) throw new BadRequestException("A file is required");
+    let mimeType = file.mimetype;
     if (dto.type === "AUDIO") {
-      if (!file.mimetype.startsWith("audio/")) throw new UnsupportedMediaTypeException("That isn't an audio file");
+      // Browsers give some audio files (.opus, say) no type or a generic one: then the bytes decide.
+      if (!mimeType.startsWith("audio/")) mimeType = sniffAudioType(file.buffer) ?? mimeType;
+      if (!mimeType.startsWith("audio/")) throw new UnsupportedMediaTypeException("That isn't an audio file");
     } else if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
       throw new PayloadTooLargeException("Files can be up to 25 MB (audio up to 50 MB)");
     }
-    return this.attachmentsService.upload(user.id, songVersionId, dto.type, file.originalname, file.mimetype, file.buffer);
+    return this.attachmentsService.upload(user.id, songVersionId, dto.type, file.originalname, mimeType, file.buffer, dto.stemPart ?? null);
+  }
+
+  /** Which part of the song an audio file is, for the stem player (issue #64). */
+  @Patch(":attachmentId")
+  @UseGuards(SongVersionOwnerGuard)
+  @ApiOkResponse({ type: AttachmentResponseDto })
+  update(
+    @Param("songVersionId") songVersionId: string,
+    @Param("attachmentId") attachmentId: string,
+    @Body() dto: UpdateAttachmentDto,
+  ): ReturnType<AttachmentsService["setStemPart"]> {
+    return this.attachmentsService.setStemPart(songVersionId, attachmentId, dto.stemPart);
   }
 
   @Get(":attachmentId/download")
