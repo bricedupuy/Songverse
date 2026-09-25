@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
-import type { StemPart } from "@songverse/core";
+import { parseKey, type StemPart } from "@songverse/core";
+import type { UpdateAttachmentDto } from "./dto/upload-attachment.dto";
 import { ImageService, type ProcessedImage } from "../images/image.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageQuotaService } from "../storage/storage-quota.service";
@@ -39,11 +40,25 @@ export class AttachmentsService {
     });
   }
 
-  /** Marks an audio file as one part of the song (a stem), or as none. */
-  async setStemPart(songVersionId: string, attachmentId: string, stemPart: StemPart | null) {
+  /**
+   * An audio file's part of the song (a stem, #64) and its recording's key
+   * and tempo (#65). What's left out stays; null clears.
+   */
+  async update(songVersionId: string, attachmentId: string, change: UpdateAttachmentDto) {
     const attachment = await this.findOwnedAttachment(songVersionId, attachmentId);
-    if (stemPart && attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
-    return this.prisma.client.attachment.update({ where: { id: attachment.id }, data: { stemPart } });
+    const data: { stemPart?: StemPart | null; recordingKey?: string | null; recordingTempo?: number | null } = {};
+    if (change.stemPart !== undefined) data.stemPart = change.stemPart;
+    if (change.recordingKey !== undefined) {
+      // Kept as written ("Gb" stays "Gb"), once it reads as a key.
+      const written = change.recordingKey?.trim() ?? "";
+      if (written && !parseKey(written)) throw new BadRequestException(`"${written}" isn't a key SongVerse can read`);
+      data.recordingKey = written || null;
+    }
+    if (change.recordingTempo !== undefined) data.recordingTempo = change.recordingTempo;
+    if (attachment.type !== "AUDIO" && Object.values(data).some((value) => value !== null)) {
+      throw new BadRequestException("Only audio files can be stems or have a recording's key and tempo");
+    }
+    return this.prisma.client.attachment.update({ where: { id: attachment.id }, data });
   }
 
   /** One of the song's files, or 404. */

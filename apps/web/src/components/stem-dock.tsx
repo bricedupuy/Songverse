@@ -89,6 +89,9 @@ export function StemDock({ song }: { song: StemSong }) {
   const position = active ? engine.position : 0;
   const duration = active ? engine.duration : 0;
   const [expanded, setExpanded] = useState(false);
+  // What the stems were recorded in (#65), when it isn't the song's; they share it.
+  const recording = song.stems[0];
+  const recorded = [recording?.recordingKey, recording?.recordingTempo ? `${recording.recordingTempo} BPM` : null].filter(Boolean).join(" · ");
 
   useEffect(() => {
     try {
@@ -193,6 +196,11 @@ export function StemDock({ song }: { song: StemSong }) {
             </Button>
           </div>
           {status}
+          {recorded ? (
+            <p className="text-xs text-muted-foreground" data-testid="stem-recorded">
+              {t("stems.recordedIn", { details: recorded })}
+            </p>
+          ) : null}
           <ul className="-mx-1.5 flex max-h-[45vh] flex-col divide-y overflow-y-auto px-1.5">
             {tracks.map((track) => {
               const name = nameOf(track);

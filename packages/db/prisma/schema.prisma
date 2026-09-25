@@ -1126,6 +1126,10 @@ model Attachment {
   storageKey       String // S3 object key
   sizeBytes        Int?
   stemPart         StemPart?
+  // For audio: the recording's own key ("G", "Bbm", as written) and tempo
+  // (BPM), when they aren't the song's - null means the song's (issue #65).
+  recordingKey     String?
+  recordingTempo   Float?
   // Who the upload counts against for storage limits. Null for files
   // uploaded before this was tracked into a team-owned song, or whose
   // uploader has since been deleted.

@@ -85,7 +85,7 @@ export class AttachmentsController {
     return this.attachmentsService.upload(user.id, songVersionId, dto.type, file.originalname, mimeType, file.buffer, dto.stemPart ?? null);
   }
 
-  /** Which part of the song an audio file is, for the stem player (issue #64). */
+  /** An audio file's part of the song, for the stem player (#64), and its recording's key and tempo (#65). */
   @Patch(":attachmentId")
   @UseGuards(SongVersionOwnerGuard)
   @ApiOkResponse({ type: AttachmentResponseDto })
@@ -93,8 +93,8 @@ export class AttachmentsController {
     @Param("songVersionId") songVersionId: string,
     @Param("attachmentId") attachmentId: string,
     @Body() dto: UpdateAttachmentDto,
-  ): ReturnType<AttachmentsService["setStemPart"]> {
-    return this.attachmentsService.setStemPart(songVersionId, attachmentId, dto.stemPart);
+  ): ReturnType<AttachmentsService["update"]> {
+    return this.attachmentsService.update(songVersionId, attachmentId, dto);
   }
 
   /** Streamed, with byte ranges (issue #33). */

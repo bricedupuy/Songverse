@@ -562,6 +562,9 @@ export interface Attachment {
   sizeBytes: number | null;
   /** For audio: the part of the song it is (a stem), or null for a full mix. */
   stemPart: StemPart | null;
+  /** For audio: the recording's key and tempo (BPM) when they aren't the song's, else null. */
+  recordingKey: string | null;
+  recordingTempo: number | null;
   createdAt: string;
 }
 
@@ -1072,8 +1075,12 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       form.append("file", file);
       return request<Attachment>(`/song-versions/${songVersionId}/attachments`, { method: "POST", body: form });
     },
-    setAttachmentStemPart: (songVersionId: string, attachmentId: string, stemPart: StemPart | null) =>
-      request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify({ stemPart }) }),
+    /** An audio file's part (a stem) and its recording's key and tempo; what's left out stays, null clears. */
+    updateAttachment: (
+      songVersionId: string,
+      attachmentId: string,
+      change: { stemPart?: StemPart | null; recordingKey?: string | null; recordingTempo?: number | null },
+    ) => request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify(change) }),
     deleteAttachment: (songVersionId: string, attachmentId: string) =>
       request<void>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "DELETE" }),
     /** The file; `onProgress` hears each chunk as it arrives (bytes so far, and the size if the server says). */

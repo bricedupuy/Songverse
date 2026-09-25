@@ -21,7 +21,8 @@ import { Textarea } from "#/components/ui/textarea";
 import { apiClient } from "#/lib/api-client";
 import { cn } from "#/lib/utils";
 import { ChipInput, type ChipSuggestion } from "./chip-input";
-import { CAPO_OPTIONS, KEY_OPTIONS, TIME_SIGNATURE_OPTIONS, type CreditField, type FormError, type SongForm, type TextField } from "./song-form";
+import { CAPO_OPTIONS, TIME_SIGNATURE_OPTIONS, type CreditField, type FormError, type SongForm, type TextField } from "./song-form";
+import { KeySelect } from "#/components/key-select";
 import { NativeSelect } from "#/components/ui/native-select";
 
 
@@ -414,31 +415,6 @@ export function LibraryMatchPanel({
   );
 }
 
-function KeySelect({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {
-  const { t } = useTranslation();
-  const known = [...KEY_OPTIONS.major, ...KEY_OPTIONS.minor].includes(value);
-  return (
-    <NativeSelect id={id} value={value} onChange={(event) => onChange(event.target.value)} className="w-full">
-      <option value="">{t("songEditor.none")}</option>
-      {value && !known ? <option value={value}>{value}</option> : null}
-      <optgroup label={t("songEditor.major")}>
-        {KEY_OPTIONS.major.map((key) => (
-          <option key={key} value={key}>
-            {key}
-          </option>
-        ))}
-      </optgroup>
-      <optgroup label={t("songEditor.minor")}>
-        {KEY_OPTIONS.minor.map((key) => (
-          <option key={key} value={key}>
-            {key}
-          </option>
-        ))}
-      </optgroup>
-    </NativeSelect>
-  );
-}
-
 /** Short versions of what's filled in, for the collapsed "More details". */
 function useSummary(form: SongForm, tagLabel: (id: string) => string): string[] {
   const { t, i18n } = useTranslation();
@@ -541,7 +517,7 @@ export function MoreDetailsCard({
             </div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
               <Field id="song-key" label={t("songEditor.fields.key")}>
-                <KeySelect id="song-key" value={form.key} onChange={(value) => setField("key", value)} />
+                <KeySelect id="song-key" value={form.key} onChange={(value) => setField("key", value)} className="w-full" />
               </Field>
               {text("tempo", { inputMode: "numeric", placeholder: "72" })}
               <Field id="song-timeSignature" label={t("songEditor.fields.timeSignature")}>

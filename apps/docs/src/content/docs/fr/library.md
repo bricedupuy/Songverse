@@ -43,6 +43,8 @@ Si un chant n'est pas à vous (un chant global, ou un chant d'équipe dont vous 
 
 Les pistes (ou stems) sont les parties du chant enregistrées séparément : voix, batterie, basse, etc. Importez-les dans l'onglet **Audio**. Un fichier nommé d'après sa partie (« Voix.mp3 », « 03 drums.opus », « Basse.mp3 ») devient cette piste tout seul. Pour les autres fichiers, choisissez la partie dans la liste **Piste** sous le fichier : **Voix**, **Chœurs**, **Batterie**, **Basse**, **Guitare**, **Piano et claviers**, **Autres** ou **Clic et repères**, ou **Pas une piste** pour un enregistrement complet.
 
+Si les pistes (ou un enregistrement) ne sont pas dans la tonalité du chant ou à son tempo, une version live un ton plus haut par exemple, indiquez les leurs sous **L'enregistrement des pistes** (ou sous le fichier) : **Tonalité** et **BPM**. Laissés sur **Tonalité du chant**, et vides, ce sont ceux du chant. SongVerse les garde pour transposer et changer la vitesse plus tard.
+
 En mode **Session** (voir [Édition, Session et Live](/fr/getting-started/#édition-session-et-live)), un chant qui a des pistes affiche le lecteur de pistes en bas de sa page, et de sa page dans une liste. Il commence sur une seule ligne : **Lecture**, puis un bouton rond par partie, avec son instrument (un micro pour la voix, une batterie, une clé de fa, une guitare, un piano…). Touchez-en un pour couper cette partie et jouer avec le reste ; touchez-le de nouveau pour la remettre. Survolez-en un pour voir son nom.
 
 ![Le lecteur de pistes sur une ligne, la voix coupée](../../../assets/screenshots/fr/stems-compact.jpg)

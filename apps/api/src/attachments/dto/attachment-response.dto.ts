@@ -11,5 +11,7 @@ export class AttachmentResponseDto {
   @ApiProperty() mimeType!: string;
   @ApiProperty({ required: false, nullable: true }) sizeBytes!: number | null;
   @ApiProperty({ enum: STEM_PARTS, nullable: true }) stemPart!: StemPart | null;
+  @ApiProperty({ nullable: true }) recordingKey!: string | null;
+  @ApiProperty({ nullable: true }) recordingTempo!: number | null;
   @ApiProperty() createdAt!: Date;
 }

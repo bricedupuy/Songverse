@@ -54,6 +54,20 @@ check("someone else can't change it", r.status === 403 || r.status === 404, Stri
 r = await call(me, "GET", `/song-versions/${apiSong.id}/attachments`);
 check("the list gives each file's part", r.body.find((a) => a.id === drums.id)?.stemPart === "DRUMS" && r.body.find((a) => a.id === other.id)?.stemPart === null);
 
+// The recording's key and tempo (issue #65)
+const before65 = await version();
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { recordingKey: "Gb", recordingTempo: 68.5 });
+check("a recording's key (as written) and tempo; its part stays", r.status === 200 && r.body.recordingKey === "Gb" && r.body.recordingTempo === 68.5 && r.body.stemPart === "DRUMS", JSON.stringify(r.body));
+check("which changes the song's offline version too", (await version()) !== before65);
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { recordingKey: "H#" });
+check("a key that isn't one is refused", r.status === 400, String(r.status));
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { recordingTempo: 1000 });
+check("so is a tempo out of range", r.status === 400, String(r.status));
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${other.id}`, { recordingKey: "G" });
+check("a file that isn't audio has no recording key", r.status === 400, String(r.status));
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { recordingKey: "", recordingTempo: null });
+check("empty goes back to the song's", r.status === 200 && r.body.recordingKey === null && r.body.recordingTempo === null && r.body.stemPart === "DRUMS", JSON.stringify(r.body));
+
 // --- the web app
 const webSong = await song(`Stems ${stamp}`);
 const set = await api(me, "POST", "/setlists", { name: `Stem set ${stamp}` });
@@ -134,6 +148,21 @@ const seconds = (text) => {
   return m * 60 + s;
 };
 
+await step("the stems share one recording's key and tempo", async () => {
+  const box = page.getByTestId("stems-recording");
+  await box.getByLabel("Key of the stems").selectOption("A");
+  await page.waitForLoadState("networkidle");
+  await box.getByLabel("Tempo of the stems (BPM)").fill("80");
+  await box.getByLabel("Tempo of the stems (BPM)").press("Enter");
+  let files = [];
+  for (let i = 0; i < 25; i++) {
+    files = (await api(me, "GET", `/song-versions/${webSong.id}/attachments`)).filter((a) => a.stemPart);
+    if (files.every((a) => a.recordingKey === "A" && a.recordingTempo === 80)) break;
+    await page.waitForTimeout(200);
+  }
+  if (!files.every((a) => a.recordingKey === "A" && a.recordingTempo === 80)) throw new Error(JSON.stringify(files.map((a) => [a.recordingKey, a.recordingTempo])));
+});
+
 await step("in Edit there's no player, just the way to Practice", async () => {
   if (await player().count()) throw new Error("a player in Edit");
   // Slowed down, to see them download.
@@ -175,6 +204,7 @@ await step("expanded: a row per part with its waveform, mute and solo; the wavef
   await player().getByRole("button", { name: "Expand the player" }).click();
   await page.locator('[data-testid="stem-player"][data-view="expanded"]').waitFor();
   await player().getByTestId("stem-waveform").nth(3).waitFor();
+  await player().getByTestId("stem-recorded").getByText("Recorded in A · 80 BPM").waitFor();
   if (await player().getByText("can't be played").count()) throw new Error("a stem didn't decode");
   // Still muted from the compact row.
   await track("VOCALS").and(page.locator('[data-audible="false"]')).waitFor();

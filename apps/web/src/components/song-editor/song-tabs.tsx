@@ -25,6 +25,8 @@ import { attachmentTypeFor } from "./attachment-types";
 import { downloadBlob } from "#/lib/download";
 import { formatBytes } from "#/lib/format-bytes";
 import { NativeSelect } from "#/components/ui/native-select";
+import { Input } from "#/components/ui/input";
+import { KeySelect } from "#/components/key-select";
 import { setMode, useMode } from "#/lib/mode";
 import { stemsOf } from "#/lib/stem-engine";
 
@@ -108,17 +110,101 @@ function AudioPlayer({ songVersionId, attachment }: { songVersionId: string; att
   );
 }
 
+/**
+ * A recording's key and tempo (issue #65), when they aren't the song's -
+ * for later, to transpose it and change its speed. Empty is the song's own.
+ */
+function RecordingFields({
+  files,
+  label,
+  songKey,
+  songTempo,
+  canEdit,
+  busy,
+  onChange,
+}: {
+  files: Attachment[];
+  /** Whose: a file's name; the stems when left out. */
+  label?: string;
+  songKey: string;
+  songTempo: string;
+  canEdit: boolean;
+  busy: boolean;
+  onChange: (change: { recordingKey?: string | null; recordingTempo?: number | null }) => void;
+}) {
+  const { t } = useTranslation();
+  const first = files[0];
+  const saved = first?.recordingTempo != null ? String(first.recordingTempo) : "";
+  const [tempo, setTempo] = useState(saved);
+  useEffect(() => setTempo(saved), [saved]);
+  const keyLabel = label ? t("stems.recordingKey", { name: label }) : t("stems.stemsKey");
+  const tempoLabel = label ? t("stems.recordingTempo", { name: label }) : t("stems.stemsTempo");
+
+  if (!canEdit) {
+    const details = [first?.recordingKey, first?.recordingTempo ? `${first.recordingTempo} BPM` : null].filter(Boolean).join(" · ");
+    return details ? <p className="text-xs text-muted-foreground">{t("stems.recordedIn", { details })}</p> : null;
+  }
+  function saveTempo() {
+    const next = tempo.trim() ? Number(tempo) : null;
+    if ((next === null && !saved) || String(next) === saved || (next !== null && !Number.isFinite(next))) return;
+    onChange({ recordingTempo: next });
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <label className="flex items-center gap-2">
+        {t("stems.keyLabel")}
+        <KeySelect
+          compact
+          value={first?.recordingKey ?? ""}
+          disabled={busy}
+          aria-label={keyLabel}
+          noneLabel={songKey ? t("stems.songsKeyIs", { key: songKey }) : t("stems.songsKey")}
+          onChange={(value) => onChange({ recordingKey: value || null })}
+        />
+      </label>
+      <label className="flex items-center gap-2">
+        {t("stems.tempoLabel")}
+        <Input
+          type="number"
+          inputMode="decimal"
+          min={20}
+          max={400}
+          step="any"
+          value={tempo}
+          disabled={busy}
+          placeholder={songTempo || "BPM"}
+          aria-label={tempoLabel}
+          className="h-8 w-20 text-xs"
+          onChange={(event) => setTempo(event.target.value)}
+          onBlur={saveTempo}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              saveTempo();
+            }
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
 /** Files or Audio: what's attached, and an upload drop zone for editors. */
 export function AttachmentsTab({
   kind,
   songVersionId,
   attachments,
   canEdit,
+  songKey = "",
+  songTempo = "",
 }: {
   kind: "files" | "audio";
   songVersionId: string;
   attachments: Attachment[];
   canEdit: boolean;
+  /** The song's own, which a recording's key and tempo default to (#65). */
+  songKey?: string;
+  songTempo?: string;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -130,6 +216,7 @@ export function AttachmentsTab({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [usage, setUsage] = useState<StorageUsage | null>(null);
+  const stems = kind === "audio" ? stemsOf(attachments) : [];
   const shown = attachments.filter((a) => (kind === "audio" ? a.type === "AUDIO" : a.type !== "AUDIO"));
 
   useEffect(() => {
@@ -175,11 +262,12 @@ export function AttachmentsTab({
     }
   }
 
-  async function setStemPart(attachment: Attachment, stemPart: StemPart | null) {
-    setBusyId(attachment.id);
+  /** Saves a change to one or more audio files at once (all the stems share their recording's key and tempo). */
+  async function update(files: Attachment[], change: Parameters<typeof apiClient.updateAttachment>[2]) {
+    setBusyId(files[0]?.id ?? null);
     setError(null);
     try {
-      await apiClient.setAttachmentStemPart(songVersionId, attachment.id, stemPart);
+      await Promise.all(files.map((file) => apiClient.updateAttachment(songVersionId, file.id, change)));
       await router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -212,6 +300,21 @@ export function AttachmentsTab({
           {shown.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t(kind === "audio" ? "songEditor.noAudio" : "songEditor.noFiles")}</p>
           ) : (
+            <>
+            {kind === "audio" && stems.length > 0 ? (
+              <div className="flex flex-col gap-2 rounded-lg border p-3" data-testid="stems-recording">
+                <p className="text-sm font-medium">{t("stems.recording")}</p>
+                <p className="text-xs text-muted-foreground">{t("stems.recordingHint")}</p>
+                <RecordingFields
+                  files={stems}
+                  songKey={songKey}
+                  songTempo={songTempo}
+                  canEdit={canEdit}
+                  busy={busyId !== null}
+                  onChange={(change) => void update(stems, change)}
+                />
+              </div>
+            ) : null}
             <ul className="flex flex-col divide-y" data-testid={`${kind}-list`}>
               {shown.map((attachment) => (
                 <li key={attachment.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
@@ -260,7 +363,7 @@ export function AttachmentsTab({
                         value={attachment.stemPart ?? ""}
                         disabled={busyId !== null}
                         aria-label={t("stems.partOf", { name: attachment.filename })}
-                        onChange={(event) => void setStemPart(attachment, (event.target.value || null) as StemPart | null)}
+                        onChange={(event) => void update([attachment], { stemPart: (event.target.value || null) as StemPart | null })}
                       >
                         <option value="">{t("stems.notAStem")}</option>
                         {STEM_PARTS.map((part) => (
@@ -273,13 +376,26 @@ export function AttachmentsTab({
                   ) : kind === "audio" && attachment.stemPart ? (
                     <span className="self-start rounded-md bg-muted px-2 py-1 text-xs font-medium">{t(`stems.parts.${attachment.stemPart}`)}</span>
                   ) : null}
+                  {/* A recording on its own has its own key and tempo; the stems share theirs (above the list). */}
+                  {kind === "audio" && !attachment.stemPart ? (
+                    <RecordingFields
+                      files={[attachment]}
+                      label={attachment.filename}
+                      songKey={songKey}
+                      songTempo={songTempo}
+                      canEdit={canEdit}
+                      busy={busyId !== null}
+                      onChange={(change) => void update([attachment], change)}
+                    />
+                  ) : null}
                   {kind === "audio" ? <AudioPlayer songVersionId={songVersionId} attachment={attachment} /> : null}
                 </li>
               ))}
             </ul>
+            </>
           )}
           {kind === "audio" && canEdit ? <p className="text-xs text-muted-foreground">{t("stems.detectHint")}</p> : null}
-          {kind === "audio" && mode !== "practice" && stemsOf(attachments).length > 0 ? (
+          {kind === "audio" && mode !== "practice" && stems.length > 0 ? (
             <Button type="button" variant="link" className="h-auto self-start p-0" onClick={() => setMode("practice")}>
               {t("stems.practiceHint")}
             </Button>
