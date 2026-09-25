@@ -12,7 +12,8 @@ import type {
 } from "../api-client/index.js";
 import type { CapoDisplayModeValue, ChordNotationValue } from "../constants/index.js";
 import type { SongDocumentV2 } from "../schemas/song-document-v2.js";
-import { entryCodeMatches, songbookMatches, songbookReferences } from "../songbook-references/index.js";
+import { foldForSearch } from "../search-text/index.js";
+import { entryCodeMatches, formatSongbookReference, songbookMatches, songbookReferences } from "../songbook-references/index.js";
 
 /**
  * What a device keeps to work offline (docs/offline.md, issues #25 and
@@ -95,9 +96,6 @@ export interface FoundSong {
   capo: number | null;
 }
 
-function fold(text: string): string {
-  return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-}
 
 function artistLine(song: SongOfflineCopy["song"]): string | null {
   const names = song.artists.map((artist) => artist.source ?? artist.userId ?? "").filter(Boolean);
@@ -129,9 +127,9 @@ export async function allFoundSongs(storage: OfflineStorage): Promise<FoundSong[
 
 /** The songs readable offline whose title, version or artists match `query` (case and accents ignored). */
 export async function searchKeptSongs(storage: OfflineStorage, query: string, limit = 8): Promise<FoundSong[]> {
-  const q = fold(query.trim());
+  const q = foldForSearch(query.trim());
   return (await allFoundSongs(storage))
-    .filter((song) => !q || [song.title, song.versionName, song.artists].some((text) => text && fold(text).includes(q)))
+    .filter((song) => !q || [song.title, song.versionName, song.artists].some((text) => text && foldForSearch(text).includes(q)))
     .sort((a, b) => a.title.localeCompare(b.title))
     .slice(0, limit);
 }
@@ -165,6 +163,21 @@ export async function searchKeptEntries(storage: OfflineStorage, query: string, 
     .sort((a, b) => a.rank - b.rank || a.songbookName.localeCompare(b.songbookName))
     .slice(0, limit)
     .map(({ rank: _rank, ...hit }) => hit);
+}
+
+/** Where a song is in the numbered songbooks and sets kept on the device: "JEM 855 · JEM3" (issue #59). */
+export async function keptSongReferences(storage: OfflineStorage, songVersionId: string): Promise<string[]> {
+  const references = new Set<string>();
+  for (const { songbook } of await allKeptSongbooks(storage)) {
+    for (const entry of songbook.entries) {
+      if (entry.songVersionId !== songVersionId || !entry.entryCode) continue;
+      references.add(formatSongbookReference({ songbookName: songbook.name, abbreviation: songbook.abbreviation, entryCode: entry.entryCode, sectionLabel: entry.sectionLabel }));
+    }
+  }
+  for (const set of await allKeptSets(storage)) {
+    for (const view of set.songs) if (view.song?.id === songVersionId) for (const reference of view.songbookReferences ?? []) references.add(reference);
+  }
+  return [...references].sort();
 }
 
 /** The user's chord settings, as of the last sync, for songs shown on their own. */

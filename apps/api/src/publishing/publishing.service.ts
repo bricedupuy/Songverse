@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { readSongDocument } from "@songverse/core";
+import { foldForSearch, readSongDocument } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
 import { AccessPolicyService, OPEN_SUBMISSION_STATES } from "../access/access-policy.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -60,8 +60,7 @@ function toSubmission({ songVersion, similarityResults, ...rest }: SubmissionRow
   };
 }
 
-const fold = (text: string) =>
-  text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim().replace(/\s+/g, " ");
+const fold = (text: string) => foldForSearch(text).trim().replace(/\s+/g, " ");
 
 /**
  * Putting personal and team songs into the global catalogue.

@@ -45,7 +45,7 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 
 ![A song of a set in Live mode](../../assets/screenshots/en/live.jpg)
 
-- The top shows the song, where it is in the set, and its key, capo and tempo. **×** goes back to the set.
+- The top shows the song, where it is in the set, its songbook number (**JEM 855 · JEM3**), and its key, capo and tempo. **×** goes back to the set.
 - The bottom shows what's next - **Next: …** takes you there - and the previous song's arrow.
 - **Autoscroll** (the play button) scrolls the chart at the song's pace: over its duration when it has one, or else two bars a line at its tempo. The tortoise and hare slow it down or speed it up, a step at a time.
 - The **A** buttons make the text smaller or bigger; SongVerse remembers your size on this device.

@@ -1,4 +1,4 @@
-import { findKeptSong, isNetworkError, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type SongDocumentV2 } from "@songverse/core";
+import { findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,8 @@ export interface LoneSong {
   id: string;
   title: string;
   artists: string | null;
+  /** "JEM 855 · JEM3" (issue #59). */
+  references: string[];
   document: SongDocumentV2;
   capo: number | null;
   notation: ChordNotationValue;
@@ -33,18 +35,20 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
   loader: ({ params }) =>
     onlineOrKept<LoneSong>(
       async () => {
-        const [version, me] = await Promise.all([
+        const [version, me, memberships] = await Promise.all([
           apiClient.getSongVersion(params.songVersionId).catch((error: unknown) => {
             if (isNetworkError(error)) throw error;
             return null;
           }),
           apiClient.getMe(),
+          apiClient.getSongVersionSongbooks(params.songVersionId).catch(() => []),
         ]);
         if (!version) throw redirect({ to: "/library" });
         return {
           id: version.id,
           title: version.title,
           artists: artistNames(version.artists),
+          references: memberships.filter((membership) => membership.entryCode).map((membership) => membership.reference),
           document: version.documentJson,
           capo: version.capo,
           notation: me.chordNotation,
@@ -53,12 +57,17 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
       },
       async () => {
         const storage = deviceStorage();
-        const [song, viewer] = await Promise.all([findKeptSong(storage, params.songVersionId), offlineViewer(storage)]);
+        const [song, viewer, references] = await Promise.all([
+          findKeptSong(storage, params.songVersionId),
+          offlineViewer(storage),
+          keptSongReferences(storage, params.songVersionId),
+        ]);
         if (!song) return undefined;
         return {
           id: song.songVersionId,
           title: song.title,
           artists: song.artists,
+          references,
           document: song.document,
           capo: song.capo,
           notation: viewer?.chordNotation ?? "LETTERS",
@@ -98,6 +107,7 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         chart,
         durationSeconds: song.document.defaults.durationSeconds,
         arrangementName: null,
+        references: song.references,
         notes: [],
         exit: {
           label: t("live.back"),

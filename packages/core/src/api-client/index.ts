@@ -169,6 +169,8 @@ export interface SetlistSongView {
   sharedBy: { id: string; displayName: string } | null;
   previousItemId: string | null;
   nextItemId: string | null;
+  /** Where the song is in the viewer's numbered songbooks: "JEM 855 · JEM3" (issue #59). */
+  songbookReferences: string[];
   /** The next song's title; null at the end of the set, or when the viewer can't read that song. */
   nextTitle: string | null;
   /** The current user's private note on this song of the set. */

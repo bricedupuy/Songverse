@@ -45,7 +45,7 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 
 ![Un chant d'une liste en mode Live](../../../assets/screenshots/fr/live.jpg)
 
-- En haut : le chant, sa place dans la liste, sa tonalité, son capo et son tempo. **×** revient à la liste.
+- En haut : le chant, sa place dans la liste, son numéro de recueil (**JEM 855 · JEM3**), sa tonalité, son capo et son tempo. **×** revient à la liste.
 - En bas : ce qui vient ensuite - **Ensuite : …** y mène - et la flèche du chant précédent.
 - Le **défilement** (le bouton lecture) fait défiler la grille au rythme du chant : sur sa durée quand elle est connue, sinon deux mesures par ligne à son tempo. La tortue et le lièvre le ralentissent ou l'accélèrent, un cran à la fois.
 - Les boutons **A** réduisent ou agrandissent le texte ; SongVerse retient votre taille sur cet appareil.

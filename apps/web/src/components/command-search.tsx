@@ -1,4 +1,4 @@
-import { formatSongbookReference, onlineOrKept, searchKeptEntries, searchKeptSongs, songbookReferences, type SongbookEntryHit } from "@songverse/core";
+import { foldForSearch, formatSongbookReference, onlineOrKept, searchKeptEntries, searchKeptSongs, songbookReferences, type SongbookEntryHit } from "@songverse/core";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
 import { BookOpen, Hash, ListMusic, Music, Search, Users, type LucideIcon } from "lucide-react";
@@ -33,10 +33,6 @@ interface Result {
 }
 const ICONS: Record<Kind, LucideIcon> = { entries: Hash, songs: Music, sets: ListMusic, songbooks: BookOpen, teams: Users };
 
-/** Lower case, without accents: "Élévation" is found by "elev". */
-function fold(text: string): string {
-  return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-}
 
 /**
  * Search across songs, sets, songbooks and teams (issue #48), in the header
@@ -105,7 +101,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   const [searching, setSearching] = useState(false);
   const [active, setActive] = useState(0);
   const list = useRef<HTMLDivElement>(null);
-  const q = fold(query.trim());
+  const q = foldForSearch(query.trim());
 
   // Songs from the library's own search (title, subtitle, version, artist, CCLI), a moment after typing stops.
   useEffect(() => {
@@ -166,7 +162,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
       const from = /^\/library\/[^/]+\/live\/?$/.test(location.pathname) ? (location.search as { back?: string }).back : location.href;
       return navigate({ to: "/library/$songVersionId/live", params: { songVersionId: id }, search: from ? { back: from } : {} });
     };
-    const matches = (...texts: (string | null | undefined)[]) => texts.some((text) => text && fold(text).includes(q));
+    const matches = (...texts: (string | null | undefined)[]) => texts.some((text) => text && foldForSearch(text).includes(q));
     const byKind: Result[] = [
       ...entries.map((entry) => ({
         kind: "entries" as const,

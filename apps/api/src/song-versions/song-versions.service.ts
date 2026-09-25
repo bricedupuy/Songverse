@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   computeSectionLabel,
+  foldForSearch,
   formatSongbookReference,
   MusicBrainzRecordingMatchSchema,
   detectImportFormat,
@@ -238,7 +239,7 @@ function parseTimeSignature(text: string | null): { numerator: number; denominat
 }
 
 function foldName(name: string): string {
-  return name.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim().replace(/\s+/g, " ");
+  return foldForSearch(name).trim().replace(/\s+/g, " ");
 }
 
 const LIST_SELECT = {

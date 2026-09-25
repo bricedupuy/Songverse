@@ -151,24 +151,7 @@ export class SetlistsService {
     const pendingBySong = new Map(pending.map((request) => [request.songVersionId, request.id]));
 
     // Where each song is in the viewer's numbered songbooks: "JEM 855 · JEM3" (issue #55).
-    const songbookEntries = await this.prisma.client.songbookEntry.findMany({
-      where: {
-        songVersionId: { in: set.items.map((item) => item.songVersionId) },
-        entryCode: { not: null },
-        songbook: await this.policy.songbooksVisibleTo(user),
-      },
-      select: { songVersionId: true, entryCode: true, songbook: { select: { name: true, abbreviation: true, sections: true } } },
-    });
-    const referencesBySong = new Map<string, string[]>();
-    for (const entry of songbookEntries) {
-      const reference = formatSongbookReference({
-        songbookName: entry.songbook.name,
-        abbreviation: entry.songbook.abbreviation,
-        entryCode: entry.entryCode,
-        sectionLabel: computeSectionLabel(entry.entryCode, entry.songbook.sections as SongbookSection[] | null),
-      });
-      referencesBySong.set(entry.songVersionId, [...(referencesBySong.get(entry.songVersionId) ?? []), reference].sort());
-    }
+    const referencesBySong = await this.songbookReferences(user, set.items.map((item) => item.songVersionId));
 
     return {
       ...summarize(set),
@@ -434,11 +417,32 @@ export class SetlistsService {
       inLibrary: inViewersLibrary(song),
       sharedBy: shown && item.sharedBy ? { id: item.sharedBy.id, displayName: item.sharedBy.displayName } : null,
       previousItemId: set.items[index - 1]?.id ?? null,
+      // "JEM 855 · JEM3", for Live's header (issue #59).
+      songbookReferences: shown ? ((await this.songbookReferences(user, [song.id])).get(song.id) ?? []) : [],
       nextItemId: next?.id ?? null,
       // What's coming, for Perform mode - unless the viewer can't read that song.
       nextTitle: next && (readable.has(next.id) || inViewersLibrary(next.songVersion)) ? next.songVersion.title : null,
       myNote: note?.content ?? "",
     };
+  }
+
+  /** Where each song is in `user`'s numbered songbooks, by song: "JEM 855 · JEM3" (issues #55, #59). */
+  private async songbookReferences(user: AuthenticatedUser, songVersionIds: string[]): Promise<Map<string, string[]>> {
+    const entries = await this.prisma.client.songbookEntry.findMany({
+      where: { songVersionId: { in: songVersionIds }, entryCode: { not: null }, songbook: await this.policy.songbooksVisibleTo(user) },
+      select: { songVersionId: true, entryCode: true, songbook: { select: { name: true, abbreviation: true, sections: true } } },
+    });
+    const references = new Map<string, string[]>();
+    for (const entry of entries) {
+      const reference = formatSongbookReference({
+        songbookName: entry.songbook.name,
+        abbreviation: entry.songbook.abbreviation,
+        entryCode: entry.entryCode,
+        sectionLabel: computeSectionLabel(entry.entryCode, entry.songbook.sections as SongbookSection[] | null),
+      });
+      references.set(entry.songVersionId, [...(references.get(entry.songVersionId) ?? []), reference].sort());
+    }
+    return references;
   }
 
   /**

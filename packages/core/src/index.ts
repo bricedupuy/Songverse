@@ -30,3 +30,4 @@ export * from "./songbook-catalog-format/index.js";
 export * from "./api-client/index.js";
 export * from "./offline/index.js";
 export * from "./songbook-references/index.js";
+export * from "./search-text/index.js";

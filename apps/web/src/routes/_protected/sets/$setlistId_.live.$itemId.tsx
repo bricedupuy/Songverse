@@ -65,6 +65,8 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
     chart,
     durationSeconds: song?.document.defaults.durationSeconds,
     arrangementName: view.arrangement?.name ?? null,
+    // A copy kept before #59 has none.
+    references: view.songbookReferences ?? [],
     notes: [...(item.notes ? [{ text: item.notes }] : []), ...(view.myNote ? [{ label: t("sets.myNotes"), text: view.myNote }] : [])],
     exit: { label: t("live.backToSet"), go: () => void navigate({ to: "/sets/$setlistId", params: { setlistId: set.id } }) },
     previous: goTo(view.previousItemId),

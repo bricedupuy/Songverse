@@ -24,6 +24,8 @@ export interface LiveSong {
   chart: RenderedChart | null;
   durationSeconds: number | null | undefined;
   arrangementName: string | null;
+  /** Where it is in the player's songbooks: "JEM 855 · JEM3" (issue #59). */
+  references: string[];
   notes: { label?: string; text: string }[];
   /** The × at the top left: back to the set, or wherever the song was pulled up from. */
   exit: { label: string; go: () => void };
@@ -143,6 +145,7 @@ export function LiveView({ song }: { song: LiveSong }) {
   }, [previous, next]);
 
   const details = [
+    ...song.references,
     chart?.key,
     chart?.capo ? t("player.capo", { capo: chart.capo }) : null,
     chart?.tempo ? `${chart.tempo} BPM` : null,

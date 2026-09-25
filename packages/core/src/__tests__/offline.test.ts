@@ -8,6 +8,7 @@ import {
   keptSetDetail,
   keptSetSong,
   keptSongbook,
+  keptSongReferences,
   keptSongCopy,
   lastOfflineSync,
   offlineViewer,
@@ -170,5 +171,19 @@ describe("songbook references offline", () => {
     expect((await searchKeptEntries(storage, "victoire 42")).map((hit) => hit.songVersionId)).toEqual(["v3"]);
     expect((await searchKeptEntries(storage, "42")).map((hit) => hit.songbookName)).toEqual(["Chants de victoire", "Hymns"]);
     expect(await searchKeptEntries(storage, "grace")).toEqual([]);
+  });
+});
+
+describe("a kept song's references", () => {
+  it("from kept songbooks and sets, each once", async () => {
+    const storage = memoryStorage();
+    await storage.put("songbooks", "jem", {
+      songbook: { id: "jem", name: "J'aime l'Éternel", abbreviation: "JEM", entries: [{ id: "e1", entryCode: "855", songVersionId: "v1", songVersionTitle: "Song", sectionLabel: "JEM3" }] },
+      version: "1",
+      savedAt: "",
+    });
+    await keepSet(storage, copy("s1", [{ ...view("i1", "v1"), songbookReferences: ["JEM 855 · JEM3", "HY 42"] } as never]));
+    expect(await keptSongReferences(storage, "v1")).toEqual(["HY 42", "JEM 855 · JEM3"]);
+    expect(await keptSongReferences(storage, "v2")).toEqual([]);
   });
 });

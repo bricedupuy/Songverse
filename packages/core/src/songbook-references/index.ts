@@ -4,6 +4,7 @@
  * API and offline search read a query the same way.
  */
 import { normalizeEntryCode } from "../songbook-catalog-format/index.js";
+import { foldForSearch } from "../search-text/index.js";
 export interface SongbookReference {
   /** A songbook's abbreviation or part of its name; null for any songbook. */
   book: string | null;
@@ -30,9 +31,6 @@ export function songbookReferences(query: string): SongbookReference[] {
   return references;
 }
 
-function fold(text: string): string {
-  return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-}
 
 /**
  * Whether a songbook answers to `book`: its abbreviation exactly, or its name
@@ -41,9 +39,9 @@ function fold(text: string): string {
  */
 export function songbookMatches(songbook: { name: string; abbreviation: string | null }, book: string | null): boolean {
   if (!book) return true;
-  const wanted = fold(book);
-  if (songbook.abbreviation !== null && fold(songbook.abbreviation) === wanted) return true;
-  return wanted.length >= 2 && fold(songbook.name).includes(wanted);
+  const wanted = foldForSearch(book);
+  if (songbook.abbreviation !== null && foldForSearch(songbook.abbreviation) === wanted) return true;
+  return wanted.length >= 2 && foldForSearch(songbook.name).includes(wanted);
 }
 
 /** Whether an entry's code is the one asked for (case and a plain number's leading zeros ignored: "42" is "042"). */

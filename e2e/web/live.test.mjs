@@ -32,6 +32,11 @@ await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: first.id });
 const items = (await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: second.id })).items;
 const [firstItem, secondItem] = items;
 
+// In a numbered songbook with a volume: Live shows "ABBR 12 · ABBR2" (issue #59).
+const abbr = [...String(stamp).slice(-5)].map((digit) => "ABCDEFGHIJ"[Number(digit)]).join("");
+const book = await api(me, "POST", "/songbooks", { name: `Live book ${stamp}`, kind: "NUMBERED", abbreviation: abbr });
+await api(me, "PATCH", `/songbooks/${book.id}`, { sections: [{ label: `${abbr}2`, start: 10, end: 20 }] });
+await api(me, "POST", `/songbooks/${book.id}/entries`, { songVersionId: first.id, entryCode: "12" });
 const view = await api(me, "GET", `/setlists/${set.id}/items/${firstItem.id}/song`);
 check("a set song tells what's next", view.nextTitle === `Closer ${stamp}` && view.nextItemId === secondItem.id, JSON.stringify(view.nextTitle));
 const last = await api(me, "GET", `/setlists/${set.id}/items/${secondItem.id}/song`);
@@ -122,7 +127,7 @@ await step("Live on a set opens its first song full screen, dark, with no theme 
   await page.getByTestId("live-next").getByText(`Next: Closer ${stamp}`).waitFor();
   await page.locator('[data-chord="G"]').first().waitFor();
   const details = await page.getByTestId("live-details").innerText();
-  if (!details.includes("G") || !details.includes("400 BPM")) throw new Error(details);
+  if (!details.includes("G") || !details.includes("400 BPM") || !details.includes(`${abbr} 12 · ${abbr}2`)) throw new Error(details);
 });
 
 await step("the chart is big: bigger text, smaller text", async () => {

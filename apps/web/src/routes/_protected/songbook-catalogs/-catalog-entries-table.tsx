@@ -1,4 +1,4 @@
-import { CATALOG_ENTRY_FIELDS, compareEntryCodes, formatDuration, type CatalogEntryFieldKey, type SongbookCatalogEntry } from "@songverse/core";
+import { CATALOG_ENTRY_FIELDS, compareEntryCodes, foldForSearch, formatDuration, type CatalogEntryFieldKey, type SongbookCatalogEntry } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, Columns3, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
@@ -55,10 +55,6 @@ function saveColumns(columns: CatalogEntryFieldKey[]) {
   }
 }
 
-/** Accent- and case-insensitive, for search. */
-function fold(text: string): string {
-  return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-}
 
 function editText(entry: SongbookCatalogEntry, field: CatalogEntryFieldKey): string {
   const value = entry[field];
@@ -112,9 +108,9 @@ export function CatalogEntriesTable({
   useEffect(() => setColumns(loadColumns()), []);
 
   const visible = useMemo(() => {
-    const query = fold(search.trim());
+    const query = foldForSearch(search.trim());
     const matching = query
-      ? entries.filter((entry) => ALL_COLUMNS.some((field) => fold(editText(entry, field)).includes(query)))
+      ? entries.filter((entry) => ALL_COLUMNS.some((field) => foldForSearch(editText(entry, field)).includes(query)))
       : entries;
     return [...matching].sort((a, b) => compareEntries(a, b, sort));
   }, [entries, search, sort]);
