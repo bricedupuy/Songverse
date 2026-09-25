@@ -382,8 +382,14 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   );
 
   const heading = edit ? edit.version.title : t("songEditor.createTitle");
+  // A catalogue song credits who put it there (issue #73).
+  const contributor = edit?.version.ownerScope === "GLOBAL" ? (edit.version.contributedByTeam?.name ?? edit.version.contributedBy?.displayName ?? null) : null;
   const subheading = edit
-    ? [edit.version.artists.map((a) => a.source).filter(Boolean).join(", "), getLanguageDisplayName(edit.version.language, i18n.language)]
+    ? [
+        edit.version.artists.map((a) => a.source).filter(Boolean).join(", "),
+        getLanguageDisplayName(edit.version.language, i18n.language),
+        contributor ? t("songEditor.contributedBy", { name: contributor }) : null,
+      ]
         .filter(Boolean)
         .join(" · ")
     : t("songEditor.createDescription");

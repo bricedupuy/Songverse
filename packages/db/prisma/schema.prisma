@@ -294,11 +294,12 @@ model User {
   offlinePins         OfflinePin[]
 
   // BetterAuth
-  sessions      Session[]
-  accounts      Account[]
-  passkeys      Passkey[]
-  smartLists    SmartList[]
-  songRevisions SongVersionRevision[]
+  sessions            Session[]
+  accounts            Account[]
+  passkeys            Passkey[]
+  smartLists          SmartList[]
+  songRevisions       SongVersionRevision[]
+  contributedVersions SongVersion[]         @relation("VersionContributedBy")
 
   @@index([email])
 }
@@ -405,18 +406,19 @@ model Team {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  memberships        TeamMembership[]
-  inviteLinks        TeamInviteLink[]
-  ownedVersions      SongVersion[]          @relation("VersionOwnerTeam")
-  ownedArrangements  Arrangement[]          @relation("ArrangementOwnerTeam")
-  notes              Note[]
-  accessGrants       AccessGrant[]
-  shareLinks         ShareLink[]
-  ownedTags          Tag[]
-  ownedSongbooks     Songbook[]             @relation("SongbookOwnerTeam")
-  ownedSetlists      Setlist[]              @relation("SetlistOwnerTeam")
-  ownershipRequests  SongOwnershipRequest[]
-  visibleAttachments Attachment[]           @relation("AttachmentVisibleToTeam")
+  memberships         TeamMembership[]
+  inviteLinks         TeamInviteLink[]
+  ownedVersions       SongVersion[]          @relation("VersionOwnerTeam")
+  ownedArrangements   Arrangement[]          @relation("ArrangementOwnerTeam")
+  notes               Note[]
+  accessGrants        AccessGrant[]
+  shareLinks          ShareLink[]
+  ownedTags           Tag[]
+  ownedSongbooks      Songbook[]             @relation("SongbookOwnerTeam")
+  ownedSetlists       Setlist[]              @relation("SetlistOwnerTeam")
+  ownershipRequests   SongOwnershipRequest[]
+  visibleAttachments  Attachment[]           @relation("AttachmentVisibleToTeam")
+  contributedVersions SongVersion[]          @relation("VersionContributedByTeam")
 
   @@index([slug])
 }
@@ -610,7 +612,12 @@ model SongVersion {
   ownerTeamId String?
 
   // Publication
-  publicationState PublicationState @default(DRAFT)
+  publicationState    PublicationState @default(DRAFT)
+  // Who put it in the global catalogue (issue #73): the person whose song
+  // it was, or who submitted it for their team (contributedByTeamId). The
+  // song itself moves to the catalogue, so this is how they're credited.
+  contributedByUserId String?
+  contributedByTeamId String?
 
   // Core metadata
   title          String
@@ -660,11 +667,13 @@ model SongVersion {
   parentVersionId  String?
 
   // Work relation
-  work          Work          @relation("WorkVersions", fields: [workId], references: [id])
-  ownerUser     User?         @relation("VersionOwnerUser", fields: [ownerUserId], references: [id])
-  ownerTeam     Team?         @relation("VersionOwnerTeam", fields: [ownerTeamId], references: [id])
-  parentVersion SongVersion?  @relation("VersionChildren", fields: [parentVersionId], references: [id])
-  childVersions SongVersion[] @relation("VersionChildren")
+  work              Work          @relation("WorkVersions", fields: [workId], references: [id])
+  ownerUser         User?         @relation("VersionOwnerUser", fields: [ownerUserId], references: [id])
+  ownerTeam         Team?         @relation("VersionOwnerTeam", fields: [ownerTeamId], references: [id])
+  contributedBy     User?         @relation("VersionContributedBy", fields: [contributedByUserId], references: [id], onDelete: SetNull)
+  contributedByTeam Team?         @relation("VersionContributedByTeam", fields: [contributedByTeamId], references: [id], onDelete: SetNull)
+  parentVersion     SongVersion?  @relation("VersionChildren", fields: [parentVersionId], references: [id])
+  childVersions     SongVersion[] @relation("VersionChildren")
 
   // Preferred original back-relation
   preferredOriginalFor Work? @relation("WorkPreferredOriginal")

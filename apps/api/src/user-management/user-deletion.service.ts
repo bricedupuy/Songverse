@@ -70,10 +70,12 @@ export class UserDeletionService {
       // No point being a guest of a set you now own.
       await tx.setlistGuest.deleteMany({ where: { userId: toUserId, setlist: toOwner } });
       // Their songs' submissions to the global catalogue follow the songs.
+      // Songs they put in the catalogue (moved there, issue #73) are credited to the new owner, submissions too.
       await tx.submission.updateMany({
-        where: { submitterId: fromUserId, songVersion: { ownerUserId: toUserId } },
+        where: { submitterId: fromUserId, songVersion: { OR: [{ ownerUserId: toUserId }, { contributedByUserId: fromUserId }] } },
         data: { submitterId: toUserId },
       });
+      await tx.songVersion.updateMany({ where: { contributedByUserId: fromUserId }, data: { contributedByUserId: toUserId } });
       // The new owner's storage limit now covers these files.
       await tx.attachment.updateMany({ where: { uploadedByUserId: fromUserId }, data: { uploadedByUserId: toUserId } });
       return this.removeAccount(tx, fromUserId);

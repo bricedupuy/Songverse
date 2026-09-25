@@ -626,6 +626,9 @@ export interface SongVersionSummary {
   ownerTeamId: string | null;
   publicationState: string;
   ccli: string | null;
+  /** Who put it in the catalogue (issue #73): a person, and the team whose song it was. */
+  contributedBy: { id: string; displayName: string } | null;
+  contributedByTeam: { id: string; name: string } | null;
   createdAt: string;
   updatedAt: string;
   artists: ArtistSummary[];

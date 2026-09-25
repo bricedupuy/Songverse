@@ -108,13 +108,17 @@ await step("the reviewer starts the review and approves it", async () => {
   await page.getByText("Published as").waitFor();
 });
 
-await step("the submitter's song links to the global copy", async () => {
+await step("the submitter's song is now in the catalogue, credited to them, and listed once (issue #73)", async () => {
   page = alicePage;
   await openSong(page, aliceSong.id);
-  await page.getByText("This song is in the global catalogue.").waitFor();
-  await page.getByRole("link", { name: "Open the global song" }).click();
-  await page.waitForURL((url) => url.pathname.startsWith("/library/") && !url.pathname.endsWith(aliceSong.id));
-  await page.getByRole("heading", { name: title }).waitFor();
+  await page.getByText("In the catalogue, from Pub web alice").waitFor();
+  await page.getByText("You can view this song but not change it.").waitFor();
+  if (await page.getByText("Global catalogue", { exact: true }).count()) throw new Error("the publish card on a catalogue song");
+  await page.goto(`${WEB}/library?q=${encodeURIComponent(title)}`);
+  await page.waitForLoadState("networkidle");
+  const rows = page.getByRole("row").filter({ hasText: title });
+  await rows.first().getByText("Published by you").waitFor();
+  if ((await rows.count()) !== 1) throw new Error(`${await rows.count()} rows`);
 });
 
 await step("a look-alike needs a reason before it's submitted", async () => {
@@ -142,6 +146,14 @@ await step("the reviewer merges it into the existing song", async () => {
   if (globals !== "1") throw new Error(`${globals} global copies`);
 });
 
+await step("the merged song stays the submitter's, as their own version", async () => {
+  page = await pageFor(bob);
+  await openSong(page, bobSong.id);
+  await page.getByText("This one stays yours, as your own version of it.").waitFor();
+  await page.getByRole("link", { name: "Open the global song" }).waitFor();
+  await page.close();
+});
+
 await step("a global admin publishes their own song directly", async () => {
   page = await pageFor(admin);
   await openSong(page, adminSong.id);
@@ -149,7 +161,7 @@ await step("a global admin publishes their own song directly", async () => {
   const dialog = page.getByRole("dialog");
   await dialog.getByText("without a review").waitFor();
   await dialog.getByRole("button", { name: "Publish now" }).click();
-  await page.getByText("This song is in the global catalogue.").waitFor();
+  await page.getByText("In the catalogue, from Pub web admin").waitFor();
 });
 
 await step("the page fits a phone", async () => {

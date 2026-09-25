@@ -95,4 +95,8 @@ Stems kept on your device for offline use (**Include audio**, see [Working offli
 
 ## Submitting to the global catalogue
 
-The **Global catalogue** card on your own song offers it to everyone. **Submit for review**, optionally with a note for the reviewer; copyright and CCLI details help but aren't required. A reviewer then publishes it, asks for changes, or declines it, and you see where it stands on the same card. Your own song stays yours either way.
+The **Global catalogue** card on your own song (or a team song you administer) offers it to everyone. **Submit for review**, optionally with a note for the reviewer; copyright and CCLI details help but aren't required. A reviewer then publishes it, asks for changes, or declines it, and you see where it stands on the same card.
+
+Once published, the song itself moves to the catalogue - there's no second copy. Your library lists it once, marked **Published by you**, and its page says who it came from. Its chart and details (its notes too) are now everyone's, and only admins change them; its [history](/song-editor/#history) goes on. What was yours stays yours: your files keep to you (or the team you shared them with - see [Who sees a file](/library/#who-sees-a-file)), your arrangements stay yours, and so do your own tags.
+
+If a reviewer finds the song is already in the catalogue, they merge it into that one: yours then stays yours, as your own version of the catalogue song, grouped with it.

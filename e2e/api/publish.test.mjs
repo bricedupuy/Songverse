@@ -1,7 +1,8 @@
 // Publishing to the global catalogue: submitting, the review queue, the
-// reviewer role, approving (copy + link), merging, sending back, rejecting,
-// withdrawing, and global admins publishing directly.
-import { stamp, sql, check, user, call, api, finish } from "../lib/harness.mjs";
+// reviewer role, approving (the song itself moves to the catalogue, issue
+// #73), merging, sending back, rejecting, withdrawing, and global admins
+// publishing directly.
+import { API, stamp, sql, check, user, call, api, finish } from "../lib/harness.mjs";
 
 const admin = await user("Pub admin");
 sql(`update "User" set "isGlobalAdmin"=true where id='${admin.id}'`);
@@ -47,6 +48,22 @@ r = await call(alice, "POST", `/song-versions/${song.id}/submissions`, {});
 check("can't submit twice while one is open", r.status === 409, String(r.status));
 check("the song shows as submitted", (await api(alice, "GET", `/song-versions/${song.id}`)).publicationState === "SUBMITTED");
 
+// Alice's own layer on it: a file everyone who could see the song saw (only her), one kept private, an arrangement, a personal tag.
+const upload = async (name, visibility) => {
+  const form = new FormData();
+  form.append("type", "PDF");
+  form.append("visibility", visibility);
+  form.append("file", new Blob([`%PDF-1.4 ${name} ${stamp}`], { type: "application/pdf" }), name);
+  return (await fetch(`${API}/song-versions/${song.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${alice.bearer}` }, body: form })).json();
+};
+const shownFile = await upload("lead-sheet.pdf", "SONG");
+await upload("my-take.pdf", "PRIVATE");
+const arrangement = await api(alice, "POST", `/song-versions/${song.id}/arrangements`, { name: "Alice's way" });
+const categoryId = sql(`select "categoryId" from "Tag" where id='${globalTag}'`);
+sql(`insert into "Tag" (id, "categoryId", slug, label, scope, "ownerUserId", "updatedAt") values ('ptag${stamp}', '${categoryId}', 'alice-${stamp}', 'Alice only', 'USER', '${alice.id}', now())`);
+sql(`insert into "SongVersionTag" (id, "songVersionId", "tagId") values ('pvt${stamp}', '${song.id}', 'ptag${stamp}')`);
+const historyBefore = (await api(alice, "GET", `/song-versions/${song.id}/history`)).length;
+
 // --- reviewing
 r = await call(reviewer, "GET", "/submissions");
 check("it's in the queue", r.status === 200 && r.body.some((s) => s.id === sub1 && s.song.title === title && s.submitter.id === alice.id), JSON.stringify(r.body).slice(0, 300));
@@ -67,30 +84,42 @@ r = await call(alice, "POST", `/submissions/${sub1}/resubmit`, { message: "Bridg
 check("resubmit", r.status === 201 && r.body.state === "SUBMITTED" && r.body.submitterMessage === "Bridge added", JSON.stringify(r.body).slice(0, 200));
 check("it's mine", (await api(alice, "GET", "/submissions/mine")).some((s) => s.id === sub1));
 
-// --- approving: a global copy, linked
+// --- approving: the song itself moves to the catalogue
 r = await call(reviewer, "POST", `/submissions/${sub1}/approve`, { trustLabel: "Checked by the team" });
-check("approve", r.status === 201 && r.body.state === "APPROVED" && !!r.body.publishedVersionId, JSON.stringify(r.body).slice(0, 200));
-const globalId = r.body.publishedVersionId;
-check("the copy isn't the original", globalId !== song.id);
-const copy = await api(bob, "GET", `/song-versions/${globalId}`);
+check("approve", r.status === 201 && r.body.state === "APPROVED" && r.body.publishedVersionId === song.id, JSON.stringify(r.body).slice(0, 200));
+const globalId = song.id;
+const published = await api(bob, "GET", `/song-versions/${globalId}`);
 check(
-  "anyone sees the global copy, with the chart, credits and global tag",
-  copy.ownerScope === "GLOBAL" &&
-    copy.publicationState === "APPROVED" &&
-    copy.title === title &&
-    copy.documentJson.sections.length === 1 &&
-    copy.contributors.map((c) => c.source).join("|") === "Alice Band|Alice Writer" &&
-    copy.tags.some((t) => t.id === globalTag),
-  JSON.stringify({ scope: copy.ownerScope, state: copy.publicationState, contributors: copy.contributors?.map((c) => c.source), tags: copy.tags?.length }),
+  "anyone sees it, with its chart, credits and global tag, credited to Alice",
+  published.ownerScope === "GLOBAL" &&
+    published.ownerUserId === null &&
+    published.publicationState === "APPROVED" &&
+    published.title === title &&
+    published.documentJson.sections.length === 1 &&
+    published.contributors.map((c) => c.source).join("|") === "Alice Band|Alice Writer" &&
+    published.contributedBy?.id === alice.id &&
+    published.tags.some((t) => t.id === globalTag),
+  JSON.stringify({ scope: published.ownerScope, state: published.publicationState, by: published.contributedBy, tags: published.tags?.length }),
 );
-check("personal notes stay with the original", copy.notes === null, String(copy.notes));
 check("with the trust label", sql(`select "trustLabel" from "SongVersion" where id='${globalId}'`) === "Checked by the team");
-r = await call(alice, "GET", `/song-versions/${song.id}/publication`);
-check("the original links to the copy", r.body.published?.id === globalId && r.body.canSubmit === false, JSON.stringify(r.body.published));
-check("the original is still Alice's", (await api(alice, "GET", `/song-versions/${song.id}`)).ownerScope === "USER");
+check("one song: no copy", Number(sql(`select count(*) from "SongVersion" where lower(title)=lower('${title}')`)) === 1);
+check("Alice's own tag stays hers", !published.tags.some((t) => t.id === `ptag${stamp}`) && (await api(alice, "GET", `/song-versions/${globalId}`)).tags.some((t) => t.id === `ptag${stamp}`));
+const aliceFiles = await api(alice, "GET", `/song-versions/${globalId}/attachments`);
+check(
+  "her files are still there for her, now only hers",
+  aliceFiles.length === 2 && aliceFiles.every((f) => f.visibility === "PRIVATE") && aliceFiles.some((f) => f.id === shownFile.id),
+  JSON.stringify(aliceFiles.map((f) => [f.filename, f.visibility])),
+);
+check("nobody else sees them", (await api(bob, "GET", `/song-versions/${globalId}/attachments`)).length === 0);
+check("her arrangement stays, hers", (await api(alice, "GET", `/arrangements/${arrangement.id}`)).songVersionId === globalId);
+check("its history goes on", (await api(bob, "GET", `/song-versions/${globalId}/history`)).length === historyBefore);
+r = await call(alice, "PATCH", `/song-versions/${globalId}`, { title: "Mine again" });
+check("Alice no longer edits it herself", r.status === 403, String(r.status));
+r = await call(alice, "GET", `/song-versions?q=${encodeURIComponent(title)}`);
+check("her library lists it once", r.body.items.filter((s) => s.title === title).length === 1 && r.body.items[0].contributedBy?.id === alice.id);
 check("audit trail", Number(sql(`select count(*) from "AuditEvent" where "entityId" in ('${sub1}','${globalId}')`)) >= 4);
 r = await call(alice, "POST", `/song-versions/${song.id}/submissions`, {});
-check("a published song can't be submitted again", r.status === 409, String(r.status));
+check("a published song can't be submitted again", r.status === 403 || r.status === 409, String(r.status));
 
 // --- duplicates: a reason, then merging into the existing song
 const bobSong = await api(bob, "POST", "/song-versions", { title: title.toUpperCase(), language: "en", artists: ["Alice Band"] });
@@ -105,8 +134,15 @@ r = await call(reviewer, "POST", `/submissions/${sub2}/merge`, { targetId: bobSo
 check("merging needs a global target", r.status === 400, String(r.status));
 r = await call(reviewer, "POST", `/submissions/${sub2}/merge`, { targetId: globalId, notes: "Same song" });
 check("merge into the existing song", r.status === 201 && r.body.state === "APPROVED" && r.body.mergeTargetId === globalId && r.body.publishedVersionId === globalId);
-check("no second copy", Number(sql(`select count(*) from "SongVersion" where "ownerScope"='GLOBAL' and lower(title)=lower('${title}')`)) === 1);
-check("bob's song links to it", (await api(bob, "GET", `/song-versions/${bobSong.id}/publication`)).published?.id === globalId);
+check("no second catalogue song", Number(sql(`select count(*) from "SongVersion" where "ownerScope"='GLOBAL' and lower(title)=lower('${title}')`)) === 1);
+const bobsNow = await api(bob, "GET", `/song-versions/${bobSong.id}`);
+check(
+  "bob's song stays his, as his own version of the catalogue one",
+  bobsNow.ownerScope === "USER" && bobsNow.publicationState === "DRAFT" && bobsNow.parentVersion?.id === globalId && bobsNow.workId === published.workId,
+  JSON.stringify({ scope: bobsNow.ownerScope, state: bobsNow.publicationState, parent: bobsNow.parentVersion, work: bobsNow.workId === published.workId }),
+);
+r = await call(bob, "GET", `/song-versions/${bobSong.id}/publication`);
+check("and says which song it was merged into", r.body.published?.id === globalId && r.body.canSubmit === false, JSON.stringify(r.body.published));
 
 // --- rejecting, withdrawing, reviewing your own
 const other = await api(bob, "POST", "/song-versions", { title: `Reject Me ${stamp}`, language: "en", artists: ["Bob"] });
@@ -145,9 +181,10 @@ check("removing the role closes the queue", r.status === 403, String(r.status));
 // --- deleting a song with submissions, or the global copy
 r = await call(bob, "DELETE", `/song-versions/${other.id}`);
 check("a song with submissions can be deleted", r.status === 204, String(r.status));
-r = await call(admin, "DELETE", `/song-versions/${globalId}`);
-check("a global song with linked copies can be deleted", r.status === 204, String(r.status));
-check("the link goes with it", (await api(alice, "GET", `/song-versions/${song.id}/publication`)).published === null);
+const adminPublished = sql(`select "publishedVersionId" from "Submission" where "songVersionId"='${adminSong.id}'`);
+check("published in place", adminPublished === adminSong.id);
+r = await call(admin, "DELETE", `/song-versions/${adminSong.id}`);
+check("a global song can be deleted", r.status === 204, String(r.status));
 
 // --- accounts: a transfer moves open submissions with the songs; deleting works
 const carol = await user("Pub carol");

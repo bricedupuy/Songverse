@@ -95,4 +95,8 @@ Les pistes gardées sur votre appareil pour le hors ligne (**Avec l'audio**, voi
 
 ## Proposer au catalogue global
 
-La carte **Catalogue global** de votre chant le propose à tout le monde. **Proposer à la relecture**, avec une note pour le relecteur si vous le souhaitez ; le copyright et le numéro CCLI aident mais ne sont pas obligatoires. Un relecteur le publie, demande des modifications ou le refuse, et vous suivez où il en est sur la même carte. Votre chant reste à vous dans tous les cas.
+La carte **Catalogue global** de votre chant (ou d'un chant d'équipe que vous administrez) le propose à tout le monde. **Proposer à la relecture**, avec une note pour le relecteur si vous le souhaitez ; le copyright et le numéro CCLI aident mais ne sont pas obligatoires. Un relecteur le publie, demande des modifications ou le refuse, et vous suivez où il en est sur la même carte.
+
+Une fois publié, le chant lui-même passe au catalogue - il n'y a pas de seconde copie. Votre bibliothèque le liste une seule fois, marqué **Publié par vous**, et sa page dit de qui il vient. Sa grille et ses détails (ses notes aussi) sont désormais à tout le monde, et seuls les administrateurs les modifient ; son [historique](/fr/song-editor/#historique) continue. Ce qui était à vous le reste : vos fichiers restent à vous (ou à l'équipe avec qui vous les avez partagés - voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), vos arrangements restent les vôtres, tout comme vos propres étiquettes.
+
+Si un relecteur trouve que le chant est déjà dans le catalogue, il le fusionne avec celui-ci : le vôtre reste alors à vous, comme votre propre version du chant du catalogue, regroupée avec lui.

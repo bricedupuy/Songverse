@@ -1,5 +1,5 @@
 import type { CatalogueMatch, SongPublication, Submission } from "@songverse/core";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmButton } from "#/components/confirm-button";
@@ -20,6 +20,7 @@ const errorText = (err: unknown) => (err instanceof Error ? err.message : String
  */
 export function PublishCard({ songVersionId }: { songVersionId: string }) {
   const { t } = useTranslation();
+  const router = useRouter();
   const [publication, setPublication] = useState<SongPublication | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -64,7 +65,8 @@ export function PublishCard({ songVersionId }: { songVersionId: string }) {
       <CardContent className="flex flex-col gap-3">
         {published ? (
           <>
-            <p className="text-sm">{t("publish.published")}</p>
+            {/* Merged into a catalogue song it duplicates: this one stays the user's own version of it (issue #73). */}
+            <p className="text-sm">{t(submission?.mergeTargetId ? "publish.mergedOwnVersion" : "publish.published")}</p>
             <Button asChild variant="outline" size="sm" className="self-start">
               <Link to="/library/$songVersionId" params={{ songVersionId: published.id }}>
                 {t("publish.openGlobal")}
@@ -118,9 +120,14 @@ export function PublishCard({ songVersionId }: { songVersionId: string }) {
         matches={publication.matches}
         canPublishDirectly={publication.canPublishDirectly}
         onSubmit={async (data, direct) => {
-          if (direct) await apiClient.publishSong(songVersionId, { duplicateReason: data.duplicateReason });
-          else await apiClient.submitSong(songVersionId, data);
           setDialogOpen(false);
+          if (direct) {
+            // The song itself is now in the catalogue (issue #73): the page shows it as such.
+            await apiClient.publishSong(songVersionId, { duplicateReason: data.duplicateReason });
+            await router.invalidate();
+            return;
+          }
+          await apiClient.submitSong(songVersionId, data);
           await load();
         }}
       />

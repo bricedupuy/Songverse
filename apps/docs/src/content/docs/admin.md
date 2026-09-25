@@ -7,8 +7,8 @@ description: Reviewing songs for the global catalogue, and running a SongVerse s
 
 A reviewer (or a global admin) checks songs submitted to the global catalogue. The **Review** page lists what's waiting. For each song you can:
 
-- **Approve and publish** it, optionally with a trust label shown on the global song ("Official publisher text");
-- **Merge into** a similar song already in the catalogue;
+- **Approve and publish** it, optionally with a trust label shown on the global song ("Official publisher text"). The song itself moves to the catalogue, credited to whoever it came from; their files stay theirs;
+- **Merge into** a similar song already in the catalogue: theirs then stays theirs, as their own version of it;
 - **Ask for changes**, or **Reject** it, with a note for the submitter.
 
 You can't review your own submissions. Global admins can also **Publish now** their own songs without a review.

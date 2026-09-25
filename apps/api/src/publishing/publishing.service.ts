@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { foldForSearch, readSongDocument } from "@songverse/core";
+import { foldForSearch } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
 import { AccessPolicyService, OPEN_SUBMISSION_STATES } from "../access/access-policy.service";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -67,11 +67,16 @@ const fold = (text: string) => foldForSearch(text).trim().replace(/\s+/g, " ");
  *
  * Anyone who can edit a song can submit it; reviewers (and global admins)
  * approve it, send it back for changes, reject it, or merge it into a
- * global song it duplicates. Approving copies the song into the catalogue
- * and links the original to the copy (an UpstreamLink), so the submitter
- * keeps their own song to change as they like. Global admins can also
- * publish a song straight away - only when they choose to, never
- * automatically. Copyright and CCLI details aren't required.
+ * global song it duplicates. Approving moves the song itself into the
+ * catalogue (issue #73), as handing it to a team does: one song, with its
+ * history, files, arrangements and notes, crediting who contributed it.
+ * What was personal stays so (see promoteToGlobal). Merging keeps the
+ * submitter's song as their own version of the catalogue one. Global
+ * admins can also publish a song straight away - only when they choose
+ * to, never automatically. Copyright and CCLI details aren't required.
+ *
+ * Songs published before #73 were copied: their original is linked to the
+ * copy by an UpstreamLink.
  */
 @Injectable()
 export class PublishingService {
@@ -83,7 +88,7 @@ export class PublishingService {
   /** What the song page shows: the latest submission, the global song it's linked to, and look-alikes. */
   async status(user: AuthenticatedUser, songVersionId: string) {
     const song = await this.editableSong(user, songVersionId);
-    const [latest, link, matches] = await Promise.all([
+    const [latest, link, merged, matches] = await Promise.all([
       this.prisma.client.submission.findFirst({
         where: { songVersionId },
         orderBy: { createdAt: "desc" },
@@ -93,14 +98,16 @@ export class PublishingService {
         where: { localVersionId: songVersionId },
         select: { globalVersion: { select: { id: true, title: true } } },
       }),
+      this.mergedInto(songVersionId),
       song.ownerScope === "GLOBAL" ? Promise.resolve([]) : this.findMatches(songVersionId),
     ]);
+    const published = link?.globalVersion ?? merged;
     return {
       submission: latest ? toSubmission(latest) : null,
-      published: link?.globalVersion ?? null,
+      published,
       matches,
-      canSubmit: song.ownerScope !== "GLOBAL" && !link && !(latest && isOpen(latest.state)),
-      canPublishDirectly: user.isGlobalAdmin && song.ownerScope !== "GLOBAL" && !link && !(latest && isOpen(latest.state)),
+      canSubmit: song.ownerScope !== "GLOBAL" && !published && !(latest && isOpen(latest.state)),
+      canPublishDirectly: user.isGlobalAdmin && song.ownerScope !== "GLOBAL" && !published && !(latest && isOpen(latest.state)),
     };
   }
 
@@ -226,7 +233,11 @@ export class PublishingService {
     return this.findOneRow(submissionId);
   }
 
-  /** The song is already in the catalogue: link the submitter's song to that one instead of copying it. */
+  /**
+   * The song is already in the catalogue: the submitter's song stays
+   * theirs, as their own version of the catalogue one (in its Work, when
+   * it's alone in its own), rather than a second catalogue song.
+   */
   async merge(user: AuthenticatedUser, submissionId: string, input: { targetId: string; notes?: string }) {
     const submission = await this.reviewable(user, submissionId, ["SUBMITTED", "UNDER_REVIEW"]);
     await this.assertNotPublished(submission.songVersionId);
@@ -249,8 +260,7 @@ export class PublishingService {
           publishedVersionId: input.targetId,
         },
       });
-      await tx.upstreamLink.create({ data: { localVersionId: submission.songVersionId, globalVersionId: input.targetId, lastSyncedAt: new Date() } });
-      await tx.songVersion.update({ where: { id: submission.songVersionId }, data: { publicationState: "APPROVED" } });
+      await joinAsOwnVersion(tx, submission.songVersionId, input.targetId);
       await audit(tx, "APPROVED", submissionId, user.id, submission.songVersionId, { mergedInto: input.targetId });
     });
     return this.findOneRow(submissionId);
@@ -278,10 +288,10 @@ export class PublishingService {
     return this.findOneRow(submissionId);
   }
 
-  /** Copies the song into the catalogue, links the original to the copy and closes the submission. */
+  /** Moves the song into the catalogue and closes the submission. */
   private async approveIn(tx: Tx, user: AuthenticatedUser, submissionId: string, songVersionId: string, input: { notes?: string; trustLabel?: string }) {
-    const copyId = await copyToGlobal(tx, songVersionId, input.trustLabel?.trim() || null);
-    await tx.upstreamLink.create({ data: { localVersionId: songVersionId, globalVersionId: copyId, lastSyncedAt: new Date() } });
+    const { submitterId } = await tx.submission.findUniqueOrThrow({ where: { id: submissionId }, select: { submitterId: true } });
+    await promoteToGlobal(tx, songVersionId, input.trustLabel?.trim() || null, submitterId);
     await tx.submission.update({
       where: { id: submissionId },
       data: {
@@ -289,13 +299,12 @@ export class PublishingService {
         reviewerId: user.id,
         reviewedAt: new Date(),
         reviewNotes: input.notes?.trim() || null,
-        publishedVersionId: copyId,
+        publishedVersionId: songVersionId,
       },
     });
-    await tx.songVersion.update({ where: { id: songVersionId }, data: { publicationState: "APPROVED" } });
     await audit(tx, "APPROVED", submissionId, user.id, songVersionId);
     await tx.auditEvent.create({
-      data: { action: "PROMOTED_TO_GLOBAL", entityType: "SongVersion", entityId: copyId, actorUserId: user.id, songVersionId: copyId, metadata: { from: songVersionId, submissionId } },
+      data: { action: "PROMOTED_TO_GLOBAL", entityType: "SongVersion", entityId: songVersionId, actorUserId: user.id, songVersionId, metadata: { submissionId } },
     });
   }
 
@@ -358,8 +367,22 @@ export class PublishingService {
   }
 
   private async assertNotPublished(songVersionId: string) {
-    const link = await this.prisma.client.upstreamLink.count({ where: { localVersionId: songVersionId } });
-    if (link > 0) throw new ConflictException("This song is already in the global catalogue");
+    const [song, link, merged] = await Promise.all([
+      this.prisma.client.songVersion.findUnique({ where: { id: songVersionId }, select: { ownerScope: true } }),
+      this.prisma.client.upstreamLink.count({ where: { localVersionId: songVersionId } }),
+      this.mergedInto(songVersionId),
+    ]);
+    if (song?.ownerScope === "GLOBAL" || link > 0 || merged) throw new ConflictException("This song is already in the global catalogue");
+  }
+
+  /** The catalogue song an approved submission merged this one into, if any. */
+  private async mergedInto(songVersionId: string) {
+    const merged = await this.prisma.client.submission.findFirst({
+      where: { songVersionId, state: "APPROVED", mergeTargetId: { not: null } },
+      orderBy: { reviewedAt: "desc" },
+      select: { publishedVersion: { select: { id: true, title: true } } },
+    });
+    return merged?.publishedVersion ?? null;
   }
 
   private async editableSong(user: AuthenticatedUser, songVersionId: string) {
@@ -431,59 +454,55 @@ function audit(
 }
 
 /**
- * A global, approved copy of the song in a Work of its own: its fields,
- * chart, credits, links and global tags. Personal notes, the user's own
- * tags and files stay with the original.
+ * Moves the song into the catalogue, in place (issue #73): same row, so its
+ * history, files, arrangements, notes, sets and songbooks follow. Credited
+ * to its owner (or, for a team's song, the team and who submitted it).
+ *
+ * What only its owner or team saw stays so: files everyone who could see
+ * the song saw go to its owner only (a personal song) or its team, and
+ * their uploaders decide from there (#72); personal and team tags stay,
+ * shown only to their owners. A request to hand it to a team lapses.
  */
-async function copyToGlobal(tx: Tx, sourceId: string, trustLabel: string | null): Promise<string> {
-  const source = await tx.songVersion.findUniqueOrThrow({
-    where: { id: sourceId },
-    select: {
-      title: true,
-      alternateTitle: true,
-      versionName: true,
-      sortTitle: true,
-      language: true,
-      copyright: true,
-      copyrightYear: true,
-      publisher: true,
-      album: true,
-      year: true,
-      isrc: true,
-      reference: true,
-      ccli: true,
-      capo: true,
-      documentJson: true,
-      contributors: { select: { userId: true, source: true, roles: true, displayOrder: true } },
-      versionTags: { where: { tag: { scope: "GLOBAL", isApproved: true } }, select: { tagId: true } },
-      identifiers: { select: { type: true, value: true, sourceUrl: true, verifiedAt: true, note: true, details: true } },
-    },
+async function promoteToGlobal(tx: Tx, songVersionId: string, trustLabel: string | null, submitterId: string): Promise<void> {
+  const song = await tx.songVersion.findUniqueOrThrow({
+    where: { id: songVersionId },
+    select: { ownerScope: true, ownerUserId: true, ownerTeamId: true },
   });
-  const { contributors, versionTags, identifiers, documentJson, ...fields } = source;
-  const work = await tx.work.create({ data: {} });
-  const copy = await tx.songVersion.create({
+  if (song.ownerScope === "TEAM" && song.ownerTeamId) {
+    await tx.attachment.updateMany({ where: { songVersionId, visibility: "SONG" }, data: { visibility: "TEAM", visibleToTeamId: song.ownerTeamId } });
+  } else {
+    await tx.attachment.updateMany({ where: { songVersionId, visibility: "SONG", uploadedByUserId: null }, data: { uploadedByUserId: song.ownerUserId } });
+    await tx.attachment.updateMany({ where: { songVersionId, visibility: "SONG" }, data: { visibility: "PRIVATE" } });
+  }
+  await tx.songOwnershipRequest.updateMany({ where: { songVersionId, status: "PENDING" }, data: { status: "DECLINED", decidedAt: new Date() } });
+  await tx.songVersion.update({
+    where: { id: songVersionId },
     data: {
-      ...fields,
-      // A new song: its own revision history starts again.
-      documentJson: { ...readSongDocument(documentJson), revision: 1 } as Prisma.InputJsonValue,
-      trustLabel,
-      workId: work.id,
       ownerScope: "GLOBAL",
+      ownerUserId: null,
+      ownerTeamId: null,
       publicationState: "APPROVED",
+      trustLabel,
+      contributedByUserId: song.ownerScope === "USER" ? song.ownerUserId : submitterId,
+      contributedByTeamId: song.ownerScope === "TEAM" ? song.ownerTeamId : null,
     },
-    select: { id: true },
   });
-  await tx.work.update({ where: { id: work.id }, data: { preferredOriginalVersionId: copy.id } });
-  if (contributors.length) {
-    await tx.versionContributor.createMany({ data: contributors.map((c) => ({ ...c, songVersionId: copy.id })) });
-  }
-  if (versionTags.length) {
-    await tx.songVersionTag.createMany({ data: versionTags.map((t) => ({ tagId: t.tagId, songVersionId: copy.id })) });
-  }
-  if (identifiers.length) {
-    await tx.songVersionIdentifier.createMany({
-      data: identifiers.map(({ details, ...i }) => ({ ...i, songVersionId: copy.id, ...(details !== null && { details: details as Prisma.InputJsonValue }) })),
-    });
-  }
-  return copy.id;
+}
+
+/**
+ * A submitted song merged into a catalogue song it duplicates: it stays
+ * its owner's, as their own version of that song - in the catalogue
+ * song's Work when it was alone in its own, and back to a draft.
+ */
+async function joinAsOwnVersion(tx: Tx, songVersionId: string, targetId: string): Promise<void> {
+  const [song, target] = await Promise.all([
+    tx.songVersion.findUniqueOrThrow({ where: { id: songVersionId }, select: { workId: true } }),
+    tx.songVersion.findUniqueOrThrow({ where: { id: targetId }, select: { workId: true } }),
+  ]);
+  const alone = song.workId !== target.workId && (await tx.songVersion.count({ where: { workId: song.workId } })) === 1;
+  await tx.songVersion.update({
+    where: { id: songVersionId },
+    data: { publicationState: "DRAFT", parentVersionId: targetId, relationshipType: "ALTERNATE_VERSION", ...(alone && { workId: target.workId }) },
+  });
+  if (alone) await tx.work.deleteMany({ where: { id: song.workId, versions: { none: {} } } });
 }

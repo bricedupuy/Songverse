@@ -34,7 +34,7 @@ function sortableHeader(label: string) {
   };
 }
 
-export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
+export function useLibraryColumns(currentUserId: string): ColumnDef<SongVersionSummary>[] {
   const { t, i18n } = useTranslation();
   const locale = i18n.language as LocaleValue;
 
@@ -69,7 +69,7 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
         accessorKey: "publicationState",
         meta: { secondary: true },
         header: sortableHeader(t("library.columnStatus")),
-        cell: ({ row }) => <span className="text-muted-foreground">{statusLabel(row.original, t)}</span>,
+        cell: ({ row }) => <span className="text-muted-foreground">{statusLabel(row.original, t, currentUserId)}</span>,
       },
       {
         id: "tags",
@@ -88,16 +88,18 @@ export function useLibraryColumns(): ColumnDef<SongVersionSummary>[] {
         ),
       },
     ],
-    [t, locale],
+    [t, locale, currentUserId],
   );
 }
 
 /**
  * Where a song stands, readably (issue #46): one never offered to the
  * catalogue is simply the user's or their team's; after that, where its
- * submission is, in the publish card's words.
+ * submission is, in the publish card's words; a catalogue song the user
+ * put there is theirs still (issue #73).
  */
-function statusLabel(version: Pick<SongVersionSummary, "publicationState" | "ownerScope">, t: TFunction): string {
+function statusLabel(version: Pick<SongVersionSummary, "publicationState" | "ownerScope" | "contributedBy">, t: TFunction, currentUserId: string): string {
+  if (version.ownerScope === "GLOBAL" && version.contributedBy?.id === currentUserId) return t("library.statusPublishedByYou");
   switch (version.publicationState) {
     case "DRAFT":
       return version.ownerScope === "USER" ? t("library.statusPersonal") : version.ownerScope === "TEAM" ? t("library.statusTeam") : t("library.statusDraft");

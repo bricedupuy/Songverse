@@ -74,7 +74,8 @@ function LibraryIndex() {
   const { songs, tags } = Route.useLoaderData();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const columns = useLibraryColumns();
+  const { session } = Route.useRouteContext();
+  const columns = useLibraryColumns(session.userId);
   const [query, setQuery] = useState(search.q ?? "");
   // Following the address (a smart list opened from the sidebar, say).
   useEffect(() => setQuery(search.q ?? ""), [search.q]);

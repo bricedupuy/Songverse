@@ -260,6 +260,9 @@ const LIST_SELECT = {
   ccli: true,
   createdAt: true,
   updatedAt: true,
+  // Who put it in the catalogue (issue #73).
+  contributedBy: { select: { id: true, displayName: true } },
+  contributedByTeam: { select: { id: true, name: true } },
   // Just the artist(s) — enough for the library list to show "Title —
   // Artist" without pulling in the full contributor list (composer,
   // lyricist, etc.), which only the detail page needs.
@@ -271,7 +274,7 @@ const LIST_SELECT = {
   versionTags: {
     select: {
       id: true,
-      tag: { select: { id: true, categoryId: true, slug: true, label: true, translations: true } },
+      tag: { select: { id: true, categoryId: true, slug: true, label: true, translations: true, scope: true, ownerUserId: true, ownerTeamId: true } },
     },
   },
 } satisfies Prisma.SongVersionSelect;
@@ -326,14 +329,23 @@ type ListItem = Omit<ListRow, "contributors" | "versionTags"> & {
   tags: ListRow["versionTags"][number]["tag"][];
 };
 
+type TagRow = ListRow["versionTags"][number]["tag"];
+/** Which of a song's tags a viewer sees: global ones, their own and their teams' (a catalogue song keeps its contributor's, #73). */
+type SeesTag = (tag: Pick<TagRow, "scope" | "ownerUserId" | "ownerTeamId">) => boolean;
+const ALL_TAGS: SeesTag = () => true;
+
+function tagsVisibleWhere(userId: string, teamIds: string[]): Prisma.TagWhereInput {
+  return { OR: [{ scope: "GLOBAL" }, { scope: "USER", ownerUserId: userId }, { scope: "TEAM", ownerTeamId: { in: teamIds } }] };
+}
+
 // The Prisma relations are named `contributors`/`versionTags` no matter
 // how they're filtered; renamed here (`artists`, `tags`) so the
 // (performer-only) list/create payload and the (all-roles) detail payload
 // don't share a field name that means two different things, and so the
 // join row (versionTags' own `id`, not useful to the client) doesn't leak
 // into what's otherwise just a list of tags.
-function toListItem({ contributors, versionTags, ...rest }: ListRow): ListItem {
-  return { ...rest, artists: contributors, tags: versionTags.map((vt) => vt.tag) };
+function toListItem({ contributors, versionTags, ...rest }: ListRow, seesTag: SeesTag = ALL_TAGS): ListItem {
+  return { ...rest, artists: contributors, tags: versionTags.map((vt) => vt.tag).filter(seesTag) };
 }
 
 type DetailRow = Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>;
@@ -346,13 +358,13 @@ type DetailItem = Omit<DetailRow, "versionTags" | "documentJson"> & {
   canEdit: boolean;
 };
 
-function toDetailItem(version: DetailRow, canEdit: boolean): DetailItem {
+function toDetailItem(version: DetailRow, canEdit: boolean, seesTag: SeesTag = ALL_TAGS): DetailItem {
   const { versionTags, documentJson, ...rest } = version;
   return {
     ...rest,
     documentJson: readSongDocument(documentJson),
     artists: version.contributors.filter((c) => c.roles.includes("PERFORMER")),
-    tags: versionTags.map((vt) => vt.tag),
+    tags: versionTags.map((vt) => vt.tag).filter(seesTag),
     canEdit,
   };
 }
@@ -431,7 +443,8 @@ export class SongVersionsService {
         take: pageSize,
       }),
     ]);
-    return { items: versions.map(toListItem), total, page, pageSize };
+    const seesTag = await this.seesTag(user);
+    return { items: versions.map((version) => toListItem(version, seesTag)), total, page, pageSize };
   }
 
   /**
@@ -494,7 +507,13 @@ export class SongVersionsService {
     });
     if (!version) throw new NotFoundException("Song version not found");
     if (!(await this.access.canSeeSong(user, version))) throw new ForbiddenException("Not visible to you");
-    return toDetailItem(version, await this.access.canEdit(user, version));
+    return toDetailItem(version, await this.access.canEdit(user, version), await this.seesTag(user));
+  }
+
+  /** The tags `user` sees on a song (see SeesTag). */
+  private async seesTag(user: AuthenticatedUser): Promise<SeesTag> {
+    const teams = new Set(await this.access.teamIds(user.id));
+    return (tag) => tag.scope === "GLOBAL" || (tag.scope === "USER" && tag.ownerUserId === user.id) || (tag.scope === "TEAM" && !!tag.ownerTeamId && teams.has(tag.ownerTeamId));
   }
 
   /**
@@ -912,13 +931,16 @@ export class SongVersionsService {
       await replaceCredits(tx, id, creditListsFrom(dto));
       if (dto.tagIds) {
         const tagIds = [...new Set(dto.tagIds)];
-        await tx.songVersionTag.deleteMany({ where: { songVersionId: id, tagId: { notIn: tagIds } } });
+        // Others' own tags on the song (a catalogue song's contributor's, #73) aren't this user's to remove.
+        await tx.songVersionTag.deleteMany({
+          where: { songVersionId: id, tagId: { notIn: tagIds }, tag: tagsVisibleWhere(user.id, await this.access.teamIds(user.id)) },
+        });
         await tx.songVersionTag.createMany({ data: tagIds.map((tagId) => ({ songVersionId: id, tagId })), skipDuplicates: true });
       }
       await this.history.record(tx, id, { kind: "EDITED", authorUserId: user.id, before });
       return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     });
-    return toDetailItem(version, true);
+    return toDetailItem(version, true, await this.seesTag(user));
   }
 
   /**
@@ -954,7 +976,7 @@ export class SongVersionsService {
       await this.history.record(tx, id, { kind: "RESTORED", authorUserId: user.id, before, restoredFromId: revisionId });
       return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     });
-    return toDetailItem(version, true);
+    return toDetailItem(version, true, await this.seesTag(user));
   }
 
   /**
