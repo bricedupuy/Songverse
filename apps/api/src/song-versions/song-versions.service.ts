@@ -400,7 +400,7 @@ export class SongVersionsService {
           ? [
               {
                 // searchText is the title, subtitle, version name and performers (kept by the database; see the schema).
-                OR: [{ searchText: { contains: q, mode: "insensitive" as const } }, { ccli: q }],
+                OR: [{ searchText: { contains: await this.unaccent(q), mode: "insensitive" as const } }, { ccli: q }],
               },
             ]
           : []),
@@ -438,6 +438,16 @@ export class SongVersionsService {
     return { songCount, artistCount: new Set(artists.map((a) => a.source!.trim().toLowerCase())).size };
   }
 
+  /**
+   * `text` without accents, by the database's own unaccent() - the one that
+   * keeps searchText and sourceSearch - so a query and what it's matched
+   * against are folded the same way ("cœur" and "coeur" too) (issue #56).
+   */
+  private async unaccent(text: string): Promise<string> {
+    const [row] = await this.prisma.client.$queryRaw<{ folded: string }[]>`SELECT unaccent(${text}) AS folded`;
+    return row?.folded ?? text;
+  }
+
   async findOne(user: AuthenticatedUser, id: string): Promise<DetailItem> {
     const version = await this.prisma.client.songVersion.findUnique({
       where: { id },
@@ -460,18 +470,20 @@ export class SongVersionsService {
     // Counted in the database, per name and roles: the most credited names
     // containing the query, and separately those starting with it (so a
     // rarer name that starts with it isn't pushed out by commoner ones).
-    const credited = (source: Prisma.StringNullableFilter<"VersionContributor">) =>
+    const credited = (sourceSearch: Prisma.StringNullableFilter<"VersionContributor">) =>
       this.prisma.client.versionContributor.groupBy({
         by: ["source", "roles"],
-        where: { source, songVersion },
+        // Ignoring accents too (issue #56): sourceSearch is the name without them.
+        where: { source: { not: null }, sourceSearch, songVersion },
         _count: { _all: true },
         orderBy: { _count: { source: "desc" } },
         take: 50,
       });
+    const folded = q ? await this.unaccent(q) : "";
     const groups = (
       await Promise.all([
-        q ? credited({ startsWith: q, mode: "insensitive" }) : [],
-        credited(q ? { contains: q, mode: "insensitive" } : { not: null }),
+        folded ? credited({ startsWith: folded, mode: "insensitive" }) : [],
+        credited(folded ? { contains: folded, mode: "insensitive" } : { not: null }),
       ])
     ).flat();
     const byName = new Map<string, CreditSuggestion>();

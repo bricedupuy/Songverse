@@ -32,7 +32,7 @@ Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your
 
 ## Search
 
-The search box at the top of every page - a magnifying glass on a phone - finds anything: **Songs** (by title, subtitle, version, artist or CCLI number), **Sets**, **Songbooks** and **Teams**, grouped by kind. **Ctrl K** (**⌘ K** on a Mac) opens it from anywhere. The arrow keys move through the results, **Enter** opens one and **Esc** closes it. Empty, it lists the sets coming up.
+The search box at the top of every page - a magnifying glass on a phone - finds anything: **Songs** (by title, subtitle, version, artist or CCLI number), **Sets**, **Songbooks** and **Teams**, grouped by kind, ignoring case and accents ("elevation" finds "Élévation"). **Ctrl K** (**⌘ K** on a Mac) opens it from anywhere. The arrow keys move through the results, **Enter** opens one and **Esc** closes it. Empty, it lists the sets coming up.
 
 A songbook number finds its entry: type the songbook's abbreviation or part of its name and the number - **HY 42**, **HY42**, **Hymns 42** - or just **42** for that number in every songbook. Entries come first, under **In songbooks**.
 
