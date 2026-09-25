@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { readSongDocument } from "@songverse/core";
+import { computeSectionLabel, formatSongbookReference, readSongDocument, type SongbookSection } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { AccessPolicyService } from "../access/access-policy.service";
 import { PrismaService } from "../prisma/prisma.service";
 import type {
   AddSetlistItemDto,
@@ -53,6 +54,7 @@ export class SetlistsService {
     private readonly prisma: PrismaService,
     private readonly sets: SetlistAccessService,
     private readonly arrangements: ArrangementsService,
+    private readonly policy: AccessPolicyService,
   ) {}
 
   async list(user: AuthenticatedUser) {
@@ -148,6 +150,26 @@ export class SetlistsService {
       : [];
     const pendingBySong = new Map(pending.map((request) => [request.songVersionId, request.id]));
 
+    // Where each song is in the viewer's numbered songbooks: "JEM 855 · JEM3" (issue #55).
+    const songbookEntries = await this.prisma.client.songbookEntry.findMany({
+      where: {
+        songVersionId: { in: set.items.map((item) => item.songVersionId) },
+        entryCode: { not: null },
+        songbook: await this.policy.songbooksVisibleTo(user),
+      },
+      select: { songVersionId: true, entryCode: true, songbook: { select: { name: true, abbreviation: true, sections: true } } },
+    });
+    const referencesBySong = new Map<string, string[]>();
+    for (const entry of songbookEntries) {
+      const reference = formatSongbookReference({
+        songbookName: entry.songbook.name,
+        abbreviation: entry.songbook.abbreviation,
+        entryCode: entry.entryCode,
+        sectionLabel: computeSectionLabel(entry.entryCode, entry.songbook.sections as SongbookSection[] | null),
+      });
+      referencesBySong.set(entry.songVersionId, [...(referencesBySong.get(entry.songVersionId) ?? []), reference].sort());
+    }
+
     return {
       ...summarize(set),
       itemCount: set.items.length,
@@ -171,6 +193,7 @@ export class SetlistsService {
           ownershipRequest: requestId ? { id: requestId, canDecide: song.ownerUserId === user.id } : null,
           // A team admin can ask for (or, owning it, hand over) a personal song shared into a team set.
           canRequestOwnership: access.canEdit && shown && sharedPersonalSong && !requestId,
+          songbookReferences: shown ? (referencesBySong.get(song.id) ?? []) : [],
           versions: siblingsByWork.get(song.workId) ?? [],
           // The arrangement it's played in (null: as written), and the others it could be.
           arrangement: shown && item.arrangement ? arrangementRef(item.arrangement) : null,

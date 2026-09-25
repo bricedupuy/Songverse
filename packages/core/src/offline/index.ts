@@ -155,6 +155,7 @@ export async function searchKeptEntries(storage: OfflineStorage, query: string, 
         songbookName: songbook.name,
         abbreviation: songbook.abbreviation,
         entryCode: entry.entryCode!,
+        sectionLabel: entry.sectionLabel ?? null,
         songVersionId: entry.songVersionId,
         title: entry.songVersionTitle ?? "",
       });

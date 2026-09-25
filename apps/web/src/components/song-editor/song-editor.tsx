@@ -374,7 +374,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             </Card>
           </fieldset>
         ) : null}
-        {edit ? <SongbooksCard memberships={edit.songbookMemberships} /> : null}
+        {edit ? <SongbooksCard memberships={edit.songbookMemberships} title={edit.version.title} /> : null}
         {edit && canEdit && edit.version.ownerScope !== "GLOBAL" ? <PublishCard songVersionId={edit.version.id} /> : null}
       </div>
     </div>

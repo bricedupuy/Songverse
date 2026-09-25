@@ -1025,6 +1025,8 @@ const fr: typeof en = {
     textProblem: "Ce texte ne peut pas encore être lu comme une grille.",
   },
   songEditor: {
+    copyReference: "Copier",
+    referenceCopied: "Copié",
     loadingEditor: "Chargement de l'éditeur…",
     createTitle: "Ajouter un chant",
     createDescription: "Un titre et un artiste suffisent ; le reste peut attendre.",

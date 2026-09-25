@@ -118,6 +118,18 @@ await step("a songbook number finds its entry, first; Enter opens the song", asy
   await page.waitForURL(`**/library/${unplanned.id}`);
 });
 
+await step("the song's page gives its songbook reference, to copy", async () => {
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"], { origin: WEB });
+  await page.goto(`${WEB}/library/${unplanned.id}`);
+  await page.waitForLoadState("networkidle");
+  const membership = page.getByTestId("songbook-membership").filter({ hasText: `Hymnal ${tag}` });
+  await membership.getByTestId("songbook-reference").getByText(`${abbr} 7`, { exact: true }).waitFor();
+  await membership.getByRole("button", { name: "Copy" }).click();
+  await membership.getByRole("button", { name: "Copied" }).waitFor();
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  if (copied !== `Called ${tag} — ${abbr} 7`) throw new Error(`copied ${JSON.stringify(copied)}`);
+});
+
 await step("in Live, a song that isn't in the set opens full screen, and × comes back", async () => {
   await page.goto(`${WEB}/sets/${set.id}/live/${item.id}`);
   await page.getByTestId("live-view").waitFor();

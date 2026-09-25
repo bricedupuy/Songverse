@@ -1,4 +1,4 @@
-import { onlineOrKept, searchKeptEntries, searchKeptSongs, songbookReferences, type SongbookEntryHit } from "@songverse/core";
+import { formatSongbookReference, onlineOrKept, searchKeptEntries, searchKeptSongs, songbookReferences, type SongbookEntryHit } from "@songverse/core";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
 import { BookOpen, Hash, ListMusic, Music, Search, Users, type LucideIcon } from "lucide-react";
@@ -171,7 +171,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
       ...entries.map((entry) => ({
         kind: "entries" as const,
         id: `${entry.songbookId}-${entry.entryCode}`,
-        label: `${entry.abbreviation ?? entry.songbookName} ${entry.entryCode} — ${entry.title}`,
+        label: `${formatSongbookReference(entry)} — ${entry.title}`,
         detail: entry.abbreviation ? entry.songbookName : null,
         open: go(() => void openSong(entry.songVersionId)),
       })),

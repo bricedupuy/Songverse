@@ -3,6 +3,7 @@
  * "42", "A-17", "Hymns FR-092" - the number people call out on stage. The
  * API and offline search read a query the same way.
  */
+import { normalizeEntryCode } from "../songbook-catalog-format/index.js";
 export interface SongbookReference {
   /** A songbook's abbreviation or part of its name; null for any songbook. */
   book: string | null;
@@ -45,7 +46,24 @@ export function songbookMatches(songbook: { name: string; abbreviation: string |
   return wanted.length >= 2 && fold(songbook.name).includes(wanted);
 }
 
-/** Whether an entry's code is the one asked for (case ignored). */
+/** Whether an entry's code is the one asked for (case and a plain number's leading zeros ignored: "42" is "042"). */
 export function entryCodeMatches(entryCode: string | null, code: string): boolean {
-  return entryCode !== null && entryCode.toLowerCase() === code.toLowerCase();
+  return entryCode !== null && normalizeEntryCode(entryCode).toLowerCase() === normalizeEntryCode(code).toLowerCase();
+}
+
+/**
+ * A song's place in a songbook, the way to tell someone without the app
+ * (issue #55): the songbook's abbreviation (or its name) and the number,
+ * and the printed volume when the songbook has sections - "JEM 855 · JEM3".
+ * An unnumbered songbook is just its name.
+ */
+export function formatSongbookReference(entry: {
+  songbookName: string;
+  abbreviation: string | null;
+  entryCode: string | null;
+  sectionLabel?: string | null;
+}): string {
+  if (!entry.entryCode) return entry.songbookName;
+  const reference = `${entry.abbreviation?.trim() || entry.songbookName} ${entry.entryCode}`;
+  return entry.sectionLabel ? `${reference} · ${entry.sectionLabel}` : reference;
 }

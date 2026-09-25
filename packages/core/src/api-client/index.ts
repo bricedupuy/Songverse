@@ -132,6 +132,8 @@ export interface SetlistItem {
   ownershipRequest: { id: string; canDecide: boolean } | null;
   /** A team admin can ask for this shared song (or, owning it, hand it over). */
   canRequestOwnership: boolean;
+  /** Where the song is in the viewer's numbered songbooks: "JEM 855 · JEM3" (issue #55). */
+  songbookReferences: string[];
   /** Versions of the same song this item can switch to (editors only). */
   versions: SetlistSongRef[];
   /** The arrangement it's played in (and the semitones it moves the song's key); null plays the song as written. */
@@ -200,6 +202,8 @@ export interface SongbookEntryHit {
   songbookName: string;
   abbreviation: string | null;
   entryCode: string;
+  /** The printed volume, when the songbook has sections. */
+  sectionLabel: string | null;
   songVersionId: string;
   title: string;
 }
@@ -623,8 +627,12 @@ export interface SongPage {
 export interface SongVersionSongbookMembership {
   songbookId: string;
   songbookName: string;
+  abbreviation: string | null;
   entryCode: string | null;
+  /** The printed volume the number falls in (the songbook's sections). */
   sectionLabel: string | null;
+  /** To give someone without the app: "JEM 855 · JEM3" (issue #55). */
+  reference: string;
 }
 
 export interface VersionContributor {

@@ -245,7 +245,9 @@ export function normalizeCatalogValue(field: CatalogFieldDef, raw: unknown): Nor
   // Notes keep their line breaks; everything else is one line. ISRCs are
   // stored compact and upper-case, however they were written.
   const text =
-    field.key === "notes"
+    field.key === "entryCode"
+      ? normalizeEntryCode(String(raw).replace(/\s+/g, " "))
+      : field.key === "notes"
       ? String(raw).trim().replace(/\r\n?/g, "\n")
       : field.key === "isrc"
         ? String(raw).replace(/[\s-]/g, "").toUpperCase()
@@ -543,6 +545,16 @@ export function splitNames(text: string | null | undefined): string[] {
   return names;
 }
 
+/**
+ * An entry number as stored (issue #55): a plain number without leading
+ * zeros ("0245" is "245", "000" is "0"); a code with letters ("A-17",
+ * "FR-092") as printed.
+ */
+export function normalizeEntryCode(code: string): string {
+  const trimmed = code.trim();
+  return /^\d+$/.test(trimmed) ? trimmed.replace(/^0+(?=\d)/, "") : trimmed;
+}
+
 /** Entry numbers in reading order: 2 before 10, "12a" after "12". */
 export function compareEntryCodes(a: string, b: string): number {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
@@ -556,9 +568,9 @@ export function compareEntryCodes(a: string, b: string): number {
 export function parseOriginalSongReference(text: string): { abbreviation: string | null; entryCode: string } | null {
   const value = text.trim();
   const spaced = /^(?:(.+?)[\s:#]+)?([A-Za-z]?\d+[A-Za-z]?)$/.exec(value);
-  if (spaced) return { abbreviation: spaced[1]?.trim() || null, entryCode: spaced[2]! };
+  if (spaced) return { abbreviation: spaced[1]?.trim() || null, entryCode: normalizeEntryCode(spaced[2]!) };
   const joined = /^([A-Za-z][A-Za-z&.'-]*)(\d+[A-Za-z]?)$/.exec(value);
-  if (joined) return { abbreviation: joined[1]!, entryCode: joined[2]! };
+  if (joined) return { abbreviation: joined[1]!, entryCode: normalizeEntryCode(joined[2]!) };
   return null;
 }
 

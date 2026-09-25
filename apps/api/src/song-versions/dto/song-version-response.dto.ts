@@ -19,6 +19,8 @@ export class SongVersionResponseDto {
 export class SongVersionSongbookMembershipDto {
   @ApiProperty() songbookId!: string;
   @ApiProperty() songbookName!: string;
+  @ApiProperty({ required: false, nullable: true }) abbreviation!: string | null;
   @ApiProperty({ required: false, nullable: true }) entryCode!: string | null;
-  @ApiProperty({ required: false, nullable: true }) sectionLabel!: string | null;
+  @ApiProperty({ required: false, nullable: true, description: "The printed volume the number falls in (the songbook's sections)" }) sectionLabel!: string | null;
+  @ApiProperty({ description: 'To give someone without the app: "JEM 855 · JEM3", or the songbook\'s name when unnumbered' }) reference!: string;
 }

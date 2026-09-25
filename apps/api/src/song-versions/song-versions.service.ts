@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   computeSectionLabel,
+  formatSongbookReference,
   MusicBrainzRecordingMatchSchema,
   detectImportFormat,
   flowItemId,
@@ -565,12 +566,19 @@ export class SongVersionsService {
       include: { songbook: true },
     });
 
-    return entries.map((entry) => ({
-        songbookId: entry.songbookId,
-        songbookName: entry.songbook.name,
-        entryCode: entry.entryCode,
-        sectionLabel: computeSectionLabel(entry.entryCode, entry.songbook.sections as SongbookSection[] | null),
-      }));
+    return entries
+      .map((entry) => {
+        const membership = {
+          songbookId: entry.songbookId,
+          songbookName: entry.songbook.name,
+          abbreviation: entry.songbook.abbreviation,
+          entryCode: entry.entryCode,
+          sectionLabel: computeSectionLabel(entry.entryCode, entry.songbook.sections as SongbookSection[] | null),
+        };
+        // "JEM 855 · JEM3": to give someone without the app (issue #55).
+        return { ...membership, reference: formatSongbookReference(membership) };
+      })
+      .sort((a, b) => a.songbookName.localeCompare(b.songbookName));
   }
 
   /**

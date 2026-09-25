@@ -1,7 +1,9 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
+  compareEntryCodes,
   computeSectionLabel,
   entryCodeMatches,
+  normalizeEntryCode,
   parseOriginalSongReference,
   songbookMatches,
   songbookReferences,
@@ -21,11 +23,16 @@ import type { UpdateSongbookDto } from "./dto/update-songbook.dto";
 const DETAIL_INCLUDE = {
   entries: {
     include: { songVersion: { select: { title: true } } },
-    orderBy: { entryCode: "asc" as const },
   },
 } satisfies Prisma.SongbookInclude;
 
 type SongbookWithEntries = Prisma.SongbookGetPayload<{ include: typeof DETAIL_INCLUDE }>;
+
+function byEntryCode(a: { entryCode: string | null; createdAt: Date }, b: { entryCode: string | null; createdAt: Date }): number {
+  if (a.entryCode !== null && b.entryCode !== null) return compareEntryCodes(a.entryCode, b.entryCode);
+  if (a.entryCode !== b.entryCode) return a.entryCode === null ? 1 : -1;
+  return a.createdAt.getTime() - b.createdAt.getTime();
+}
 
 function toDetail(songbook: SongbookWithEntries) {
   const { entries, ...rest } = songbook;
@@ -33,7 +40,8 @@ function toDetail(songbook: SongbookWithEntries) {
   return {
     ...rest,
     sections,
-    entries: entries.map((entry) => ({
+    // In reading order (2 before 10), which the database's text order isn't; unnumbered ones as added.
+    entries: [...entries].sort(byEntryCode).map((entry) => ({
       id: entry.id,
       songVersionId: entry.songVersionId,
       entryCode: entry.entryCode,
@@ -66,12 +74,16 @@ export class SongbooksService {
         AND: [
           { songbook: books },
           { songVersion: songs },
-          { OR: references.map((reference) => ({ entryCode: { equals: reference.code, mode: "insensitive" as const } })) },
+          {
+            OR: references.flatMap((reference) =>
+              [...new Set([reference.code, normalizeEntryCode(reference.code)])].map((code) => ({ entryCode: { equals: code, mode: "insensitive" as const } })),
+            ),
+          },
         ],
       },
       select: {
         entryCode: true,
-        songbook: { select: { id: true, name: true, abbreviation: true } },
+        songbook: { select: { id: true, name: true, abbreviation: true, sections: true } },
         songVersion: { select: { id: true, title: true } },
       },
       take: 200,
@@ -87,6 +99,7 @@ export class SongbooksService {
         songbookName: row.songbook.name,
         abbreviation: row.songbook.abbreviation,
         entryCode: row.entryCode!,
+        sectionLabel: computeSectionLabel(row.entryCode, row.songbook.sections as SongbookSection[] | null),
         songVersionId: row.songVersion.id,
         title: row.songVersion.title,
       }));
@@ -116,10 +129,10 @@ export class SongbooksService {
       );
       const catalogEntries = await this.prisma.client.songbookCatalogEntry.findMany({
         where: { catalogId: songbook.sourceCatalogId },
-        orderBy: { entryCode: "asc" },
       });
       pendingEntries = catalogEntries
         .filter((entry) => !materializedCodes.has(entry.entryCode))
+        .sort((a, b) => compareEntryCodes(a.entryCode, b.entryCode))
         .map((entry) => ({ catalogEntryId: entry.id, entryCode: entry.entryCode, title: entry.title }));
     }
 
@@ -367,7 +380,8 @@ export class SongbooksService {
     if (songbook.kind === "NUMBERED" && !dto.entryCode) {
       throw new BadRequestException("entryCode is required for a NUMBERED songbook");
     }
-    const entryCode = songbook.kind === "NUMBERED" ? dto.entryCode! : null;
+    // Stored without a plain number's leading zeros (issue #55).
+    const entryCode = songbook.kind === "NUMBERED" ? normalizeEntryCode(dto.entryCode!) : null;
 
     const songVersion = await this.prisma.client.songVersion.findUnique({
       where: { id: dto.songVersionId },

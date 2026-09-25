@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { entryCodeMatches, songbookMatches, songbookReferences } from "../songbook-references/index.js";
+import { compareEntryCodes, normalizeEntryCode } from "../songbook-catalog-format/index.js";
+import { entryCodeMatches, formatSongbookReference, songbookMatches, songbookReferences } from "../songbook-references/index.js";
 
 describe("songbookReferences", () => {
   it("reads a book and a number", () => {
@@ -38,6 +39,33 @@ describe("matching", () => {
   it("an entry by its code, ignoring case", () => {
     expect(entryCodeMatches("A-17", "a-17")).toBe(true);
     expect(entryCodeMatches("42", "420")).toBe(false);
+    expect(entryCodeMatches("042", "42")).toBe(true);
+    expect(entryCodeMatches("42", "0042")).toBe(true);
     expect(entryCodeMatches(null, "42")).toBe(false);
+  });
+});
+
+describe("entry numbers (issue #55)", () => {
+  it("plain numbers lose their leading zeros; codes stay as printed", () => {
+    expect(normalizeEntryCode("0245")).toBe("245");
+    expect(normalizeEntryCode(" 007 ")).toBe("7");
+    expect(normalizeEntryCode("000")).toBe("0");
+    expect(normalizeEntryCode("FR-092")).toBe("FR-092");
+    expect(normalizeEntryCode("12a")).toBe("12a");
+  });
+
+  it("sort in reading order", () => {
+    expect(["100", "2", "10", "A-10", "1", "A-2", "12a", "12"].sort(compareEntryCodes)).toEqual(["1", "2", "10", "12", "12a", "100", "A-2", "A-10"]);
+  });
+});
+
+describe("formatSongbookReference", () => {
+  it("abbreviation and number, with the printed volume", () => {
+    expect(formatSongbookReference({ songbookName: "J'aime l'Éternel", abbreviation: "JEM", entryCode: "855", sectionLabel: "JEM3" })).toBe("JEM 855 · JEM3");
+    expect(formatSongbookReference({ songbookName: "J'aime l'Éternel", abbreviation: "JEM", entryCode: "855", sectionLabel: null })).toBe("JEM 855");
+  });
+  it("the name without an abbreviation; just the name without a number", () => {
+    expect(formatSongbookReference({ songbookName: "Hymns", abbreviation: null, entryCode: "42" })).toBe("Hymns 42");
+    expect(formatSongbookReference({ songbookName: "Sunday favourites", abbreviation: null, entryCode: null })).toBe("Sunday favourites");
   });
 });

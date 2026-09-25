@@ -163,6 +163,11 @@ function SongRow({
         ) : (
           <span className="text-sm italic text-muted-foreground">{title}</span>
         )}
+        {item.songbookReferences.length > 0 ? (
+          <span className="text-xs text-muted-foreground" data-testid="set-song-references">
+            {item.songbookReferences.join(", ")}
+          </span>
+        ) : null}
         {item.arrangement && !canEdit ? (
           <span className="text-xs text-muted-foreground">{t("sets.playedAs", { name: item.arrangement.name })}</span>
         ) : null}

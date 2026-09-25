@@ -8,7 +8,7 @@ import {
   type Tag,
 } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, ExternalLink, Library, Sparkles } from "lucide-react";
+import { Check, ChevronDown, Copy, ExternalLink, Library, Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LanguageSelect } from "#/components/language-select";
@@ -624,8 +624,17 @@ export function MoreDetailsCard({
   );
 }
 
-export function SongbooksCard({ memberships }: { memberships: SongVersionSongbookMembership[] }) {
+export function SongbooksCard({ memberships, title }: { memberships: SongVersionSongbookMembership[]; title: string }) {
   const { t } = useTranslation();
+  const [copied, setCopied] = useState<string | null>(null);
+
+  // "Amazing Grace — JEM 855 · JEM3": everything someone without the app needs (issue #55).
+  async function copy(membership: SongVersionSongbookMembership) {
+    await navigator.clipboard.writeText(`${title} — ${membership.reference}`);
+    setCopied(membership.songbookId);
+    setTimeout(() => setCopied((current) => (current === membership.songbookId ? null : current)), 2000);
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -637,16 +646,21 @@ export function SongbooksCard({ memberships }: { memberships: SongVersionSongboo
         ) : (
           <ul className="flex flex-col divide-y">
             {memberships.map((membership) => (
-              <li key={membership.songbookId} className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
+              <li key={membership.songbookId} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2 first:pt-0 last:pb-0" data-testid="songbook-membership">
                 <Link to="/songbooks/$songbookId" params={{ songbookId: membership.songbookId }} className="text-sm hover:text-primary">
                   {membership.songbookName}
                 </Link>
-                <span className="flex items-center gap-2">
-                  {membership.entryCode ? <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{membership.entryCode}</span> : null}
-                  {membership.sectionLabel ? (
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">{membership.sectionLabel}</span>
-                  ) : null}
-                </span>
+                {membership.entryCode ? (
+                  <span className="flex items-center gap-2">
+                    <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium" data-testid="songbook-reference">
+                      {membership.reference}
+                    </span>
+                    <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => void copy(membership)}>
+                      {copied === membership.songbookId ? <Check /> : <Copy />}
+                      {copied === membership.songbookId ? t("songEditor.referenceCopied") : t("songEditor.copyReference")}
+                    </Button>
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>
