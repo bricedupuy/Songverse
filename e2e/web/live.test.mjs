@@ -134,7 +134,9 @@ await step("Live on a set opens its first song full screen, dark, with no theme 
   await page.getByTestId("live-next").getByText(`Next: Closer ${stamp}`).waitFor();
   await page.locator('[data-chord="G"]').first().waitFor();
   const details = await page.getByTestId("live-details").innerText();
-  if (!details.includes("G") || !details.includes("400 BPM") || !details.includes(`${abbr} 12 · ${abbr}2`)) throw new Error(details);
+  if (!details.includes("400 BPM") || !details.includes(`${abbr} 12 · ${abbr}2`)) throw new Error(details);
+  // The key, top right of the song (issue #68).
+  if ((await page.getByTestId("live-key").innerText()).trim() !== "G") throw new Error(await page.getByTestId("live-key").innerText());
 });
 
 await step("the chart is big: bigger text, smaller text", async () => {

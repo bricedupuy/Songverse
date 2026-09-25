@@ -16,6 +16,8 @@ export const SONG_SELECT = {
   documentJson: true,
   capo: true,
   ownerTeam: { select: { name: true } },
+  // Its artists, for the Live view's title (issue #68).
+  contributors: { where: { roles: { has: "PERFORMER" } }, select: { source: true }, orderBy: { displayOrder: "asc" } },
 } satisfies Prisma.SongVersionSelect;
 
 export type SongRow = Prisma.SongVersionGetPayload<{ select: typeof SONG_SELECT }>;

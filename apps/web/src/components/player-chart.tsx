@@ -14,10 +14,12 @@ export function renderPlayerChart(
   preferences: ChartPreferences = view.view.preferences ?? EMPTY,
   notation: ChordNotationValue = view.view.chordNotation,
   capoDisplay: CapoDisplayModeValue = view.view.capoDisplayMode,
+  /** Live's last-minute transpose, on top of the set's (issue #68). */
+  extraSteps = 0,
 ): RenderedChart {
   const song = view.song!;
   return renderChart(song.document, view.arrangement?.document ?? null, {
-    transposeSteps: view.item.transposeSteps,
+    transposeSteps: view.item.transposeSteps + extraSteps,
     preferences,
     notation: notation === "SOLFEGE" ? "solfege" : "english",
     capoDisplay: capoDisplay === "FINGERED" ? "shapes" : "sounding",

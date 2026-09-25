@@ -45,7 +45,10 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 
 ![A song of a set in Live mode](../../assets/screenshots/en/live.jpg)
 
-- The top shows the song, where it is in the set, its songbook number (**JEM 855 · JEM3**), and its key, capo and tempo. **×** goes back to the set.
+- The header shows the set's name; **×** goes back to the set.
+- Under it, the song's structure: its parts in the order they're sung, as small circles - **V1** **C** **V2** **C** **B** **C** (verse, chorus, bridge...) - coloured by kind: intros and outros, verses and pre-choruses, choruses, bridges and instrumentals each have their own colour. The part being sung is ringed and the ones sung are filled, as the song scrolls; tap one to go there.
+- The song starts with its title and artist, its songbook number (**JEM 855 · JEM3**), capo and tempo, and scrolls with the chords and words.
+- Its key is at the top right: **G**, with a small **+2** when the set plays it higher or lower than written. Tap it to transpose at the last moment, with **−** and **+**: only on your screen, for this song, until you leave it. **Back to the set's key** undoes it.
 - The bottom shows what's next - **Next: …** takes you there - and the previous song's arrow.
 - **Autoscroll** (the play button) scrolls the chart at the song's pace: over its duration when it has one, or else two bars a line at its tempo. The tortoise and hare slow it down or speed it up, a step at a time.
 - The **A** buttons make the text smaller or bigger; SongVerse remembers your size on this device.

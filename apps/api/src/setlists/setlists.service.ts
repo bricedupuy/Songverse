@@ -28,6 +28,8 @@ export interface SongRef {
   key: string | null;
   ownerScope: "GLOBAL" | "TEAM" | "USER";
   teamName: string | null;
+  /** Its artists' names, in order. */
+  artists: string[];
 }
 
 const ITEM_INCLUDE = {
@@ -521,6 +523,7 @@ export function toSongRef(song: SongRow): SongRef {
     key: typeof defaults?.key === "string" && defaults.key.trim() ? defaults.key.trim() : null,
     ownerScope: song.ownerScope,
     teamName: song.ownerTeam?.name ?? null,
+    artists: song.contributors.flatMap((credit) => (credit.source?.trim() ? [credit.source.trim()] : [])),
   };
 }
 

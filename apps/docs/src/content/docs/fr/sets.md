@@ -45,7 +45,10 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 
 ![Un chant d'une liste en mode Live](../../../assets/screenshots/fr/live.jpg)
 
-- En haut : le chant, sa place dans la liste, son numéro de recueil (**JEM 855 · JEM3**), sa tonalité, son capo et son tempo. **×** revient à la liste.
+- L'en-tête montre le nom de la liste ; **×** y revient.
+- Dessous, la structure du chant : ses parties dans l'ordre où on les chante, en petits cercles - **S1** **R** **S2** **R** **P** **R** (strophe, refrain, pont…) - colorés par genre : intros et outros, strophes et pré-refrains, refrains, ponts et instrumentaux ont chacun leur couleur. La partie en cours est entourée et celles déjà chantées sont pleines, au fil du défilement ; touchez-en une pour y aller.
+- Le chant commence par son titre et son artiste, son numéro de recueil (**JEM 855 · JEM3**), son capo et son tempo, et défile avec les accords et les paroles.
+- Sa tonalité est en haut à droite : **G**, avec un petit **+2** quand la liste le joue plus haut ou plus bas qu'écrit. Touchez-la pour transposer au dernier moment, avec **−** et **+** : seulement sur votre écran, pour ce chant, jusqu'à ce que vous le quittiez. **Revenir à la tonalité de la liste** l'annule.
 - En bas : ce qui vient ensuite - **Ensuite : …** y mène - et la flèche du chant précédent.
 - Le **défilement** (le bouton lecture) fait défiler la grille au rythme du chant : sur sa durée quand elle est connue, sinon deux mesures par ligne à son tempo. La tortue et le lièvre le ralentissent ou l'accélèrent, un cran à la fois.
 - Les boutons **A** réduisent ou agrandissent le texte ; SongVerse retient votre taille sur cet appareil.

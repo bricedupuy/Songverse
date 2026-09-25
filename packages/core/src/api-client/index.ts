@@ -98,6 +98,8 @@ export interface SetlistSongRef {
   key: string | null;
   ownerScope: "GLOBAL" | "TEAM" | "USER";
   teamName: string | null;
+  /** Its artists' names (issue #68); missing from copies kept offline before then. */
+  artists?: string[];
 }
 
 export interface SetlistSummary {

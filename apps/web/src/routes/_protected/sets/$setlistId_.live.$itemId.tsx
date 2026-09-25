@@ -1,6 +1,6 @@
 import { ApiError, keptSetSong, onlineOrKept, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { LiveView, type LiveSong } from "#/components/live-view";
 import { renderPlayerChart } from "#/components/player-chart";
@@ -54,15 +54,17 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { set, item, song } = view;
-  const chart = useMemo(() => (song ? renderPlayerChart(view) : null), [song, view]);
   const goTo = (itemId: string | null) =>
     itemId ? () => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }) : null;
 
   const live: LiveSong = {
     id: item.id,
     title: song?.title ?? t("sets.hiddenSong"),
-    context: `${setlistTitle(set, t, i18n.language)} · ${t("live.position", { position: item.position + 1, count: set.itemCount })}`,
-    chart,
+    artist: song?.artists?.join(", ") || null,
+    setName: setlistTitle(set, t, i18n.language),
+    chartFor: (extraSteps) =>
+      song ? renderPlayerChart(view, undefined, undefined, undefined, extraSteps) : null,
+    keyShift: (view.arrangement?.document.defaults.transposeSteps ?? 0) + item.transposeSteps,
     durationSeconds: song?.document.defaults.durationSeconds,
     arrangementName: view.arrangement?.name ?? null,
     // A copy kept before #59 has none.

@@ -12,7 +12,12 @@ const song = (title, content, artist = "Someone") => api(me, "POST", "/song-vers
 // Long enough to scroll.
 const verses = Array.from({ length: 40 }, (_, i) => `[G]First song [C]words, line ${i + 1}`).join("\n");
 const first = await song(`First ${stamp}`, `{start_of_verse}\n${verses}\n{end_of_verse}\n`, `Grid One ${stamp}`);
-const second = await song(`Second ${stamp}`, `{start_of_verse}\n${verses.replaceAll("First", "Second")}\n{end_of_verse}\n`, `Grid Two ${stamp}`);
+// Long, and with a structure: V1 C V2 C.
+const second = await song(
+  `Second ${stamp}`,
+  `{start_of_verse}\n${verses.replaceAll("First", "Second")}\n{end_of_verse}\n{start_of_chorus}\n[C]The chorus\n{end_of_chorus}\n{start_of_verse}\n[G]Verse two\n{end_of_verse}\n{chorus}\n`,
+  `Grid Two ${stamp}`,
+);
 const set = await api(me, "POST", "/setlists", { name: `Swipe set ${stamp}` });
 await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: first.id });
 const items = (await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: second.id })).items;
@@ -85,6 +90,51 @@ await step("Live in a set: swiping left goes to the next song, right to the prev
   if (!page.url().includes(items[1].id)) throw new Error("moved on a short swipe");
   await swipe(300, 900);
   await page.waitForURL(`**/sets/${set.id}/live/${items[0].id}`);
+  await setMode("edit");
+});
+
+await step("Live: the set's name alone in the header; title, artist and key at the top of the song", async () => {
+  await setMode("live");
+  await page.goto(`${WEB}/sets/${set.id}/live/${items[1].id}`);
+  const live = page.getByTestId("live-view");
+  await live.getByRole("heading", { name: `Second ${stamp}` }).waitFor();
+  if ((await page.getByTestId("live-set").innerText()).trim() !== `Swipe set ${stamp}`) throw new Error(await page.getByTestId("live-set").innerText());
+  const header = await live.locator("header").boundingBox();
+  if (Math.round(header.height) !== 56) throw new Error(`header ${header.height}px`);
+  const top = page.getByTestId("live-song-top");
+  await top.getByText(`Grid Two ${stamp}`).waitFor();
+  if ((await page.getByTestId("live-key").innerText()).trim() !== "G") throw new Error(await page.getByTestId("live-key").innerText());
+  // The title scrolls with the chart.
+  await page.getByTestId("live-scroll").evaluate((el) => el.scrollTo({ top: 400 }));
+  await page.waitForFunction(() => document.querySelector('[data-testid="live-song-top"]').getBoundingClientRect().bottom < 150);
+});
+
+await step("Live: the structure bar - V1 C V2 C, coloured by kind, following the song; a tap goes there", async () => {
+  const bar = page.getByTestId("live-structure");
+  const chips = await bar.getByRole("button").evaluateAll((els) => els.map((el) => `${el.textContent}:${el.dataset.group}`));
+  if (chips.join() !== "V1:verse,C:chorus,V2:verse,C:chorus") throw new Error(chips.join());
+  await page.getByTestId("live-scroll").evaluate((el) => el.scrollTo({ top: 0 }));
+  await bar.locator('[aria-current="step"]').getByText("V1").waitFor();
+  await bar.getByRole("button", { name: "Go to Verse 2" }).click();
+  await bar.locator('[aria-current="step"]').getByText("V2").waitFor();
+});
+
+await step("Live: the key transposes for now, G+1 shown; back to the set's key", async () => {
+  await page.getByTestId("live-key").click();
+  const panel = page.getByTestId("live-transpose");
+  await panel.getByRole("button", { name: "Up a semitone" }).click();
+  await page.getByTestId("live-key").getByText("+1").waitFor();
+  if (!(await page.getByTestId("live-key").innerText()).startsWith("Ab")) throw new Error(await page.getByTestId("live-key").innerText());
+  await page.locator('[data-chord="Ab"]').first().waitFor();
+  await panel.getByRole("button", { name: "Back to the set's key" }).click();
+  if ((await page.getByTestId("live-key").innerText()).trim() !== "G") throw new Error("not back");
+  // …and it's for this song only: the next one is in its own key. (The panel is still open.)
+  await panel.getByRole("button", { name: "Up a semitone" }).click();
+  await page.getByTestId("live-key").getByText("+1").waitFor();
+  await page.keyboard.press("ArrowLeft");
+  await page.waitForURL(`**/sets/${set.id}/live/${items[0].id}`);
+  await page.getByTestId("live-view").getByRole("heading", { name: `First ${stamp}` }).waitFor();
+  if ((await page.getByTestId("live-key").innerText()).trim() !== "G") throw new Error("the transpose followed");
   await setMode("edit");
 });
 

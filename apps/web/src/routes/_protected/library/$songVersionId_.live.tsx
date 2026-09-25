@@ -1,6 +1,6 @@
 import { findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { LiveView } from "#/components/live-view";
 import { apiClient } from "#/lib/api-client";
@@ -89,23 +89,22 @@ function SongLiveRoute() {
 function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined }) {
   const { t } = useTranslation();
   const router = useRouter();
-  // As written, through the player's own chord settings.
-  const chart = useMemo(
-    () =>
-      renderChart(song.document, null, {
-        notation: song.notation === "SOLFEGE" ? "solfege" : "english",
-        capoDisplay: song.capoDisplay === "FINGERED" ? "shapes" : "sounding",
-        suggestedCapo: song.capo,
-      }),
-    [song],
-  );
   return (
     <LiveView
       song={{
         id: song.id,
         title: song.title,
-        context: song.artists,
-        chart,
+        artist: song.artists,
+        setName: null,
+        // As written, through the player's own chord settings; moved only by the last-minute transpose.
+        chartFor: (extraSteps) =>
+          renderChart(song.document, null, {
+            transposeSteps: extraSteps,
+            notation: song.notation === "SOLFEGE" ? "solfege" : "english",
+            capoDisplay: song.capoDisplay === "FINGERED" ? "shapes" : "sounding",
+            suggestedCapo: song.capo,
+          }),
+        keyShift: 0,
         durationSeconds: song.document.defaults.durationSeconds,
         arrangementName: null,
         references: song.references,

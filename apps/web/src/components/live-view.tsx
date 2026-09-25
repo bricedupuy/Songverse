@@ -1,11 +1,12 @@
-import { chartSeconds, type RenderedChart } from "@songverse/core";
-import { AArrowDown, AArrowUp, ChevronLeft, ChevronRight, Expand, Pause, Play, Rabbit, Shrink, Turtle, X } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode, type TouchEvent } from "react";
+import { chartSeconds, structureOf, type RenderedChart, type StructureGroup } from "@songverse/core";
+import { AArrowDown, AArrowUp, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { CommandSearch } from "#/components/command-search";
 import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { SongChart } from "#/components/song-chart";
+import { cn } from "#/lib/utils";
 
 const TEXT_SIZE_KEY = "songverse.liveTextSize";
 const TEXT_SIZES = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
@@ -18,10 +19,14 @@ export interface LiveSong {
   /** Changes with the song shown, which then starts at its top. */
   id: string;
   title: string;
-  /** Where it's from ("Sunday service · 2 / 5"); null for a song on its own. */
-  context: string | null;
-  /** Null when the player can't read the song. */
-  chart: RenderedChart | null;
+  /** Its artists, under the title. */
+  artist: string | null;
+  /** The set it's played in, the header's only text; null for a song on its own. */
+  setName: string | null;
+  /** The chart, moved `extraSteps` semitones more (the last-minute transpose); null when the player can't read the song. */
+  chartFor: (extraSteps: number) => RenderedChart | null;
+  /** Semitones from the song's own key before that (the arrangement's and the set's): the key's "+1". */
+  keyShift: number;
   durationSeconds: number | null | undefined;
   arrangementName: string | null;
   /** Where it is in the player's songbooks: "JEM 855 · JEM3" (issue #59). */
@@ -34,6 +39,12 @@ export interface LiveSong {
   next: (() => void) | null;
   /** "Next: …" or "End of the set"; null for a song on its own. */
   nextLabel: string | null;
+}
+
+/** Semitones as the smaller move: +1, -2, never +11. */
+function shiftOf(steps: number): number {
+  const up = ((steps % 12) + 12) % 12;
+  return up > 6 ? up - 12 : up;
 }
 
 /**
@@ -52,7 +63,9 @@ export function LiveView({ song }: { song: LiveSong }) {
   const fullScreen = useFullScreen();
   useWakeLock();
 
-  const { chart } = song;
+  // The last-minute transpose (issue #68): this song, here, until it's left.
+  const [extraSteps, setExtraSteps] = useState(0);
+  const chart = useMemo(() => song.chartFor(extraSteps), [song, extraSteps]);
   const seconds = chart ? chartSeconds(chart, song.durationSeconds) : 0;
 
   // The player's text size, from the last time (after hydrating: the server can't know it).
@@ -110,6 +123,7 @@ export function LiveView({ song }: { song: LiveSong }) {
   // scroller as the page changes, so this runs again once it has.
   useEffect(() => {
     setPlaying(false);
+    setExtraSteps(0);
     const toTop = () => scroller.current?.scrollTo({ top: 0 });
     toTop();
     const frame = requestAnimationFrame(toTop);
@@ -176,28 +190,32 @@ export function LiveView({ song }: { song: LiveSong }) {
 
   const details = [
     ...song.references,
-    chart?.key,
     chart?.capo ? t("player.capo", { capo: chart.capo }) : null,
     chart?.tempo ? `${chart.tempo} BPM` : null,
     song.arrangementName,
   ].filter(Boolean);
   const inSet = song.nextLabel !== null;
+  const steps = useMemo(() => (chart ? structureOf(chart) : []), [chart]);
+  const [current, pickPass] = useCurrentPass(scroller, steps, song.id);
+
+  function goToPass(passId: string) {
+    pickPass(passId);
+    const element = scroller.current;
+    const pass = element?.querySelector(`[data-pass="${CSS.escape(passId)}"]`);
+    if (!element || !pass) return;
+    element.scrollTo({ top: pass.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop - 12, behavior: "smooth" });
+  }
 
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground" data-testid="live-view">
-      <header className="flex shrink-0 items-center gap-2 border-b-2 border-b-primary px-2 py-2 sm:gap-3 sm:px-4">
+      {/* Always the same height; the song's own title is at the top of its chart (issue #68). */}
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b-2 border-b-primary px-2 sm:gap-3 sm:px-4">
         <IconButton label={song.exit.label} onClick={song.exit.go}>
           <X />
         </IconButton>
-        <div className="flex min-w-0 flex-1 flex-col">
-          {song.context ? <p className="truncate text-xs text-muted-foreground">{song.context}</p> : null}
-          <h1 className="truncate text-lg font-semibold sm:text-xl">{song.title}</h1>
-        </div>
-        {details.length > 0 ? (
-          <p className="hidden shrink-0 text-sm font-medium text-muted-foreground lg:block" data-testid="live-details">
-            {details.join(" · ")}
-          </p>
-        ) : null}
+        <p className="min-w-0 flex-1 truncate text-sm font-medium text-muted-foreground" data-testid="live-set">
+          {song.setName}
+        </p>
         <OfflineBanner compact />
         <CommandSearch />
         {fullScreen.available ? (
@@ -210,10 +228,23 @@ export function LiveView({ song }: { song: LiveSong }) {
         <ModeSwitch />
       </header>
 
+      {steps.length > 0 ? <StructureBar steps={steps} current={current} onPick={goToPass} /> : null}
+
       <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-[40vh]" style={{ zoom: textSize }}>
-          {details.length > 0 ? <p className="text-xs text-muted-foreground lg:hidden">{details.join(" · ")}</p> : null}
+          <div className="flex items-start justify-between gap-4" data-testid="live-song-top">
+            <div className="min-w-0">
+              <h1 className="text-2xl leading-tight font-bold sm:text-3xl">{song.title}</h1>
+              {song.artist ? <p className="text-base text-muted-foreground sm:text-lg">{song.artist}</p> : null}
+              {details.length > 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground" data-testid="live-details">
+                  {details.join(" · ")}
+                </p>
+              ) : null}
+            </div>
+            {chart?.key ? <KeyButton musicalKey={chart.key} shift={shiftOf(song.keyShift + extraSteps)} extraSteps={extraSteps} onTranspose={setExtraSteps} /> : null}
+          </div>
           {song.notes.length > 0 ? (
             <div className="flex flex-col gap-1 rounded-md border-l-4 border-primary bg-muted px-3 py-2 text-sm">
               {song.notes.map((note, i) => (
@@ -353,4 +384,165 @@ function useFullScreen() {
     else void document.documentElement.requestFullscreen().catch(() => {});
   };
   return { available, active, toggle };
+}
+
+/**
+ * The pass being sung: the last one whose top has scrolled past the upper
+ * quarter of the view (the first at the very top), following the scroll -
+ * by hand or autoscroll.
+ */
+function useCurrentPass(
+  scroller: RefObject<HTMLElement | null>,
+  steps: { passId: string }[],
+  songId: string,
+): [string | null, (passId: string) => void] {
+  const [current, setCurrent] = useState<string | null>(steps[0]?.passId ?? null);
+  // A pass picked in the bar stays current while it's scrolled to: near the
+  // end of a song it may never reach the top, where it would count as reached.
+  const picked = useRef<{ passId: string; until: number } | null>(null);
+  useEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      if (picked.current && Date.now() < picked.current.until) return;
+      picked.current = null;
+      const line = element.getBoundingClientRect().top + element.clientHeight * 0.25;
+      let found: string | null = steps[0]?.passId ?? null;
+      for (const pass of element.querySelectorAll<HTMLElement>("[data-pass]")) {
+        if (pass.getBoundingClientRect().top <= line) found = pass.dataset.pass ?? found;
+        else break;
+      }
+      setCurrent(found);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    element.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      element.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [scroller, steps, songId]);
+  const pick = (passId: string) => {
+    picked.current = { passId, until: Date.now() + 1000 };
+    setCurrent(passId);
+  };
+  return [current, pick];
+}
+
+// A colour per kind of section, for Live's dark theme: filled once reached, outlined ahead.
+const GROUP_STYLES: Record<StructureGroup, { filled: string; outlined: string }> = {
+  edge: { filled: "bg-violet-500 text-white border-violet-500", outlined: "border-violet-400/70 text-violet-300" },
+  verse: { filled: "bg-sky-500 text-white border-sky-500", outlined: "border-sky-400/70 text-sky-300" },
+  chorus: { filled: "bg-amber-400 text-black border-amber-400", outlined: "border-amber-300/70 text-amber-200" },
+  bridge: { filled: "bg-rose-500 text-white border-rose-500", outlined: "border-rose-400/70 text-rose-300" },
+  instrumental: { filled: "bg-emerald-500 text-white border-emerald-500", outlined: "border-emerald-400/70 text-emerald-300" },
+  other: { filled: "bg-zinc-500 text-white border-zinc-500", outlined: "border-zinc-400/70 text-zinc-300" },
+};
+
+/**
+ * The song's structure (issue #68), fixed under the header: its passes in
+ * order - V1 C V2 C B C - coloured by kind, the one being sung ringed, those
+ * sung filled. Tapping one goes there.
+ */
+function StructureBar({ steps, current, onPick }: { steps: ReturnType<typeof structureOf>; current: string | null; onPick: (passId: string) => void }) {
+  const { t } = useTranslation();
+  const bar = useRef<HTMLDivElement>(null);
+  const reached = Math.max(0, steps.findIndex((step) => step.passId === current));
+
+  // The current one kept in view, on a long song on a phone.
+  useEffect(() => {
+    bar.current?.querySelector('[aria-current="step"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [current]);
+
+  return (
+    <nav ref={bar} className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-b px-2 py-2 sm:px-4" aria-label={t("live.structure")} data-testid="live-structure">
+      {steps.map((step, index) => {
+        const name = `${t(`chart.sections.${step.type}`)}${step.number ? ` ${step.number}` : ""}`;
+        const style = GROUP_STYLES[step.group];
+        const isCurrent = step.passId === current;
+        return (
+          <button
+            key={step.passId}
+            type="button"
+            onClick={() => onPick(step.passId)}
+            aria-label={t("live.goToPass", { name })}
+            aria-current={isCurrent ? "step" : undefined}
+            title={name}
+            data-group={step.group}
+            className={cn(
+              "flex h-7 min-w-7 shrink-0 items-center justify-center rounded-full border px-1.5 text-xs font-semibold transition-colors",
+              index <= reached ? style.filled : style.outlined,
+              index < reached && "opacity-60",
+              isCurrent && "ring-2 ring-foreground ring-offset-2 ring-offset-background",
+            )}
+          >
+            {t(`live.short.${step.type}`)}
+            {step.number ?? ""}
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+/**
+ * The key the song is played in, top right of it (issue #68): "G", with a
+ * subtle "+1" when it's moved from the song's own. Tapping it transposes,
+ * for now only: this song, here, until it's left.
+ */
+function KeyButton({ musicalKey, shift, extraSteps, onTranspose }: { musicalKey: string; shift: number; extraSteps: number; onTranspose: (steps: number) => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const shiftText = shift > 0 ? `+${shift}` : shift < 0 ? `−${-shift}` : "";
+
+  // Closed by a tap anywhere else.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (event: PointerEvent) => {
+      if (!box.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [open]);
+
+  return (
+    <div ref={box} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-label={shiftText ? t("live.keyShifted", { key: musicalKey, shift: shiftText }) : t("live.key", { key: musicalKey })}
+        className="flex items-baseline gap-0.5 rounded-lg border px-3 py-1 hover:bg-accent"
+        data-testid="live-key"
+      >
+        <span className="text-2xl font-bold sm:text-3xl">{musicalKey}</span>
+        {shiftText ? <span className="text-sm text-muted-foreground">{shiftText}</span> : null}
+      </button>
+      {open ? (
+        <div className="absolute top-full right-0 z-20 mt-2 flex w-64 flex-col gap-3 rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg" data-testid="live-transpose">
+          <p className="text-sm font-medium">{t("live.transposeNow")}</p>
+          <div className="flex items-center justify-between gap-2">
+            <button type="button" className={iconClass} onClick={() => onTranspose(extraSteps - 1)} aria-label={t("live.semitoneDown")}>
+              <Minus />
+            </button>
+            <span className="text-2xl font-bold">{musicalKey}</span>
+            <button type="button" className={iconClass} onClick={() => onTranspose(extraSteps + 1)} aria-label={t("live.semitoneUp")}>
+              <Plus />
+            </button>
+          </div>
+          {extraSteps !== 0 ? (
+            <button type="button" className="rounded-md border px-3 py-1.5 text-sm hover:bg-accent" onClick={() => onTranspose(0)}>
+              {t("live.resetKey")}
+            </button>
+          ) : null}
+          <p className="text-xs text-muted-foreground">{t("live.transposeHint")}</p>
+        </div>
+      ) : null}
+    </div>
+  );
 }
