@@ -294,13 +294,13 @@ model User {
   offlinePins         OfflinePin[]
 
   // BetterAuth
-  sessions Session[]
-  accounts Account[]
-  passkeys Passkey[]
+  sessions      Session[]
+  accounts      Account[]
+  passkeys      Passkey[]
+  smartLists    SmartList[]
+  songRevisions SongVersionRevision[]
 
   @@index([email])
-  smartLists           SmartList[]
-
 }
 
 // ============================================================
@@ -692,6 +692,7 @@ model SongVersion {
   setlistItems      SetlistItem[]
   ownershipRequests SongOwnershipRequest[]
   userNotes         Note[] // people's own notes on it (Note model); not the song's `notes` field
+  revisions         SongVersionRevision[]
 
   @@index([workId])
   @@index([ownerUserId])
@@ -1677,4 +1678,47 @@ model SmartList {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ============================================================
+// SONG HISTORY (issue #71)
+// ============================================================
+
+enum SongRevisionKind {
+  CREATED
+  EDITED
+  RESTORED
+  // The song as it was before its history was kept: recorded on its first
+  // save after this shipped, so that save can be undone too.
+  BASELINE
+}
+
+/// A song version as it was after one save: the chart, its details and
+/// credits (see SongSnapshot in @songverse/core). Tags, files, links and
+/// arrangements aren't in it - they have owners and lives of their own.
+/// Saves by the same person a few minutes apart update one entry
+/// (`updatedAt` moves on), so a working session is one step. Restoring an
+/// entry saves its state again, as a new RESTORED entry.
+model SongVersionRevision {
+  id             String           @id @default(cuid())
+  songVersionId  String
+  kind           SongRevisionKind
+  // Who saved it; null once they're deleted, or for BASELINE entries.
+  authorUserId   String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  // What changed since the entry before: "chart", "details", "credits".
+  changes        String[]
+  // song-snapshot/v1
+  snapshot       Json
+  // RESTORED: the entry it brought back.
+  restoredFromId String?
+
+  songVersion  SongVersion           @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  author       User?                 @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  restoredFrom SongVersionRevision?  @relation("RevisionRestoredFrom", fields: [restoredFromId], references: [id], onDelete: SetNull)
+  restoredAs   SongVersionRevision[] @relation("RevisionRestoredFrom")
+
+  @@index([songVersionId, createdAt])
+  @@index([authorUserId])
 }

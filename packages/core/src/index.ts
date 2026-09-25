@@ -31,3 +31,4 @@ export * from "./offline/index.js";
 export * from "./songbook-references/index.js";
 export * from "./search-text/index.js";
 export * from "./stems/index.js";
+export * from "./song-history/index.js";

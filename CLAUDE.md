@@ -80,6 +80,11 @@ the capo are columns; never copy them into the document.
   the old IDs. Both bump the revision.
 - ChordPro is only an import/export format (`sectionsFromText`,
   `songToChordPro`), not how songs are stored.
+- Every save is kept in the song's history (`SongVersionRevision`,
+  issue #71): a write to the chart, the details or the credits goes with
+  `SongHistoryService.before()`/`record()` in the same transaction (see
+  `SongVersionsService.update`). A new way of changing a song needs it too,
+  or that change can't be seen or undone.
 
 ## Tests
 

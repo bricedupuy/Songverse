@@ -12,7 +12,7 @@ import {
   type Tag,
 } from "@songverse/core";
 import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router";
-import { FileText, Info, Layers, Link2, MoreHorizontal, Music, PenLine } from "lucide-react";
+import { FileText, History, Info, Layers, Link2, MoreHorizontal, Music, PenLine } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { OfflinePinButton } from "#/components/offline-pin-button";
@@ -40,6 +40,7 @@ import {
 import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, SongbooksCard } from "./song-info";
 import { PublishCard } from "./publish-card";
 import { ArrangementsTab } from "./arrangements-tab";
+import { HistoryTab } from "./history-tab";
 import { AttachmentsTab, LinksTab, SaveFirst } from "./song-tabs";
 import type { SongNotice, SongTab } from "./song-tabs-list";
 
@@ -495,6 +496,12 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             <Link2 aria-hidden />
             {t("songEditor.tabs.links")}
           </TabsTrigger>
+          {edit ? (
+            <TabsTrigger value="history" className="flex-none px-3">
+              <History aria-hidden />
+              {t("songEditor.tabs.history")}
+            </TabsTrigger>
+          ) : null}
         </TabsList>
         <TabsContent value="info">{songInfo}</TabsContent>
         <TabsContent value="editor">
@@ -520,6 +527,9 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           {edit ? <AttachmentsTab kind="audio" songVersionId={edit.version.id} attachments={attachments} canEdit={canEdit} songKey={form.key} songTempo={form.tempo} /> : <SaveFirst />}
         </TabsContent>
         <TabsContent value="links">{edit ? <LinksTab version={edit.version} workMatch={edit.workMatch} /> : <SaveFirst />}</TabsContent>
+        <TabsContent value="history">
+          {edit ? <HistoryTab songVersionId={edit.version.id} updatedAt={edit.version.updatedAt} canEdit={canEdit} dirty={dirty} /> : <SaveFirst />}
+        </TabsContent>
       </Tabs>
 
       {canEdit && dirty ? (

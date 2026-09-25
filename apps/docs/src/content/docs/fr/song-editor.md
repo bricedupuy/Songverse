@@ -55,3 +55,15 @@ Collez une grille entière n'importe où - en ChordPro, ou avec les accords écr
 ## Enregistrer
 
 **Enregistrer le chant** enregistre la grille et les détails du chant ensemble. Si quelqu'un d'autre a enregistré le chant après que vous l'avez ouvert, SongVerse vous le dit au lieu d'écraser ses modifications.
+
+## Historique
+
+L'onglet **Historique** liste chaque enregistrement du chant, du plus récent au plus ancien : qui l'a enregistré, quand, et ce qui a changé - la **grille**, les **détails** (titre, tonalité, droits…) ou les **crédits**. Les enregistrements d'une même personne à quelques minutes d'intervalle comptent pour une étape.
+
+![L'historique d'un chant](../../../assets/screenshots/fr/song-history.jpg)
+
+Choisissez une étape pour voir ce qu'elle a changé : détails et crédits avec l'ancienne valeur barrée et la nouvelle à côté, et les lignes de la grille supprimées et ajoutées. **Voir tout le chant tel qu'il était** montre le chant à cette étape.
+
+Si vous pouvez modifier le chant, **Restaurer cette version** remet sa grille, ses détails et ses crédits tels qu'ils étaient à cette étape. C'est enregistré comme toute autre modification : la restauration apparaît dans l'historique et peut elle-même être annulée. Les étiquettes, fichiers, liens et arrangements ne font pas partie de l'historique et restent tels quels. Enregistrez ou annulez vos propres modifications avant de restaurer.
+
+Les chants créés avant l'historique commencent par **Avant le début de l'historique** : le chant tel qu'il était alors.

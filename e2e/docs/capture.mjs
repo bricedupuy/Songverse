@@ -61,8 +61,8 @@ Early in the [Bm]morning our [E]song shall rise to [A]Thee;
 ];
 
 const LOCALES = {
-  en: { user: "Alex Martin", email: "alex.martin@example.com", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only" },
-  fr: { user: "Camille Durand", email: "camille.durand@example.com", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul" },
+  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only" },
+  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul" },
 };
 
 const nextSunday = () => {
@@ -89,10 +89,26 @@ try {
       songs.push(await api(me, "POST", "/song-versions", { ...song, language: "en", contentFormat: "CHORDPRO", teamId: team.id }));
     }
     const grace = songs[0];
+    // Its history (issue #71) spread over a few days, as saves minutes apart are one step.
+    const earlier = (hours) =>
+      sql(`update "SongVersionRevision" set "createdAt" = "createdAt" - interval '${hours} hours', "updatedAt" = "updatedAt" - interval '${hours} hours' where "songVersionId" = '${grace.id}'`);
+    earlier(26);
     // Sung again at the end, a tone higher.
     const doc = (await api(me, "GET", `/song-versions/${grace.id}`)).documentJson;
     const flow = [...doc.flow, { id: "fi_last", sectionId: doc.sections[0].id, label: null, keyChange: { steps: 2, key: "A" }, note: null }];
     await api(me, "PATCH", `/song-versions/${grace.id}`, { flow, revision: doc.revision });
+    earlier(20);
+    // A bandmate, also a team admin, fixes a chord and fills in the rights.
+    const bandmate = await user(text.bandmate);
+    sql(`insert into "TeamMembership" (id, "teamId", "userId", role, "updatedAt") values ('tm-docs-${locale}', '${team.id}', '${bandmate.id}', 'ADMIN', now())`);
+    const fixed = (await api(bandmate, "GET", `/song-versions/${grace.id}`)).documentJson;
+    await api(bandmate, "PATCH", `/song-versions/${grace.id}`, {
+      content: SONGS[0].content.replace("wretch like [D]me!", "wretch like [D7]me!"),
+      contentFormat: "CHORDPRO",
+      copyright: "Public domain",
+      revision: fixed.revision,
+    });
+    earlier(2);
 
     // The band's usual arrangement: a tone up, capo 2, a replaced chord, a hidden one and a note.
     let arrangement = await api(me, "POST", `/song-versions/${grace.id}/arrangements`, { name: text.arrangement, teamId: team.id });
@@ -155,6 +171,7 @@ try {
     await shoot("song-info", `/library/${grace.id}`);
     await shoot("song-editor", `/library/${grace.id}?tab=editor`, () => page.locator(".ProseMirror").waitFor());
     await shoot("song-order", null, null, { element: page.getByTestId("song-order") });
+    await shoot("song-history", `/library/${grace.id}?tab=history`, () => page.getByTestId("history-chart-diff").waitFor());
     await shoot("arrangements", `/library/${grace.id}?tab=arrangements`, () => page.getByTestId("arrangement-list").waitFor());
     await shoot("arrangement-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
     await shoot("set", `/sets/${set.id}`, () => page.getByTestId("set-song-row").first().waitFor());

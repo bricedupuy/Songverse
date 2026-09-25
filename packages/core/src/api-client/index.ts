@@ -12,6 +12,7 @@ import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
+import type { SongChange, SongSnapshot } from "../song-history/index.js";
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -685,6 +686,26 @@ export interface VersionContributor {
   displayOrder: number;
 }
 
+/** One step in a song's history (issue #71), newest first in a list. */
+export interface SongRevisionEntry {
+  id: string;
+  /** EDITED; CREATED; RESTORED (`restoredFrom` it); BASELINE: the song as it was before its history was kept. */
+  kind: "CREATED" | "EDITED" | "RESTORED" | "BASELINE";
+  createdAt: string;
+  /** When its last save landed: saves by the same person a few minutes apart are one entry. */
+  updatedAt: string;
+  /** Null once they're deleted, or for BASELINE. */
+  author: { id: string; displayName: string } | null;
+  changes: SongChange[];
+  restoredFrom: { id: string; updatedAt: string } | null;
+}
+
+/** An entry with the song as it left it, and as the entry before left it (null for the first). */
+export interface SongRevisionDetail extends SongRevisionEntry {
+  snapshot: SongSnapshot;
+  previous: SongSnapshot | null;
+}
+
 export type StreamingLinkType = "SPOTIFY" | "APPLE_MUSIC" | "YOUTUBE";
 
 export interface SongVersionLink {
@@ -1257,6 +1278,11 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<SongVersionDetail>(`/song-versions/${songVersionId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteSongVersion: (songVersionId: string) =>
       request<void>(`/song-versions/${songVersionId}`, { method: "DELETE" }),
+    getSongHistory: (songVersionId: string) => request<SongRevisionEntry[]>(`/song-versions/${songVersionId}/history`),
+    getSongRevision: (songVersionId: string, revisionId: string) =>
+      request<SongRevisionDetail>(`/song-versions/${songVersionId}/history/${revisionId}`),
+    restoreSongRevision: (songVersionId: string, revisionId: string) =>
+      request<SongVersionDetail>(`/song-versions/${songVersionId}/history/${revisionId}/restore`, { method: "POST" }),
     searchCredits: (query: string) => request<CreditSuggestion[]>(`/song-versions/credits?q=${encodeURIComponent(query)}`),
     findSongMatches: (title: string) => request<SongMatch[]>(`/song-versions/matches?title=${encodeURIComponent(title)}`),
     exportChordPro: (songVersionId: string) =>

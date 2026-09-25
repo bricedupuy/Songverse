@@ -20,6 +20,7 @@ import {
   type SongbookSection,
   type SongDefaultsV2,
   type SongDocumentV2,
+  type SongSnapshot,
   type StreamingIdentifierType,
   type SupportedImportFormat,
 } from "@songverse/core";
@@ -33,6 +34,7 @@ import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import type { SongFieldsDto } from "./dto/song-fields.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
+import { SongHistoryService } from "./song-history.service";
 
 /** A version's own fields: the columns (the document holds only the music). */
 type VersionFields = {
@@ -63,6 +65,8 @@ type CreateExtras = {
   workId?: string;
   /** Derived from this version (e.g. a translation of it): joins its Work. */
   parent?: { id: string; workId: string; relationshipType: VersionRelationshipType };
+  /** Who made it, for its history. */
+  authorUserId?: string;
 };
 
 /** One credit per person (ignoring case), with all their roles. */
@@ -382,6 +386,7 @@ export class SongVersionsService {
     private readonly prisma: PrismaService,
     private readonly musicBrainz: MusicBrainzService,
     private readonly access: AccessPolicyService,
+    private readonly history: SongHistoryService,
   ) {}
 
   /**
@@ -689,6 +694,7 @@ export class SongVersionsService {
           Object.entries(creditListsFrom(dto)).flatMap(([role, names]) => names.map((name) => [name, role as ContributorRole] as const)),
         ),
         tagIds: dto.tagIds ? [...new Set(dto.tagIds)] : [],
+        authorUserId: user.id,
       },
     );
   }
@@ -837,6 +843,7 @@ export class SongVersionsService {
       if (!existingWorkId) {
         await tx.work.update({ where: { id: workId }, data: { preferredOriginalVersionId: created.id } });
       }
+      await this.history.record(tx, created.id, { kind: "CREATED", authorUserId: extras.authorUserId ?? null });
       return tx.songVersion.findUniqueOrThrow({ where: { id: created.id }, select: LIST_SELECT });
     });
     return toListItem(version);
@@ -880,6 +887,7 @@ export class SongVersionsService {
 
     // undefined leaves a column alone; null clears it.
     const version = await this.prisma.client.$transaction(async (tx) => {
+      const before = await this.history.before(tx, id);
       if (documentJson) await this.writeDocument(tx, id, existing.documentJson, documentJson);
       await tx.songVersion.update({
         where: { id },
@@ -907,6 +915,43 @@ export class SongVersionsService {
         await tx.songVersionTag.deleteMany({ where: { songVersionId: id, tagId: { notIn: tagIds } } });
         await tx.songVersionTag.createMany({ data: tagIds.map((tagId) => ({ songVersionId: id, tagId })), skipDuplicates: true });
       }
+      await this.history.record(tx, id, { kind: "EDITED", authorUserId: user.id, before });
+      return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
+    });
+    return toDetailItem(version, true);
+  }
+
+  /**
+   * Puts the song back as a history entry left it (issue #71): its chart
+   * (IDs as they were, so arrangements pointing at them find them again),
+   * details and credits, as a new save - itself an entry, so a restore can
+   * be undone. Tags, files and links aren't touched.
+   */
+  async restore(user: AuthenticatedUser, id: string, revisionId: string): Promise<DetailItem> {
+    const snapshot: SongSnapshot = await this.history.snapshotToRestore(id, revisionId);
+    const version = await this.prisma.client.$transaction(async (tx) => {
+      const before = await this.history.before(tx, id);
+      const existing = await tx.songVersion.findUniqueOrThrow({ where: { id }, select: { documentJson: true } });
+      const current = readSongDocument(existing.documentJson);
+      const next = parseSongDocumentV2({
+        ...songDocumentFromSections(current, { sections: snapshot.chart.sections, flow: snapshot.chart.flow }),
+        defaults: snapshot.chart.defaults,
+      });
+      await this.writeDocument(tx, id, existing.documentJson, next);
+      const { capo, ...details } = snapshot.details;
+      await tx.songVersion.update({ where: { id }, data: { ...details, capo } });
+      // Every role, so one the song has now but didn't then is cleared.
+      const currentRoles = await tx.versionContributor.findMany({ where: { songVersionId: id }, select: { roles: true } });
+      const roles = new Set<ContributorRole>([
+        ...currentRoles.flatMap((row) => row.roles),
+        ...snapshot.credits.flatMap((credit) => credit.roles as ContributorRole[]),
+      ]);
+      await replaceCredits(
+        tx,
+        id,
+        Object.fromEntries([...roles].map((role) => [role, snapshot.credits.filter((c) => c.roles.includes(role)).map((c) => c.name)])),
+      );
+      await this.history.record(tx, id, { kind: "RESTORED", authorUserId: user.id, before, restoredFromId: revisionId });
       return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     });
     return toDetailItem(version, true);
@@ -932,7 +977,7 @@ export class SongVersionsService {
    * file (bulk upload), keeping IDs where the content is unchanged, and
    * leaving everything else untouched.
    */
-  async importText(id: string, content: string, format: SupportedImportFormat): Promise<DetailItem> {
+  async importText(id: string, content: string, format: SupportedImportFormat, authorUserId: string | null = null): Promise<DetailItem> {
     const existing = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: { documentJson: true },
@@ -940,7 +985,11 @@ export class SongVersionsService {
     if (!existing) throw new NotFoundException("Song version not found");
 
     const documentJson = songDocumentFromText(readSongDocument(existing.documentJson), { content, format });
-    await this.prisma.client.$transaction((tx) => this.writeDocument(tx, id, existing.documentJson, documentJson));
+    await this.prisma.client.$transaction(async (tx) => {
+      const before = await this.history.before(tx, id);
+      await this.writeDocument(tx, id, existing.documentJson, documentJson);
+      await this.history.record(tx, id, { kind: "EDITED", authorUserId, before });
+    });
     const version = await this.prisma.client.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     return toDetailItem(version, true);
   }

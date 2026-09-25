@@ -2,7 +2,7 @@
 // route's search parser needs them on every page, and importing the editor
 // for them would put the whole editor (Tiptap included) in the main bundle.
 
-export const SONG_TABS = ["info", "editor", "arrangements", "files", "audio", "links"] as const;
+export const SONG_TABS = ["info", "editor", "arrangements", "files", "audio", "links", "history"] as const;
 export type SongTab = (typeof SONG_TABS)[number];
 
 /** Problems left after creating a song, shown once it opens. */

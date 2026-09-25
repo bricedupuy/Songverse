@@ -39,7 +39,7 @@ export class BulkUploadProcessor extends WorkerHost {
 
     if (type === "CHORDPRO") {
       const buffer = await this.storage.get(storageKey);
-      await this.songVersionsService.importText(target.songVersionId, buffer.toString("utf-8"), "CHORDPRO");
+      await this.songVersionsService.importText(target.songVersionId, buffer.toString("utf-8"), "CHORDPRO", uploadedByUserId ?? null);
     }
 
     // Kept alongside the parsed content, not instead of it - this is the

@@ -26,6 +26,7 @@ import { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto";
 import { SongVersionResponseDto, SongVersionSongbookMembershipDto } from "./dto/song-version-response.dto";
 import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
+import { SongHistoryService } from "./song-history.service";
 import { SongVersionsService } from "./song-versions.service";
 
 const STREAMING_TYPES = new Set(["SPOTIFY", "APPLE_MUSIC", "YOUTUBE"]);
@@ -44,6 +45,7 @@ export class SongVersionsController {
   constructor(
     private readonly songVersionsService: SongVersionsService,
     private readonly access: AccessPolicyService,
+    private readonly history: SongHistoryService,
   ) {}
 
   @Get()
@@ -137,6 +139,39 @@ export class SongVersionsController {
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param("songVersionId") songVersionId: string) {
     return this.songVersionsService.remove(songVersionId);
+  }
+
+  /** The song's history, newest first (issue #71). */
+  @Get(":songVersionId/history")
+  async listHistory(@CurrentUser() user: AuthenticatedUser | undefined, @Param("songVersionId") songVersionId: string): ReturnType<SongHistoryService["list"]> {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
+    return this.history.list(songVersionId);
+  }
+
+  @Get(":songVersionId/history/:revisionId")
+  async getRevision(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("songVersionId") songVersionId: string,
+    @Param("revisionId") revisionId: string,
+  ): ReturnType<SongHistoryService["detail"]> {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
+    return this.history.detail(songVersionId, revisionId);
+  }
+
+  /** Puts the song back as that entry left it, as a new save. */
+  @Post(":songVersionId/history/:revisionId/restore")
+  @UseGuards(SongVersionOwnerGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: SongVersionResponseDto })
+  restore(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("songVersionId") songVersionId: string,
+    @Param("revisionId") revisionId: string,
+  ): ReturnType<SongVersionsService["restore"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.songVersionsService.restore(user, songVersionId, revisionId);
   }
 
   @Get(":songVersionId/chordpro")

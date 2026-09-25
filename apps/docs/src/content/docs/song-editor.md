@@ -55,3 +55,15 @@ Paste a whole chart anywhere - ChordPro, or chords written above the lyrics - an
 ## Saving
 
 **Save song** saves the chart and the song's details together. If someone else saved the song after you opened it, SongVerse tells you instead of overwriting their changes.
+
+## History
+
+The **History** tab lists every save of the song, newest first: who saved it, when, and what changed - the **chart**, the **details** (title, key, rights…) or the **credits**. Saves by the same person a few minutes apart count as one step.
+
+![A song's history](../../assets/screenshots/en/song-history.jpg)
+
+Choose a step to see what it changed: details and credits with the old value struck out and the new one beside it, and the chart's lines removed and added. **Show the whole song as it was** shows the song at that step.
+
+If you can edit the song, **Restore this version** puts its chart, details and credits back as they were at that step. It's saved like any other change, so it shows in the history and can itself be undone. Tags, files, links and arrangements aren't part of the history and stay as they are. Save or discard your own changes before restoring.
+
+Songs created before the history was kept start with **Before the history was kept**: the song as it was then.
