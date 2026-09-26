@@ -164,6 +164,17 @@ try {
     const songbook = await api(me, "POST", "/songbooks", { name: text.songbook, kind: "NUMBERED", abbreviation: locale === "fr" ? "CA" : "HY" });
     for (const [i, { id }] of songs.entries()) await api(me, "POST", `/songbooks/${songbook.id}/entries`, { songVersionId: id, entryCode: String(i + 1) });
 
+    // An artist's bio (issue #86), as a global admin would write it: the providers aren't reachable here.
+    for (let i = 0; i < 40 && !(await api(me, "GET", "/artists/detail?name=John%20Newton")).lookedUp; i++) await new Promise((r) => setTimeout(r, 250));
+    const newton = sql(`select id from "Artist" where key = 'john newton'`);
+    const bios = {
+      en: "John Newton (1725–1807) was an English sailor, slave-ship captain and, after his conversion, an Anglican clergyman and abolitionist. He wrote the words of Amazing Grace for a New Year's service in Olney in 1773.",
+      fr: "John Newton (1725-1807) fut marin, capitaine de navire négrier puis, après sa conversion, pasteur anglican et abolitionniste. Il écrivit les paroles d'Amazing Grace pour un culte du Nouvel An à Olney, en 1773.",
+    };
+    for (const [language, bio] of Object.entries(bios)) {
+      sql(`insert into "ArtistBio" (id, "artistId", language, text, custom, "updatedAt") values ('bio-docs-${language}', '${newton}', '${language}', '${bio.replace(/'/g, "''")}', true, now()) on conflict ("artistId", language) do update set text = excluded.text, custom = true`);
+    }
+
     // --- the screenshots
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: locale === "fr" ? "fr-FR" : "en-US", colorScheme: "light" });
     const page = await context.newPage();
@@ -184,6 +195,7 @@ try {
     await shoot("library", "/library");
     await shoot("songs", "/library/songs", () => page.getByTestId("library-range").waitFor());
     await shoot("artists", "/library/artists", () => page.getByTestId("artist-list").waitFor());
+    await shoot("artist", "/library/artists/John%20Newton", () => page.getByTestId("artist-bio").waitFor());
     await shoot("search", null, async () => {
       await page.keyboard.press("Control+k");
       // A letter in something of every kind in the demo content, in both languages.

@@ -47,6 +47,7 @@ import { Route as ProtectedTeamsIndexRouteImport } from './routes/_protected/tea
 import { Route as ProtectedTeamsTeamIdRouteImport } from './routes/_protected/teams/$teamId'
 import { Route as ProtectedTeamsNewRouteImport } from './routes/_protected/teams/new'
 import { Route as ProtectedLibrarySongVersionIdLiveRouteImport } from './routes/_protected/library/$songVersionId_.live'
+import { Route as ProtectedLibraryArtistsNameRouteImport } from './routes/_protected/library/artists_.$name'
 import { Route as ProtectedReviewSuggestionsSuggestionIdRouteImport } from './routes/_protected/review/suggestions.$suggestionId'
 import { Route as ProtectedLibrarySongVersionIdArrangementsArrangementIdRouteImport } from './routes/_protected/library/$songVersionId_.arrangements.$arrangementId'
 import { Route as ProtectedSetsSetlistIdLiveItemIdRouteImport } from './routes/_protected/sets/$setlistId_.live.$itemId'
@@ -248,6 +249,12 @@ const ProtectedLibrarySongVersionIdLiveRoute =
     path: '/library/$songVersionId/live',
     getParentRoute: () => ProtectedRoute,
   } as any)
+const ProtectedLibraryArtistsNameRoute =
+  ProtectedLibraryArtistsNameRouteImport.update({
+    id: '/library/artists_/$name',
+    path: '/library/artists/$name',
+    getParentRoute: () => ProtectedRoute,
+  } as any)
 const ProtectedReviewSuggestionsSuggestionIdRoute =
   ProtectedReviewSuggestionsSuggestionIdRouteImport.update({
     id: '/suggestions/$suggestionId',
@@ -311,6 +318,7 @@ export interface FileRoutesByFullPath {
   '/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/teams/': typeof ProtectedTeamsIndexRoute
   '/library/$songVersionId/live': typeof ProtectedLibrarySongVersionIdLiveRoute
+  '/library/artists/$name': typeof ProtectedLibraryArtistsNameRoute
   '/review/suggestions/$suggestionId': typeof ProtectedReviewSuggestionsSuggestionIdRoute
   '/library/$songVersionId/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/sets/$setlistId/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
@@ -352,6 +360,7 @@ export interface FileRoutesByTo {
   '/songbooks': typeof ProtectedSongbooksIndexRoute
   '/teams': typeof ProtectedTeamsIndexRoute
   '/library/$songVersionId/live': typeof ProtectedLibrarySongVersionIdLiveRoute
+  '/library/artists/$name': typeof ProtectedLibraryArtistsNameRoute
   '/review/suggestions/$suggestionId': typeof ProtectedReviewSuggestionsSuggestionIdRoute
   '/library/$songVersionId/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/sets/$setlistId/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
@@ -397,6 +406,7 @@ export interface FileRoutesById {
   '/_protected/songbooks/': typeof ProtectedSongbooksIndexRoute
   '/_protected/teams/': typeof ProtectedTeamsIndexRoute
   '/_protected/library/$songVersionId_/live': typeof ProtectedLibrarySongVersionIdLiveRoute
+  '/_protected/library/artists_/$name': typeof ProtectedLibraryArtistsNameRoute
   '/_protected/review/suggestions/$suggestionId': typeof ProtectedReviewSuggestionsSuggestionIdRoute
   '/_protected/library/$songVersionId_/arrangements/$arrangementId': typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   '/_protected/sets/$setlistId_/live/$itemId': typeof ProtectedSetsSetlistIdLiveItemIdRoute
@@ -442,6 +452,7 @@ export interface FileRouteTypes {
     | '/songbooks/'
     | '/teams/'
     | '/library/$songVersionId/live'
+    | '/library/artists/$name'
     | '/review/suggestions/$suggestionId'
     | '/library/$songVersionId/arrangements/$arrangementId'
     | '/sets/$setlistId/live/$itemId'
@@ -483,6 +494,7 @@ export interface FileRouteTypes {
     | '/songbooks'
     | '/teams'
     | '/library/$songVersionId/live'
+    | '/library/artists/$name'
     | '/review/suggestions/$suggestionId'
     | '/library/$songVersionId/arrangements/$arrangementId'
     | '/sets/$setlistId/live/$itemId'
@@ -527,6 +539,7 @@ export interface FileRouteTypes {
     | '/_protected/songbooks/'
     | '/_protected/teams/'
     | '/_protected/library/$songVersionId_/live'
+    | '/_protected/library/artists_/$name'
     | '/_protected/review/suggestions/$suggestionId'
     | '/_protected/library/$songVersionId_/arrangements/$arrangementId'
     | '/_protected/sets/$setlistId_/live/$itemId'
@@ -810,6 +823,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedLibrarySongVersionIdLiveRouteImport
       parentRoute: typeof ProtectedRoute
     }
+    '/_protected/library/artists_/$name': {
+      id: '/_protected/library/artists_/$name'
+      path: '/library/artists/$name'
+      fullPath: '/library/artists/$name'
+      preLoaderRoute: typeof ProtectedLibraryArtistsNameRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
     '/_protected/review/suggestions/$suggestionId': {
       id: '/_protected/review/suggestions/$suggestionId'
       path: '/suggestions/$suggestionId'
@@ -905,6 +925,7 @@ interface ProtectedRouteChildren {
   ProtectedSongbooksIndexRoute: typeof ProtectedSongbooksIndexRoute
   ProtectedTeamsIndexRoute: typeof ProtectedTeamsIndexRoute
   ProtectedLibrarySongVersionIdLiveRoute: typeof ProtectedLibrarySongVersionIdLiveRoute
+  ProtectedLibraryArtistsNameRoute: typeof ProtectedLibraryArtistsNameRoute
   ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute: typeof ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute
   ProtectedSetsSetlistIdLiveItemIdRoute: typeof ProtectedSetsSetlistIdLiveItemIdRoute
   ProtectedSetsSetlistIdSongsItemIdRoute: typeof ProtectedSetsSetlistIdSongsItemIdRoute
@@ -937,6 +958,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedTeamsIndexRoute: ProtectedTeamsIndexRoute,
   ProtectedLibrarySongVersionIdLiveRoute:
     ProtectedLibrarySongVersionIdLiveRoute,
+  ProtectedLibraryArtistsNameRoute: ProtectedLibraryArtistsNameRoute,
   ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute:
     ProtectedLibrarySongVersionIdArrangementsArrangementIdRoute,
   ProtectedSetsSetlistIdLiveItemIdRoute: ProtectedSetsSetlistIdLiveItemIdRoute,

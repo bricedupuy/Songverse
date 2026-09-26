@@ -684,6 +684,33 @@ export interface SmartList {
 export interface ArtistCount {
   name: string;
   songCount: number;
+  /** Their picture (issue #86), signed for the viewer; null when there's none. */
+  imageUrl: string | null;
+}
+
+/** An artist's page (issue #86). */
+export interface ArtistDetail {
+  id: string | null;
+  name: string;
+  /** Songs by them you can see. */
+  songCount: number;
+  imageUrl: string | null;
+  /** "deezer", "upload", or null. */
+  imageSource: string | null;
+  /** The picture's source page (Deezer's), to credit it. */
+  imageSourceUrl: string | null;
+  /** One per language (en, fr): show the reader's. */
+  bios: { text: string; language: string; sourceUrl: string | null; custom: boolean }[];
+  /** Whether the providers have been asked yet. */
+  lookedUp: boolean;
+  lookupsEnabled: boolean;
+  /** Global admins edit artists: they're the same for everyone. */
+  canEdit: boolean;
+}
+
+export interface ArtistSettings {
+  enabled: boolean;
+  source: "database" | "env" | "default";
 }
 
 /** One page of songs, with the total across all pages. */
@@ -1281,6 +1308,22 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     recordSongView: (songVersionId: string) => request<void>(`/song-versions/${songVersionId}/views`, { method: "POST" }),
     setFavorite: (songVersionId: string, on: boolean) => request<void>(`/song-versions/${songVersionId}/favorite`, { method: on ? "PUT" : "DELETE" }),
     listArtists: (q?: string) => request<ArtistCount[]>(`/song-versions/artists${q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`),
+    getArtist: (name: string) => request<ArtistDetail>(`/artists/detail?${new URLSearchParams({ name })}`),
+    /** Asks the providers about them: once for anyone, again (`force`) for admins. */
+    lookUpArtist: (name: string, force = false) => request<ArtistDetail>("/artists/lookup", { method: "POST", body: JSON.stringify({ name, force }) }),
+    uploadArtistPicture: (name: string, file: Blob, filename = "artist.webp") => {
+      const form = new FormData();
+      form.append("file", file, filename);
+      return request<void>(`/artists/picture?${new URLSearchParams({ name })}`, { method: "POST", body: form });
+    },
+    removeArtistPicture: (name: string) => request<void>(`/artists/picture?${new URLSearchParams({ name })}`, { method: "DELETE" }),
+    /** An empty text removes the bio written here. */
+    saveArtistBio: (name: string, language: string, text: string) =>
+      request<void>("/artists/bio", { method: "PUT", body: JSON.stringify({ name, language, text }) }),
+    getArtistSettings: () => request<ArtistSettings>("/admin/artists"),
+    saveArtistSettings: (enabled: boolean) => request<ArtistSettings>("/admin/artists", { method: "PUT", body: JSON.stringify({ enabled }) }),
+    resetArtistSettings: () => request<ArtistSettings>("/admin/artists", { method: "DELETE" }),
+    backfillArtists: () => request<{ tried: number; found: number }>("/admin/artists/backfill", { method: "POST" }),
     listSmartLists: () => request<SmartList[]>("/smart-lists"),
     createSmartList: (name: string, filters: SmartListFilters) => request<SmartList>("/smart-lists", { method: "POST", body: JSON.stringify({ name, filters }) }),
     updateSmartList: (id: string, change: { name?: string; filters?: SmartListFilters }) =>

@@ -38,6 +38,7 @@ import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import type { SongFieldsDto } from "./dto/song-fields.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
+import { ArtistsService, artistKey } from "../artists/artists.service";
 import { ArtworkService } from "../artwork/artwork.service";
 import { songImageUrl } from "../artwork/song-image-url";
 import { MetadataService } from "../metadata/metadata.service";
@@ -448,6 +449,7 @@ export class SongVersionsService {
     private readonly storage: StorageService,
     private readonly metadata: MetadataService,
     private readonly artwork: ArtworkService,
+    private readonly artists: ArtistsService,
   ) {}
 
   /**
@@ -522,7 +524,7 @@ export class SongVersionsService {
    * many songs each, by name; `q` narrows them (ignoring accents). Names
    * differing only in case or accents are one artist.
    */
-  async artistsForUser(user: AuthenticatedUser, query = ""): Promise<{ name: string; songCount: number }[]> {
+  async artistsForUser(user: AuthenticatedUser, query = ""): Promise<{ name: string; songCount: number; imageUrl: string | null }[]> {
     const q = query.trim();
     const groups = await this.prisma.client.versionContributor.groupBy({
       by: ["source"],
@@ -534,15 +536,18 @@ export class SongVersionsService {
       },
       _count: { _all: true },
     });
-    const byName = new Map<string, { name: string; songCount: number }>();
+    const byName = new Map<string, { name: string; songCount: number; imageUrl: string | null }>();
     for (const group of groups) {
       const name = group.source!.trim();
       if (!name) continue;
-      const key = foldForSearch(name);
-      const entry = byName.get(key) ?? { name, songCount: 0 };
+      const key = artistKey(name);
+      const entry = byName.get(key) ?? { name, songCount: 0, imageUrl: null };
       entry.songCount += group._count._all;
       byName.set(key, entry);
     }
+    // Their pictures (issue #86).
+    const pictures = await this.artists.picturesByKey([...byName.keys()]);
+    for (const [key, entry] of byName) entry.imageUrl = pictures.get(key) ?? null;
     return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   }
 

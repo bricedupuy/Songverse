@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
-import type { AdminCommandResult, ArtworkSettings, MetadataSettings } from "@songverse/core";
+import type { AdminCommandResult, ArtistSettings, ArtworkSettings, MetadataSettings } from "@songverse/core";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -104,6 +104,7 @@ function AdminMetadataPage() {
       <MetadataProvidersCard />
       <AppleMusicKeyCard />
       <ArtworkSettingsCard />
+      <ArtistSettingsCard />
     </div>
   );
 }
@@ -445,6 +446,101 @@ function AppleMusicKeyCard() {
               }
             />
           ) : null}
+        </div>
+        {message ? (
+          <p className={`text-sm ${message.kind === "error" ? "text-destructive" : "text-muted-foreground"}`} role={message.kind === "error" ? "alert" : "status"}>
+            {message.text}
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Artist pictures and bios (issue #86): on or off, and looking up the artists not looked up yet. */
+function ArtistSettingsCard() {
+  const { t } = useTranslation();
+  const [settings, setSettings] = useState<ArtistSettings | null>(null);
+  const [enabled, setEnabled] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+
+  const apply = (next: ArtistSettings) => {
+    setSettings(next);
+    setEnabled(next.enabled);
+  };
+  useEffect(() => {
+    apiClient.getArtistSettings().then(apply).catch(() => {});
+  }, []);
+
+  async function run(action: () => Promise<string>) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      setMessage({ kind: "ok", text: await action() });
+    } catch (err) {
+      setMessage({ kind: "error", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const currently = settings?.source === "database" ? "currentlyDatabase" : settings?.source === "env" ? "currentlyEnv" : "currentlyDefault";
+  return (
+    <Card data-testid="artist-settings">
+      <CardHeader>
+        <CardTitle className="text-sm">{t("artistSettings.title")}</CardTitle>
+        <CardDescription>{t("artistSettings.description")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {settings ? <p className="text-sm text-muted-foreground">{t(`artistSettings.${currently}`)}</p> : null}
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} className="size-4" />
+          {t("artistSettings.enabled")}
+        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                apply(await apiClient.saveArtistSettings(enabled));
+                return t("artistSettings.saved");
+              })
+            }
+          >
+            {t("artistSettings.save")}
+          </Button>
+          {settings?.source === "database" ? (
+            <ConfirmButton
+              label={t("artistSettings.revert")}
+              confirmLabel={t("artistSettings.revertConfirm")}
+              busyLabel={t("admin.running")}
+              cancelLabel={t("admin.cancel")}
+              busy={busy}
+              onConfirm={() =>
+                run(async () => {
+                  apply(await apiClient.resetArtistSettings());
+                  return t("artistSettings.saved");
+                })
+              }
+            />
+          ) : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 border-t pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy || !settings?.enabled}
+            onClick={() =>
+              void run(async () => {
+                const result = await apiClient.backfillArtists();
+                return t("artistSettings.backfilled", result);
+              })
+            }
+          >
+            {busy ? t("artistSettings.backfilling") : t("artistSettings.backfill")}
+          </Button>
         </div>
         {message ? (
           <p className={`text-sm ${message.kind === "error" ? "text-destructive" : "text-muted-foreground"}`} role={message.kind === "error" ? "alert" : "status"}>

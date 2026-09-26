@@ -114,9 +114,10 @@ New user-owned content types also need adding to its transfer step
 `Submission.submitterId` - songs submitted to the global catalogue - do,
 so they follow the songs to their new owner).
 
-Storage objects are content-addressed and shared (attachments, avatars and
-song images with identical bytes are one object). Delete them only through
-`StorageService.deleteUnreferenced()`, which checks all three.
+Storage objects are content-addressed and shared (attachments, avatars,
+song images and artist pictures with identical bytes are one object).
+Delete them only through `StorageService.deleteUnreferenced()`, which checks
+all four.
 
 ## Where auth lives
 

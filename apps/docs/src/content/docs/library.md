@@ -32,7 +32,13 @@ A song without an image of its own gets a cover from its title's colour and init
 
 ## Artists
 
-**Artists** shows everyone credited as an artist on the songs you can see, as a grid: a round picture (their initials, for now), their name and how many songs they have; the search box narrows them. Names written differently (with or without capitals or accents) count as one artist. Choose one to see their songs: the **Songs** list shows **By** and the name, and the **×** beside it shows everyone again.
+**Artists** shows everyone credited as an artist on the songs you can see, as a grid: their picture (or their initials), their name and how many songs they have; the search box narrows them. Names written differently (with or without capitals or accents) count as one artist.
+
+Choose one for their page: their picture, a short bio and their songs. The picture comes from Deezer and the bio from Wikipedia (**From Wikipedia** opens the article), in English or French as you read Songverse; an artist is looked up when a song first credits them, or the first time their page opens. Their song count opens the **Songs** list with **By** and the name; the **×** beside it shows everyone again.
+
+![John Newton's page](../../assets/screenshots/en/artist.jpg)
+
+A global admin can **Upload a picture** (dragged and zoomed into the circle), **Remove the picture**, **Edit the bio** - written here, it replaces Wikipedia's in that language; left empty, Wikipedia's comes back - and **Look them up again**. An artist is the same for everyone, so these show to everyone who can see a song by them.
 
 ![The artists](../../assets/screenshots/en/artists.jpg)
 

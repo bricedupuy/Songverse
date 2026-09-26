@@ -5,8 +5,13 @@
 // APPLE_MUSIC_API_URL at /applemusic), which checks the developer token's
 // signature against `appleMusicKey.publicKey` - and a developer token
 // address (/applemusic-token) handing out tokens signed with
-// `appleMusicKey.privateKey`, counting how often it's asked. A search for anything with "Nomatch" in it
-// finds nothing; "Deezerdown" makes Deezer fail. Otherwise, for a title and
+// `appleMusicKey.privateKey`, counting how often it's asked.
+// Artists (issue #86): Deezer's artist search (a picture, unless the name
+// has "Nopicture" in it), MusicBrainz's artists with a Wikidata link (none
+// for "Nobio"), Wikidata (WIKIDATA_API_URL at /wikidata/w/api.php) and
+// Wikipedia's summaries (WIKIPEDIA_URL at /wikipedia/{lang}).
+// A search for anything with "Nomatch" in it finds nothing; "Deezerdown"
+// makes Deezer fail. Otherwise, for a title and
 // an artist:
 // - Apple Music: three albums, "Album 1" (2013), "Album 2" (2016) and
 //   "Album 3" (2019), each with artwork of its own colour;
@@ -140,6 +145,10 @@ const deezerTracks = (title, artist) => [
 ];
 const ALBUM_DATES = { 7001: "2013-02-22", 7002: "2020-05-01" };
 
+// --- artists
+const artistNames = new Map();
+const qids = new Map();
+
 export function startFakeProviders() {
   const server = createServer((req, res) => {
     const url = new URL(req.url, URL_);
@@ -172,6 +181,36 @@ export function startFakeProviders() {
       const one = /^\/applemusic\/v1\/catalog\/[a-z]{2}\/songs\/(\d+)$/.exec(path);
       const song = one && lastApple.get(one[1]);
       return song ? json(res, { data: [appleMusicSong(song)] }) : json(res, { errors: [{ status: "404" }] }, 404);
+    }
+    if (path === "/deezer/search/artist") {
+      const q = url.searchParams.get("q") ?? "";
+      const picture = /nopicture/i.test(q) ? "https://e-cdns-images.dzcdn.net/images/artist//1000x1000-000000-80-0-0.jpg" : `${URL_}/art/1/1000x1000.png`;
+      return json(res, { data: [{ id: 9001, name: q, link: "https://www.deezer.com/artist/9001", picture_xl: picture }] });
+    }
+    if (path === "/mb/ws/2/artist") {
+      const name = unescape(/artist:"((?:[^"\\]|\\.)*)"/.exec(url.searchParams.get("query") ?? "")?.[1] ?? "");
+      const id = mbid(9, name);
+      artistNames.set(id, name);
+      return json(res, { artists: [{ id, name, score: 100 }] });
+    }
+    const mbArtist = /^\/mb\/ws\/2\/artist\/([\w-]+)$/.exec(path);
+    if (mbArtist) {
+      const name = artistNames.get(mbArtist[1]) ?? "";
+      if (/nobio/i.test(name)) return json(res, { relations: [] });
+      const qid = `Q${1000 + qids.size}`;
+      qids.set(qid, name);
+      return json(res, { relations: [{ type: "wikidata", url: { resource: `https://www.wikidata.org/wiki/${qid}` } }] });
+    }
+    if (path === "/wikidata/w/api.php") {
+      const qid = url.searchParams.get("ids") ?? "";
+      const name = qids.get(qid);
+      return json(res, { entities: { [qid]: { sitelinks: name ? { enwiki: { title: name }, frwiki: { title: name } } : {} } } });
+    }
+    const wiki = /^\/wikipedia\/(\w+)\/api\/rest_v1\/page\/summary\/(.+)$/.exec(path);
+    if (wiki) {
+      const [, language, title] = wiki;
+      const name = decodeURIComponent(title).replace(/_/g, " ");
+      return json(res, { type: "standard", extract: language === "fr" ? `${name} est un groupe.` : `${name} is a band.`, content_urls: { desktop: { page: `https://${language}.wikipedia.org/wiki/${title}` } } });
     }
     if (path === "/mb/ws/2/recording") {
       const query = url.searchParams.get("query") ?? "";

@@ -6,6 +6,7 @@
  * was opened from beside it, to go from one to the next.
  */
 export function nestedSidebarFor(pathname: string): boolean {
-  if (/^\/library\/(?!(new|songs|artists)\/?$)[^/]+/.test(pathname)) return true;
+  // Artists' pages (issue #86) keep the full sidebar, like the list of artists.
+  if (/^\/library\/(?!(new|songs|artists)(\/|$))[^/]+/.test(pathname)) return true;
   return /^\/(sets|songbooks|teams)\/(?!new\/?$)[^/]+/.test(pathname);
 }

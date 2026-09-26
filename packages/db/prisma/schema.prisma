@@ -1741,7 +1741,50 @@ model MetadataSettings {
   // A stopgap without a key: an address handing out developer tokens
   // (`{ "token": "eyJ…" }`), used until a key is set. APPLE_MUSIC_TOKEN_URL.
   appleMusicTokenUrl      String?
+  // Artist pictures and bios (issue #86): looked up or not. None: on.
+  artistsEnabled          Boolean?
   updatedAt               DateTime @updatedAt
+}
+
+// An artist (issue #86): the name songs credit (VersionContributor.source,
+// as PERFORMER), matched by `key` - the name folded (no case or accents) -
+// with a picture and a short bio. Not anyone's: the same for everyone who
+// can see a song by them. The picture is kept on our storage like song
+// images (content-addressed, shared); `imageSource` says where it came
+// from ("deezer", "upload"; "none" when nothing was found).
+model Artist {
+  id              String    @id @default(cuid())
+  key             String    @unique
+  name            String
+  imageStorageKey String?
+  imageSource     String?
+  // The source's own page for it (Deezer's), to credit it.
+  imageSourceUrl  String?
+  musicbrainzId   String?
+  wikidataId      String?
+  // When the providers were last asked; null: never.
+  lookedUpAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  bios ArtistBio[]
+}
+
+// An artist's short bio in one language (issue #86): Wikipedia's summary
+// (with the article, to credit it), or one written here (`custom`), which a
+// new lookup leaves alone.
+model ArtistBio {
+  id        String   @id @default(cuid())
+  artistId  String
+  language  String // "en", "fr"
+  text      String
+  sourceUrl String?
+  custom    Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([artistId, language])
 }
 
 // A user's saved library filter (issue #58): a songs list kept under a

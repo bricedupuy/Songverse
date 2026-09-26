@@ -166,6 +166,26 @@ export class MusicBrainzService {
     }
   }
 
+  /**
+   * An artist by name (issue #86): the best-scored whose name is this one
+   * (ignoring case and accents), with its Wikidata item when MusicBrainz
+   * links one - the way to the right Wikipedia article, not a namesake's.
+   * Null when none is named so.
+   */
+  async findArtist(name: string): Promise<{ mbid: string; wikidataId: string | null } | null> {
+    const fold = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+    const found = await this.client.get<{ artists?: { id: string; name: string; score?: number; aliases?: { name: string }[] }[] }>("artist", {
+      query: `artist:"${escapeLucene(name)}"`,
+      limit: "5",
+    });
+    const wanted = fold(name);
+    const artist = (found.artists ?? []).find((a) => fold(a.name) === wanted || a.aliases?.some((alias) => fold(alias.name) === wanted));
+    if (!artist) return null;
+    const detail = await this.client.get<{ relations?: { type?: string; url?: { resource?: string } }[] }>(`artist/${artist.id}`, { inc: "url-rels" });
+    const wikidata = detail.relations?.find((relation) => relation.type === "wikidata")?.url?.resource;
+    return { mbid: artist.id, wikidataId: wikidata?.match(/(Q\d+)$/)?.[1] ?? null };
+  }
+
   async searchWorks(title: string): Promise<MusicBrainzWorkMatch[]> {
     try {
       const result = await this.client.get<MbWorkSearchResponse>("work", {

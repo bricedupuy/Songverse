@@ -19,6 +19,7 @@ import type { StreamingIdentifierType } from "@songverse/core";
 import { AccessPolicyService } from "../access/access-policy.service";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard";
+import { ArtistsService } from "../artists/artists.service";
 import { ArtworkService } from "../artwork/artwork.service";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
@@ -49,6 +50,7 @@ export class SongVersionsController {
     private readonly access: AccessPolicyService,
     private readonly history: SongHistoryService,
     private readonly artwork: ArtworkService,
+    private readonly artistLookups: ArtistsService,
   ) {}
 
   @Get()
@@ -137,19 +139,23 @@ export class SongVersionsController {
     const created = await this.songVersionsService.create(user, dto);
     // Its artwork (issue #85), found in the background: the song doesn't wait for Apple Music.
     void this.artwork.autoFind(created.id);
+    // Its artists' pictures and bios (issue #86), the same way.
+    void this.artistLookups.lookUpNew(dto.artists);
     return created;
   }
 
   @Patch(":songVersionId")
   @UseGuards(SongVersionEditorGuard)
   @ApiOkResponse({ type: SongVersionResponseDto })
-  update(
+  async update(
     @CurrentUser() user: AuthenticatedUser | undefined,
     @Param("songVersionId") songVersionId: string,
     @Body() dto: UpdateSongVersionDto,
   ): ReturnType<SongVersionsService["update"]> {
     if (!user) throw new UnauthorizedException();
-    return this.songVersionsService.update(user, songVersionId, dto);
+    const updated = await this.songVersionsService.update(user, songVersionId, dto);
+    if (dto.artists?.length) void this.artistLookups.lookUpNew(dto.artists);
+    return updated;
   }
 
   @Delete(":songVersionId")

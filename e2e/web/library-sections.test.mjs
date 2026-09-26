@@ -61,12 +61,15 @@ await step("Songs and Artists are under Library in the sidebar", async () => {
   await page.getByRole("heading", { name: "Artists" }).waitFor();
 });
 
-await step("Artists: each with their songs; one opens their songs", async () => {
+await step("Artists: each with their songs; one opens their page (issue #86), and it their songs", async () => {
   await page.getByRole("searchbox").fill(stamp.toString());
   const row = page.getByTestId("artist-list").getByRole("link", { name: new RegExp(`^Anna ${stamp}`, "i") });
   await row.getByText("2 songs").waitFor();
   await page.getByTestId("artist-count").getByText("2 artists").waitFor();
   await row.click();
+  await page.waitForURL(/\/library\/artists\/.+/);
+  await page.getByTestId("artist-songs").getByRole("listitem").nth(1).waitFor();
+  await page.getByTestId("artist-header").getByRole("link", { name: "2 songs" }).click();
   await page.waitForURL(/artist=/);
   await rangeIs("1–2 of 2");
   await page.getByTestId("artist-filter").getByText(/^By Anna/i).waitFor();
@@ -97,7 +100,12 @@ await step("a changed list can be saved again; the sidebar opens it with its fil
   await sections().getByRole("link", { name: `Anna tagged ${stamp}` }).click();
   await page.getByRole("heading", { name: `Anna tagged ${stamp}` }).waitFor();
   await rangeIs("1–2 of 2");
-  if ((await page.getByRole("searchbox").inputValue()) !== stamp.toString()) throw new Error("the search wasn't restored");
+  // The search box is filled from the list once it has loaded: waited for, not read once.
+  await page
+    .waitForFunction((want) => document.querySelector("input[type=search]")?.value === want, stamp.toString(), { timeout: 10000 })
+    .catch(() => {
+      throw new Error("the search wasn't restored");
+    });
 });
 
 await step("renamed, then deleted", async () => {

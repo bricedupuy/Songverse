@@ -351,7 +351,7 @@ function MainNav({
                 isActive: pathname === "/library/songs" && favorites,
                 link: { to: "/library/songs" as const, search: { favorites: true } },
               },
-              { key: "artists", label: t("nav.artists"), isActive: pathname === "/library/artists", link: { to: "/library/artists" as const } },
+              { key: "artists", label: t("nav.artists"), isActive: pathname === "/library/artists" || pathname.startsWith("/library/artists/"), link: { to: "/library/artists" as const } },
               ...smartLists.map((list) => ({
                 key: list.id,
                 label: list.name,

@@ -32,3 +32,23 @@ export function isValidSongImageSignature(songVersionId: string, storageKey: str
   const actual = Buffer.from(given);
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
+
+const artistSignature = (artistId: string, storageKey: string, expires: number) =>
+  createHmac("sha256", key()).update(`artist:${artistId}.${storageKey}.${expires}`).digest("base64url");
+
+/** An artist's picture address (issue #86): signed and expiring like a song's, handed out with the artist. */
+export function artistImageUrl(artistId: string, storageKey: string | null, now = Date.now()): string | null {
+  if (!storageKey) return null;
+  const expires = (Math.floor(now / DAY_MS) + 2) * DAY_MS;
+  const apiOrigin = new URL(process.env.AUTH_URL ?? "http://localhost:3001").origin;
+  const query = new URLSearchParams({ expires: String(expires), signature: artistSignature(artistId, storageKey, expires) });
+  return `${apiOrigin}/artists/${encodeURIComponent(artistId)}/image/${storageKey}?${query}`;
+}
+
+export function isValidArtistImageSignature(artistId: string, storageKey: string, expires: string | undefined, given: string | undefined, now = Date.now()): boolean {
+  const at = Number(expires);
+  if (!given || !Number.isFinite(at) || at < now) return false;
+  const expected = Buffer.from(artistSignature(artistId, storageKey, at));
+  const actual = Buffer.from(given);
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}

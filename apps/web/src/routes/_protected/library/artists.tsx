@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
+import { ArtistPicture } from "#/components/artist-picture";
 import { apiClient } from "#/lib/api-client";
 
 /**
- * The artists of the songs you can see (issue #58), with how many songs
- * each; one opens the library's songs by them.
+ * The artists of the songs you can see (issue #58), with their pictures
+ * (issue #86) and how many songs each; one opens their page.
  */
 export const Route = createFileRoute("/_protected/library/artists")({
   validateSearch: (search: Record<string, unknown>): { q?: string } => {
@@ -20,33 +21,6 @@ export const Route = createFileRoute("/_protected/library/artists")({
   loader: async ({ deps }) => ({ artists: await apiClient.listArtists(deps.q) }),
   component: ArtistsPage,
 });
-
-// Soft colours that read in light and dark themes alike, one per artist.
-const HUES = [15, 45, 90, 150, 190, 220, 265, 310, 340];
-
-/**
- * An artist's round picture. Songverse has no artist photos yet (they'll
- * come with metadata providers, issue #22): their initials, on a colour
- * that's always the same for the same name.
- */
-function ArtistPicture({ name }: { name: string }) {
-  const hue = HUES[[...name.toLowerCase()].reduce((sum, char) => (sum * 31 + char.charCodeAt(0)) >>> 0, 7) % HUES.length]!;
-  const initials = name
-    .split(/\s+/)
-    .filter((word) => /\p{L}/u.test(word))
-    .slice(0, 2)
-    .map((word) => [...word][0]!.toUpperCase())
-    .join("");
-  return (
-    <span
-      className="flex size-20 shrink-0 items-center justify-center rounded-full text-xl font-semibold text-white shadow-sm sm:size-24 sm:text-2xl"
-      style={{ backgroundColor: `oklch(62% 0.12 ${hue})` }}
-      aria-hidden
-    >
-      {initials || "♪"}
-    </span>
-  );
-}
 
 function ArtistsPage() {
   const { t } = useTranslation();
@@ -86,8 +60,8 @@ function ArtistsPage() {
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-4 gap-y-6 border-t p-4 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]" data-testid="artist-list">
             {artists.map((artist) => (
               <li key={artist.name}>
-                <Link to="/library/songs" search={{ artist: artist.name }} className="group flex flex-col items-center gap-2 rounded-lg p-2 text-center hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-                  <ArtistPicture name={artist.name} />
+                <Link to="/library/artists/$name" params={{ name: artist.name }} className="group flex flex-col items-center gap-2 rounded-lg p-2 text-center hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                  <ArtistPicture name={artist.name} imageUrl={artist.imageUrl} />
                   <span className="line-clamp-2 text-sm font-medium group-hover:text-primary">{artist.name}</span>
                   <span className="-mt-1.5 text-xs text-muted-foreground">{t("library.songCount", { count: artist.songCount })}</span>
                 </Link>

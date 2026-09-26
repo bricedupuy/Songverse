@@ -32,7 +32,13 @@ Un chant sans image à lui a une couverture tirée de son titre : une couleur et
 
 ## Artistes
 
-**Artistes** montre toutes les personnes créditées comme artiste sur les chants que vous pouvez voir, en grille : une image ronde (ses initiales, pour l'instant), son nom et son nombre de chants ; la recherche les filtre. Les noms écrits différemment (avec ou sans majuscules ou accents) comptent pour un seul artiste. Choisissez-en un pour voir ses chants : la liste **Chants** affiche **De** suivi du nom, et le **×** à côté montre de nouveau tout le monde.
+**Artistes** montre toutes les personnes créditées comme artiste sur les chants que vous pouvez voir, en grille : sa photo (ou ses initiales), son nom et son nombre de chants ; la recherche les filtre. Les noms écrits différemment (avec ou sans majuscules ou accents) comptent pour un seul artiste.
+
+Choisissez-en un pour sa page : sa photo, une courte biographie et ses chants. La photo vient de Deezer et la biographie de Wikipédia (**Depuis Wikipédia** ouvre l'article), en anglais ou en français selon la langue de Songverse ; un artiste est cherché quand un chant le crédite pour la première fois, ou à la première ouverture de sa page. Son nombre de chants ouvre la liste **Chants** avec **De** suivi du nom ; le **×** à côté montre de nouveau tout le monde.
+
+![La page de John Newton](../../../assets/screenshots/fr/artist.jpg)
+
+Un administrateur global peut **Ajouter une photo** (glissée et zoomée dans le cercle), **Retirer la photo**, **Modifier la biographie** - écrite ici, elle remplace celle de Wikipédia dans cette langue ; laissée vide, celle de Wikipédia revient - et **Chercher à nouveau**. Un artiste est le même pour tous : ces changements apparaissent à tous ceux qui voient un de ses chants.
 
 ![Les artistes](../../../assets/screenshots/fr/artists.jpg)
 
