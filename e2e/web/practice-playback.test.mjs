@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { API, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { sidebarGo, API, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures/stems");
 // YouTube's IFrame API, as far as SongVerse uses it: a player that keeps time.
@@ -101,7 +101,7 @@ await step("Play plays the video, and the time follows", async () => {
 });
 
 await step("elsewhere it plays on in a corner, with a way back", async () => {
-  await page.getByRole("link", { name: "Sets", exact: true }).first().click();
+  await sidebarGo(page, "Sets");
   await page.waitForURL(`${WEB}/sets`);
   await page.waitForFunction(() => document.querySelector('[data-testid="youtube-host"]')?.dataset.view === "mini");
   const box = await host().boundingBox();
@@ -114,7 +114,7 @@ await step("elsewhere it plays on in a corner, with a way back", async () => {
 });
 
 await step("one thing plays at a time: the stems stop YouTube", async () => {
-  await page.getByRole("link", { name: "Library", exact: true }).first().click();
+  await sidebarGo(page, "Library");
   await page.getByText(`Recorded ${stamp}`, { exact: true }).click();
   await page.waitForURL(`**/library/${recorded.id}`);
   if ((await view()) !== "mini") throw new Error(`the video isn't in the corner: ${await view()}`);

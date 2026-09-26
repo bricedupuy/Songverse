@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { API, WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { sidebarGo, API, WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures/stems");
 const fixture = (name) => path.join(FIXTURES, name);
@@ -228,7 +228,7 @@ await step("expanded: a row per part with its waveform, mute and solo; the wavef
 
 await step("it plays on elsewhere, with a button back to the song", async () => {
   const before = seconds(await time());
-  await page.getByRole("link", { name: "Sets", exact: true }).first().click();
+  await sidebarGo(page, "Sets");
   await page.waitForURL(`${WEB}/sets`);
   await floating().getByText(`Stems ${stamp}`).waitFor();
   if (await player().count()) throw new Error("the dock followed");

@@ -194,7 +194,10 @@ await step("editing: remove an artist, save", async () => {
   await page.getByText("Saved.").waitFor();
   const d = await api(me, "GET", `/song-versions/${songId}`);
   if (d.artists.map((a) => a.source).join() !== "Chris Tomlin") throw new Error(JSON.stringify(d.artists));
-  if (!(await page.getByRole("button", { name: "Save song" }).isDisabled())) throw new Error("save should be disabled when nothing changed");
+  // "Saved." shows as the saved song reloads; Save turns disabled once the form has it.
+  await page.getByRole("button", { name: "Save song" }).and(page.locator(":disabled")).waitFor({ timeout: 5000 }).catch(() => {
+    throw new Error("save should be disabled when nothing changed");
+  });
 });
 
 await step("a song that still has a variant name from before shows it; the form has no field for it (#78)", async () => {

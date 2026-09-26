@@ -1,5 +1,5 @@
 import type { SetlistSummary, SongbookSummary, TeamSummary } from "@songverse/core";
-import { useMatches } from "@tanstack/react-router";
+import { useMatches, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppSidebar } from "#/components/app-sidebar";
 import { OfflineBanner } from "#/components/offline-banner";
@@ -7,6 +7,7 @@ import { SiteHeader } from "#/components/site-header";
 import { StemDockSlot, StemReturnButton } from "#/components/stem-dock";
 import { YouTubeHost } from "#/components/youtube-dock";
 import { unloadStems } from "#/lib/stem-engine";
+import { isItemPage } from "#/lib/item-page";
 import type { AppSession } from "#/lib/server-auth";
 import { SidebarInset, SidebarProvider } from "#/components/ui/sidebar";
 
@@ -24,6 +25,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const fullScreen = useMatches({ select: (matches) => matches.some((match) => match.staticData.fullScreen) });
+  const itemPage = useRouterState({ select: (s) => isItemPage(s.location.pathname) });
   const [dockSlot, setDockSlot] = useState<HTMLElement | null>(null);
   // Signed out (or out of the app): the stems stop.
   useEffect(() => unloadStems, []);
@@ -38,7 +40,7 @@ export function AppShell({
   }
   return (
     <StemDockSlot.Provider value={dockSlot}>
-      <SidebarProvider>
+      <SidebarProvider itemPage={itemPage}>
         <AppSidebar session={session} teams={teams} songbooks={songbooks} setlists={setlists} />
         <SidebarInset>
           <SiteHeader />

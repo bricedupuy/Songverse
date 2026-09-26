@@ -1,5 +1,5 @@
 import type { SetlistSummary, SongbookSummary, TeamSummary } from "@songverse/core";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
   ArrowLeft,
   BookOpen,
@@ -60,6 +60,7 @@ import {
   useSidebar,
 } from "#/components/ui/sidebar";
 import { initials } from "#/lib/initials";
+import { cn } from "#/lib/utils";
 
 export function AppSidebar({
   session,
@@ -199,6 +200,108 @@ function SidebarLabel({ children, className }: { children: ReactNode; className?
   return <span className={className}>{children}</span>;
 }
 
+interface NavItem {
+  key: string;
+  label: string;
+  isActive: boolean;
+  icon?: ReactNode;
+  muted?: boolean;
+  link: { to: NonNullable<LinkProps["to"]>; params?: Record<string, string>; search?: object };
+}
+
+/**
+ * A sidebar entry with its own list under it (Library, Sets, Songbooks,
+ * Teams): a collapsible list when the sidebar is open; collapsed to icons
+ * (#80), its icon opens that list as a menu beside it.
+ */
+function NavGroup({
+  icon,
+  label,
+  to,
+  isActive,
+  items,
+  empty,
+  testId,
+}: {
+  icon: ReactNode;
+  label: string;
+  to: NavItem["link"]["to"];
+  isActive: boolean;
+  items: NavItem[];
+  empty?: string;
+  testId?: string;
+}) {
+  const { t } = useTranslation();
+  const { state, isMobile } = useSidebar();
+
+  if (state === "collapsed" && !isMobile) {
+    return (
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton isActive={isActive} aria-label={label} title={label}>
+              {icon}
+              <span>{label}</span>
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" className="w-60" data-testid={testId ? `${testId}-menu` : undefined}>
+            <DropdownMenuItem asChild className="font-medium">
+              <Link to={to}>
+                {icon}
+                {label}
+              </Link>
+            </DropdownMenuItem>
+            {items.length > 0 || empty ? <DropdownMenuSeparator /> : null}
+            {items.length === 0 && empty ? <p className="px-2 py-1.5 text-xs text-muted-foreground">{empty}</p> : null}
+            {items.map((item) => (
+              <DropdownMenuItem key={item.key} asChild data-active={item.isActive} className={cn(item.isActive && "bg-accent font-medium", item.muted && "text-muted-foreground")}>
+                <Link {...(item.link as LinkProps)}>
+                  {item.icon}
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    );
+  }
+
+  return (
+    <Collapsible defaultOpen className="group/collapsible">
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild isActive={isActive} tooltip={label}>
+          <Link to={to}>
+            {icon}
+            <span>{label}</span>
+          </Link>
+        </SidebarMenuButton>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuAction>
+            <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+            <span className="sr-only">{t("nav.toggle")}</span>
+          </SidebarMenuAction>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub data-testid={testId}>
+            {items.length === 0 && empty ? <p className="px-2 py-1 text-xs text-muted-foreground">{empty}</p> : null}
+            {items.map((item) => (
+              <SidebarMenuSubItem key={item.key}>
+                <SidebarMenuSubButton asChild isActive={item.isActive}>
+                  <Link {...(item.link as LinkProps)} className={cn(item.muted && "text-muted-foreground")}>
+                    {item.icon}
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            ))}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
+
 function MainNav({
   pathname,
   teams,
@@ -226,165 +329,70 @@ function MainNav({
       <SidebarGroup>
         <SidebarGroupLabel>{t("nav.platform")}</SidebarGroupLabel>
         <SidebarMenu>
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith("/library")} tooltip={t("nav.library")}>
-                <Link to="/library">
-                  <Music2 />
-                  <span>{t("nav.library")}</span>
-                </Link>
-              </SidebarMenuButton>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuAction>
-                  <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                  <span className="sr-only">{t("nav.toggle")}</span>
-                </SidebarMenuAction>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                {/* Songs (what Library opens on), artists, and the user's smart lists (issue #58). */}
-                <SidebarMenuSub data-testid="library-sections">
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={pathname === "/library" && !listId}>
-                      <Link to="/library">
-                        <span>{t("nav.songs")}</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                  <SidebarMenuSubItem>
-                    <SidebarMenuSubButton asChild isActive={pathname === "/library/artists"}>
-                      <Link to="/library/artists">
-                        <span>{t("nav.artists")}</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                  {smartLists.map((list) => (
-                    <SidebarMenuSubItem key={list.id}>
-                      <SidebarMenuSubButton asChild isActive={pathname === "/library" && listId === list.id}>
-                        <Link to="/library" search={smartListSearch(list)}>
-                          <ListFilter className="size-3.5" />
-                          <span className="truncate">{list.name}</span>
-                        </Link>
-                      </SidebarMenuSubButton>
-                    </SidebarMenuSubItem>
-                  ))}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
-
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith("/sets")} tooltip={t("nav.sets")}>
-                <Link to="/sets">
-                  <ListMusic />
-                  <span>{t("nav.sets")}</span>
-                </Link>
-              </SidebarMenuButton>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuAction>
-                  <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                  <span className="sr-only">{t("nav.toggle")}</span>
-                </SidebarMenuAction>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {setlists.length === 0 ? (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">{t("sets.noSetsYet")}</p>
-                  ) : (
-                    <>
-                      {shownSetlists.map((set) => (
-                        <SidebarMenuSubItem key={set.id}>
-                          <SidebarMenuSubButton asChild isActive={pathname === `/sets/${set.id}`}>
-                            <Link to="/sets/$setlistId" params={{ setlistId: set.id }}>
-                              <span className="truncate">{setlistTitle(set, t, i18n.language)}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                      {setlists.length > shownSetlists.length ? (
-                        <SidebarMenuSubItem>
-                          <SidebarMenuSubButton asChild>
-                            <Link to="/sets" className="text-muted-foreground">
-                              <span>{t("sets.viewAll", { count: setlists.length })}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ) : null}
-                    </>
-                  )}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
-
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith("/songbooks")} tooltip={t("nav.songbooks")}>
-                <Link to="/songbooks">
-                  <BookOpen />
-                  <span>{t("nav.songbooks")}</span>
-                </Link>
-              </SidebarMenuButton>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuAction>
-                  <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                  <span className="sr-only">{t("nav.toggle")}</span>
-                </SidebarMenuAction>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {songbooks.length === 0 ? (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">{t("songbooks.noSongbooksYet")}</p>
-                  ) : (
-                    songbooks.map((songbook) => (
-                      <SidebarMenuSubItem key={songbook.id}>
-                        <SidebarMenuSubButton asChild isActive={pathname === `/songbooks/${songbook.id}`}>
-                          <Link to="/songbooks/$songbookId" params={{ songbookId: songbook.id }}>
-                            <span className="truncate">{songbook.name}</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))
-                  )}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
-
-          <Collapsible defaultOpen className="group/collapsible">
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.startsWith("/teams")} tooltip={t("nav.teams")}>
-                <Link to="/teams">
-                  <UsersRound />
-                  <span>{t("nav.teams")}</span>
-                </Link>
-              </SidebarMenuButton>
-              <CollapsibleTrigger asChild>
-                <SidebarMenuAction>
-                  <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                  <span className="sr-only">{t("nav.toggle")}</span>
-                </SidebarMenuAction>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <SidebarMenuSub>
-                  {teams.length === 0 ? (
-                    <p className="px-2 py-1 text-xs text-muted-foreground">{t("nav.noTeams")}</p>
-                  ) : (
-                    teams.map((team) => (
-                      <SidebarMenuSubItem key={team.id}>
-                        <SidebarMenuSubButton asChild isActive={pathname === `/teams/${team.id}`}>
-                          <Link to="/teams/$teamId" params={{ teamId: team.id }}>
-                            <Users />
-                            <span className="truncate">{team.name}</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    ))
-                  )}
-                </SidebarMenuSub>
-              </CollapsibleContent>
-            </SidebarMenuItem>
-          </Collapsible>
+          <NavGroup
+            icon={<Music2 />}
+            label={t("nav.library")}
+            to="/library"
+            isActive={pathname.startsWith("/library")}
+            testId="library-sections"
+            items={[
+              // Songs (what Library opens on), artists, and the user's smart lists (issue #58).
+              { key: "songs", label: t("nav.songs"), isActive: pathname === "/library" && !listId, link: { to: "/library" } },
+              { key: "artists", label: t("nav.artists"), isActive: pathname === "/library/artists", link: { to: "/library/artists" as const } },
+              ...smartLists.map((list) => ({
+                key: list.id,
+                label: list.name,
+                icon: <ListFilter className="size-3.5" />,
+                isActive: pathname === "/library" && listId === list.id,
+                link: { to: "/library" as const, search: smartListSearch(list) },
+              })),
+            ]}
+          />
+          <NavGroup
+            icon={<ListMusic />}
+            label={t("nav.sets")}
+            to="/sets"
+            isActive={pathname.startsWith("/sets")}
+            empty={t("sets.noSetsYet")}
+            items={[
+              ...shownSetlists.map((set) => ({
+                key: set.id,
+                label: setlistTitle(set, t, i18n.language),
+                isActive: pathname === `/sets/${set.id}`,
+                link: { to: "/sets/$setlistId" as const, params: { setlistId: set.id } },
+              })),
+              ...(setlists.length > shownSetlists.length
+                ? [{ key: "all", label: t("sets.viewAll", { count: setlists.length }), muted: true, isActive: false, link: { to: "/sets" as const } }]
+                : []),
+            ]}
+          />
+          <NavGroup
+            icon={<BookOpen />}
+            label={t("nav.songbooks")}
+            to="/songbooks"
+            isActive={pathname.startsWith("/songbooks")}
+            empty={t("songbooks.noSongbooksYet")}
+            items={songbooks.map((songbook) => ({
+              key: songbook.id,
+              label: songbook.name,
+              isActive: pathname === `/songbooks/${songbook.id}`,
+              link: { to: "/songbooks/$songbookId" as const, params: { songbookId: songbook.id } },
+            }))}
+          />
+          <NavGroup
+            icon={<UsersRound />}
+            label={t("nav.teams")}
+            to="/teams"
+            isActive={pathname.startsWith("/teams")}
+            empty={t("nav.noTeams")}
+            items={teams.map((team) => ({
+              key: team.id,
+              label: team.name,
+              icon: <Users />,
+              isActive: pathname === `/teams/${team.id}`,
+              link: { to: "/teams/$teamId" as const, params: { teamId: team.id } },
+            }))}
+          />
 
           {/* The people you share songs with (issue #77). */}
           <SidebarMenuItem>

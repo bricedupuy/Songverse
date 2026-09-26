@@ -1,6 +1,6 @@
 // Browser test for Sets (issue #1).
 import { chromium } from "playwright";
-import { WEB, SP, stamp, tag, sql, stepper, user, api, signIn, finish } from "../lib/harness.mjs";
+import { sidebarEntry, WEB, SP, stamp, tag, sql, stepper, user, api, signIn, finish } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -45,7 +45,8 @@ await step("create a dated set without a name; it's titled by its date", async (
   await page.getByRole("heading", { name: longDate }).waitFor();
   await page.waitForLoadState("networkidle");
   setUrl = page.url();
-  await page.getByRole("link", { name: longDate }).first().waitFor(); // sidebar
+  await (await sidebarEntry(page, "Sets", longDate)).waitFor(); // sidebar
+  await page.keyboard.press("Escape");
 });
 
 await step("add songs by searching", async () => {
@@ -112,7 +113,8 @@ await step("rename the set; the sidebar follows", async () => {
   await page.getByLabel("Name (optional)").fill("Sunday Morning");
   await page.getByRole("button", { name: "Save" }).click();
   await page.getByRole("heading", { name: "Sunday Morning" }).waitFor();
-  await page.getByRole("link", { name: "Sunday Morning" }).first().waitFor();
+  await (await sidebarEntry(page, "Sets", "Sunday Morning")).waitFor();
+  await page.keyboard.press("Escape");
   await page.getByText(longDate).first().waitFor(); // date moves to the subtitle
 });
 

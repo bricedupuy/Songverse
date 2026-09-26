@@ -1,6 +1,6 @@
 // Browser test for set sharing (issue #7).
 import { chromium } from "playwright";
-import { WEB, SP, stamp, tag, sql, stepper, user, api, signIn, finish } from "../lib/harness.mjs";
+import { sidebarEntry, WEB, SP, stamp, tag, sql, stepper, user, api, signIn, finish } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -71,7 +71,8 @@ await step("guest signs in, opens the set and lands on it as a guest", async () 
 });
 
 await step("the set shows up in the guest's sidebar", async () => {
-  await guestPage.locator('[data-slot="sidebar"]').getByRole("link", { name: `Sunday ${tag}` }).waitFor();
+  await (await sidebarEntry(guestPage, "Sets", `Sunday ${tag}`)).waitFor();
+  await guestPage.keyboard.press("Escape");
 });
 
 await step("guest reads a song that isn't in their library, through the set", async () => {

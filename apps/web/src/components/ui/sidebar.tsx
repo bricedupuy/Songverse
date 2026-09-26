@@ -17,8 +17,11 @@ import { Separator } from "#/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "#/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 
+// What the user chose, remembered apart for list pages and for one item's
+// page (a song, a set, a songbook), which starts collapsed to its icons (#80).
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
+const SIDEBAR_ITEM_COOKIE_NAME = "sidebar_state_item";
+const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
 const SIDEBAR_WIDTH_ICON = "3rem";
@@ -41,26 +44,39 @@ export function useSidebar(): SidebarContextValue {
   return context;
 }
 
+const readCookie = (name: string): boolean | null => {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+  return match?.[1] ? match[1] === "true" : null;
+};
+
 function SidebarProvider({
-  defaultOpen = true,
+  itemPage = false,
   className,
   style,
   children,
   ...props
-}: ComponentProps<"div"> & { defaultOpen?: boolean }) {
+}: ComponentProps<"div"> & {
+  /** One item's page (a song, a set, a songbook): the sidebar starts collapsed to its icons there. */
+  itemPage?: boolean;
+}) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = useState(false);
-  const [open, setOpenState] = useState(defaultOpen);
+  const [listOpen, setListOpen] = useState(true);
+  const [itemOpen, setItemOpen] = useState(false);
+  const open = itemPage ? itemOpen : listOpen;
 
   useEffect(() => {
-    const match = document.cookie.match(new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`));
-    if (match?.[1]) setOpenState(match[1] === "true");
+    setListOpen(readCookie(SIDEBAR_COOKIE_NAME) ?? true);
+    setItemOpen(readCookie(SIDEBAR_ITEM_COOKIE_NAME) ?? false);
   }, []);
 
-  const setOpen = useCallback((value: boolean) => {
-    setOpenState(value);
-    document.cookie = `${SIDEBAR_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
-  }, []);
+  const setOpen = useCallback(
+    (value: boolean) => {
+      (itemPage ? setItemOpen : setListOpen)(value);
+      document.cookie = `${itemPage ? SIDEBAR_ITEM_COOKIE_NAME : SIDEBAR_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+    },
+    [itemPage],
+  );
 
   const toggleSidebar = useCallback(() => {
     return isMobile ? setOpenMobile((v) => !v) : setOpen(!open);
@@ -144,14 +160,36 @@ function Sidebar({ className, children, ...props }: ComponentProps<"div">) {
       data-slot="sidebar"
       data-state={state}
       className={cn(
-        "hidden shrink-0 border-r bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-linear md:block",
+        "group/sidebar relative hidden shrink-0 border-r bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-linear md:block",
         state === "expanded" ? "w-(--sidebar-width)" : "w-(--sidebar-width-icon)",
         className,
       )}
       {...props}
     >
       <div className="sticky top-0 flex h-screen w-full flex-col overflow-x-hidden">{children}</div>
+      <SidebarRail />
     </div>
+  );
+}
+
+/** The sidebar's edge: clicking it collapses or expands the sidebar, as in shadcn's. */
+function SidebarRail({ className, ...props }: ComponentProps<"button">) {
+  const { toggleSidebar, state } = useSidebar();
+  return (
+    <button
+      type="button"
+      data-slot="sidebar-rail"
+      aria-label={state === "expanded" ? "Collapse sidebar" : "Expand sidebar"}
+      tabIndex={-1}
+      onClick={toggleSidebar}
+      title={state === "expanded" ? "Collapse sidebar (Ctrl B)" : "Expand sidebar (Ctrl B)"}
+      className={cn(
+        "absolute inset-y-0 -right-2 z-20 w-4 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-0.5 hover:after:bg-sidebar-border",
+        state === "expanded" ? "cursor-w-resize" : "cursor-e-resize",
+        className,
+      )}
+      {...props}
+    />
   );
 }
 
@@ -358,6 +396,7 @@ export {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarProvider,
+  SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
 };

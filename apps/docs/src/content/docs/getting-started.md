@@ -25,6 +25,11 @@ The sidebar on the left takes you everywhere:
 - **Sets** - your song lists, with the upcoming ones listed underneath. See [Sets](/sets/).
 - **Songbooks** - collections of songs, numbered or not. See [Songbooks](/songbooks/).
 - **Teams** - the bands and groups you're part of. See [Teams](/teams/).
+- **People** - the people you share songs with. See [People](/people/).
+
+When you open one song, set or songbook, the sidebar shrinks to its icons, leaving the room to the chart or list; back on a list, it opens again. Collapsed, clicking an icon opens its list beside it: **Sets** shows your upcoming sets, for example. The button at the top left, the sidebar's edge, or **Ctrl B** (**⌘ B** on a Mac) open or close it. SongVerse remembers what you chose, separately for lists and for a song, set or songbook. On a phone, the sidebar opens over the page from the top-left button instead.
+
+![On a set's page, the sidebar collapsed to its icons, with Sets open](../../assets/screenshots/en/sidebar-collapsed.jpg)
 
 Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your songs and teams), **Account settings** and **Sign out**.
 

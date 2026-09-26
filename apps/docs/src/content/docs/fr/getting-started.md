@@ -25,6 +25,11 @@ La barre latérale à gauche mène partout :
 - **Listes de chants** - vos listes, affichées en dessous. Voir [Listes de chants](/fr/sets/).
 - **Recueils** - des collections de chants, numérotées ou non. Voir [Recueils](/fr/songbooks/).
 - **Équipes** - les groupes dont vous faites partie. Voir [Équipes](/fr/teams/).
+- **Personnes** - les personnes avec qui vous partagez des chants. Voir [Personnes](/fr/people/).
+
+Quand vous ouvrez un chant, une liste de chants ou un recueil, la barre latérale se réduit à ses icônes et laisse la place à la grille ou à la liste ; de retour sur une liste, elle s'ouvre à nouveau. Réduite, un clic sur une icône ouvre sa liste à côté : **Listes de chants** montre vos prochaines listes, par exemple. Le bouton en haut à gauche, le bord de la barre latérale ou **Ctrl B** (**⌘ B** sur Mac) l'ouvrent ou la ferment. SongVerse retient votre choix, séparément pour les listes et pour un chant, une liste de chants ou un recueil. Sur téléphone, la barre latérale s'ouvre par-dessus la page depuis le bouton en haut à gauche.
+
+![Sur la page d'une liste de chants, la barre latérale réduite à ses icônes, avec Listes de chants ouvert](../../../assets/screenshots/fr/sidebar-collapsed.jpg)
 
 Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord** (vos chants et vos équipes), les **Paramètres du compte** et **Se déconnecter**.
 

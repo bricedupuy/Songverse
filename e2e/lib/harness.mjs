@@ -112,6 +112,31 @@ export async function signIn(p, who) {
   await p.waitForLoadState("networkidle");
 }
 
+/**
+ * An entry under one of the sidebar's groups ("Sets", "Songbooks"…), found
+ * whether the sidebar is open or collapsed to its icons (#80): collapsed,
+ * the group's icon is clicked to open its menu. Returns the link.
+ */
+export async function sidebarEntry(p, group, name) {
+  const sidebar = p.locator('[data-slot="sidebar"]');
+  if ((await sidebar.getAttribute("data-state")) === "collapsed") {
+    if (!(await p.getByRole("menu").count())) await sidebar.getByRole("button", { name: group }).click();
+    return p.getByRole("menu").getByRole("menuitem", { name });
+  }
+  return sidebar.getByRole("link", { name });
+}
+
+/** Goes to a sidebar group's own page ("Sets", "Library"…), whether the sidebar is open or collapsed to its icons. */
+export async function sidebarGo(p, group) {
+  const sidebar = p.locator('[data-slot="sidebar"]');
+  if ((await sidebar.getAttribute("data-state")) === "collapsed") {
+    await sidebar.getByRole("button", { name: group }).click();
+    await p.getByRole("menu").getByRole("menuitem", { name: group, exact: true }).click();
+  } else {
+    await sidebar.getByRole("link", { name: group, exact: true }).click();
+  }
+}
+
 /** Prints the tally; any failure makes the process exit non-zero. */
 export function finish() {
   const passed = results.filter(Boolean).length;
