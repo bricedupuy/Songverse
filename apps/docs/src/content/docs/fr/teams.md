@@ -1,15 +1,15 @@
 ---
 title: Équipes
-description: Des groupes qui partagent chants, arrangements, listes de chants et recueils.
+description: Des groupes qui partagent chants, versions, listes de chants et recueils.
 ---
 
-Une **équipe** est un groupe qui partage chants, arrangements, listes de chants et recueils. Vos équipes s'affichent sous **Équipes** dans la barre latérale.
+Une **équipe** est un groupe qui partage chants, versions, listes de chants et recueils. Vos équipes s'affichent sous **Équipes** dans la barre latérale.
 
 ![Une équipe](../../../assets/screenshots/fr/team.jpg)
 
 ## Membres et rôles
 
-- Les **Administrateurs** gèrent l'équipe : ils modifient ses chants, ses arrangements et ses listes, et invitent des personnes.
+- Les **Administrateurs** gèrent l'équipe : ils modifient ses chants, ses versions et ses listes, et invitent des personnes.
 - Les **Membres** voient et utilisent tout ce qu'a l'équipe.
 
 À côté de chaque nom, l'équipe montre ce que la personne joue ou fait (voir [Rôles](/fr/account/#rôles)).
@@ -26,6 +26,6 @@ Pour inviter, créez un **lien d'invitation** : choisissez le rôle donné en re
 
 ## Ce qui appartient à une équipe
 
-Les arrangements, les listes de chants et les recueils peuvent appartenir à l'équipe plutôt qu'à vous : choisissez l'équipe en les créant (il faut en être administrateur). Ce qui est à l'équipe y reste quand les personnes vont et viennent.
+Les versions, les listes de chants et les recueils peuvent appartenir à l'équipe plutôt qu'à vous : choisissez l'équipe en les créant (il faut en être administrateur). Ce qui est à l'équipe y reste quand les personnes vont et viennent.
 
 Un de vos chants devient celui de l'équipe quand vous le lui cédez : voir [Passer une liste à une équipe](/fr/sets/#passer-une-liste-à-une-équipe-ou-linverse).

@@ -1,6 +1,6 @@
 ---
 title: Listes de chants
-description: Les chants d'un culte, d'une répétition ou d'un concert - tonalités, arrangements, partage avec des invités.
+description: Les chants d'un culte, d'une répétition ou d'un concert - tonalités, versions, partage avec des invités.
 ---
 
 Une **liste de chants** rassemble les chants d'un culte, d'une répétition ou d'un concert. Vos listes s'affichent sous **Listes de chants** dans la barre latérale.
@@ -20,28 +20,28 @@ Choisissez **Listes de chants** > **Nouvelle liste** :
 - **Ajouter des chants** en les cherchant par titre. Une liste d'équipe ne peut contenir que les chants de l'équipe et les chants globaux approuvés, pour que chaque membre puisse les ouvrir.
 - **Réordonnez** en faisant glisser la poignée d'un chant (ou mettez le focus sur la poignée et utilisez Espace et les flèches).
 - Pour chaque chant, choisissez :
-  - sa **Version**, quand le chant en a plusieurs ;
-  - son **Arrangement** - **Tel qu'écrit**, ou l'un de vos [arrangements](/fr/arrangements/) ou de ceux de votre équipe. Dans une liste d'équipe, l'arrangement habituel de l'équipe est choisi pour vous ;
-  - sa **Tonalité** - déplace le chant depuis la tonalité de l'arrangement (« un ton plus bas ce dimanche ») sans changer l'arrangement.
+  - sa **Traduction**, quand le chant a des [chants liés](/fr/library/#chants-liés) (le même chant dans une autre langue, par exemple) ;
+  - sa **Version** - **Tel qu'écrit**, ou l'une de vos [versions](/fr/versions/) ou de celles de votre équipe. Dans une liste d'équipe, la version habituelle de l'équipe est choisie pour vous ;
+  - sa **Tonalité** - déplace le chant depuis la tonalité de la version (« un ton plus bas ce dimanche ») sans changer la version.
 - **×** retire un chant de la liste (le chant lui-même n'est pas touché).
 
 ### Pour cette liste seulement
 
-Pour réordonner, sauter ou répéter des sections dans une seule liste, choisissez **Pour cette liste seulement…** dans le menu **Arrangement** du chant. Cela copie l'arrangement que la liste jouait (ou l'ordre du chant) et l'ouvre dans l'[éditeur d'arrangement](/fr/arrangements/#le-modifier). Il ne sert que dans cette liste, n'apparaît pas parmi les arrangements du chant, et disparaît quand le chant quitte la liste. Le bouton ✎ à côté du menu le rouvre.
+Pour réordonner, sauter ou répéter des sections dans une seule liste, choisissez **Pour cette liste seulement…** dans le menu **Version** du chant. Cela copie la version que la liste jouait (ou l'ordre du chant) et l'ouvre dans l'[éditeur de version](/fr/versions/#le-modifier). Elle ne sert que dans cette liste, n'apparaît pas parmi les versions du chant, et disparaît quand le chant quitte la liste. Le bouton ✎ à côté du menu la rouvre.
 
 ## Jouer depuis une liste
 
-Cliquez sur un chant de la liste pour ouvrir sa grille, telle que la liste la joue : son arrangement, dans la tonalité de la liste.
+Cliquez sur un chant de la liste pour ouvrir sa grille, telle que la liste la joue : sa version, dans la tonalité de la liste.
 
 ![Un chant dans une liste](../../../assets/screenshots/fr/set-song.jpg)
 
 - **Précédent** et **Suivant** parcourent la liste dans l'ordre.
-- **Mon affichage** change la grille pour vous seul - accords masqués, simplifiés, solfège, formes de capo. Voir [Votre propre affichage d'une grille](/fr/arrangements/#votre-propre-affichage-dune-grille).
+- **Mon affichage** change la grille pour vous seul - accords masqués, simplifiés, solfège, formes de capo. Voir [Votre propre affichage d'une grille](/fr/versions/#votre-propre-affichage-dune-grille).
 - **Mes notes** sont privées : capo, repères, rappels. Vous seul les voyez.
 
 ## Jouer une liste en live
 
-Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. SongVerse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste s'ouvre en plein écran, en grand, tel que vous le lisez avec [Mon affichage](/fr/arrangements/#votre-propre-affichage-dune-grille).
+Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. SongVerse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste s'ouvre en plein écran, en grand, tel que vous le lisez avec [Mon affichage](/fr/versions/#votre-propre-affichage-dune-grille).
 
 ![Un chant d'une liste en mode Live](../../../assets/screenshots/fr/live.jpg)
 

@@ -34,7 +34,7 @@ Comment se lisent les accords sur toutes les grilles que vous ouvrez :
 - **Noms des accords** - en lettres (C D E) ou en solfège (Do Ré Mi).
 - **Avec un capo** - les accords tels qu'ils sonnent, ou les formes à jouer.
 
-Vous pouvez aussi les changer depuis n'importe quelle grille d'une liste de chants. Les accords masqués et simplifiés se règlent par chant, depuis sa grille : voir [Votre propre affichage d'une grille](/fr/arrangements/#votre-propre-affichage-dune-grille).
+Vous pouvez aussi les changer depuis n'importe quelle grille d'une liste de chants. Les accords masqués et simplifiés se règlent par chant, depuis sa grille : voir [Votre propre affichage d'une grille](/fr/versions/#votre-propre-affichage-dune-grille).
 
 ## Stockage
 

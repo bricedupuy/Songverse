@@ -7,7 +7,7 @@ La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, c
 
 ![La bibliothèque](../../../assets/screenshots/fr/library.jpg)
 
-- **Recherchez** par titre, artiste, nom de version ou numéro CCLI.
+- **Recherchez** par titre, artiste ou numéro CCLI.
 - **Filtrez** par langue (**Toutes les langues**) et étiquette (**Toutes les étiquettes**).
 - **Triez** par colonne en cliquant sur son titre.
 - La colonne **Statut** dit où en est un chant : **Personnel** ou **Équipe** s'il n'a jamais été proposé au catalogue global, puis où en est sa proposition (**En attente de relecture**, **Publié**…).
@@ -28,7 +28,7 @@ Sur une liste intelligente, changez les filtres et **Enregistrer les changements
 
 Choisissez **+ Ajouter une chanson**. Un **nom** et au moins un **artiste** suffisent ; tout le reste peut venir plus tard.
 
-- **Déjà dans votre bibliothèque ?** Pendant que vous tapez le nom, SongVerse montre les chants que vous avez déjà sous ce titre. Vous pouvez ouvrir l'existant, **Partir de celui-ci** (reprendre ses détails), ou **Créer la version** - une autre version du même chant, acoustique par exemple. Donnez un **Nom de la version** pour les distinguer.
+- **Déjà dans votre bibliothèque ?** Pendant que vous tapez le nom, SongVerse montre les chants que vous avez déjà sous ce titre. Vous pouvez ouvrir l'existant, **Partir de celui-ci** (reprendre ses détails), ou **Le lier à ce chant** - quand le vôtre en est une traduction ou une adaptation (voir [Chants liés](/fr/library/#chants-liés)). Une interprétation acoustique ou pour les jeunes n'est pas un nouveau chant : c'est une [version](/fr/versions/).
 - La **Détection automatique** cherche le chant en ligne (MusicBrainz) et complète ce qui manque, comme les crédits et l'album. Choisissez **Chercher le chant**, puis **Utiliser** sur la bonne correspondance.
 - **La grille** : collez les paroles et les accords, ou ajoutez un fichier (`.cho`, `.txt` ou `.pdf`). SongVerse reconnaît le ChordPro, les accords écrits au-dessus des paroles et les paroles seules. Vous pouvez ensuite la travailler dans l'[éditeur](/fr/song-editor/). Un PDF est conservé dans **Fichiers**, mais son texte n'est pas lu : collez aussi les paroles.
 
@@ -42,7 +42,7 @@ Un chant a des onglets :
 
 - **Infos** - son nom et ses artistes, et sous **Plus de détails** : compositeurs, auteurs et autres crédits, album, année, tonalité, tempo, mesure, capo suggéré, durée, copyright, numéros CCLI et ISRC, une référence (par exemple le passage biblique dont il s'inspire), des notes et des étiquettes. Il liste aussi les recueils qui le contiennent.
 - **Éditeur** - la grille elle-même. Voir [L'éditeur de chants](/fr/song-editor/).
-- **Arrangements** - la façon dont vous et vos équipes le jouez. Voir [Arrangements](/fr/arrangements/).
+- **Versions** - la façon dont vous et vos équipes le jouez et le chantez. Voir [Versions](/fr/versions/).
 - **Fichiers** - partitions, fichier d'origine de la grille, images (25 Mo maximum chacun).
 - **Audio** - des enregistrements pour apprendre ou répéter (MP3, Opus, M4A, WAV, OGG… 50 Mo maximum chacun), et les pistes du chant (voir plus bas).
 - **Liens** - le chant sur Spotify, Apple Music et YouTube.
@@ -53,9 +53,15 @@ Voilà le chant en mode **Édition**. En **Session**, sa page est la grille elle
 
 ![Un chant en mode Session](../../../assets/screenshots/fr/practice-song.jpg)
 
-Le **Capo suggéré** n'est qu'une suggestion (par exemple le capo de l'enregistrement) : il s'applique quand un arrangement n'indique pas le sien.
+Le **Capo suggéré** n'est qu'une suggestion (par exemple le capo de l'enregistrement) : il s'applique quand une version n'indique pas le sien.
 
-Si un chant n'est pas à vous (un chant global, ou un chant d'équipe dont vous n'êtes pas administrateur), vous pouvez le lire, l'arranger et y ajouter vos propres fichiers (voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), mais pas le modifier.
+Si un chant n'est pas à vous (un chant global, ou un chant d'équipe dont vous n'êtes pas administrateur), vous pouvez le lire, en faire votre version et y ajouter vos propres fichiers (voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), mais pas le modifier.
+
+## Chants liés
+
+Une traduction ou une adaptation (paroles simplifiées, pour enfants) est un chant à part entière - son propre titre, sa langue, son propriétaire, ses [versions](/fr/versions/) et ses fichiers - lié au chant dont il vient. Sa page le dit (« Traduction de Amazing Grace »), et **Chants liés**, dans **Infos**, liste les chants liés à celui-ci. **Ajouter une traduction** commence un nouveau chant lié à lui. Vous pouvez traduire un chant du catalogue et garder votre traduction pour vous, ou la proposer au catalogue elle aussi.
+
+Dans une liste, un chant qui a des chants liés peut passer à l'un d'eux (sa **Traduction**).
 
 ## Qui voit un fichier
 
@@ -97,9 +103,9 @@ Les pistes gardées sur votre appareil pour le hors ligne (**Avec l'audio**, voi
 
 La carte **Catalogue global** de votre chant (ou d'un chant d'équipe que vous administrez) le propose à tout le monde. **Proposer à la relecture**, avec une note pour le relecteur si vous le souhaitez ; le copyright et le numéro CCLI aident mais ne sont pas obligatoires. Un relecteur le publie, demande des modifications ou le refuse, et vous suivez où il en est sur la même carte.
 
-Une fois publié, le chant lui-même passe au catalogue - il n'y a pas de seconde copie. Votre bibliothèque le liste une seule fois, marqué **Publié par vous**, et sa page dit de qui il vient. Sa grille et ses détails (ses notes aussi) sont désormais à tout le monde, et seuls les administrateurs les modifient ; son [historique](/fr/song-editor/#historique) continue. Ce qui était à vous le reste : vos fichiers restent à vous (ou à l'équipe avec qui vous les avez partagés - voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), vos arrangements restent les vôtres, tout comme vos propres étiquettes.
+Une fois publié, le chant lui-même passe au catalogue - il n'y a pas de seconde copie. Votre bibliothèque le liste une seule fois, marqué **Publié par vous**, et sa page dit de qui il vient. Sa grille et ses détails (ses notes aussi) sont désormais à tout le monde, et seuls les administrateurs les modifient ; son [historique](/fr/song-editor/#historique) continue. Ce qui était à vous le reste : vos fichiers restent à vous (ou à l'équipe avec qui vous les avez partagés - voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), vos versions restent les vôtres, tout comme vos propres étiquettes.
 
-Si un relecteur trouve que le chant est déjà dans le catalogue, il le fusionne avec celui-ci, et le vôtre y est intégré - il n'y a toujours qu'un seul chant. Vos [arrangements](/fr/arrangements/) passent au chant du catalogue (vérifiez-les : chacun dit ce qu'il faut revoir), tout comme vos fichiers (toujours à vous seul·e), vos étiquettes et leurs places dans les listes et les recueils. Votre façon d'avoir le chant - vos paroles, accords, ordre et tonalité - devient un de vos arrangements du chant, à votre nom, avec vos notes ; vos listes le jouent ainsi. Les détails que vous aviez modifiés (titre, crédits, droits) sont proposés aux relecteurs.
+Si un relecteur trouve que le chant est déjà dans le catalogue, il le fusionne avec celui-ci, et le vôtre y est intégré - il n'y a toujours qu'un seul chant. Vos [versions](/fr/versions/) passent au chant du catalogue (vérifiez-les : chacune dit ce qu'il faut revoir), tout comme vos fichiers (toujours à vous seul·e), vos étiquettes et leurs places dans les listes et les recueils. Votre façon d'avoir le chant - vos paroles, accords, ordre et tonalité - devient une de vos versions du chant, à votre nom, avec vos notes ; vos listes le jouent ainsi. Les détails que vous aviez modifiés (titre, crédits, droits) sont proposés aux relecteurs.
 
 Les chants publiés avant que SongVerse fonctionne ainsi avaient été copiés dans le catalogue ; ils ont été intégrés à leur chant du catalogue de la même façon.
 

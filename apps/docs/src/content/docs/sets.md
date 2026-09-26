@@ -1,6 +1,6 @@
 ---
 title: Sets
-description: Song lists for services, rehearsals and gigs - keys, arrangements, sharing with guests.
+description: Song lists for services, rehearsals and gigs - keys, versions, sharing with guests.
 ---
 
 A **set** is a list of songs for a service, a rehearsal or a gig. Your sets are listed under **Sets** in the sidebar.
@@ -20,28 +20,28 @@ Choose **Sets** > **New set**:
 - **Add songs** by searching for them by title. A team set can only include the team's own songs and approved global songs, so everyone in the team can open them.
 - **Reorder** by dragging a song's handle (or focus the handle and use Space and the arrow keys).
 - For each song, choose:
-  - its **Version**, when the song has several;
-  - its **Arrangement** - **As written**, or one of your or your team's [arrangements](/arrangements/). In a team set, the team's usual arrangement is picked for you;
-  - its **Key** - moves the song from the arrangement's key ("a tone lower this Sunday") without changing the arrangement.
+  - its **Translation**, when the song has [linked songs](/library/#linked-songs) (the same song in another language, say);
+  - its **Version** - **As written**, or one of your or your team's [versions](/versions/). In a team set, the team's usual version is picked for you;
+  - its **Key** - moves the song from the version's key ("a tone lower this Sunday") without changing the version.
 - **×** removes a song from the set (the song itself isn't affected).
 
 ### Just for this set
 
-To reorder, skip or repeat sections for one set only, choose **Just for this set…** in the song's **Arrangement** menu. It copies the arrangement the set played (or the song's order) and opens it in the [arrangement editor](/arrangements/#editing-it). It's used only in this set, isn't listed with the song's arrangements, and goes when the song leaves the set. The ✎ button next to the menu reopens it.
+To reorder, skip or repeat sections for one set only, choose **Just for this set…** in the song's **Version** menu. It copies the version the set played (or the song's order) and opens it in the [version editor](/versions/#editing-it). It's used only in this set, isn't listed with the song's versions, and goes when the song leaves the set. The ✎ button next to the menu reopens it.
 
 ## Playing from a set
 
-Click a song in the set to open its chart, as the set plays it: its arrangement, in the set's key.
+Click a song in the set to open its chart, as the set plays it: its version, in the set's key.
 
 ![A song in a set](../../assets/screenshots/en/set-song.jpg)
 
 - **Previous** and **Next** go through the set in order.
-- **My view** changes the chart for you only - hide chords, simpler chords, solfège, capo shapes. See [Your own view of a chart](/arrangements/#your-own-view-of-a-chart).
+- **My view** changes the chart for you only - hide chords, simpler chords, solfège, capo shapes. See [Your own view of a chart](/versions/#your-own-view-of-a-chart).
 - **My notes** are private: capo, cues, reminders. Only you see them.
 
 ## Playing a set live
 
-On stage, switch to **Live** - the button on the set's page, or the mode switch at the top right of every page. SongVerse turns dark (easy on the eyes in a dim room) and each song of the set opens full screen, big, as you read it with [My view](/arrangements/#your-own-view-of-a-chart).
+On stage, switch to **Live** - the button on the set's page, or the mode switch at the top right of every page. SongVerse turns dark (easy on the eyes in a dim room) and each song of the set opens full screen, big, as you read it with [My view](/versions/#your-own-view-of-a-chart).
 
 ![A song of a set in Live mode](../../assets/screenshots/en/live.jpg)
 

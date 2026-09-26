@@ -103,7 +103,7 @@ await step("reorder by dragging with the mouse", async () => {
 
 await step("switch a song to another version", async () => {
   const holyRow = rows().filter({ hasText: `Holy Holy ${tag}` });
-  await holyRow.getByLabel("Version").selectOption(holyTeam.id);
+  await holyRow.getByLabel("Translation").selectOption(holyTeam.id);
   await page.getByTestId("set-song-list").getByRole("link", { name: `Holy Holy ${tag} (acoustic)`, exact: true }).waitFor();
   await page.screenshot({ path: `${SP}/sets-page.png`, fullPage: true });
 });

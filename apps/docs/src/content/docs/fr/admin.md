@@ -8,7 +8,7 @@ description: Relire les chants proposés au catalogue global, et gérer un serve
 Un relecteur (ou un administrateur global) vérifie les chants proposés au catalogue global. La page **Relecture** liste ce qui attend. Pour chaque chant, vous pouvez :
 
 - **Approuver et publier**, avec si vous voulez une mention de confiance affichée sur le chant global (« Texte officiel de l'éditeur »). Le chant lui-même passe au catalogue, au nom de la personne qui l'a proposé ; ses fichiers restent les siens ;
-- **Fusionner avec** un chant semblable déjà dans le catalogue : le sien y est intégré - ses arrangements, fichiers et listes passent à ce chant, sa façon de le chanter devient son arrangement de celui-ci, et les détails qu'elle avait changés vous arrivent comme une proposition ;
+- **Fusionner avec** un chant semblable déjà dans le catalogue : le sien y est intégré - ses versions, fichiers et listes passent à ce chant, sa façon de le chanter devient sa version de celui-ci, et les détails qu'elle avait changés vous arrivent comme une proposition ;
 - **Demander des modifications**, ou **Refuser**, avec une note pour la personne qui l'a proposé.
 
 Vous ne pouvez pas relire vos propres propositions. Les administrateurs globaux peuvent aussi **Publier maintenant** leurs propres chants sans relecture.

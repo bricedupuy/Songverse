@@ -672,11 +672,12 @@ export class SongVersionsService {
     if (dto.basedOnVersionId) {
       const base = await this.prisma.client.songVersion.findUnique({
         where: { id: dto.basedOnVersionId },
-        select: { id: true, workId: true, ownerScope: true, ownerUserId: true, ownerTeamId: true, publicationState: true },
+        select: { id: true, workId: true, language: true, ownerScope: true, ownerUserId: true, ownerTeamId: true, publicationState: true },
       });
       if (!base) throw new NotFoundException("Song version not found");
       if (!(await this.access.canSeeSong(user, base))) throw new ForbiddenException("Not visible to you");
-      parent = { id: base.id, workId: base.workId, relationshipType: "ALTERNATE_VERSION" };
+      // A song linked to another (issue #78): its translation, or an adaptation in the same language.
+      parent = { id: base.id, workId: base.workId, relationshipType: base.language === dto.language ? "LYRICAL_ADAPTATION" : "DIRECT_TRANSLATION" };
     } else if (dto.workId) {
       const work = await this.prisma.client.work.findUnique({ where: { id: dto.workId }, select: { id: true } });
       if (!work) throw new NotFoundException("Work not found");

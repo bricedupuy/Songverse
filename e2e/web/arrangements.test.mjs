@@ -35,14 +35,14 @@ await step("a song you can't edit can be arranged, for yourself or a team you ru
   await signIn(page, leader);
   await page.goto(`${WEB}/library/${song.id}?tab=arrangements`);
   await page.waitForLoadState("networkidle");
-  await page.getByText("No arrangements yet.").waitFor();
+  await page.getByText("No versions yet.").waitFor();
   await page.getByLabel("Name").fill("Sunday band");
   await page.getByLabel("For").selectOption({ label: `Band ${tag}` });
   await page.getByRole("button", { name: "Create" }).click();
   await page.waitForURL("**/arrangements/**");
   await page.waitForLoadState("networkidle");
   editorUrl = page.url();
-  await page.getByText(`Arrangement of Arranged Grace ${tag} · Band ${tag}`).waitFor();
+  await page.getByText(`Version of Arranged Grace ${tag} · Band ${tag}`).waitFor();
   await page.getByText("The song suggests capo 3.").waitFor();
   // It starts as the song: its order, in its key.
   await pass(0).locator('[data-arr-chord="G"]').waitFor();
@@ -64,7 +64,7 @@ await step("replace a chord on one pass, hide another, add a line note", async (
   await page.getByLabel("Replace with").fill("F#m");
   await page.getByRole("button", { name: "Replace", exact: true }).click();
   await pass(0).locator('[data-arr-chord="F#m"]').waitFor();
-  await pass(0).getByText("Changed in this arrangement").waitFor();
+  await pass(0).getByText("Changed in this version").waitFor();
 
   await pass(1).locator('[data-arr-chord="D"]').click();
   await page.getByRole("button", { name: "Hide for the band" }).click();
@@ -88,7 +88,7 @@ await step("save; it's all there after a reload", async () => {
 
 await step("make it the band's usual arrangement", async () => {
   await page.getByRole("button", { name: `Make it Band ${tag}'s usual` }).click();
-  await page.getByText(`Now Band ${tag}'s usual arrangement`).waitFor();
+  await page.getByText(`Now Band ${tag}'s usual version`).waitFor();
   await page.getByText("Usual", { exact: true }).waitFor();
   await page.screenshot({ path: `${SP}/arrangement-editor.png`, fullPage: true });
 });
@@ -101,7 +101,7 @@ const itemId = (await api(leader, "GET", `/setlists/${set.id}`)).items[0].id;
 await step("a song added to the band's set plays its usual arrangement; it can be changed", async () => {
   await page.goto(`${WEB}/sets/${set.id}`);
   await page.waitForLoadState("networkidle");
-  const select = page.getByTestId("set-song-row").getByLabel("Arrangement");
+  const select = page.getByTestId("set-song-row").getByLabel("Version");
   const selected = () => select.evaluate((el) => el.selectedOptions[0].textContent);
   if ((await selected()) !== "Sunday band (usual)") throw new Error(`arrangement: ${await selected()}`);
   await select.selectOption({ label: "As written" });
@@ -192,7 +192,7 @@ await step("when the song changes, the arrangement asks for a review and lists w
   await page.goto(editorUrl);
   await page.waitForLoadState("networkidle");
   const banner = page.getByTestId("review-banner");
-  await banner.getByText("The song changed since this arrangement was checked").waitFor();
+  await banner.getByText("The song changed since this version was checked").waitFor();
   await banner.getByText("1 change refers to something since removed").waitFor();
   await pass(0).getByTestId("stale-changes").getByText("Chord replaced by F#m: that chord was removed from the song.").waitFor();
 
@@ -205,10 +205,10 @@ await step("when the song changes, the arrangement asks for a review and lists w
 });
 
 await step("delete it; the set plays the song as written", async () => {
-  await page.getByRole("button", { name: "Delete arrangement" }).click();
+  await page.getByRole("button", { name: "Delete version" }).click();
   await page.getByRole("button", { name: "Delete it for good" }).click();
   await page.waitForURL("**/library/**");
-  await page.getByText("No arrangements yet.").waitFor();
+  await page.getByText("No versions yet.").waitFor();
   const item = (await api(leader, "GET", `/setlists/${set.id}`)).items[0];
   if (item.arrangement !== null) throw new Error("the set still points at the deleted arrangement");
 });
@@ -216,7 +216,7 @@ await step("delete it; the set plays the song as written", async () => {
 await step("a song's order just for this set: repeat the chorus there only", async () => {
   await page.goto(`${WEB}/sets/${set.id}`);
   await page.waitForLoadState("networkidle");
-  await page.getByTestId("set-song-row").getByLabel("Arrangement").selectOption({ label: "Just for this set…" });
+  await page.getByTestId("set-song-row").getByLabel("Version").selectOption({ label: "Just for this set…" });
   await page.waitForURL("**/arrangements/**");
   await page.waitForLoadState("networkidle");
   const back = page.getByRole("main").getByRole("link", { name: `Arranged set ${tag}` });
@@ -231,7 +231,7 @@ await step("a song's order just for this set: repeat the chorus there only", asy
   await page.waitForURL(`**/sets/${set.id}`);
   await page.waitForLoadState("networkidle");
   const row = page.getByTestId("set-song-row");
-  if ((await row.getByLabel("Arrangement").evaluate((el) => el.selectedOptions[0].textContent)) !== "Just for this set") throw new Error("the set doesn't play it");
+  if ((await row.getByLabel("Version").evaluate((el) => el.selectedOptions[0].textContent)) !== "Just for this set") throw new Error("the set doesn't play it");
   await row.getByRole("link", { name: `Change Arranged Grace ${tag} for this set` }).waitFor();
   await page.screenshot({ path: `${SP}/set-only-arrangement.png` });
   await page.goto(`${WEB}/sets/${set.id}/songs/${itemId}`);
@@ -242,7 +242,7 @@ await step("a song's order just for this set: repeat the chorus there only", asy
   // The song's own list doesn't show it.
   await page.goto(`${WEB}/library/${song.id}?tab=arrangements`);
   await page.waitForLoadState("networkidle");
-  await page.getByText("No arrangements yet.").waitFor();
+  await page.getByText("No versions yet.").waitFor();
 });
 
 await browser.close();

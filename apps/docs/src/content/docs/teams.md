@@ -1,15 +1,15 @@
 ---
 title: Teams
-description: Bands and groups that share songs, arrangements, sets and songbooks.
+description: Bands and groups that share songs, versions, sets and songbooks.
 ---
 
-A **team** is a band or a group that shares songs, arrangements, sets and songbooks. Your teams are listed under **Teams** in the sidebar.
+A **team** is a band or a group that shares songs, versions, sets and songbooks. Your teams are listed under **Teams** in the sidebar.
 
 ![A team](../../assets/screenshots/en/team.jpg)
 
 ## Members and roles
 
-- **Admins** manage the team: they change its songs, arrangements and sets, and invite people.
+- **Admins** manage the team: they change its songs, versions and sets, and invite people.
 - **Members** see and use everything the team has.
 
 Next to each name, the team shows what they play or do (see [Roles](/account/#roles)).
@@ -26,6 +26,6 @@ To invite people, create an **invite link**: choose the role they get when they 
 
 ## What belongs to a team
 
-Arrangements, sets and songbooks can be the team's rather than yours: choose the team when you create one (you need to be one of its admins). Team things stay with the team when people come and go.
+Versions, sets and songbooks can be the team's rather than yours: choose the team when you create one (you need to be one of its admins). Team things stay with the team when people come and go.
 
 A song of yours becomes the team's when you hand it over: see [Moving a set to a team](/sets/#moving-a-set-to-a-team-or-back).

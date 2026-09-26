@@ -34,7 +34,7 @@ How chords read on every chart you open:
 - **Chord names** - letters (C D E) or solfège (Do Ré Mi).
 - **With a capo** - chords as they sound, or as the shapes to play.
 
-You can also switch these from any chart in a set. Hiding chords and simpler chords are set per song, from its chart - see [Your own view of a chart](/arrangements/#your-own-view-of-a-chart).
+You can also switch these from any chart in a set. Hiding chords and simpler chords are set per song, from its chart - see [Your own view of a chart](/versions/#your-own-view-of-a-chart).
 
 ## Storage
 

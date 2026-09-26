@@ -110,9 +110,9 @@ r = await call(b, "POST", "/song-versions", { title: "Steal", language: "en", ar
 check("can't base a version on a song you can't see", r.status === 403);
 r = await call(a, "POST", "/song-versions", { title: `Amazing Grace ${stamp} (My Chains Are Gone)`, language: "en", artists: ["Chris Tomlin"], versionName: "Acoustic", basedOnVersionId: songId });
 const acousticId = r.body.id;
-check("new version joins the work", r.status === 201 && r.body.workId === d.workId);
+check("a linked song joins the work", r.status === 201 && r.body.workId === d.workId);
 d = (await call(a, "GET", `/song-versions/${acousticId}`)).body;
-check("new version records its base", d.parentVersion?.id === songId && d.relationshipType === "ALTERNATE_VERSION" && d.versionName === "Acoustic");
+check("a linked song records its original: an adaptation, same language (#78)", d.parentVersion?.id === songId && d.relationshipType === "LYRICAL_ADAPTATION" && d.versionName === "Acoustic");
 r = await call(a, "GET", `/song-versions/matches?title=${encodeURIComponent(`Amazing Grace ${stamp}`)}`);
 check("matches list every version of the work", r.body.length === 1 && r.body[0].versions.length === 2 && r.body[0].versions.every((v) => v.matchesTitle), JSON.stringify(r.body[0]?.versions.map((v) => [v.title, v.matchesTitle])));
 

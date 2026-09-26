@@ -42,7 +42,7 @@ Un numéro de recueil trouve son entrée : tapez l'abréviation du recueil ou un
 
 Le sélecteur en haut à droite de chaque page change le mode de SongVerse. Chaque mode a son propre aspect, pour que vous sachiez toujours où vous en êtes :
 
-- **Édition** - pour écrire les chants, préparer les arrangements et les listes. Des gris neutres.
+- **Édition** - pour écrire les chants, préparer les versions et les listes. Des gris neutres.
 - **Session** - pour apprendre et répéter, seul ou avec le groupe. Vert. Les pistes d'un chant s'y écoutent (voir [Pistes](/fr/library/#pistes)).
 - **Live** - sur scène. Toujours sombre, presque noir avec des accords bleus, et les chants d'une liste s'ouvrent en plein écran (voir [Jouer une liste en live](/fr/sets/#jouer-une-liste-en-live)).
 

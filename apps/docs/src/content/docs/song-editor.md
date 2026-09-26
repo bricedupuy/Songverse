@@ -64,6 +64,6 @@ The **History** tab lists every save of the song, newest first: who saved it, wh
 
 Choose a step to see what it changed: details and credits with the old value struck out and the new one beside it, and the chart's lines removed and added. **Show the whole song as it was** shows the song at that step.
 
-If you can edit the song, **Restore this version** puts its chart, details and credits back as they were at that step. It's saved like any other change, so it shows in the history and can itself be undone. Tags, files, links and arrangements aren't part of the history and stay as they are. Save or discard your own changes before restoring.
+If you can edit the song, **Restore this** puts its chart, details and credits back as they were at that step. It's saved like any other change, so it shows in the history and can itself be undone. Tags, files, links and versions aren't part of the history and stay as they are. Save or discard your own changes before restoring.
 
 Songs created before the history was kept start with **Before the history was kept**: the song as it was then.

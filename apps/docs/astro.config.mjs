@@ -9,12 +9,14 @@ import starlightLinksValidator from "starlight-links-validator";
 // translated yet shows the English one with a notice.
 export default defineConfig({
   site: "https://docs.songverse.one",
+  // Arrangements are called versions since #78: old links still land.
+  redirects: { "/arrangements/": "/versions/", "/fr/arrangements/": "/fr/versions/" },
   integrations: [
     starlight({
       title: "SongVerse",
       // A link to a page or heading that doesn't exist fails the build.
       plugins: [starlightLinksValidator()],
-      description: "How to use SongVerse: songs, arrangements, sets and songbooks for worship teams and bands.",
+      description: "How to use SongVerse: songs, versions, sets and songbooks for worship teams and bands.",
       logo: { light: "./src/assets/logo-light.svg", dark: "./src/assets/logo-dark.svg", alt: "SongVerse" },
       favicon: "/favicon.svg",
       customCss: ["./src/styles/theme.css"],
@@ -39,7 +41,7 @@ export default defineConfig({
           items: [
             { slug: "library" },
             { slug: "song-editor" },
-            { slug: "arrangements" },
+            { slug: "versions" },
           ],
         },
         {

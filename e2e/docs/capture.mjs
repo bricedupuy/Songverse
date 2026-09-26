@@ -184,8 +184,8 @@ try {
     // Who sees each file (issue #72): the stems shared with the band, a recording kept to oneself.
     await shoot("song-files", `/library/${grace.id}?tab=audio`, () => page.getByTestId("audio-list").waitFor());
     await shoot("song-history", `/library/${grace.id}?tab=history`, () => page.getByTestId("history-chart-diff").waitFor());
-    await shoot("arrangements", `/library/${grace.id}?tab=arrangements`, () => page.getByTestId("arrangement-list").waitFor());
-    await shoot("arrangement-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
+    await shoot("versions", `/library/${grace.id}?tab=arrangements`, () => page.getByTestId("arrangement-list").waitFor());
+    await shoot("version-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
     await shoot("set", `/sets/${set.id}`, () => page.getByTestId("set-song-row").first().waitFor());
     await shoot("set-song", `/sets/${set.id}/songs/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor(), { fullPage: true });
     // Live mode (it's remembered, so back to Edit for the rest).

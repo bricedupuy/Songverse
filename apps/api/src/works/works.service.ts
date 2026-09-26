@@ -14,6 +14,9 @@ const DETAIL_INCLUDE = {
       language: true,
       ownerScope: true,
       publicationState: true,
+      // How it's linked to the song it comes from (issue #78): a translation, an adaptation.
+      parentVersionId: true,
+      relationshipType: true,
       createdAt: true,
     },
     orderBy: { createdAt: "asc" },

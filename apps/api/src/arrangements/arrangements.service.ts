@@ -97,13 +97,13 @@ export class ArrangementsService {
     const song = await this.visibleSong(user, songVersionId);
     if (dto.teamId) {
       if (!user.isGlobalAdmin && (await this.access.teamRole(user.id, dto.teamId)) !== "ADMIN") {
-        throw new ForbiddenException("Team admin role required to arrange for this team");
+        throw new ForbiddenException("Team admin role required to add a version for this team");
       }
     }
     let document = newArrangementDocument(song.document, songVersionId, itemId);
     if (dto.copyFromId) {
       const source = await this.visibleArrangement(user, dto.copyFromId);
-      if (source.songVersionId !== songVersionId) throw new BadRequestException("Can only copy an arrangement of the same song");
+      if (source.songVersionId !== songVersionId) throw new BadRequestException("Can only copy a version of the same song");
       const copied = readArrangementDocument(source.documentJson, song.document, songVersionId, itemId).document;
       document = { ...copied, items: copied.items.map((item) => ({ ...item, id: itemId() })) };
     }
@@ -179,7 +179,7 @@ export class ArrangementsService {
       if (parsed.data.songVersionId !== row.songVersionId) throw new BadRequestException("document.songVersionId: not this arrangement's song");
       document = parsed.data;
     }
-    if (dto.isTeamDefault && (row.ownerScope !== "TEAM" || row.setlistItem)) throw new BadRequestException("Only a team arrangement can be the team's usual one");
+    if (dto.isTeamDefault && (row.ownerScope !== "TEAM" || row.setlistItem)) throw new BadRequestException("Only a team's version can be the team's usual one");
 
     const updated = await this.prisma.client.$transaction(async (tx) => {
       // Conditional on the version the check above saw, so two saves at once can't both win.
@@ -308,7 +308,7 @@ export class ArrangementsService {
     }
     if (arrangementId) {
       const arrangement = await this.prisma.client.arrangement.findUnique({ where: { id: arrangementId }, select: { songVersionId: true } });
-      if (arrangement?.songVersionId !== songVersionId) throw new BadRequestException("Not an arrangement of this song");
+      if (arrangement?.songVersionId !== songVersionId) throw new BadRequestException("Not a version of this song");
     }
     const arrangementKey = arrangementId ?? "";
     await this.prisma.client.chartPreference.upsert({
@@ -343,7 +343,7 @@ export class ArrangementsService {
 
   private async visibleArrangement(user: AuthenticatedUser, id: string): Promise<Row> {
     const row = await this.prisma.client.arrangement.findUnique({ where: { id }, select: SELECT });
-    if (!row) throw new NotFoundException("Arrangement not found");
+    if (!row) throw new NotFoundException("Version not found");
     if (!(await this.access.canSeeArrangement(user, row))) throw new ForbiddenException("Not visible to you");
     return row;
   }
@@ -390,5 +390,5 @@ export class ArrangementsService {
 }
 
 function staleArrangement(): ConflictException {
-  return new ConflictException("This arrangement was changed somewhere else since you opened it. Reload it to see the changes.");
+  return new ConflictException("This version was changed somewhere else since you opened it. Reload it to see the changes.");
 }

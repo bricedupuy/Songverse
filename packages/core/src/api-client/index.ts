@@ -894,6 +894,9 @@ export interface WorkDetail {
     language: string;
     ownerScope: string;
     publicationState: string;
+    /** The song it's linked to, as a translation or adaptation of it (issue #78). */
+    parentVersionId: string | null;
+    relationshipType: string | null;
     createdAt: string;
   }>;
   identifiers: WorkIdentifier[];

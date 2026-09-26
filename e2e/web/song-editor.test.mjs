@@ -188,16 +188,21 @@ await step("the song opens in the same editor, filled in", async () => {
   await page.screenshot({ path: `${SP}/editor-edit.png`, fullPage: true });
 });
 
-await step("editing: remove an artist, name the version, save", async () => {
+await step("editing: remove an artist, save", async () => {
   await page.getByRole("button", { name: "Remove Louie Giglio" }).click();
-  await page.getByRole("button", { name: /More details/ }).click();
-  await page.fill("#song-versionName", "Live");
   await page.getByRole("button", { name: "Save song" }).click();
   await page.getByText("Saved.").waitFor();
-  await page.locator("h1").getByText("Live", { exact: true }).waitFor();
   const d = await api(me, "GET", `/song-versions/${songId}`);
-  if (d.artists.map((a) => a.source).join() !== "Chris Tomlin" || d.versionName !== "Live") throw new Error(JSON.stringify([d.artists, d.versionName]));
+  if (d.artists.map((a) => a.source).join() !== "Chris Tomlin") throw new Error(JSON.stringify(d.artists));
   if (!(await page.getByRole("button", { name: "Save song" }).isDisabled())) throw new Error("save should be disabled when nothing changed");
+});
+
+await step("a song that still has a variant name from before shows it; the form has no field for it (#78)", async () => {
+  await api(me, "PATCH", `/song-versions/${songId}`, { versionName: "Live" });
+  await page.reload();
+  await page.locator("h1").getByText("Live", { exact: true }).waitFor();
+  await page.getByRole("button", { name: /More details/ }).click();
+  if (await page.locator("#song-versionName").count()) throw new Error("a version name field");
 });
 
 await step("discard puts the saved values back", async () => {
@@ -229,22 +234,34 @@ await step("links tab has streaming links and the MusicBrainz work", async () =>
 });
 
 let newVersionId;
-await step("create new version from the match panel", async () => {
+await step("link a new song to one from the match panel: an adaptation, in the same language (#78)", async () => {
   await page.goto(`${WEB}/library/new`);
   await page.waitForLoadState("networkidle");
   await page.fill("#song-title", TITLE);
   const panel = page.getByTestId("library-match");
   await panel.waitFor({ timeout: 5000 });
   const card = panel.locator("div.rounded-md").filter({ hasText: "Live" }).first();
-  await card.getByPlaceholder(/Acoustic/).fill("Acoustic");
-  await card.getByRole("button", { name: "Create new version" }).click();
+  await card.getByText("Or is this one a translation or adaptation of it?").waitFor();
+  await card.getByRole("button", { name: "Link it to this song" }).click();
   await page.waitForURL(/\/library\/(?!new)[a-z0-9]+/);
   newVersionId = page.url().split("/library/")[1].split("?")[0];
   const d = await api(me, "GET", `/song-versions/${newVersionId}`);
   const orig = await api(me, "GET", `/song-versions/${songId}`);
-  if (d.workId !== orig.workId || d.versionName !== "Acoustic" || d.parentVersion?.id !== songId || d.artists[0]?.source !== "Chris Tomlin") {
-    throw new Error(JSON.stringify({ work: [d.workId, orig.workId], v: d.versionName, parent: d.parentVersion, artists: d.artists }));
+  if (d.workId !== orig.workId || d.parentVersion?.id !== songId || d.relationshipType !== "LYRICAL_ADAPTATION" || d.artists[0]?.source !== "Chris Tomlin") {
+    throw new Error(JSON.stringify({ work: [d.workId, orig.workId], parent: d.parentVersion, relation: d.relationshipType, artists: d.artists }));
   }
+  await page.getByText(`Adaptation of ${TITLE}`).waitFor();
+  if (await page.getByLabel("Version name").count()) throw new Error("the version name field is still there");
+});
+
+await step("the original lists it under Linked songs; Add a translation starts a song linked to it", async () => {
+  await page.goto(`${WEB}/library/${songId}`);
+  const linked = page.getByTestId("linked-songs");
+  await linked.getByRole("link", { name: TITLE }).waitFor();
+  await linked.getByText("Adaptation · English").waitFor();
+  await linked.getByRole("link", { name: "Add a translation" }).click();
+  await page.waitForURL(/\/library\/new\?linkTo=/);
+  await page.getByText(`Saving as a translation or adaptation of “${TITLE}”, linked to it.`).waitFor();
 });
 
 await step("use as base copies the details", async () => {
@@ -258,19 +275,17 @@ await step("use as base copies the details", async () => {
   await page.getByRole("button", { name: "Remove Chris Tomlin" }).waitFor();
   if ((await page.inputValue("#song-key")) !== "D") throw new Error("key not copied");
   if (!(await page.inputValue("#song-content")).includes("Amazing love")) throw new Error("content not copied");
-  await page.fill("#song-versionName", "Youth band");
   await page.getByRole("button", { name: "Save song" }).click();
   await page.waitForURL(/\/library\/(?!new)[a-z0-9]+/);
   const id = page.url().split("/library/")[1].split("?")[0];
   const d = await api(me, "GET", `/song-versions/${id}`);
-  if (d.versionName !== "Youth band" || d.capo !== 2 || d.relationshipType !== "ALTERNATE_VERSION") throw new Error(JSON.stringify({ capo: d.capo, versionName: d.versionName }));
+  if (d.capo !== 2 || d.relationshipType !== "LYRICAL_ADAPTATION") throw new Error(JSON.stringify({ capo: d.capo, relation: d.relationshipType }));
 });
 
-await step("the library shows version names", async () => {
+await step("the library still shows a variant name from before", async () => {
   await page.goto(`${WEB}/library`);
   await page.waitForLoadState("networkidle");
-  await page.getByText("— Acoustic").waitFor();
-  await page.getByText("— Youth band").waitFor();
+  await page.getByText("— Live").first().waitFor();
   await page.screenshot({ path: `${SP}/editor-library.png`, fullPage: true });
 });
 

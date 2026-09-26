@@ -293,7 +293,8 @@ function versionLabel(version: MatchVersion) {
 
 /**
  * "Match found in your library": songs you can see with the title being
- * added - open one, start from one, or add this as another version of it.
+ * added - open one, start from one, or link this one to it as a
+ * translation or adaptation (a song of its own, linked to its original).
  */
 export function LibraryMatchPanel({
   matches,
@@ -305,12 +306,11 @@ export function LibraryMatchPanel({
   matches: SongMatch[];
   busy: boolean;
   onUseAsBase: (version: MatchVersion) => void;
-  onNewVersion: (version: MatchVersion, versionName: string) => void;
+  onNewVersion: (version: MatchVersion) => void;
   onDismiss: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [names, setNames] = useState<Record<string, string>>({});
   const scope = (version: MatchVersion) =>
     version.ownerScope === "GLOBAL" ? t("songEditor.scopeGlobal") : version.ownerScope === "TEAM" ? version.teamName : t("songEditor.scopePersonal");
 
@@ -334,7 +334,6 @@ export function LibraryMatchPanel({
       </div>
       {matches.map((match) => {
         const first = match.versions[0]!;
-        const name = names[match.workId] ?? "";
         return (
           <div key={match.workId} className="flex flex-col gap-3 rounded-md border bg-background p-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
@@ -391,22 +390,11 @@ export function LibraryMatchPanel({
                 ))}
               </ul>
             ) : null}
-            <div className="flex flex-col gap-2 border-t pt-3">
-              <Label htmlFor={`new-version-${match.workId}`} className="text-sm">
-                {t("songEditor.addNewVersionInstead")}
-              </Label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  id={`new-version-${match.workId}`}
-                  value={name}
-                  onChange={(event) => setNames({ ...names, [match.workId]: event.target.value })}
-                  placeholder={t("songEditor.placeholders.versionName")}
-                  className="sm:max-w-64"
-                />
-                <Button type="button" disabled={busy || !name.trim()} onClick={() => onNewVersion(first, name.trim())}>
-                  {t("songEditor.createNewVersion")}
-                </Button>
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+              <span className="text-sm">{t("songEditor.addNewVersionInstead")}</span>
+              <Button type="button" size="sm" disabled={busy} onClick={() => onNewVersion(first)}>
+                {t("songEditor.createNewVersion")}
+              </Button>
             </div>
           </div>
         );
@@ -420,7 +408,6 @@ function useSummary(form: SongForm, tagLabel: (id: string) => string): string[] 
   const { t, i18n } = useTranslation();
   const credit = (field: CreditField) => (form[field].length > 0 ? `${t(`songEditor.fields.${field}`)}: ${form[field].join(", ")}` : null);
   return [
-    form.versionName.trim() ? t("songEditor.summary.version", { name: form.versionName.trim() }) : null,
     credit("composers"),
     credit("lyricists"),
     credit("writers"),
@@ -557,7 +544,6 @@ export function MoreDetailsCard({
               </Field>
               {text("ccli", { inputMode: "numeric", placeholder: "4768151" })}
               {text("isrc", { placeholder: "USRC17607839" })}
-              {text("versionName", { placeholder: t("songEditor.placeholders.versionName"), hint: t("songEditor.versionNameHint") })}
               {text("alternateTitle", { placeholder: t("songEditor.placeholders.alternateTitle") })}
               {text("sortTitle", { placeholder: t("songEditor.placeholders.sortTitle") })}
               {text("reference", { placeholder: t("songEditor.placeholders.reference") })}

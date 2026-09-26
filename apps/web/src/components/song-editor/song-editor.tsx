@@ -40,6 +40,7 @@ import {
 import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, SongbooksCard } from "./song-info";
 import { PublishCard } from "./publish-card";
 import { MySuggestionsCard } from "./my-suggestions-card";
+import { LinkedSongsCard, relationKind } from "./linked-songs-card";
 import { Textarea } from "#/components/ui/textarea";
 import { ArrangementsTab } from "./arrangements-tab";
 import { HistoryTab } from "./history-tab";
@@ -60,7 +61,8 @@ type EditProps = {
   songbookMemberships: SongVersionSongbookMembership[];
   notices?: SongNotice[];
 };
-type CreateProps = { mode: "create" };
+/** `linkTo`: the song this one is a translation or adaptation of, when started from it. */
+type CreateProps = { mode: "create"; linkTo?: { id: string; label: string } };
 
 type MatchVersion = SongMatch["versions"][number];
 
@@ -115,7 +117,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [mbChoice, setMbChoice] = useState<MusicBrainzRecordingMatch | null | undefined>(undefined);
   const [sourceFile, setSourceFile] = useState<SourceFile | null>(null);
-  const [basedOn, setBasedOn] = useState<BasedOn | null>(null);
+  const [basedOn, setBasedOn] = useState<BasedOn | null>(props.mode === "create" && props.linkTo ? { ...props.linkTo, copied: false } : null);
   const [matches, setMatches] = useState<SongMatch[]>([]);
   const [dismissedTitle, setDismissedTitle] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -205,10 +207,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
     }
   }
 
-  function newVersionOf(base: MatchVersion, versionName: string) {
+  /** Saves this song linked to `base`, as a translation or adaptation of it (issue #78). */
+  function newVersionOf(base: MatchVersion) {
     const next = {
       ...form,
-      versionName,
       title: form.title.trim() || base.title,
       artists: form.artists.length > 0 ? form.artists : base.artists,
     };
@@ -424,6 +426,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           </fieldset>
         ) : null}
         {edit ? <SongbooksCard memberships={edit.songbookMemberships} title={edit.version.title} /> : null}
+        {edit ? <LinkedSongsCard version={edit.version} /> : null}
         {edit && canEdit && edit.version.ownerScope !== "GLOBAL" ? <PublishCard songVersionId={edit.version.id} /> : null}
         {edit && edit.version.ownerScope === "GLOBAL" ? <MySuggestionsCard songVersionId={edit.version.id} refreshKey={suggestionsKey} /> : null}
       </div>
@@ -438,6 +441,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         edit.version.artists.map((a) => a.source).filter(Boolean).join(", "),
         getLanguageDisplayName(edit.version.language, i18n.language),
         contributor ? t("songEditor.contributedBy", { name: contributor }) : null,
+        // A translation or adaptation names the song it's linked to (issue #78).
+        edit.version.parentVersion
+          ? t(relationKind(edit.version.relationshipType) === "adaptation" ? "songEditor.adaptationOf" : "songEditor.translationOf", { title: edit.version.parentVersion.title })
+          : null,
       ]
         .filter(Boolean)
         .join(" · ")
