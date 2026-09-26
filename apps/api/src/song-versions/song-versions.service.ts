@@ -35,6 +35,8 @@ import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import type { SongFieldsDto } from "./dto/song-fields.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
+import { songImageUrl } from "../artwork/song-image-url";
+import { StorageService } from "../storage/storage.service";
 import { SongHistoryService } from "./song-history.service";
 
 /** A version's own fields: the columns (the document holds only the music). */
@@ -261,6 +263,8 @@ const LIST_SELECT = {
   ccli: true,
   createdAt: true,
   updatedAt: true,
+  // Its image (issue #85): handed out as a signed address, never the key itself.
+  imageStorageKey: true,
   // Who put it in the catalogue (issue #73).
   contributedBy: { select: { id: true, displayName: true } },
   contributedByTeam: { select: { id: true, name: true } },
@@ -325,7 +329,9 @@ export interface SongPage {
   page: number;
   pageSize: number;
 }
-export type ListItem = Omit<ListRow, "contributors" | "versionTags"> & {
+export type ListItem = Omit<ListRow, "contributors" | "versionTags" | "imageStorageKey"> & {
+  /** The song's image, signed for the viewer (issue #85); null when it has none. */
+  imageUrl: string | null;
   artists: ListRow["contributors"];
   tags: ListRow["versionTags"][number]["tag"][];
   /** Shared with the viewer by its owner (issue #77). */
@@ -347,8 +353,8 @@ function tagsVisibleWhere(userId: string, teamIds: string[]): Prisma.TagWhereInp
 // don't share a field name that means two different things, and so the
 // join row (versionTags' own `id`, not useful to the client) doesn't leak
 // into what's otherwise just a list of tags.
-function toListItem({ contributors, versionTags, ...rest }: ListRow, seesTag: SeesTag = ALL_TAGS, sharedBy: SharedBy | null = null): ListItem {
-  return { ...rest, artists: contributors, tags: versionTags.map((vt) => vt.tag).filter(seesTag), sharedBy };
+function toListItem({ contributors, versionTags, imageStorageKey, ...rest }: ListRow, seesTag: SeesTag = ALL_TAGS, sharedBy: SharedBy | null = null): ListItem {
+  return { ...rest, imageUrl: songImageUrl(rest.id, imageStorageKey), artists: contributors, tags: versionTags.map((vt) => vt.tag).filter(seesTag), sharedBy };
 }
 
 /** Someone who shared the song with the viewer (issue #77), and whether to edit. */
@@ -366,7 +372,8 @@ interface Rights {
 const OWNER_RIGHTS: Rights = { canEdit: true, canManage: true, sharedBy: null };
 
 type DetailRow = Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>;
-type DetailItem = Omit<DetailRow, "versionTags" | "documentJson"> & {
+type DetailItem = Omit<DetailRow, "versionTags" | "documentJson" | "imageStorageKey"> & {
+  imageUrl: string | null;
   /** Always v2: a song saved before v2 is upgraded as it's read. */
   documentJson: SongDocumentV2;
   artists: DetailRow["contributors"];
@@ -379,9 +386,10 @@ type DetailItem = Omit<DetailRow, "versionTags" | "documentJson"> & {
 };
 
 function toDetailItem(version: DetailRow, { canEdit, canManage, sharedBy }: Rights, seesTag: SeesTag = ALL_TAGS): DetailItem {
-  const { versionTags, documentJson, ...rest } = version;
+  const { versionTags, documentJson, imageStorageKey, ...rest } = version;
   return {
     ...rest,
+    imageUrl: songImageUrl(rest.id, imageStorageKey),
     documentJson: readSongDocument(documentJson),
     artists: version.contributors.filter((c) => c.roles.includes("PERFORMER")),
     tags: versionTags.map((vt) => vt.tag).filter(seesTag),
@@ -428,6 +436,7 @@ export class SongVersionsService {
     private readonly musicBrainz: MusicBrainzService,
     private readonly access: AccessPolicyService,
     private readonly history: SongHistoryService,
+    private readonly storage: StorageService,
   ) {}
 
   /**
@@ -1213,7 +1222,7 @@ export class SongVersionsService {
   async remove(id: string): Promise<void> {
     const version = await this.prisma.client.songVersion.findUnique({
       where: { id },
-      select: { workId: true },
+      select: { workId: true, imageStorageKey: true, attachments: { select: { storageKey: true } } },
     });
     if (!version) throw new NotFoundException("Song version not found");
 
@@ -1233,6 +1242,9 @@ export class SongVersionsService {
         await tx.work.delete({ where: { id: version.workId } });
       }
     });
+    // Its files and image, unless another song (or someone's avatar) has the same bytes.
+    const keys = [...version.attachments.map((attachment) => attachment.storageKey), version.imageStorageKey].filter((key): key is string => !!key);
+    await this.storage.deleteUnreferenced(keys);
   }
 
   async linkMusicBrainzRecording(songVersionId: string, mbid: string) {

@@ -45,3 +45,5 @@ Manages the published songbook catalogs (see [Songbooks](/songbooks/#from-a-publ
 ### Server maintenance
 
 The **Metadata** page has two maintenance tasks: **Check status** compares the database migrations on the server with what's applied, and **Run seed script** re-applies the built-in data (tag categories, tags, tuning presets). It's safe to re-run.
+
+**Song artwork** turns artwork from Apple Music on or off (**Find artwork for songs**) and sets the **Apple Music storefront (country)** searched - two letters, like us or fr. **Save configuration** keeps them; **Revert to defaults** goes back to on, in the us storefront. **Find artwork for songs without one** looks up to 50 songs at a time, newest first; a song nothing matched isn't tried again. See [Artwork](/library/#artwork).

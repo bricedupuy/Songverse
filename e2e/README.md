@@ -12,10 +12,12 @@ seed`) - some suites use the built-in global tags.
 
 1. Start Postgres and Redis, then the API and web app, with the API's output
    going to a file - with no email provider configured the API prints the
-   emails it would send, and the suites read verification links from there:
+   emails it would send, and the suites read verification links from there.
+   Point the API's song artwork at the suites' stand-in for Apple Music
+   (`lib/fake-itunes.mjs`, which the artwork suites start on port 3999):
 
    ```sh
-   pnpm --filter @songverse/api dev > /tmp/api-dev.log 2>&1 &
+   ITUNES_SEARCH_URL=http://localhost:3999 pnpm --filter @songverse/api dev > /tmp/api-dev.log 2>&1 &
    pnpm --filter @songverse/web dev &
    ```
 

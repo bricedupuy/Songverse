@@ -631,6 +631,8 @@ export interface SongVersionSummary {
   contributedByTeam: { id: string; name: string } | null;
   /** Shared with the viewer by its owner (issue #77): who by, and whether to edit. */
   sharedBy?: SharedBy | null;
+  /** Its image (issue #85), at an address signed for the viewer that works for a day or two; add `&w=` for a width. */
+  imageUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   artists: ArtistSummary[];
@@ -684,6 +686,21 @@ export interface ArtistCount {
 }
 
 /** One page of songs, with the total across all pages. */
+/** One of Apple Music's matches for a song's artwork (issue #85). */
+export interface ArtworkCandidate {
+  title: string;
+  artist: string;
+  album: string | null;
+  artworkUrl: string;
+  thumbnailUrl: string;
+}
+
+export interface ArtworkSettings {
+  enabled: boolean;
+  country: string;
+  source: "database" | "default";
+}
+
 /** Where a song is in a list (issue #84): the ones before and after it; null position when it isn't in it. */
 export interface SongNeighbors {
   position: number | null;
@@ -1214,6 +1231,13 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       return request<SongPage>(`/song-versions${params.size ? `?${params}` : ""}`);
     },
     getLibraryHome: () => request<LibraryHome>("/library/home"),
+    getArtworkCandidates: (songVersionId: string) => request<ArtworkCandidate[]>(`/song-versions/${songVersionId}/artwork/candidates`),
+    setArtwork: (songVersionId: string, url: string) => request<void>(`/song-versions/${songVersionId}/artwork`, { method: "PUT", body: JSON.stringify({ url }) }),
+    clearArtwork: (songVersionId: string) => request<void>(`/song-versions/${songVersionId}/artwork`, { method: "DELETE" }),
+    getArtworkSettings: () => request<ArtworkSettings>("/admin/artwork"),
+    saveArtworkSettings: (change: { enabled?: boolean; country?: string }) => request<ArtworkSettings>("/admin/artwork", { method: "PUT", body: JSON.stringify(change) }),
+    resetArtworkSettings: () => request<ArtworkSettings>("/admin/artwork", { method: "DELETE" }),
+    backfillArtwork: () => request<{ tried: number; found: number }>("/admin/artwork/backfill", { method: "POST" }),
     /** The songs before and after one in a list of the library, searched and filtered as `query` says (issue #84). */
     getSongNeighbors: (songVersionId: string, query: ListSongVersionsQuery = {}) => {
       const params = new URLSearchParams(

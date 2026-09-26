@@ -169,6 +169,12 @@ export class SongFoldService implements OnApplicationBootstrap {
     }
     await tx.attachment.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
 
+    // Its image (#85), when the catalogue song has none: the same bytes stay stored either way.
+    await tx.$executeRaw`
+      UPDATE "SongVersion" AS target SET "imageStorageKey" = source."imageStorageKey", "imageSourceUrl" = source."imageSourceUrl"
+      FROM "SongVersion" AS source
+      WHERE target.id = ${targetId} AND source.id = ${songId} AND target."imageStorageKey" IS NULL AND source."imageStorageKey" IS NOT NULL`;
+
     // People's favorites and views of it (#81) are of the catalogue song now; both for one person merge.
     await tx.$executeRaw`
       INSERT INTO "FavoriteSong" ("userId", "songVersionId", "createdAt")

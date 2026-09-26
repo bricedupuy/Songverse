@@ -107,7 +107,7 @@ export class UserDeletionService {
 
   /** Deletes everything the user personally owns. Returns storage keys that may now be unreferenced. */
   private async purgeOwnedContent(tx: Tx, userId: string): Promise<string[]> {
-    const versions = await tx.songVersion.findMany({ where: { ownerUserId: userId }, select: { id: true, workId: true } });
+    const versions = await tx.songVersion.findMany({ where: { ownerUserId: userId }, select: { id: true, workId: true, imageStorageKey: true } });
     const versionIds = versions.map((version) => version.id);
     const workIds = [...new Set(versions.map((version) => version.workId))];
 
@@ -157,7 +157,11 @@ export class UserDeletionService {
     await tx.tag.deleteMany({ where: { ownerUserId: userId } });
     await tx.setlist.deleteMany({ where: { ownerUserId: userId } });
 
-    return [...attachments, ...privateFiles].map((attachment) => attachment.storageKey);
+    return [
+      ...[...attachments, ...privateFiles].map((attachment) => attachment.storageKey),
+      // Their songs' images (issue #85).
+      ...versions.flatMap((version) => (version.imageStorageKey ? [version.imageStorageKey] : [])),
+    ];
   }
 
   /** Removes the user row and personal activity. Returns the avatar key, if any, for storage cleanup. */

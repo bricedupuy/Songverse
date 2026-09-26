@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, UnsupportedMediaTypeException } from "
 import sharp, { type Metadata } from "sharp";
 
 export const AVATAR_MAX_SIZE = 512;
+export const ARTWORK_MAX_SIZE = 800;
 
 /**
  * Widths a resized image can be requested at; any other request snaps up to
@@ -38,6 +39,17 @@ export class ImageService {
   async normalizeAvatar(input: Buffer): Promise<ProcessedImage> {
     const { width, height } = await this.orientedSize(input);
     const side = Math.min(width, height, AVATAR_MAX_SIZE);
+    const body = await this.pipeline(input)
+      .resize({ width: side, height: side, fit: "cover", position: "centre" })
+      .webp({ quality: 85 })
+      .toBuffer();
+    return { body, contentType: "image/webp" };
+  }
+
+  /** A song's artwork (issue #85): square, at most 800x800, as WebP; metadata stripped. */
+  async normalizeArtwork(input: Buffer): Promise<ProcessedImage> {
+    const { width, height } = await this.orientedSize(input);
+    const side = Math.min(width, height, ARTWORK_MAX_SIZE);
     const body = await this.pipeline(input)
       .resize({ width: side, height: side, fit: "cover", position: "centre" })
       .webp({ quality: 85 })

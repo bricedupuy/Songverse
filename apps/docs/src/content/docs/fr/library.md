@@ -69,6 +69,12 @@ Un chant a des onglets :
 
 Les modifications des onglets **Infos** et **Éditeur** sont enregistrées ensemble par **Enregistrer le chant** ; les fichiers, l'audio et les liens sont enregistrés dès que vous les ajoutez. **Annuler les modifications** retire ce qui n'est pas enregistré. Le menu **⋯** permet d'**Exporter en ChordPro** ou de **Supprimer le chant**.
 
+### Illustration
+
+L'image d'un chant est l'illustration de l'album ou du single où il figure, depuis Apple Music, conservée sur le stockage de Songverse. Un nouveau chant la reçoit tout seul, d'après son titre et son premier artiste, quand Apple Music a un résultat assez proche ; en attendant, sa couverture est tirée de son titre. Elle apparaît sur l'accueil de la bibliothèque, dans **Chants** et sur la page du chant, pour tous ceux qui peuvent voir le chant.
+
+Dans **Infos**, **Illustration** la montre. Si vous pouvez modifier le chant, **Trouver l'illustration** liste les résultats d'Apple Music - choisissez l'album ou le single d'où il vient - et **Retirer** l'enlève.
+
 Voilà le chant en mode **Édition**. En **Session**, sa page est la grille elle-même, lue avec vos réglages d'accords, avec sa tonalité, son capo et son tempo, et l'enregistrement ou les pistes du chant en bas (voir [Pistes](/fr/library/#pistes)) ; **Modifier** vous ramène à l'édition. En **Live**, il s'ouvre en plein écran, comme les chants d'une liste ; **×** revient à la bibliothèque.
 
 ![Un chant en mode Session](../../../assets/screenshots/fr/practice-song.jpg)

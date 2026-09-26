@@ -19,6 +19,7 @@ import type { StreamingIdentifierType } from "@songverse/core";
 import { AccessPolicyService } from "../access/access-policy.service";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard";
+import { ArtworkService } from "../artwork/artwork.service";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
@@ -47,6 +48,7 @@ export class SongVersionsController {
     private readonly songVersionsService: SongVersionsService,
     private readonly access: AccessPolicyService,
     private readonly history: SongHistoryService,
+    private readonly artwork: ArtworkService,
   ) {}
 
   @Get()
@@ -127,12 +129,15 @@ export class SongVersionsController {
 
   @Post()
   @ApiCreatedResponse({ type: SongVersionResponseDto })
-  create(
+  async create(
     @CurrentUser() user: AuthenticatedUser | undefined,
     @Body() dto: CreateSongVersionDto,
   ): ReturnType<SongVersionsService["create"]> {
     if (!user) throw new UnauthorizedException();
-    return this.songVersionsService.create(user, dto);
+    const created = await this.songVersionsService.create(user, dto);
+    // Its artwork (issue #85), found in the background: the song doesn't wait for Apple Music.
+    void this.artwork.autoFind(created.id);
+    return created;
   }
 
   @Patch(":songVersionId")

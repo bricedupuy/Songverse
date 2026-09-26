@@ -45,3 +45,5 @@ Gère les catalogues de recueils publiés (voir [Recueils](/fr/songbooks/#à-par
 ### Maintenance du serveur
 
 La page **Métadonnées** a deux tâches de maintenance : **Vérifier** compare les migrations de la base de données présentes sur le serveur avec celles appliquées, et **Exécuter le script de départ** réapplique les données intégrées (catégories d'étiquettes, étiquettes, accordages). On peut le relancer sans risque.
+
+**Illustrations des chants** active ou non les illustrations venues d'Apple Music (**Trouver les illustrations des chants**) et règle la **Boutique Apple Music (pays)** interrogée - deux lettres, comme us ou fr. **Enregistrer la configuration** les garde ; **Revenir aux réglages par défaut** revient à activé, boutique us. **Trouver les illustrations des chants qui n'en ont pas** en cherche jusqu'à 50 à la fois, les plus récents d'abord ; un chant sans résultat n'est pas réessayé. Voir [Illustration](/fr/library/#illustration).

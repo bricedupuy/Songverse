@@ -45,6 +45,7 @@ import { Textarea } from "#/components/ui/textarea";
 import { ArrangementsTab } from "./arrangements-tab";
 import { HistoryTab } from "./history-tab";
 import { ShareDialog } from "./share-dialog";
+import { ArtworkCard } from "./artwork-card";
 import { AttachmentsTab, LinksTab, SaveFirst } from "./song-tabs";
 import type { SongNotice, SongTab } from "./song-tabs-list";
 
@@ -418,6 +419,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         <MoreDetailsCard form={form} setField={setField} errors={errors} tags={tags} open={detailsOpen} onOpenChange={setDetailsOpen} />
       </fieldset>
       <div className="flex min-w-0 flex-col gap-6">
+        {edit ? <ArtworkCard version={edit.version} canEdit={canEdit} /> : null}
         {canChangeChart ? (
           <fieldset disabled={saving} className="min-w-0">
             <Card>

@@ -1,0 +1,99 @@
+// Song images (issue #85): a new song's artwork found on its own, from
+// Apple Music (a stand-in, see lib/fake-itunes.mjs) and kept on our
+// storage; served at a signed address only to who can see the song;
+// chosen among the matches or removed by its editors; the admin's settings
+// and backfill; one image for two songs with the same artwork.
+import { API, api, call, check, finish, sql, stamp, user } from "../lib/harness.mjs";
+import { FAKE_ITUNES_URL, startFakeItunes } from "../lib/fake-itunes.mjs";
+
+const fake = await startFakeItunes();
+const owner = await user("Painter");
+const viewer = await user("Viewer");
+const stranger = await user("Stranger");
+const admin = await user("Admin");
+sql(`update "User" set "isGlobalAdmin"=true where id='${admin.id}'`);
+await api(admin, "DELETE", "/admin/artwork");
+
+const make = (title) => api(owner, "POST", "/song-versions", { title: `${title} ${stamp}`, language: "en", artists: ["Painter"] });
+async function imageOf(who, id) {
+  for (let i = 0; i < 40; i++) {
+    const song = await api(who, "GET", `/song-versions/${id}`);
+    if (song.imageUrl) return song.imageUrl;
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  return null;
+}
+const fetchImage = (url) => fetch(url);
+
+// --- found on its own, kept on our storage
+const song = await make("Artful");
+const url = await imageOf(owner, song.id);
+check("a new song gets its artwork on its own", !!url, String(url));
+check("at a signed address on our API, not Apple's", url?.startsWith(`${API}/song-versions/${song.id}/image/`) && url.includes("signature="), url);
+check("where it came from is kept", sql(`select "imageSourceUrl" from "SongVersion" where id='${song.id}'`).startsWith(`${FAKE_ITUNES_URL}/art/0/800x800bb`));
+let res = await fetchImage(`${url}&w=64`);
+check("served, resized, without a token", res.status === 200 && res.headers.get("content-type") === "image/webp", String(res.status));
+res = await fetchImage(url.replace(/signature=[^&]+/, "signature=forged"));
+check("a forged signature doesn't", res.status === 403, String(res.status));
+res = await fetchImage(url.replace(/expires=\d+/, `expires=${Date.now() - 1000}`));
+check("nor an expired address", res.status === 403, String(res.status));
+check("the list has it too", (await api(owner, "GET", `/song-versions?q=${encodeURIComponent(`Artful ${stamp}`)}`)).items[0]?.imageUrl?.startsWith(`${API}/song-versions/${song.id}/image/`));
+
+// --- only who can see the song gets its address
+check("someone who can't see the song gets no address", (await call(stranger, "GET", `/song-versions/${song.id}`)).status === 403);
+check("nor can find its artwork", (await call(stranger, "GET", `/song-versions/${song.id}/artwork/candidates`)).status === 403);
+
+// --- choosing among the matches; only its editors
+const candidates = await api(owner, "GET", `/song-versions/${song.id}/artwork/candidates`);
+check("Apple Music's matches, each artwork once", candidates.length === 3 && candidates[1].album === "Album 2" && candidates[1].artworkUrl.endsWith("/art/1/800x800bb.png"), JSON.stringify(candidates[1]));
+let r = await call(owner, "PUT", `/song-versions/${song.id}/artwork`, { url: candidates[1].artworkUrl });
+const chosen = await api(owner, "GET", `/song-versions/${song.id}`);
+check("another one chosen", r.status === 204 && chosen.imageUrl && chosen.imageUrl.split("/image/")[1].split("?")[0] !== url.split("/image/")[1].split("?")[0], String(r.status));
+r = await call(owner, "PUT", `/song-versions/${song.id}/artwork`, { url: "https://evil.example.com/cover.png" });
+check("only from Apple Music", r.status === 400, String(r.status));
+// Shared with someone to view: they see it, can't change it.
+await api(owner, "POST", "/people/requests", { email: viewer.email });
+const request = (await api(viewer, "GET", "/people")).incoming.find((i) => i.from.id === owner.id);
+await api(viewer, "POST", `/people/requests/${request.id}/accept`);
+await api(owner, "PUT", `/song-versions/${song.id}/shares/${viewer.id}`, { canEdit: false });
+check("someone it's shared with sees it", !!(await api(viewer, "GET", `/song-versions/${song.id}`)).imageUrl);
+r = await call(viewer, "PUT", `/song-versions/${song.id}/artwork`, { url: candidates[0].artworkUrl });
+check("but can't change it", r.status === 403, String(r.status));
+
+// --- one image for two songs with the same artwork; removing one keeps the other's
+const twin = await make("Artful twin");
+const twinUrl = await imageOf(owner, twin.id);
+await api(owner, "PUT", `/song-versions/${song.id}/artwork`, { url: candidates[0].artworkUrl });
+const key = (id) => sql(`select "imageStorageKey" from "SongVersion" where id='${id}'`);
+check("the same artwork, stored once", key(song.id) === key(twin.id) && !!key(song.id));
+r = await call(owner, "DELETE", `/song-versions/${song.id}/artwork`);
+check("removed", r.status === 204 && (await api(owner, "GET", `/song-versions/${song.id}`)).imageUrl === null);
+res = await fetchImage(`${twinUrl}&w=64`);
+check("the other song's is still there", res.status === 200, String(res.status));
+await call(owner, "DELETE", `/song-versions/${twin.id}`);
+check("a deleted song's image, used by no one, is gone from storage", sql(`select count(*) from "SongVersion" where "imageStorageKey"='${key(song.id) || "none"}'`) === "0");
+
+// --- nothing close enough: no image
+const nomatch = await make("Nomatch");
+await new Promise((r) => setTimeout(r, 2000));
+check("nothing matching, no image", (await api(owner, "GET", `/song-versions/${nomatch.id}`)).imageUrl === null);
+
+// --- the admin's settings
+let settings = await api(admin, "GET", "/admin/artwork");
+check("on, in the us storefront, by default", settings.enabled === true && settings.country === "us" && settings.source === "default", JSON.stringify(settings));
+check("admins only", (await call(owner, "GET", "/admin/artwork")).status === 403);
+r = await call(admin, "PUT", "/admin/artwork", { country: "frr" });
+check("a country is two letters", r.status === 400, String(r.status));
+settings = await api(admin, "PUT", "/admin/artwork", { enabled: false, country: "FR" });
+check("saved", settings.enabled === false && settings.country === "fr" && settings.source === "database", JSON.stringify(settings));
+const off = await make("Artful off");
+await new Promise((r) => setTimeout(r, 2000));
+check("turned off: no artwork for a new song", (await api(owner, "GET", `/song-versions/${off.id}`)).imageUrl === null);
+check("nor a backfill", (await call(admin, "POST", "/admin/artwork/backfill")).status === 404);
+settings = await api(admin, "DELETE", "/admin/artwork");
+check("back to the defaults", settings.enabled === true && settings.source === "default");
+r = await call(admin, "POST", "/admin/artwork/backfill");
+check("the backfill finds the songs without one", r.status === 201 && r.body.found >= 1 && !!(await api(owner, "GET", `/song-versions/${off.id}`)).imageUrl, JSON.stringify(r.body));
+
+fake.close();
+finish();

@@ -113,6 +113,8 @@ jobs:
       BETTER_AUTH_SECRET: "e2e-only-secret-not-for-production-use"
       SETTINGS_ENCRYPTION_KEY: "e2e-only-settings-key-not-for-production-use"
       MUSICBRAINZ_CONTACT: "https://github.com/bricedupuy/Songverse"
+      # Song artwork (issue #85) from the suites' stand-in for Apple Music (e2e/lib/fake-itunes.mjs).
+      ITUNES_SEARCH_URL: "http://localhost:3999"
     steps:
       - uses: actions/checkout@v4
 

@@ -1,4 +1,5 @@
 import { resolveTranslation, type LocaleValue, type SongVersionSummary } from "@songverse/core";
+import { SongCover } from "#/components/library-home";
 import type { Column, ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
 import { useMemo } from "react";
@@ -44,9 +45,15 @@ export function useLibraryColumns(currentUserId: string): ColumnDef<SongVersionS
         accessorKey: "title",
         header: sortableHeader(t("library.columnTitle")),
         cell: ({ row }) => (
-          <span className="font-medium">
-            {row.original.title}
-            {row.original.versionName ? <span className="font-normal text-muted-foreground"> — {row.original.versionName}</span> : null}
+          <span className="flex items-center gap-3">
+            {/* Its image (issue #85), or a cover of its own. */}
+            <span className="size-8 shrink-0">
+              <SongCover song={row.original} size="small" className="rounded" />
+            </span>
+            <span className="font-medium">
+              {row.original.title}
+              {row.original.versionName ? <span className="font-normal text-muted-foreground"> — {row.original.versionName}</span> : null}
+            </span>
           </span>
         ),
       },

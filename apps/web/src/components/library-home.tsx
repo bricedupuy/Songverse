@@ -32,9 +32,10 @@ function initialsOf(title: string): string {
  * cover of its own - a colour from its title, and its initials - so a
  * shelf never shows an empty box.
  */
-export function SongCover({ song, className }: { song: CardSong; className?: string }) {
+export function SongCover({ song, className, size = "card" }: { song: CardSong; className?: string; size?: "card" | "small" | "large" }) {
+  const width = size === "small" ? 64 : size === "large" ? 640 : 320;
   if (song.imageUrl) {
-    return <img src={song.imageUrl} alt="" loading="lazy" className={cn("aspect-square w-full rounded-lg object-cover", className)} />;
+    return <img src={`${song.imageUrl}&w=${width}`} alt="" loading="lazy" data-testid="song-image" className={cn("aspect-square w-full rounded-lg object-cover", className)} />;
   }
   const hue = hueOf(song.title);
   return (
@@ -44,13 +45,18 @@ export function SongCover({ song, className }: { song: CardSong; className?: str
       className={cn("relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg text-white", className)}
       style={{ backgroundImage: `linear-gradient(135deg, hsl(${hue} 55% 48%), hsl(${(hue + 40) % 360} 60% 28%))` }}
     >
-      <span className="text-3xl font-semibold tracking-tight drop-shadow-sm">{initialsOf(song.title) || <Music2 className="size-8" />}</span>
-      <Music2 className="absolute right-2 bottom-2 size-4 opacity-60" />
+      {size === "small" ? (
+        <span className="text-[0.625rem] font-semibold">{initialsOf(song.title)}</span>
+      ) : (
+        <>
+          <span className={cn("font-semibold tracking-tight drop-shadow-sm", size === "large" ? "text-5xl" : "text-3xl")}>{initialsOf(song.title) || <Music2 className="size-8" />}</span>
+          <Music2 className="absolute right-2 bottom-2 size-4 opacity-60" />
+        </>
+      )}
     </div>
   );
 }
 
-/** `from`: the list the card's shelf stands for, which the sidebar lists beside the song (issue #80). */
 function SongCard({ song, from }: { song: CardSong; from?: string }) {
   const artists = song.artists.map((artist) => artist.source).filter(Boolean).join(", ");
   return (

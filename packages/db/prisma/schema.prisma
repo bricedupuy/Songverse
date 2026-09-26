@@ -633,6 +633,10 @@ model SongVersion {
   sortTitle      String? // how to sort it, if not by title
   language       String // BCP 47 tag: en, fr, de, etc.
   trustLabel     String? // Free text: "Official publisher text", etc.
+  // Its image (issue #85): the album or single's artwork, kept on our
+  // storage (content-addressed, like attachments), and where it came from.
+  imageStorageKey String?
+  imageSourceUrl  String?
 
   // Rights metadata
   copyright     String?
@@ -1707,6 +1711,16 @@ model AuthSettings {
   googleClientId        String?
   googleClientSecretEnc String?
   updatedAt             DateTime @updatedAt
+}
+
+// Song artwork (issue #85): taken from Apple Music (the iTunes Search
+// API, no key needed) - on or off, and the storefront (country) searched.
+// No row: on, in the "us" storefront.
+model ArtworkSettings {
+  id        String   @id @default("singleton")
+  enabled   Boolean  @default(true)
+  country   String?
+  updatedAt DateTime @updatedAt
 }
 
 // A user's saved library filter (issue #58): a songs list kept under a

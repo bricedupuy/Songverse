@@ -1,0 +1,75 @@
+// Song images in the browser (issue #85): a song's artwork on the Library's
+// cards, in the song list and on its page; choosing another among Apple
+// Music's matches (a stand-in, lib/fake-itunes.mjs), removing it; the
+// admin's artwork settings.
+import { chromium } from "playwright";
+import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
+import { startFakeItunes } from "../lib/fake-itunes.mjs";
+
+const fake = await startFakeItunes();
+let page;
+const step = stepper(() => page);
+const me = await user("Painter");
+sql(`update "User" set "isGlobalAdmin"=true where id='${me.id}'`);
+await api(me, "DELETE", "/admin/artwork");
+const song = await api(me, "POST", "/song-versions", { title: `Canvas ${stamp}`, language: "en", artists: ["Painter"] });
+for (let i = 0; i < 40 && !(await api(me, "GET", `/song-versions/${song.id}`)).imageUrl; i++) await new Promise((r) => setTimeout(r, 250));
+
+const browser = await chromium.launch();
+page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+await signIn(page, me);
+const loaded = (locator) => locator.evaluate((img) => img.complete && img.naturalWidth > 0);
+
+await step("its artwork on the Library's card and in the song list", async () => {
+  await page.goto(`${WEB}/library`);
+  await page.waitForLoadState("networkidle");
+  const card = page.getByTestId("shelf-newest").getByTestId("song-card").filter({ hasText: `Canvas ${stamp}` });
+  const image = card.getByTestId("song-image");
+  await image.waitFor();
+  if (!(await loaded(image))) throw new Error("the card's image didn't load");
+  await page.goto(`${WEB}/library/songs?q=${encodeURIComponent(`Canvas ${stamp}`)}`);
+  const small = page.getByRole("row").filter({ hasText: `Canvas ${stamp}` }).getByTestId("song-image");
+  await small.waitFor();
+  if (!(await loaded(small))) throw new Error("the list's image didn't load");
+});
+
+let before;
+await step("on its page; another chosen among the matches", async () => {
+  await page.goto(`${WEB}/library/${song.id}`);
+  const artwork = page.getByTestId("artwork-card");
+  const image = artwork.getByTestId("song-image");
+  await image.waitFor();
+  before = await image.getAttribute("src");
+  await artwork.getByRole("button", { name: "Find artwork" }).click();
+  const choices = page.getByTestId("artwork-candidates");
+  await choices.getByRole("button").nth(2).waitFor();
+  await choices.getByRole("button", { name: "Use the artwork of Album 3" }).click();
+  await choices.waitFor({ state: "detached" });
+  await page.waitForFunction((was) => document.querySelector('[data-testid="artwork-card"] [data-testid="song-image"]')?.getAttribute("src") !== was, before);
+  if (!(await loaded(artwork.getByTestId("song-image")))) throw new Error("the new image didn't load");
+});
+
+await step("removed: the cover made from its title", async () => {
+  const artwork = page.getByTestId("artwork-card");
+  await artwork.getByRole("button", { name: "Remove" }).click();
+  await artwork.getByTestId("song-cover").waitFor();
+  await artwork.getByText("No artwork yet").waitFor();
+});
+
+await step("the admin's artwork settings", async () => {
+  await page.goto(`${WEB}/admin/metadata`);
+  const settings = page.getByTestId("artwork-settings");
+  await settings.getByText("Currently using: the defaults").waitFor();
+  await settings.getByLabel("Apple Music storefront (country)").fill("fr");
+  await settings.getByRole("button", { name: "Save configuration" }).click();
+  await settings.getByText("Currently using: settings saved here.").waitFor();
+  await settings.getByRole("button", { name: "Find artwork for songs without one" }).click();
+  await settings.getByText(/^Tried \d+ songs, found artwork for \d+\.$/).waitFor({ timeout: 60000 });
+  await settings.getByRole("button", { name: "Revert to defaults" }).click();
+  await settings.getByRole("button", { name: "Revert", exact: true }).click();
+  await settings.getByText("Currently using: the defaults").waitFor();
+});
+
+await browser.close();
+fake.close();
+finish();

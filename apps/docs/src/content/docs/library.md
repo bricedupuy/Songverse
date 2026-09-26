@@ -69,6 +69,12 @@ A song has tabs:
 
 Edits on **Song info** and **Editor** are saved together by **Save song**; files, audio and links are saved as you add them. **Discard changes** takes back what you haven't saved. The **⋯** menu can **Export as ChordPro** or **Delete song**.
 
+### Artwork
+
+A song's image is the artwork of the album or single it's on, from Apple Music, kept on Songverse's own storage. A new song gets it on its own, from its title and first artist, when Apple Music has a close enough match; until then its cover is made from its title. It shows on the library's home, in **Songs** and on the song's page, to everyone who can see the song.
+
+On **Song info**, **Artwork** shows it. If you can edit the song, **Find artwork** lists Apple Music's matches - choose the album or single it's from - and **Remove** takes it off.
+
 That's the song in **Edit** mode. In **Practice** its page is the chart itself, read with your chord settings, with its key, capo and tempo, and the song's recording or stems at the bottom (see [Stems](/library/#stems)); **Edit** takes you back to editing. In **Live** it opens full screen, as a set's songs do; **×** goes back to the library.
 
 ![A song in Practice](../../assets/screenshots/en/practice-song.jpg)

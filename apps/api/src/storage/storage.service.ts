@@ -142,11 +142,13 @@ export class StorageService {
    */
   async deleteUnreferenced(hashes: string[]): Promise<void> {
     for (const hash of new Set(hashes)) {
-      const [attachments, avatars] = await Promise.all([
+      const [attachments, avatars, songImages] = await Promise.all([
         this.prisma.client.attachment.count({ where: { storageKey: hash } }),
         this.prisma.client.user.count({ where: { avatarStorageKey: hash } }),
+        // Song artwork (issue #85): the same album's is often shared by several songs.
+        this.prisma.client.songVersion.count({ where: { imageStorageKey: hash } }),
       ]);
-      if (attachments === 0 && avatars === 0) {
+      if (attachments === 0 && avatars === 0 && songImages === 0) {
         await this.delete(hash);
       }
     }
