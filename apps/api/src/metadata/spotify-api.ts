@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { ProviderMatch } from "@songverse/core";
 
+/** The most results a search asks for: Spotify refuses more than 10 from an app in development mode (issue #90). */
+const SEARCH_LIMIT = "10";
 /** Where Spotify's Web API and its token service are; pointed elsewhere only by the e2e suites. */
 const apiBase = () => (process.env.SPOTIFY_API_URL ?? "https://api.spotify.com").replace(/\/$/, "");
 const accountsBase = () => (process.env.SPOTIFY_ACCOUNTS_URL ?? "https://accounts.spotify.com").replace(/\/$/, "");
@@ -57,8 +59,13 @@ async function get<T>(path: string, credentials: SpotifyCredentials, retried = f
     tokens.delete(cacheKey(credentials));
     return get(path, credentials, true);
   }
-  if (res.status === 401 || res.status === 403) throw new SpotifyApiError(res.status, "Spotify refused the app: check its client ID and secret, and what the app may do");
-  if (!res.ok) throw new SpotifyApiError(res.status, `Spotify answered ${res.status}`);
+  if (!res.ok) {
+    // Spotify says why: {"error": {"status": 400, "message": "Invalid limit"}}.
+    const said = ((await res.json().catch(() => null)) as { error?: { message?: string } } | null)?.error?.message;
+    const why = said ? `: ${said}` : "";
+    if (res.status === 401 || res.status === 403) throw new SpotifyApiError(res.status, `Spotify refused the app${why}. Check its client ID and secret, and what the app may do`);
+    throw new SpotifyApiError(res.status, `Spotify answered ${res.status}${why}`);
+  }
   return (await res.json()) as T;
 }
 
@@ -102,7 +109,7 @@ const quoted = (text: string) => `"${text.replace(/"/g, " ")}"`;
 /** Tracks matching a title and artist (a looser search when the strict one finds nothing). */
 export async function spotifySearch(title: string, artist: string | null | undefined, credentials: SpotifyCredentials): Promise<ProviderMatch[]> {
   const search = async (q: string) =>
-    (await get<{ tracks?: { items?: SpotifyTrack[] } }>(`/v1/search?${new URLSearchParams({ q, type: "track", limit: "20", market: credentials.market })}`, credentials)).tracks?.items ?? [];
+    (await get<{ tracks?: { items?: SpotifyTrack[] } }>(`/v1/search?${new URLSearchParams({ q, type: "track", limit: SEARCH_LIMIT, market: credentials.market })}`, credentials)).tracks?.items ?? [];
   let found = await search(artist ? `track:${quoted(title)} artist:${quoted(artist)}` : `track:${quoted(title)}`);
   if (found.length === 0 && artist) found = await search(`${title} ${artist}`);
   return found.map(toMatch);
@@ -123,7 +130,7 @@ export async function spotifyTrack(id: string, credentials: SpotifyCredentials):
 export async function spotifyArtistPicture(name: string, credentials: SpotifyCredentials): Promise<{ url: string; pageUrl: string } | null> {
   const fold = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
   const body = await get<{ artists?: { items?: { id: string; name: string; images?: SpotifyImage[]; external_urls?: { spotify?: string } }[] } }>(
-    `/v1/search?${new URLSearchParams({ q: name, type: "artist", limit: "5", market: credentials.market })}`,
+    `/v1/search?${new URLSearchParams({ q: name, type: "artist", limit: SEARCH_LIMIT, market: credentials.market })}`,
     credentials,
   );
   const artist = body.artists?.items?.find((a) => fold(a.name) === fold(name));

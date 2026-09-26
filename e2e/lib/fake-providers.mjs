@@ -208,6 +208,8 @@ export function startFakeProviders() {
     if (path.startsWith("/spotify/")) {
       if (!spotifyTokens.has((req.headers.authorization ?? "").replace(/^Bearer /, ""))) return json(res, { error: { status: 401, message: "Invalid access token" } }, 401);
       if (path === "/spotify/v1/search") {
+        // As Spotify does for an app in development mode (issue #90).
+        if (Number(url.searchParams.get("limit") ?? 5) > 10) return json(res, { error: { status: 400, message: "Invalid limit" } }, 400);
         const q = url.searchParams.get("q") ?? "";
         if (url.searchParams.get("type") === "artist") {
           return json(res, { artists: { items: [{ id: "spartist1", name: q, images: /nopicture/i.test(q) ? [] : spotifyImages(0), external_urls: { spotify: "https://open.spotify.com/artist/spartist1" } }] } });
