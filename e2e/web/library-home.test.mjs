@@ -1,8 +1,8 @@
-// The Library's home (issue #81), in the browser: shelves of cards above
-// the list - newly added, recently viewed, favorites (once there are
-// some), popular in your teams - each card with a cover of its own when
-// the song has no image; the star on a song's page; the favorites filter;
-// the shelves stepping aside for a search.
+// The Library's home (issue #81), in the browser: shelves of cards -
+// newly added, recently viewed, favorites (once there are some), popular in
+// your teams - each card with a cover of its own when the song has no
+// image, and the songs changed last; the star on a song's page; Songs, the
+// list on its own, for the favorites filter and a search.
 import { chromium } from "playwright";
 import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
 
@@ -23,7 +23,7 @@ await signIn(page, me);
 const shelf = (id) => page.getByTestId(`shelf-${id}`);
 const card = (id, title) => shelf(id).getByTestId("song-card").filter({ hasText: title });
 
-await step("Library opens on its home: newly added first, with covers; popular in the team", async () => {
+await step("Library opens on its home: newly added first, with covers; popular in the team; the songs changed last", async () => {
   await page.goto(`${WEB}/library`);
   await page.waitForLoadState("networkidle");
   const titles = await shelf("newest").getByTestId("song-card").allInnerTexts();
@@ -32,7 +32,10 @@ await step("Library opens on its home: newly added first, with covers; popular i
   if ((await card("newest", `Yonder song ${stamp}`).getByTestId("song-cover").innerText()).trim() !== "YS") throw new Error("no cover");
   await card("popular", `Zephyr hymn ${stamp}`).waitFor();
   if (await shelf("favorites").count()) throw new Error("an empty favorites shelf");
-  await page.getByRole("heading", { name: "All songs" }).waitFor();
+  await page.getByTestId("library-recently-updated").getByRole("row").filter({ hasText: `Yonder song ${stamp}` }).waitFor();
+  // Library is marked in the sidebar, not Songs.
+  const sections = page.getByTestId("library-sections");
+  if ((await sections.getByRole("link", { name: "Songs", exact: true }).getAttribute("data-active")) === "true") throw new Error("Songs is marked on the home");
 });
 
 await step("a song opened is recently viewed; starred, it's a favorite", async () => {
@@ -47,20 +50,26 @@ await step("a song opened is recently viewed; starred, it's a favorite", async (
   await card("favorites", `Zephyr hymn ${stamp}`).waitFor();
 });
 
-await step("See all favorites: the list, filtered, without the shelves", async () => {
+await step("See all favorites: Songs, filtered to them, with no shelves", async () => {
   await shelf("favorites").getByRole("link", { name: "See all" }).click();
-  await page.waitForURL(/favorites=true/);
+  await page.waitForURL(/\/library\/songs\?favorites=true/);
   await page.getByTestId("library-range").getByText("1–1 of 1").waitFor();
-  if (await page.getByTestId("library-home").count()) throw new Error("the shelves still show");
+  if (await page.getByTestId("library-home").count()) throw new Error("shelves on Songs");
   await page.getByRole("button", { name: "Favorites", pressed: true }).click();
-  await page.waitForURL(`${WEB}/library`);
-  await page.getByTestId("library-home").waitFor();
+  await page.waitForURL(`${WEB}/library/songs`);
+  if (await page.getByTestId("library-home").count()) throw new Error("shelves on Songs");
+  await page.getByRole("heading", { name: "Songs", exact: true }).waitFor();
 });
 
-await step("a search steps the shelves aside", async () => {
+await step("searching from the home opens Songs; an old /library?q= address too", async () => {
+  await page.goto(`${WEB}/library`);
+  await page.waitForLoadState("networkidle");
   await page.getByRole("searchbox").fill(`Yonder song ${stamp}`);
-  await page.waitForURL(/q=/);
-  await page.getByTestId("library-home").waitFor({ state: "detached" });
+  await page.keyboard.press("Enter");
+  await page.waitForURL(/\/library\/songs\?q=/);
+  await page.getByTestId("library-range").getByText("1–1 of 1").waitFor();
+  await page.goto(`${WEB}/library?q=${encodeURIComponent(`Zephyr hymn ${stamp}`)}`);
+  await page.waitForURL(/\/library\/songs\?q=/);
   await page.getByTestId("library-range").getByText("1–1 of 1").waitFor();
 });
 

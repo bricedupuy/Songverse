@@ -22,7 +22,7 @@ const rangeIs = (text) =>
   page.waitForFunction((t) => document.querySelector('[data-testid="library-range"]')?.textContent === t, text, { timeout: 10000 });
 
 await step("the library pages through every song", async () => {
-  await page.goto(`${WEB}/library`);
+  await page.goto(`${WEB}/library/songs`);
   await page.waitForLoadState("networkidle");
   const text = await range();
   if (!/^1–50 of \d+$/.test(text)) throw new Error(text);

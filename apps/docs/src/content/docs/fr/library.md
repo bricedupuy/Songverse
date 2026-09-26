@@ -3,22 +3,27 @@ title: La bibliothèque
 description: Trouver des chants, en ajouter, et garder leurs détails, fichiers, enregistrements et liens.
 ---
 
-La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, ceux de vos équipes et ceux du catalogue global. Dans la barre latérale, son panneau liste vos chants, avec **Chants** (où vous mène **Bibliothèque**), vos listes intelligentes et **Artistes** en haut.
+La **Bibliothèque** contient tous les chants que vous pouvez voir : les vôtres, ceux de vos équipes et ceux du catalogue global. **Bibliothèque** s'ouvre sur son accueil ; **Chants**, en dessous dans la barre latérale, est la liste complète, avec **Favoris**, **Artistes** et vos listes intelligentes à côté.
 
 ![La bibliothèque](../../../assets/screenshots/fr/library.jpg)
 
 ## L'accueil de la bibliothèque
 
-**Bibliothèque** s'ouvre sur son accueil, avec des rangées de chants au-dessus de la liste complète :
+**Bibliothèque** s'ouvre sur son accueil : des rangées de chants, puis les chants modifiés en dernier.
 
-- **Nouveautés** - les derniers chants que vous pouvez voir ; **Tout voir** les liste tous, les plus récents d'abord.
+- **Nouveautés** - les derniers chants que vous pouvez voir ; **Tout voir** les liste tous dans **Chants**, les plus récents d'abord.
 - **Consultés récemment** - les chants que vous avez ouverts en dernier (sur leur page, dans une liste de chants ou en Live). Vous seul·e voyez les vôtres.
 - **Favoris** - les chants que vous avez marqués d'une étoile : l'étoile à côté de **Partager** sur la page d'un chant (**Ajouter aux favoris**, **Retirer des favoris**). La rangée apparaît dès que vous en avez un. **Tout voir** les liste, comme le filtre **Favoris** au-dessus de la liste et dans le panneau de la barre latérale. Vos favoris sont à vous.
 - **Populaires dans vos équipes** - ce que vos équipes jouent et consultent le plus : les chants de leurs listes et ouverts par leurs membres ces 90 derniers jours.
 
-Un chant sans image à lui a une couverture tirée de son titre : une couleur et ses initiales. Les rangées s'effacent quand vous cherchez ou filtrez, pour que les résultats viennent en premier ; **Tous les chants**, en dessous, est la liste complète.
+Un chant sans image à lui a une couverture tirée de son titre : une couleur et ses initiales. Sous les rangées, **Modifiés récemment** montre les chants modifiés en dernier, et son lien ouvre **Chants**. La recherche en haut de l'accueil cherche dans **Chants**.
 
 ## Chercher et filtrer
+
+**Chants** est la liste complète, et rien d'autre :
+
+![Chants, la liste complète](../../../assets/screenshots/fr/songs.jpg)
+
 
 - **Recherchez** par titre, artiste ou numéro CCLI.
 - **Filtrez** par langue (**Toutes les langues**) et étiquette (**Toutes les étiquettes**), ou n'affichez que vos **Favoris**.

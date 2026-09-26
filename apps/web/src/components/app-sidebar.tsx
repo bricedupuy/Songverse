@@ -298,6 +298,7 @@ function MainNav({
   const shownSetlists = setlists.slice(0, SIDEBAR_SET_LIMIT);
   const smartLists = useSmartLists();
   const listId = useRouterState({ select: (s) => (s.location.search as { list?: string }).list });
+  const favorites = useRouterState({ select: (s) => !!(s.location.search as { favorites?: boolean }).favorites });
 
   return (
     <SidebarContent>
@@ -308,25 +309,26 @@ function MainNav({
             icon={<Music2 />}
             label={t("nav.library")}
             to="/library"
-            isActive={pathname.startsWith("/library")}
+            // Library is its home (and a song); Songs, Favorites, a smart list and Artists are marked on their own.
+            isActive={pathname === "/library" || (/^\/library\/[^/]+/.test(pathname) && !/^\/library\/(songs|artists|new)\/?$/.test(pathname))}
             testId="library-sections"
             items={[
-              // Songs (what Library opens on), artists, and the user's smart lists (issue #58).
-              { key: "songs", label: t("nav.songs"), isActive: pathname === "/library" && !listId, link: { to: "/library" } },
+              // Songs (the whole list), favorites, artists, and the user's smart lists (issues #58, #81).
+              { key: "songs", label: t("nav.songs"), isActive: pathname === "/library/songs" && !listId && !favorites, link: { to: "/library/songs" as const } },
               {
                 key: "favorites",
                 label: t("library.home.favorites"),
                 icon: <Star className="size-3.5" />,
-                isActive: false,
-                link: { to: "/library" as const, search: { favorites: true } },
+                isActive: pathname === "/library/songs" && favorites,
+                link: { to: "/library/songs" as const, search: { favorites: true } },
               },
               { key: "artists", label: t("nav.artists"), isActive: pathname === "/library/artists", link: { to: "/library/artists" as const } },
               ...smartLists.map((list) => ({
                 key: list.id,
                 label: list.name,
                 icon: <ListFilter className="size-3.5" />,
-                isActive: pathname === "/library" && listId === list.id,
-                link: { to: "/library" as const, search: smartListSearch(list) },
+                isActive: pathname === "/library/songs" && listId === list.id,
+                link: { to: "/library/songs" as const, search: smartListSearch(list) },
               })),
             ]}
           />

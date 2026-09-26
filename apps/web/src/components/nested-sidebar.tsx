@@ -234,7 +234,7 @@ function LibraryPanel({ title, pathname }: { title: string; pathname: string }) 
   // "favorites" for the user's favorites (issue #81), else a smart list's id.
   const urlList = useRouterState({
     select: (s) => {
-      if (s.location.pathname !== "/library") return undefined;
+      if (s.location.pathname !== "/library/songs") return undefined;
       const search = s.location.search as { list?: string; favorites?: boolean };
       return search.favorites ? "favorites" : (search.list ?? null);
     },
@@ -279,15 +279,15 @@ function LibraryPanel({ title, pathname }: { title: string; pathname: string }) 
       <PanelHeader title={title} filter={filter} onFilter={setFilter} newItem={<NewLink to="/library/new" label={t("nav.new")} />}>
         {/* Songs (what Library opens on), the user's smart lists (issue #58) and artists. */}
         <div className="flex flex-wrap gap-1.5" data-testid="library-sections">
-          <Link to="/library" className={chip(pathname === "/library" && !urlList)}>
+          <Link to="/library/songs" className={chip(pathname === "/library/songs" && !urlList)}>
             {t("nav.songs")}
           </Link>
-          <Link to="/library" search={{ favorites: true }} className={chip(listId === "favorites")}>
+          <Link to="/library/songs" search={{ favorites: true }} className={chip(listId === "favorites")}>
             <Star className="size-3" />
             {t("library.home.favorites")}
           </Link>
           {smartLists.map((list) => (
-            <Link key={list.id} to="/library" search={smartListSearch(list)} className={chip(listId === list.id)}>
+            <Link key={list.id} to="/library/songs" search={smartListSearch(list)} className={chip(listId === list.id)}>
               <ListFilter className="size-3" />
               {list.name}
             </Link>

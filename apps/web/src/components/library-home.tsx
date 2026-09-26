@@ -88,7 +88,7 @@ function Shelf({ id, title, songs, more }: { id: string; title: string; songs: C
 
 function SeeAll({ children, ...link }: { children: ReactNode; search: Record<string, string | boolean> }) {
   return (
-    <Link to="/library" search={link.search} className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
+    <Link to="/library/songs" search={link.search} className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground">
       {children}
       <ChevronRight className="size-4" />
     </Link>

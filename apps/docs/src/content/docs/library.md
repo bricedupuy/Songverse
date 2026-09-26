@@ -3,22 +3,27 @@ title: The library
 description: Find songs, add new ones, and keep their details, files, recordings and links.
 ---
 
-The **Library** lists every song you can see: your own, your teams', and the global catalogue's. In the sidebar, its panel lists your songs, with **Songs** (where **Library** takes you), your smart lists and **Artists** on top.
+The **Library** holds every song you can see: your own, your teams', and the global catalogue's. **Library** opens on its home; **Songs**, under it in the sidebar, is the whole list, with **Favorites**, **Artists** and your smart lists beside it.
 
 ![The library](../../assets/screenshots/en/library.jpg)
 
 ## The library's home
 
-**Library** opens on its home, with rows of songs above the full list:
+**Library** opens on its home: rows of songs, then the songs changed last.
 
-- **Newly added** - the latest songs you can see; **See all** lists them all, newest first.
+- **Newly added** - the latest songs you can see; **See all** lists them all on **Songs**, newest first.
 - **Recently viewed** - the songs you opened last (on their page, in a set or in Live). Only you see yours.
 - **Favorites** - the songs you starred: the star beside **Share** on a song's page (**Add to favorites**, **Remove from favorites**). It shows once you have one. **See all** lists them, as the **Favorites** filter above the list and in the sidebar's panel do. Your favorites are your own.
 - **Popular in your teams** - what your teams play and look at most: songs in your teams' sets and opened by their members over the last 90 days.
 
-A song without an image of its own gets a cover from its title's colour and initials. The rows step aside when you search or filter, so the results come first; **All songs** below them is the full list.
+A song without an image of its own gets a cover from its title's colour and initials. Below the rows, **Recently updated** shows the songs changed last, and its link opens **Songs**. The search box at the top of the home searches **Songs**.
 
 ## Searching and filtering
+
+**Songs** is the whole list, and nothing else:
+
+![Songs, the whole list](../../assets/screenshots/en/songs.jpg)
+
 
 - **Search** by title, artist or CCLI number.
 - **Filter** by language (**All languages**) and tag (**All tags**), or show only your **Favorites**.

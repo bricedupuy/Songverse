@@ -52,8 +52,8 @@ await signIn(page, me);
 const sections = () => page.getByTestId("library-sections");
 const rangeIs = (text) => page.waitForFunction((t) => document.querySelector('[data-testid="library-range"]')?.textContent === t, text);
 
-await step("Library opens on Songs; Songs and Artists are under it in the sidebar", async () => {
-  await page.goto(`${WEB}/library`);
+await step("Songs and Artists are under Library in the sidebar", async () => {
+  await page.goto(`${WEB}/library/songs`);
   await page.waitForLoadState("networkidle");
   await sections().getByRole("link", { name: "Songs", exact: true }).waitFor();
   await sections().getByRole("link", { name: "Artists", exact: true }).click();
@@ -92,8 +92,8 @@ await step("a changed list can be saved again; the sidebar opens it with its fil
   await page.getByRole("button", { name: "Save changes to the list" }).click();
   await page.getByRole("button", { name: "Save changes to the list" }).waitFor({ state: "detached" });
   await sections().getByRole("link", { name: "Songs", exact: true }).click();
-  await page.waitForURL(`${WEB}/library`);
-  await page.getByRole("heading", { name: "Library" }).waitFor();
+  await page.waitForURL(`${WEB}/library/songs`);
+  await page.getByRole("heading", { name: "Songs", exact: true }).waitFor();
   await sections().getByRole("link", { name: `Anna tagged ${stamp}` }).click();
   await page.getByRole("heading", { name: `Anna tagged ${stamp}` }).waitFor();
   await rangeIs("1–2 of 2");
@@ -107,12 +107,12 @@ await step("renamed, then deleted", async () => {
   await sections().getByRole("link", { name: `Tagged ${stamp}`, exact: true }).waitFor();
   await page.getByRole("button", { name: "Delete list" }).click();
   await page.getByRole("button", { name: "Delete it" }).click();
-  await page.getByRole("heading", { name: "Library" }).waitFor();
+  await page.getByRole("heading", { name: "Songs", exact: true }).waitFor();
   await sections().getByRole("link", { name: `Tagged ${stamp}`, exact: true }).waitFor({ state: "detached" });
 });
 
 await step("the language filter", async () => {
-  await page.goto(`${WEB}/library?q=${stamp}`);
+  await page.goto(`${WEB}/library/songs?q=${stamp}`);
   await page.waitForLoadState("networkidle");
   await rangeIs("1–3 of 3");
   await page.locator("select").filter({ hasText: "All languages" }).selectOption("fr");

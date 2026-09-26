@@ -182,6 +182,7 @@ try {
 
     await shoot("dashboard", "/dashboard");
     await shoot("library", "/library");
+    await shoot("songs", "/library/songs", () => page.getByTestId("library-range").waitFor());
     await shoot("artists", "/library/artists", () => page.getByTestId("artist-list").waitFor());
     await shoot("search", null, async () => {
       await page.keyboard.press("Control+k");

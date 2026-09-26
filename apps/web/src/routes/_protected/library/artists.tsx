@@ -86,7 +86,7 @@ function ArtistsPage() {
           <ul className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-x-4 gap-y-6 border-t p-4 sm:grid-cols-[repeat(auto-fill,minmax(9rem,1fr))]" data-testid="artist-list">
             {artists.map((artist) => (
               <li key={artist.name}>
-                <Link to="/library" search={{ artist: artist.name }} className="group flex flex-col items-center gap-2 rounded-lg p-2 text-center hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                <Link to="/library/songs" search={{ artist: artist.name }} className="group flex flex-col items-center gap-2 rounded-lg p-2 text-center hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
                   <ArtistPicture name={artist.name} />
                   <span className="line-clamp-2 text-sm font-medium group-hover:text-primary">{artist.name}</span>
                   <span className="-mt-1.5 text-xs text-muted-foreground">{t("library.songCount", { count: artist.songCount })}</span>
