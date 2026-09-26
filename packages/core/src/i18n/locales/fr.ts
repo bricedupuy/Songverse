@@ -164,6 +164,7 @@ const fr: typeof en = {
     people: "Personnes",
     noTeams: "Aucune équipe pour l'instant",
     songbooks: "Recueils",
+    menu: "Menu",
     toggle: "Basculer",
     backToApp: "Retour à l'application",
     adminUsers: "Utilisateurs",

@@ -31,7 +31,7 @@ Sur les pages et les listes d'une section (l'accueil de la bibliothèque, **Chan
 
 ![La page d'une liste de chants : la colonne d'icônes à gauche, et le panneau qui liste vos listes](../../../assets/screenshots/fr/set.jpg)
 
-Le bouton en haut à gauche, le bord de la barre latérale ou **Ctrl B** (**⌘ B** sur Mac) la réduisent : la barre complète à ses icônes, le panneau mis de côté pour ne laisser que la colonne d'icônes. Un clic sur une icône de la colonne la rouvre, et Songverse retient si elle est ouverte. Sur téléphone, la barre latérale s'ouvre par-dessus la page depuis le bouton en haut à gauche, avec toutes les sections et leurs listes.
+Le bouton en haut à gauche, le bord de la barre latérale ou **Ctrl B** (**⌘ B** sur Mac) la réduisent : la barre complète à ses icônes, le panneau mis de côté pour ne laisser que la colonne d'icônes. Un clic sur une icône de la colonne la rouvre, et Songverse retient si elle est ouverte. Sur téléphone, la barre latérale s'ouvre par-dessus la page depuis le bouton en haut à gauche : avec toutes les sections et leurs listes sur une page de liste, et sur un chant, une liste de chants ou un recueil avec la liste d'où vous l'avez ouvert, sur toute la largeur - touchez-en un autre pour l'ouvrir. **Menu**, en haut, passe à toutes les sections.
 
 Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord** (vos chants et vos équipes), les **Paramètres du compte** et **Se déconnecter**.
 

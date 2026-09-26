@@ -164,6 +164,7 @@ const en = {
     people: "People",
     noTeams: "No teams yet",
     songbooks: "Songbooks",
+    menu: "Menu",
     toggle: "Toggle",
     backToApp: "Back to app",
     adminUsers: "Users",

@@ -65,10 +65,8 @@ export function NestedSidebar({
 }) {
   const { t } = useTranslation();
   const { state, open, setOpen } = useSidebar();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
   // A song opened from a songbook stays in the songbook (issue #80).
-  const fromSongbook = useRouterState({ select: (s) => (s.location.pathname.startsWith("/library/") ? (s.location.search as { songbook?: string }).songbook : undefined) });
-  const section = fromSongbook ? "songbooks" : sectionOf(pathname);
+  const { section, fromSongbook, pathname } = useSidebarSection();
   // The panel shows the section you're in; on a page outside them (the dashboard…), the last one.
   const [panel, setPanel] = useState<Section>(section ?? "library");
   useEffect(() => {
@@ -141,30 +139,88 @@ export function NestedSidebar({
       </nav>
       <div className={cn("overflow-hidden transition-[width] duration-200 ease-linear", open ? "w-72" : "w-0")} aria-hidden={!open}>
         <section className="flex h-full w-72 flex-col" aria-label={t("nav.panel", { section: title })} data-testid="sidebar-panel" data-section={panel}>
-          {panel === "library" ? <LibraryPanel pathname={pathname} /> : null}
-          {panel === "sets" ? <SetsPanel title={title} pathname={pathname} setlists={setlists} /> : null}
-          {panel === "songbooks" ? <SongbooksPanel title={title} pathname={pathname} songbooks={songbooks} fromSongbook={fromSongbook} /> : null}
-          {panel === "teams" ? <TeamsPanel title={title} pathname={pathname} teams={teams} /> : null}
-          {panel === "people" ? <PeoplePanel title={title} /> : null}
-          {panel === "review" ? <LinksPanel title={title} pathname={pathname} links={[{ to: "/review", label: t("nav.review"), icon: <ClipboardCheck /> }]} /> : null}
-          {panel === "admin" ? (
-            <LinksPanel
-              title={title}
-              pathname={pathname}
-              links={[
-                { to: "/admin/users", label: t("nav.adminUsers"), icon: <Users /> },
-                { to: "/admin/auth", label: t("nav.adminAuth"), icon: <KeyRound /> },
-                { to: "/admin/storage", label: t("nav.adminStorage"), icon: <Database /> },
-                { to: "/admin/catalogs", label: t("nav.adminCatalogs"), icon: <FileStack /> },
-                { to: "/admin/metadata", label: t("nav.adminMetadata"), icon: <LayoutDashboard /> },
-                { to: "/library", label: t("nav.backToApp"), icon: <ArrowLeft /> },
-              ]}
-            />
-          ) : null}
+          <SectionPanel panel={panel} title={title} pathname={pathname} fromSongbook={fromSongbook} teams={teams} songbooks={songbooks} setlists={setlists} />
         </section>
       </div>
       <SidebarRail />
     </div>
+  );
+}
+
+/** What the panel lists for a section (on a phone, the sidebar's sheet on one item too). */
+function SectionPanel({
+  panel,
+  title,
+  pathname,
+  fromSongbook,
+  teams,
+  songbooks,
+  setlists,
+}: {
+  panel: Section;
+  title: string;
+  pathname: string;
+  fromSongbook: string | undefined;
+  teams: TeamSummary[];
+  songbooks: SongbookSummary[];
+  setlists: SetlistSummary[];
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+    {panel === "library" ? <LibraryPanel pathname={pathname} /> : null}
+    {panel === "sets" ? <SetsPanel title={title} pathname={pathname} setlists={setlists} /> : null}
+    {panel === "songbooks" ? <SongbooksPanel title={title} pathname={pathname} songbooks={songbooks} fromSongbook={fromSongbook} /> : null}
+    {panel === "teams" ? <TeamsPanel title={title} pathname={pathname} teams={teams} /> : null}
+    {panel === "people" ? <PeoplePanel title={title} /> : null}
+    {panel === "review" ? <LinksPanel title={title} pathname={pathname} links={[{ to: "/review", label: t("nav.review"), icon: <ClipboardCheck /> }]} /> : null}
+    {panel === "admin" ? (
+      <LinksPanel
+        title={title}
+        pathname={pathname}
+        links={[
+          { to: "/admin/users", label: t("nav.adminUsers"), icon: <Users /> },
+          { to: "/admin/auth", label: t("nav.adminAuth"), icon: <KeyRound /> },
+          { to: "/admin/storage", label: t("nav.adminStorage"), icon: <Database /> },
+          { to: "/admin/catalogs", label: t("nav.adminCatalogs"), icon: <FileStack /> },
+          { to: "/admin/metadata", label: t("nav.adminMetadata"), icon: <LayoutDashboard /> },
+          { to: "/library", label: t("nav.backToApp"), icon: <ArrowLeft /> },
+        ]}
+      />
+    ) : null}
+    </>
+  );
+}
+
+/** The section a page belongs to - a song opened from a songbook, the songbook - and its name. */
+function useSidebarSection(): { section: Section | null; fromSongbook: string | undefined; pathname: string } {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const fromSongbook = useRouterState({ select: (s) => (s.location.pathname.startsWith("/library/") ? (s.location.search as { songbook?: string }).songbook : undefined) });
+  return { section: fromSongbook ? "songbooks" : sectionOf(pathname), fromSongbook, pathname };
+}
+
+/**
+ * On a phone, one item's list (issue #80): the list it was opened from -
+ * Songs as searched, your favorites, a set's or a songbook's songs - full
+ * width in the sidebar's sheet, in place of the full sidebar.
+ */
+export function ItemPanel({ teams, songbooks, setlists }: { teams: TeamSummary[]; songbooks: SongbookSummary[]; setlists: SetlistSummary[] }) {
+  const { t } = useTranslation();
+  const { section, fromSongbook, pathname } = useSidebarSection();
+  const panel = section ?? "library";
+  const titles: Record<Section, string> = {
+    library: t("nav.library"),
+    sets: t("nav.sets"),
+    songbooks: t("nav.songbooks"),
+    teams: t("nav.teams"),
+    people: t("nav.people"),
+    review: t("nav.review"),
+    admin: t("nav.admin"),
+  };
+  return (
+    <section className="flex min-h-0 flex-1 flex-col" aria-label={t("nav.panel", { section: titles[panel] })} data-testid="sidebar-panel" data-section={panel}>
+      <SectionPanel panel={panel} title={titles[panel]} pathname={pathname} fromSongbook={fromSongbook} teams={teams} songbooks={songbooks} setlists={setlists} />
+    </section>
   );
 }
 

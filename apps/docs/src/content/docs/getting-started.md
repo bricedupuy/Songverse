@@ -31,7 +31,7 @@ On a section's pages and lists (the library's home, **Songs**, **Favorites**, **
 
 ![A set's page: the rail on the left, and the panel listing your sets](../../assets/screenshots/en/set.jpg)
 
-The button at the top left, the sidebar's edge, or **Ctrl B** (**⌘ B** on a Mac) collapse it: the full sidebar to its icons, the panel out of the way, leaving just the rail. Clicking an icon on the rail opens it again, and Songverse remembers whether it's open. On a phone, the sidebar opens over the page from the top-left button instead, with every section and its lists.
+The button at the top left, the sidebar's edge, or **Ctrl B** (**⌘ B** on a Mac) collapse it: the full sidebar to its icons, the panel out of the way, leaving just the rail. Clicking an icon on the rail opens it again, and Songverse remembers whether it's open. On a phone, the sidebar opens over the page from the top-left button instead: with every section and its lists on a list page, and on a song, set or songbook with the list you opened it from, full width - tap another to open it. **Menu**, at the top, switches to every section.
 
 Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your songs and teams), **Account settings** and **Sign out**.
 

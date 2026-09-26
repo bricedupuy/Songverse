@@ -98,6 +98,8 @@ await step("phone: a team link in a section closes it too", async () => {
 
 await step("phone: user menu link closes it", async () => {
   await openSidebar();
+  // On a team's page the sheet opens on the teams' list; Menu is the full sidebar (#80).
+  await sheet().getByTestId("sidebar-menu").click();
   await sheet().locator("[data-slot=sidebar-footer] button").first().click();
   await page.getByRole("menuitem", { name: "Dashboard" }).click();
   await page.waitForURL("**/dashboard");
@@ -108,6 +110,39 @@ await step("phone: link to the page you're on still closes it", async () => {
   await openSidebar();
   await sheet().locator("[data-slot=sidebar-footer] button").first().click();
   await page.getByRole("menuitem", { name: "Dashboard" }).click();
+  await expectClosed();
+});
+
+await step("phone: on a song opened from Songs, the sheet opens on those songs; one tap opens the next", async () => {
+  await page.goto(`${WEB}/library/songs?q=${tag}`);
+  await page.getByTestId("library-range").waitFor();
+  // The list page: the full sidebar.
+  await openSidebar();
+  await sheet().getByRole("link", { name: "Library", exact: true }).waitFor();
+  await page.keyboard.press("Escape");
+  await expectClosed();
+  await page.getByRole("row").filter({ hasText: `Team Song ${tag}` }).click();
+  await page.waitForURL(new RegExp(`/library/${teamSong.id}\\?from=`));
+  await openSidebar();
+  const list = sheet().getByTestId("sidebar-panel");
+  await list.getByTestId("sidebar-panel-title").getByText("Songs", { exact: true }).waitFor();
+  if ((await list.getByRole("link", { name: new RegExp(`^Team Song ${tag}`) }).getAttribute("aria-current")) !== "page") throw new Error("not marked");
+  await list.getByRole("link", { name: new RegExp(`^A Remarkably Long Song Title`) }).click();
+  await page.waitForURL(new RegExp(`/library/${song.id}\\?from=`));
+  await expectClosed();
+  if ((await overflow()) > 0) throw new Error("scrolls sideways");
+});
+
+await step("phone: Menu switches the sheet to the full sidebar; it opens on the list again next time", async () => {
+  await openSidebar();
+  await sheet().getByTestId("sidebar-menu").click();
+  await sheet().getByRole("link", { name: "Library", exact: true }).waitFor();
+  if (await sheet().getByTestId("sidebar-panel").count()) throw new Error("still the list");
+  await page.keyboard.press("Escape");
+  await expectClosed();
+  await openSidebar();
+  await sheet().getByTestId("sidebar-panel").waitFor();
+  await page.keyboard.press("Escape");
   await expectClosed();
 });
 

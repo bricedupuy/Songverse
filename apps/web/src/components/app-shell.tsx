@@ -9,7 +9,7 @@ import { YouTubeHost } from "#/components/youtube-dock";
 import { unloadStems } from "#/lib/stem-engine";
 import type { AppSession } from "#/lib/server-auth";
 import { nestedSidebarFor } from "#/lib/sidebar-kind";
-import { NestedSidebar } from "#/components/nested-sidebar";
+import { ItemPanel, NestedSidebar } from "#/components/nested-sidebar";
 import { SidebarInset, SidebarProvider, useSidebar } from "#/components/ui/sidebar";
 
 export function AppShell({
@@ -59,11 +59,14 @@ export function AppShell({
 }
 
 /**
- * The full sidebar on a phone (in a sheet) and on a section's own page;
- * inside a section, on a wider screen, the rail and its panel (issue #80).
+ * The full sidebar on a section's pages and lists; on one item, the rail
+ * and its panel on a wider screen, and on a phone a sheet that opens on the
+ * item's list and switches to the full sidebar (issue #80).
  */
 function ShellSidebar(props: { session: AppSession; teams: TeamSummary[]; songbooks: SongbookSummary[]; setlists: SetlistSummary[] }) {
   const { isMobile } = useSidebar();
   const nested = useRouterState({ select: (s) => nestedSidebarFor(s.location.pathname) });
-  return isMobile || !nested ? <AppSidebar {...props} /> : <NestedSidebar {...props} />;
+  if (!nested) return <AppSidebar {...props} />;
+  // On a phone the sheet switches between the item's list and the full sidebar, rather than nesting them.
+  return isMobile ? <AppSidebar {...props} itemPanel={<ItemPanel teams={props.teams} songbooks={props.songbooks} setlists={props.setlists} />} /> : <NestedSidebar {...props} />;
 }

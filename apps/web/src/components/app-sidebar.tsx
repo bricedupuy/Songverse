@@ -21,10 +21,11 @@ import {
   Sun,
   Users,
   UsersRound,
+  ChevronLeft,
   Contact,
   Star,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { authClient } from "#/lib/auth-client";
 import type { AppSession } from "#/lib/server-auth";
@@ -68,14 +69,42 @@ export function AppSidebar({
   teams,
   songbooks,
   setlists,
+  itemPanel,
 }: {
   session: AppSession;
   teams: TeamSummary[];
   songbooks: SongbookSummary[];
   setlists: SetlistSummary[];
+  /** On a phone, on one item: the list it was opened from, shown in place of the full sidebar until "Menu" (issue #80). */
+  itemPanel?: ReactNode;
 }) {
+  const { t } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const inAdmin = pathname.startsWith("/admin");
+  const { openMobile } = useSidebar();
+  // Each time the sheet opens (or the page changes), it opens on the item's list.
+  const [showMenu, setShowMenu] = useState(false);
+  useEffect(() => setShowMenu(false), [openMobile, pathname]);
+
+  if (itemPanel && !showMenu) {
+    return (
+      <Sidebar>
+        <div className="flex h-full min-h-0 flex-col" data-testid="sidebar-item-sheet">
+          <button
+            type="button"
+            onClick={() => setShowMenu(true)}
+            className="flex items-center gap-1 border-b px-3 py-2.5 text-sm text-muted-foreground hover:text-foreground"
+            data-testid="sidebar-menu"
+          >
+            <ChevronLeft className="size-4" />
+            <Music2 className="size-4" />
+            {t("nav.menu")}
+          </button>
+          {itemPanel}
+        </div>
+      </Sidebar>
+    );
+  }
 
   return (
     <Sidebar>
