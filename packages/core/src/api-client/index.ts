@@ -762,6 +762,17 @@ export interface MetadataSettings {
   musicbrainz: { contact: string; source: "database" | "env" | "default" };
 }
 
+/** Background jobs (issue #92), for Admin > Metadata. */
+export interface JobsStatus {
+  /** The Worker's last heartbeat (every 15 seconds; gone after a minute), or null. */
+  worker: { at: string; host: string } | null;
+  /** An API process that runs jobs itself (JOBS_IN_API), or null. */
+  api: { at: string; host: string } | null;
+  thisApiRunsJobs: boolean;
+  queues: { name: string; waiting: number; active: number; delayed: number; failed: number; completed: number }[];
+  recent: { queue: string; name: string; state: "completed" | "failed"; finishedAt: string | null; result: unknown; error: string | null; subject: string | null }[];
+}
+
 export interface ArtworkSettings {
   enabled: boolean;
   country: string;
@@ -1310,7 +1321,10 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       form.append("file", file, filename);
       return request<void>(`/song-versions/${songVersionId}/artwork/upload`, { method: "POST", body: form });
     },
-    backfillArtwork: () => request<{ tried: number; found: number }>("/admin/artwork/backfill", { method: "POST" }),
+    /** Starts finding artwork for songs without one, as a background job (issue #92); false when one is already waiting or running. */
+    backfillArtwork: () => request<{ queued: boolean }>("/admin/artwork/backfill", { method: "POST" }),
+    /** Who runs background jobs, each queue's counts and the last jobs (issue #92). */
+    getJobsStatus: () => request<JobsStatus>("/admin/jobs"),
     /** The songs before and after one in a list of the library, searched and filtered as `query` says (issue #84). */
     getSongNeighbors: (songVersionId: string, query: ListSongVersionsQuery = {}) => {
       const params = new URLSearchParams(
@@ -1339,7 +1353,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     getArtistSettings: () => request<ArtistSettings>("/admin/artists"),
     saveArtistSettings: (enabled: boolean) => request<ArtistSettings>("/admin/artists", { method: "PUT", body: JSON.stringify({ enabled }) }),
     resetArtistSettings: () => request<ArtistSettings>("/admin/artists", { method: "DELETE" }),
-    backfillArtists: () => request<{ tried: number; found: number }>("/admin/artists/backfill", { method: "POST" }),
+    backfillArtists: () => request<{ queued: boolean }>("/admin/artists/backfill", { method: "POST" }),
     listSmartLists: () => request<SmartList[]>("/smart-lists"),
     createSmartList: (name: string, filters: SmartListFilters) => request<SmartList>("/smart-lists", { method: "POST", body: JSON.stringify({ name, filters }) }),
     updateSmartList: (id: string, change: { name?: string; filters?: SmartListFilters }) =>

@@ -26,6 +26,8 @@ import { PublishingModule } from "./publishing/publishing.module";
 import { SuggestionsModule } from "./suggestions/suggestions.module";
 import { PeopleModule } from "./people/people.module";
 import { LibraryHomeModule } from "./library-home/library-home.module";
+import { JobsModule } from "./jobs/jobs.module";
+import { LookupsModule } from "./lookups/lookups.module";
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { LibraryHomeModule } from "./library-home/library-home.module";
     }),
     PrismaModule,
     AccessModule,
+    JobsModule,
+    LookupsModule,
     AuthModule,
     UsersModule,
     TeamsModule,

@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { sharedTurn } from "../jobs/redis";
 import { PrismaService } from "../prisma/prisma.service";
 
 /** Where MusicBrainz's API is; pointed elsewhere only by the e2e suites. */
@@ -71,6 +72,8 @@ export class MusicBrainzClientService {
     }
     url.searchParams.set("fmt", "json");
     const userAgent = await this.userAgent();
+    // The limit is per client, not per process: the API's instances and the Worker take turns (issue #92).
+    await sharedTurn("musicbrainz", MIN_INTERVAL_MS);
 
     for (let attempt = 0; ; attempt++) {
       const response = await fetch(url, {

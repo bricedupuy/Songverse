@@ -1,32 +1,29 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
+import { startJobs } from "./jobs/start-jobs";
 
 /**
- * BullMQ worker entrypoint — same image and app graph as the API
- * (src/main.ts), no HTTP listener. Queue processors land here as they're
- * added (ChordPro cache regen, Meilisearch reindex, voicing generation,
- * scraper jobs, etc. — see spec §5 "Queue / Background Jobs").
+ * The Worker (issue #92): the same image and app graph as the API
+ * (src/main.ts), with no HTTP listener, running the background jobs - bulk
+ * songbook uploads, the hourly purge of expired transfers, and lookups (a
+ * new song's artwork, new artists' pictures and bios, the admin's
+ * backfills). The API only adds jobs to the queues, unless JOBS_IN_API
+ * says it runs them too (by default, out of production, so `pnpm dev`
+ * works without a Worker). Its heartbeat in Redis shows it's running in
+ * Admin > Metadata > Background jobs.
  *
- * With no processors registered yet, nothing holds the event loop open —
- * createApplicationContext resolves and the process exits 0 immediately,
- * which under Swarm's restart policy means a restart loop every few
- * seconds (seen in production 2026-09-16). A bare `process.on('SIGTERM',
- * ...)` listener does NOT keep Node running (verified: it still exits
- * immediately) — only an actual event-loop handle does, hence the
- * `setInterval` below. Once real queue processors land, their BullMQ
- * Redis connections will hold the loop open on their own and this can
- * go away.
+ * The queues' Redis connections hold the event loop open; the heartbeat's
+ * timer does too.
  */
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
-  console.log("Songverse worker started (no queue processors registered yet)");
-
-  const keepAlive = setInterval(() => {}, 2 ** 31 - 1);
+  const stopHeartbeat = startJobs(app, "worker");
+  console.log("Songverse worker started");
 
   const shutdown = async (signal: string) => {
     console.log(`Songverse worker received ${signal}, shutting down`);
-    clearInterval(keepAlive);
+    stopHeartbeat();
     await app.close();
     process.exit(0);
   };

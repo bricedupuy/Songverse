@@ -1,4 +1,5 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { JOB_WORKER_OPTIONS } from "../jobs/jobs.constants";
 import { Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
 import { PrismaService } from "../prisma/prisma.service";
@@ -15,7 +16,7 @@ import { BULK_UPLOAD_QUEUE, type BulkUploadJobData } from "./bulk-upload.types";
  * catalog entry uses - so a bulk upload against a not-yet-started entry
  * is itself the "start", per docs/songbooks-and-catalog.md §7.
  */
-@Processor(BULK_UPLOAD_QUEUE)
+@Processor(BULK_UPLOAD_QUEUE, JOB_WORKER_OPTIONS)
 export class BulkUploadProcessor extends WorkerHost {
   private readonly logger = new Logger(BulkUploadProcessor.name);
 

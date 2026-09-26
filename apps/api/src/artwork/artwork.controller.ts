@@ -7,7 +7,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  NotFoundException,
   Param,
   Post,
   Put,
@@ -130,13 +129,5 @@ export class ArtworkController {
   @UseGuards(GlobalAdminGuard)
   reset() {
     return this.artwork.resetSettings();
-  }
-
-  /** Finds artwork for up to 50 songs without an image. */
-  @Post("admin/artwork/backfill")
-  @UseGuards(GlobalAdminGuard)
-  async backfill() {
-    if (!(await this.artwork.settings()).enabled) throw new NotFoundException("Artwork is turned off");
-    return this.artwork.backfill();
   }
 }

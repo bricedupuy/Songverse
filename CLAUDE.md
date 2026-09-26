@@ -93,6 +93,20 @@ the capo are columns; never copy them into the document.
   model with a foreign key to `SongVersion` that should follow the song
   needs handling there too.
 
+## Background jobs
+
+Slow or outside work (bulk uploads, lookups at the metadata providers,
+backfills, scheduled clean-ups) goes on a BullMQ queue, run by the Worker
+(`apps/api/src/worker.ts`, issue #92); the API only adds jobs, unless
+`JOBS_IN_API` says it runs them too (by default only out of production).
+Processors are created stopped (`JOB_WORKER_OPTIONS`) and started by
+`startJobs()` - **a new processor must be added to its list in
+`apps/api/src/jobs/start-jobs.ts`**, and its queue to `JobsService`, or no
+process runs it and Admin doesn't show it. Don't fire-and-forget work
+inside a request instead: it's lost on a restart. A rate limit an outside
+service sets per client (MusicBrainz's) goes through `sharedTurn()`, so it
+holds across the API's instances and the Worker.
+
 ## Tests
 
 Features are covered end to end by the suites in `e2e/` (API calls and

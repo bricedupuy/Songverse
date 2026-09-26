@@ -19,8 +19,7 @@ import type { StreamingIdentifierType } from "@songverse/core";
 import { AccessPolicyService } from "../access/access-policy.service";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard";
-import { ArtistsService } from "../artists/artists.service";
-import { ArtworkService } from "../artwork/artwork.service";
+import { LookupsService } from "../lookups/lookups.service";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMetadataDto } from "./dto/link-metadata.dto";
@@ -49,8 +48,7 @@ export class SongVersionsController {
     private readonly songVersionsService: SongVersionsService,
     private readonly access: AccessPolicyService,
     private readonly history: SongHistoryService,
-    private readonly artwork: ArtworkService,
-    private readonly artistLookups: ArtistsService,
+    private readonly lookups: LookupsService,
   ) {}
 
   @Get()
@@ -137,10 +135,9 @@ export class SongVersionsController {
   ): ReturnType<SongVersionsService["create"]> {
     if (!user) throw new UnauthorizedException();
     const created = await this.songVersionsService.create(user, dto);
-    // Its artwork (issue #85), found in the background: the song doesn't wait for Apple Music.
-    void this.artwork.autoFind(created.id);
-    // Its artists' pictures and bios (issue #86), the same way.
-    void this.artistLookups.lookUpNew(dto.artists);
+    // Its artwork (issue #85) and its artists' pictures and bios (issue #86), found by the Worker (issue #92): the song doesn't wait.
+    await this.lookups.songArtwork(created.id);
+    await this.lookups.artists(dto.artists);
     return created;
   }
 
@@ -154,7 +151,7 @@ export class SongVersionsController {
   ): ReturnType<SongVersionsService["update"]> {
     if (!user) throw new UnauthorizedException();
     const updated = await this.songVersionsService.update(user, songVersionId, dto);
-    if (dto.artists?.length) void this.artistLookups.lookUpNew(dto.artists);
+    if (dto.artists?.length) await this.lookups.artists(dto.artists);
     return updated;
   }
 

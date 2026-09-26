@@ -99,7 +99,8 @@ check("nor by a backfill", (await call(admin, "POST", "/admin/artists/backfill")
 settings = await api(admin, "DELETE", "/admin/artists");
 check("back to the default: on", settings.enabled === true && settings.source === "default");
 r = await call(admin, "POST", "/admin/artists/backfill");
-check("the backfill looks them up", r.status === 201 && r.body.tried >= 1 && (await detail(owner, later)).body.lookedUp, JSON.stringify(r.body));
+check("the backfill starts, as a background job (issue #92)", r.status === 201 && r.body.queued === true, JSON.stringify(r.body));
+check("and looks them up", (await lookedUp(owner, later))?.lookedUp === true);
 
 fake.close();
 finish();

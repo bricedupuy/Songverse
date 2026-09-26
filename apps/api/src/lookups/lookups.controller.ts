@@ -1,0 +1,33 @@
+import { Controller, NotFoundException, Post, UseGuards } from "@nestjs/common";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import { ArtistsService } from "../artists/artists.service";
+import { ArtworkService } from "../artwork/artwork.service";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
+import { LookupsService } from "./lookups.service";
+
+/** The admin's backfills (issues #85, #86), started as background jobs (issue #92): their results show under Background jobs. */
+@ApiTags("admin")
+@ApiBearerAuth()
+@Controller("admin")
+@UseGuards(GlobalAdminGuard)
+export class LookupsController {
+  constructor(
+    private readonly lookups: LookupsService,
+    private readonly artwork: ArtworkService,
+    private readonly artists: ArtistsService,
+  ) {}
+
+  /** Finds artwork for up to 50 songs without an image. */
+  @Post("artwork/backfill")
+  async artworkBackfill() {
+    if (!(await this.artwork.settings()).enabled) throw new NotFoundException("Artwork is turned off");
+    return this.lookups.backfill("artwork-backfill");
+  }
+
+  /** Looks up to 25 artists nobody has asked about yet. */
+  @Post("artists/backfill")
+  async artistBackfill() {
+    if (!(await this.artists.settings()).enabled) throw new NotFoundException("Artist pictures and bios are turned off");
+    return this.lookups.backfill("artist-backfill");
+  }
+}

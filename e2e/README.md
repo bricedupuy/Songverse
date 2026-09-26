@@ -10,7 +10,7 @@ The database needs its migrations and seed applied (`pnpm --filter
 @songverse/db exec prisma migrate deploy`, then `pnpm --filter @songverse/db
 seed`) - some suites use the built-in global tags.
 
-1. Start Postgres and Redis, then the API and web app, with the API's output
+1. Start Postgres and Redis, then the API, the Worker and the web app, with the API's output
    going to a file - with no email provider configured the API prints the
    emails it would send, and the suites read verification links from there.
    Point the API's song artwork and song info at the suites' stand-ins for
@@ -18,10 +18,13 @@ seed`) - some suites use the built-in global tags.
    suites that need them start on port 3999):
 
    ```sh
-   ITUNES_SEARCH_URL=http://localhost:3999 MUSICBRAINZ_API_URL=http://localhost:3999/mb/ws/2/ \
+   export ITUNES_SEARCH_URL=http://localhost:3999 MUSICBRAINZ_API_URL=http://localhost:3999/mb/ws/2/ \
      DEEZER_API_URL=http://localhost:3999/deezer APPLE_MUSIC_API_URL=http://localhost:3999/applemusic \
      WIKIDATA_API_URL=http://localhost:3999/wikidata/w/api.php WIKIPEDIA_URL='http://localhost:3999/wikipedia/{lang}' \
-     SPOTIFY_API_URL=http://localhost:3999/spotify SPOTIFY_ACCOUNTS_URL=http://localhost:3999/spotify-accounts pnpm --filter @songverse/api dev > /tmp/api-dev.log 2>&1 &
+     SPOTIFY_API_URL=http://localhost:3999/spotify SPOTIFY_ACCOUNTS_URL=http://localhost:3999/spotify-accounts
+   # As in production (#92): the API only adds background jobs, the Worker runs them.
+   JOBS_IN_API=false pnpm --filter @songverse/api dev > /tmp/api-dev.log 2>&1 &
+   pnpm --filter @songverse/api build && (cd apps/api && node dist/worker.js > /tmp/worker.log 2>&1 &)
    pnpm --filter @songverse/web dev &
    ```
 

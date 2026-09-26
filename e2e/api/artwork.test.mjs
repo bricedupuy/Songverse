@@ -15,8 +15,8 @@ sql(`update "User" set "isGlobalAdmin"=true where id='${admin.id}'`);
 await api(admin, "DELETE", "/admin/artwork");
 
 const make = (title) => api(owner, "POST", "/song-versions", { title: `${title} ${stamp}`, language: "en", artists: ["Painter"] });
-async function imageOf(who, id) {
-  for (let i = 0; i < 40; i++) {
+async function imageOf(who, id, tries = 40) {
+  for (let i = 0; i < tries; i++) {
     const song = await api(who, "GET", `/song-versions/${id}`);
     if (song.imageUrl) return song.imageUrl;
     await new Promise((r) => setTimeout(r, 250));
@@ -115,7 +115,8 @@ check("nor a backfill", (await call(admin, "POST", "/admin/artwork/backfill")).s
 settings = await api(admin, "DELETE", "/admin/artwork");
 check("back to the defaults", settings.enabled === true && settings.source === "default");
 r = await call(admin, "POST", "/admin/artwork/backfill");
-check("the backfill finds the songs without one", r.status === 201 && r.body.found >= 1 && !!(await api(owner, "GET", `/song-versions/${off.id}`)).imageUrl, JSON.stringify(r.body));
+check("the backfill starts, as a background job (issue #92)", r.status === 201 && r.body.queued === true, JSON.stringify(r.body));
+check("and finds the songs without one", !!(await imageOf(owner, off.id, 240)));
 
 fake.close();
 finish();

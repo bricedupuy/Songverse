@@ -162,11 +162,4 @@ export class ArtistsController {
   reset() {
     return this.artists.resetSettings();
   }
-
-  /** Looks up to 25 artists nobody has asked about yet. */
-  @Post("admin/artists/backfill")
-  @UseGuards(GlobalAdminGuard)
-  backfill() {
-    return this.artists.backfill();
-  }
 }

@@ -125,44 +125,18 @@ export class ArtistsService {
     return this.detail(user, name);
   }
 
-  /** Artists waiting to be looked up in the background, by key. */
-  private readonly pending = new Map<string, string>();
-  private draining = false;
-
   /**
-   * Queues the artists of a new song not asked about yet, looked up one at
-   * a time in the background: MusicBrainz takes one request a second, from
-   * a queue Auto detect shares, so a big import mustn't fill it at once.
+   * Looks up a newly credited artist not asked about yet - a job on the
+   * lookups queue (issue #92), one at a time: MusicBrainz takes one request
+   * a second, shared with Auto detect.
    */
-  lookUpNew(names: string[]): Promise<void> {
-    for (const name of names) {
-      const key = artistKey(name);
-      if (key && !this.pending.has(key)) this.pending.set(key, name.trim());
-    }
-    if (this.draining) return Promise.resolve();
-    this.draining = true;
-    return this.drain().finally(() => {
-      this.draining = false;
-    });
-  }
-
-  private async drain(): Promise<void> {
-    while (this.pending.size > 0) {
-      const [key, name] = this.pending.entries().next().value as [string, string];
-      this.pending.delete(key);
-      try {
-        if (!(await this.settings()).enabled) {
-          this.pending.clear();
-          return;
-        }
-        const existing = await this.prisma.client.artist.findUnique({ where: { key }, select: { lookedUpAt: true } });
-        if (existing?.lookedUpAt) continue;
-        const artist = await this.ensure(name);
-        await this.lookUpArtist(artist.id, false);
-      } catch (err) {
-        this.logger.warn(`Artist lookup failed for ${name}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
+  async lookUpNamed(name: string): Promise<{ picture: boolean; bios: number } | null> {
+    const key = artistKey(name);
+    if (!key || !(await this.settings()).enabled) return null;
+    const existing = await this.prisma.client.artist.findUnique({ where: { key }, select: { lookedUpAt: true } });
+    if (existing?.lookedUpAt) return null;
+    const artist = await this.ensure(name.trim());
+    return this.lookUpArtist(artist.id, false);
   }
 
   /** Looks up artists nobody has asked about yet, the most recently credited first, a few at a time (the providers limit how fast they're asked). */

@@ -151,15 +151,17 @@ jobs:
       - name: Seed the database
         run: pnpm --filter @songverse/db seed
 
-      - name: Start the API and web app
+      # As in production (issue #92): the Worker runs the background jobs, the API only adds them.
+      - name: Start the API, the Worker and the web app
         run: |
-          (cd apps/api && PORT=3001 node dist/main.js > /tmp/api.log 2>&1 &)
+          (cd apps/api && JOBS_IN_API=false PORT=3001 node dist/main.js > /tmp/api.log 2>&1 &)
+          (cd apps/api && node dist/worker.js > /tmp/worker.log 2>&1 &)
           (cd apps/web && PORT=3000 node server.mjs > /tmp/web.log 2>&1 &)
           for i in $(seq 1 60); do
             curl -sf http://localhost:3001/health > /dev/null && curl -sf http://localhost:3000/ > /dev/null && exit 0
             sleep 2
           done
-          echo "The API or web app didn't start"; tail -50 /tmp/api.log /tmp/web.log; exit 1
+          echo "The API or web app didn't start"; tail -50 /tmp/api.log /tmp/worker.log /tmp/web.log; exit 1
 
       - name: Run the end-to-end suites
         run: pnpm --filter @songverse/e2e e2e
@@ -172,6 +174,7 @@ jobs:
           path: |
             e2e/.artifacts/
             /tmp/api.log
+            /tmp/worker.log
             /tmp/web.log
           retention-days: 7
 

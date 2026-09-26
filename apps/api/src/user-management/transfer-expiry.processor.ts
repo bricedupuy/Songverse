@@ -1,4 +1,5 @@
 import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
+import { JOB_WORKER_OPTIONS } from "../jobs/jobs.constants";
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import type { Queue } from "bullmq";
 import { ContentTransfersService } from "./content-transfers.service";
@@ -8,7 +9,7 @@ const PURGE_SCHEDULER_ID = "purge-expired-transfers";
 const HOUR_MS = 60 * 60 * 1000;
 
 /** Hourly: deletes accounts whose transfer link expired unclaimed, with their content. */
-@Processor(USER_MAINTENANCE_QUEUE)
+@Processor(USER_MAINTENANCE_QUEUE, JOB_WORKER_OPTIONS)
 export class TransferExpiryProcessor extends WorkerHost {
   private readonly logger = new Logger(TransferExpiryProcessor.name);
 

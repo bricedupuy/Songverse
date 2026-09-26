@@ -1,6 +1,8 @@
 import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
+import { jobsInApi } from "./jobs/jobs.constants";
+import { startJobs } from "./jobs/start-jobs";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
@@ -72,6 +74,8 @@ async function bootstrap() {
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;
   await app.listen(port);
   console.log(`Songverse API listening on :${port} (docs at /api/docs)`);
+  // Background jobs are the Worker's (issue #92); the API runs them too only with JOBS_IN_API (by default, out of production).
+  if (jobsInApi()) startJobs(app, "api");
 }
 
 void bootstrap();

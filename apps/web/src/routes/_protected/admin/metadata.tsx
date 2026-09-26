@@ -6,6 +6,7 @@ import type { AdminCommandResult, ArtistSettings, ArtworkSettings } from "@songv
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { ConfirmButton } from "#/components/confirm-button";
+import { BackgroundJobsCard } from "./-background-jobs";
 import { MetadataProvidersCard } from "./-metadata-providers";
 
 export const Route = createFileRoute("/_protected/admin/metadata")({
@@ -98,6 +99,7 @@ function AdminMetadataPage() {
         </CardContent>
       </Card>
 
+      <BackgroundJobsCard />
       <MetadataProvidersCard />
       <ArtworkSettingsCard />
       <ArtistSettingsCard />
@@ -181,8 +183,8 @@ function ArtworkSettingsCard() {
             disabled={busy || !settings?.enabled}
             onClick={() =>
               void run(async () => {
-                const result = await apiClient.backfillArtwork();
-                return t("artwork.backfilled", result);
+                const { queued } = await apiClient.backfillArtwork();
+                return queued ? t("jobs.started") : t("jobs.alreadyRunning");
               })
             }
           >
@@ -276,8 +278,8 @@ function ArtistSettingsCard() {
             disabled={busy || !settings?.enabled}
             onClick={() =>
               void run(async () => {
-                const result = await apiClient.backfillArtists();
-                return t("artistSettings.backfilled", result);
+                const { queued } = await apiClient.backfillArtists();
+                return queued ? t("jobs.started") : t("jobs.alreadyRunning");
               })
             }
           >

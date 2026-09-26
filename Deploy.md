@@ -9,14 +9,16 @@ Seven things get created in Dokploy, all in one Project:
 | Resource | Type | Built from | Notes |
 |---|---|---|---|
 | Postgres | Database | Dokploy's built-in template | Shared by API, Worker, and Web |
-| Redis | Database | Dokploy's built-in template | Backs BullMQ background jobs (bulk songbook content upload) — the Worker app must actually be running for these to process |
+| Redis | Database | Dokploy's built-in template | Backs the background jobs' queues (BullMQ), the Worker's heartbeat, and rate limits shared by the API and the Worker |
 | API | Application | `Dockerfile.api` | Serves the NestJS API, listens on port 3001 |
-| Worker | Application | `Dockerfile.api` (same as API) | Same image as API, different start command — processes background jobs |
+| Worker | Application | `Dockerfile.api` (same as API) | Same image as API, different start command — runs the background jobs |
 | Web | Application | `Dockerfile.web` | The TanStack Start web app, listens on port 3000 |
 | Docs | Application | `Dockerfile.docs` | The user documentation, a static site on port 80 |
 | Site | Application | `Dockerfile.site` | The website at the root domain, a static page on port 80 |
 
 The API and Worker share one Docker image because they're the same codebase — only the command that starts the container differs.
+
+**What the Worker does** (#92): it runs every background job - bulk songbook uploads, the hourly clean-up of expired account transfers, and lookups (a new song's artwork, new artists' pictures and bios, the backfills started from Admin > Metadata). The API only adds jobs to the queues; with no Worker running they wait, so songs get no artwork and uploads aren't processed. Admin > Metadata > **Background jobs** shows whether a Worker is running (from a heartbeat it keeps in Redis), each queue's jobs and the last ones' results. For a small setup without a Worker, set `JOBS_IN_API=true` on the API and it runs the jobs itself (it does by default outside production, for `pnpm dev`).
 
 ## 1. DNS
 
@@ -141,9 +143,13 @@ Storage shows which path is currently active.
 
 Environment variables: same as the API app (`DATABASE_URL`, `REDIS_URL`,
 `SETTINGS_ENCRYPTION_KEY`, and the `R2_*` vars if using the env-var
-fallback — the Worker is what actually processes bulk content uploads, so
-it needs the same object storage config as the API, whichever path you
-chose). The Worker never serves HTTP traffic, so it doesn't need
+fallback — the Worker processes bulk content uploads and stores artwork and
+artist pictures, so it needs the same object storage config as the API,
+whichever path you chose; and any provider env vars you use, like
+`SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET`, `APPLE_MUSIC_*` or
+`MUSICBRAINZ_CONTACT`, since it does the lookups). `BETTER_AUTH_SECRET` too:
+it signs the image addresses of what the Worker stores. Leave `JOBS_IN_API`
+unset (or `false`) on the API when you run a Worker. The Worker never serves HTTP traffic, so it doesn't need
 `AUTH_URL`/`WEB_URL`/`BETTER_AUTH_SECRET`/the Resend or Google vars —
 those only matter to whichever process BetterAuth's handler is actually
 mounted in (the API). `PORT` isn't used here either.
