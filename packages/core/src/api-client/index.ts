@@ -684,6 +684,14 @@ export interface ArtistCount {
 }
 
 /** One page of songs, with the total across all pages. */
+/** Where a song is in a list (issue #84): the ones before and after it; null position when it isn't in it. */
+export interface SongNeighbors {
+  position: number | null;
+  total: number;
+  previous: { id: string; title: string } | null;
+  next: { id: string; title: string } | null;
+}
+
 /** The Library's home (issue #81): its shelves, each up to 12 songs. */
 export interface LibraryHome {
   newest: SongVersionSummary[];
@@ -1206,6 +1214,15 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       return request<SongPage>(`/song-versions${params.size ? `?${params}` : ""}`);
     },
     getLibraryHome: () => request<LibraryHome>("/library/home"),
+    /** The songs before and after one in a list of the library, searched and filtered as `query` says (issue #84). */
+    getSongNeighbors: (songVersionId: string, query: ListSongVersionsQuery = {}) => {
+      const params = new URLSearchParams(
+        Object.entries(query)
+          .filter(([key, value]) => value !== undefined && value !== "" && key !== "page" && key !== "pageSize")
+          .map(([key, value]) => [key, String(value)]),
+      );
+      return request<SongNeighbors>(`/song-versions/${songVersionId}/neighbors${params.size ? `?${params}` : ""}`);
+    },
     /** The user opened the song (Recently viewed, and their teams' Popular). */
     recordSongView: (songVersionId: string) => request<void>(`/song-versions/${songVersionId}/views`, { method: "POST" }),
     setFavorite: (songVersionId: string, on: boolean) => request<void>(`/song-versions/${songVersionId}/favorite`, { method: on ? "PUT" : "DELETE" }),

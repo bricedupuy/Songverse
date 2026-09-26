@@ -414,6 +414,13 @@ const MATCH_VERSION_SELECT = {
   },
 } satisfies Prisma.SongVersionSelect;
 
+/** A library list's order: its sort, newest first by default; ties (same title, say) in a stable order. */
+function listOrder(query: ListSongVersionsQueryDto): Prisma.SongVersionOrderByWithRelationInput[] {
+  const sort = query.sort ?? "updatedAt";
+  const dir = query.dir ?? (sort === "updatedAt" || sort === "createdAt" ? "desc" : "asc");
+  return [{ [sort]: dir }, { id: "asc" }];
+}
+
 @Injectable()
 export class SongVersionsService {
   constructor(
@@ -432,8 +439,42 @@ export class SongVersionsService {
   async findVisibleToUser(user: AuthenticatedUser, query: ListSongVersionsQueryDto = {}): Promise<SongPage> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 50;
+    const where = await this.listWhere(user, query);
+    const [total, versions] = await Promise.all([
+      this.prisma.client.songVersion.count({ where }),
+      this.prisma.client.songVersion.findMany({
+        where,
+        select: LIST_SELECT,
+        orderBy: listOrder(query),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+    ]);
+    const seesTag = await this.seesTag(user);
+    const shared = await this.sharedByOf(user, versions.map((version) => version.id));
+    return { items: versions.map((version) => toListItem(version, seesTag, shared.get(version.id) ?? null)), total, page, pageSize };
+  }
+
+  /**
+   * The songs before and after `id` in a list (issue #84) - the library's,
+   * searched, filtered and sorted as `query` says - and where it is in it.
+   * Null position when it isn't in the list (any more).
+   */
+  async neighbors(user: AuthenticatedUser, id: string, query: ListSongVersionsQueryDto = {}) {
+    const rows = await this.prisma.client.songVersion.findMany({
+      where: await this.listWhere(user, query),
+      select: { id: true, title: true },
+      orderBy: listOrder(query),
+    });
+    const at = rows.findIndex((row) => row.id === id);
+    if (at < 0) return { position: null, total: rows.length, previous: null, next: null };
+    return { position: at + 1, total: rows.length, previous: rows[at - 1] ?? null, next: rows[at + 1] ?? null };
+  }
+
+  /** What a list of the library holds: the songs the user can see, searched and filtered as `query` says. */
+  private async listWhere(user: AuthenticatedUser, query: ListSongVersionsQueryDto): Promise<Prisma.SongVersionWhereInput> {
     const q = query.q?.trim();
-    const where: Prisma.SongVersionWhereInput = {
+    return {
       AND: [
         await this.access.songsVisibleTo(user),
         ...(q
@@ -454,22 +495,6 @@ export class SongVersionsService {
           : []),
       ],
     };
-    const sort = query.sort ?? "updatedAt";
-    const dir = query.dir ?? (sort === "updatedAt" || sort === "createdAt" ? "desc" : "asc");
-    const [total, versions] = await Promise.all([
-      this.prisma.client.songVersion.count({ where }),
-      this.prisma.client.songVersion.findMany({
-        where,
-        select: LIST_SELECT,
-        // Ties (same title, say) keep a stable order across pages.
-        orderBy: [{ [sort]: dir }, { id: "asc" }],
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-    ]);
-    const seesTag = await this.seesTag(user);
-    const shared = await this.sharedByOf(user, versions.map((version) => version.id));
-    return { items: versions.map((version) => toListItem(version, seesTag, shared.get(version.id) ?? null)), total, page, pageSize };
   }
 
   /**

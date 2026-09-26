@@ -56,6 +56,8 @@ Puis **Enregistrer le chant**.
 
 ![Les détails d'un chant](../../../assets/screenshots/fr/song-info.jpg)
 
+Ouverte depuis une liste - **Chants** tels que vous les avez cherchés et triés, vos **Favoris**, une liste intelligente, les chants d'un artiste ou un [recueil](/fr/songbooks/) - la page d'un chant montre où il se trouve (« 2 sur 12 · Favoris »), avec les chants d'avant et d'après de chaque côté : une touche mène au suivant, toujours dans la même liste.
+
 Un chant a des onglets :
 
 - **Infos** - son nom et ses artistes, et sous **Plus de détails** : compositeurs, auteurs et autres crédits, album, année, tonalité, tempo, mesure, capo suggéré, durée, copyright, numéros CCLI et ISRC, une référence (par exemple le passage biblique dont il s'inspire), des notes et des étiquettes. Il liste aussi les recueils qui le contiennent.

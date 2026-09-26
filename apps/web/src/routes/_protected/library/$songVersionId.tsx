@@ -8,6 +8,7 @@ import { useMode } from "#/lib/mode";
 import { apiClient } from "#/lib/api-client";
 import { parseNotices, parseSongSearch } from "./-song-search";
 import { useSongView } from "#/lib/song-views";
+import { SongNeighborsBar } from "#/components/song-neighbors";
 
 export const Route = createFileRoute("/_protected/library/$songVersionId")({
   validateSearch: parseSongSearch,
@@ -43,7 +44,7 @@ async function loadOnline(songVersionId: string) {
 
 function SongVersionPage() {
   const loaded = Route.useLoaderData();
-  const { tab, notice } = Route.useSearch();
+  const { tab, notice, from, songbook } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { mode } = useMode();
   const songVersionId = "offline" in loaded ? loaded.offline.songVersionId : loaded.online.version.id;
@@ -58,25 +59,33 @@ function SongVersionPage() {
   if ("offline" in loaded) return <OfflineSongPage song={loaded.offline} />;
   const data = loaded.online;
   // Practice: the chart, not the editor (issue #67).
+  // Previous and next in the list it was opened from (issue #84).
+  const neighbors = <SongNeighborsBar songVersionId={data.version.id} from={from} songbook={songbook} />;
   if (mode === "practice") {
     return (
-      <PracticeSongPage
+      <>
+        {neighbors}
+        <PracticeSongPage
         version={data.version}
         attachments={data.attachments}
         references={data.songbookMemberships.filter((membership) => membership.entryCode).map((membership) => membership.reference)}
         notation={data.me?.chordNotation ?? "LETTERS"}
         capoDisplay={data.me?.capoDisplayMode ?? "SOUNDING"}
-      />
+        />
+      </>
     );
   }
   return (
-    <SongEditor
+    <>
+      {neighbors}
+      <SongEditor
       key={data.version.id}
       mode="edit"
       {...data}
       notices={parseNotices(notice)}
       tab={tab ?? "info"}
       onTabChange={(next) => void navigate({ search: (prev) => ({ ...prev, tab: next === "info" ? undefined : next }), replace: true })}
-    />
+      />
+    </>
   );
 }

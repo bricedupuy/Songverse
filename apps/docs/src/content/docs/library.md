@@ -56,6 +56,8 @@ Then **Save song**.
 
 ![A song's details](../../assets/screenshots/en/song-info.jpg)
 
+Opened from a list - **Songs** as you searched and sorted it, your **Favorites**, a smart list, an artist's songs or a [songbook](/songbooks/) - a song's page shows where it is in it ("2 of 12 · Favorites"), with the songs before and after it on either side: one tap goes to the next, still in the same list.
+
 A song has tabs:
 
 - **Song info** - its name and artists, and under **More details**: composers, lyricists and other credits, album, year, key, tempo, time signature, suggested capo, duration, copyright, CCLI and ISRC numbers, a reference (e.g. the scripture it draws on), notes and tags. It also lists the songbooks it's in.

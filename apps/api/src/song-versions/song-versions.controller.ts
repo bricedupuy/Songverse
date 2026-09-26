@@ -92,6 +92,18 @@ export class SongVersionsController {
     return this.songVersionsService.findMatches(user, title ?? "");
   }
 
+  /** The songs before and after this one in a list of the library (issue #84), and where it is in it. */
+  @Get(":songVersionId/neighbors")
+  async neighbors(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("songVersionId") songVersionId: string,
+    @Query() query: ListSongVersionsQueryDto,
+  ): ReturnType<SongVersionsService["neighbors"]> {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
+    return this.songVersionsService.neighbors(user, songVersionId, query);
+  }
+
   @Get(":songVersionId")
   @ApiOkResponse({ type: SongVersionResponseDto })
   findOne(
