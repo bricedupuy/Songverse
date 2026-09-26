@@ -7,6 +7,7 @@ import { SongEditor } from "#/components/song-editor/song-editor";
 import { useMode } from "#/lib/mode";
 import { apiClient } from "#/lib/api-client";
 import { parseNotices, parseSongSearch } from "./-song-search";
+import { useSongView } from "#/lib/song-views";
 
 export const Route = createFileRoute("/_protected/library/$songVersionId")({
   validateSearch: parseSongSearch,
@@ -46,6 +47,7 @@ function SongVersionPage() {
   const navigate = Route.useNavigate();
   const { mode } = useMode();
   const songVersionId = "offline" in loaded ? loaded.offline.songVersionId : loaded.online.version.id;
+  useSongView(songVersionId);
 
   // Live: the song full screen, as a set's song is (issue #67); its × comes back to the library.
   useEffect(() => {

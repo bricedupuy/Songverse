@@ -301,6 +301,8 @@ model User {
   songRevisions       SongVersionRevision[]
   contributedVersions SongVersion[]         @relation("VersionContributedBy")
   songsSharedWithMe   AccessGrant[]         @relation("AccessGrantTo")
+  favoriteSongs       FavoriteSong[]
+  songViews           SongView[]
   connectionsAsked    Connection[]          @relation("ConnectionRequester")
   connectionsAnswered Connection[]          @relation("ConnectionAddressee")
   reviewedProposals   ChangeProposal[]      @relation("ProposalReviewer")
@@ -707,6 +709,8 @@ model SongVersion {
   ownershipRequests SongOwnershipRequest[]
   userNotes         Note[] // people's own notes on it (Note model); not the song's `notes` field
   revisions         SongVersionRevision[]
+  favoritedBy       FavoriteSong[]
+  views             SongView[]
 
   @@index([workId])
   @@index([ownerUserId])
@@ -1794,4 +1798,36 @@ model Connection {
   @@unique([requesterId, addresseeEmail])
   @@index([addresseeEmail])
   @@index([addresseeId])
+}
+
+/// A song a user starred (issue #81): their Favorites, on the Library's
+/// home and as a filter. Private to them.
+model FavoriteSong {
+  userId        String
+  songVersionId String
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, songVersionId])
+  @@index([songVersionId])
+}
+
+/// A user's last look at a song (issue #81): their Recently viewed, and -
+/// counted across a team's members - what's popular in the team. One row
+/// per user and song; only its user sees their own.
+model SongView {
+  userId        String
+  songVersionId String
+  viewedAt      DateTime @default(now())
+  /// Views, a view within the hour before not counting again.
+  count         Int      @default(1)
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+
+  @@id([userId, songVersionId])
+  @@index([userId, viewedAt])
+  @@index([songVersionId, viewedAt])
 }

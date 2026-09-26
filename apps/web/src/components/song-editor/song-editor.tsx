@@ -12,7 +12,7 @@ import {
   type Tag,
 } from "@songverse/core";
 import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router";
-import { FileText, History, Info, Layers, Link2, MoreHorizontal, Music, PenLine, Share2 } from "lucide-react";
+import { FileText, History, Info, Layers, Link2, MoreHorizontal, Music, PenLine, Share2, Star } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { OfflinePinButton } from "#/components/offline-pin-button";
@@ -529,6 +529,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
               </Button>
             </>
           ) : null}
+          {edit ? <FavoriteButton key={edit.version.id} songVersionId={edit.version.id} initial={!!edit.version.isFavorite} /> : null}
           {edit && canManage && edit.version.ownerScope !== "GLOBAL" ? (
             <Button type="button" variant="outline" onClick={() => setSharing(true)} aria-label={t("sharing.share")}>
               <Share2 />
@@ -715,5 +716,34 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         </DialogContent>
       </Dialog>
     </form>
+  );
+}
+
+/** A star: the song in the user's favorites, or not (issue #81). */
+function FavoriteButton({ songVersionId, initial }: { songVersionId: string; initial: boolean }) {
+  const { t } = useTranslation();
+  const [on, setOn] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const label = on ? t("library.home.unfavorite") : t("library.home.favorite");
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      aria-label={label}
+      title={label}
+      aria-pressed={on}
+      disabled={busy}
+      onClick={() => {
+        setBusy(true);
+        setOn(!on);
+        apiClient
+          .setFavorite(songVersionId, !on)
+          .catch(() => setOn(on))
+          .finally(() => setBusy(false));
+      }}
+    >
+      <Star className={on ? "fill-amber-400 text-amber-500" : undefined} />
+    </Button>
   );
 }

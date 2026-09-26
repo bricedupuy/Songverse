@@ -245,6 +245,17 @@ const en = {
     },
   },
   library: {
+    home: {
+      newest: "Newly added",
+      recent: "Recently viewed",
+      favorites: "Favorites",
+      popular: "Popular in your teams",
+      seeAll: "See all",
+      allSongs: "All songs",
+      favoritesFilter: "Favorites",
+      favorite: "Add to favorites",
+      unfavorite: "Remove from favorites",
+    },
     title: "Library",
     addASong: "+ Add a song",
     noSongsYet: "No songs yet. Add your first one to get started.",

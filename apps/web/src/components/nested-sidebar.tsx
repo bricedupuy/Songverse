@@ -1,4 +1,4 @@
-import { keptSetDetail, keptSongbook, onlineOrKept, transposeKey, type PeopleOverview, type SetlistDetail, type SetlistSummary, type SongbookDetail, type SongbookSummary, type SongVersionSummary, type TeamSummary } from "@songverse/core";
+import { keptSetDetail, keptSongbook, onlineOrKept, transposeKey, type ListSongVersionsQuery, type PeopleOverview, type SetlistDetail, type SetlistSummary, type SongbookDetail, type SongbookSummary, type SongVersionSummary, type TeamSummary } from "@songverse/core";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -15,6 +15,7 @@ import {
   Music2,
   Plus,
   ShieldCheck,
+  Star,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -230,7 +231,14 @@ const PAGE_SIZE = 50;
 function LibraryPanel({ title, pathname }: { title: string; pathname: string }) {
   const { t } = useTranslation();
   const smartLists = useSmartLists();
-  const urlList = useRouterState({ select: (s) => (s.location.pathname === "/library" ? ((s.location.search as { list?: string }).list ?? null) : undefined) });
+  // "favorites" for the user's favorites (issue #81), else a smart list's id.
+  const urlList = useRouterState({
+    select: (s) => {
+      if (s.location.pathname !== "/library") return undefined;
+      const search = s.location.search as { list?: string; favorites?: boolean };
+      return search.favorites ? "favorites" : (search.list ?? null);
+    },
+  });
   const [filter, setFilter] = useState("");
   // The smart list the panel lists: the one open on Songs, or the last one opened.
   const [listId, setListId] = useState<string | null>(urlList ?? null);
@@ -241,7 +249,7 @@ function LibraryPanel({ title, pathname }: { title: string; pathname: string }) 
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [failed, setFailed] = useState(false);
-  const filters = smartLists.find((list) => list.id === listId)?.filters ?? {};
+  const filters: ListSongVersionsQuery = listId === "favorites" ? { favorites: true } : (smartLists.find((list) => list.id === listId)?.filters ?? {});
   const query = JSON.stringify({ ...filters, q: [filters.q, filter.trim()].filter(Boolean).join(" ") || undefined });
 
   useEffect(() => {
@@ -273,6 +281,10 @@ function LibraryPanel({ title, pathname }: { title: string; pathname: string }) 
         <div className="flex flex-wrap gap-1.5" data-testid="library-sections">
           <Link to="/library" className={chip(pathname === "/library" && !urlList)}>
             {t("nav.songs")}
+          </Link>
+          <Link to="/library" search={{ favorites: true }} className={chip(listId === "favorites")}>
+            <Star className="size-3" />
+            {t("library.home.favorites")}
           </Link>
           {smartLists.map((list) => (
             <Link key={list.id} to="/library" search={smartListSearch(list)} className={chip(listId === list.id)}>

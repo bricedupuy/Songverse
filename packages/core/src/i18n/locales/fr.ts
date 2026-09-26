@@ -245,6 +245,17 @@ const fr: typeof en = {
     },
   },
   library: {
+    home: {
+      newest: "Nouveautés",
+      recent: "Consultés récemment",
+      favorites: "Favoris",
+      popular: "Populaires dans vos équipes",
+      seeAll: "Tout voir",
+      allSongs: "Tous les chants",
+      favoritesFilter: "Favoris",
+      favorite: "Ajouter aux favoris",
+      unfavorite: "Retirer des favoris",
+    },
     title: "Bibliothèque",
     addASong: "+ Ajouter une chanson",
     noSongsYet: "Aucune chanson pour l'instant. Ajoutez la première pour commencer.",

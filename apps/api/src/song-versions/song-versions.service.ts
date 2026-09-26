@@ -325,7 +325,7 @@ export interface SongPage {
   page: number;
   pageSize: number;
 }
-type ListItem = Omit<ListRow, "contributors" | "versionTags"> & {
+export type ListItem = Omit<ListRow, "contributors" | "versionTags"> & {
   artists: ListRow["contributors"];
   tags: ListRow["versionTags"][number]["tag"][];
   /** Shared with the viewer by its owner (issue #77). */
@@ -445,6 +445,8 @@ export class SongVersionsService {
             ]
           : []),
         ...(query.language ? [{ language: query.language }] : []),
+        // The user's favorites (issue #81).
+        ...(query.favorites ? [{ favoritedBy: { some: { userId: user.id } } }] : []),
         ...(query.tagId ? [{ versionTags: { some: { tagId: query.tagId } } }] : []),
         // An artist's songs (issue #58): the whole name, ignoring case and accents.
         ...(query.artist
@@ -523,14 +525,27 @@ export class SongVersionsService {
     return row?.folded ?? text;
   }
 
-  async findOne(user: AuthenticatedUser, id: string): Promise<DetailItem> {
+  async findOne(user: AuthenticatedUser, id: string): Promise<DetailItem & { isFavorite: boolean }> {
     const version = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: DETAIL_SELECT,
     });
     if (!version) throw new NotFoundException("Song version not found");
     if (!(await this.access.canSeeSong(user, version))) throw new ForbiddenException("Not visible to you");
-    return toDetailItem(version, await this.rightsOn(user, version), await this.seesTag(user));
+    const isFavorite = (await this.prisma.client.favoriteSong.count({ where: { userId: user.id, songVersionId: id } })) > 0;
+    return { ...toDetailItem(version, await this.rightsOn(user, version), await this.seesTag(user)), isFavorite };
+  }
+
+  /** The songs `ids` the user can see, as the library lists them, in that order (issue #81). */
+  async listItems(user: AuthenticatedUser, ids: string[]): Promise<ListItem[]> {
+    if (ids.length === 0) return [];
+    const rows = await this.prisma.client.songVersion.findMany({
+      where: { AND: [await this.access.songsVisibleTo(user), { id: { in: ids } }] },
+      select: LIST_SELECT,
+    });
+    const [seesTag, shared] = await Promise.all([this.seesTag(user), this.sharedByOf(user, rows.map((row) => row.id))]);
+    const byId = new Map(rows.map((row) => [row.id, toListItem(row, seesTag, shared.get(row.id) ?? null)]));
+    return ids.flatMap((id) => byId.get(id) ?? []);
   }
 
   /** What `user` may do with the song, and who shared it with them if someone did. */

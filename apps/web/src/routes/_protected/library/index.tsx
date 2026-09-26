@@ -1,9 +1,10 @@
 import { resolveTranslation, type LocaleValue, type SmartListFilters, type SongSort, type Tag } from "@songverse/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ListFilter, Search, X } from "lucide-react";
+import { ListFilter, Search, Star, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
+import { LibraryShelves } from "#/components/library-home";
 import { useLibraryColumns } from "./-columns";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
@@ -25,6 +26,8 @@ export interface LibrarySearch {
   artist?: string;
   /** The smart list being looked at, if any (its filters are the rest of the search). */
   list?: string;
+  /** Only the user's favorites (issue #81). */
+  favorites?: boolean;
   page?: number;
   sort?: SongSort;
   dir?: "asc" | "desc";
@@ -54,6 +57,7 @@ export const Route = createFileRoute("/_protected/library/")({
       ...(tagId && { tagId }),
       ...(artist && { artist }),
       ...(list && { list }),
+      ...((search.favorites === true || search.favorites === "true") && { favorites: true }),
       ...(Number.isInteger(page) && page > 1 && { page }),
       ...(typeof search.sort === "string" && (SORTS as string[]).includes(search.sort) && { sort: search.sort as SongSort }),
       ...((search.dir === "asc" || search.dir === "desc") && { dir: search.dir }),
@@ -62,16 +66,22 @@ export const Route = createFileRoute("/_protected/library/")({
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {
     // `list` only names the page; the filters are the rest.
-    const query = { ...filtersOf(deps), page: deps.page };
-    const [songs, tags] = await Promise.all([apiClient.listSongVersions({ ...query, pageSize: PAGE_SIZE }), apiClient.listTags().catch(() => [] as Tag[])]);
-    return { songs, tags };
+    const query = { ...filtersOf(deps), favorites: deps.favorites, page: deps.page };
+    // The home's shelves (issue #81) come first when nothing is searched or filtered.
+    const atHome = Object.keys(filtersOf(deps)).length === 0 && !deps.list && !deps.favorites && !deps.page;
+    const [songs, tags, home] = await Promise.all([
+      apiClient.listSongVersions({ ...query, pageSize: PAGE_SIZE }),
+      apiClient.listTags().catch(() => [] as Tag[]),
+      atHome ? apiClient.getLibraryHome().catch(() => null) : null,
+    ]);
+    return { songs, tags, home };
   },
   component: LibraryIndex,
 });
 
 function LibraryIndex() {
   const { t, i18n } = useTranslation();
-  const { songs, tags } = Route.useLoaderData();
+  const { songs, tags, home } = Route.useLoaderData();
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const { session } = Route.useRouteContext();
@@ -97,7 +107,7 @@ function LibraryIndex() {
   const lastPage = Math.max(1, Math.ceil(songs.total / songs.pageSize));
   const lists = useSmartLists();
   const list = search.list ? lists.find((candidate) => candidate.id === search.list) : undefined;
-  const filtered = Object.keys(filtersOf({ ...search, sort: undefined, dir: undefined })).length > 0;
+  const filtered = Object.keys(filtersOf({ ...search, sort: undefined, dir: undefined })).length > 0 || !!search.favorites;
   const setFilter = (change: Partial<LibrarySearch>) => void navigate({ search: (prev) => ({ ...prev, ...change, page: undefined }) });
   const goToPage = (page: number) => void navigate({ search: (prev) => ({ ...prev, page: page > 1 ? page : undefined }) });
 
@@ -112,6 +122,9 @@ function LibraryIndex() {
           <Link to="/library/new">{t("library.addASong")}</Link>
         </Button>
       </div>
+
+      {home ? <LibraryShelves home={home} /> : null}
+      {home && (home.newest.length > 0 || home.recent.length > 0) ? <h2 className="-mb-3 text-lg font-semibold">{t("library.home.allSongs")}</h2> : null}
 
       <SmartListBar search={search} filtered={filtered} />
 
@@ -149,6 +162,15 @@ function LibraryIndex() {
                 </option>
               ))}
             </NativeSelect>
+            <Button
+              type="button"
+              variant={search.favorites ? "default" : "outline"}
+              aria-pressed={!!search.favorites}
+              onClick={() => setFilter({ favorites: search.favorites ? undefined : true })}
+            >
+              <Star className={search.favorites ? "fill-current" : undefined} />
+              {t("library.home.favoritesFilter")}
+            </Button>
             {search.artist ? (
               <span className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-sm" data-testid="artist-filter">
                 {t("library.byArtist", { name: search.artist })}

@@ -115,7 +115,7 @@ await step("elsewhere it plays on in a corner, with a way back", async () => {
 
 await step("one thing plays at a time: the stems stop YouTube", async () => {
   await sidebarGo(page, "Library");
-  await page.getByText(`Recorded ${stamp}`, { exact: true }).click();
+  await page.getByRole("row").getByText(`Recorded ${stamp}`, { exact: true }).click(); // in the list, not the home's shelves
   await page.waitForURL(`**/library/${recorded.id}`);
   if ((await view()) !== "mini") throw new Error(`the video isn't in the corner: ${await view()}`);
   await stems().getByRole("button", { name: "Play", exact: true }).click();

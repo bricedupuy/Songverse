@@ -7,8 +7,21 @@ The **Library** lists every song you can see: your own, your teams', and the glo
 
 ![The library](../../assets/screenshots/en/library.jpg)
 
+## The library's home
+
+**Library** opens on its home, with rows of songs above the full list:
+
+- **Newly added** - the latest songs you can see; **See all** lists them all, newest first.
+- **Recently viewed** - the songs you opened last (on their page, in a set or in Live). Only you see yours.
+- **Favorites** - the songs you starred: the star beside **Share** on a song's page (**Add to favorites**, **Remove from favorites**). It shows once you have one. **See all** lists them, as the **Favorites** filter above the list and in the sidebar's panel do. Your favorites are your own.
+- **Popular in your teams** - what your teams play and look at most: songs in your teams' sets and opened by their members over the last 90 days.
+
+A song without an image of its own gets a cover from its title's colour and initials. The rows step aside when you search or filter, so the results come first; **All songs** below them is the full list.
+
+## Searching and filtering
+
 - **Search** by title, artist or CCLI number.
-- **Filter** by language (**All languages**) and tag (**All tags**).
+- **Filter** by language (**All languages**) and tag (**All tags**), or show only your **Favorites**.
 - **Sort** by a column by clicking its heading.
 - The **Status** column says where a song stands: **Personal** or **Team** for one never offered to the global catalogue, then where its submission is (**Waiting for review**, **Published**...).
 

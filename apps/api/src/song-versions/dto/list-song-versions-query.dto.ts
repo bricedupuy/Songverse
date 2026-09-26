@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Transform } from "class-transformer";
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 export const SONG_SORTS = ["title", "updatedAt", "createdAt", "language", "publicationState"] as const;
 export type SongSort = (typeof SONG_SORTS)[number];
@@ -27,6 +27,12 @@ export class ListSongVersionsQueryDto {
   @IsOptional()
   @IsString()
   tagId?: string;
+
+  @ApiProperty({ required: false, description: "Only your favorites (issue #81)" })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === "true")
+  @IsBoolean()
+  favorites?: boolean;
 
   @ApiProperty({ required: false, description: "Only songs by this artist (the whole name, ignoring case and accents)" })
   @IsOptional()

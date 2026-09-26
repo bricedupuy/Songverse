@@ -16,6 +16,7 @@ import { apiClient } from "#/lib/api-client";
 import { useMode } from "#/lib/mode";
 import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setlistTitle, transposeLabel } from "#/lib/setlists";
+import { useSongView } from "#/lib/song-views";
 
 /**
  * One song of a set, readable by anyone who can open the set - guests
@@ -59,6 +60,7 @@ function SetSongRoute() {
 function SetSongPage({ view }: { view: SetlistSongView }) {
   const { t, i18n } = useTranslation();
   const { set, item, song } = view;
+  useSongView(song?.id);
 
   // The arrangement's key and tempo, with the set's own key on top.
   const arrangement = view.arrangement?.document.defaults;

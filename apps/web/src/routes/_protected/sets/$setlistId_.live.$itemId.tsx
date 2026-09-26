@@ -9,6 +9,7 @@ import { apiClient } from "#/lib/api-client";
 import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setMode } from "#/lib/mode";
 import { setlistTitle } from "#/lib/setlists";
+import { useSongView } from "#/lib/song-views";
 
 /** One song of a set, full screen, in Live mode (components/live-view.tsx). */
 export const Route = createFileRoute("/_protected/sets/$setlistId_/live/$itemId")({
@@ -54,6 +55,7 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { set, item, song } = view;
+  useSongView(song?.id);
   const goTo = (itemId: string | null) =>
     itemId ? () => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }) : null;
 

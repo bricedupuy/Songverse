@@ -169,6 +169,17 @@ export class SongFoldService implements OnApplicationBootstrap {
     }
     await tx.attachment.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
 
+    // People's favorites and views of it (#81) are of the catalogue song now; both for one person merge.
+    await tx.$executeRaw`
+      INSERT INTO "FavoriteSong" ("userId", "songVersionId", "createdAt")
+      SELECT "userId", ${targetId}, "createdAt" FROM "FavoriteSong" WHERE "songVersionId" = ${songId}
+      ON CONFLICT ("userId", "songVersionId") DO NOTHING`;
+    await tx.$executeRaw`
+      INSERT INTO "SongView" ("userId", "songVersionId", "viewedAt", "count")
+      SELECT "userId", ${targetId}, "viewedAt", "count" FROM "SongView" WHERE "songVersionId" = ${songId}
+      ON CONFLICT ("userId", "songVersionId") DO UPDATE
+        SET "viewedAt" = GREATEST("SongView"."viewedAt", EXCLUDED."viewedAt"), "count" = "SongView"."count" + EXCLUDED."count"`;
+
     // Tags it has that the catalogue song doesn't.
     const tags = await tx.songVersionTag.findMany({ where: { songVersionId: songId }, select: { tagId: true } });
     await tx.songVersionTag.createMany({ data: tags.map(({ tagId }) => ({ songVersionId: targetId, tagId })), skipDuplicates: true });

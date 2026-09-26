@@ -7,8 +7,21 @@ La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, c
 
 ![La bibliothèque](../../../assets/screenshots/fr/library.jpg)
 
+## L'accueil de la bibliothèque
+
+**Bibliothèque** s'ouvre sur son accueil, avec des rangées de chants au-dessus de la liste complète :
+
+- **Nouveautés** - les derniers chants que vous pouvez voir ; **Tout voir** les liste tous, les plus récents d'abord.
+- **Consultés récemment** - les chants que vous avez ouverts en dernier (sur leur page, dans une liste de chants ou en Live). Vous seul·e voyez les vôtres.
+- **Favoris** - les chants que vous avez marqués d'une étoile : l'étoile à côté de **Partager** sur la page d'un chant (**Ajouter aux favoris**, **Retirer des favoris**). La rangée apparaît dès que vous en avez un. **Tout voir** les liste, comme le filtre **Favoris** au-dessus de la liste et dans le panneau de la barre latérale. Vos favoris sont à vous.
+- **Populaires dans vos équipes** - ce que vos équipes jouent et consultent le plus : les chants de leurs listes et ouverts par leurs membres ces 90 derniers jours.
+
+Un chant sans image à lui a une couverture tirée de son titre : une couleur et ses initiales. Les rangées s'effacent quand vous cherchez ou filtrez, pour que les résultats viennent en premier ; **Tous les chants**, en dessous, est la liste complète.
+
+## Chercher et filtrer
+
 - **Recherchez** par titre, artiste ou numéro CCLI.
-- **Filtrez** par langue (**Toutes les langues**) et étiquette (**Toutes les étiquettes**).
+- **Filtrez** par langue (**Toutes les langues**) et étiquette (**Toutes les étiquettes**), ou n'affichez que vos **Favoris**.
 - **Triez** par colonne en cliquant sur son titre.
 - La colonne **Statut** dit où en est un chant : **Personnel** ou **Équipe** s'il n'a jamais été proposé au catalogue global, puis où en est sa proposition (**En attente de relecture**, **Publié**…).
 

@@ -642,6 +642,8 @@ export type SongSort = "title" | "updatedAt" | "createdAt" | "language" | "publi
 export interface ListSongVersionsQuery {
   /** Matches title, subtitle, version name or artist (ignoring case), or a CCLI number exactly. */
   q?: string;
+  /** Only the user's favorites (issue #81). */
+  favorites?: boolean;
   language?: string;
   tagId?: string;
   /** Only this artist's songs: the whole name, ignoring case and accents. */
@@ -682,6 +684,14 @@ export interface ArtistCount {
 }
 
 /** One page of songs, with the total across all pages. */
+/** The Library's home (issue #81): its shelves, each up to 12 songs. */
+export interface LibraryHome {
+  newest: SongVersionSummary[];
+  recent: SongVersionSummary[];
+  favorites: SongVersionSummary[];
+  popular: SongVersionSummary[];
+}
+
 export interface SongPage {
   items: SongVersionSummary[];
   total: number;
@@ -816,6 +826,8 @@ export interface SongVersionDetail extends SongVersionSummary {
   canEdit: boolean;
   /** Whether they may delete, publish or share it, or change its links and everyone's files (#77). */
   canManage: boolean;
+  /** In the user's favorites (issue #81). */
+  isFavorite?: boolean;
 }
 
 /** A song's optional fields. A field left out is left alone; null clears it. */
@@ -1193,6 +1205,10 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       );
       return request<SongPage>(`/song-versions${params.size ? `?${params}` : ""}`);
     },
+    getLibraryHome: () => request<LibraryHome>("/library/home"),
+    /** The user opened the song (Recently viewed, and their teams' Popular). */
+    recordSongView: (songVersionId: string) => request<void>(`/song-versions/${songVersionId}/views`, { method: "POST" }),
+    setFavorite: (songVersionId: string, on: boolean) => request<void>(`/song-versions/${songVersionId}/favorite`, { method: on ? "PUT" : "DELETE" }),
     listArtists: (q?: string) => request<ArtistCount[]>(`/song-versions/artists${q?.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`),
     listSmartLists: () => request<SmartList[]>("/smart-lists"),
     createSmartList: (name: string, filters: SmartListFilters) => request<SmartList>("/smart-lists", { method: "POST", body: JSON.stringify({ name, filters }) }),

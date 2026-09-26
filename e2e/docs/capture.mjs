@@ -89,6 +89,9 @@ try {
       songs.push(await api(me, "POST", "/song-versions", { ...song, language: "en", contentFormat: "CHORDPRO", teamId: team.id }));
     }
     const grace = songs[0];
+    // The Library's home (issue #81): songs looked at lately, and a favorite.
+    for (const song of [...songs].reverse()) await api(me, "POST", `/song-versions/${song.id}/views`);
+    await api(me, "PUT", `/song-versions/${grace.id}/favorite`);
     // Its history (issue #71) spread over a few days, as saves minutes apart are one step.
     const earlier = (hours) =>
       sql(`update "SongVersionRevision" set "createdAt" = "createdAt" - interval '${hours} hours', "updatedAt" = "updatedAt" - interval '${hours} hours' where "songVersionId" = '${grace.id}'`);

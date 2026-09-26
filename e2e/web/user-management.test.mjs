@@ -145,7 +145,7 @@ await step("signed-out visitor signs in from the link and claims the content", a
   await page.getByRole("button", { name: "Accept content" }).click();
   await page.getByText("Done - the content is now yours.").waitFor();
   await page.getByRole("link", { name: "Go to library" }).click();
-  await page.getByText(songTitle).waitFor();
+  await page.getByRole("row").getByText(songTitle).waitFor(); // in the list, not the home's shelves
   current = adminPage;
 });
 

@@ -7,6 +7,7 @@ import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
 import { setMode } from "#/lib/mode";
 import { deviceStorage } from "#/lib/offline-data";
+import { useSongView } from "#/lib/song-views";
 
 /** What playing a song on its own needs: from the library online, from a kept set offline. */
 export interface LoneSong {
@@ -83,6 +84,7 @@ function SongLiveRoute() {
   const song = Route.useLoaderData();
   const { back } = Route.useSearch();
   useEffect(() => setMode("live"), []);
+  useSongView(song.id);
   return <SongLiveView song={song} back={back} />;
 }
 

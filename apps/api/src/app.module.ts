@@ -25,6 +25,7 @@ import { WorksModule } from "./works/works.module";
 import { PublishingModule } from "./publishing/publishing.module";
 import { SuggestionsModule } from "./suggestions/suggestions.module";
 import { PeopleModule } from "./people/people.module";
+import { LibraryHomeModule } from "./library-home/library-home.module";
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { PeopleModule } from "./people/people.module";
     PublishingModule,
     SuggestionsModule,
     PeopleModule,
+    LibraryHomeModule,
   ],
   controllers: [AppController],
   providers: [
