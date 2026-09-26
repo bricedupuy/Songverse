@@ -50,12 +50,14 @@ export function SongCover({ song, className }: { song: CardSong; className?: str
   );
 }
 
-function SongCard({ song }: { song: CardSong }) {
+/** `from`: the list the card's shelf stands for, which the sidebar lists beside the song (issue #80). */
+function SongCard({ song, from }: { song: CardSong; from?: string }) {
   const artists = song.artists.map((artist) => artist.source).filter(Boolean).join(", ");
   return (
     <Link
       to="/library/$songVersionId"
       params={{ songVersionId: song.id }}
+      search={from ? { from } : {}}
       className="group flex w-36 shrink-0 snap-start flex-col gap-2 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-40"
       data-testid="song-card"
     >
@@ -68,7 +70,7 @@ function SongCard({ song }: { song: CardSong }) {
   );
 }
 
-function Shelf({ id, title, songs, more }: { id: string; title: string; songs: CardSong[]; more?: ReactNode }) {
+function Shelf({ id, title, songs, more, from }: { id: string; title: string; songs: CardSong[]; more?: ReactNode; from?: string }) {
   return (
     <section className="flex flex-col gap-3" aria-labelledby={`shelf-${id}`} data-testid={`shelf-${id}`}>
       <div className="flex items-baseline justify-between gap-2">
@@ -79,7 +81,7 @@ function Shelf({ id, title, songs, more }: { id: string; title: string; songs: C
       </div>
       <div className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2">
         {songs.map((song) => (
-          <SongCard key={song.id} song={song} />
+          <SongCard key={song.id} song={song} from={from} />
         ))}
       </div>
     </section>
@@ -105,11 +107,11 @@ export function LibraryShelves({ home }: { home: LibraryHome }) {
   return (
     <div className="flex flex-col gap-8" data-testid="library-home">
       {home.newest.length > 0 ? (
-        <Shelf id="newest" title={t("library.home.newest")} songs={home.newest} more={<SeeAll search={{ sort: "createdAt", dir: "desc" }}>{t("library.home.seeAll")}</SeeAll>} />
+        <Shelf id="newest" title={t("library.home.newest")} songs={home.newest} from="sort=createdAt&dir=desc" more={<SeeAll search={{ sort: "createdAt", dir: "desc" }}>{t("library.home.seeAll")}</SeeAll>} />
       ) : null}
       {home.recent.length > 0 ? <Shelf id="recent" title={t("library.home.recent")} songs={home.recent} /> : null}
       {home.favorites.length > 0 ? (
-        <Shelf id="favorites" title={t("library.home.favorites")} songs={home.favorites} more={<SeeAll search={{ favorites: true }}>{t("library.home.seeAll")}</SeeAll>} />
+        <Shelf id="favorites" title={t("library.home.favorites")} songs={home.favorites} from="favorites=true" more={<SeeAll search={{ favorites: true }}>{t("library.home.seeAll")}</SeeAll>} />
       ) : null}
       {home.popular.length > 0 ? <Shelf id="popular" title={t("library.home.popular")} songs={home.popular} /> : null}
     </div>

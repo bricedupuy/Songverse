@@ -17,6 +17,16 @@ import { refreshSmartLists, useSmartLists } from "#/lib/smart-lists";
 
 const PAGE_SIZE = 50;
 
+/** Where a song opened from this list came from, for the sidebar to list it (issue #80): the list's search, less its page. */
+function fromOf(search: LibrarySearch): { from?: string } {
+  const params = new URLSearchParams(
+    Object.entries({ ...search, page: undefined })
+      .filter(([, value]) => value !== undefined && value !== "")
+      .map(([key, value]) => [key, String(value)]),
+  );
+  return params.size ? { from: params.toString() } : {};
+}
+
 export const Route = createFileRoute("/_protected/library/songs")({
   validateSearch: parseLibrarySearch,
   loaderDeps: ({ search }) => search,
@@ -145,7 +155,7 @@ function LibraryIndex() {
                 }),
               });
             }}
-            onRowClick={(version) => void navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id } })}
+            onRowClick={(version) => void navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id }, search: fromOf(search) })}
           />
           <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm text-muted-foreground">
             <span data-testid="library-range">{t("library.range", { from, to, total: songs.total })}</span>

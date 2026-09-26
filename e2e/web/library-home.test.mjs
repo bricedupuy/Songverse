@@ -40,7 +40,7 @@ await step("Library opens on its home: newly added first, with covers; popular i
 
 await step("a song opened is recently viewed; starred, it's a favorite", async () => {
   await card("newest", `Zephyr hymn ${stamp}`).click();
-  await page.waitForURL(`${WEB}/library/${older.id}`);
+  await page.waitForURL(new RegExp(`/library/${older.id}(\\?|$)`)); // with where it was opened from
   const star = page.getByRole("button", { name: "Add to favorites" });
   await star.click();
   await page.getByRole("button", { name: "Remove from favorites" }).waitFor();

@@ -1,8 +1,8 @@
-// The sidebar (issue #80): the full one on a section's own page; inside a
-// section, after shadcn's sidebar-09, a rail of sections and a panel listing
-// what's in the one you're in - songs, sets, songbooks - to go from one to
-// the next, and in a set or a songbook its songs; filtering it; collapsing
-// either (remembered).
+// The sidebar (issue #80): the full one on a section's pages and lists; on
+// one item (a song, a set, a songbook), after shadcn's sidebar-09, a rail of
+// sections and a panel listing what it was opened from - your favorites,
+// Songs as searched, a set's or a songbook's songs - to go from one to the
+// next; filtering it; collapsing either (remembered).
 import { chromium } from "playwright";
 import { WEB, api, finish, railLink, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
@@ -35,25 +35,49 @@ await step("a section's own page has the full sidebar, its lists under each sect
   await page.locator('[data-slot="sidebar"]').getByRole("link", { name: `Sidebar set ${stamp}` }).waitFor();
 });
 
-await step("inside it - a song - the rail and the library's panel; one song marked, the next one click away", async () => {
-  await page.goto(`${WEB}/library/${first.id}`);
+const noRail = async () => {
   await page.waitForLoadState("networkidle");
+  if (await page.getByTestId("sidebar-rail").count()) throw new Error(`the rail on ${page.url()}`);
+};
+
+await step("lists keep the full sidebar; a song opened from Favorites has your favorites beside it", async () => {
+  await api(me, "PUT", `/song-versions/${second.id}/favorite`);
+  await page.getByTestId("library-sections").getByRole("link", { name: "Favorites", exact: true }).click();
+  await page.waitForURL(/\/library\/songs\?favorites=true/);
+  await page.getByTestId("library-range").waitFor(); // Songs, not the home's table still showing
+  await noRail();
+  await page.getByRole("row").filter({ hasText: `Aardvark psalm ${stamp}` }).click();
+  await page.waitForURL(new RegExp(`/library/${second.id}\\?from=`));
   if ((await railLink(page, "Library").getAttribute("data-active")) !== "true") throw new Error("Library isn't marked");
-  await panel().getByLabel("Filter…").fill(`Aardvark`);
+  await panel().getByTestId("sidebar-panel-title").getByText("Favorites", { exact: true }).waitFor();
   await panel().getByRole("link", { name: `Aardvark psalm ${stamp}` }).waitFor();
-  if ((await panel().getByRole("link", { name: `Aardvark hymn ${stamp}` }).getAttribute("aria-current")) !== "page") throw new Error("not marked");
-  await panel().getByRole("link", { name: `Aardvark psalm ${stamp}` }).click();
-  await page.waitForURL(`${WEB}/library/${second.id}`);
-  await page.getByRole("heading", { name: `Aardvark psalm ${stamp}` }).first().waitFor();
+  if (await panel().getByRole("link", { name: `Aardvark hymn ${stamp}` }).count()) throw new Error("not only the favorites");
 });
 
-await step("Artists is inside Library too; Sets on the rail is the full sidebar again", async () => {
-  await panel().getByRole("link", { name: "Artists", exact: true }).click();
-  await page.waitForURL(`${WEB}/library/artists`);
-  await page.getByTestId("sidebar-rail").waitFor();
-  await railLink(page, "Sets").click();
-  await page.waitForURL(`${WEB}/sets`);
-  await page.getByTestId("sidebar-rail").waitFor({ state: "detached" });
+await step("a song opened from Songs has the songs as searched; one marked, the next one click away, still from there", async () => {
+  await page.goto(`${WEB}/library/songs?q=Aardvark`);
+  await noRail();
+  await page.getByRole("row").filter({ hasText: `Aardvark hymn ${stamp}` }).click();
+  await page.waitForURL(new RegExp(`/library/${first.id}\\?from=q%3DAardvark`));
+  await panel().getByTestId("sidebar-panel-title").getByText("Songs", { exact: true }).waitFor();
+  if ((await panel().getByRole("link", { name: `Aardvark hymn ${stamp}` }).getAttribute("aria-current")) !== "page") throw new Error("not marked");
+  await panel().getByRole("link", { name: `Aardvark psalm ${stamp}` }).click();
+  await page.waitForURL(new RegExp(`/library/${second.id}\\?from=q%3DAardvark`));
+  await page.getByRole("heading", { name: `Aardvark psalm ${stamp}` }).first().waitFor();
+  // Back to the list, as it was: the full sidebar again.
+  await panel().getByTestId("sidebar-panel-back").click();
+  await page.waitForURL(/\/library\/songs\?q=Aardvark/);
+  await noRail();
+});
+
+await step("from the home's Favorites shelf, the favorites; Artists and Sets are lists too", async () => {
+  await page.goto(`${WEB}/library`);
+  await page.getByTestId("shelf-favorites").getByTestId("song-card").first().click();
+  await panel().getByTestId("sidebar-panel-title").getByText("Favorites", { exact: true }).waitFor();
+  await page.goto(`${WEB}/library/artists`);
+  await noRail();
+  await page.goto(`${WEB}/sets`);
+  await noRail();
   await page.locator('[data-slot="sidebar"]').getByRole("link", { name: `Sidebar set ${stamp}` }).click();
   await page.waitForURL(`${WEB}/sets/${set.id}`);
 });

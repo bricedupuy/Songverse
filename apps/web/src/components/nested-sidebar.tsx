@@ -10,12 +10,10 @@ import {
   FileStack,
   KeyRound,
   LayoutDashboard,
-  ListFilter,
   ListMusic,
   Music2,
   Plus,
   ShieldCheck,
-  Star,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -33,7 +31,8 @@ import { initials } from "#/lib/initials";
 import type { AppSession } from "#/lib/server-auth";
 import { deviceStorage } from "#/lib/offline-data";
 import { setlistTitle, setOwnerLabel, transposeLabel } from "#/lib/setlists";
-import { smartListSearch, useSmartLists } from "#/lib/smart-lists";
+import { useSmartLists } from "#/lib/smart-lists";
+import { filtersOf, parseLibrarySearch } from "#/routes/_protected/library/-library-search";
 import { cn } from "#/lib/utils";
 
 type Section = "library" | "sets" | "songbooks" | "teams" | "people" | "review" | "admin";
@@ -142,7 +141,7 @@ export function NestedSidebar({
       </nav>
       <div className={cn("overflow-hidden transition-[width] duration-200 ease-linear", open ? "w-72" : "w-0")} aria-hidden={!open}>
         <section className="flex h-full w-72 flex-col" aria-label={t("nav.panel", { section: title })} data-testid="sidebar-panel" data-section={panel}>
-          {panel === "library" ? <LibraryPanel title={title} pathname={pathname} /> : null}
+          {panel === "library" ? <LibraryPanel pathname={pathname} /> : null}
           {panel === "sets" ? <SetsPanel title={title} pathname={pathname} setlists={setlists} /> : null}
           {panel === "songbooks" ? <SongbooksPanel title={title} pathname={pathname} songbooks={songbooks} fromSongbook={fromSongbook} /> : null}
           {panel === "teams" ? <TeamsPanel title={title} pathname={pathname} teams={teams} /> : null}
@@ -228,35 +227,31 @@ function PanelList({ children, empty }: { children: ReactNode[]; empty?: string 
 
 const PAGE_SIZE = 50;
 
-function LibraryPanel({ title, pathname }: { title: string; pathname: string }) {
+/**
+ * The list a song was opened from (issue #80): Songs as it was searched,
+ * filtered and sorted - your favorites, a smart list, an artist's songs -
+ * carried in the song's address as `from` (the list's own search).
+ */
+function LibraryPanel({ pathname }: { pathname: string }) {
   const { t } = useTranslation();
   const smartLists = useSmartLists();
-  // "favorites" for the user's favorites (issue #81), else a smart list's id.
-  const urlList = useRouterState({
-    select: (s) => {
-      if (s.location.pathname !== "/library/songs") return undefined;
-      const search = s.location.search as { list?: string; favorites?: boolean };
-      return search.favorites ? "favorites" : (search.list ?? null);
-    },
-  });
+  const from = useRouterState({ select: (s) => (s.location.search as { from?: string }).from ?? "" });
+  const source = parseLibrarySearch(Object.fromEntries(new URLSearchParams(from)));
+  const list = source.list ? smartLists.find((candidate) => candidate.id === source.list) : undefined;
+  const title = list?.name ?? (source.favorites ? t("library.home.favorites") : source.artist ? t("library.byArtist", { name: source.artist }) : t("nav.songs"));
   const [filter, setFilter] = useState("");
-  // The smart list the panel lists: the one open on Songs, or the last one opened.
-  const [listId, setListId] = useState<string | null>(urlList ?? null);
-  useEffect(() => {
-    if (urlList !== undefined) setListId(urlList);
-  }, [urlList]);
   const [songs, setSongs] = useState<SongVersionSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [failed, setFailed] = useState(false);
-  const filters: ListSongVersionsQuery = listId === "favorites" ? { favorites: true } : (smartLists.find((list) => list.id === listId)?.filters ?? {});
-  const query = JSON.stringify({ ...filters, q: [filters.q, filter.trim()].filter(Boolean).join(" ") || undefined });
+  const base: ListSongVersionsQuery = { ...filtersOf(source), ...(source.favorites && { favorites: true }) };
+  const query = JSON.stringify({ ...base, q: [base.q, filter.trim()].filter(Boolean).join(" ") || undefined });
 
   useEffect(() => {
     let cancelled = false;
     const timer = setTimeout(() => {
       apiClient
-        .listSongVersions({ sort: "title", dir: "asc", ...JSON.parse(query), page, pageSize: PAGE_SIZE })
+        .listSongVersions({ ...JSON.parse(query), page, pageSize: PAGE_SIZE })
         .then((result) => {
           if (cancelled) return;
           setFailed(false);
@@ -272,31 +267,21 @@ function LibraryPanel({ title, pathname }: { title: string; pathname: string }) 
   }, [query, page]);
   useEffect(() => setPage(1), [query]);
 
-  const chip = (active: boolean) =>
-    cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs hover:bg-sidebar-accent", active && "border-primary bg-primary/10 text-foreground");
   return (
     <>
-      <PanelHeader title={title} filter={filter} onFilter={setFilter} newItem={<NewLink to="/library/new" label={t("nav.new")} />}>
-        {/* Songs (what Library opens on), the user's smart lists (issue #58) and artists. */}
-        <div className="flex flex-wrap gap-1.5" data-testid="library-sections">
-          <Link to="/library/songs" className={chip(pathname === "/library/songs" && !urlList)}>
-            {t("nav.songs")}
-          </Link>
-          <Link to="/library/songs" search={{ favorites: true }} className={chip(listId === "favorites")}>
-            <Star className="size-3" />
-            {t("library.home.favorites")}
-          </Link>
-          {smartLists.map((list) => (
-            <Link key={list.id} to="/library/songs" search={smartListSearch(list)} className={chip(listId === list.id)}>
-              <ListFilter className="size-3" />
-              {list.name}
-            </Link>
-          ))}
-          <Link to="/library/artists" className={chip(pathname === "/library/artists")}>
-            {t("nav.artists")}
-          </Link>
-        </div>
-      </PanelHeader>
+      <div className="flex flex-col gap-2 border-b p-3">
+        {/* Back to the list itself, as it was. */}
+        <Link
+          to="/library/songs"
+          search={parseLibrarySearch(Object.fromEntries(new URLSearchParams(from)))}
+          className="flex items-center gap-1 self-start rounded-md text-sm text-muted-foreground hover:text-foreground"
+          data-testid="sidebar-panel-back"
+        >
+          <ChevronLeft className="size-4" />
+          <span data-testid="sidebar-panel-title">{title}</span>
+        </Link>
+        <Input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t("nav.filter")} aria-label={t("nav.filter")} className="h-8 bg-background" />
+      </div>
       {failed && songs.length === 0 ? (
         <p className="p-3 text-sm text-muted-foreground">{t("nav.listUnavailable")}</p>
       ) : (
@@ -305,7 +290,7 @@ function LibraryPanel({ title, pathname }: { title: string; pathname: string }) 
             ...songs.map((song) => (
               <PanelEntry key={song.id} active={pathname === `/library/${song.id}` || pathname.startsWith(`/library/${song.id}/`)} title={song.title} detail={song.artists.map((a) => a.source).filter(Boolean).join(", ")}>
                 {(className, content) => (
-                  <Link to="/library/$songVersionId" params={{ songVersionId: song.id }} className={className}>
+                  <Link to="/library/$songVersionId" params={{ songVersionId: song.id }} search={from ? { from } : {}} className={className}>
                     {content}
                   </Link>
                 )}

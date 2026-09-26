@@ -8,6 +8,8 @@ export interface SongSearch {
   linkTo?: string;
   /** Opened from a songbook: the sidebar lists that songbook's songs (issue #80). */
   songbook?: string;
+  /** Opened from Songs: that list's own search (favorites, a smart list, filters), for the sidebar (issue #80). */
+  from?: string;
 }
 
 export function parseSongSearch(search: Record<string, unknown>): SongSearch {
@@ -16,6 +18,7 @@ export function parseSongSearch(search: Record<string, unknown>): SongSearch {
     ...(typeof search.notice === "string" && search.notice && { notice: search.notice }),
     ...(typeof search.linkTo === "string" && search.linkTo && { linkTo: search.linkTo }),
     ...(typeof search.songbook === "string" && search.songbook && { songbook: search.songbook }),
+    ...(typeof search.from === "string" && search.from && { from: search.from }),
   };
 }
 

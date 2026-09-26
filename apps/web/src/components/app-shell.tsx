@@ -64,6 +64,6 @@ export function AppShell({
  */
 function ShellSidebar(props: { session: AppSession; teams: TeamSummary[]; songbooks: SongbookSummary[]; setlists: SetlistSummary[] }) {
   const { isMobile } = useSidebar();
-  const nested = useRouterState({ select: (s) => nestedSidebarFor(s.location.pathname, s.location.search as Record<string, unknown>) });
+  const nested = useRouterState({ select: (s) => nestedSidebarFor(s.location.pathname) });
   return isMobile || !nested ? <AppSidebar {...props} /> : <NestedSidebar {...props} />;
 }
