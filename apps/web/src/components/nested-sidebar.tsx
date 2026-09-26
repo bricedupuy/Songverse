@@ -1,4 +1,4 @@
-import { keptSetDetail, onlineOrKept, transposeKey, type PeopleOverview, type SetlistDetail, type SetlistSummary, type SongbookSummary, type SongVersionSummary, type TeamSummary } from "@songverse/core";
+import { keptSetDetail, keptSongbook, onlineOrKept, transposeKey, type PeopleOverview, type SetlistDetail, type SetlistSummary, type SongbookDetail, type SongbookSummary, type SongVersionSummary, type TeamSummary } from "@songverse/core";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeft,
@@ -66,7 +66,9 @@ export function NestedSidebar({
   const { t } = useTranslation();
   const { state, open, setOpen } = useSidebar();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const section = sectionOf(pathname);
+  // A song opened from a songbook stays in the songbook (issue #80).
+  const fromSongbook = useRouterState({ select: (s) => (s.location.pathname.startsWith("/library/") ? (s.location.search as { songbook?: string }).songbook : undefined) });
+  const section = fromSongbook ? "songbooks" : sectionOf(pathname);
   // The panel shows the section you're in; on a page outside them (the dashboard…), the last one.
   const [panel, setPanel] = useState<Section>(section ?? "library");
   useEffect(() => {
@@ -141,7 +143,7 @@ export function NestedSidebar({
         <section className="flex h-full w-72 flex-col" aria-label={t("nav.panel", { section: title })} data-testid="sidebar-panel" data-section={panel}>
           {panel === "library" ? <LibraryPanel title={title} pathname={pathname} /> : null}
           {panel === "sets" ? <SetsPanel title={title} pathname={pathname} setlists={setlists} /> : null}
-          {panel === "songbooks" ? <SongbooksPanel title={title} pathname={pathname} songbooks={songbooks} /> : null}
+          {panel === "songbooks" ? <SongbooksPanel title={title} pathname={pathname} songbooks={songbooks} fromSongbook={fromSongbook} /> : null}
           {panel === "teams" ? <TeamsPanel title={title} pathname={pathname} teams={teams} /> : null}
           {panel === "people" ? <PeoplePanel title={title} /> : null}
           {panel === "review" ? <LinksPanel title={title} pathname={pathname} links={[{ to: "/review", label: t("nav.review"), icon: <ClipboardCheck /> }]} /> : null}
@@ -416,9 +418,14 @@ function SetSongsPanel({ setId, pathname, sets, onBack }: { setId: string; pathn
   );
 }
 
-function SongbooksPanel({ title, pathname, songbooks }: { title: string; pathname: string; songbooks: SongbookSummary[] }) {
+function SongbooksPanel({ title, pathname, songbooks, fromSongbook }: { title: string; pathname: string; songbooks: SongbookSummary[]; fromSongbook?: string }) {
   const { t } = useTranslation();
   const [filter, setFilter] = useState("");
+  // In a songbook (its page, or a song opened from it): the panel lists its songs; back to the songbooks from there.
+  const openBook = /^\/songbooks\/(?!new$)([^/]+)/.exec(pathname)?.[1] ?? fromSongbook ?? null;
+  const [listingBooks, setListingBooks] = useState(false);
+  useEffect(() => setListingBooks(false), [pathname]);
+  if (openBook && !listingBooks) return <SongbookSongsPanel songbookId={openBook} pathname={pathname} songbooks={title} onBack={() => setListingBooks(true)} />;
   const shown = songbooks.filter((book) => fold(`${book.name} ${book.abbreviation ?? ""}`).includes(fold(filter.trim())));
   return (
     <>
@@ -434,6 +441,80 @@ function SongbooksPanel({ title, pathname, songbooks }: { title: string; pathnam
           </PanelEntry>
         ))}
       </PanelList>
+    </>
+  );
+}
+
+/** One songbook's songs (issue #80), by number: filtered by number or title, the one you're on marked. */
+function SongbookSongsPanel({ songbookId, pathname, songbooks, onBack }: { songbookId: string; pathname: string; songbooks: string; onBack: () => void }) {
+  const { t } = useTranslation();
+  const [book, setBook] = useState<SongbookDetail | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [filter, setFilter] = useState("");
+  // Fetched again when the songbook's page reloads its own (an entry added or removed…).
+  const reloaded = useRouterState({ select: (s) => s.matches.find((match) => match.routeId.includes("$songbookId"))?.updatedAt });
+  useEffect(() => {
+    let cancelled = false;
+    onlineOrKept(
+      () => apiClient.getSongbook(songbookId),
+      () => keptSongbook(deviceStorage(), songbookId),
+    )
+      .then((detail) => {
+        if (cancelled) return;
+        setBook(detail ?? null);
+        setFailed(!detail);
+      })
+      .catch(() => !cancelled && setFailed(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [songbookId, reloaded]);
+  const wanted = fold(filter.trim());
+  // A number finds that entry (and those it starts); words, the titles.
+  const byNumber = /^\d+$/.test(wanted);
+  const shown = (book?.entries ?? []).filter((entry) =>
+    byNumber ? (entry.entryCode ?? "").startsWith(wanted) : fold(`${entry.entryCode ?? ""} ${entry.songVersionTitle ?? ""}`).includes(wanted),
+  );
+
+  return (
+    <>
+      <div className="flex flex-col gap-2 border-b p-3">
+        <button type="button" onClick={onBack} className="flex items-center gap-1 self-start rounded-md text-sm text-muted-foreground hover:text-foreground" data-testid="sidebar-panel-back">
+          <ChevronLeft className="size-4" />
+          <span data-testid="sidebar-panel-title">{songbooks}</span>
+        </button>
+        {book ? (
+          <Link
+            to="/songbooks/$songbookId"
+            params={{ songbookId: book.id }}
+            className="flex flex-col gap-0.5 rounded-md px-1 py-0.5 hover:bg-sidebar-accent data-[status=active]:bg-sidebar-accent"
+          >
+            <span className="truncate text-base font-medium text-foreground">{book.name}</span>
+            <span className="truncate text-xs text-muted-foreground">{[book.abbreviation, t("nav.songCount", { count: book.entries.length })].filter(Boolean).join(" · ")}</span>
+          </Link>
+        ) : null}
+        <Input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder={t("nav.filter")} aria-label={t("nav.filter")} className="h-8 bg-background" />
+      </div>
+      {failed ? (
+        <p className="p-3 text-sm text-muted-foreground">{t("nav.listUnavailable")}</p>
+      ) : book ? (
+        <PanelList empty={filter ? undefined : t("songbooks.noEntriesYet")}>
+          {shown.map((entry) => (
+            <PanelEntry
+              key={entry.id}
+              active={pathname === `/library/${entry.songVersionId}`}
+              title={[entry.entryCode, entry.songVersionTitle ?? t("sets.hiddenSong")].filter(Boolean).join(". ")}
+              detail={entry.sectionLabel}
+            >
+              {(className, content) => (
+                <Link to="/library/$songVersionId" params={{ songVersionId: entry.songVersionId }} search={{ songbook: book.id }} className={className}>
+                  {content}
+                </Link>
+              )}
+            </PanelEntry>
+          ))}
+        </PanelList>
+      ) : null}
     </>
   );
 }

@@ -74,7 +74,7 @@ function SongVersionPage() {
       {...data}
       notices={parseNotices(notice)}
       tab={tab ?? "info"}
-      onTabChange={(next) => void navigate({ search: { tab: next === "info" ? undefined : next }, replace: true })}
+      onTabChange={(next) => void navigate({ search: (prev) => ({ ...prev, tab: next === "info" ? undefined : next }), replace: true })}
     />
   );
 }

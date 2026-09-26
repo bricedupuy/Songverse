@@ -401,6 +401,7 @@ function SongbookDetail() {
                     <Link
                       to="/library/$songVersionId"
                       params={{ songVersionId: entry.songVersionId }}
+                      search={{ songbook: songbook.id }}
                       className="text-sm hover:text-primary"
                     >
                       {entry.songVersionTitle ?? entry.songVersionId}

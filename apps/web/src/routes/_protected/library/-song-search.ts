@@ -6,6 +6,8 @@ export interface SongSearch {
   notice?: string;
   /** Adding a song: the song it's a translation or adaptation of (issue #78). */
   linkTo?: string;
+  /** Opened from a songbook: the sidebar lists that songbook's songs (issue #80). */
+  songbook?: string;
 }
 
 export function parseSongSearch(search: Record<string, unknown>): SongSearch {
@@ -13,6 +15,7 @@ export function parseSongSearch(search: Record<string, unknown>): SongSearch {
     ...(typeof search.tab === "string" && (SONG_TABS as readonly string[]).includes(search.tab) && { tab: search.tab as SongTab }),
     ...(typeof search.notice === "string" && search.notice && { notice: search.notice }),
     ...(typeof search.linkTo === "string" && search.linkTo && { linkTo: search.linkTo }),
+    ...(typeof search.songbook === "string" && search.songbook && { songbook: search.songbook }),
   };
 }
 

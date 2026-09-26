@@ -1,6 +1,6 @@
 // The nested sidebar (issue #80, after shadcn's sidebar-09): a rail of
 // sections and a panel listing what's in the one you're in - songs, sets,
-// songbooks - to go from one to the next, and in a set its songs; filtering
+// songbooks - to go from one to the next, and in a set or a songbook its songs; filtering
 // it; collapsing it to the rail (remembered), and a rail icon opening it again.
 import { chromium } from "playwright";
 import { WEB, api, finish, railLink, signIn, stamp, stepper, user } from "../lib/harness.mjs";
@@ -14,6 +14,9 @@ const set = await api(me, "POST", "/setlists", { name: `Sidebar set ${stamp}` })
 await api(me, "POST", "/setlists", { name: `Other set ${stamp}` });
 for (const song of [first, second]) await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: song.id });
 const { items } = await api(me, "GET", `/setlists/${set.id}`);
+const book = await api(me, "POST", "/songbooks", { name: `Sidebar book ${stamp}`, kind: "NUMBERED" });
+await api(me, "POST", `/songbooks/${book.id}/entries`, { songVersionId: first.id, entryCode: "7" });
+await api(me, "POST", `/songbooks/${book.id}/entries`, { songVersionId: second.id, entryCode: "12" });
 
 const browser = await chromium.launch();
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -68,6 +71,27 @@ await step("in a set, the panel lists its songs; one opens, and is marked; back 
   await panel().getByRole("link", { name: new RegExp(`Sidebar set ${stamp}`) }).click();
   await page.waitForURL(`${WEB}/sets/${set.id}`);
   await panel().getByTestId("sidebar-panel-list").getByRole("link", { name: `1. Aardvark hymn ${stamp}` }).waitFor();
+});
+
+await step("in a songbook, the panel lists its songs by number; a song opened from it stays in it", async () => {
+  await page.goto(`${WEB}/songbooks/${book.id}`);
+  await page.waitForLoadState("networkidle");
+  const songs = panel().getByTestId("sidebar-panel-list");
+  await songs.getByRole("link", { name: `12. Aardvark psalm ${stamp}` }).waitFor();
+  await panel().getByLabel("Filter…").fill("7");
+  await songs.getByRole("link", { name: `7. Aardvark hymn ${stamp}` }).waitFor();
+  if (await songs.getByRole("link", { name: `12. Aardvark psalm ${stamp}` }).count()) throw new Error("not filtered by number");
+  await songs.getByRole("link", { name: `7. Aardvark hymn ${stamp}` }).click();
+  await page.waitForURL(`${WEB}/library/${first.id}?songbook=${book.id}`);
+  // Still the songbook, the song marked, and Songbooks on the rail.
+  if ((await songs.getByRole("link", { name: `7. Aardvark hymn ${stamp}` }).getAttribute("aria-current")) !== "page") throw new Error("not marked");
+  if ((await railLink(page, "Songbooks").getAttribute("data-active")) !== "true") throw new Error("Songbooks isn't marked");
+  // Changing tab on the song keeps it.
+  await page.getByRole("tab", { name: "History" }).click();
+  await page.waitForURL(/tab=history/);
+  if (!page.url().includes(`songbook=${book.id}`)) throw new Error(page.url());
+  await panel().getByTestId("sidebar-panel-back").click();
+  await panel().getByRole("link", { name: new RegExp(`Sidebar book ${stamp}`) }).waitFor();
 });
 
 await step("collapsed to the rail, remembered; a rail icon opens it again", async () => {
