@@ -1,26 +1,18 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ImageService, type ProcessedImage } from "../images/image.service";
+import { MetadataService, type ArtworkCandidate } from "../metadata/metadata.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
-import { artworkAtSize, itunesBase, itunesSearch } from "./itunes";
 
-/** Where Deezer's API is (its covers are allowed too); pointed elsewhere only by the e2e suites. */
-const deezerTestOrigin = () => (process.env.DEEZER_API_URL ? new URL(process.env.DEEZER_API_URL).origin : null);
+export type { ArtworkCandidate };
+
+/** The suites' stand-ins' origins, whose artwork is allowed too. */
+const testOrigins = () =>
+  [process.env.ITUNES_SEARCH_URL, process.env.DEEZER_API_URL, process.env.SPOTIFY_API_URL, process.env.APPLE_MUSIC_API_URL]
+    .filter((url): url is string => !!url)
+    .map((url) => new URL(url).origin);
 const TIMEOUT_MS = 8000;
 const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024;
-/** The size of Apple's artwork kept (it's then made 800px WebP). */
-const ARTWORK_SIZE = "800x800bb";
-
-export interface ArtworkCandidate {
-  title: string;
-  artist: string;
-  album: string | null;
-  releaseDate: string | null;
-  /** The artwork, full size (what gets stored). */
-  artworkUrl: string;
-  /** A small one, to choose from. */
-  thumbnailUrl: string;
-}
 
 export interface EffectiveArtworkSettings {
   enabled: boolean;
@@ -51,6 +43,7 @@ export class ArtworkService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly images: ImageService,
+    private readonly metadata: MetadataService,
   ) {}
 
   async settings(): Promise<EffectiveArtworkSettings> {
@@ -74,27 +67,9 @@ export class ArtworkService {
     return this.settings();
   }
 
-  /** Apple Music's matches for a title and artist, each artwork once. */
-  async search(title: string, artist: string | null): Promise<ArtworkCandidate[]> {
-    const { country } = await this.settings();
-    const results = await itunesSearch([title, artist].filter(Boolean).join(" "), country);
-    const seen = new Set<string>();
-    const candidates: ArtworkCandidate[] = [];
-    for (const result of results) {
-      if (!result.artworkUrl100 || !result.trackName) continue;
-      const artworkUrl = artworkAtSize(result.artworkUrl100, ARTWORK_SIZE);
-      if (seen.has(artworkUrl)) continue;
-      seen.add(artworkUrl);
-      candidates.push({
-        title: result.trackName,
-        artist: result.artistName ?? "",
-        album: result.collectionName ?? null,
-        releaseDate: result.releaseDate?.slice(0, 10) ?? null,
-        artworkUrl,
-        thumbnailUrl: artworkAtSize(result.artworkUrl100, "200x200bb"),
-      });
-    }
-    return candidates;
+  /** The artwork providers' matches for a title and artist (issue #89), in their order, each artwork once. */
+  search(title: string, artist: string | null): Promise<ArtworkCandidate[]> {
+    return this.metadata.artworkCandidates(title, artist);
   }
 
   /** The candidates for a song, from its title and first artist. */
@@ -103,7 +78,7 @@ export class ArtworkService {
     return this.search(song.title, song.artist);
   }
 
-  /** Downloads the artwork at `url` (Apple Music's or Deezer's only), keeps it and makes it the song's image. */
+  /** Downloads the artwork at `url` (Apple Music's, Deezer's or Spotify's only), keeps it and makes it the song's image. */
   async setFromUrl(songVersionId: string, url: string, options: { onlyIfNone?: boolean } = {}): Promise<boolean> {
     let parsed: URL;
     try {
@@ -111,7 +86,7 @@ export class ArtworkService {
     } catch {
       throw new BadRequestException("Not an address");
     }
-    if (!this.allowedHost(parsed)) throw new BadRequestException("Artwork comes from Apple Music or Deezer only");
+    if (!this.allowedHost(parsed)) throw new BadRequestException("Artwork comes from Apple Music, Deezer or Spotify only");
     const res = await fetch(parsed, { signal: AbortSignal.timeout(TIMEOUT_MS) });
     if (!res.ok) throw new BadRequestException(`Couldn't download the artwork (${res.status})`);
     if (!(res.headers.get("content-type") ?? "").startsWith("image/")) throw new BadRequestException("That isn't an image");
@@ -170,9 +145,12 @@ export class ArtworkService {
       const title = fold(song.title);
       const artists = song.artists.map(fold).filter(Boolean);
       const year = (candidate: ArtworkCandidate) => candidate.releaseDate?.slice(0, 4) ?? "9999";
-      const match = (await this.search(song.title, song.artist))
-        .filter((candidate) => fold(candidate.title) === title && (artists.length === 0 || artists.some((artist) => fold(candidate.artist).includes(artist) || artist.includes(fold(candidate.artist)))))
-        .sort((a, b) => year(a).localeCompare(year(b)))[0];
+      const close = (await this.search(song.title, song.artist)).filter(
+        (candidate) => fold(candidate.title) === title && (artists.length === 0 || artists.some((artist) => fold(candidate.artist).includes(artist) || artist.includes(fold(candidate.artist)))),
+      );
+      // The first provider (in the admin's order) with a close match; its earliest release.
+      const provider = close[0]?.provider;
+      const match = close.filter((candidate) => candidate.provider === provider).sort((a, b) => year(a).localeCompare(year(b)))[0];
       if (!match) return false;
       return await this.setFromUrl(songVersionId, match.artworkUrl, { onlyIfNone: true });
     } catch (err) {
@@ -208,9 +186,9 @@ export class ArtworkService {
 
   private allowedHost(url: URL): boolean {
     const on = (domain: string) => url.hostname === domain || url.hostname.endsWith(`.${domain}`);
-    if (url.protocol === "https:" && (on("mzstatic.com") || on("dzcdn.net"))) return true;
-    // The e2e suites' stand-ins for Apple and Deezer serve their artwork too.
-    return (!!process.env.ITUNES_SEARCH_URL && url.origin === new URL(itunesBase()).origin) || url.origin === deezerTestOrigin();
+    if (url.protocol === "https:" && (on("mzstatic.com") || on("dzcdn.net") || on("scdn.co"))) return true;
+    // The e2e suites' stand-ins serve their artwork too.
+    return testOrigins().includes(url.origin);
   }
 
   private async songForArtwork(songVersionId: string) {

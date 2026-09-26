@@ -1,4 +1,4 @@
-import type { ArtistDetail } from "@songverse/core";
+import { METADATA_PROVIDER_NAMES, type ArtistDetail, type MetadataProviderKey } from "@songverse/core";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { ChevronLeft, ExternalLink, ImageUp, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -132,10 +132,10 @@ function ArtistPage() {
               <p className="text-sm text-muted-foreground">{artist.lookupsEnabled ? t("artistPage.noBio") : t("artistPage.lookupsOff")}</p>
             )}
 
-            {artist.imageSource === "deezer" && artist.imageSourceUrl ? (
+            {artist.imageSource && artist.imageSource in METADATA_PROVIDER_NAMES && artist.imageSourceUrl ? (
               <p className="text-xs text-muted-foreground">
                 <a href={artist.imageSourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-primary">
-                  {t("artistPage.pictureFromDeezer")}
+                  {t("artistPage.pictureFrom", { name: METADATA_PROVIDER_NAMES[artist.imageSource as MetadataProviderKey] })}
                   <ExternalLink className="size-3" aria-hidden />
                 </a>
               </p>

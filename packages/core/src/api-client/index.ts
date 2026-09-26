@@ -8,7 +8,7 @@ import type {
 import type { ArrangementDocumentV2, ChartPreferences } from "../schemas/arrangement-document-v2.js";
 import type { CatalogEntryData, CatalogEntryFieldKey, CatalogFileProblem } from "../songbook-catalog-format/index.js";
 import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
-import type { MetadataMatch, MetadataProviderKey } from "../schemas/metadata.js";
+import type { MetadataCapability, MetadataMatch, MetadataProviderKey } from "../schemas/metadata.js";
 import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
@@ -716,6 +716,8 @@ export interface ArtistSettings {
 /** One page of songs, with the total across all pages. */
 /** One of Apple Music's matches for a song's artwork (issue #85). */
 export interface ArtworkCandidate {
+  /** Who it's from (issue #89). */
+  provider?: MetadataProviderKey;
   title: string;
   artist: string;
   album: string | null;
@@ -731,8 +733,17 @@ export interface MetadataSearchResult {
 }
 
 export interface MetadataSettings {
-  /** Every provider, in the order they're asked. */
-  providers: { key: MetadataProviderKey; name: string; enabled: boolean }[];
+  /** Every provider, in the order they're asked (issue #89). */
+  providers: {
+    key: MetadataProviderKey;
+    name: string;
+    /** What it's asked for. */
+    capabilities: Record<MetadataCapability, boolean>;
+    /** What it can do. */
+    supports: MetadataCapability[];
+    /** What it can do with the keys it has now. */
+    ready: Record<MetadataCapability, boolean>;
+  }[];
   source: "database" | "env" | "default";
   /** The Apple Music API's MusicKit key (issue #87): never the private key, only whether the database has one. */
   appleMusic: {
@@ -743,7 +754,12 @@ export interface MetadataSettings {
     /** A developer token address, used while there's no key (a stopgap). */
     tokenUrl: string | null;
     tokenUrlSource: "database" | "env" | "none";
+    /** The storefront searched (kept with Song artwork's settings). */
+    country: string;
   };
+  /** Spotify's developer app (issue #89): never the secret, only whether the database has one. */
+  spotify: { source: "database" | "env" | "none"; clientId: string | null; hasDatabaseSecret: boolean; market: string; marketSource: "database" | "env" | "default" };
+  musicbrainz: { contact: string; source: "database" | "env" | "default" };
 }
 
 export interface ArtworkSettings {
@@ -1554,7 +1570,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       }),
     unlinkSongMetadata: (songVersionId: string) => request<void>(`/song-versions/${songVersionId}/metadata-link`, { method: "DELETE" }),
     getMetadataSettings: () => request<MetadataSettings>("/admin/metadata"),
-    saveMetadataSettings: (providers: { key: MetadataProviderKey; enabled: boolean }[]) =>
+    saveMetadataSettings: (providers: ({ key: MetadataProviderKey } & Partial<Record<MetadataCapability, boolean>>)[]) =>
       request<MetadataSettings>("/admin/metadata", { method: "PUT", body: JSON.stringify({ providers }) }),
     resetMetadataSettings: () => request<MetadataSettings>("/admin/metadata", { method: "DELETE" }),
     /** A field left out keeps its value; an empty one clears it. */
@@ -1562,6 +1578,13 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<MetadataSettings>("/admin/metadata/apple-music", { method: "PUT", body: JSON.stringify(key) }),
     resetAppleMusicKey: () => request<MetadataSettings>("/admin/metadata/apple-music", { method: "DELETE" }),
     testAppleMusicKey: () => request<{ ok: boolean; message: string }>("/admin/metadata/apple-music/test", { method: "POST" }),
+    /** Spotify's developer app (issue #89): a field left out keeps its value; an empty one clears it. */
+    saveSpotifyApp: (app: { clientId?: string; clientSecret?: string; market?: string }) =>
+      request<MetadataSettings>("/admin/metadata/spotify", { method: "PUT", body: JSON.stringify(app) }),
+    resetSpotifyApp: () => request<MetadataSettings>("/admin/metadata/spotify", { method: "DELETE" }),
+    testSpotifyApp: () => request<{ ok: boolean; message: string }>("/admin/metadata/spotify/test", { method: "POST" }),
+    /** MusicBrainz's contact, in its User-Agent; empty goes back to MUSICBRAINZ_CONTACT. */
+    saveMusicBrainzContact: (contact: string) => request<MetadataSettings>("/admin/metadata/musicbrainz", { method: "PUT", body: JSON.stringify({ contact }) }),
 
     getWorkMusicBrainz: (workId: string) => request<MusicBrainzWorkMatch | null>(`/works/${workId}/musicbrainz`),
     linkWorkMusicBrainz: (workId: string, mbid: string) =>

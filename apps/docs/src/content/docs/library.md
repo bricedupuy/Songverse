@@ -34,7 +34,7 @@ A song without an image of its own gets a cover from its title's colour and init
 
 **Artists** shows everyone credited as an artist on the songs you can see, as a grid: their picture (or their initials), their name and how many songs they have; the search box narrows them. Names written differently (with or without capitals or accents) count as one artist.
 
-Choose one for their page: their picture, a short bio and their songs. The picture comes from Deezer and the bio from Wikipedia (**From Wikipedia** opens the article), in English or French as you read Songverse; an artist is looked up when a song first credits them, or the first time their page opens. Their song count opens the **Songs** list with **By** and the name; the **×** beside it shows everyone again.
+Choose one for their page: their picture, a short bio and their songs. The picture comes from Deezer, Spotify or Apple Music (as your admin set them up) and the bio from Wikipedia (**From Wikipedia** opens the article), in English or French as you read Songverse; an artist is looked up when a song first credits them, or the first time their page opens. Their song count opens the **Songs** list with **By** and the name; the **×** beside it shows everyone again.
 
 ![John Newton's page](../../assets/screenshots/en/artist.jpg)
 
@@ -53,7 +53,7 @@ On a smart list, change the filters and **Save changes to the list** keeps the n
 Choose **+ Add a song**. A **song name** and at least one **artist** are all it needs; everything else can come later.
 
 - **Already in your library?** As you type the name, Songverse shows songs you already have with that title. You can open the existing one, **Use as base** (start from its details), or **Link it to this song** - when yours is a translation or adaptation of it (see [Linked songs](/library/#linked-songs)). An acoustic or youth-band take isn't a new song: that's a [version](/versions/).
-- **Auto detect** looks the song up online - on MusicBrainz, Apple Music and Deezer - and fills in what's missing, like the artist, the album and the year. Choose **Find song info**, then **Use this** on the right match. The same release found on several of them is one match, naming them all. The closest to the title and artist come first; among those, the song's first release before later ones (a compilation, a live album) and before versions like karaoke. Once the song is saved, the match's Apple Music and Deezer links are added to **Links** (unless it has them already), and its release's artwork becomes the song's image. When your admin has set up the Apple Music API, its matches also bring the song's ISRC and who wrote it (as **Writer**), where those are still empty.
+- **Auto detect** looks the song up online - on MusicBrainz, Apple Music, Deezer and Spotify, as your admin set them up - and fills in what's missing, like the artist, the album and the year. Choose **Find song info**, then **Use this** on the right match. The same release found on several of them is one match, naming them all. The closest to the title and artist come first; among those, the song's first release before later ones (a compilation, a live album) and before versions like karaoke. Once the song is saved, the match's Apple Music, Deezer and Spotify links are added to **Links** (unless it has them already), and its release's artwork becomes the song's image. Matches from Spotify, and from Apple Music when your admin has set up its API, also bring the song's ISRC - and Apple Music's who wrote it (as **Writer**) - where those are still empty.
 - **The chart**: paste the words and chords, or upload a file (`.cho`, `.txt` or `.pdf`). Songverse recognises ChordPro, chords written above the lyrics, and plain lyrics. You can then work on it in the [song editor](/song-editor/). A PDF is kept under **Files**, but its text isn't read, so paste the words too.
 
 Then **Save song**.
@@ -77,9 +77,9 @@ Edits on **Song info** and **Editor** are saved together by **Save song**; files
 
 ### Artwork
 
-A song's image is the artwork of the album or single it's on, from Apple Music, kept on Songverse's own storage. A new song gets it on its own, from its title and first artist, when Apple Music has a close enough match; until then its cover is made from its title. It shows on the library's home, in **Songs** and on the song's page, to everyone who can see the song.
+A song's image is the artwork of the album or single it's on, from Apple Music, Deezer or Spotify (as your admin set them up), kept on Songverse's own storage. A new song gets it on its own, from its title and first artist, when one of them has a close enough match; until then its cover is made from its title. It shows on the library's home, in **Songs** and on the song's page, to everyone who can see the song.
 
-On **Song info**, **Artwork** shows it. If you can edit the song, **Find artwork** lists Apple Music's matches - choose the album or single it's from; on a computer, hovering one shows its full name. If it isn't there, **Upload an image** takes one of your own: drag and zoom to choose the square that shows, then **Use this image**. **Remove** takes it off. Images are kept square, at up to 800×800.
+On **Song info**, **Artwork** shows it. If you can edit the song, **Find artwork** lists their matches, each with where it's from - choose the album or single it's from; on a computer, hovering one shows its full name. If it isn't there, **Upload an image** takes one of your own: drag and zoom to choose the square that shows, then **Use this image**. **Remove** takes it off. Images are kept square, at up to 800×800.
 
 That's the song in **Edit** mode. In **Practice** its page is the chart itself, read with your chord settings, with its key, capo and tempo, and the song's recording or stems at the bottom (see [Stems](/library/#stems)); **Edit** takes you back to editing. In **Live** it opens full screen, as a set's songs do; **×** goes back to the library.
 

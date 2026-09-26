@@ -1,4 +1,4 @@
-import type { ArtworkCandidate, SongVersionDetail } from "@songverse/core";
+import { METADATA_PROVIDER_NAMES, type ArtworkCandidate, type SongVersionDetail } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
 import { ImageIcon, Search, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
@@ -168,6 +168,7 @@ export function ArtworkCard({ version, canEdit }: { version: SongVersionDetail; 
                           <span className="line-clamp-2 text-xs break-words text-muted-foreground">
                             {[candidate.title, candidate.artist, year].filter(Boolean).join(" · ")}
                           </span>
+                          {candidate.provider ? <span className="text-xs text-muted-foreground/80">{METADATA_PROVIDER_NAMES[candidate.provider]}</span> : null}
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="max-w-64" data-testid="artwork-tooltip">

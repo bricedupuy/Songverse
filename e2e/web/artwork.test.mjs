@@ -19,7 +19,15 @@ for (let i = 0; i < 40 && !(await api(me, "GET", `/song-versions/${song.id}`)).i
 const browser = await chromium.launch();
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 await signIn(page, me);
-const loaded = (locator) => locator.evaluate((img) => img.complete && img.naturalWidth > 0);
+/** Whether an image has loaded: waited for (up to 10s), as a new address takes a moment. */
+const loaded = (locator) =>
+  locator
+    .evaluate((img) => (img.complete && img.naturalWidth > 0) || new Promise((resolve) => {
+      img.addEventListener("load", () => resolve(true), { once: true });
+      img.addEventListener("error", () => resolve(false), { once: true });
+      setTimeout(() => resolve(img.complete && img.naturalWidth > 0), 10000);
+    }))
+    .catch(() => false);
 
 await step("its artwork on the Library's card and in the song list", async () => {
   await page.goto(`${WEB}/library`);
@@ -75,7 +83,8 @@ await step("the admin's artwork settings", async () => {
   await page.goto(`${WEB}/admin/metadata`);
   const settings = page.getByTestId("artwork-settings");
   await settings.getByText("Currently using: the defaults").waitFor();
-  await settings.getByLabel("Apple Music storefront (country)").fill("fr");
+  await settings.getByLabel("Find artwork for songs").uncheck();
+  await settings.getByLabel("Find artwork for songs").check();
   await settings.getByRole("button", { name: "Save configuration" }).click();
   await settings.getByText("Currently using: settings saved here.").waitFor();
   await settings.getByRole("button", { name: "Find artwork for songs without one" }).click();

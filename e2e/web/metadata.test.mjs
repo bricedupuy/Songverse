@@ -2,11 +2,12 @@
 // MusicBrainz, Apple Music and Deezer (stand-ins, lib/fake-providers.mjs),
 // the song's first release first; choosing one fills the empty details and,
 // once saved, links the song to its sources and brings its Deezer link;
-// the admin's providers card, and the Apple Music API's key (issue #87).
+// the admin's providers card - order, what each is asked for (issue #89) -
+// and in it the Apple Music API's key (issue #87) and Spotify's app.
 import { chromium } from "playwright";
 import { generateKeyPairSync } from "node:crypto";
 import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
-import { FAKE_PROVIDERS_URL, appleMusicKey, startFakeProviders } from "../lib/fake-providers.mjs";
+import { FAKE_PROVIDERS_URL, appleMusicKey, spotifyApp, startFakeProviders } from "../lib/fake-providers.mjs";
 
 const fake = await startFakeProviders();
 let page;
@@ -15,6 +16,7 @@ const me = await user("Seeker");
 sql(`update "User" set "isGlobalAdmin"=true where id='${me.id}'`);
 await api(me, "DELETE", "/admin/metadata");
 await api(me, "DELETE", "/admin/metadata/apple-music");
+await api(me, "DELETE", "/admin/metadata/spotify");
 const title = `Oceans ${stamp}`;
 const song = await api(me, "POST", "/song-versions", { title, language: "en", artists: ["Hillsong"] });
 
@@ -59,12 +61,16 @@ await step("the admin's providers: reordered, one off, reverted", async () => {
   await card.getByText("Currently using: the defaults").waitFor();
   await card.getByRole("button", { name: "Move Deezer up" }).click();
   await card.getByRole("button", { name: "Move Deezer up" }).click();
-  await card.getByLabel("Use MusicBrainz").uncheck();
+  await card.getByLabel("Song info from MusicBrainz").uncheck();
+  await card.getByLabel("Album artwork from Deezer").uncheck();
+  // What a provider can't do isn't offered.
+  if (await card.getByLabel("Album artwork from MusicBrainz").count()) throw new Error("MusicBrainz offered for artwork");
+  await card.getByTestId("provider-spotify").getByText("(needs a key)").first().waitFor();
   await card.getByRole("button", { name: "Save configuration" }).click();
   await card.getByText("Currently using: settings saved here.").waitFor();
   const settings = await api(me, "GET", "/admin/metadata");
-  const order = settings.providers.map((p) => `${p.key}:${p.enabled}`).join();
-  if (order !== "deezer:true,musicbrainz:false,apple_music:true") throw new Error(order);
+  const order = settings.providers.map((p) => `${p.key}:${p.capabilities.songInfo}:${p.capabilities.artwork}`).join();
+  if (order !== "deezer:true:false,musicbrainz:false:false,apple_music:true:true,spotify:true:true") throw new Error(order);
   await card.getByRole("button", { name: "Revert to environment variables" }).click();
   await card.getByRole("button", { name: "Revert", exact: true }).click();
   await card.getByText("Currently using: the defaults").waitFor();
@@ -73,6 +79,7 @@ await step("the admin's providers: reordered, one off, reverted", async () => {
 await step("the Apple Music API's key: saved, tested, reverted", async () => {
   const pair = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
   Object.assign(appleMusicKey, { publicKey: pair.publicKey, teamId: "TEAM123456", keyId: "KEY1234567" });
+  await page.getByRole("button", { name: "Apple Music settings" }).click();
   const card = page.getByTestId("apple-music-key");
   await card.getByText("Currently using: no key - iTunes Search.").waitFor();
   await card.getByLabel("Team ID").fill("TEAM123456");
@@ -101,6 +108,25 @@ await step("a developer token address, until there's a key", async () => {
   await card.getByRole("button", { name: "Revert to environment variables" }).click();
   await card.getByRole("button", { name: "Revert", exact: true }).click();
   await card.getByText("Currently using: no key - iTunes Search.").waitFor();
+});
+
+await step("Spotify's app: saved, tested, reverted", async () => {
+  Object.assign(spotifyApp, { clientId: "abcdef0123456789abcdef0123456789", clientSecret: "s3cr3t-spotify" });
+  await page.getByRole("button", { name: "Spotify settings" }).click();
+  const card = page.getByTestId("spotify-settings");
+  await card.getByText("Currently using: no app - Spotify isn't asked.").waitFor();
+  await card.getByLabel("Client ID").fill(spotifyApp.clientId);
+  await card.getByLabel("Client secret").fill(spotifyApp.clientSecret);
+  await card.getByRole("button", { name: "Save configuration" }).click();
+  await card.getByText(`Currently using: the app saved here (${spotifyApp.clientId}).`).waitFor();
+  if ((await card.getByLabel("Client secret").inputValue()) !== "") throw new Error("the secret is still shown");
+  // Ready now: no "needs a key" beside Spotify.
+  if (await page.getByTestId("provider-spotify").getByText("(needs a key)").count()) throw new Error("still needs a key");
+  await card.getByRole("button", { name: "Test connection" }).click();
+  await card.getByText("Spotify answered", { exact: false }).waitFor();
+  await card.getByRole("button", { name: "Revert to environment variables" }).click();
+  await card.getByRole("button", { name: "Revert", exact: true }).click();
+  await card.getByText("Currently using: no app - Spotify isn't asked.").waitFor();
 });
 
 await browser.close();

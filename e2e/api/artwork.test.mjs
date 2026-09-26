@@ -45,7 +45,11 @@ check("nor can find its artwork", (await call(stranger, "GET", `/song-versions/$
 
 // --- choosing among the matches; only its editors
 const candidates = await api(owner, "GET", `/song-versions/${song.id}/artwork/candidates`);
-check("Apple Music's matches, each artwork once", candidates.length === 3 && candidates[1].album === "Album 2" && candidates[1].artworkUrl.endsWith("/art/1/800x800bb.png"), JSON.stringify(candidates[1]));
+check(
+  "the artwork providers' matches, in their order (issue #89), each artwork once",
+  candidates.map((c) => c.provider).join() === "apple_music,apple_music,apple_music,deezer,deezer" && candidates[1].album === "Album 2" && candidates[1].artworkUrl.endsWith("/art/1/800x800bb.png"),
+  JSON.stringify(candidates.map((c) => [c.provider, c.album])),
+);
 let r = await call(owner, "PUT", `/song-versions/${song.id}/artwork`, { url: candidates[1].artworkUrl });
 const chosen = await api(owner, "GET", `/song-versions/${song.id}`);
 check("another one chosen", r.status === 204 && chosen.imageUrl && chosen.imageUrl.split("/image/")[1].split("?")[0] !== url.split("/image/")[1].split("?")[0], String(r.status));

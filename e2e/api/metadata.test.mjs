@@ -39,13 +39,15 @@ check("someone signed out can't search", (await call({ bearer: "" }, "GET", `/me
 r = await search(owner, `Deezerdown ${stamp}`);
 check("Deezer down: the others' matches, and Deezer named", r.status === 200 && r.body.unavailable.join() === "deezer" && r.body.matches.length > 0 && !r.body.matches.some((m) => m.sources.some((s) => s.provider === "deezer")), JSON.stringify(r.body.unavailable));
 
-// --- the admin's settings
+// --- the admin's settings (a list saved with issue #22's `enabled` is song info, issue #89)
 let settings = await api(admin, "GET", "/admin/metadata");
-check("all three, in the default order", settings.source === "default" && settings.providers.map((p) => `${p.key}:${p.enabled}`).join() === "musicbrainz:true,apple_music:true,deezer:true", JSON.stringify(settings));
+const songInfo = (list) => list.providers.map((p) => `${p.key}:${p.capabilities.songInfo}`).join();
+check("all of them, in the default order", settings.source === "default" && songInfo(settings) === "musicbrainz:true,apple_music:true,deezer:true,spotify:true", JSON.stringify(settings));
+check("Spotify can't be asked without its app", settings.providers.find((p) => p.key === "spotify").ready.songInfo === false);
 check("admins only", (await call(owner, "GET", "/admin/metadata")).status === 403 && (await call(owner, "PUT", "/admin/metadata", { providers: [] })).status === 403);
 check("no unknown provider", (await call(admin, "PUT", "/admin/metadata", { providers: [{ key: "napster", enabled: true }] })).status === 400);
 settings = await api(admin, "PUT", "/admin/metadata", { providers: [{ key: "deezer", enabled: true }, { key: "musicbrainz", enabled: false }] });
-check("saved: Deezer first, MusicBrainz off, Apple Music (left out) added off", settings.source === "database" && settings.providers.map((p) => `${p.key}:${p.enabled}`).join() === "deezer:true,musicbrainz:false,apple_music:false", JSON.stringify(settings));
+check("saved: Deezer first, MusicBrainz off, those left out added off", settings.source === "database" && songInfo(settings) === "deezer:true,musicbrainz:false,apple_music:false,spotify:false", JSON.stringify(settings));
 ({ matches } = (await search(owner)).body);
 check("only Deezer asked", matches.length > 0 && matches.every((m) => m.sources.every((s) => s.provider === "deezer")), matches.map(describe).join(" | "));
 settings = await api(admin, "PUT", "/admin/metadata", { providers: [{ key: "deezer", enabled: true }, { key: "apple_music", enabled: true }, { key: "musicbrainz", enabled: true }] });
@@ -54,7 +56,7 @@ check("the first provider's details, its order among the sources", matches[0].so
 await api(admin, "PUT", "/admin/metadata", { providers: ["musicbrainz", "apple_music", "deezer"].map((key) => ({ key, enabled: false })) });
 check("all off: nothing to search", (await search(owner)).status === 503);
 settings = await api(admin, "DELETE", "/admin/metadata");
-check("back to the defaults", settings.source === "default" && settings.providers.every((p) => p.enabled));
+check("back to the defaults", settings.source === "default" && settings.providers.every((p) => p.capabilities.songInfo));
 
 // --- linking a match
 const song = await api(owner, "POST", "/song-versions", { title, language: "en", artists: ["Hillsong"] });

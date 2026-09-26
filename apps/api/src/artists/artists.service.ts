@@ -5,10 +5,11 @@ import { AccessPolicyService } from "../access/access-policy.service";
 import { artistImageUrl } from "../artwork/song-image-url";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { ImageService, type ProcessedImage } from "../images/image.service";
+import { MetadataService } from "../metadata/metadata.service";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
-import { allowedPictureUrl, deezerArtistPicture, wikipediaSummary, wikipediaTitles } from "./artist-sources";
+import { allowedPictureUrl, wikipediaSummary, wikipediaTitles } from "./artist-sources";
 
 /** The languages bios are kept in: the app's. */
 export const BIO_LANGUAGES = ["en", "fr"] as const;
@@ -24,7 +25,7 @@ export interface ArtistDetail {
   /** Songs by them the viewer can see. */
   songCount: number;
   imageUrl: string | null;
-  /** Where the picture came from: "deezer", "upload", or null. */
+  /** Where the picture came from: a provider ("deezer", "spotify", "apple_music"), "upload", or null. */
   imageSource: string | null;
   imageSourceUrl: string | null;
   /** One per language (en, fr): the reader picks theirs. */
@@ -57,6 +58,7 @@ export class ArtistsService {
     private readonly musicBrainz: MusicBrainzService,
     private readonly storage: StorageService,
     private readonly images: ImageService,
+    private readonly metadata: MetadataService,
   ) {}
 
   /** The database's setting, else ARTIST_LOOKUPS ("off" turns them off), else on. */
@@ -258,14 +260,18 @@ export class ArtistsService {
     const keepPicture = !!artist.imageStorageKey && (!force || artist.imageSource === "upload");
     if (!keepPicture && (force || artist.imageSource !== "none")) {
       try {
-        const found = await deezerArtistPicture(artist.name);
-        if (found) picture = await this.downloadPicture(artist.id, found.url, found.pageUrl);
+        // From the first provider allowed to give artist pictures that has one (issue #89).
+        const found = await this.metadata.artistPicture(artist.name);
+        if (found) picture = await this.downloadPicture(artist.id, found.url, found.pageUrl, found.provider);
       } catch (err) {
         this.logger.warn(`No picture for ${artist.name}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
     let { musicbrainzId, wikidataId } = artist;
+    // Bios are Wikipedia's, found through MusicBrainz: only when it's asked for them (issue #89).
+    const bioLookups = (await this.metadata.providersFor("artistBios")).includes("musicbrainz");
     try {
+      if (!bioLookups) throw new Skip();
       if (!musicbrainzId || force) {
         const found = await this.musicBrainz.findArtist(artist.name);
         musicbrainzId = found?.mbid ?? null;
@@ -287,7 +293,7 @@ export class ArtistsService {
         }
       }
     } catch (err) {
-      this.logger.warn(`No bio for ${artist.name}: ${err instanceof Error ? err.message : String(err)}`);
+      if (!(err instanceof Skip)) this.logger.warn(`No bio for ${artist.name}: ${err instanceof Error ? err.message : String(err)}`);
     }
     await this.prisma.client.artist.update({
       where: { id: artist.id },
@@ -301,13 +307,13 @@ export class ArtistsService {
     return { picture, bios };
   }
 
-  private async downloadPicture(artistId: string, url: string, pageUrl: string): Promise<boolean> {
+  private async downloadPicture(artistId: string, url: string, pageUrl: string, provider: string): Promise<boolean> {
     if (!allowedPictureUrl(url)) return false;
     const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
     if (!res.ok || !(res.headers.get("content-type") ?? "").startsWith("image/")) return false;
     const body = Buffer.from(await res.arrayBuffer());
     if (body.length > MAX_DOWNLOAD_BYTES) return false;
-    await this.storePicture(artistId, body, "deezer", pageUrl);
+    await this.storePicture(artistId, body, provider, pageUrl);
     return true;
   }
 
@@ -324,3 +330,6 @@ export class ArtistsService {
     if (before.imageStorageKey && before.imageStorageKey !== hash) await this.storage.deleteUnreferenced([before.imageStorageKey]);
   }
 }
+
+/** A lookup step that isn't asked for. */
+class Skip extends Error {}

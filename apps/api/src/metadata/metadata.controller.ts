@@ -22,8 +22,49 @@ export class MetadataProviderSettingDto {
   @MaxLength(40)
   key!: string;
 
+  /** What it's asked for (issue #89); left out, on. `enabled` is song info, as issue #22's lists said. */
+  @IsOptional()
   @IsBoolean()
-  enabled!: boolean;
+  songInfo?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  artwork?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  artistPictures?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  artistBios?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+}
+
+export class SpotifyAppDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  clientId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  clientSecret?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2)
+  market?: string;
+}
+
+export class MusicBrainzContactDto {
+  @IsString()
+  @MaxLength(200)
+  contact!: string;
 }
 
 export class MetadataSettingsDto {
@@ -107,5 +148,31 @@ export class MetadataController {
   @UseGuards(GlobalAdminGuard)
   testAppleMusic() {
     return this.metadata.testAppleMusic();
+  }
+
+  /** Spotify's developer app (issue #89). */
+  @Put("admin/metadata/spotify")
+  @UseGuards(GlobalAdminGuard)
+  saveSpotify(@Body() dto: SpotifyAppDto) {
+    return this.metadata.saveSpotify(dto);
+  }
+
+  @Delete("admin/metadata/spotify")
+  @UseGuards(GlobalAdminGuard)
+  resetSpotify() {
+    return this.metadata.resetSpotify();
+  }
+
+  @Post("admin/metadata/spotify/test")
+  @UseGuards(GlobalAdminGuard)
+  testSpotify() {
+    return this.metadata.testSpotify();
+  }
+
+  /** MusicBrainz's contact, in the User-Agent (issue #89); empty goes back to MUSICBRAINZ_CONTACT. */
+  @Put("admin/metadata/musicbrainz")
+  @UseGuards(GlobalAdminGuard)
+  saveMusicBrainz(@Body() dto: MusicBrainzContactDto) {
+    return this.metadata.saveMusicBrainz(dto.contact);
   }
 }

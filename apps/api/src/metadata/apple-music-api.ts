@@ -176,3 +176,17 @@ export async function appleMusicSong(id: string, storefront: string, auth: Apple
     throw err;
   }
 }
+
+/** An artist's picture through the Apple Music API (issue #89): one named exactly so, with artwork. */
+export async function appleMusicArtistPicture(name: string, storefront: string, auth: AppleMusicAuth): Promise<{ url: string; pageUrl: string } | null> {
+  const fold = (text: string) => text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
+  const query = new URLSearchParams({ term: name, types: "artists", limit: "5" });
+  const body = await get<{ results?: { artists?: { data?: { id: string; attributes?: { name?: string; url?: string; artwork?: { url?: string } } }[] } } }>(
+    `/v1/catalog/${storefront}/search?${query}`,
+    auth,
+  );
+  const artist = body.results?.artists?.data?.find((a) => fold(a.attributes?.name ?? "") === fold(name));
+  const url = artworkAt(artist?.attributes?.artwork?.url, 1000);
+  if (!artist || !url) return null;
+  return { url, pageUrl: artist.attributes?.url ?? `https://music.apple.com/artist/${artist.id}` };
+}

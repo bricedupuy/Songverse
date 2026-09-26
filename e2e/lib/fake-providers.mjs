@@ -10,6 +10,10 @@
 // has "Nopicture" in it), MusicBrainz's artists with a Wikidata link (none
 // for "Nobio"), Wikidata (WIKIDATA_API_URL at /wikidata/w/api.php) and
 // Wikipedia's summaries (WIKIPEDIA_URL at /wikipedia/{lang}).
+// Spotify (issue #89; SPOTIFY_API_URL at /spotify, SPOTIFY_ACCOUNTS_URL at
+// /spotify-accounts): app tokens for `spotifyApp`'s client ID and secret,
+// then the song on "Album 1" (2013, ISRC USSPOT1300001) and on "Spotify
+// Singles" (2021), and artists' pictures.
 // A search for anything with "Nomatch" in it finds nothing; "Deezerdown"
 // makes Deezer fail. Otherwise, for a title and
 // an artist:
@@ -145,6 +149,17 @@ const deezerTracks = (title, artist) => [
 ];
 const ALBUM_DATES = { 7001: "2013-02-22", 7002: "2020-05-01" };
 
+// --- Spotify
+/** The app the Spotify stand-in accepts: a suite sets it. */
+export const spotifyApp = { clientId: null, clientSecret: null, tokenHits: 0 };
+const spotifyTokens = new Set();
+const lastSpotify = new Map();
+const spotifyImages = (n) => [640, 300, 64].map((width) => ({ url: `${URL_}/art/${n}/${width}x${width}.png`, width, height: width }));
+const spotifyTracks = (title, artist) => [
+  { id: "sp1track0000000000001", name: title, artists: [{ name: artist }], album: { name: "Album 1", release_date: "2013-02-22", images: spotifyImages(2) }, external_ids: { isrc: "USSPOT1300001" }, external_urls: { spotify: "https://open.spotify.com/track/sp1track0000000000001" } },
+  { id: "sp2track0000000000002", name: title, artists: [{ name: artist }], album: { name: "Spotify Singles", release_date: "2021", images: spotifyImages(1) }, external_ids: {}, external_urls: { spotify: "https://open.spotify.com/track/sp2track0000000000002" } },
+];
+
 // --- artists
 const artistNames = new Map();
 const qids = new Map();
@@ -181,6 +196,31 @@ export function startFakeProviders() {
       const one = /^\/applemusic\/v1\/catalog\/[a-z]{2}\/songs\/(\d+)$/.exec(path);
       const song = one && lastApple.get(one[1]);
       return song ? json(res, { data: [appleMusicSong(song)] }) : json(res, { errors: [{ status: "404" }] }, 404);
+    }
+    if (path === "/spotify-accounts/api/token" && req.method === "POST") {
+      const [id, secret] = Buffer.from((req.headers.authorization ?? "").replace(/^Basic /, ""), "base64").toString().split(":");
+      if (!spotifyApp.clientId || id !== spotifyApp.clientId || secret !== spotifyApp.clientSecret) return json(res, { error: "invalid_client" }, 400);
+      spotifyApp.tokenHits++;
+      const token = `sptok${spotifyApp.tokenHits}${Date.now()}`;
+      spotifyTokens.add(token);
+      return json(res, { access_token: token, token_type: "Bearer", expires_in: 3600 });
+    }
+    if (path.startsWith("/spotify/")) {
+      if (!spotifyTokens.has((req.headers.authorization ?? "").replace(/^Bearer /, ""))) return json(res, { error: { status: 401, message: "Invalid access token" } }, 401);
+      if (path === "/spotify/v1/search") {
+        const q = url.searchParams.get("q") ?? "";
+        if (url.searchParams.get("type") === "artist") {
+          return json(res, { artists: { items: [{ id: "spartist1", name: q, images: /nopicture/i.test(q) ? [] : spotifyImages(0), external_urls: { spotify: "https://open.spotify.com/artist/spartist1" } }] } });
+        }
+        const title = /track:"([^"]*)"/.exec(q)?.[1] ?? q;
+        const artist = /artist:"([^"]*)"/.exec(q)?.[1] ?? "Someone";
+        const items = /nomatch/i.test(q) ? [] : spotifyTracks(title, artist);
+        for (const track of items) lastSpotify.set(track.id, track);
+        return json(res, { tracks: { items } });
+      }
+      const track = /^\/spotify\/v1\/tracks\/(\w+)$/.exec(path);
+      const found = track && lastSpotify.get(track[1]);
+      return found ? json(res, found) : json(res, { error: { status: 404, message: "Non existing id" } }, 404);
     }
     if (path === "/deezer/search/artist") {
       const q = url.searchParams.get("q") ?? "";

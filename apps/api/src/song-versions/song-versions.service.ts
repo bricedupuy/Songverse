@@ -292,7 +292,7 @@ const LIST_SELECT = {
 
 const STREAMING_IDENTIFIER_TYPES = ["SPOTIFY", "APPLE_MUSIC", "DEEZER", "YOUTUBE"] as const;
 /** The streaming link a metadata provider's track is (issue #22). */
-const STREAMING_TYPE_OF: Partial<Record<MetadataSource["provider"], (typeof STREAMING_IDENTIFIER_TYPES)[number]>> = { apple_music: "APPLE_MUSIC", deezer: "DEEZER" };
+const STREAMING_TYPE_OF: Partial<Record<MetadataSource["provider"], (typeof STREAMING_IDENTIFIER_TYPES)[number]>> = { apple_music: "APPLE_MUSIC", deezer: "DEEZER", spotify: "SPOTIFY" };
 
 export interface SongVersionOwner {
   ownerScope: "GLOBAL" | "TEAM" | "USER";

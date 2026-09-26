@@ -1,8 +1,11 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import {
+  METADATA_CAPABILITIES,
   METADATA_PROVIDER_NAMES,
   METADATA_PROVIDERS,
+  PROVIDER_CAPABILITIES,
   rankMetadataMatches,
+  type MetadataCapability,
   type MetadataMatch,
   type MetadataProviderKey,
   type MetadataSource,
@@ -10,20 +13,41 @@ import {
 } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { decryptSecret, encryptSecret } from "@songverse/secret-crypto";
-import { ArtworkService } from "../artwork/artwork.service";
 import { artworkAtSize, itunesLookup, itunesSearch, type ITunesSong } from "../artwork/itunes";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
-import { appleMusicSearch, appleMusicSong, musicKitKeyProblem, type AppleMusicAuth, type MusicKitCredentials } from "./apple-music-api";
+import { deezerArtistPicture } from "../artists/artist-sources";
+import { appleMusicArtistPicture, appleMusicSearch, appleMusicSong, musicKitKeyProblem, type AppleMusicAuth, type MusicKitCredentials } from "./apple-music-api";
 import { deezerSearch, deezerTrack } from "./deezer.provider";
+import { spotifyArtistPicture, spotifySearch, spotifyTrack, type SpotifyCredentials } from "./spotify-api";
 
 /** How long a search waits on a provider (MusicBrainz's queue included) before going on without it. */
 const PROVIDER_TIMEOUT_MS = 15000;
 
+export type ProviderCapabilities = Record<MetadataCapability, boolean>;
+
 export interface MetadataProviderSetting {
   key: MetadataProviderKey;
   name: string;
-  enabled: boolean;
+  /** What it's asked for (issue #89): only what it can do is ever on. */
+  capabilities: ProviderCapabilities;
+  /** What it can do. */
+  supports: MetadataCapability[];
+  /** What it can do with the keys it has now: Spotify needs its app, Apple Music's artist pictures its API. */
+  ready: ProviderCapabilities;
+}
+
+/** A song's artwork to choose from, from one of the providers allowed to give it (issue #89). */
+export interface ArtworkCandidate {
+  provider: MetadataProviderKey;
+  title: string;
+  artist: string;
+  album: string | null;
+  releaseDate: string | null;
+  /** The artwork, full size (what gets stored). */
+  artworkUrl: string;
+  /** A small one, to choose from. */
+  thumbnailUrl: string;
 }
 
 export interface EffectiveMetadataSettings {
@@ -40,7 +64,26 @@ export interface EffectiveMetadataSettings {
     /** The developer token address (saved here, or APPLE_MUSIC_TOKEN_URL), used while there's no key. */
     tokenUrl: string | null;
     tokenUrlSource: "database" | "env" | "none";
+    /** The storefront searched (Song artwork's country, kept there). */
+    country: string;
   };
+  /** Spotify's developer app (issue #89): never the secret, only whether the database has one. */
+  spotify: {
+    source: "database" | "env" | "none";
+    clientId: string | null;
+    hasDatabaseSecret: boolean;
+    market: string;
+    marketSource: "database" | "env" | "default";
+  };
+  /** The contact MusicBrainz is told in the User-Agent. */
+  musicbrainz: { contact: string; source: "database" | "env" | "default" };
+}
+
+export interface SaveSpotifyInput {
+  clientId?: string;
+  /** Left out, the one saved stays. */
+  clientSecret?: string;
+  market?: string;
 }
 
 export interface SaveAppleMusicInput {
@@ -60,16 +103,24 @@ export interface MetadataSearchResult {
 
 const isProvider = (key: unknown): key is MetadataProviderKey => (METADATA_PROVIDERS as readonly unknown[]).includes(key);
 
+/** A provider's capabilities as saved: `enabled` (issue #22's lists) is song info; a capability not said is on. */
+function capabilitiesOf(key: MetadataProviderKey, saved: { [name: string]: unknown }, on: boolean): ProviderCapabilities {
+  const supports = PROVIDER_CAPABILITIES[key];
+  const said = (capability: MetadataCapability) =>
+    saved[capability] !== undefined ? saved[capability] !== false : capability === "songInfo" && saved.enabled !== undefined ? saved.enabled !== false : on;
+  return Object.fromEntries(METADATA_CAPABILITIES.map((capability) => [capability, supports.includes(capability) && said(capability)])) as ProviderCapabilities;
+}
+
 /** Every provider once, in the order listed, then those left out (off). */
-function complete(listed: { key: MetadataProviderKey; enabled: boolean }[]): MetadataProviderSetting[] {
+function complete(listed: { key: MetadataProviderKey; capabilities: ProviderCapabilities }[]): { key: MetadataProviderKey; capabilities: ProviderCapabilities }[] {
   const seen = new Set<MetadataProviderKey>();
-  const providers: MetadataProviderSetting[] = [];
-  for (const { key, enabled } of listed) {
-    if (seen.has(key)) continue;
-    seen.add(key);
-    providers.push({ key, name: METADATA_PROVIDER_NAMES[key], enabled });
+  const providers: { key: MetadataProviderKey; capabilities: ProviderCapabilities }[] = [];
+  for (const entry of listed) {
+    if (seen.has(entry.key)) continue;
+    seen.add(entry.key);
+    providers.push(entry);
   }
-  for (const key of METADATA_PROVIDERS) if (!seen.has(key)) providers.push({ key, name: METADATA_PROVIDER_NAMES[key], enabled: false });
+  for (const key of METADATA_PROVIDERS) if (!seen.has(key)) providers.push({ key, capabilities: capabilitiesOf(key, {}, false) });
   return providers;
 }
 
@@ -106,27 +157,47 @@ export class MetadataService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly musicBrainz: MusicBrainzService,
-    private readonly artwork: ArtworkService,
   ) {}
 
-  /** The database's list, else METADATA_PROVIDERS (the ones on, in order: "musicbrainz,apple_music"), else all of them. */
+  /**
+   * The providers, in the order they're asked, with what each is asked for:
+   * the database's list, else METADATA_PROVIDERS (those listed, in order,
+   * for everything they can do: "musicbrainz,apple_music"), else all of
+   * them for everything.
+   */
   async settings(): Promise<EffectiveMetadataSettings> {
     const row = await this.prisma.client.metadataSettings.findUnique({ where: { id: "singleton" } });
-    const appleMusic = this.appleMusicSummary(row);
+    const country = await this.storefront();
+    const appleMusic = { ...this.appleMusicSummary(row), country };
+    const spotify = this.spotifySummary(row, country);
+    const envContact = process.env.MUSICBRAINZ_CONTACT;
+    const musicbrainz = row?.musicbrainzContact
+      ? { contact: row.musicbrainzContact, source: "database" as const }
+      : { contact: envContact || "https://songverse.one", source: envContact ? ("env" as const) : ("default" as const) };
+    const ready = (key: MetadataProviderKey): ProviderCapabilities => {
+      const all = key !== "spotify" || spotify.source !== "none";
+      const pictures = key === "apple_music" ? appleMusic.source !== "none" : all;
+      return { songInfo: all, artwork: all, artistPictures: pictures, artistBios: all };
+    };
+    const describe = (entries: { key: MetadataProviderKey; capabilities: ProviderCapabilities }[]) =>
+      complete(entries).map(({ key, capabilities }) => ({ key, name: METADATA_PROVIDER_NAMES[key], capabilities, supports: [...PROVIDER_CAPABILITIES[key]], ready: ready(key) }));
+    const extra = { appleMusic, spotify, musicbrainz };
     if (row && Array.isArray(row.providers)) {
-      const listed = (row.providers as { key?: unknown; enabled?: unknown }[]).filter((p) => isProvider(p?.key)) as { key: MetadataProviderKey; enabled: unknown }[];
-      return { providers: complete(listed.map((p) => ({ key: p.key, enabled: p.enabled !== false }))), source: "database", appleMusic };
+      const listed = (row.providers as { key?: unknown }[]).filter((p) => isProvider(p?.key)) as ({ key: MetadataProviderKey } & Record<string, unknown>)[];
+      return { providers: describe(listed.map((p) => ({ key: p.key, capabilities: capabilitiesOf(p.key, p, true) }))), source: "database", ...extra };
     }
     const env = process.env.METADATA_PROVIDERS?.split(",").map((key) => key.trim().toLowerCase()).filter(isProvider);
-    if (env?.length) return { providers: complete(env.map((key) => ({ key, enabled: true }))), source: "env", appleMusic };
-    return { providers: complete(METADATA_PROVIDERS.map((key) => ({ key, enabled: true }))), source: "default", appleMusic };
+    if (env?.length) return { providers: describe(env.map((key) => ({ key, capabilities: capabilitiesOf(key, {}, true) }))), source: "env", ...extra };
+    return { providers: describe(METADATA_PROVIDERS.map((key) => ({ key, capabilities: capabilitiesOf(key, {}, true) }))), source: "default", ...extra };
   }
 
-  /** Saves the providers' order and which are on; any left out are added, off. */
-  async saveSettings(providers: { key: string; enabled: boolean }[]): Promise<EffectiveMetadataSettings> {
+  /** Saves the providers' order and what each is asked for; any left out are added, off. */
+  async saveSettings(providers: ({ key: string } & Partial<Record<MetadataCapability | "enabled", boolean>>)[]): Promise<EffectiveMetadataSettings> {
     const unknown = providers.find((p) => !isProvider(p.key));
     if (unknown) throw new BadRequestException(`Unknown metadata provider '${unknown.key}'`);
-    const list = complete(providers as { key: MetadataProviderKey; enabled: boolean }[]).map(({ key, enabled }) => ({ key, enabled }));
+    const list = complete(providers.map((p) => ({ key: p.key as MetadataProviderKey, capabilities: capabilitiesOf(p.key as MetadataProviderKey, p, true) }))).map(
+      ({ key, capabilities }) => ({ key, ...Object.fromEntries(PROVIDER_CAPABILITIES[key].map((capability) => [capability, capabilities[capability]])) }),
+    );
     await this.prisma.client.metadataSettings.upsert({
       where: { id: "singleton" },
       create: { id: "singleton", providers: list },
@@ -135,10 +206,97 @@ export class MetadataService {
     return this.settings();
   }
 
-  /** Back to METADATA_PROVIDERS or the default order; the Apple Music key stays. */
+  /** Back to METADATA_PROVIDERS or the default order; the providers' own settings stay. */
   async resetSettings(): Promise<EffectiveMetadataSettings> {
     await this.prisma.client.metadataSettings.updateMany({ where: { id: "singleton" }, data: { providers: Prisma.DbNull } });
     return this.settings();
+  }
+
+  /** The providers asked for `capability`, in order: on for it, and able to with the keys they have. */
+  async providersFor(capability: MetadataCapability): Promise<MetadataProviderKey[]> {
+    return (await this.settings()).providers.filter((p) => p.capabilities[capability] && p.ready[capability]).map((p) => p.key);
+  }
+
+  /** The Apple Music storefront (and Spotify's default market): Song artwork's country, else "us". */
+  async storefront(): Promise<string> {
+    const row = await this.prisma.client.artworkSettings.findUnique({ where: { id: "singleton" }, select: { country: true } });
+    return row?.country || "us";
+  }
+
+  /** Saves MusicBrainz's contact (a site or an email address); empty goes back to MUSICBRAINZ_CONTACT. */
+  async saveMusicBrainz(contact: string): Promise<EffectiveMetadataSettings> {
+    const clean = contact.trim() || null;
+    if (clean && /[()\r\n]/.test(clean)) throw new BadRequestException("A contact is a web address or an email address");
+    await this.prisma.client.metadataSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", musicbrainzContact: clean }, update: { musicbrainzContact: clean } });
+    return this.settings();
+  }
+
+  /**
+   * Saves Spotify's developer app (issue #89), a field left out keeping its
+   * value and an empty one clearing it; the secret kept encrypted.
+   */
+  async saveSpotify(input: SaveSpotifyInput): Promise<EffectiveMetadataSettings> {
+    const clean = (value: string | undefined) => (value === undefined ? undefined : value.trim() || null);
+    const clientId = clean(input.clientId);
+    const clientSecret = clean(input.clientSecret);
+    const market = clean(input.market)?.toUpperCase() ?? (input.market === undefined ? undefined : null);
+    if (clientId && !/^[A-Za-z0-9]{16,64}$/.test(clientId)) throw new BadRequestException("A Spotify client ID is letters and digits (32 of them)");
+    if (market && !/^[A-Z]{2}$/.test(market)) throw new BadRequestException("A market is two letters, like US or FR");
+    const data = {
+      ...(clientId !== undefined && { spotifyClientId: clientId }),
+      ...(clientSecret !== undefined && { spotifyClientSecretEnc: clientSecret ? encryptSecret(clientSecret, process.env.SETTINGS_ENCRYPTION_KEY) : null }),
+      ...(market !== undefined && { spotifyMarket: market }),
+    };
+    await this.prisma.client.metadataSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", ...data }, update: data });
+    return this.settings();
+  }
+
+  /** Back to the SPOTIFY_* env vars (without them, Spotify isn't asked); the providers' order stays. */
+  async resetSpotify(): Promise<EffectiveMetadataSettings> {
+    await this.prisma.client.metadataSettings.updateMany({ where: { id: "singleton" }, data: { spotifyClientId: null, spotifyClientSecretEnc: null, spotifyMarket: null } });
+    return this.settings();
+  }
+
+  async testSpotify(): Promise<{ ok: boolean; message: string }> {
+    const credentials = await this.spotifyCredentials();
+    if (!credentials) return { ok: false, message: "No Spotify app is set: Spotify isn't asked." };
+    try {
+      const found = await spotifySearch("Amazing Grace", null, credentials);
+      return { ok: true, message: `Spotify answered (${found.length} songs for "Amazing Grace").` };
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /** Spotify's app: the database's (ID and secret), else SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET, else none. */
+  async spotifyCredentials(): Promise<SpotifyCredentials | null> {
+    const row = await this.prisma.client.metadataSettings.findUnique({ where: { id: "singleton" } });
+    const market = row?.spotifyMarket || process.env.SPOTIFY_MARKET?.toUpperCase() || (await this.storefront()).toUpperCase();
+    if (row?.spotifyClientId && row.spotifyClientSecretEnc) {
+      try {
+        return { clientId: row.spotifyClientId, clientSecret: decryptSecret(row.spotifyClientSecretEnc, process.env.SETTINGS_ENCRYPTION_KEY), market };
+      } catch (err) {
+        this.logger.warn(`The saved Spotify secret can't be decrypted (was SETTINGS_ENCRYPTION_KEY changed?): ${err instanceof Error ? err.message : String(err)}`);
+        return null;
+      }
+    }
+    const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } = process.env;
+    return clientId && clientSecret ? { clientId, clientSecret, market } : null;
+  }
+
+  private spotifySummary(
+    row: { spotifyClientId: string | null; spotifyClientSecretEnc: string | null; spotifyMarket: string | null } | null,
+    country: string,
+  ): EffectiveMetadataSettings["spotify"] {
+    const hasDatabaseSecret = !!row?.spotifyClientSecretEnc;
+    const envMarket = process.env.SPOTIFY_MARKET?.toUpperCase();
+    const market = row?.spotifyMarket
+      ? { market: row.spotifyMarket, marketSource: "database" as const }
+      : { market: envMarket || country.toUpperCase(), marketSource: envMarket ? ("env" as const) : ("default" as const) };
+    if (row?.spotifyClientId && hasDatabaseSecret) return { source: "database", clientId: row.spotifyClientId, hasDatabaseSecret, ...market };
+    const { SPOTIFY_CLIENT_ID: clientId, SPOTIFY_CLIENT_SECRET: clientSecret } = process.env;
+    if (clientId && clientSecret) return { source: "env", clientId, hasDatabaseSecret, ...market };
+    return { source: "none", clientId: row?.spotifyClientId ?? null, hasDatabaseSecret, ...market };
   }
 
   /**
@@ -198,7 +356,7 @@ export class MetadataService {
     const auth = await this.appleMusicAuth();
     if (!auth) return { ok: false, message: "No MusicKit key or developer token address is set: Apple Music is searched through iTunes Search." };
     try {
-      const found = await appleMusicSearch("Amazing Grace", (await this.artwork.settings()).country, auth);
+      const found = await appleMusicSearch("Amazing Grace", await this.storefront(), auth);
       return { ok: true, message: `The Apple Music API answered (${found.length} songs for "Amazing Grace").` };
     } catch (err) {
       return { ok: false, message: err instanceof Error ? err.message : String(err) };
@@ -241,7 +399,7 @@ export class MetadataService {
 
   private appleMusicSummary(
     row: { appleMusicTeamId: string | null; appleMusicKeyId: string | null; appleMusicPrivateKeyEnc: string | null; appleMusicTokenUrl: string | null } | null,
-  ): EffectiveMetadataSettings["appleMusic"] {
+  ): Omit<EffectiveMetadataSettings["appleMusic"], "country"> {
     const hasDatabasePrivateKey = !!row?.appleMusicPrivateKeyEnc;
     const tokenUrl = row?.appleMusicTokenUrl || process.env.APPLE_MUSIC_TOKEN_URL || null;
     const token = { tokenUrl, tokenUrlSource: row?.appleMusicTokenUrl ? ("database" as const) : tokenUrl ? ("env" as const) : ("none" as const) };
@@ -253,16 +411,17 @@ export class MetadataService {
     return { source: tokenUrl ? "tokenUrl" : "none", teamId: row?.appleMusicTeamId ?? null, keyId: row?.appleMusicKeyId ?? null, hasDatabasePrivateKey, ...token };
   }
 
-  /** Every provider that's on, at once; one that fails or is slow is left out rather than failing the search. */
+  /** Every provider asked for song info, at once; one that fails or is slow is left out rather than failing the search. */
   async search(title: string, artist?: string | null): Promise<MetadataSearchResult> {
-    const order = (await this.settings()).providers.filter((p) => p.enabled).map((p) => p.key);
+    const order = await this.providersFor("songInfo");
     if (order.length === 0) throw new ServiceUnavailableException("No metadata provider is turned on");
+    const artwork = new Set(await this.providersFor("artwork"));
     const settled = await Promise.allSettled(order.map((provider) => withTimeout(this.searchOne(provider, title, artist), provider)));
     const results: Partial<Record<MetadataProviderKey, ProviderMatch[]>> = {};
     const unavailable: MetadataProviderKey[] = [];
     settled.forEach((outcome, index) => {
       const provider = order[index]!;
-      if (outcome.status === "fulfilled") results[provider] = outcome.value;
+      if (outcome.status === "fulfilled") results[provider] = artwork.has(provider) ? outcome.value : outcome.value.map(withoutArtwork);
       else {
         unavailable.push(provider);
         this.logger.warn(`${provider} search failed: ${outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)}`);
@@ -282,7 +441,10 @@ export class MetadataService {
     const order = (await this.settings()).providers.map((p) => p.key);
     const wanted = [...new Map(sources.map((s) => [s.provider, s])).values()].sort((a, b) => order.indexOf(a.provider) - order.indexOf(b.provider));
     const settled = await Promise.allSettled(wanted.map((source) => withTimeout(this.lookupOne(source.provider, source.id), source.provider)));
-    const found = settled.flatMap((outcome) => (outcome.status === "fulfilled" && outcome.value ? [outcome.value] : []));
+    const artwork = new Set(await this.providersFor("artwork"));
+    const found = settled.flatMap((outcome) =>
+      outcome.status === "fulfilled" && outcome.value ? [artwork.has(outcome.value.source.provider) ? outcome.value : withoutArtwork(outcome.value)] : [],
+    );
     if (found.length === 0) {
       const notFound = settled.every((outcome) => outcome.status === "fulfilled" || outcome.reason instanceof NotFoundException);
       if (notFound) throw new NotFoundException("That match can't be found anymore");
@@ -307,7 +469,7 @@ export class MetadataService {
       case "musicbrainz":
         return this.musicBrainz.searchMatches(title, artist);
       case "apple_music": {
-        const { country } = await this.artwork.settings();
+        const country = await this.storefront();
         const term = [title, artist].filter(Boolean).join(" ");
         // With a MusicKit key (or a token address), the Apple Music API (issue #87): the same songs, with their ISRC and writers.
         const auth = await this.appleMusicAuth();
@@ -316,6 +478,10 @@ export class MetadataService {
       }
       case "deezer":
         return deezerSearch(title, artist);
+      case "spotify": {
+        const credentials = await this.spotifyCredentials();
+        return credentials ? spotifySearch(title, artist, credentials) : [];
+      }
     }
   }
 
@@ -325,7 +491,7 @@ export class MetadataService {
         return this.musicBrainz.match(id);
       case "apple_music": {
         if (!/^\d+$/.test(id)) throw new NotFoundException("Not an Apple Music track ID");
-        const { country } = await this.artwork.settings();
+        const country = await this.storefront();
         const auth = await this.appleMusicAuth();
         const found = auth ? await appleMusicSong(id, country, auth) : await itunesLookup(id, country).then((song) => song && appleMatch(song));
         if (!found) throw new NotFoundException("No such Apple Music track");
@@ -335,6 +501,68 @@ export class MetadataService {
         return deezerTrack(id).catch((err: Error) => {
           throw /no data|not a deezer/i.test(err.message) ? new NotFoundException(err.message) : err;
         });
+      case "spotify": {
+        const credentials = await this.spotifyCredentials();
+        if (!credentials) throw new NotFoundException("Spotify isn't set up");
+        const found = await spotifyTrack(id, credentials);
+        if (!found) throw new NotFoundException("No such Spotify track");
+        return found;
+      }
     }
   }
+
+  /**
+   * A song's artwork to choose from (issue #89): the matches of every
+   * provider asked for album artwork, in their order, each artwork once.
+   */
+  async artworkCandidates(title: string, artist: string | null): Promise<ArtworkCandidate[]> {
+    const order = await this.providersFor("artwork");
+    const settled = await Promise.allSettled(order.map((provider) => withTimeout(this.searchOne(provider, title, artist), provider)));
+    const seen = new Set<string>();
+    const candidates: ArtworkCandidate[] = [];
+    settled.forEach((outcome, index) => {
+      if (outcome.status !== "fulfilled") {
+        this.logger.warn(`${order[index]} artwork search failed: ${outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)}`);
+        return;
+      }
+      for (const match of outcome.value) {
+        if (!match.artworkUrl || seen.has(match.artworkUrl)) continue;
+        seen.add(match.artworkUrl);
+        candidates.push({
+          provider: order[index]!,
+          title: match.title,
+          artist: match.artist ?? "",
+          album: match.album,
+          releaseDate: match.releaseDate,
+          artworkUrl: match.artworkUrl,
+          thumbnailUrl: match.thumbnailUrl ?? match.artworkUrl,
+        });
+      }
+    });
+    if (order.length > 0 && settled.every((outcome) => outcome.status === "rejected")) throw new ServiceUnavailableException("The artwork providers are unavailable — try again in a moment");
+    return candidates;
+  }
+
+  /** An artist's picture (issue #89): from the first provider asked for artist pictures that has one. */
+  async artistPicture(name: string): Promise<{ provider: MetadataProviderKey; url: string; pageUrl: string } | null> {
+    for (const provider of await this.providersFor("artistPictures")) {
+      try {
+        const found =
+          provider === "deezer"
+            ? await deezerArtistPicture(name)
+            : provider === "spotify"
+              ? await this.spotifyCredentials().then((credentials) => credentials && spotifyArtistPicture(name, credentials))
+              : provider === "apple_music"
+                ? await this.appleMusicAuth().then(async (auth) => auth && appleMusicArtistPicture(name, await this.storefront(), auth))
+                : null;
+        if (found) return { provider, ...found };
+      } catch (err) {
+        this.logger.warn(`No picture of ${name} from ${provider}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    return null;
+  }
 }
+
+/** A match from a provider not asked for album artwork: shown with its thumbnail, but its artwork isn't used. */
+const withoutArtwork = (match: ProviderMatch): ProviderMatch => ({ ...match, artworkUrl: null });

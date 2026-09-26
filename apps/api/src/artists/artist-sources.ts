@@ -85,7 +85,7 @@ export async function wikipediaSummary(language: string, title: string): Promise
   }
 }
 
-/** The origins artist pictures may be downloaded from: Deezer's image servers (and the suites' stand-in). */
+/** The origins artist pictures may be downloaded from: Deezer's, Spotify's and Apple's image servers (and the suites' stand-ins). */
 export function allowedPictureUrl(url: string): boolean {
   let parsed: URL;
   try {
@@ -93,6 +93,9 @@ export function allowedPictureUrl(url: string): boolean {
   } catch {
     return false;
   }
-  if (parsed.protocol === "https:" && (parsed.hostname === "dzcdn.net" || parsed.hostname.endsWith(".dzcdn.net"))) return true;
-  return !!process.env.DEEZER_API_URL && parsed.origin === new URL(process.env.DEEZER_API_URL).origin;
+  const on = (domain: string) => parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`);
+  if (parsed.protocol === "https:" && (on("dzcdn.net") || on("scdn.co") || on("mzstatic.com"))) return true;
+  return [process.env.DEEZER_API_URL, process.env.SPOTIFY_API_URL, process.env.APPLE_MUSIC_API_URL, process.env.ITUNES_SEARCH_URL]
+    .filter((url): url is string => !!url)
+    .some((url) => parsed.origin === new URL(url).origin);
 }

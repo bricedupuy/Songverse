@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../prisma/prisma.service";
 
 /** Where MusicBrainz's API is; pointed elsewhere only by the e2e suites. */
 const apiRoot = () => process.env.MUSICBRAINZ_API_URL ?? "https://musicbrainz.org/ws/2/";
@@ -40,11 +41,17 @@ export class MusicBrainzRequestError extends Error {
 @Injectable()
 export class MusicBrainzClientService {
   private queue: Promise<unknown> = Promise.resolve();
-  private readonly userAgent: string;
 
-  constructor(private readonly config: ConfigService) {
-    const contact = this.config.get<string>("MUSICBRAINZ_CONTACT") ?? "https://songverse.one";
-    this.userAgent = `Songverse/0.1.0 (${contact})`;
+  constructor(
+    private readonly config: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  /** The contact MusicBrainz is told (issue #89): Admin > Metadata's, else MUSICBRAINZ_CONTACT, else Songverse's site. */
+  private async userAgent(): Promise<string> {
+    const row = await this.prisma.client.metadataSettings.findUnique({ where: { id: "singleton" }, select: { musicbrainzContact: true } });
+    const contact = row?.musicbrainzContact || this.config.get<string>("MUSICBRAINZ_CONTACT") || "https://songverse.one";
+    return `Songverse/0.1.0 (${contact})`;
   }
 
   async get<T>(path: string, searchParams: Record<string, string>): Promise<T> {
@@ -63,10 +70,11 @@ export class MusicBrainzClientService {
       url.searchParams.set(key, value);
     }
     url.searchParams.set("fmt", "json");
+    const userAgent = await this.userAgent();
 
     for (let attempt = 0; ; attempt++) {
       const response = await fetch(url, {
-        headers: { "User-Agent": this.userAgent, Accept: "application/json" },
+        headers: { "User-Agent": userAgent, Accept: "application/json" },
       });
       if (response.ok) return (await response.json()) as T;
 

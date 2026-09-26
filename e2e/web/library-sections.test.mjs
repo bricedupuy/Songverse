@@ -91,6 +91,9 @@ await step("filters: a tag narrows the artist's songs; saved as a smart list", a
 await step("a changed list can be saved again; the sidebar opens it with its filters", async () => {
   await page.getByTestId("artist-filter").getByRole("button", { name: "Show every artist" }).click();
   await page.getByRole("searchbox").fill(stamp.toString());
+  // The search is applied a moment after typing stops (the range is 1–2 of 2 either way): saved once it's in the address.
+  await page.waitForURL(new RegExp(`[?&]q=[^&]*${stamp}`));
+  await page.waitForLoadState("networkidle");
   await rangeIs("1–2 of 2");
   await page.getByRole("button", { name: "Save changes to the list" }).click();
   await page.getByRole("button", { name: "Save changes to the list" }).waitFor({ state: "detached" });

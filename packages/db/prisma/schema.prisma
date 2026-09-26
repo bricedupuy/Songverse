@@ -1743,6 +1743,16 @@ model MetadataSettings {
   appleMusicTokenUrl      String?
   // Artist pictures and bios (issue #86): looked up or not. None: on.
   artistsEnabled          Boolean?
+  // The contact MusicBrainz is told in the User-Agent (issue #89). None:
+  // MUSICBRAINZ_CONTACT, then Songverse's site.
+  musicbrainzContact      String?
+  // Spotify's Web API (issue #89): a developer app's client ID and secret
+  // (encrypted), and the market (country) searched. None: SPOTIFY_CLIENT_ID
+  // / SPOTIFY_CLIENT_SECRET / SPOTIFY_MARKET; without a client, Spotify
+  // isn't asked.
+  spotifyClientId         String?
+  spotifyClientSecretEnc  String?
+  spotifyMarket           String?
   updatedAt               DateTime @updatedAt
 }
 

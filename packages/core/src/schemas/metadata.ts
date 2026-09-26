@@ -5,13 +5,30 @@ import { z } from "zod";
  * answers in the same shape; the same release found by several is one
  * match, listing them all as its sources.
  */
-export const METADATA_PROVIDERS = ["musicbrainz", "apple_music", "deezer"] as const;
+export const METADATA_PROVIDERS = ["musicbrainz", "apple_music", "deezer", "spotify"] as const;
 export type MetadataProviderKey = (typeof METADATA_PROVIDERS)[number];
 
 export const METADATA_PROVIDER_NAMES: Record<MetadataProviderKey, string> = {
   musicbrainz: "MusicBrainz",
   apple_music: "Apple Music",
   deezer: "Deezer",
+  spotify: "Spotify",
+};
+
+/**
+ * What a provider can be asked for (issue #89): song info (Auto detect),
+ * album artwork (a song's image), artist pictures and artist bios. The
+ * admin chooses, per provider, which of what it can do it's asked for.
+ */
+export const METADATA_CAPABILITIES = ["songInfo", "artwork", "artistPictures", "artistBios"] as const;
+export type MetadataCapability = (typeof METADATA_CAPABILITIES)[number];
+
+/** What each provider can do: MusicBrainz's bios are Wikipedia's, found through its Wikidata links. */
+export const PROVIDER_CAPABILITIES: Record<MetadataProviderKey, readonly MetadataCapability[]> = {
+  musicbrainz: ["songInfo", "artistBios"],
+  apple_music: ["songInfo", "artwork", "artistPictures"],
+  deezer: ["songInfo", "artwork", "artistPictures"],
+  spotify: ["songInfo", "artwork", "artistPictures"],
 };
 
 export const MetadataSourceSchema = z.object({
