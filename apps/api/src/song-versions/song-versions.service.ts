@@ -377,8 +377,6 @@ interface Rights {
   sharedBy: SharedBy | null;
 }
 
-const OWNER_RIGHTS: Rights = { canEdit: true, canManage: true, sharedBy: null };
-
 type DetailRow = Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>;
 type DetailItem = Omit<DetailRow, "versionTags" | "documentJson" | "imageStorageKey"> & {
   imageUrl: string | null;
@@ -1166,7 +1164,7 @@ export class SongVersionsService {
    * file (bulk upload), keeping IDs where the content is unchanged, and
    * leaving everything else untouched.
    */
-  async importText(id: string, content: string, format: SupportedImportFormat, authorUserId: string | null = null): Promise<DetailItem> {
+  async importText(id: string, content: string, format: SupportedImportFormat, authorUserId: string | null = null): Promise<void> {
     const existing = await this.prisma.client.songVersion.findUnique({
       where: { id },
       select: { documentJson: true },
@@ -1179,8 +1177,8 @@ export class SongVersionsService {
       await this.writeDocument(tx, id, existing.documentJson, documentJson);
       await this.history.record(tx, id, { kind: "EDITED", authorUserId, before });
     });
-    const version = await this.prisma.client.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
-    return toDetailItem(version, OWNER_RIGHTS);
+    // Nothing returned: its caller is the Worker's bulk upload (issue #92), which runs without
+    // BETTER_AUTH_SECRET - the song's details would sign its image's address with it.
   }
 
   /** A ChordPro file of the song: its details from the columns, then the chart. */

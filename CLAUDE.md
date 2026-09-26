@@ -105,7 +105,10 @@ Processors are created stopped (`JOB_WORKER_OPTIONS`) and started by
 process runs it and Admin doesn't show it. Don't fire-and-forget work
 inside a request instead: it's lost on a restart. A rate limit an outside
 service sets per client (MusicBrainz's) goes through `sharedTurn()`, so it
-holds across the API's instances and the Worker.
+holds across the API's instances and the Worker. The Worker is deployed without
+`BETTER_AUTH_SECRET` (Deploy.md), and CI runs it that way: a job must not
+build anything signed with it - a song's or artist's image address, a file
+link - so don't return a response DTO from a service method a job calls.
 
 ## Tests
 

@@ -141,18 +141,22 @@ Storage shows which path is currently active.
 - **Command override** (usually under an "Advanced" tab, field is typically called "Command"): `node dist/worker.js`
 - Watch paths (if you use auto-deploy): the same as the API's - it's the same image, and must be rebuilt whenever the API is
 
-Environment variables: same as the API app (`DATABASE_URL`, `REDIS_URL`,
-`SETTINGS_ENCRYPTION_KEY`, and the `R2_*` vars if using the env-var
-fallback — the Worker processes bulk content uploads and stores artwork and
-artist pictures, so it needs the same object storage config as the API,
-whichever path you chose; and any provider env vars you use, like
-`SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET`, `APPLE_MUSIC_*` or
-`MUSICBRAINZ_CONTACT`, since it does the lookups). `BETTER_AUTH_SECRET` too:
-it signs the image addresses of what the Worker stores. Leave `JOBS_IN_API`
-unset (or `false`) on the API when you run a Worker. The Worker never serves HTTP traffic, so it doesn't need
-`AUTH_URL`/`WEB_URL`/`BETTER_AUTH_SECRET`/the Resend or Google vars —
-those only matter to whichever process BetterAuth's handler is actually
-mounted in (the API). `PORT` isn't used here either.
+Environment variables - only these three are required:
+```
+DATABASE_URL=...              # same as the API's
+REDIS_URL=...                 # same as the API's
+SETTINGS_ENCRYPTION_KEY=...   # same as the API's
+```
+Everything else the Worker uses - object storage, the metadata providers'
+keys (Spotify, Apple Music), MusicBrainz's contact - it reads from what's
+saved in the Admin UI, like the API does; `SETTINGS_ENCRYPTION_KEY` is what
+decrypts the secrets saved there, so it must be the API's exact value. Only
+if you configure those through env vars instead (`R2_*`, `SPOTIFY_*`,
+`APPLE_MUSIC_*`, `MUSICBRAINZ_CONTACT`) does the Worker need them too.
+
+It doesn't need `BETTER_AUTH_SECRET`, `AUTH_URL`, `WEB_URL`, the
+Resend/Google vars or `PORT`: it serves no HTTP traffic and signs nothing.
+Leave `JOBS_IN_API` unset (or `false`) on the API when you run a Worker.
 
 ### Web app
 
