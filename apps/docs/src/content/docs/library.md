@@ -46,9 +46,9 @@ On a smart list, change the filters and **Save changes to the list** keeps the n
 
 Choose **+ Add a song**. A **song name** and at least one **artist** are all it needs; everything else can come later.
 
-- **Already in your library?** As you type the name, SongVerse shows songs you already have with that title. You can open the existing one, **Use as base** (start from its details), or **Link it to this song** - when yours is a translation or adaptation of it (see [Linked songs](/library/#linked-songs)). An acoustic or youth-band take isn't a new song: that's a [version](/versions/).
+- **Already in your library?** As you type the name, Songverse shows songs you already have with that title. You can open the existing one, **Use as base** (start from its details), or **Link it to this song** - when yours is a translation or adaptation of it (see [Linked songs](/library/#linked-songs)). An acoustic or youth-band take isn't a new song: that's a [version](/versions/).
 - **Auto detect** looks the song up online (MusicBrainz) and fills in what's missing, like credits and the album. Choose **Find song info**, then **Use this** on the right match.
-- **The chart**: paste the words and chords, or upload a file (`.cho`, `.txt` or `.pdf`). SongVerse recognises ChordPro, chords written above the lyrics, and plain lyrics. You can then work on it in the [song editor](/song-editor/). A PDF is kept under **Files**, but its text isn't read, so paste the words too.
+- **The chart**: paste the words and chords, or upload a file (`.cho`, `.txt` or `.pdf`). Songverse recognises ChordPro, chords written above the lyrics, and plain lyrics. You can then work on it in the [song editor](/song-editor/). A PDF is kept under **Files**, but its text isn't read, so paste the words too.
 
 Then **Save song**.
 
@@ -102,13 +102,13 @@ Anyone who can see a song can add files of their own to it, even a song they can
 
 Stems are the song's parts as separate recordings: vocals, drums, bass and so on. Upload them on the **Audio** tab. A file named after its part ("Vocals.mp3", "03 drums.opus", "Basse.mp3") becomes that stem on its own. For any other file, choose the part in the **Stem** list under it: **Vocals**, **Backing vocals**, **Drums**, **Bass**, **Guitar**, **Piano and keys**, **Other** or **Click and cues**, or **Not a stem** for a full recording.
 
-If the stems (or any recording) aren't in the song's key or at its tempo, a live version a tone up for example, set the recording's own under **The stems' recording** (or under the file): **Key** and **BPM**. Left as **Song's key**, and empty, they're the song's. SongVerse keeps them for transposing and changing the speed later.
+If the stems (or any recording) aren't in the song's key or at its tempo, a live version a tone up for example, set the recording's own under **The stems' recording** (or under the file): **Key** and **BPM**. Left as **Song's key**, and empty, they're the song's. Songverse keeps them for transposing and changing the speed later.
 
 In **Practice** mode (see [Edit, Practice and Live](/getting-started/#edit-practice-and-live)), a song with stems has the stem player docked at the bottom of its page, and of its page in a set. It starts as one row: **Play**, then a round button per part, showing its instrument (a microphone for the vocals, a drum, a bass clef, a guitar, a piano...). Tap one to mute that part and play along with the rest; tap it again to bring it back. Hold the pointer over one to see its name.
 
 ![The stem player, one row, the vocals muted](../../assets/screenshots/en/stems-compact.jpg)
 
-The arrow at the end expands it: a row per part with the same round button, its waveform and a solo button (solo plays only the parts soloed), and a position bar. While a solo is on, a round button, in either view, takes its part out of the solo or adds it; take the last one out to hear every part again. Click a waveform to jump there. The arrow at the top minimizes it again, and SongVerse remembers which you prefer. The files start downloading as soon as the song's page opens in Practice (the line along the top shows how far), so **Play** is usually instant. Once downloaded, they aren't downloaded again.
+The arrow at the end expands it: a row per part with the same round button, its waveform and a solo button (solo plays only the parts soloed), and a position bar. While a solo is on, a round button, in either view, takes its part out of the solo or adds it; take the last one out to hear every part again. Click a waveform to jump there. The arrow at the top minimizes it again, and Songverse remembers which you prefer. The files start downloading as soon as the song's page opens in Practice (the line along the top shows how far), so **Play** is usually instant. Once downloaded, they aren't downloaded again.
 
 ![The stem player expanded, with each part's waveform](../../assets/screenshots/en/stems.jpg)
 
@@ -128,7 +128,7 @@ Once published, the song itself moves to the catalogue - there's no second copy.
 
 If a reviewer finds the song is already in the catalogue, they merge it into that one, and yours is folded into it - there's still only one song. Your [versions](/versions/) move to the catalogue song (check them: each says what to review), and so do your files (still only yours), tags and places in sets and songbooks. The way you had the song - your words, chords, order and key - becomes one of your versions of it, named after you, with your notes; your sets play it that way. Details you'd changed (title, credits, rights) are suggested to the reviewers.
 
-Songs published before SongVerse worked this way were copied into the catalogue; they've been folded into their catalogue song the same way.
+Songs published before Songverse worked this way were copied into the catalogue; they've been folded into their catalogue song the same way.
 
 ## Suggesting a change
 

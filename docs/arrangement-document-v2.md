@@ -34,7 +34,7 @@ song's sections, lines and chords by ID and records the differences.
   means editing the arrangement.
 - **Team default:** a team can mark one of its arrangements of a song as
   its usual one. Adding the song to one of the team's sets picks it.
-- **Just for one set** (bricedupuy/SongVerse#16): a set's song can have its
+- **Just for one set** (bricedupuy/Songverse#16): a set's song can have its
   own arrangement for that set - to reorder, skip or repeat sections just
   there. It starts as a copy of the arrangement the set played (or the
   song's order), is owned like the set (and follows it to a team), isn't
@@ -51,7 +51,7 @@ The arrangement editor starts with the order, key, capo and tempo, and on
 each pass: replacing, moving or hiding a chord, hiding a line, changing a
 line's words (`lyric`), inserting lines (`insert_line`, typed with their
 chords in brackets), and notes (on the pass or a line, inserted ones
-included). Words and inserted lines came with bricedupuy/SongVerse#24.
+included). Words and inserted lines came with bricedupuy/Songverse#24.
 
 In the app:
 - A song's **Arrangements** tab lists yours and your teams', and makes one

@@ -1,4 +1,4 @@
-# SongVerse
+# Songverse
 
 A songbook and set-planning app for worship teams and musicians: keep your
 chord charts in one library, organise them into songbooks, plan what you're

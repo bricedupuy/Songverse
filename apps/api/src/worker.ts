@@ -20,12 +20,12 @@ import { AppModule } from "./app.module";
  */
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
-  console.log("SongVerse worker started (no queue processors registered yet)");
+  console.log("Songverse worker started (no queue processors registered yet)");
 
   const keepAlive = setInterval(() => {}, 2 ** 31 - 1);
 
   const shutdown = async (signal: string) => {
-    console.log(`SongVerse worker received ${signal}, shutting down`);
+    console.log(`Songverse worker received ${signal}, shutting down`);
     clearInterval(keepAlive);
     await app.close();
     process.exit(0);

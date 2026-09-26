@@ -1,6 +1,6 @@
 {
-  "name": "SongVerse",
-  "short_name": "SongVerse",
+  "name": "Songverse",
+  "short_name": "Songverse",
   "description": "Collaborative song library, arrangement, and performance platform.",
   "start_url": "/",
   "display": "standalone",

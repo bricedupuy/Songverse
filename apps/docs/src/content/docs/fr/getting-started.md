@@ -1,15 +1,15 @@
 ---
 title: Pour commencer
-description: Créez votre compte, connectez-vous et repérez-vous dans SongVerse.
+description: Créez votre compte, connectez-vous et repérez-vous dans Songverse.
 ---
 
 ## Créer votre compte
 
-1. Ouvrez [SongVerse](https://app.songverse.one) et choisissez **S'inscrire**.
+1. Ouvrez [Songverse](https://app.songverse.one) et choisissez **S'inscrire**.
 2. Indiquez votre nom, votre adresse e-mail et un mot de passe, puis **Créer un compte**.
 3. Ouvrez le lien de l'e-mail de vérification que nous vous envoyons. Vous pouvez vous connecter une fois votre adresse vérifiée.
 
-Si votre SongVerse le propose, vous pouvez aussi utiliser **Continuer avec Google** au lieu d'un mot de passe.
+Si votre Songverse le propose, vous pouvez aussi utiliser **Continuer avec Google** au lieu d'un mot de passe.
 
 ## Se connecter
 
@@ -31,7 +31,7 @@ Sur les pages et les listes d'une section (l'accueil de la bibliothèque, **Chan
 
 ![La page d'une liste de chants : la colonne d'icônes à gauche, et le panneau qui liste vos listes](../../../assets/screenshots/fr/set.jpg)
 
-Le bouton en haut à gauche, le bord de la barre latérale ou **Ctrl B** (**⌘ B** sur Mac) la réduisent : la barre complète à ses icônes, le panneau mis de côté pour ne laisser que la colonne d'icônes. Un clic sur une icône de la colonne la rouvre, et SongVerse retient si elle est ouverte. Sur téléphone, la barre latérale s'ouvre par-dessus la page depuis le bouton en haut à gauche, avec toutes les sections et leurs listes.
+Le bouton en haut à gauche, le bord de la barre latérale ou **Ctrl B** (**⌘ B** sur Mac) la réduisent : la barre complète à ses icônes, le panneau mis de côté pour ne laisser que la colonne d'icônes. Un clic sur une icône de la colonne la rouvre, et Songverse retient si elle est ouverte. Sur téléphone, la barre latérale s'ouvre par-dessus la page depuis le bouton en haut à gauche, avec toutes les sections et leurs listes.
 
 Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord** (vos chants et vos équipes), les **Paramètres du compte** et **Se déconnecter**.
 
@@ -47,27 +47,27 @@ Un numéro de recueil trouve son entrée : tapez l'abréviation du recueil ou un
 
 ## Édition, Session et Live
 
-Le sélecteur en haut à droite de chaque page change le mode de SongVerse. Chaque mode a son propre aspect, pour que vous sachiez toujours où vous en êtes :
+Le sélecteur en haut à droite de chaque page change le mode de Songverse. Chaque mode a son propre aspect, pour que vous sachiez toujours où vous en êtes :
 
 - **Édition** - pour écrire les chants, préparer les versions et les listes. Des gris neutres.
 - **Session** - pour apprendre et répéter, seul ou avec le groupe. Vert. Les pistes d'un chant s'y écoutent (voir [Pistes](/fr/library/#pistes)).
 - **Live** - sur scène. Toujours sombre, presque noir avec des accords bleus, et les chants d'une liste s'ouvrent en plein écran (voir [Jouer une liste en live](/fr/sets/#jouer-une-liste-en-live)).
 
-Édition et Session suivent le réglage clair ou sombre de votre appareil. Le bouton lune dans le menu de votre compte (votre nom, en bas de la barre latérale) les passe en sombre, le soleil les repasse en clair ; revenez au réglage de votre appareil et SongVerse suit de nouveau l'appareil. Le mode Live n'a pas ce bouton : il est toujours sombre.
+Édition et Session suivent le réglage clair ou sombre de votre appareil. Le bouton lune dans le menu de votre compte (votre nom, en bas de la barre latérale) les passe en sombre, le soleil les repasse en clair ; revenez au réglage de votre appareil et Songverse suit de nouveau l'appareil. Le mode Live n'a pas ce bouton : il est toujours sombre.
 
-SongVerse retient le mode sur chaque appareil : la tablette sur votre pupitre peut rester en Live pendant que votre ordinateur reste en Édition.
+Songverse retient le mode sur chaque appareil : la tablette sur votre pupitre peut rester en Live pendant que votre ordinateur reste en Édition.
 
 ## Hors ligne
 
-SongVerse fonctionne aussi sans réseau : vos listes des deux semaines à venir, vos propres chants et ce que vous choisissez sont conservés sur l'appareil. Voir [Hors ligne](/fr/offline/).
+Songverse fonctionne aussi sans réseau : vos listes des deux semaines à venir, vos propres chants et ce que vous choisissez sont conservés sur l'appareil. Voir [Hors ligne](/fr/offline/).
 
 ## Langue
 
-SongVerse existe en français et en anglais. Choisissez la vôtre dans **Paramètres du compte** > **Langue**. Cette documentation existe aussi dans les deux langues : utilisez le menu des langues en haut de chaque page.
+Songverse existe en français et en anglais. Choisissez la vôtre dans **Paramètres du compte** > **Langue**. Cette documentation existe aussi dans les deux langues : utilisez le menu des langues en haut de chaque page.
 
 ## Qui voit quoi
 
-Tout, dans SongVerse, appartient à quelqu'un :
+Tout, dans Songverse, appartient à quelqu'un :
 
 - ce qui est **personnel** n'est qu'à vous, sauf si vous le partagez ;
 - ce qui appartient à une **équipe** est vu par ses membres et modifié par ses administrateurs ;

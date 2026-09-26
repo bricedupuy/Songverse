@@ -492,7 +492,7 @@ export interface UpdateSongbookInput {
 /** Every field of the catalogue file format (see songbook-catalog-format), plus where "Original song" points. */
 export interface SongbookCatalogEntry extends CatalogEntryData {
   id: string;
-  /** The entry `originalSong` refers to ("JEM 245"), when it exists in SongVerse. */
+  /** The entry `originalSong` refers to ("JEM 245"), when it exists in Songverse. */
   original: {
     catalogId: string;
     catalogName: string;
@@ -769,7 +769,7 @@ export interface SharedBy {
   canEdit: boolean;
 }
 
-/** Someone in SongVerse (People, issue #77). */
+/** Someone in Songverse (People, issue #77). */
 export interface Person {
   id: string;
   displayName: string;
@@ -1032,7 +1032,7 @@ function parseErrorBody(body: string): { message?: string; code?: string } {
 }
 
 /**
- * Thin fetch wrapper shared by every SongVerse client (web now, React
+ * Thin fetch wrapper shared by every Songverse client (web now, React
  * Native later — see spec §5 "the web frontend and the React Native app
  * share only the packages/core layer"). Each app supplies its own
  * `getToken`; this client only knows how to attach it and parse JSON.

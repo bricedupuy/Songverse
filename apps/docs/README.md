@@ -1,4 +1,4 @@
-# SongVerse docs
+# Songverse docs
 
 The user documentation, published at [docs.songverse.one](https://docs.songverse.one).
 Built with [Starlight](https://starlight.astro.build) (Astro).

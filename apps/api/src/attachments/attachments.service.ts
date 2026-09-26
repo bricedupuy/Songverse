@@ -97,7 +97,7 @@ export class AttachmentsService {
     if (change.recordingKey !== undefined) {
       // Kept as written ("Gb" stays "Gb"), once it reads as a key.
       const written = change.recordingKey?.trim() ?? "";
-      if (written && !parseKey(written)) throw new BadRequestException(`"${written}" isn't a key SongVerse can read`);
+      if (written && !parseKey(written)) throw new BadRequestException(`"${written}" isn't a key Songverse can read`);
       data.recordingKey = written || null;
     }
     if (change.recordingTempo !== undefined) data.recordingTempo = change.recordingTempo;

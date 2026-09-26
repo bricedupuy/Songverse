@@ -1,6 +1,6 @@
-# Deploying SongVerse
+# Deploying Songverse
 
-This documents the working deployment of SongVerse to a self-hosted [Dokploy](https://dokploy.com) instance, using `songverse.one` as the domain: the web app at `app.songverse.one`, the API at `api.songverse.one`, the docs at `docs.songverse.one`, and the root domain for the website (#43). Follow this in order if you're setting it up from scratch, or use it as a reference if something needs fixing later.
+This documents the working deployment of Songverse to a self-hosted [Dokploy](https://dokploy.com) instance, using `songverse.one` as the domain: the web app at `app.songverse.one`, the API at `api.songverse.one`, the docs at `docs.songverse.one`, and the root domain for the website (#43). Follow this in order if you're setting it up from scratch, or use it as a reference if something needs fixing later.
 
 ## Architecture
 
@@ -73,7 +73,7 @@ SETTINGS_ENCRYPTION_KEY=<any long random string>
 # Transactional email (verification + password reset) — fallback only,
 # prefer Admin > Auth once the app is up. See below.
 RESEND_API_KEY=<Resend API key>
-EMAIL_FROM=SongVerse <onboarding@resend.dev>
+EMAIL_FROM=Songverse <onboarding@resend.dev>
 
 # Google sign-in — optional, also configurable via Admin > Auth. See below.
 GOOGLE_CLIENT_ID=<Google OAuth client ID>

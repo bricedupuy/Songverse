@@ -1,6 +1,6 @@
 # Working offline
 
-Status: **agreed design**, nothing built yet. This is how SongVerse keeps
+Status: **agreed design**, nothing built yet. This is how Songverse keeps
 working without a network, in phases. The decisions it rests on are
 [below](#decisions).
 
@@ -59,7 +59,7 @@ What already helps:
 
 ### The app itself (service worker)
 
-- A web app manifest and a service worker make SongVerse installable (a
+- A web app manifest and a service worker make Songverse installable (a
   PWA) and keep its code: the JS and CSS bundles, fonts, icons and an
   **app shell** - a page that boots the app in the browser without the
   server. TanStack Start can build that shell next to the server-drawn

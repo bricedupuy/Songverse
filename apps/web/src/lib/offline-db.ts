@@ -1,5 +1,5 @@
 /**
- * What SongVerse keeps on this device to work offline (docs/offline.md,
+ * What Songverse keeps on this device to work offline (docs/offline.md,
  * issue #25): one IndexedDB database per signed-in user, so nothing of one
  * user's is ever read while another is signed in. The last user's ID is
  * remembered (in localStorage) because an offline launch has no server to

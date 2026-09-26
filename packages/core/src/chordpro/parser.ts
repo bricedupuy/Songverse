@@ -14,7 +14,7 @@ import { LABEL_LINE, normalizeSectionType } from "./section-labels.js";
 // ChordPro's standard short/long section directives - see
 // https://www.chordpro.org/chordpro/directives-env/ - plus
 // {start_of_x}/{end_of_x} for every other section type (ChordPro 6 allows
-// any section name), which is how SongVerse writes them.
+// any section name), which is how Songverse writes them.
 const SECTION_DIRECTIVES: Record<string, SectionType> = {
   sov: "verse",
   soc: "chorus",

@@ -27,7 +27,7 @@ function ResetPasswordPage() {
       <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
         <div className="flex items-center gap-2 text-lg font-semibold">
           <Music2 className="size-6" />
-          SongVerse
+          Songverse
         </div>
         <ResetPasswordCard />
       </main>

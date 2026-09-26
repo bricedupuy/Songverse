@@ -9,11 +9,11 @@ description: Connect with the people you play with, and share songs with them to
 
 ## Adding someone
 
-Under **Add someone**, type **Their email address** and **Ask**. SongVerse emails them that you'd like to share songs with them. They see your request under **Asking to connect with you** once they're signed in with that address, and **Accept** or **Decline** it. Until then it's listed under **Waiting for an answer**, where **Cancel** takes it back.
+Under **Add someone**, type **Their email address** and **Ask**. Songverse emails them that you'd like to share songs with them. They see your request under **Asking to connect with you** once they're signed in with that address, and **Accept** or **Decline** it. Until then it's listed under **Waiting for an answer**, where **Cancel** takes it back.
 
-The email is the same whether or not they have an account: someone new to SongVerse signs up with that address and finds your request waiting. Asking again doesn't send another email, and you can ask up to 20 people a day.
+The email is the same whether or not they have an account: someone new to Songverse signs up with that address and finds your request waiting. Asking again doesn't send another email, and you can ask up to 20 people a day.
 
-SongVerse never tells whether an address has an account, or whether someone declined: a request just stays waiting.
+Songverse never tells whether an address has an account, or whether someone declined: a request just stays waiting.
 
 People you're in a team with are listed under **From your teams**: **Ask** sends them a request in one click. If someone asks you while you're asking them, you're connected straight away.
 

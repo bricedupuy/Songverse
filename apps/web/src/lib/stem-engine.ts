@@ -280,7 +280,7 @@ function updateMediaSession() {
     media.metadata = null;
     return;
   }
-  if (media.metadata?.title !== state.title) media.metadata = new MediaMetadata({ title: state.title, artist: "SongVerse" });
+  if (media.metadata?.title !== state.title) media.metadata = new MediaMetadata({ title: state.title, artist: "Songverse" });
   try {
     if (state.duration) media.setPositionState({ duration: state.duration, position: Math.min(state.position, state.duration), playbackRate: 1 });
   } catch {

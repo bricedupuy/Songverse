@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_protected/library/artists")({
 const HUES = [15, 45, 90, 150, 190, 220, 265, 310, 340];
 
 /**
- * An artist's round picture. SongVerse has no artist photos yet (they'll
+ * An artist's round picture. Songverse has no artist photos yet (they'll
  * come with metadata providers, issue #22): their initials, on a colour
  * that's always the same for the same name.
  */

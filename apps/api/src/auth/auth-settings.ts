@@ -2,7 +2,7 @@ import { prisma } from "@songverse/db";
 import { decryptSecret, encryptSecret } from "@songverse/secret-crypto";
 
 const SINGLETON_ID = "singleton";
-const DEFAULT_EMAIL_FROM = "SongVerse <onboarding@resend.dev>";
+const DEFAULT_EMAIL_FROM = "Songverse <onboarding@resend.dev>";
 
 export type AuthConfigSource = "database" | "env" | "none";
 

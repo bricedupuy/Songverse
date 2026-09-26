@@ -1,6 +1,6 @@
 ---
 title: For admins
-description: Reviewing songs for the global catalogue, and running a SongVerse server.
+description: Reviewing songs for the global catalogue, and running a Songverse server.
 ---
 
 ## Reviewers
@@ -32,7 +32,7 @@ Everyone with an account, with their status, songs and storage. For each user yo
 
 ### Auth
 
-How SongVerse sends email (verification, password reset) through Resend, and whether **Google sign-in** is offered. Settings saved here take effect immediately; **Revert to environment variables** goes back to the server's configuration.
+How Songverse sends email (verification, password reset) through Resend, and whether **Google sign-in** is offered. Settings saved here take effect immediately; **Revert to environment variables** goes back to the server's configuration.
 
 ### Storage
 

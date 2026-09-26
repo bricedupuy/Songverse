@@ -222,7 +222,7 @@ await step("email change sends an approval to the current address", async () => 
   await userPage.getByRole("button", { name: "Change email" }).click();
   await userPage.getByText(/approve the change there/).waitFor();
   for (let i = 0; i < 20; i++) {
-    if (readFileSync(LOG, "utf8").slice(offset).includes(`To: ${claimant.email}\nSubject: Approve your SongVerse email change`)) return;
+    if (readFileSync(LOG, "utf8").slice(offset).includes(`To: ${claimant.email}\nSubject: Approve your Songverse email change`)) return;
     await new Promise((r) => setTimeout(r, 300));
   }
   throw new Error("approval email not sent to current address");

@@ -1,12 +1,12 @@
-// SongVerse's service worker (issue #49, docs/offline.md "The app itself").
+// Songverse's service worker (issue #49, docs/offline.md "The app itself").
 //
 // It keeps the app's code and an app shell - a page that boots the app in
-// the browser without the server - so SongVerse opens offline. Online,
+// the browser without the server - so Songverse opens offline. Online,
 // nothing changes: pages are still drawn on the server.
 //
 // server.mjs serves this file with BUILD and PRECACHE filled in for the
 // running build, so each deploy is a new service worker: it installs in
-// the background and takes over on the next launch (when every SongVerse
+// the background and takes over on the next launch (when every Songverse
 // tab has closed), never in the middle of a performance. In development
 // (Vite serving this file as is) they stay placeholders and it does nothing.
 

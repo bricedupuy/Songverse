@@ -88,13 +88,13 @@ res = await fetch(`${API}/api/auth/change-email`, {
   body: JSON.stringify({ newEmail, callbackURL: `${ORIGIN}/account` }),
 });
 check("change-email request accepted", res.status === 200, String(res.status));
-const log1 = await waitForLink(offset, /To: um-profile-\d+@example\.com\nSubject: Approve your SongVerse email change[\s\S]*?https?:\/\/[^\s]+?\/api\/auth\/verify-email\?token=[^\s]+/);
+const log1 = await waitForLink(offset, /To: um-profile-\d+@example\.com\nSubject: Approve your Songverse email change[\s\S]*?https?:\/\/[^\s]+?\/api\/auth\/verify-email\?token=[^\s]+/);
 check("approval goes to the OLD address", log1.includes(`To: ${email}`));
 check("email unchanged before approval", sql(`select email from "User" where id='${me.id}'`) === email);
 
 offset = readFileSync(LOG, "utf8").length;
 await fetch(log1.match(verifyLink)[0], { redirect: "manual", headers: { cookie } });
-const log2 = await waitForLink(offset, /To: um-profile-new-\d+@example\.com\nSubject: Confirm your new SongVerse email[\s\S]*?https?:\/\/[^\s]+?\/api\/auth\/verify-email\?token=[^\s]+/);
+const log2 = await waitForLink(offset, /To: um-profile-new-\d+@example\.com\nSubject: Confirm your new Songverse email[\s\S]*?https?:\/\/[^\s]+?\/api\/auth\/verify-email\?token=[^\s]+/);
 check("verification goes to the NEW address", log2.includes(`To: ${newEmail}`));
 check("email still unchanged until new address verified", sql(`select email from "User" where id='${me.id}'`) === email);
 

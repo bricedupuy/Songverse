@@ -43,7 +43,7 @@ export class MusicBrainzClientService {
 
   constructor(private readonly config: ConfigService) {
     const contact = this.config.get<string>("MUSICBRAINZ_CONTACT") ?? "https://songverse.one";
-    this.userAgent = `SongVerse/0.1.0 (${contact})`;
+    this.userAgent = `Songverse/0.1.0 (${contact})`;
   }
 
   async get<T>(path: string, searchParams: Record<string, string>): Promise<T> {

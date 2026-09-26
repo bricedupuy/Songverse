@@ -24,7 +24,7 @@ Les chants sont listés dans l'ordre des numéros (1, 2, 10, 100), et un numéro
 
 Un recueil numéroté peut avoir des **sections** : des plages de numéros avec un libellé, comme les volumes imprimés d'un recueil (1-371 « JEM1 », 372-721 « JEM2 »…). Vous pouvez ensuite filtrer le recueil par section.
 
-La page d'un chant liste ses recueils avec sa référence complète - l'abréviation du recueil, le numéro et le volume : **JEM 855 · JEM3** - et **Copier** met « Titre — JEM 855 · JEM3 » dans le presse-papiers, pour la donner à quelqu'un qui n'utilise pas SongVerse. Une liste l'indique aussi sous chaque chant.
+La page d'un chant liste ses recueils avec sa référence complète - l'abréviation du recueil, le numéro et le volume : **JEM 855 · JEM3** - et **Copier** met « Titre — JEM 855 · JEM3 » dans le presse-papiers, pour la donner à quelqu'un qui n'utilise pas Songverse. Une liste l'indique aussi sous chaque chant.
 
 ## À partir du catalogue d'un recueil publié
 

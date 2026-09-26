@@ -118,7 +118,7 @@ export function NestedSidebar({
       className="group/sidebar sticky top-0 relative hidden h-screen shrink-0 self-start border-r bg-sidebar text-sidebar-foreground md:flex"
     >
       <nav className="flex w-12 shrink-0 flex-col items-center gap-1 border-r py-2" data-testid="sidebar-rail">
-        <Link to="/library" className="mb-2 flex size-9 items-center justify-center" aria-label="SongVerse">
+        <Link to="/library" className="mb-2 flex size-9 items-center justify-center" aria-label="Songverse">
           <Music2 className="size-5" />
         </Link>
         {rail.map(railItem)}

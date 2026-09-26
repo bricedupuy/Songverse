@@ -61,8 +61,8 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle("SongVerse API")
-    .setDescription("Song library, arrangement, and performance API for SongVerse.")
+    .setTitle("Songverse API")
+    .setDescription("Song library, arrangement, and performance API for Songverse.")
     .setVersion("0.1.0")
     .addBearerAuth()
     .build();
@@ -71,7 +71,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;
   await app.listen(port);
-  console.log(`SongVerse API listening on :${port} (docs at /api/docs)`);
+  console.log(`Songverse API listening on :${port} (docs at /api/docs)`);
 }
 
 void bootstrap();

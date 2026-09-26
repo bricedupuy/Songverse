@@ -1,15 +1,15 @@
 ---
 title: Getting started
-description: Create your account, sign in, and find your way around SongVerse.
+description: Create your account, sign in, and find your way around Songverse.
 ---
 
 ## Create your account
 
-1. Open [SongVerse](https://app.songverse.one) and choose **Sign up**.
+1. Open [Songverse](https://app.songverse.one) and choose **Sign up**.
 2. Enter your display name, email and a password, then **Create account**.
 3. Open the link in the verification email we send you. You can sign in once your email is verified.
 
-If your SongVerse offers it, you can also use **Continue with Google** instead of a password.
+If your Songverse offers it, you can also use **Continue with Google** instead of a password.
 
 ## Signing in
 
@@ -31,7 +31,7 @@ On a section's pages and lists (the library's home, **Songs**, **Favorites**, **
 
 ![A set's page: the rail on the left, and the panel listing your sets](../../assets/screenshots/en/set.jpg)
 
-The button at the top left, the sidebar's edge, or **Ctrl B** (**⌘ B** on a Mac) collapse it: the full sidebar to its icons, the panel out of the way, leaving just the rail. Clicking an icon on the rail opens it again, and SongVerse remembers whether it's open. On a phone, the sidebar opens over the page from the top-left button instead, with every section and its lists.
+The button at the top left, the sidebar's edge, or **Ctrl B** (**⌘ B** on a Mac) collapse it: the full sidebar to its icons, the panel out of the way, leaving just the rail. Clicking an icon on the rail opens it again, and Songverse remembers whether it's open. On a phone, the sidebar opens over the page from the top-left button instead, with every section and its lists.
 
 Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your songs and teams), **Account settings** and **Sign out**.
 
@@ -47,27 +47,27 @@ A songbook number finds its entry: type the songbook's abbreviation or part of i
 
 ## Edit, Practice and Live
 
-The switch at the top right of every page changes SongVerse's mode. Each mode has its own look, so you always know which one you're in:
+The switch at the top right of every page changes Songverse's mode. Each mode has its own look, so you always know which one you're in:
 
 - **Edit** - to write songs, prepare versions and sets. Neutral greys.
 - **Practice** - to learn and rehearse, alone or with the band. Green. A song's stems play here (see [Stems](/library/#stems)).
 - **Live** - on stage. Always dark, near black with blue chords, and a set's songs open full screen (see [Playing a set live](/sets/#playing-a-set-live)).
 
-Edit and Practice follow your device's light or dark setting. The moon button in your account menu (your name, at the bottom of the sidebar) makes them dark, and the sun makes them light again; choose your device's own setting and SongVerse follows the device again. Live has no such button: it's always dark.
+Edit and Practice follow your device's light or dark setting. The moon button in your account menu (your name, at the bottom of the sidebar) makes them dark, and the sun makes them light again; choose your device's own setting and Songverse follows the device again. Live has no such button: it's always dark.
 
-SongVerse remembers the mode on each device, so the tablet on your music stand can stay Live while your computer stays in Edit.
+Songverse remembers the mode on each device, so the tablet on your music stand can stay Live while your computer stays in Edit.
 
 ## Working offline
 
-SongVerse works without a network too: your sets for the next two weeks, your own songs, and anything you choose are kept on the device. See [Working offline](/offline/).
+Songverse works without a network too: your sets for the next two weeks, your own songs, and anything you choose are kept on the device. See [Working offline](/offline/).
 
 ## Language
 
-SongVerse is in English and French. Pick yours under **Account settings** > **Language**. These docs are in both languages too: use the language menu at the top of any page.
+Songverse is in English and French. Pick yours under **Account settings** > **Language**. These docs are in both languages too: use the language menu at the top of any page.
 
 ## Who sees what
 
-Everything in SongVerse belongs to someone:
+Everything in Songverse belongs to someone:
 
 - **Personal** things are yours alone, unless you share them.
 - **Team** things are seen by the team's members and changed by its admins.

@@ -9,11 +9,11 @@ description: Connectez-vous avec les personnes avec qui vous jouez, et partagez-
 
 ## Ajouter quelqu'un
 
-Sous **Ajouter quelqu'un**, tapez **Son adresse e-mail** puis **Demander**. SongVerse lui écrit que vous aimeriez partager des chants avec elle. La personne voit votre demande sous **Demandent à se connecter avec vous** une fois connectée avec cette adresse, et peut **Accepter** ou **Refuser**. En attendant, elle apparaît sous **En attente de réponse**, où **Annuler** la retire.
+Sous **Ajouter quelqu'un**, tapez **Son adresse e-mail** puis **Demander**. Songverse lui écrit que vous aimeriez partager des chants avec elle. La personne voit votre demande sous **Demandent à se connecter avec vous** une fois connectée avec cette adresse, et peut **Accepter** ou **Refuser**. En attendant, elle apparaît sous **En attente de réponse**, où **Annuler** la retire.
 
-L'e-mail est le même qu'elle ait un compte ou non : quelqu'un qui découvre SongVerse s'inscrit avec cette adresse et y trouve votre demande. Redemander n'envoie pas d'autre e-mail, et vous pouvez faire jusqu'à 20 demandes par jour.
+L'e-mail est le même qu'elle ait un compte ou non : quelqu'un qui découvre Songverse s'inscrit avec cette adresse et y trouve votre demande. Redemander n'envoie pas d'autre e-mail, et vous pouvez faire jusqu'à 20 demandes par jour.
 
-SongVerse ne dit jamais si une adresse a un compte, ni si quelqu'un a refusé : une demande reste simplement en attente.
+Songverse ne dit jamais si une adresse a un compte, ni si quelqu'un a refusé : une demande reste simplement en attente.
 
 Les personnes de vos équipes apparaissent sous **De vos équipes** : **Demander** leur envoie une demande en un clic. Si quelqu'un vous le demande pendant que vous le lui demandez, vous êtes connectés tout de suite.
 

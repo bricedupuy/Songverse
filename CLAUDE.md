@@ -1,4 +1,4 @@
-# SongVerse — notes for Claude
+# Songverse — notes for Claude
 
 ## Issues first
 

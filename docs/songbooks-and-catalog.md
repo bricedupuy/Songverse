@@ -9,7 +9,7 @@ survives past the conversation it was designed in.
 
 Worship teams commonly organize songs around a specific published songbook or
 hymnal, referencing songs by a printed number rather than by title (e.g. "let's
-sing JEM 245"). SongVerse needs to model that numbering, while staying on the
+sing JEM 245"). Songverse needs to model that numbering, while staying on the
 right side of copyright: we can freely hold and share *facts* about a
 published songbook (its name, publisher, song titles, numbering), but we
 cannot redistribute its *content* (lyrics, chords, sheet music, audio) without
@@ -139,7 +139,7 @@ SongbookCatalogEntry   — per-song facts only: entry code, title, original
 This is intentionally decoupled from the working `Songbook` model — a
 catalog entry can exist with zero real songbooks built from it. It exists to
 answer "what is JEM, and what songs does it contain," independent of whether
-anyone has transcribed those songs into SongVerse yet.
+anyone has transcribed those songs into Songverse yet.
 
 **Sourcing**: no external "hymnal API" exists to pull this from. Initial
 population is a file import a global admin runs per catalog
@@ -196,7 +196,7 @@ A user picks a catalog (e.g. "JEM") and imports it via
    which the public create endpoint doesn't allow a caller to pick) and links
    it in with the catalog entry's number. A bulk content upload (§7) will be
    the second materialization path once it exists.
-3. **Forward compatibility for licensed content**: if SongVerse ever secures
+3. **Forward compatibility for licensed content**: if Songverse ever secures
    distribution rights for a specific catalog (the `licensed` case), the same
    import mechanism can populate real, complete `SongVersion`s instead of
    blank stubs — this is a data flag to add later, not a different pipeline.

@@ -42,7 +42,7 @@ const cookieDomain = sharedCookieDomain(authUrl.hostname, webUrl.hostname);
  * and JWTs (also for the web app, which forwards them as Bearer tokens
  * when calling this API's other endpoints - see JwtAuthGuard).
  *
- * The Prisma User model keeps SongVerse's own column names (displayName,
+ * The Prisma User model keeps Songverse's own column names (displayName,
  * avatarUrl) rather than BetterAuth's defaults (name, image) — `user.fields`
  * maps BetterAuth's expected field names onto ours instead of renaming the
  * domain schema. `isGlobalAdmin`/`locale` are registered as additionalFields
@@ -184,7 +184,7 @@ function buildAuth(settings: EffectiveAuthSettings) {
         // on webUrl above - under the parent domain, so passkeys survive
         // the web app moving between subdomains (see passkeyRpId).
         rpID: passkeyRpId(authUrl.hostname, webUrl.hostname),
-        rpName: "SongVerse",
+        rpName: "Songverse",
         origin: webUrl.origin,
       }),
     ],

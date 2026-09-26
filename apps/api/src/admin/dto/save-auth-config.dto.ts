@@ -14,7 +14,7 @@ export class SaveAuthConfigDto {
   @MaxLength(200)
   resendApiKey?: string;
 
-  @ApiProperty({ required: false, description: 'e.g. "SongVerse <onboarding@resend.dev>"' })
+  @ApiProperty({ required: false, description: 'e.g. "Songverse <onboarding@resend.dev>"' })
   @IsOptional()
   @IsString()
   @MaxLength(200)

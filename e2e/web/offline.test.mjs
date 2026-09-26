@@ -1,4 +1,4 @@
-// Offline, step 1 (issue #49): after one online visit, SongVerse opens with
+// Offline, step 1 (issue #49): after one online visit, Songverse opens with
 // no network - signed in, read-only, with its sidebar and an offline banner -
 // a page it has nothing for says so, and signing out deletes what was kept.
 import { sidebarEntry, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";

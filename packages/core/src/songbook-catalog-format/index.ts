@@ -436,7 +436,7 @@ export function parseCatalogJson(text: string): ParsedCatalogFile {
   } else if (parsed && typeof parsed === "object") {
     const file = parsed as Record<string, unknown>;
     if (typeof file.version === "number" && file.version > CATALOG_JSON_VERSION) {
-      result.problems.push({ row: null, message: `This file is format version ${file.version}; this SongVerse reads up to ${CATALOG_JSON_VERSION}` });
+      result.problems.push({ row: null, message: `This file is format version ${file.version}; this Songverse reads up to ${CATALOG_JSON_VERSION}` });
       return result;
     }
     entries = file.entries;

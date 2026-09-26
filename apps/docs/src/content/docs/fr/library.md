@@ -46,9 +46,9 @@ Sur une liste intelligente, changez les filtres et **Enregistrer les changements
 
 Choisissez **+ Ajouter une chanson**. Un **nom** et au moins un **artiste** suffisent ; tout le reste peut venir plus tard.
 
-- **Déjà dans votre bibliothèque ?** Pendant que vous tapez le nom, SongVerse montre les chants que vous avez déjà sous ce titre. Vous pouvez ouvrir l'existant, **Partir de celui-ci** (reprendre ses détails), ou **Le lier à ce chant** - quand le vôtre en est une traduction ou une adaptation (voir [Chants liés](/fr/library/#chants-liés)). Une interprétation acoustique ou pour les jeunes n'est pas un nouveau chant : c'est une [version](/fr/versions/).
+- **Déjà dans votre bibliothèque ?** Pendant que vous tapez le nom, Songverse montre les chants que vous avez déjà sous ce titre. Vous pouvez ouvrir l'existant, **Partir de celui-ci** (reprendre ses détails), ou **Le lier à ce chant** - quand le vôtre en est une traduction ou une adaptation (voir [Chants liés](/fr/library/#chants-liés)). Une interprétation acoustique ou pour les jeunes n'est pas un nouveau chant : c'est une [version](/fr/versions/).
 - La **Détection automatique** cherche le chant en ligne (MusicBrainz) et complète ce qui manque, comme les crédits et l'album. Choisissez **Chercher le chant**, puis **Utiliser** sur la bonne correspondance.
-- **La grille** : collez les paroles et les accords, ou ajoutez un fichier (`.cho`, `.txt` ou `.pdf`). SongVerse reconnaît le ChordPro, les accords écrits au-dessus des paroles et les paroles seules. Vous pouvez ensuite la travailler dans l'[éditeur](/fr/song-editor/). Un PDF est conservé dans **Fichiers**, mais son texte n'est pas lu : collez aussi les paroles.
+- **La grille** : collez les paroles et les accords, ou ajoutez un fichier (`.cho`, `.txt` ou `.pdf`). Songverse reconnaît le ChordPro, les accords écrits au-dessus des paroles et les paroles seules. Vous pouvez ensuite la travailler dans l'[éditeur](/fr/song-editor/). Un PDF est conservé dans **Fichiers**, mais son texte n'est pas lu : collez aussi les paroles.
 
 Puis **Enregistrer le chant**.
 
@@ -102,13 +102,13 @@ Toute personne qui voit un chant peut y ajouter ses propres fichiers, même sans
 
 Les pistes (ou stems) sont les parties du chant enregistrées séparément : voix, batterie, basse, etc. Importez-les dans l'onglet **Audio**. Un fichier nommé d'après sa partie (« Voix.mp3 », « 03 drums.opus », « Basse.mp3 ») devient cette piste tout seul. Pour les autres fichiers, choisissez la partie dans la liste **Piste** sous le fichier : **Voix**, **Chœurs**, **Batterie**, **Basse**, **Guitare**, **Piano et claviers**, **Autres** ou **Clic et repères**, ou **Pas une piste** pour un enregistrement complet.
 
-Si les pistes (ou un enregistrement) ne sont pas dans la tonalité du chant ou à son tempo, une version live un ton plus haut par exemple, indiquez les leurs sous **L'enregistrement des pistes** (ou sous le fichier) : **Tonalité** et **BPM**. Laissés sur **Tonalité du chant**, et vides, ce sont ceux du chant. SongVerse les garde pour transposer et changer la vitesse plus tard.
+Si les pistes (ou un enregistrement) ne sont pas dans la tonalité du chant ou à son tempo, une version live un ton plus haut par exemple, indiquez les leurs sous **L'enregistrement des pistes** (ou sous le fichier) : **Tonalité** et **BPM**. Laissés sur **Tonalité du chant**, et vides, ce sont ceux du chant. Songverse les garde pour transposer et changer la vitesse plus tard.
 
 En mode **Session** (voir [Édition, Session et Live](/fr/getting-started/#édition-session-et-live)), un chant qui a des pistes affiche le lecteur de pistes en bas de sa page, et de sa page dans une liste. Il commence sur une seule ligne : **Lecture**, puis un bouton rond par partie, avec son instrument (un micro pour la voix, une batterie, une clé de fa, une guitare, un piano…). Touchez-en un pour couper cette partie et jouer avec le reste ; touchez-le de nouveau pour la remettre. Survolez-en un pour voir son nom.
 
 ![Le lecteur de pistes sur une ligne, la voix coupée](../../../assets/screenshots/fr/stems-compact.jpg)
 
-La flèche au bout l'agrandit : une ligne par partie avec le même bouton rond, sa forme d'onde et un bouton solo (le solo ne joue que les parties en solo), et une barre de position. Pendant un solo, un bouton rond, dans les deux vues, retire sa partie du solo ou l'y ajoute ; retirez la dernière pour entendre de nouveau toutes les parties. Cliquez sur une forme d'onde pour vous y rendre. La flèche du haut le réduit de nouveau, et SongVerse retient votre préférence. Les fichiers commencent à se télécharger dès que la page du chant s'ouvre en mode Session (la ligne du haut montre où il en est), si bien que **Lecture** est en général immédiat. Une fois téléchargés, ils ne le sont plus de nouveau.
+La flèche au bout l'agrandit : une ligne par partie avec le même bouton rond, sa forme d'onde et un bouton solo (le solo ne joue que les parties en solo), et une barre de position. Pendant un solo, un bouton rond, dans les deux vues, retire sa partie du solo ou l'y ajoute ; retirez la dernière pour entendre de nouveau toutes les parties. Cliquez sur une forme d'onde pour vous y rendre. La flèche du haut le réduit de nouveau, et Songverse retient votre préférence. Les fichiers commencent à se télécharger dès que la page du chant s'ouvre en mode Session (la ligne du haut montre où il en est), si bien que **Lecture** est en général immédiat. Une fois téléchargés, ils ne le sont plus de nouveau.
 
 ![Le lecteur de pistes agrandi, avec la forme d'onde de chaque partie](../../../assets/screenshots/fr/stems.jpg)
 
@@ -128,7 +128,7 @@ Une fois publié, le chant lui-même passe au catalogue - il n'y a pas de second
 
 Si un relecteur trouve que le chant est déjà dans le catalogue, il le fusionne avec celui-ci, et le vôtre y est intégré - il n'y a toujours qu'un seul chant. Vos [versions](/fr/versions/) passent au chant du catalogue (vérifiez-les : chacune dit ce qu'il faut revoir), tout comme vos fichiers (toujours à vous seul·e), vos étiquettes et leurs places dans les listes et les recueils. Votre façon d'avoir le chant - vos paroles, accords, ordre et tonalité - devient une de vos versions du chant, à votre nom, avec vos notes ; vos listes le jouent ainsi. Les détails que vous aviez modifiés (titre, crédits, droits) sont proposés aux relecteurs.
 
-Les chants publiés avant que SongVerse fonctionne ainsi avaient été copiés dans le catalogue ; ils ont été intégrés à leur chant du catalogue de la même façon.
+Les chants publiés avant que Songverse fonctionne ainsi avaient été copiés dans le catalogue ; ils ont été intégrés à leur chant du catalogue de la même façon.
 
 ## Proposer une modification
 

@@ -1,5 +1,5 @@
 // ============================================================
-// SongVerse — Prisma Schema
+// Songverse — Prisma Schema
 // ============================================================
 // Conventions:
 //   - All IDs use cuid() for global uniqueness
@@ -56,7 +56,7 @@ enum VoicingPreference {
   BARRE // Prefer barre chord shapes
   DROP2 // Drop 2 voicings (jazz)
   CLOSE // Close position voicings (piano)
-  AUTO // Let SongVerse decide based on key and context
+  AUTO // Let Songverse decide based on key and context
 }
 
 enum CapoDisplayMode {
@@ -314,7 +314,7 @@ model User {
 // AUTH (BetterAuth Prisma adapter tables)
 // ============================================================
 // Session/Account/Verification are BetterAuth's own tables, required by its
-// Prisma adapter. They are not part of the SongVerse domain model.
+// Prisma adapter. They are not part of the Songverse domain model.
 
 model Session {
   id        String   @id @default(cuid())
@@ -730,7 +730,7 @@ model SongVersion {
 
 // userId is nullable so a contributor can be recorded from `source` alone
 // (e.g. an artist name pulled from MusicBrainz) without requiring them to
-// be a registered SongVerse user — the app layer enforces that at least
+// be a registered Songverse user — the app layer enforces that at least
 // one of userId/source is set.
 model VersionContributor {
   id             String            @id @default(cuid())
@@ -1077,7 +1077,7 @@ model SongbookCatalog {
   coverImageUrl String?
   officialUrl   String?
   language      String?
-  // True once SongVerse has secured rights to distribute this songbook's
+  // True once Songverse has secured rights to distribute this songbook's
   // actual content - reserved for a future import path that would populate
   // real content instead of blank stubs. Not used by anything yet.
   licensed      Boolean  @default(false)
@@ -1435,7 +1435,7 @@ model TuningPreset {
   name       String // "DADGAD", "Drop D", "Open G", "Standard"
   slug       String         @unique // "dadgad", "drop_d", "open_g", "standard"
   notes      String[] // Open string notes low→high: ["D","A","D","G","A","D"]
-  isStandard Boolean        @default(false) // true = ships with SongVerse
+  isStandard Boolean        @default(false) // true = ships with Songverse
   isDefault  Boolean        @default(false) // true = the default for that instrument
   sortOrder  Int            @default(0)
   createdAt  DateTime       @default(now())
@@ -1452,7 +1452,7 @@ model TuningPreset {
 // Sources:
 //   "chords-db"  — seeded from tombatossals/chords-db (standard guitar + ukulele)
 //   "generated"  — computed by the voicing generation algorithm (alternate tunings)
-//   "manual"     — added or corrected by a SongVerse admin
+//   "manual"     — added or corrected by a Songverse admin
 //
 // Piano voicings store only pianoKeys (the notes to highlight).
 // String instrument voicings store frets, fingers, barres, baseFret.
@@ -1778,7 +1778,7 @@ enum ConnectionStatus {
   DECLINED
 }
 
-/// Two people connected in SongVerse, so they can share songs with each
+/// Two people connected in Songverse, so they can share songs with each
 /// other (People). Asked for by email: `addresseeEmail` is what the
 /// requester typed (lower case), matched to an account when its owner
 /// answers - so asking never tells whether an address has an account.

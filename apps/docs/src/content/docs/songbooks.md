@@ -24,7 +24,7 @@ Songs are listed in number order (1, 2, 10, 100), and a plain number is kept wit
 
 A numbered songbook can have **sections**: ranges of numbers with a label, like a hymnal's printed volumes (1-371 is "JEM1", 372-721 "JEM2"…). You can then filter the songbook by section.
 
-A song's page lists its songbooks with its full reference - the songbook's abbreviation, the number and the volume: **JEM 855 · JEM3** - and **Copy** puts "Title — JEM 855 · JEM3" on the clipboard, to give someone who doesn't use SongVerse. A set shows it under each song too.
+A song's page lists its songbooks with its full reference - the songbook's abbreviation, the number and the volume: **JEM 855 · JEM3** - and **Copy** puts "Title — JEM 855 · JEM3" on the clipboard, to give someone who doesn't use Songverse. A set shows it under each song too.
 
 ## From a published songbook's catalog
 

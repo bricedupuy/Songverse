@@ -146,5 +146,5 @@ const adapter = createServerAdapter(async (request) => {
 
 const port = Number(process.env.PORT ?? 3000);
 createServer(adapter).listen(port, () => {
-  console.log(`SongVerse web listening on :${port}`);
+  console.log(`Songverse web listening on :${port}`);
 });

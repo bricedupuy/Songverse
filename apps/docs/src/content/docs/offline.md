@@ -3,9 +3,9 @@ title: Working offline
 description: Play your sets with no network - what's kept on your device, choosing more, and freeing space.
 ---
 
-Once you've used SongVerse on a device, it opens there even with no network (on stage with no Wi-Fi, say). You stay signed in, and a banner says you're offline and when the device last caught up. Changes can't be saved until you're back online.
+Once you've used Songverse on a device, it opens there even with no network (on stage with no Wi-Fi, say). You stay signed in, and a banner says you're offline and when the device last caught up. Changes can't be saved until you're back online.
 
-Before a gig, open SongVerse once while you still have a connection: it catches up on its own.
+Before a gig, open Songverse once while you still have a connection: it catches up on its own.
 
 ## What's kept
 
@@ -23,7 +23,7 @@ You can keep more:
 
 A song's PDFs, images and ChordPro files come with it.
 
-Whenever SongVerse is open with a connection, it catches up every few minutes: changed songs and sets are updated. A set is removed once it's deleted, once you can no longer open it, or a day after its date. A song or songbook is removed once you can no longer open it or stop keeping it.
+Whenever Songverse is open with a connection, it catches up every few minutes: changed songs and sets are updated. A set is removed once it's deleted, once you can no longer open it, or a day after its date. A song or songbook is removed once you can no longer open it or stop keeping it.
 
 ## Offline
 

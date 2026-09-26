@@ -82,7 +82,7 @@ export function AppSidebar({
       <SidebarHeader>
         <Link to="/library" className="flex items-center gap-2 px-2 py-1.5 font-semibold">
           <Music2 className="size-5 shrink-0" />
-          <SidebarLabel>SongVerse</SidebarLabel>
+          <SidebarLabel>Songverse</SidebarLabel>
         </Link>
       </SidebarHeader>
       {inAdmin ? (

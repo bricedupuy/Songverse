@@ -54,7 +54,7 @@ Paste a whole chart anywhere - ChordPro, or chords written above the lyrics - an
 
 ## Saving
 
-**Save song** saves the chart and the song's details together. If someone else saved the song after you opened it, SongVerse tells you instead of overwriting their changes.
+**Save song** saves the chart and the song's details together. If someone else saved the song after you opened it, Songverse tells you instead of overwriting their changes.
 
 ## History
 

@@ -41,7 +41,7 @@ const icons = [
     <div class="hero">
       <Image class="hero-photo" src={stage} alt={t.pictureAlt} widths={[800, 1280, 1672]} sizes="100vw" loading="eager" fetchpriority="high" />
       <header class="wrap top">
-        <a href={t.lang === "fr" ? "/fr/" : "/"} aria-label="SongVerse"><Logo /></a>
+        <a href={t.lang === "fr" ? "/fr/" : "/"} aria-label="Songverse"><Logo /></a>
         <nav>
           <a href={docs}>{t.docs}</a>
           <a href={t.otherLanguage.href} lang={t.lang === "fr" ? "en" : "fr"}>{t.otherLanguage.label}</a>
@@ -90,7 +90,7 @@ const icons = [
         <a href={docs}>{t.footerDocs}</a>
         <a href={t.otherLanguage.href} lang={t.lang === "fr" ? "en" : "fr"}>{t.otherLanguage.label}</a>
       </nav>
-      <small>© {new Date().getFullYear()} SongVerse</small>
+      <small>© {new Date().getFullYear()} Songverse</small>
     </footer>
   </body>
 </html>

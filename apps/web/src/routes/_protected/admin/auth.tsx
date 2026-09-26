@@ -133,7 +133,7 @@ function AdminAuthPage() {
                 id="email-from"
                 value={emailFrom}
                 onChange={(e) => setEmailFrom(e.target.value)}
-                placeholder="SongVerse <onboarding@resend.dev>"
+                placeholder="Songverse <onboarding@resend.dev>"
               />
             </div>
           </div>

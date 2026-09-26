@@ -54,7 +54,7 @@ Collez une grille entière n'importe où - en ChordPro, ou avec les accords écr
 
 ## Enregistrer
 
-**Enregistrer le chant** enregistre la grille et les détails du chant ensemble. Si quelqu'un d'autre a enregistré le chant après que vous l'avez ouvert, SongVerse vous le dit au lieu d'écraser ses modifications.
+**Enregistrer le chant** enregistre la grille et les détails du chant ensemble. Si quelqu'un d'autre a enregistré le chant après que vous l'avez ouvert, Songverse vous le dit au lieu d'écraser ses modifications.
 
 ## Historique
 

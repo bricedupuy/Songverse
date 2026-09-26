@@ -7,7 +7,7 @@ are imported from and exported to files in two formats:
 
 - **CSV** — for spreadsheets. Build or edit the list in Excel, Google
   Sheets or LibreOffice and save as CSV. This is the everyday format.
-- **JSON** — for exact round trips (moving a catalogue between SongVerse
+- **JSON** — for exact round trips (moving a catalogue between Songverse
   instances, scripts), and the only format that also carries the
   catalogue's own details (name, publisher, ISBN…).
 
@@ -47,7 +47,7 @@ common alternatives are accepted: `SongNumber`, `No`, `Nr` for `Number`;
 `Author`, `Words` for `Lyricist`; `Music` for `Composer`; `BPM` for
 `Tempo`; `TimeSignature` for `Time`; `Runtime` for `Duration`;
 `Scripture` for `Reference`… Columns
-SongVerse doesn't know are listed in the import preview and ignored.
+Songverse doesn't know are listed in the import preview and ignored.
 
 ## Importing
 

@@ -1,6 +1,6 @@
 ---
 title: Administration
-description: Relire les chants proposés au catalogue global, et gérer un serveur SongVerse.
+description: Relire les chants proposés au catalogue global, et gérer un serveur Songverse.
 ---
 
 ## Relecteurs
@@ -32,7 +32,7 @@ Tous les comptes, avec leur statut, leurs chants et leur stockage. Pour chaque p
 
 ### Authentification
 
-Comment SongVerse envoie ses e-mails (vérification, réinitialisation du mot de passe) via Resend, et si la **connexion avec Google** est proposée. Les réglages enregistrés ici prennent effet tout de suite ; **Revenir aux variables d'environnement** retourne à la configuration du serveur.
+Comment Songverse envoie ses e-mails (vérification, réinitialisation du mot de passe) via Resend, et si la **connexion avec Google** est proposée. Les réglages enregistrés ici prennent effet tout de suite ; **Revenir aux variables d'environnement** retourne à la configuration du serveur.
 
 ### Stockage
 

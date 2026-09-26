@@ -74,12 +74,12 @@ check("Bob doesn't see it", !(await api(bob, "GET", `/song-versions/${song.id}/a
 let offset = logOffset();
 const dave = await user("Dave");
 await api(alice, "POST", "/people/requests", { email: dave.email });
-let [mail] = await waitForLog(offset, new RegExp(`To: ${dave.email.toLowerCase().replace(/[.+]/g, "\\$&")}\\nSubject: Alice would like to share songs with you on SongVerse[\\s\\S]*?/people`));
+let [mail] = await waitForLog(offset, new RegExp(`To: ${dave.email.toLowerCase().replace(/[.+]/g, "\\$&")}\\nSubject: Alice would like to share songs with you on Songverse[\\s\\S]*?/people`));
 check("an email to someone with an account", !!mail);
 const stranger = `nobody-${stamp}@example.com`;
 offset = logOffset();
 await api(alice, "POST", "/people/requests", { email: stranger });
-[mail] = await waitForLog(offset, new RegExp(`To: ${stranger.replace(/[.+]/g, "\\$&")}\\nSubject: Alice would like to share songs with you on SongVerse`));
+[mail] = await waitForLog(offset, new RegExp(`To: ${stranger.replace(/[.+]/g, "\\$&")}\\nSubject: Alice would like to share songs with you on Songverse`));
 check("the same to an address with none: an invitation", !!mail);
 offset = logOffset();
 await api(alice, "POST", "/people/requests", { email: stranger });

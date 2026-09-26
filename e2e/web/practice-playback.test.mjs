@@ -8,7 +8,7 @@ import { chromium } from "playwright";
 import { sidebarGo, API, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures/stems");
-// YouTube's IFrame API, as far as SongVerse uses it: a player that keeps time.
+// YouTube's IFrame API, as far as Songverse uses it: a player that keeps time.
 const FAKE_YT = `
 window.YT = { Player: class {
   constructor(el, o) {

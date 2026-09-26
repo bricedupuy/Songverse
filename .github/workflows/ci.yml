@@ -112,7 +112,7 @@ jobs:
       # Test-only values; nothing real is protected by them.
       BETTER_AUTH_SECRET: "e2e-only-secret-not-for-production-use"
       SETTINGS_ENCRYPTION_KEY: "e2e-only-settings-key-not-for-production-use"
-      MUSICBRAINZ_CONTACT: "https://github.com/bricedupuy/SongVerse"
+      MUSICBRAINZ_CONTACT: "https://github.com/bricedupuy/Songverse"
     steps:
       - uses: actions/checkout@v4
 

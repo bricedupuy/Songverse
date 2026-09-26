@@ -5,11 +5,11 @@ export const DOCS_URL = "https://docs.songverse.one";
 export const text = {
   en: {
     lang: "en",
-    title: "SongVerse — your songs, ready to play",
+    title: "Songverse — your songs, ready to play",
     description: "Charts, arrangements and set lists for musicians, bands and teams. Chords right above the words, in the key you're playing, on any screen.",
     docs: "Docs",
     signIn: "Sign in",
-    openApp: "Open SongVerse",
+    openApp: "Open Songverse",
     otherLanguage: { label: "Français", href: "/fr/" },
     heroTitle: ["Your songs,", "ready to play."],
     heroText: "Charts, arrangements and set lists in one place — chords right above the words, in the key you're playing, on any screen.",
@@ -39,11 +39,11 @@ export const text = {
   },
   fr: {
     lang: "fr",
-    title: "SongVerse — vos chants, prêts à jouer",
+    title: "Songverse — vos chants, prêts à jouer",
     description: "Grilles, arrangements et listes de chants pour les musiciens, les groupes et les équipes. Les accords juste au-dessus des paroles, dans la tonalité jouée, sur tous les écrans.",
     docs: "Documentation",
     signIn: "Se connecter",
-    openApp: "Ouvrir SongVerse",
+    openApp: "Ouvrir Songverse",
     otherLanguage: { label: "English", href: "/" },
     heroTitle: ["Vos chants,", "prêts à jouer."],
     heroText: "Grilles, arrangements et listes de chants au même endroit — les accords juste au-dessus des paroles, dans la tonalité jouée, sur tous les écrans.",

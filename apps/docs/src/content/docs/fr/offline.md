@@ -3,9 +3,9 @@ title: Hors ligne
 description: Jouer vos listes sans réseau - ce qui est conservé sur votre appareil, en garder davantage, libérer de la place.
 ---
 
-Une fois SongVerse utilisé sur un appareil, il s'y ouvre même sans réseau (sur une scène sans Wi-Fi, par exemple). Vous restez connecté, et un bandeau indique que vous êtes hors ligne et quand l'appareil s'est mis à jour pour la dernière fois. Les modifications ne peuvent être enregistrées qu'une fois de retour en ligne.
+Une fois Songverse utilisé sur un appareil, il s'y ouvre même sans réseau (sur une scène sans Wi-Fi, par exemple). Vous restez connecté, et un bandeau indique que vous êtes hors ligne et quand l'appareil s'est mis à jour pour la dernière fois. Les modifications ne peuvent être enregistrées qu'une fois de retour en ligne.
 
-Avant un concert, ouvrez SongVerse une fois tant que vous avez une connexion : il se met à jour tout seul.
+Avant un concert, ouvrez Songverse une fois tant que vous avez une connexion : il se met à jour tout seul.
 
 ## Ce qui est conservé
 
@@ -23,7 +23,7 @@ Vous pouvez en garder davantage :
 
 Les PDF, images et fichiers ChordPro d'un chant viennent avec lui.
 
-Tant que SongVerse est ouvert avec une connexion, il se met à jour toutes les quelques minutes : les chants et listes modifiés sont mis à jour. Une liste est retirée une fois supprimée, quand vous ne pouvez plus l'ouvrir, ou le lendemain de sa date. Un chant ou un recueil est retiré quand vous ne pouvez plus l'ouvrir ou ne le gardez plus.
+Tant que Songverse est ouvert avec une connexion, il se met à jour toutes les quelques minutes : les chants et listes modifiés sont mis à jour. Une liste est retirée une fois supprimée, quand vous ne pouvez plus l'ouvrir, ou le lendemain de sa date. Un chant ou un recueil est retiré quand vous ne pouvez plus l'ouvrir ou ne le gardez plus.
 
 ## Hors ligne
 
