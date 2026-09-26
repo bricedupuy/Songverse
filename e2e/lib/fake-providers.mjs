@@ -3,7 +3,9 @@
 // MusicBrainz and Deezer (issue #22; MUSICBRAINZ_API_URL at /mb/ws/2/,
 // DEEZER_API_URL at /deezer), and the Apple Music API (issue #87;
 // APPLE_MUSIC_API_URL at /applemusic), which checks the developer token's
-// signature against `appleMusicKey.publicKey`. A search for anything with "Nomatch" in it
+// signature against `appleMusicKey.publicKey` - and a developer token
+// address (/applemusic-token) handing out tokens signed with
+// `appleMusicKey.privateKey`, counting how often it's asked. A search for anything with "Nomatch" in it
 // finds nothing; "Deezerdown" makes Deezer fail. Otherwise, for a title and
 // an artist:
 // - Apple Music: three albums, "Album 1" (2013), "Album 2" (2016) and
@@ -11,7 +13,7 @@
 // - MusicBrainz: the song, first released on "Album 1" (listed after a 2016
 //   compilation), a karaoke version from 2010, and the title by another band;
 // - Deezer: the song on "Album 1" and on "Live 2020".
-import { verify } from "node:crypto";
+import { sign, verify } from "node:crypto";
 import { createServer } from "node:http";
 import { deflateSync } from "node:zlib";
 
@@ -77,7 +79,13 @@ const lastApple = new Map();
 
 // --- the Apple Music API: the same songs, with ISRCs and writers
 /** The public key the Apple Music API stand-in checks tokens with: a suite sets it. */
-export const appleMusicKey = { publicKey: null, teamId: null, keyId: null };
+export const appleMusicKey = { publicKey: null, privateKey: null, teamId: null, keyId: null, tokenHits: 0 };
+function mintToken() {
+  const b64 = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = `${b64({ kid: appleMusicKey.keyId, alg: "ES256" })}.${b64({ iss: appleMusicKey.teamId, iat: now, exp: now + 30 * 24 * 3600 })}`;
+  return `${unsigned}.${sign("sha256", Buffer.from(unsigned), { key: appleMusicKey.privateKey, dsaEncoding: "ieee-p1363" }).toString("base64url")}`;
+}
 function validToken(header) {
   const [h, p, sig] = (header ?? "").replace(/^Bearer /, "").split(".");
   if (!h || !p || !sig || !appleMusicKey.publicKey) return false;
@@ -146,6 +154,10 @@ export function startFakeProviders() {
     if (path === "/lookup") {
       const song = lastApple.get(url.searchParams.get("id") ?? "");
       return json(res, { resultCount: song ? 1 : 0, results: song ? [song] : [] });
+    }
+    if (path === "/applemusic-token") {
+      appleMusicKey.tokenHits++;
+      return json(res, { storefront_id: "143441-1,29", token: mintToken(), token_type: "Bearer", cache_ttl_seconds: 120 });
     }
     if (path.startsWith("/applemusic/")) {
       if (!validToken(req.headers.authorization)) return json(res, { errors: [{ status: "401" }] }, 401);

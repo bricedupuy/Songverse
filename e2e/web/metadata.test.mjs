@@ -6,7 +6,7 @@
 import { chromium } from "playwright";
 import { generateKeyPairSync } from "node:crypto";
 import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
-import { appleMusicKey, startFakeProviders } from "../lib/fake-providers.mjs";
+import { FAKE_PROVIDERS_URL, appleMusicKey, startFakeProviders } from "../lib/fake-providers.mjs";
 
 const fake = await startFakeProviders();
 let page;
@@ -82,6 +82,20 @@ await step("the Apple Music API's key: saved, tested, reverted", async () => {
   await card.getByText("Currently using: the key saved here (team TEAM123456, key KEY1234567).").waitFor();
   if ((await card.getByLabel("Private key (.p8)").inputValue()) !== "") throw new Error("the private key is still shown");
   await card.getByPlaceholder("Leave blank to keep the current one").waitFor();
+  await card.getByRole("button", { name: "Test connection" }).click();
+  await card.getByText("The Apple Music API answered", { exact: false }).waitFor();
+  await card.getByRole("button", { name: "Revert to environment variables" }).click();
+  await card.getByRole("button", { name: "Revert", exact: true }).click();
+  await card.getByText("Currently using: no key - iTunes Search.").waitFor();
+});
+
+await step("a developer token address, until there's a key", async () => {
+  const pair = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  Object.assign(appleMusicKey, { publicKey: pair.publicKey, privateKey: pair.privateKey, teamId: "MINT123456", keyId: "MINTKEY123" });
+  const card = page.getByTestId("apple-music-key");
+  await card.getByLabel("Developer token URL (without a key)").fill(`${FAKE_PROVIDERS_URL}/applemusic-token`);
+  await card.getByRole("button", { name: "Save configuration" }).click();
+  await card.getByText(`Currently using: developer tokens from ${FAKE_PROVIDERS_URL}/applemusic-token`, { exact: false }).waitFor();
   await card.getByRole("button", { name: "Test connection" }).click();
   await card.getByText("The Apple Music API answered", { exact: false }).waitFor();
   await card.getByRole("button", { name: "Revert to environment variables" }).click();

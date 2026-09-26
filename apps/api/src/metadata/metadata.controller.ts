@@ -49,6 +49,11 @@ export class AppleMusicKeyDto {
   @IsString()
   @MaxLength(5000)
   privateKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  tokenUrl?: string;
 }
 
 /**

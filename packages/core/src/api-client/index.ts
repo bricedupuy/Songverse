@@ -708,7 +708,15 @@ export interface MetadataSettings {
   providers: { key: MetadataProviderKey; name: string; enabled: boolean }[];
   source: "database" | "env" | "default";
   /** The Apple Music API's MusicKit key (issue #87): never the private key, only whether the database has one. */
-  appleMusic: { source: "database" | "env" | "none"; teamId: string | null; keyId: string | null; hasDatabasePrivateKey: boolean };
+  appleMusic: {
+    source: "database" | "env" | "tokenUrl" | "none";
+    teamId: string | null;
+    keyId: string | null;
+    hasDatabasePrivateKey: boolean;
+    /** A developer token address, used while there's no key (a stopgap). */
+    tokenUrl: string | null;
+    tokenUrlSource: "database" | "env" | "none";
+  };
 }
 
 export interface ArtworkSettings {
@@ -1507,7 +1515,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<MetadataSettings>("/admin/metadata", { method: "PUT", body: JSON.stringify({ providers }) }),
     resetMetadataSettings: () => request<MetadataSettings>("/admin/metadata", { method: "DELETE" }),
     /** A field left out keeps its value; an empty one clears it. */
-    saveAppleMusicKey: (key: { teamId?: string; keyId?: string; privateKey?: string }) =>
+    saveAppleMusicKey: (key: { teamId?: string; keyId?: string; privateKey?: string; tokenUrl?: string }) =>
       request<MetadataSettings>("/admin/metadata/apple-music", { method: "PUT", body: JSON.stringify(key) }),
     resetAppleMusicKey: () => request<MetadataSettings>("/admin/metadata/apple-music", { method: "DELETE" }),
     testAppleMusicKey: () => request<{ ok: boolean; message: string }>("/admin/metadata/apple-music/test", { method: "POST" }),

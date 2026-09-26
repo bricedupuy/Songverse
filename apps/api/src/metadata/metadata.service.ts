@@ -14,7 +14,7 @@ import { ArtworkService } from "../artwork/artwork.service";
 import { artworkAtSize, itunesLookup, itunesSearch, type ITunesSong } from "../artwork/itunes";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
-import { appleMusicSearch, appleMusicSong, musicKitKeyProblem, type MusicKitCredentials } from "./apple-music-api";
+import { appleMusicSearch, appleMusicSong, musicKitKeyProblem, type AppleMusicAuth, type MusicKitCredentials } from "./apple-music-api";
 import { deezerSearch, deezerTrack } from "./deezer.provider";
 
 /** How long a search waits on a provider (MusicBrainz's queue included) before going on without it. */
@@ -32,10 +32,14 @@ export interface EffectiveMetadataSettings {
   source: "database" | "env" | "default";
   /** The Apple Music API's MusicKit key (issue #87) - never the private key itself, only whether the database has one. */
   appleMusic: {
-    source: "database" | "env" | "none";
+    /** What signs requests: a key (saved here, or env vars), else a developer token address, else nothing (iTunes Search). */
+    source: "database" | "env" | "tokenUrl" | "none";
     teamId: string | null;
     keyId: string | null;
     hasDatabasePrivateKey: boolean;
+    /** The developer token address (saved here, or APPLE_MUSIC_TOKEN_URL), used while there's no key. */
+    tokenUrl: string | null;
+    tokenUrlSource: "database" | "env" | "none";
   };
 }
 
@@ -44,6 +48,8 @@ export interface SaveAppleMusicInput {
   keyId?: string;
   /** The .p8 file's text; left out, the one saved stays. */
   privateKey?: string;
+  /** An address handing out developer tokens, until there's a key. */
+  tokenUrl?: string;
 }
 
 export interface MetadataSearchResult {
@@ -145,6 +151,17 @@ export class MetadataService {
     const teamId = clean(input.teamId);
     const keyId = clean(input.keyId);
     const privateKey = clean(input.privateKey);
+    const tokenUrl = clean(input.tokenUrl);
+    if (tokenUrl) {
+      let url: URL | null = null;
+      try {
+        url = new URL(tokenUrl);
+      } catch {
+        // reported below
+      }
+      const local = url?.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname);
+      if (!url || (url.protocol !== "https:" && !local)) throw new BadRequestException("A developer token address is an https:// address");
+    }
     for (const [name, value] of [
       ["team ID", teamId],
       ["key ID", keyId],
@@ -161,6 +178,7 @@ export class MetadataService {
       ...(teamId !== undefined && { appleMusicTeamId: teamId }),
       ...(keyId !== undefined && { appleMusicKeyId: keyId }),
       ...(privateKeyEnc !== undefined && { appleMusicPrivateKeyEnc: privateKeyEnc }),
+      ...(tokenUrl !== undefined && { appleMusicTokenUrl: tokenUrl }),
     };
     await this.prisma.client.metadataSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", ...data }, update: data });
     return this.settings();
@@ -170,17 +188,17 @@ export class MetadataService {
   async resetAppleMusic(): Promise<EffectiveMetadataSettings> {
     await this.prisma.client.metadataSettings.updateMany({
       where: { id: "singleton" },
-      data: { appleMusicTeamId: null, appleMusicKeyId: null, appleMusicPrivateKeyEnc: null },
+      data: { appleMusicTeamId: null, appleMusicKeyId: null, appleMusicPrivateKeyEnc: null, appleMusicTokenUrl: null },
     });
     return this.settings();
   }
 
-  /** Tries the key with a search, so an admin knows it works before a song needs it. */
+  /** Tries the key (or token address) with a search, so an admin knows it works before a song needs it. */
   async testAppleMusic(): Promise<{ ok: boolean; message: string }> {
-    const credentials = await this.appleMusicCredentials();
-    if (!credentials) return { ok: false, message: "No MusicKit key is set: Apple Music is searched through iTunes Search." };
+    const auth = await this.appleMusicAuth();
+    if (!auth) return { ok: false, message: "No MusicKit key or developer token address is set: Apple Music is searched through iTunes Search." };
     try {
-      const found = await appleMusicSearch("Amazing Grace", (await this.artwork.settings()).country, credentials);
+      const found = await appleMusicSearch("Amazing Grace", (await this.artwork.settings()).country, auth);
       return { ok: true, message: `The Apple Music API answered (${found.length} songs for "Amazing Grace").` };
     } catch (err) {
       return { ok: false, message: err instanceof Error ? err.message : String(err) };
@@ -207,14 +225,32 @@ export class MetadataService {
     return teamId && keyId && privateKey ? { teamId, keyId, privateKey: privateKey.replace(/\\n/g, "\n") } : null;
   }
 
-  private appleMusicSummary(row: { appleMusicTeamId: string | null; appleMusicKeyId: string | null; appleMusicPrivateKeyEnc: string | null } | null): EffectiveMetadataSettings["appleMusic"] {
+  /**
+   * How Apple Music API requests are signed: the MusicKit key, else a token
+   * from the developer token address (saved here, else
+   * APPLE_MUSIC_TOKEN_URL) - a stopgap, whose tokens aren't signed by this
+   * server's own Apple account - else none (iTunes Search).
+   */
+  async appleMusicAuth(): Promise<AppleMusicAuth | null> {
+    const credentials = await this.appleMusicCredentials();
+    if (credentials) return { kind: "key", credentials };
+    const row = await this.prisma.client.metadataSettings.findUnique({ where: { id: "singleton" }, select: { appleMusicTokenUrl: true } });
+    const url = row?.appleMusicTokenUrl || process.env.APPLE_MUSIC_TOKEN_URL;
+    return url ? { kind: "tokenUrl", url } : null;
+  }
+
+  private appleMusicSummary(
+    row: { appleMusicTeamId: string | null; appleMusicKeyId: string | null; appleMusicPrivateKeyEnc: string | null; appleMusicTokenUrl: string | null } | null,
+  ): EffectiveMetadataSettings["appleMusic"] {
     const hasDatabasePrivateKey = !!row?.appleMusicPrivateKeyEnc;
+    const tokenUrl = row?.appleMusicTokenUrl || process.env.APPLE_MUSIC_TOKEN_URL || null;
+    const token = { tokenUrl, tokenUrlSource: row?.appleMusicTokenUrl ? ("database" as const) : tokenUrl ? ("env" as const) : ("none" as const) };
     if (row?.appleMusicTeamId && row.appleMusicKeyId && hasDatabasePrivateKey) {
-      return { source: "database", teamId: row.appleMusicTeamId, keyId: row.appleMusicKeyId, hasDatabasePrivateKey };
+      return { source: "database", teamId: row.appleMusicTeamId, keyId: row.appleMusicKeyId, hasDatabasePrivateKey, ...token };
     }
     const { APPLE_MUSIC_TEAM_ID: teamId, APPLE_MUSIC_KEY_ID: keyId, APPLE_MUSIC_PRIVATE_KEY: privateKey } = process.env;
-    if (teamId && keyId && privateKey) return { source: "env", teamId, keyId, hasDatabasePrivateKey };
-    return { source: "none", teamId: row?.appleMusicTeamId ?? null, keyId: row?.appleMusicKeyId ?? null, hasDatabasePrivateKey };
+    if (teamId && keyId && privateKey) return { source: "env", teamId, keyId, hasDatabasePrivateKey, ...token };
+    return { source: tokenUrl ? "tokenUrl" : "none", teamId: row?.appleMusicTeamId ?? null, keyId: row?.appleMusicKeyId ?? null, hasDatabasePrivateKey, ...token };
   }
 
   /** Every provider that's on, at once; one that fails or is slow is left out rather than failing the search. */
@@ -273,9 +309,9 @@ export class MetadataService {
       case "apple_music": {
         const { country } = await this.artwork.settings();
         const term = [title, artist].filter(Boolean).join(" ");
-        // With a MusicKit key, the Apple Music API (issue #87): the same songs, with their ISRC and writers.
-        const credentials = await this.appleMusicCredentials();
-        if (credentials) return appleMusicSearch(term, country, credentials);
+        // With a MusicKit key (or a token address), the Apple Music API (issue #87): the same songs, with their ISRC and writers.
+        const auth = await this.appleMusicAuth();
+        if (auth) return appleMusicSearch(term, country, auth);
         return (await itunesSearch(term, country, 25)).map(appleMatch).filter((m): m is ProviderMatch => !!m);
       }
       case "deezer":
@@ -290,8 +326,8 @@ export class MetadataService {
       case "apple_music": {
         if (!/^\d+$/.test(id)) throw new NotFoundException("Not an Apple Music track ID");
         const { country } = await this.artwork.settings();
-        const credentials = await this.appleMusicCredentials();
-        const found = credentials ? await appleMusicSong(id, country, credentials) : await itunesLookup(id, country).then((song) => song && appleMatch(song));
+        const auth = await this.appleMusicAuth();
+        const found = auth ? await appleMusicSong(id, country, auth) : await itunesLookup(id, country).then((song) => song && appleMatch(song));
         if (!found) throw new NotFoundException("No such Apple Music track");
         return found;
       }

@@ -44,6 +44,49 @@ export function developerToken(credentials: MusicKitCredentials, now = Date.now(
   return token;
 }
 
+/**
+ * How requests to the Apple Music API are signed: a MusicKit key of one's
+ * own, or - a stopgap until there is one - a developer token fetched from
+ * an address that hands them out (it answers `{ "token": "eyJ…" }`).
+ */
+export type AppleMusicAuth = { kind: "key"; credentials: MusicKitCredentials } | { kind: "tokenUrl"; url: string };
+
+const fetchedTokens = new Map<string, { token: string; expiresAt: number }>();
+
+/** When a JWT runs out (its `exp`), or null when it doesn't say. */
+function jwtExpiry(token: string): number | null {
+  try {
+    const { exp } = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString()) as { exp?: unknown };
+    return typeof exp === "number" ? exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A developer token from `url`, kept until a minute before it runs out (the
+ * JWT's own expiry; else the `cache_ttl_seconds` it came with, or two
+ * minutes), so the address is asked about once a month rather than on every
+ * search.
+ */
+export async function fetchedToken(url: string, now = Date.now()): Promise<string> {
+  const cached = fetchedTokens.get(url);
+  if (cached && cached.expiresAt - now > 60 * 1000) return cached.token;
+  const res = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  if (!res.ok) throw new Error(`The developer token address answered ${res.status}`);
+  const body = (await res.json().catch(() => null)) as { token?: unknown; cache_ttl_seconds?: unknown } | null;
+  const token = typeof body?.token === "string" ? body.token.trim() : "";
+  if (!/^[\w-]+\.[\w-]+\.[\w-]+$/.test(token)) throw new Error("The developer token address didn't answer with a token");
+  const ttl = typeof body?.cache_ttl_seconds === "number" ? body.cache_ttl_seconds * 1000 : 2 * 60 * 1000;
+  fetchedTokens.set(url, { token, expiresAt: jwtExpiry(token) ?? now + ttl });
+  return token;
+}
+
+/** Forgets a fetched token Apple refused, so the next request fetches a new one. */
+export const forgetFetchedToken = (url: string) => fetchedTokens.delete(url);
+
+const tokenFor = (auth: AppleMusicAuth) => (auth.kind === "key" ? Promise.resolve(developerToken(auth.credentials)) : fetchedToken(auth.url));
+
 interface AppleMusicSong {
   id: string;
   attributes?: {
@@ -67,12 +110,22 @@ export class AppleMusicApiError extends Error {
   }
 }
 
-async function get<T>(path: string, credentials: MusicKitCredentials): Promise<T> {
+async function get<T>(path: string, auth: AppleMusicAuth, retried = false): Promise<T> {
   const res = await fetch(`${apiBase()}${path}`, {
-    headers: { Authorization: `Bearer ${developerToken(credentials)}` },
+    headers: { Authorization: `Bearer ${await tokenFor(auth)}` },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  if (res.status === 401 || res.status === 403) throw new AppleMusicApiError(res.status, "Apple Music refused the MusicKit key: check the team ID, key ID and private key");
+  if (res.status === 401 || res.status === 403) {
+    // A fetched token may have been replaced early: a new one, once.
+    if (auth.kind === "tokenUrl" && !retried) {
+      forgetFetchedToken(auth.url);
+      return get(path, auth, true);
+    }
+    throw new AppleMusicApiError(
+      res.status,
+      auth.kind === "key" ? "Apple Music refused the MusicKit key: check the team ID, key ID and private key" : "Apple Music refused the developer token from that address",
+    );
+  }
   if (!res.ok) throw new AppleMusicApiError(res.status, `Apple Music answered ${res.status}`);
   return (await res.json()) as T;
 }
@@ -106,16 +159,16 @@ function toMatch(song: AppleMusicSong): ProviderMatch | null {
 }
 
 /** Songs matching `term` in a storefront (two letters), through the Apple Music API. */
-export async function appleMusicSearch(term: string, storefront: string, credentials: MusicKitCredentials): Promise<ProviderMatch[]> {
+export async function appleMusicSearch(term: string, storefront: string, auth: AppleMusicAuth): Promise<ProviderMatch[]> {
   const query = new URLSearchParams({ term, types: "songs", limit: "25" });
-  const body = await get<{ results?: { songs?: { data?: AppleMusicSong[] } } }>(`/v1/catalog/${storefront}/search?${query}`, credentials);
+  const body = await get<{ results?: { songs?: { data?: AppleMusicSong[] } } }>(`/v1/catalog/${storefront}/search?${query}`, auth);
   return (body.results?.songs?.data ?? []).map(toMatch).filter((match): match is ProviderMatch => !!match);
 }
 
 /** One song by its catalogue ID, or null. */
-export async function appleMusicSong(id: string, storefront: string, credentials: MusicKitCredentials): Promise<ProviderMatch | null> {
+export async function appleMusicSong(id: string, storefront: string, auth: AppleMusicAuth): Promise<ProviderMatch | null> {
   try {
-    const body = await get<{ data?: AppleMusicSong[] }>(`/v1/catalog/${storefront}/songs/${encodeURIComponent(id)}`, credentials);
+    const body = await get<{ data?: AppleMusicSong[] }>(`/v1/catalog/${storefront}/songs/${encodeURIComponent(id)}`, auth);
     const song = body.data?.[0];
     return song ? toMatch(song) : null;
   } catch (err) {

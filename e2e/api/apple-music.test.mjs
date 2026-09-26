@@ -2,10 +2,12 @@
 // (the private key checked, kept encrypted, never shown back), tested, and
 // then used for Apple Music's matches - the same songs as iTunes Search,
 // with their ISRC and writers - signed with a developer token the stand-in
-// (lib/fake-providers.mjs) verifies. Without a key, iTunes Search again.
+// (lib/fake-providers.mjs) verifies. Without a key, a developer token
+// address as a stopgap, its token kept until it expires; without either,
+// iTunes Search again.
 import { generateKeyPairSync } from "node:crypto";
 import { api, call, check, finish, sql, stamp, user } from "../lib/harness.mjs";
-import { appleMusicKey, startFakeProviders } from "../lib/fake-providers.mjs";
+import { FAKE_PROVIDERS_URL, appleMusicKey, startFakeProviders } from "../lib/fake-providers.mjs";
 
 const fake = await startFakeProviders();
 const admin = await user("Admin");
@@ -67,6 +69,29 @@ r = await call(admin, "POST", "/admin/metadata/apple-music/test");
 check("nothing to test", r.body.ok === false && /No MusicKit key/.test(r.body.message));
 [first] = await search();
 check("Apple Music through iTunes Search again: no ISRC", first.sources.some((s) => s.provider === "apple_music") && !first.isrc, JSON.stringify(first));
+
+// --- a developer token address, until there's a key
+const minted = keyPair();
+Object.assign(appleMusicKey, { publicKey: minted.publicKey, privateKey: minted.privateKey, teamId: "MINT123456", keyId: "MINTKEY123", tokenHits: 0 });
+r = await call(admin, "PUT", "/admin/metadata/apple-music", { tokenUrl: "ftp://example.com/token" });
+check("a token address is https", r.status === 400, String(r.status));
+settings = await api(admin, "PUT", "/admin/metadata/apple-music", { tokenUrl: `${FAKE_PROVIDERS_URL}/applemusic-token` });
+check("saved: tokens from it", settings.appleMusic.source === "tokenUrl" && settings.appleMusic.tokenUrlSource === "database" && settings.appleMusic.tokenUrl.endsWith("/applemusic-token"), JSON.stringify(settings.appleMusic));
+r = await call(admin, "POST", "/admin/metadata/apple-music/test");
+check("the test connection works with its token", r.body.ok === true, JSON.stringify(r.body));
+[first] = await search();
+await search();
+check("Apple Music through the API again, with its ISRC", first.isrc === "USFAK1301000", JSON.stringify(first));
+check("one token for all of it, kept until it expires", appleMusicKey.tokenHits === 1, String(appleMusicKey.tokenHits));
+// The address's key changes: the kept token is refused, a new one fetched once.
+const rotated = keyPair();
+Object.assign(appleMusicKey, { publicKey: rotated.publicKey, privateKey: rotated.privateKey });
+[first] = await search();
+check("a refused token is fetched again", first.isrc === "USFAK1301000" && appleMusicKey.tokenHits === 2, `${appleMusicKey.tokenHits} ${JSON.stringify(first)}`);
+settings = await api(admin, "PUT", "/admin/metadata/apple-music", { teamId: "TEAM123456", keyId: "KEY1234567", privateKey: pem(good) });
+check("a key, once saved, is used instead", settings.appleMusic.source === "database" && settings.appleMusic.tokenUrl !== null);
+settings = await api(admin, "DELETE", "/admin/metadata/apple-music");
+check("reverted: neither", settings.appleMusic.source === "none" && settings.appleMusic.tokenUrl === null);
 
 fake.close();
 finish();

@@ -326,6 +326,7 @@ function AppleMusicKeyCard() {
   const [teamId, setTeamId] = useState("");
   const [keyId, setKeyId] = useState("");
   const [privateKey, setPrivateKey] = useState("");
+  const [tokenUrl, setTokenUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
@@ -334,6 +335,7 @@ function AppleMusicKeyCard() {
     setTeamId(next.appleMusic.source === "env" ? "" : (next.appleMusic.teamId ?? ""));
     setKeyId(next.appleMusic.source === "env" ? "" : (next.appleMusic.keyId ?? ""));
     setPrivateKey("");
+    setTokenUrl(next.appleMusic.tokenUrlSource === "database" ? (next.appleMusic.tokenUrl ?? "") : "");
   };
   useEffect(() => {
     apiClient.getMetadataSettings().then(apply).catch(() => {});
@@ -352,7 +354,7 @@ function AppleMusicKeyCard() {
   }
 
   const apple = settings?.appleMusic;
-  const currently = apple?.source === "database" ? "keyDatabase" : apple?.source === "env" ? "keyEnv" : "keyNone";
+  const currently = apple?.source === "database" ? "keyDatabase" : apple?.source === "env" ? "keyEnv" : apple?.source === "tokenUrl" ? "keyTokenUrl" : "keyNone";
   return (
     <Card data-testid="apple-music-key">
       <CardHeader>
@@ -362,7 +364,7 @@ function AppleMusicKeyCard() {
       <CardContent className="flex flex-col gap-4">
         {apple ? (
           <p className="text-sm text-muted-foreground">
-            {t(`metadataProviders.${currently}`, { teamId: apple.teamId ?? "", keyId: apple.keyId ?? "" })}
+            {t(`metadataProviders.${currently}`, { teamId: apple.teamId ?? "", keyId: apple.keyId ?? "", url: apple.tokenUrl ?? "" })}
           </p>
         ) : null}
         <div className="grid max-w-md gap-4 sm:grid-cols-2">
@@ -389,13 +391,25 @@ function AppleMusicKeyCard() {
           />
           <p className="text-xs text-muted-foreground">{t("metadataProviders.privateKeyHint")}</p>
         </div>
+        <div className="flex max-w-xl flex-col gap-1.5 border-t pt-4">
+          <Label htmlFor="apple-token-url">{t("metadataProviders.tokenUrl")}</Label>
+          <Input
+            id="apple-token-url"
+            type="url"
+            value={tokenUrl}
+            autoComplete="off"
+            placeholder={apple?.tokenUrlSource === "env" ? (apple.tokenUrl ?? "") : "https://"}
+            onChange={(event) => setTokenUrl(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">{t("metadataProviders.tokenUrlHint")}</p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button
             size="sm"
             disabled={busy}
             onClick={() =>
               void run(async () => {
-                apply(await apiClient.saveAppleMusicKey({ teamId, keyId, ...(privateKey.trim() && { privateKey }) }));
+                apply(await apiClient.saveAppleMusicKey({ teamId, keyId, tokenUrl, ...(privateKey.trim() && { privateKey }) }));
                 return t("metadataProviders.saved");
               })
             }
@@ -416,7 +430,7 @@ function AppleMusicKeyCard() {
           >
             {t("metadataProviders.test")}
           </Button>
-          {apple && (apple.hasDatabasePrivateKey || apple.teamId || apple.keyId) && apple.source !== "env" ? (
+          {apple && (apple.hasDatabasePrivateKey || apple.teamId || apple.keyId || apple.tokenUrlSource === "database") && apple.source !== "env" ? (
             <ConfirmButton
               label={t("metadataProviders.revert")}
               confirmLabel={t("metadataProviders.revertConfirm")}

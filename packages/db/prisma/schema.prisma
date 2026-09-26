@@ -1738,6 +1738,9 @@ model MetadataSettings {
   appleMusicTeamId        String?
   appleMusicKeyId         String?
   appleMusicPrivateKeyEnc String?
+  // A stopgap without a key: an address handing out developer tokens
+  // (`{ "token": "eyJ…" }`), used until a key is set. APPLE_MUSIC_TOKEN_URL.
+  appleMusicTokenUrl      String?
   updatedAt               DateTime @updatedAt
 }
 
