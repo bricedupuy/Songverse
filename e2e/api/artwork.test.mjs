@@ -1,10 +1,10 @@
 // Song images (issue #85): a new song's artwork found on its own, from
 // Apple Music (a stand-in, see lib/fake-providers.mjs) and kept on our
 // storage; served at a signed address only to who can see the song;
-// chosen among the matches or removed by its editors; the admin's settings
+// chosen among the matches, uploaded (issue #88) or removed by its editors; the admin's settings
 // and backfill; one image for two songs with the same artwork.
 import { API, api, call, check, finish, sql, stamp, user } from "../lib/harness.mjs";
-import { FAKE_PROVIDERS_URL, startFakeProviders } from "../lib/fake-providers.mjs";
+import { FAKE_PROVIDERS_URL, png, startFakeProviders } from "../lib/fake-providers.mjs";
 
 const fake = await startFakeProviders();
 const owner = await user("Painter");
@@ -59,6 +59,24 @@ await api(owner, "PUT", `/song-versions/${song.id}/shares/${viewer.id}`, { canEd
 check("someone it's shared with sees it", !!(await api(viewer, "GET", `/song-versions/${song.id}`)).imageUrl);
 r = await call(viewer, "PUT", `/song-versions/${song.id}/artwork`, { url: candidates[0].artworkUrl });
 check("but can't change it", r.status === 403, String(r.status));
+
+// --- an image of their own (issue #88)
+const upload = (who, id, body, type, name) => {
+  const form = new FormData();
+  form.append("file", new Blob([body], { type }), name);
+  return fetch(`${API}/song-versions/${id}/artwork/upload`, { method: "POST", headers: { Authorization: `Bearer ${who.bearer}` }, body: form });
+};
+res = await upload(owner, song.id, png(250, 200, 10), "image/png", "mine.png");
+check("uploaded", res.status === 204, String(res.status));
+check("kept as theirs", sql(`select "imageSourceUrl" from "SongVersion" where id='${song.id}'`) === "upload");
+res = await fetchImage(`${(await api(owner, "GET", `/song-versions/${song.id}`)).imageUrl}&w=64`);
+check("and served like the rest", res.status === 200 && res.headers.get("content-type") === "image/webp", String(res.status));
+res = await upload(owner, song.id, '<svg xmlns="http://www.w3.org/2000/svg"/>', "image/svg+xml", "x.svg");
+check("not an SVG", res.status === 400, String(res.status));
+res = await upload(owner, song.id, "not an image", "image/png", "broken.png");
+check("nor something that isn't an image", res.status === 400, String(res.status));
+res = await upload(viewer, song.id, png(1, 2, 3), "image/png", "v.png");
+check("not by someone who can only view it", res.status === 403, String(res.status));
 
 // --- one image for two songs with the same artwork; removing one keeps the other's
 const twin = await make("Artful twin");

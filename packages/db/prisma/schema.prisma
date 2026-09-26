@@ -628,13 +628,13 @@ model SongVersion {
   contributedByTeamId String?
 
   // Core metadata
-  title          String
-  alternateTitle String? // shown as "Subtitle"
+  title           String
+  alternateTitle  String? // shown as "Subtitle"
   // Tells this version apart from the song's others: "Acoustic", "Youth band".
-  versionName    String?
-  sortTitle      String? // how to sort it, if not by title
-  language       String // BCP 47 tag: en, fr, de, etc.
-  trustLabel     String? // Free text: "Official publisher text", etc.
+  versionName     String?
+  sortTitle       String? // how to sort it, if not by title
+  language        String // BCP 47 tag: en, fr, de, etc.
+  trustLabel      String? // Free text: "Official publisher text", etc.
   // Its image (issue #85): the album or single's artwork, kept on our
   // storage (content-addressed, like attachments), and where it came from.
   imageStorageKey String?
@@ -1726,12 +1726,19 @@ model ArtworkSettings {
 }
 
 // Which metadata providers Auto detect asks, and in what order (issue #22):
-// `providers` is the ordered list [{ key, enabled }]. No row: the
+// `providers` is the ordered list [{ key, enabled }]. None: the
 // METADATA_PROVIDERS env var, then every provider in the default order.
+// The Apple Music API's MusicKit keys (issue #87): with all three, Apple
+// Music is asked through the API; the private key (.p8) encrypted with
+// SETTINGS_ENCRYPTION_KEY. None: the APPLE_MUSIC_* env vars, then the
+// iTunes Search API, which needs no key.
 model MetadataSettings {
-  id        String   @id @default("singleton")
-  providers Json
-  updatedAt DateTime @updatedAt
+  id                      String   @id @default("singleton")
+  providers               Json?
+  appleMusicTeamId        String?
+  appleMusicKeyId         String?
+  appleMusicPrivateKeyEnc String?
+  updatedAt               DateTime @updatedAt
 }
 
 // A user's saved library filter (issue #58): a songs list kept under a

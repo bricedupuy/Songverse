@@ -5,8 +5,6 @@ import { Button } from "#/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "#/components/ui/dialog";
 import { Label } from "#/components/ui/label";
 
-/** Matches the API's own cap (ImageService.normalizeAvatar), which re-checks it. */
-const AVATAR_MAX_SIZE = 512;
 
 function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -21,10 +19,10 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string): Promise<Blob | n
   return new Promise((resolve) => canvas.toBlob(resolve, type, 0.9));
 }
 
-/** Draws the chosen square region at most 512x512. Browsers apply EXIF orientation when drawing, matching the preview. */
-async function cropToSquare(imageUrl: string, area: Area): Promise<Blob> {
+/** Draws the chosen square region at most `maxSize` wide. Browsers apply EXIF orientation when drawing, matching the preview. */
+async function cropToSquare(imageUrl: string, area: Area, maxSize: number): Promise<Blob> {
   const image = await loadImage(imageUrl);
-  const size = Math.max(1, Math.min(Math.round(area.width), AVATAR_MAX_SIZE));
+  const size = Math.max(1, Math.min(Math.round(area.width), maxSize));
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
@@ -38,13 +36,22 @@ async function cropToSquare(imageUrl: string, area: Area): Promise<Blob> {
   return blob;
 }
 
-interface AvatarCropDialogProps {
+interface ImageCropDialogProps {
   file: File;
   onCancel: () => void;
   onConfirm: (cropped: Blob) => Promise<void>;
+  /** The largest side kept, matching the API's own cap, which re-checks it. */
+  maxSize: number;
+  /** A round mask for a profile photo; a square one for artwork. */
+  shape: "round" | "rect";
+  title: string;
+  description: string;
+  saveLabel: string;
+  testId: string;
 }
 
-export function AvatarCropDialog({ file, onCancel, onConfirm }: AvatarCropDialogProps) {
+/** Crops a picture to a square before it's uploaded: a profile photo, a song's artwork (issue #88). */
+export function ImageCropDialog({ file, onCancel, onConfirm, maxSize, shape, title, description, saveLabel, testId }: ImageCropDialogProps) {
   const { t } = useTranslation();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 });
@@ -72,7 +79,7 @@ export function AvatarCropDialog({ file, onCancel, onConfirm }: AvatarCropDialog
     setPending(true);
     setError(null);
     try {
-      await onConfirm(await cropToSquare(imageUrl, area));
+      await onConfirm(await cropToSquare(imageUrl, area, maxSize));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -84,18 +91,18 @@ export function AvatarCropDialog({ file, onCancel, onConfirm }: AvatarCropDialog
     <Dialog open onOpenChange={(open) => !open && !pending && onCancel()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("account.cropTitle")}</DialogTitle>
-          <DialogDescription>{t("account.cropDescription")}</DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="relative h-72 overflow-hidden rounded-md bg-muted" data-testid="avatar-cropper">
+        <div className="relative h-72 overflow-hidden rounded-md bg-muted" data-testid={testId}>
           {imageUrl ? (
             <Cropper
               image={imageUrl}
               crop={crop}
               zoom={zoom}
               aspect={1}
-              cropShape="round"
+              cropShape={shape}
               showGrid={false}
               onCropChange={setCrop}
               onZoomChange={setZoom}
@@ -105,11 +112,11 @@ export function AvatarCropDialog({ file, onCancel, onConfirm }: AvatarCropDialog
         </div>
 
         <div className="flex items-center gap-3">
-          <Label htmlFor="avatar-zoom" className="shrink-0">
+          <Label htmlFor={`${testId}-zoom`} className="shrink-0">
             {t("account.zoom")}
           </Label>
           <input
-            id="avatar-zoom"
+            id={`${testId}-zoom`}
             type="range"
             min={1}
             max={4}
@@ -128,7 +135,7 @@ export function AvatarCropDialog({ file, onCancel, onConfirm }: AvatarCropDialog
             {t("account.cancel")}
           </Button>
           <Button onClick={() => void confirm()} disabled={!imageUrl || !area || pending}>
-            {pending ? t("account.saving") : t("account.saveAvatar")}
+            {pending ? t("account.saving") : saveLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

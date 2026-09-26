@@ -14,12 +14,12 @@ seed`) - some suites use the built-in global tags.
    going to a file - with no email provider configured the API prints the
    emails it would send, and the suites read verification links from there.
    Point the API's song artwork and song info at the suites' stand-ins for
-   Apple Music, MusicBrainz and Deezer (`lib/fake-providers.mjs`, which the
+   Apple Music (and its API), MusicBrainz and Deezer (`lib/fake-providers.mjs`, which the
    suites that need them start on port 3999):
 
    ```sh
    ITUNES_SEARCH_URL=http://localhost:3999 MUSICBRAINZ_API_URL=http://localhost:3999/mb/ws/2/ \
-     DEEZER_API_URL=http://localhost:3999/deezer pnpm --filter @songverse/api dev > /tmp/api-dev.log 2>&1 &
+     DEEZER_API_URL=http://localhost:3999/deezer APPLE_MUSIC_API_URL=http://localhost:3999/applemusic pnpm --filter @songverse/api dev > /tmp/api-dev.log 2>&1 &
    pnpm --filter @songverse/web dev &
    ```
 

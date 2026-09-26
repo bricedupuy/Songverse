@@ -68,8 +68,9 @@ describe("rankMetadataMatches", () => {
       {
         deezer: [found("deezer", "d", { album: "Zion", releaseDate: "2013-02-22", artworkUrl: "https://example.com/d.jpg" })],
         musicbrainz: [found("musicbrainz", "m", { title: "Oceans (Where Feet May Fail)", album: "Zion", releaseDate: "2013" })],
+        apple_music: [found("apple_music", "a", { album: "Zion", releaseDate: "2013-02-22", isrc: "AUHS11300001", composers: ["Joel Houston", "Matt Crocker"] })],
       },
-      ["musicbrainz", "deezer"],
+      ["musicbrainz", "apple_music", "deezer"],
       "Oceans",
       "Hillsong United",
     );
@@ -78,7 +79,9 @@ describe("rankMetadataMatches", () => {
       title: "Oceans (Where Feet May Fail)",
       releaseDate: "2013-02-22",
       artworkUrl: "https://example.com/d.jpg",
-      sources: [{ provider: "musicbrainz" }, { provider: "deezer" }],
+      isrc: "AUHS11300001",
+      composers: ["Joel Houston", "Matt Crocker"],
+      sources: [{ provider: "musicbrainz" }, { provider: "apple_music" }, { provider: "deezer" }],
     });
   });
 

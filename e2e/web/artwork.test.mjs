@@ -1,10 +1,11 @@
 // Song images in the browser (issue #85): a song's artwork on the Library's
 // cards, in the song list and on its page; choosing another among Apple
-// Music's matches (a stand-in, lib/fake-providers.mjs), removing it; the
-// admin's artwork settings.
+// Music's matches (a stand-in, lib/fake-providers.mjs), with their full
+// names on hover, or uploading one's own, cropped (issue #88); removing it;
+// the admin's artwork settings.
 import { chromium } from "playwright";
 import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
-import { startFakeProviders } from "../lib/fake-providers.mjs";
+import { png, startFakeProviders } from "../lib/fake-providers.mjs";
 
 const fake = await startFakeProviders();
 let page;
@@ -43,10 +44,24 @@ await step("on its page; another chosen among the matches", async () => {
   await artwork.getByRole("button", { name: "Find artwork" }).click();
   const choices = page.getByTestId("artwork-candidates");
   await choices.getByRole("button").nth(2).waitFor();
+  await choices.getByRole("button", { name: "Use the artwork of Album 2" }).hover();
+  await page.getByTestId("artwork-tooltip").filter({ hasText: `Canvas ${stamp} · Painter · 2016` }).first().waitFor();
   await choices.getByRole("button", { name: "Use the artwork of Album 3" }).click();
   await choices.waitFor({ state: "detached" });
   await page.waitForFunction((was) => document.querySelector('[data-testid="artwork-card"] [data-testid="song-image"]')?.getAttribute("src") !== was, before);
   if (!(await loaded(artwork.getByTestId("song-image")))) throw new Error("the new image didn't load");
+});
+
+await step("an image of one's own, cropped to a square", async () => {
+  const artwork = page.getByTestId("artwork-card");
+  const was = await artwork.getByTestId("song-image").getAttribute("src");
+  await artwork.getByTestId("artwork-upload").setInputFiles({ name: "mine.png", mimeType: "image/png", buffer: png(250, 200, 10) });
+  const cropper = page.getByRole("dialog").filter({ hasText: "Crop the artwork" });
+  await cropper.locator("[data-testid=artwork-cropper] img").waitFor();
+  await cropper.getByRole("button", { name: "Use this image" }).click();
+  await cropper.waitFor({ state: "detached" });
+  await page.waitForFunction((before) => document.querySelector('[data-testid="artwork-card"] [data-testid="song-image"]')?.getAttribute("src") !== before, was);
+  if (sql(`select "imageSourceUrl" from "SongVersion" where id='${song.id}'`) !== "upload") throw new Error("not kept as an upload");
 });
 
 await step("removed: the cover made from its title", async () => {

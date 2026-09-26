@@ -117,6 +117,16 @@ export class ArtworkService {
     if (!(res.headers.get("content-type") ?? "").startsWith("image/")) throw new BadRequestException("That isn't an image");
     const body = Buffer.from(await res.arrayBuffer());
     if (body.length > MAX_DOWNLOAD_BYTES) throw new BadRequestException("That image is too big");
+    return this.store(songVersionId, body, parsed.toString(), options);
+  }
+
+  /** An image of the editor's own (issue #88), for songs Apple Music doesn't have: cropped square like the rest. */
+  async setFromUpload(songVersionId: string, body: Buffer): Promise<void> {
+    await this.store(songVersionId, body, "upload");
+  }
+
+  /** Makes `body` a square WebP, keeps it (content-addressed) and makes it the song's image. */
+  private async store(songVersionId: string, body: Buffer, sourceUrl: string, options: { onlyIfNone?: boolean } = {}): Promise<boolean> {
     let image: ProcessedImage;
     try {
       image = await this.images.normalizeArtwork(body);
@@ -128,7 +138,7 @@ export class ArtworkService {
     // Found on its own, it doesn't replace one set in the meantime (from the song info chosen as it was created, say).
     const { count } = await this.prisma.client.songVersion.updateMany({
       where: { id: songVersionId, ...(options.onlyIfNone && { imageStorageKey: null }) },
-      data: { imageStorageKey: hash, imageSourceUrl: parsed.toString() },
+      data: { imageStorageKey: hash, imageSourceUrl: sourceUrl },
     });
     if (count === 0) {
       await this.storage.deleteUnreferenced([hash]);

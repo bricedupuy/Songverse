@@ -177,6 +177,9 @@ function MatchSummary({ match }: { match: MetadataMatch }) {
         <p className="truncate text-muted-foreground">
           {[match.artist ?? t("songEditor.unknownArtist"), match.album, match.releaseDate?.slice(0, 4)].filter(Boolean).join(" · ")}
         </p>
+        {match.composers?.length ? (
+          <p className="truncate text-xs text-muted-foreground">{t("songEditor.writtenBy", { names: match.composers.join(", ") })}</p>
+        ) : null}
         <p className="truncate text-xs text-muted-foreground" data-testid="match-sources">
           {sourceNames(match)}
         </p>

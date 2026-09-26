@@ -103,6 +103,8 @@ export function rankMetadataMatches(
         same.match.releaseDate = earlier(same.match.releaseDate, found.releaseDate);
         same.match.artworkUrl ??= found.artworkUrl;
         same.match.thumbnailUrl ??= found.thumbnailUrl;
+        same.match.isrc ??= found.isrc;
+        if (!same.match.composers?.length && found.composers?.length) same.match.composers = found.composers;
         same.rank = Math.min(same.rank, rank);
         return;
       }

@@ -1,18 +1,21 @@
 import type { ArtworkCandidate, SongVersionDetail } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
-import { ImageIcon, Search, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ImageIcon, Search, Trash2, Upload } from "lucide-react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ImageCropDialog } from "#/components/image-crop-dialog";
 import { SongCover } from "#/components/library-home";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "#/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { apiClient } from "#/lib/api-client";
 
 /**
  * A song's image (issue #85): the album or single's artwork from Apple
  * Music, kept on Songverse's storage. Found on its own for a new song; its
- * editors find another among Apple Music's matches, or remove it.
+ * editors find another among Apple Music's matches, upload their own
+ * (issue #88), or remove it.
  */
 export function ArtworkCard({ version, canEdit }: { version: SongVersionDetail; canEdit: boolean }) {
   const { t } = useTranslation();
@@ -21,6 +24,16 @@ export function ArtworkCard({ version, canEdit }: { version: SongVersionDetail; 
   const [candidates, setCandidates] = useState<ArtworkCandidate[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  /** A picture chosen to upload, being cropped to a square. */
+  const [cropping, setCropping] = useState<File | null>(null);
+
+  const uploadButton = (
+    <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => fileInput.current?.click()}>
+      <Upload />
+      {t("artwork.upload")}
+    </Button>
+  );
 
   async function run(action: () => Promise<unknown>) {
     setBusy(true);
@@ -63,7 +76,7 @@ export function ArtworkCard({ version, canEdit }: { version: SongVersionDetail; 
         <div className="w-32 shrink-0">
           <SongCover song={version} size="large" />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex min-w-40 flex-1 flex-col gap-2">
           {!version.imageUrl ? <p className="text-sm text-muted-foreground">{t("artwork.none")}</p> : null}
           {canEdit ? (
             <div className="flex flex-wrap gap-2">
@@ -71,6 +84,22 @@ export function ArtworkCard({ version, canEdit }: { version: SongVersionDetail; 
                 <Search />
                 {t("artwork.find")}
               </Button>
+              {uploadButton}
+              <input
+                ref={fileInput}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic"
+                className="hidden"
+                data-testid="artwork-upload"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    setOpen(false);
+                    setCropping(file);
+                  }
+                  event.target.value = "";
+                }}
+              />
               {version.imageUrl ? (
                 <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => void run(() => apiClient.clearArtwork(version.id))}>
                   <Trash2 />
@@ -87,6 +116,24 @@ export function ArtworkCard({ version, canEdit }: { version: SongVersionDetail; 
         </div>
       </CardContent>
 
+      {cropping ? (
+        <ImageCropDialog
+          file={cropping}
+          maxSize={800}
+          shape="rect"
+          title={t("artwork.cropTitle")}
+          description={t("artwork.cropDescription")}
+          saveLabel={t("artwork.saveUpload")}
+          testId="artwork-cropper"
+          onCancel={() => setCropping(null)}
+          onConfirm={async (cropped) => {
+            await apiClient.uploadArtwork(version.id, cropped, "artwork.webp");
+            setCropping(null);
+            await router.invalidate();
+          }}
+        />
+      ) : null}
+
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -99,29 +146,44 @@ export function ArtworkCard({ version, canEdit }: { version: SongVersionDetail; 
             <p className="text-sm text-muted-foreground">{error ?? t("artwork.noMatches")}</p>
           ) : (
             <ul className="grid max-h-[60vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3" data-testid="artwork-candidates">
-              {candidates.map((candidate) => (
-                <li key={candidate.artworkUrl}>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="flex w-full flex-col gap-1.5 rounded-lg p-1.5 text-left hover:bg-accent disabled:opacity-60"
-                    aria-label={t("artwork.use", { album: candidate.album ?? candidate.title })}
-                    onClick={() =>
-                      void run(() => apiClient.setArtwork(version.id, candidate.artworkUrl)).then((done) => {
-                        if (done) setOpen(false);
-                      })
-                    }
-                  >
-                    <img src={candidate.thumbnailUrl} alt="" loading="lazy" className="aspect-square w-full rounded-md object-cover" />
-                    <span className="truncate text-sm font-medium">{candidate.album ?? candidate.title}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {candidate.title} · {candidate.artist}
-                    </span>
-                  </button>
-                </li>
-              ))}
+              {candidates.map((candidate) => {
+                const year = candidate.releaseDate?.slice(0, 4);
+                return (
+                  <li key={candidate.artworkUrl}>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          className="flex w-full flex-col gap-1 rounded-lg p-1.5 text-left hover:bg-accent disabled:opacity-60"
+                          aria-label={t("artwork.use", { album: candidate.album ?? candidate.title })}
+                          onClick={() =>
+                            void run(() => apiClient.setArtwork(version.id, candidate.artworkUrl)).then((done) => {
+                              if (done) setOpen(false);
+                            })
+                          }
+                        >
+                          <img src={candidate.thumbnailUrl} alt="" loading="lazy" className="aspect-square w-full rounded-md object-cover" />
+                          <span className="line-clamp-2 text-sm leading-snug font-medium break-words">{candidate.album ?? candidate.title}</span>
+                          <span className="line-clamp-2 text-xs break-words text-muted-foreground">
+                            {[candidate.title, candidate.artist, year].filter(Boolean).join(" · ")}
+                          </span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-64" data-testid="artwork-tooltip">
+                        <p className="font-medium">{candidate.album ?? candidate.title}</p>
+                        <p>{[candidate.title, candidate.artist, year].filter(Boolean).join(" · ")}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </li>
+                );
+              })}
             </ul>
           )}
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+            <p className="text-sm text-muted-foreground">{t("artwork.notThere")}</p>
+            {uploadButton}
+          </div>
           {error && candidates && candidates.length > 0 ? (
             <p className="text-sm text-destructive" role="alert">
               {error}

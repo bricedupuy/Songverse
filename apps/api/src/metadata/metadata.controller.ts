@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Put, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Post, Put, Query, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from "class-validator";
@@ -34,6 +34,23 @@ export class MetadataSettingsDto {
   providers!: MetadataProviderSettingDto[];
 }
 
+export class AppleMusicKeyDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  teamId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  keyId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  privateKey?: string;
+}
+
 /**
  * Metadata providers (issue #22): Auto detect's search - read only, like
  * the MusicBrainz proxy; linking a match goes through the song's own
@@ -66,5 +83,24 @@ export class MetadataController {
   @UseGuards(GlobalAdminGuard)
   reset() {
     return this.metadata.resetSettings();
+  }
+
+  /** The Apple Music API's MusicKit key (issue #87). */
+  @Put("admin/metadata/apple-music")
+  @UseGuards(GlobalAdminGuard)
+  saveAppleMusic(@Body() dto: AppleMusicKeyDto) {
+    return this.metadata.saveAppleMusic(dto);
+  }
+
+  @Delete("admin/metadata/apple-music")
+  @UseGuards(GlobalAdminGuard)
+  resetAppleMusic() {
+    return this.metadata.resetAppleMusic();
+  }
+
+  @Post("admin/metadata/apple-music/test")
+  @UseGuards(GlobalAdminGuard)
+  testAppleMusic() {
+    return this.metadata.testAppleMusic();
   }
 }

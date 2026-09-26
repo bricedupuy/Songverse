@@ -33,6 +33,10 @@ export const MetadataMatchSchema = z.object({
   artworkUrl: z.string().url().nullable(),
   /** A small one, to show among the results. */
   thumbnailUrl: z.string().url().nullable(),
+  /** The recording's ISRC, where the provider has it (the Apple Music API, issue #87). */
+  isrc: z.string().nullable().optional(),
+  /** Who wrote it, where the provider says (the Apple Music API's composers, issue #87). */
+  composers: z.array(z.string()).optional(),
   sources: z.array(MetadataSourceSchema).min(1),
 });
 export type MetadataMatch = z.infer<typeof MetadataMatchSchema>;

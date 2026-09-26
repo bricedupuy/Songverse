@@ -707,6 +707,8 @@ export interface MetadataSettings {
   /** Every provider, in the order they're asked. */
   providers: { key: MetadataProviderKey; name: string; enabled: boolean }[];
   source: "database" | "env" | "default";
+  /** The Apple Music API's MusicKit key (issue #87): never the private key, only whether the database has one. */
+  appleMusic: { source: "database" | "env" | "none"; teamId: string | null; keyId: string | null; hasDatabasePrivateKey: boolean };
 }
 
 export interface ArtworkSettings {
@@ -1251,6 +1253,12 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     getArtworkSettings: () => request<ArtworkSettings>("/admin/artwork"),
     saveArtworkSettings: (change: { enabled?: boolean; country?: string }) => request<ArtworkSettings>("/admin/artwork", { method: "PUT", body: JSON.stringify(change) }),
     resetArtworkSettings: () => request<ArtworkSettings>("/admin/artwork", { method: "DELETE" }),
+    /** An image of the editor's own for the song (issue #88). */
+    uploadArtwork: (songVersionId: string, file: Blob, filename = "artwork") => {
+      const form = new FormData();
+      form.append("file", file, filename);
+      return request<void>(`/song-versions/${songVersionId}/artwork/upload`, { method: "POST", body: form });
+    },
     backfillArtwork: () => request<{ tried: number; found: number }>("/admin/artwork/backfill", { method: "POST" }),
     /** The songs before and after one in a list of the library, searched and filtered as `query` says (issue #84). */
     getSongNeighbors: (songVersionId: string, query: ListSongVersionsQuery = {}) => {
@@ -1498,6 +1506,11 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     saveMetadataSettings: (providers: { key: MetadataProviderKey; enabled: boolean }[]) =>
       request<MetadataSettings>("/admin/metadata", { method: "PUT", body: JSON.stringify({ providers }) }),
     resetMetadataSettings: () => request<MetadataSettings>("/admin/metadata", { method: "DELETE" }),
+    /** A field left out keeps its value; an empty one clears it. */
+    saveAppleMusicKey: (key: { teamId?: string; keyId?: string; privateKey?: string }) =>
+      request<MetadataSettings>("/admin/metadata/apple-music", { method: "PUT", body: JSON.stringify(key) }),
+    resetAppleMusicKey: () => request<MetadataSettings>("/admin/metadata/apple-music", { method: "DELETE" }),
+    testAppleMusicKey: () => request<{ ok: boolean; message: string }>("/admin/metadata/apple-music/test", { method: "POST" }),
 
     getWorkMusicBrainz: (workId: string) => request<MusicBrainzWorkMatch | null>(`/works/${workId}/musicbrainz`),
     linkWorkMusicBrainz: (workId: string, mbid: string) =>

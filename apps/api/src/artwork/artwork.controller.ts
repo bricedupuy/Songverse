@@ -1,5 +1,25 @@
-import { Body, Controller, Delete, ForbiddenException, Get, HttpCode, HttpStatus, NotFoundException, Param, Post, Put, Query, Res, StreamableFile, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  HttpStatus,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+  Query,
+  Res,
+  StreamableFile,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiBearerAuth, ApiConsumes, ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger";
 import { IsBoolean, IsOptional, IsString, IsUrl, MaxLength } from "class-validator";
 import type { Response } from "express";
 import { Public } from "../common/decorators/public.decorator";
@@ -7,6 +27,10 @@ import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
 import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard";
 import { ArtworkService } from "./artwork.service";
 import { isValidSongImageSignature } from "./song-image-url";
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+// Pictures only: no SVG, which is a document rather than an image.
+const UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif", "image/heic", "image/heif"]);
 
 export class SetArtworkDto {
   @IsUrl({ protocols: ["https", "http"], require_tld: false })
@@ -69,6 +93,18 @@ export class ArtworkController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async set(@Param("songVersionId") songVersionId: string, @Body() dto: SetArtworkDto): Promise<void> {
     await this.artwork.setFromUrl(songVersionId, dto.url);
+  }
+
+  /** An image of the editor's own (issue #88): made a square WebP like the rest. */
+  @Post("song-versions/:songVersionId/artwork/upload")
+  @UseGuards(SongVersionEditorGuard)
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_UPLOAD_BYTES } }))
+  @ApiConsumes("multipart/form-data")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async upload(@Param("songVersionId") songVersionId: string, @UploadedFile() file: Express.Multer.File | undefined): Promise<void> {
+    if (!file) throw new BadRequestException("A file is required");
+    if (!UPLOAD_TYPES.has(file.mimetype)) throw new BadRequestException("A JPEG, PNG, WebP, GIF, AVIF or HEIC image");
+    await this.artwork.setFromUpload(songVersionId, file.buffer);
   }
 
   @Delete("song-versions/:songVersionId/artwork")

@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/com
 import { ConfirmButton } from "#/components/confirm-button";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { Textarea } from "#/components/ui/textarea";
 
 export const Route = createFileRoute("/_protected/admin/metadata")({
   component: AdminMetadataPage,
@@ -101,6 +102,7 @@ function AdminMetadataPage() {
       </Card>
 
       <MetadataProvidersCard />
+      <AppleMusicKeyCard />
       <ArtworkSettingsCard />
     </div>
   );
@@ -300,6 +302,133 @@ function MetadataProvidersCard() {
               cancelLabel={t("admin.cancel")}
               busy={busy}
               onConfirm={() => run(() => apiClient.resetMetadataSettings())}
+            />
+          ) : null}
+        </div>
+        {message ? (
+          <p className={`text-sm ${message.kind === "error" ? "text-destructive" : "text-muted-foreground"}`} role={message.kind === "error" ? "alert" : "status"}>
+            {message.text}
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * The Apple Music API's MusicKit key (issue #87): with it, Apple Music is
+ * searched through the API (with ISRCs and writers) rather than iTunes
+ * Search. The private key is never shown back, only whether one is saved.
+ */
+function AppleMusicKeyCard() {
+  const { t } = useTranslation();
+  const [settings, setSettings] = useState<MetadataSettings | null>(null);
+  const [teamId, setTeamId] = useState("");
+  const [keyId, setKeyId] = useState("");
+  const [privateKey, setPrivateKey] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+
+  const apply = (next: MetadataSettings) => {
+    setSettings(next);
+    setTeamId(next.appleMusic.source === "env" ? "" : (next.appleMusic.teamId ?? ""));
+    setKeyId(next.appleMusic.source === "env" ? "" : (next.appleMusic.keyId ?? ""));
+    setPrivateKey("");
+  };
+  useEffect(() => {
+    apiClient.getMetadataSettings().then(apply).catch(() => {});
+  }, []);
+
+  async function run(action: () => Promise<string>) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      setMessage({ kind: "ok", text: await action() });
+    } catch (err) {
+      setMessage({ kind: "error", text: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const apple = settings?.appleMusic;
+  const currently = apple?.source === "database" ? "keyDatabase" : apple?.source === "env" ? "keyEnv" : "keyNone";
+  return (
+    <Card data-testid="apple-music-key">
+      <CardHeader>
+        <CardTitle className="text-sm">{t("metadataProviders.keyTitle")}</CardTitle>
+        <CardDescription>{t("metadataProviders.keyDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {apple ? (
+          <p className="text-sm text-muted-foreground">
+            {t(`metadataProviders.${currently}`, { teamId: apple.teamId ?? "", keyId: apple.keyId ?? "" })}
+          </p>
+        ) : null}
+        <div className="grid max-w-md gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="apple-team-id">{t("metadataProviders.teamId")}</Label>
+            <Input id="apple-team-id" value={teamId} maxLength={10} autoComplete="off" onChange={(event) => setTeamId(event.target.value.toUpperCase())} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="apple-key-id">{t("metadataProviders.keyId")}</Label>
+            <Input id="apple-key-id" value={keyId} maxLength={10} autoComplete="off" onChange={(event) => setKeyId(event.target.value.toUpperCase())} />
+          </div>
+        </div>
+        <div className="flex max-w-xl flex-col gap-1.5">
+          <Label htmlFor="apple-private-key">{t("metadataProviders.privateKey")}</Label>
+          <Textarea
+            id="apple-private-key"
+            value={privateKey}
+            rows={5}
+            spellCheck={false}
+            autoComplete="off"
+            className="font-mono text-xs"
+            placeholder={apple?.hasDatabasePrivateKey ? t("metadataProviders.privateKeyKeep") : "-----BEGIN PRIVATE KEY-----"}
+            onChange={(event) => setPrivateKey(event.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">{t("metadataProviders.privateKeyHint")}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                apply(await apiClient.saveAppleMusicKey({ teamId, keyId, ...(privateKey.trim() && { privateKey }) }));
+                return t("metadataProviders.saved");
+              })
+            }
+          >
+            {t("metadataProviders.save")}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy || apple?.source === "none"}
+            onClick={() =>
+              void run(async () => {
+                const result = await apiClient.testAppleMusicKey();
+                if (!result.ok) throw new Error(result.message);
+                return result.message;
+              })
+            }
+          >
+            {t("metadataProviders.test")}
+          </Button>
+          {apple && (apple.hasDatabasePrivateKey || apple.teamId || apple.keyId) && apple.source !== "env" ? (
+            <ConfirmButton
+              label={t("metadataProviders.revert")}
+              confirmLabel={t("metadataProviders.revertConfirm")}
+              busyLabel={t("admin.running")}
+              cancelLabel={t("admin.cancel")}
+              busy={busy}
+              onConfirm={() =>
+                run(async () => {
+                  apply(await apiClient.resetAppleMusicKey());
+                  return t("metadataProviders.saved");
+                })
+              }
             />
           ) : null}
         </div>

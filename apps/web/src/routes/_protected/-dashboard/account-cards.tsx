@@ -13,7 +13,7 @@ import { KeyRound, Trash2 } from "lucide-react";
 import { apiClient } from "#/lib/api-client";
 import { authClient } from "#/lib/auth-client";
 import { formatBytes } from "#/lib/format-bytes";
-import { AvatarCropDialog } from "#/components/avatar-crop-dialog";
+import { ImageCropDialog } from "#/components/image-crop-dialog";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { Button } from "#/components/ui/button";
@@ -124,8 +124,14 @@ export function ProfileCard({ profile }: { profile: UserProfile }) {
         ) : null}
 
         {cropping ? (
-          <AvatarCropDialog
+          <ImageCropDialog
             file={cropping}
+            maxSize={512}
+            shape="round"
+            title={t("account.cropTitle")}
+            description={t("account.cropDescription")}
+            saveLabel={t("account.saveAvatar")}
+            testId="avatar-cropper"
             onCancel={() => setCropping(null)}
             onConfirm={async (cropped) => {
               await apiClient.uploadAvatar(cropped, "avatar.webp");

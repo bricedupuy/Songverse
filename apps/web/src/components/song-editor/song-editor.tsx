@@ -195,6 +195,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
       artists: current.artists.length === 0 && match.artist ? [match.artist] : current.artists,
       album: current.album.trim() ? current.album : (match.album ?? ""),
       year: current.year.trim() ? current.year : (match.releaseDate?.slice(0, 4) ?? ""),
+      isrc: current.isrc.trim() ? current.isrc : (match.isrc ?? ""),
+      // Apple Music's composers wrote words and music: writers, unless the song credits someone already.
+      writers:
+        current.writers.length + current.composers.length + current.lyricists.length === 0 && match.composers?.length ? match.composers : current.writers,
     }));
   }
 

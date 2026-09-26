@@ -114,10 +114,11 @@ jobs:
       SETTINGS_ENCRYPTION_KEY: "e2e-only-settings-key-not-for-production-use"
       MUSICBRAINZ_CONTACT: "https://github.com/bricedupuy/Songverse"
       # Song artwork (issue #85) and song info (issue #22) from the suites' stand-ins for
-      # Apple Music, MusicBrainz and Deezer (e2e/lib/fake-providers.mjs).
+      # Apple Music (and its API), MusicBrainz and Deezer (e2e/lib/fake-providers.mjs).
       ITUNES_SEARCH_URL: "http://localhost:3999"
       MUSICBRAINZ_API_URL: "http://localhost:3999/mb/ws/2/"
       DEEZER_API_URL: "http://localhost:3999/deezer"
+      APPLE_MUSIC_API_URL: "http://localhost:3999/applemusic"
     steps:
       - uses: actions/checkout@v4
 

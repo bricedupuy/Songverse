@@ -1,7 +1,9 @@
 // Stand-ins for the music services the API asks, for the suites: Apple's
-// iTunes Search API and its artwork (issue #85; ITUNES_SEARCH_URL), and
+// iTunes Search API and its artwork (issue #85; ITUNES_SEARCH_URL),
 // MusicBrainz and Deezer (issue #22; MUSICBRAINZ_API_URL at /mb/ws/2/,
-// DEEZER_API_URL at /deezer). A search for anything with "Nomatch" in it
+// DEEZER_API_URL at /deezer), and the Apple Music API (issue #87;
+// APPLE_MUSIC_API_URL at /applemusic), which checks the developer token's
+// signature against `appleMusicKey.publicKey`. A search for anything with "Nomatch" in it
 // finds nothing; "Deezerdown" makes Deezer fail. Otherwise, for a title and
 // an artist:
 // - Apple Music: three albums, "Album 1" (2013), "Album 2" (2016) and
@@ -9,6 +11,7 @@
 // - MusicBrainz: the song, first released on "Album 1" (listed after a 2016
 //   compilation), a karaoke version from 2010, and the title by another band;
 // - Deezer: the song on "Album 1" and on "Live 2020".
+import { verify } from "node:crypto";
 import { createServer } from "node:http";
 import { deflateSync } from "node:zlib";
 
@@ -17,7 +20,7 @@ export const FAKE_PROVIDERS_URL = `http://localhost:${FAKE_PROVIDERS_PORT}`;
 const URL_ = FAKE_PROVIDERS_URL;
 
 /** A 16x16 PNG of one colour. */
-function png(r, g, b) {
+export function png(r, g, b) {
   const crc = (buf) => {
     let c = ~0;
     for (const byte of buf) {
@@ -72,6 +75,32 @@ const appleSong = (title, artist, n) => ({
 const splitTerm = (term) => ({ title: term.replace(/\s+\S+$/, ""), artist: term.split(" ").at(-1) ?? "Someone" });
 const lastApple = new Map();
 
+// --- the Apple Music API: the same songs, with ISRCs and writers
+/** The public key the Apple Music API stand-in checks tokens with: a suite sets it. */
+export const appleMusicKey = { publicKey: null, teamId: null, keyId: null };
+function validToken(header) {
+  const [h, p, sig] = (header ?? "").replace(/^Bearer /, "").split(".");
+  if (!h || !p || !sig || !appleMusicKey.publicKey) return false;
+  const head = JSON.parse(Buffer.from(h, "base64url").toString());
+  const claims = JSON.parse(Buffer.from(p, "base64url").toString());
+  if (head.alg !== "ES256" || head.kid !== appleMusicKey.keyId || claims.iss !== appleMusicKey.teamId || claims.exp * 1000 < Date.now()) return false;
+  return verify("sha256", Buffer.from(`${h}.${p}`), { key: appleMusicKey.publicKey, dsaEncoding: "ieee-p1363" }, Buffer.from(sig, "base64url"));
+}
+const appleMusicSong = (song) => ({
+  id: String(song.trackId),
+  type: "songs",
+  attributes: {
+    name: song.trackName,
+    artistName: song.artistName,
+    albumName: song.collectionName,
+    releaseDate: song.releaseDate.slice(0, 10),
+    isrc: `USFAK13${String(song.trackId).padStart(5, "0")}`,
+    composerName: "Joel Houston, Matt Crocker & Salomon Ligthelm",
+    url: song.trackViewUrl,
+    artwork: { url: song.artworkUrl100.replace("100x100bb", "{w}x{h}bb") },
+  },
+});
+
 // --- MusicBrainz
 const mbid = (n, title) => `00000000-0000-4000-8000-${String(n).padStart(4, "0")}${Buffer.from(title).toString("hex").slice(0, 8).padEnd(8, "0")}`;
 const lastRecordings = new Map();
@@ -117,6 +146,20 @@ export function startFakeProviders() {
     if (path === "/lookup") {
       const song = lastApple.get(url.searchParams.get("id") ?? "");
       return json(res, { resultCount: song ? 1 : 0, results: song ? [song] : [] });
+    }
+    if (path.startsWith("/applemusic/")) {
+      if (!validToken(req.headers.authorization)) return json(res, { errors: [{ status: "401" }] }, 401);
+      const search = /^\/applemusic\/v1\/catalog\/[a-z]{2}\/search$/.test(path);
+      if (search) {
+        const term = url.searchParams.get("term") ?? "";
+        const { title, artist } = splitTerm(term);
+        const songs = /nomatch/i.test(term) ? [] : [0, 1, 2].map((n) => appleSong(title, artist, n));
+        for (const song of songs) lastApple.set(String(song.trackId), song);
+        return json(res, { results: songs.length ? { songs: { data: songs.map(appleMusicSong) } } : {} });
+      }
+      const one = /^\/applemusic\/v1\/catalog\/[a-z]{2}\/songs\/(\d+)$/.exec(path);
+      const song = one && lastApple.get(one[1]);
+      return song ? json(res, { data: [appleMusicSong(song)] }) : json(res, { errors: [{ status: "404" }] }, 404);
     }
     if (path === "/mb/ws/2/recording") {
       const query = url.searchParams.get("query") ?? "";

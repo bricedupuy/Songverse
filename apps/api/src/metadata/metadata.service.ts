@@ -8,10 +8,13 @@ import {
   type MetadataSource,
   type ProviderMatch,
 } from "@songverse/core";
+import { Prisma } from "@songverse/db";
+import { decryptSecret, encryptSecret } from "@songverse/secret-crypto";
 import { ArtworkService } from "../artwork/artwork.service";
 import { artworkAtSize, itunesLookup, itunesSearch, type ITunesSong } from "../artwork/itunes";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { appleMusicSearch, appleMusicSong, musicKitKeyProblem, type MusicKitCredentials } from "./apple-music-api";
 import { deezerSearch, deezerTrack } from "./deezer.provider";
 
 /** How long a search waits on a provider (MusicBrainz's queue included) before going on without it. */
@@ -27,6 +30,20 @@ export interface EffectiveMetadataSettings {
   /** Every provider, in the order they're asked. */
   providers: MetadataProviderSetting[];
   source: "database" | "env" | "default";
+  /** The Apple Music API's MusicKit key (issue #87) - never the private key itself, only whether the database has one. */
+  appleMusic: {
+    source: "database" | "env" | "none";
+    teamId: string | null;
+    keyId: string | null;
+    hasDatabasePrivateKey: boolean;
+  };
+}
+
+export interface SaveAppleMusicInput {
+  teamId?: string;
+  keyId?: string;
+  /** The .p8 file's text; left out, the one saved stays. */
+  privateKey?: string;
 }
 
 export interface MetadataSearchResult {
@@ -89,13 +106,14 @@ export class MetadataService {
   /** The database's list, else METADATA_PROVIDERS (the ones on, in order: "musicbrainz,apple_music"), else all of them. */
   async settings(): Promise<EffectiveMetadataSettings> {
     const row = await this.prisma.client.metadataSettings.findUnique({ where: { id: "singleton" } });
+    const appleMusic = this.appleMusicSummary(row);
     if (row && Array.isArray(row.providers)) {
       const listed = (row.providers as { key?: unknown; enabled?: unknown }[]).filter((p) => isProvider(p?.key)) as { key: MetadataProviderKey; enabled: unknown }[];
-      return { providers: complete(listed.map((p) => ({ key: p.key, enabled: p.enabled !== false }))), source: "database" };
+      return { providers: complete(listed.map((p) => ({ key: p.key, enabled: p.enabled !== false }))), source: "database", appleMusic };
     }
     const env = process.env.METADATA_PROVIDERS?.split(",").map((key) => key.trim().toLowerCase()).filter(isProvider);
-    if (env?.length) return { providers: complete(env.map((key) => ({ key, enabled: true }))), source: "env" };
-    return { providers: complete(METADATA_PROVIDERS.map((key) => ({ key, enabled: true }))), source: "default" };
+    if (env?.length) return { providers: complete(env.map((key) => ({ key, enabled: true }))), source: "env", appleMusic };
+    return { providers: complete(METADATA_PROVIDERS.map((key) => ({ key, enabled: true }))), source: "default", appleMusic };
   }
 
   /** Saves the providers' order and which are on; any left out are added, off. */
@@ -111,9 +129,92 @@ export class MetadataService {
     return this.settings();
   }
 
+  /** Back to METADATA_PROVIDERS or the default order; the Apple Music key stays. */
   async resetSettings(): Promise<EffectiveMetadataSettings> {
-    await this.prisma.client.metadataSettings.deleteMany({ where: { id: "singleton" } });
+    await this.prisma.client.metadataSettings.updateMany({ where: { id: "singleton" }, data: { providers: Prisma.DbNull } });
     return this.settings();
+  }
+
+  /**
+   * Saves the MusicKit key (issue #87), a field left out keeping its value
+   * and an empty one clearing it. The private key is checked, then kept
+   * encrypted.
+   */
+  async saveAppleMusic(input: SaveAppleMusicInput): Promise<EffectiveMetadataSettings> {
+    const clean = (value: string | undefined) => (value === undefined ? undefined : value.trim() || null);
+    const teamId = clean(input.teamId);
+    const keyId = clean(input.keyId);
+    const privateKey = clean(input.privateKey);
+    for (const [name, value] of [
+      ["team ID", teamId],
+      ["key ID", keyId],
+    ] as const) {
+      if (value && !/^[A-Z0-9]{10}$/.test(value)) throw new BadRequestException(`An Apple ${name} is 10 letters and digits, like ABCDE12345`);
+    }
+    let privateKeyEnc: string | null | undefined;
+    if (privateKey) {
+      const problem = musicKitKeyProblem(privateKey);
+      if (problem) throw new BadRequestException(problem);
+      privateKeyEnc = encryptSecret(privateKey, process.env.SETTINGS_ENCRYPTION_KEY);
+    } else if (privateKey === null) privateKeyEnc = null;
+    const data = {
+      ...(teamId !== undefined && { appleMusicTeamId: teamId }),
+      ...(keyId !== undefined && { appleMusicKeyId: keyId }),
+      ...(privateKeyEnc !== undefined && { appleMusicPrivateKeyEnc: privateKeyEnc }),
+    };
+    await this.prisma.client.metadataSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", ...data }, update: data });
+    return this.settings();
+  }
+
+  /** Back to the APPLE_MUSIC_* env vars, or the iTunes Search API without them; the providers' order stays. */
+  async resetAppleMusic(): Promise<EffectiveMetadataSettings> {
+    await this.prisma.client.metadataSettings.updateMany({
+      where: { id: "singleton" },
+      data: { appleMusicTeamId: null, appleMusicKeyId: null, appleMusicPrivateKeyEnc: null },
+    });
+    return this.settings();
+  }
+
+  /** Tries the key with a search, so an admin knows it works before a song needs it. */
+  async testAppleMusic(): Promise<{ ok: boolean; message: string }> {
+    const credentials = await this.appleMusicCredentials();
+    if (!credentials) return { ok: false, message: "No MusicKit key is set: Apple Music is searched through iTunes Search." };
+    try {
+      const found = await appleMusicSearch("Amazing Grace", (await this.artwork.settings()).country, credentials);
+      return { ok: true, message: `The Apple Music API answered (${found.length} songs for "Amazing Grace").` };
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /**
+   * The MusicKit key in use: the database's, when it has all three parts,
+   * else the APPLE_MUSIC_TEAM_ID / APPLE_MUSIC_KEY_ID /
+   * APPLE_MUSIC_PRIVATE_KEY env vars, else none (iTunes Search).
+   */
+  async appleMusicCredentials(): Promise<MusicKitCredentials | null> {
+    const row = await this.prisma.client.metadataSettings.findUnique({ where: { id: "singleton" } });
+    if (row?.appleMusicTeamId && row.appleMusicKeyId && row.appleMusicPrivateKeyEnc) {
+      try {
+        return { teamId: row.appleMusicTeamId, keyId: row.appleMusicKeyId, privateKey: decryptSecret(row.appleMusicPrivateKeyEnc, process.env.SETTINGS_ENCRYPTION_KEY) };
+      } catch (err) {
+        this.logger.warn(`The saved MusicKit key can't be decrypted (was SETTINGS_ENCRYPTION_KEY changed?): ${err instanceof Error ? err.message : String(err)}`);
+        return null;
+      }
+    }
+    const { APPLE_MUSIC_TEAM_ID: teamId, APPLE_MUSIC_KEY_ID: keyId, APPLE_MUSIC_PRIVATE_KEY: privateKey } = process.env;
+    // A key in an env var often has its line breaks written as \n.
+    return teamId && keyId && privateKey ? { teamId, keyId, privateKey: privateKey.replace(/\\n/g, "\n") } : null;
+  }
+
+  private appleMusicSummary(row: { appleMusicTeamId: string | null; appleMusicKeyId: string | null; appleMusicPrivateKeyEnc: string | null } | null): EffectiveMetadataSettings["appleMusic"] {
+    const hasDatabasePrivateKey = !!row?.appleMusicPrivateKeyEnc;
+    if (row?.appleMusicTeamId && row.appleMusicKeyId && hasDatabasePrivateKey) {
+      return { source: "database", teamId: row.appleMusicTeamId, keyId: row.appleMusicKeyId, hasDatabasePrivateKey };
+    }
+    const { APPLE_MUSIC_TEAM_ID: teamId, APPLE_MUSIC_KEY_ID: keyId, APPLE_MUSIC_PRIVATE_KEY: privateKey } = process.env;
+    if (teamId && keyId && privateKey) return { source: "env", teamId, keyId, hasDatabasePrivateKey };
+    return { source: "none", teamId: row?.appleMusicTeamId ?? null, keyId: row?.appleMusicKeyId ?? null, hasDatabasePrivateKey };
   }
 
   /** Every provider that's on, at once; one that fails or is slow is left out rather than failing the search. */
@@ -159,6 +260,8 @@ export class MetadataService {
       if (other.releaseDate && (!match.releaseDate || other.releaseDate.slice(0, 4) < match.releaseDate.slice(0, 4))) match.releaseDate = other.releaseDate;
       match.artworkUrl ??= other.artworkUrl;
       match.thumbnailUrl ??= other.thumbnailUrl;
+      match.isrc ??= other.isrc;
+      if (!match.composers?.length && other.composers?.length) match.composers = other.composers;
     }
     return match;
   }
@@ -169,7 +272,11 @@ export class MetadataService {
         return this.musicBrainz.searchMatches(title, artist);
       case "apple_music": {
         const { country } = await this.artwork.settings();
-        return (await itunesSearch([title, artist].filter(Boolean).join(" "), country, 25)).map(appleMatch).filter((m): m is ProviderMatch => !!m);
+        const term = [title, artist].filter(Boolean).join(" ");
+        // With a MusicKit key, the Apple Music API (issue #87): the same songs, with their ISRC and writers.
+        const credentials = await this.appleMusicCredentials();
+        if (credentials) return appleMusicSearch(term, country, credentials);
+        return (await itunesSearch(term, country, 25)).map(appleMatch).filter((m): m is ProviderMatch => !!m);
       }
       case "deezer":
         return deezerSearch(title, artist);
@@ -182,9 +289,11 @@ export class MetadataService {
         return this.musicBrainz.match(id);
       case "apple_music": {
         if (!/^\d+$/.test(id)) throw new NotFoundException("Not an Apple Music track ID");
-        const song = await itunesLookup(id, (await this.artwork.settings()).country);
-        if (!song) throw new NotFoundException("No such Apple Music track");
-        return appleMatch(song);
+        const { country } = await this.artwork.settings();
+        const credentials = await this.appleMusicCredentials();
+        const found = credentials ? await appleMusicSong(id, country, credentials) : await itunesLookup(id, country).then((song) => song && appleMatch(song));
+        if (!found) throw new NotFoundException("No such Apple Music track");
+        return found;
       }
       case "deezer":
         return deezerTrack(id).catch((err: Error) => {

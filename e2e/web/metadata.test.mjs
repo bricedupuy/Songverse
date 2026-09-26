@@ -2,10 +2,11 @@
 // MusicBrainz, Apple Music and Deezer (stand-ins, lib/fake-providers.mjs),
 // the song's first release first; choosing one fills the empty details and,
 // once saved, links the song to its sources and brings its Deezer link;
-// the admin's providers card.
+// the admin's providers card, and the Apple Music API's key (issue #87).
 import { chromium } from "playwright";
+import { generateKeyPairSync } from "node:crypto";
 import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
-import { startFakeProviders } from "../lib/fake-providers.mjs";
+import { appleMusicKey, startFakeProviders } from "../lib/fake-providers.mjs";
 
 const fake = await startFakeProviders();
 let page;
@@ -13,6 +14,7 @@ const step = stepper(() => page);
 const me = await user("Seeker");
 sql(`update "User" set "isGlobalAdmin"=true where id='${me.id}'`);
 await api(me, "DELETE", "/admin/metadata");
+await api(me, "DELETE", "/admin/metadata/apple-music");
 const title = `Oceans ${stamp}`;
 const song = await api(me, "POST", "/song-versions", { title, language: "en", artists: ["Hillsong"] });
 
@@ -66,6 +68,25 @@ await step("the admin's providers: reordered, one off, reverted", async () => {
   await card.getByRole("button", { name: "Revert to environment variables" }).click();
   await card.getByRole("button", { name: "Revert", exact: true }).click();
   await card.getByText("Currently using: the defaults").waitFor();
+});
+
+await step("the Apple Music API's key: saved, tested, reverted", async () => {
+  const pair = generateKeyPairSync("ec", { namedCurve: "prime256v1" });
+  Object.assign(appleMusicKey, { publicKey: pair.publicKey, teamId: "TEAM123456", keyId: "KEY1234567" });
+  const card = page.getByTestId("apple-music-key");
+  await card.getByText("Currently using: no key - iTunes Search.").waitFor();
+  await card.getByLabel("Team ID").fill("TEAM123456");
+  await card.getByLabel("Key ID").fill("KEY1234567");
+  await card.getByLabel("Private key (.p8)").fill(pair.privateKey.export({ type: "pkcs8", format: "pem" }));
+  await card.getByRole("button", { name: "Save configuration" }).click();
+  await card.getByText("Currently using: the key saved here (team TEAM123456, key KEY1234567).").waitFor();
+  if ((await card.getByLabel("Private key (.p8)").inputValue()) !== "") throw new Error("the private key is still shown");
+  await card.getByPlaceholder("Leave blank to keep the current one").waitFor();
+  await card.getByRole("button", { name: "Test connection" }).click();
+  await card.getByText("The Apple Music API answered", { exact: false }).waitFor();
+  await card.getByRole("button", { name: "Revert to environment variables" }).click();
+  await card.getByRole("button", { name: "Revert", exact: true }).click();
+  await card.getByText("Currently using: no key - iTunes Search.").waitFor();
 });
 
 await browser.close();
