@@ -1,74 +1,71 @@
-// The sidebar collapses to its icons on one item's page - a song, a set, a
-// songbook - and is open on lists (issue #80). Collapsed, a group's icon
-// opens its list as a menu. What the user chooses is remembered, apart for
-// lists and for items, across page changes and reloads.
+// The nested sidebar (issue #80, after shadcn's sidebar-09): a rail of
+// sections and a panel listing what's in the one you're in - songs, sets,
+// songbooks - to go from one to the next; filtering it; collapsing it to the
+// rail (remembered), and a rail icon opening it again.
 import { chromium } from "playwright";
-import { WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, finish, railLink, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
 const me = await user("Sidebar");
-const song = await api(me, "POST", "/song-versions", { title: `Sidebar song ${stamp}`, language: "en", artists: ["Someone"] });
-const other = await api(me, "POST", "/song-versions", { title: `Other song ${stamp}`, language: "en", artists: ["Someone"] });
+const first = await api(me, "POST", "/song-versions", { title: `Aardvark hymn ${stamp}`, language: "en", artists: ["Someone"] });
+const second = await api(me, "POST", "/song-versions", { title: `Aardvark psalm ${stamp}`, language: "en", artists: ["Someone Else"] });
 const set = await api(me, "POST", "/setlists", { name: `Sidebar set ${stamp}` });
+await api(me, "POST", "/setlists", { name: `Other set ${stamp}` });
 
 const browser = await chromium.launch();
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 await signIn(page, me);
-const sidebar = () => page.locator('[data-slot="sidebar"]');
-const expect = async (state) => {
-  await page.waitForFunction((want) => document.querySelector('[data-slot="sidebar"]')?.getAttribute("data-state") === want, state);
-};
-const open = async (path) => {
-  await page.goto(`${WEB}${path}`);
+const panel = () => page.getByTestId("sidebar-panel");
+const state = () => page.locator('[data-slot="sidebar"]').getAttribute("data-state");
+const until = (want) => page.waitForFunction((w) => document.querySelector('[data-slot="sidebar"]')?.getAttribute("data-state") === w, want);
+
+await step("the library's panel lists its songs; one opens, and is marked", async () => {
+  await page.goto(`${WEB}/library`);
   await page.waitForLoadState("networkidle");
-};
-
-await step("open on a list, collapsed to icons on a song", async () => {
-  await open("/library");
-  await expect("expanded");
-  await sidebar().getByText("Songs", { exact: true }).waitFor();
-  await open(`/library/${song.id}`);
-  await expect("collapsed");
-  if (await sidebar().getByText("Songs", { exact: true }).count()) throw new Error("the sub-list still shows");
+  if ((await state()) !== "expanded") throw new Error(await state());
+  if ((await railLink(page, "Library").getAttribute("data-active")) !== "true") throw new Error("Library isn't marked");
+  await panel().getByLabel("Filter…").fill(`Aardvark`);
+  await panel().getByRole("link", { name: `Aardvark psalm ${stamp}` }).waitFor();
+  await panel().getByRole("link", { name: `Aardvark hymn ${stamp}` }).click();
+  await page.waitForURL(`${WEB}/library/${first.id}`);
+  if ((await panel().getByRole("link", { name: `Aardvark hymn ${stamp}` }).getAttribute("aria-current")) !== "page") throw new Error("not marked");
 });
 
-await step("collapsed, an icon opens its list as a menu", async () => {
-  await sidebar().getByRole("button", { name: "Sets" }).click();
-  const menu = page.getByRole("menu");
-  await menu.getByRole("menuitem", { name: "Sets" }).waitFor();
-  await menu.getByRole("menuitem", { name: `Sidebar set ${stamp}` }).click();
+await step("the next song is one click away", async () => {
+  await panel().getByRole("link", { name: `Aardvark psalm ${stamp}` }).click();
+  await page.waitForURL(`${WEB}/library/${second.id}`);
+  await page.getByRole("heading", { name: `Aardvark psalm ${stamp}` }).first().waitFor();
+});
+
+await step("Sets on the rail: the panel lists the sets, filtered as you type", async () => {
+  await railLink(page, "Sets").click();
+  await page.waitForURL(`${WEB}/sets`);
+  await panel().getByTestId("sidebar-panel-title").getByText("Sets", { exact: true }).waitFor();
+  await panel().getByLabel("Filter…").fill("sidebar set");
+  await panel().getByRole("link", { name: new RegExp(`Sidebar set ${stamp}`) }).waitFor();
+  if (await panel().getByRole("link", { name: new RegExp(`Other set ${stamp}`) }).count()) throw new Error("not filtered");
+  await panel().getByRole("link", { name: new RegExp(`Sidebar set ${stamp}`) }).click();
   await page.waitForURL(`${WEB}/sets/${set.id}`);
-  await expect("collapsed");
 });
 
-await step("expanded on an item page, it stays so on other items; lists keep their own", async () => {
-  await page.locator('[data-slot="sidebar-rail"]').click();
-  await expect("expanded");
-  await open(`/library/${other.id}`);
-  await expect("expanded");
-  await open("/sets");
-  await expect("expanded");
+await step("collapsed to the rail, remembered; a rail icon opens it again", async () => {
   await page.keyboard.press("Control+b");
-  await expect("collapsed");
-  await open("/songbooks");
-  await expect("collapsed");
-  await open(`/library/${song.id}`);
-  await expect("expanded");
-});
-
-await step("remembered after a reload; back to the defaults once changed back", async () => {
+  await until("collapsed");
+  // The panel's container closes to nothing; the rail stays.
+  await page.waitForFunction(() => document.querySelector('[data-testid="sidebar-panel"]').parentElement.getBoundingClientRect().width < 1);
+  await railLink(page, "Library").waitFor();
   await page.reload();
   await page.waitForLoadState("networkidle");
-  await expect("expanded");
+  await until("collapsed");
+  await railLink(page, "Songbooks").click();
+  await page.waitForURL(`${WEB}/songbooks`);
+  await until("expanded");
+  await panel().getByTestId("sidebar-panel-title").getByText("Songbooks", { exact: true }).waitFor();
+  await page.locator('[data-slot="sidebar-rail"]').click();
+  await until("collapsed");
   await page.getByRole("button", { name: "Toggle Sidebar" }).click();
-  await expect("collapsed");
-  await open("/library");
-  await expect("collapsed");
-  await page.keyboard.press("Control+b");
-  await expect("expanded");
-  await open("/library/new");
-  await expect("expanded");
+  await until("expanded");
 });
 
 await browser.close();

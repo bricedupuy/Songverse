@@ -1,7 +1,7 @@
 // Offline, step 1 (issue #49): after one online visit, SongVerse opens with
 // no network - signed in, read-only, with its sidebar and an offline banner -
 // a page it has nothing for says so, and signing out deletes what was kept.
-import { WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { sidebarEntry, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 // Playwright's offline mode doesn't reach a service worker's own requests;
 // with this, routing does, so "offline" below cuts the service worker off too.
@@ -47,10 +47,11 @@ await step("offline: the app opens, signed in, with its sidebar and the banner",
   await page.goto(`${WEB}/dashboard`);
   await page.getByTestId("offline-banner").waitFor();
   await page.getByText("You're offline.").waitFor();
-  // The sidebar, from the kept lists, and whose it is.
-  await page.getByRole("link", { name: `Offline gig ${stamp}` }).waitFor();
-  await page.getByText("Offline player").first().waitFor();
+  // Whose it is (the account menu, on the sidebar's rail), still on the dashboard.
+  await page.locator('[data-slot="sidebar-footer"]').getByRole("button", { name: "Offline player" }).waitFor();
   if (new URL(page.url()).pathname !== "/dashboard") throw new Error(`sent to ${page.url()}`);
+  // The sidebar's sets, from the kept lists.
+  await (await sidebarEntry(page, "Sets", `Offline gig ${stamp}`)).waitFor();
 });
 
 await step("offline: a page with nothing kept says so, never sign-in", async () => {

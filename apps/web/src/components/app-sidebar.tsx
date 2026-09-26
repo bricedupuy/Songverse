@@ -73,7 +73,6 @@ export function AppSidebar({
   songbooks: SongbookSummary[];
   setlists: SetlistSummary[];
 }) {
-  const { t, i18n } = useTranslation();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const inAdmin = pathname.startsWith("/admin");
 
@@ -116,59 +115,68 @@ export function AppSidebar({
                   </SidebarLabel>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" side="top" className="w-60">
-                <DropdownMenuLabel className="flex items-center gap-2">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{session.displayName}</span>
-                    <span className="block truncate text-xs font-normal text-muted-foreground">{session.email}</span>
-                  </span>
-                  {/* Edit and Practice's light or dark theme; Live is always dark (issue #67). */}
-                  <ThemeToggle />
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard">
-                    <LayoutDashboard />
-                    {t("nav.dashboard")}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard" hash="settings">
-                    <KeyRound />
-                    {t("nav.account")}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/offline">
-                    <HardDrive />
-                    {t("nav.offlineStorage")}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener">
-                    <HelpCircle />
-                    {t("nav.help")}
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={() => {
-                    forgetSmartLists();
-                    void Promise.all([authClient.signOut(), forgetOffline()]).then(() => {
-                      window.location.href = "/";
-                    });
-                  }}
-                >
-                  <LogOut />
-                  {t("nav.signOut")}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
+              <AccountMenuContent session={session} side="top" align="end" />
             </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+/** The account menu (your name, at the bottom of the sidebar): dashboard, settings, offline, help, sign out. */
+export function AccountMenuContent({ session, side, align }: { session: AppSession; side: "top" | "right"; align: "start" | "end" }) {
+  const { t, i18n } = useTranslation();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  return (
+      <DropdownMenuContent align={align} side={side} className="w-60">
+        <DropdownMenuLabel className="flex items-center gap-2">
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{session.displayName}</span>
+            <span className="block truncate text-xs font-normal text-muted-foreground">{session.email}</span>
+          </span>
+          {/* Edit and Practice's light or dark theme; Live is always dark (issue #67). */}
+          <ThemeToggle />
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard">
+            <LayoutDashboard />
+            {t("nav.dashboard")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/dashboard" hash="settings">
+            <KeyRound />
+            {t("nav.account")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/offline">
+            <HardDrive />
+            {t("nav.offlineStorage")}
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener">
+            <HelpCircle />
+            {t("nav.help")}
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={() => {
+            forgetSmartLists();
+            void Promise.all([authClient.signOut(), forgetOffline()]).then(() => {
+              window.location.href = "/";
+            });
+          }}
+        >
+          <LogOut />
+          {t("nav.signOut")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
   );
 }
 
@@ -211,8 +219,8 @@ interface NavItem {
 
 /**
  * A sidebar entry with its own list under it (Library, Sets, Songbooks,
- * Teams): a collapsible list when the sidebar is open; collapsed to icons
- * (#80), its icon opens that list as a menu beside it.
+ * Teams), as a collapsible list: the phone's sidebar. On a wider screen the
+ * lists are in the nested sidebar's panel instead (#80).
  */
 function NavGroup({
   icon,
@@ -232,41 +240,6 @@ function NavGroup({
   testId?: string;
 }) {
   const { t } = useTranslation();
-  const { state, isMobile } = useSidebar();
-
-  if (state === "collapsed" && !isMobile) {
-    return (
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton isActive={isActive} aria-label={label} title={label}>
-              {icon}
-              <span>{label}</span>
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="start" className="w-60" data-testid={testId ? `${testId}-menu` : undefined}>
-            <DropdownMenuItem asChild className="font-medium">
-              <Link to={to}>
-                {icon}
-                {label}
-              </Link>
-            </DropdownMenuItem>
-            {items.length > 0 || empty ? <DropdownMenuSeparator /> : null}
-            {items.length === 0 && empty ? <p className="px-2 py-1.5 text-xs text-muted-foreground">{empty}</p> : null}
-            {items.map((item) => (
-              <DropdownMenuItem key={item.key} asChild data-active={item.isActive} className={cn(item.isActive && "bg-accent font-medium", item.muted && "text-muted-foreground")}>
-                <Link {...(item.link as LinkProps)}>
-                  {item.icon}
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    );
-  }
-
   return (
     <Collapsible defaultOpen className="group/collapsible">
       <SidebarMenuItem>

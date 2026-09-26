@@ -72,7 +72,6 @@ await step("guest signs in, opens the set and lands on it as a guest", async () 
 
 await step("the set shows up in the guest's sidebar", async () => {
   await (await sidebarEntry(guestPage, "Sets", `Sunday ${tag}`)).waitFor();
-  await guestPage.keyboard.press("Escape");
 });
 
 await step("guest reads a song that isn't in their library, through the set", async () => {

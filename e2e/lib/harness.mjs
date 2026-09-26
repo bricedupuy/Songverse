@@ -112,29 +112,26 @@ export async function signIn(p, who) {
   await p.waitForLoadState("networkidle");
 }
 
-/**
- * An entry under one of the sidebar's groups ("Sets", "Songbooks"…), found
- * whether the sidebar is open or collapsed to its icons (#80): collapsed,
- * the group's icon is clicked to open its menu. Returns the link.
- */
-export async function sidebarEntry(p, group, name) {
-  const sidebar = p.locator('[data-slot="sidebar"]');
-  if ((await sidebar.getAttribute("data-state")) === "collapsed") {
-    if (!(await p.getByRole("menu").count())) await sidebar.getByRole("button", { name: group }).click();
-    return p.getByRole("menu").getByRole("menuitem", { name });
-  }
-  return sidebar.getByRole("link", { name });
+/** A section's link on the sidebar's rail ("Sets", "Library"…), on a wider screen (#80). */
+export const railLink = (p, section) => p.getByTestId("sidebar-rail").getByRole("link", { name: section, exact: true });
+
+/** Goes to a section's page from the sidebar's rail. */
+export async function sidebarGo(p, section) {
+  await railLink(p, section).click();
 }
 
-/** Goes to a sidebar group's own page ("Sets", "Library"…), whether the sidebar is open or collapsed to its icons. */
-export async function sidebarGo(p, group) {
-  const sidebar = p.locator('[data-slot="sidebar"]');
-  if ((await sidebar.getAttribute("data-state")) === "collapsed") {
-    await sidebar.getByRole("button", { name: group }).click();
-    await p.getByRole("menu").getByRole("menuitem", { name: group, exact: true }).click();
-  } else {
-    await sidebar.getByRole("link", { name: group, exact: true }).click();
+/**
+ * An entry in the sidebar's panel (a song, a set…), under `section`: the
+ * panel shows the section of the page you're on, so on another page its
+ * rail link is followed first.
+ */
+export async function sidebarEntry(p, section, name) {
+  const panel = p.getByTestId("sidebar-panel");
+  if ((await panel.getAttribute("aria-label")) !== `${section} list`) {
+    await sidebarGo(p, section);
+    await p.waitForFunction((label) => document.querySelector('[data-testid="sidebar-panel"]')?.getAttribute("aria-label") === label, `${section} list`);
   }
+  return panel.getByRole("link", { name });
 }
 
 /** Prints the tally; any failure makes the process exit non-zero. */

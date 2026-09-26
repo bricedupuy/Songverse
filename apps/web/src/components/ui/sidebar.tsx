@@ -17,10 +17,7 @@ import { Separator } from "#/components/ui/separator";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "#/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 
-// What the user chose, remembered apart for list pages and for one item's
-// page (a song, a set, a songbook), which starts collapsed to its icons (#80).
 const SIDEBAR_COOKIE_NAME = "sidebar_state";
-const SIDEBAR_ITEM_COOKIE_NAME = "sidebar_state_item";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const SIDEBAR_WIDTH = "16rem";
 const SIDEBAR_WIDTH_MOBILE = "18rem";
@@ -44,39 +41,20 @@ export function useSidebar(): SidebarContextValue {
   return context;
 }
 
-const readCookie = (name: string): boolean | null => {
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match?.[1] ? match[1] === "true" : null;
-};
-
-function SidebarProvider({
-  itemPage = false,
-  className,
-  style,
-  children,
-  ...props
-}: ComponentProps<"div"> & {
-  /** One item's page (a song, a set, a songbook): the sidebar starts collapsed to its icons there. */
-  itemPage?: boolean;
-}) {
+function SidebarProvider({ className, style, children, ...props }: ComponentProps<"div">) {
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = useState(false);
-  const [listOpen, setListOpen] = useState(true);
-  const [itemOpen, setItemOpen] = useState(false);
-  const open = itemPage ? itemOpen : listOpen;
+  const [open, setOpenState] = useState(true);
 
   useEffect(() => {
-    setListOpen(readCookie(SIDEBAR_COOKIE_NAME) ?? true);
-    setItemOpen(readCookie(SIDEBAR_ITEM_COOKIE_NAME) ?? false);
+    const match = document.cookie.match(new RegExp(`(?:^|; )${SIDEBAR_COOKIE_NAME}=([^;]*)`));
+    if (match?.[1]) setOpenState(match[1] === "true");
   }, []);
 
-  const setOpen = useCallback(
-    (value: boolean) => {
-      (itemPage ? setItemOpen : setListOpen)(value);
-      document.cookie = `${itemPage ? SIDEBAR_ITEM_COOKIE_NAME : SIDEBAR_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
-    },
-    [itemPage],
-  );
+  const setOpen = useCallback((value: boolean) => {
+    setOpenState(value);
+    document.cookie = `${SIDEBAR_COOKIE_NAME}=${value}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+  }, []);
 
   const toggleSidebar = useCallback(() => {
     return isMobile ? setOpenMobile((v) => !v) : setOpen(!open);

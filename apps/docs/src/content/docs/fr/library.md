@@ -3,7 +3,7 @@ title: La bibliothèque
 description: Trouver des chants, en ajouter, et garder leurs détails, fichiers, enregistrements et liens.
 ---
 
-La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, ceux de vos équipes et ceux du catalogue global. Dans la barre latérale, elle s'ouvre sur **Chants** (où vous mène **Bibliothèque**), **Artistes** et vos listes intelligentes.
+La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, ceux de vos équipes et ceux du catalogue global. Dans la barre latérale, son panneau liste vos chants, avec **Chants** (où vous mène **Bibliothèque**), vos listes intelligentes et **Artistes** en haut.
 
 ![La bibliothèque](../../../assets/screenshots/fr/library.jpg)
 
@@ -20,7 +20,7 @@ La **Bibliothèque** liste tous les chants que vous pouvez voir : les vôtres, c
 
 ## Listes intelligentes
 
-Une recherche, des filtres et un tri que vous utilisez souvent peuvent devenir une liste intelligente : réglez-les dans **Chants**, puis **Enregistrer comme liste intelligente** et donnez-lui un nom. Elle apparaît sous **Bibliothèque** dans la barre latérale. Une liste intelligente garde les filtres, pas les chants : un nouveau chant qui correspond y apparaît tout seul.
+Une recherche, des filtres et un tri que vous utilisez souvent peuvent devenir une liste intelligente : réglez-les dans **Chants**, puis **Enregistrer comme liste intelligente** et donnez-lui un nom. Elle apparaît en haut du panneau de la bibliothèque dans la barre latérale (sous **Bibliothèque** sur téléphone). Une liste intelligente garde les filtres, pas les chants : un nouveau chant qui correspond y apparaît tout seul.
 
 Sur une liste intelligente, changez les filtres et **Enregistrer les changements de la liste** garde les nouveaux ; **Renommer** et **Supprimer la liste** font ce qu'ils disent. Les listes intelligentes sont les vôtres : personne d'autre ne les voit.
 

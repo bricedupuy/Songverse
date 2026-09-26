@@ -27,9 +27,11 @@ The sidebar on the left takes you everywhere:
 - **Teams** - the bands and groups you're part of. See [Teams](/teams/).
 - **People** - the people you share songs with. See [People](/people/).
 
-When you open one song, set or songbook, the sidebar shrinks to its icons, leaving the room to the chart or list; back on a list, it opens again. Collapsed, clicking an icon opens its list beside it: **Sets** shows your upcoming sets, for example. The button at the top left, the sidebar's edge, or **Ctrl B** (**⌘ B** on a Mac) open or close it. SongVerse remembers what you chose, separately for lists and for a song, set or songbook. On a phone, the sidebar opens over the page from the top-left button instead.
+On a computer or a tablet, the sidebar has two parts: a rail of icons for these sections, and beside it a panel listing what's in the section you're in - your songs, your sets, your songbooks, your teams or your people - with a **Filter…** box on top. What you're viewing is marked, so the next song, set or songbook is one click away. The library's panel also has your [smart lists](/library/) and **Artists**, and **+** starts a new song, set, songbook or team.
 
-![On a set's page, the sidebar collapsed to its icons, with Sets open](../../assets/screenshots/en/sidebar-collapsed.jpg)
+![A set's page: the rail on the left, and the panel listing your sets](../../assets/screenshots/en/set.jpg)
+
+The button at the top left, the sidebar's edge, or **Ctrl B** (**⌘ B** on a Mac) close the panel, leaving just the rail; clicking an icon on the rail opens it again. SongVerse remembers whether it's open. On a phone, the sidebar opens over the page from the top-left button instead, with every section and its lists.
 
 Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your songs and teams), **Account settings** and **Sign out**.
 

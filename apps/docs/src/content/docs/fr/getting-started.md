@@ -27,9 +27,11 @@ La barre latérale à gauche mène partout :
 - **Équipes** - les groupes dont vous faites partie. Voir [Équipes](/fr/teams/).
 - **Personnes** - les personnes avec qui vous partagez des chants. Voir [Personnes](/fr/people/).
 
-Quand vous ouvrez un chant, une liste de chants ou un recueil, la barre latérale se réduit à ses icônes et laisse la place à la grille ou à la liste ; de retour sur une liste, elle s'ouvre à nouveau. Réduite, un clic sur une icône ouvre sa liste à côté : **Listes de chants** montre vos prochaines listes, par exemple. Le bouton en haut à gauche, le bord de la barre latérale ou **Ctrl B** (**⌘ B** sur Mac) l'ouvrent ou la ferment. SongVerse retient votre choix, séparément pour les listes et pour un chant, une liste de chants ou un recueil. Sur téléphone, la barre latérale s'ouvre par-dessus la page depuis le bouton en haut à gauche.
+Sur un ordinateur ou une tablette, la barre latérale a deux parties : une colonne d'icônes pour ces sections et, à côté, un panneau qui liste le contenu de la section où vous êtes - vos chants, vos listes, vos recueils, vos équipes ou vos personnes - avec une case **Filtrer…** en haut. Ce que vous consultez y est marqué : le chant, la liste ou le recueil suivant est à un clic. Le panneau de la bibliothèque propose aussi vos [listes intelligentes](/fr/library/) et **Artistes**, et **+** commence un nouveau chant, une nouvelle liste, un nouveau recueil ou une nouvelle équipe.
 
-![Sur la page d'une liste de chants, la barre latérale réduite à ses icônes, avec Listes de chants ouvert](../../../assets/screenshots/fr/sidebar-collapsed.jpg)
+![La page d'une liste de chants : la colonne d'icônes à gauche, et le panneau qui liste vos listes](../../../assets/screenshots/fr/set.jpg)
+
+Le bouton en haut à gauche, le bord de la barre latérale ou **Ctrl B** (**⌘ B** sur Mac) ferment le panneau et ne laissent que la colonne d'icônes ; un clic sur une icône le rouvre. SongVerse retient s'il est ouvert. Sur téléphone, la barre latérale s'ouvre par-dessus la page depuis le bouton en haut à gauche, avec toutes les sections et leurs listes.
 
 Votre nom, en bas de la barre latérale, ouvre un menu avec le **Tableau de bord** (vos chants et vos équipes), les **Paramètres du compte** et **Se déconnecter**.
 

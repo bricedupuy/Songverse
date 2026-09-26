@@ -29,13 +29,13 @@ let setUrl;
 await step("sidebar has a Sets section", async () => {
   await signIn(page, leader);
   await page.getByRole("link", { name: "Sets", exact: true }).waitFor();
-  await page.getByText("No sets yet").first().waitFor();
 });
 
 await step("create a dated set without a name; it's titled by its date", async () => {
   await page.getByRole("link", { name: "Sets", exact: true }).click();
   await page.waitForURL("**/sets");
   await page.waitForLoadState("networkidle");
+  await page.getByTestId("sidebar-panel").getByText("No sets yet").waitFor();
   await page.getByRole("link", { name: "New set" }).click();
   await page.waitForURL("**/sets/new");
   await page.waitForLoadState("networkidle");
@@ -46,7 +46,6 @@ await step("create a dated set without a name; it's titled by its date", async (
   await page.waitForLoadState("networkidle");
   setUrl = page.url();
   await (await sidebarEntry(page, "Sets", longDate)).waitFor(); // sidebar
-  await page.keyboard.press("Escape");
 });
 
 await step("add songs by searching", async () => {
@@ -114,7 +113,6 @@ await step("rename the set; the sidebar follows", async () => {
   await page.getByRole("button", { name: "Save" }).click();
   await page.getByRole("heading", { name: "Sunday Morning" }).waitFor();
   await (await sidebarEntry(page, "Sets", "Sunday Morning")).waitFor();
-  await page.keyboard.press("Escape");
   await page.getByText(longDate).first().waitFor(); // date moves to the subtitle
 });
 

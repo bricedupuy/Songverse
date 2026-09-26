@@ -1,7 +1,7 @@
 // Page changes reuse the signed-in session and sidebar lists instead of
 // refetching them every time, and still pick up changes made in the app.
 import { chromium } from "playwright";
-import { API, WEB, api, finish, sidebarEntry, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
+import { API, WEB, api, finish, railLink, sidebarEntry, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -35,21 +35,18 @@ await step("a set created in the app shows in the sidebar straight away", async 
   await page.fill("#set-name", `Fresh set ${stamp}`);
   await page.getByRole("button", { name: /Create/ }).click();
   await page.waitForURL(/\/sets\/(?!new)[a-z0-9]+/);
-  // The page's own heading has the name too; the sidebar's entry (under Sets, its icon's menu on a set's page) links to it.
+  // The page's own heading has the name too; the sidebar's panel lists the sets, this one among them.
   await (await sidebarEntry(page, "Sets", `Fresh set ${stamp}`)).waitFor({ timeout: 10000 });
-  await page.keyboard.press("Escape");
 });
 
 await step("no breadcrumb: the sidebar marks where you are", async () => {
   await page.goto(`${WEB}/sets/${navSet.id}`);
   await page.waitForLoadState("networkidle");
   if (await page.getByRole("navigation", { name: "breadcrumb" }).count()) throw new Error("a breadcrumb");
-  // On a set's page the sidebar is collapsed to its icons (#80): Sets is marked, and the set in its menu.
-  const sets = page.locator('[data-slot="sidebar"]').getByRole("button", { name: "Sets" });
-  if ((await sets.getAttribute("data-active")) !== "true") throw new Error(`Sets isn't marked: ${await sets.evaluate((el) => el.outerHTML)}`);
+  // The rail marks Sets, and the panel the set (issue #80).
+  if ((await railLink(page, "Sets").getAttribute("data-active")) !== "true") throw new Error("Sets isn't marked");
   const entry = await sidebarEntry(page, "Sets", `Nav set ${stamp}`);
-  if ((await entry.getAttribute("data-active")) !== "true") throw new Error("the set isn't marked");
-  await page.keyboard.press("Escape");
+  if ((await entry.getAttribute("aria-current")) !== "page") throw new Error("the set isn't marked");
 });
 
 await step("Help opens the docs page about where you are, in your language", async () => {

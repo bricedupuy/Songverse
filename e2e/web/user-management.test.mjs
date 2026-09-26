@@ -188,7 +188,8 @@ await step("user renames themselves and the sidebar updates", async () => {
   await userPage.getByLabel("Display name").fill("Renamed Claimant");
   await userPage.getByRole("button", { name: "Save", exact: true }).click();
   await userPage.getByText("Saved.").waitFor();
-  await userPage.locator('[data-sidebar="footer"], [data-slot="sidebar-footer"]').getByText("Renamed Claimant").first().waitFor();
+  // The account menu, at the bottom of the sidebar's rail, is named after them (#80).
+  await userPage.locator('[data-slot="sidebar-footer"]').getByRole("button", { name: "Renamed Claimant" }).waitFor();
 });
 
 await step("user uploads an avatar and it shows in the sidebar", async () => {

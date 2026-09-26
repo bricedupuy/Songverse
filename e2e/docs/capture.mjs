@@ -196,12 +196,6 @@ try {
     await shoot("versions", `/library/${grace.id}?tab=arrangements`, () => page.getByTestId("arrangement-list").waitFor());
     await shoot("version-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
     await shoot("set", `/sets/${set.id}`, () => page.getByTestId("set-song-row").first().waitFor());
-    // On a set's page the sidebar is collapsed to its icons; Sets' icon opens its list (#80).
-    await shoot("sidebar-collapsed", null, async () => {
-      await page.locator('[data-slot="sidebar"]').getByRole("button").nth(1).click();
-      await page.getByRole("menu").waitFor();
-    });
-    await page.keyboard.press("Escape");
     await shoot("set-song", `/sets/${set.id}/songs/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor(), { fullPage: true });
     // Live mode (it's remembered, so back to Edit for the rest).
     await shoot("live", `/sets/${set.id}/live/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
@@ -227,9 +221,8 @@ try {
     // Playing on elsewhere: the button back to the song.
     await dock.getByRole("button", { name: /^(Play|Lecture)$/ }).click();
     await shoot("stems-return", null, async () => {
-      // On the song's page the sidebar is collapsed to its icons (#80): Library's opens its menu.
-      await page.locator('[data-slot="sidebar"]').getByRole("button", { name: /^(Library|Bibliothèque)$/ }).click();
-      await page.getByRole("menuitem", { name: /^(Library|Bibliothèque)$/ }).click();
+      // Library, on the sidebar's rail (#80).
+      await page.getByTestId("sidebar-rail").getByRole("link", { name: /^(Library|Bibliothèque)$/ }).click();
       await page.getByTestId("stem-return").waitFor();
     });
     await page.getByTestId("stem-return").getByRole("button", { name: "Pause" }).click();
