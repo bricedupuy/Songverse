@@ -113,8 +113,11 @@ export class SetlistAccessService {
   /** In-memory twin of `addableWhere()`, for songs already loaded. */
   async addableIn(set: SetRow): Promise<(song: SongRow) => boolean> {
     const ownerTeams = set.ownerTeamId ? new Set([set.ownerTeamId]) : await this.teamIdsOf(set.ownerUserId!);
+    // Songs shared with a personal set's owner (issue #77) are theirs to put in it.
+    const shared = set.ownerTeamId ? new Map() : await this.policy.sharedWith(set.ownerUserId!);
     return (song) => {
       if (song.ownerScope === "GLOBAL") return song.publicationState === "APPROVED";
+      if (!set.ownerTeamId && shared.has(song.id)) return true;
       if (song.ownerScope === "TEAM") return !!song.ownerTeamId && ownerTeams.has(song.ownerTeamId);
       return !set.ownerTeamId && song.ownerUserId === set.ownerUserId;
     };
@@ -138,7 +141,7 @@ export class SetlistAccessService {
 
   /** Whether a user can see a song in their own library. */
   async visibilityFor(user: Viewer): Promise<(song: SongRow) => boolean> {
-    const teams = await this.teamIdsOf(user.id);
-    return (song) => this.policy.songVisibleGivenTeams(user, teams, song);
+    const [teams, shared] = await Promise.all([this.teamIdsOf(user.id), this.policy.sharedWith(user.id)]);
+    return (song) => this.policy.songVisibleGivenTeams(user, teams, song, shared);
   }
 }

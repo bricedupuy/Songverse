@@ -12,7 +12,7 @@ import {
   type Tag,
 } from "@songverse/core";
 import { useBlocker, useNavigate, useRouter } from "@tanstack/react-router";
-import { FileText, History, Info, Layers, Link2, MoreHorizontal, Music, PenLine } from "lucide-react";
+import { FileText, History, Info, Layers, Link2, MoreHorizontal, Music, PenLine, Share2 } from "lucide-react";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { OfflinePinButton } from "#/components/offline-pin-button";
@@ -44,6 +44,7 @@ import { LinkedSongsCard, relationKind } from "./linked-songs-card";
 import { Textarea } from "#/components/ui/textarea";
 import { ArrangementsTab } from "./arrangements-tab";
 import { HistoryTab } from "./history-tab";
+import { ShareDialog } from "./share-dialog";
 import { AttachmentsTab, LinksTab, SaveFirst } from "./song-tabs";
 import type { SongNotice, SongTab } from "./song-tabs-list";
 
@@ -81,6 +82,9 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   const edit = props.mode === "edit" ? props : null;
   const version = edit?.version ?? null;
   const canEdit = version ? version.canEdit : true;
+  // Deleting, publishing, sharing it, its links and everyone's files: its owner (or team admins), not someone it's shared with (#77).
+  const canManage = version ? version.canManage : true;
+  const [sharing, setSharing] = useState(false);
   // A catalogue song someone can't edit: they can suggest a change instead (issue #74).
   const canSuggest = !!version && !version.canEdit && version.ownerScope === "GLOBAL";
   const [suggesting, setSuggesting] = useState(false);
@@ -340,6 +344,18 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
     }
   }
 
+  /** Takes a song shared with the user out of their library (#77). */
+  async function leaveShared() {
+    if (!edit) return;
+    try {
+      await apiClient.leaveSharedSong(edit.version.id);
+      leaving.current = true;
+      await navigate({ to: "/library" });
+    } catch (err) {
+      setMessage({ kind: "error", text: err instanceof Error ? err.message : String(err) });
+    }
+  }
+
   function discard() {
     setForm(initial);
     setMbChoice(undefined);
@@ -390,7 +406,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             onDismiss={() => setDismissedTitle(title.toLowerCase())}
           />
         ) : null}
-        {canEdit ? (
+        {canManage ? (
           <AutoDetectCard
             title={form.title}
             artist={form.artists[0]}
@@ -427,7 +443,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         ) : null}
         {edit ? <SongbooksCard memberships={edit.songbookMemberships} title={edit.version.title} /> : null}
         {edit ? <LinkedSongsCard version={edit.version} /> : null}
-        {edit && canEdit && edit.version.ownerScope !== "GLOBAL" ? <PublishCard songVersionId={edit.version.id} /> : null}
+        {edit && canManage && edit.version.ownerScope !== "GLOBAL" ? <PublishCard songVersionId={edit.version.id} /> : null}
         {edit && edit.version.ownerScope === "GLOBAL" ? <MySuggestionsCard songVersionId={edit.version.id} refreshKey={suggestionsKey} /> : null}
       </div>
     </div>
@@ -441,6 +457,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         edit.version.artists.map((a) => a.source).filter(Boolean).join(", "),
         getLanguageDisplayName(edit.version.language, i18n.language),
         contributor ? t("songEditor.contributedBy", { name: contributor }) : null,
+        // Shared with them by its owner (#77).
+        edit.version.sharedBy
+          ? t(edit.version.sharedBy.canEdit ? "sharing.sharedByEdit" : "sharing.sharedByView", { name: edit.version.sharedBy.displayName })
+          : null,
         // A translation or adaptation names the song it's linked to (issue #78).
         edit.version.parentVersion
           ? t(relationKind(edit.version.relationshipType) === "adaptation" ? "songEditor.adaptationOf" : "songEditor.translationOf", { title: edit.version.parentVersion.title })
@@ -476,7 +496,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
             </div>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {canSuggest && !suggesting ? (
             <Button type="button" variant="outline" onClick={() => setSuggesting(true)}>
               <PenLine />
@@ -509,6 +529,13 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
               </Button>
             </>
           ) : null}
+          {edit && canManage && edit.version.ownerScope !== "GLOBAL" ? (
+            <Button type="button" variant="outline" onClick={() => setSharing(true)} aria-label={t("sharing.share")}>
+              <Share2 />
+              {/* Just the icon on a phone, where the header's buttons would overflow. */}
+              <span className="hidden sm:inline">{t("sharing.share")}</span>
+            </Button>
+          ) : null}
           {edit ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -518,7 +545,13 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={exportChordPro}>{t("songEditor.exportChordPro")}</DropdownMenuItem>
-                {canEdit ? (
+                {edit.version.sharedBy ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => void leaveShared()}>{t("sharing.leave")}</DropdownMenuItem>
+                  </>
+                ) : null}
+                {canManage ? (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => setConfirmingDelete(true)}>
@@ -605,10 +638,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         </TabsContent>
         <TabsContent value="arrangements">{edit ? <ArrangementsTab songVersionId={edit.version.id} /> : <SaveFirst />}</TabsContent>
         <TabsContent value="files">
-          {edit ? <AttachmentsTab kind="files" songVersionId={edit.version.id} attachments={attachments} canEdit={canEdit} /> : <SaveFirst />}
+          {edit ? <AttachmentsTab kind="files" songVersionId={edit.version.id} attachments={attachments} canEdit={canManage} /> : <SaveFirst />}
         </TabsContent>
         <TabsContent value="audio">
-          {edit ? <AttachmentsTab kind="audio" songVersionId={edit.version.id} attachments={attachments} canEdit={canEdit} songKey={form.key} songTempo={form.tempo} /> : <SaveFirst />}
+          {edit ? <AttachmentsTab kind="audio" songVersionId={edit.version.id} attachments={attachments} canEdit={canManage} songKey={form.key} songTempo={form.tempo} /> : <SaveFirst />}
         </TabsContent>
         <TabsContent value="links">{edit ? <LinksTab version={edit.version} workMatch={edit.workMatch} /> : <SaveFirst />}</TabsContent>
         <TabsContent value="history">
@@ -645,6 +678,8 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {edit ? <ShareDialog songVersionId={edit.version.id} open={sharing} onOpenChange={setSharing} /> : null}
 
       <Dialog open={confirmingDelete} onOpenChange={(open) => !deleting && setConfirmingDelete(open)}>
         <DialogContent>

@@ -21,6 +21,7 @@ import {
   Sun,
   Users,
   UsersRound,
+  Contact,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -384,6 +385,16 @@ function MainNav({
               </CollapsibleContent>
             </SidebarMenuItem>
           </Collapsible>
+
+          {/* The people you share songs with (issue #77). */}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.startsWith("/people")} tooltip={t("nav.people")}>
+              <Link to="/people">
+                <Contact />
+                <span>{t("nav.people")}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
 

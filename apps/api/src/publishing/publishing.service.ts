@@ -483,6 +483,8 @@ async function promoteToGlobal(tx: Tx, songVersionId: string, trustLabel: string
     await tx.attachment.updateMany({ where: { songVersionId, visibility: "SONG" }, data: { visibility: "PRIVATE" } });
   }
   await tx.songOwnershipRequest.updateMany({ where: { songVersionId, status: "PENDING" }, data: { status: "DECLINED", decidedAt: new Date() } });
+  // Everyone sees it now: sharing it with someone (#77) means nothing more.
+  await tx.accessGrant.deleteMany({ where: { songVersionId } });
   await tx.songVersion.update({
     where: { id: songVersionId },
     data: {

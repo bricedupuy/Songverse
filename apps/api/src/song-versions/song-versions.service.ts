@@ -328,6 +328,8 @@ export interface SongPage {
 type ListItem = Omit<ListRow, "contributors" | "versionTags"> & {
   artists: ListRow["contributors"];
   tags: ListRow["versionTags"][number]["tag"][];
+  /** Shared with the viewer by its owner (issue #77). */
+  sharedBy: SharedBy | null;
 };
 
 type TagRow = ListRow["versionTags"][number]["tag"];
@@ -345,9 +347,23 @@ function tagsVisibleWhere(userId: string, teamIds: string[]): Prisma.TagWhereInp
 // don't share a field name that means two different things, and so the
 // join row (versionTags' own `id`, not useful to the client) doesn't leak
 // into what's otherwise just a list of tags.
-function toListItem({ contributors, versionTags, ...rest }: ListRow, seesTag: SeesTag = ALL_TAGS): ListItem {
-  return { ...rest, artists: contributors, tags: versionTags.map((vt) => vt.tag).filter(seesTag) };
+function toListItem({ contributors, versionTags, ...rest }: ListRow, seesTag: SeesTag = ALL_TAGS, sharedBy: SharedBy | null = null): ListItem {
+  return { ...rest, artists: contributors, tags: versionTags.map((vt) => vt.tag).filter(seesTag), sharedBy };
 }
+
+/** Someone who shared the song with the viewer (issue #77), and whether to edit. */
+type SharedBy = { id: string; displayName: string; canEdit: boolean };
+
+/** What the viewer may do with a song (see AccessPolicyService). */
+interface Rights {
+  /** Change its chart, details and credits: who can edit it, or someone it's shared with to edit. */
+  canEdit: boolean;
+  /** Everything else: delete, publish, share it, its links and files for everyone. */
+  canManage: boolean;
+  sharedBy: SharedBy | null;
+}
+
+const OWNER_RIGHTS: Rights = { canEdit: true, canManage: true, sharedBy: null };
 
 type DetailRow = Prisma.SongVersionGetPayload<{ select: typeof DETAIL_SELECT }>;
 type DetailItem = Omit<DetailRow, "versionTags" | "documentJson"> & {
@@ -355,11 +371,14 @@ type DetailItem = Omit<DetailRow, "versionTags" | "documentJson"> & {
   documentJson: SongDocumentV2;
   artists: DetailRow["contributors"];
   tags: DetailRow["versionTags"][number]["tag"][];
-  /** Whether the current user may change it (see SongVersionOwnerGuard). */
+  /** Whether the current user may change its chart, details and credits (see SongVersionEditorGuard). */
   canEdit: boolean;
+  /** Whether they may delete, publish or share it, or change its links (see SongVersionOwnerGuard). */
+  canManage: boolean;
+  sharedBy: SharedBy | null;
 };
 
-function toDetailItem(version: DetailRow, canEdit: boolean, seesTag: SeesTag = ALL_TAGS): DetailItem {
+function toDetailItem(version: DetailRow, { canEdit, canManage, sharedBy }: Rights, seesTag: SeesTag = ALL_TAGS): DetailItem {
   const { versionTags, documentJson, ...rest } = version;
   return {
     ...rest,
@@ -367,6 +386,8 @@ function toDetailItem(version: DetailRow, canEdit: boolean, seesTag: SeesTag = A
     artists: version.contributors.filter((c) => c.roles.includes("PERFORMER")),
     tags: versionTags.map((vt) => vt.tag).filter(seesTag),
     canEdit,
+    canManage,
+    sharedBy,
   };
 }
 
@@ -445,7 +466,8 @@ export class SongVersionsService {
       }),
     ]);
     const seesTag = await this.seesTag(user);
-    return { items: versions.map((version) => toListItem(version, seesTag)), total, page, pageSize };
+    const shared = await this.sharedByOf(user, versions.map((version) => version.id));
+    return { items: versions.map((version) => toListItem(version, seesTag, shared.get(version.id) ?? null)), total, page, pageSize };
   }
 
   /**
@@ -508,7 +530,24 @@ export class SongVersionsService {
     });
     if (!version) throw new NotFoundException("Song version not found");
     if (!(await this.access.canSeeSong(user, version))) throw new ForbiddenException("Not visible to you");
-    return toDetailItem(version, await this.access.canEdit(user, version), await this.seesTag(user));
+    return toDetailItem(version, await this.rightsOn(user, version), await this.seesTag(user));
+  }
+
+  /** What `user` may do with the song, and who shared it with them if someone did. */
+  private async rightsOn(user: AuthenticatedUser, song: SongVersionOwner & { id: string }): Promise<Rights> {
+    const canManage = await this.access.canEdit(user, song);
+    const sharedBy = canManage ? null : ((await this.sharedByOf(user, [song.id])).get(song.id) ?? null);
+    return { canManage, canEdit: canManage || !!sharedBy?.canEdit, sharedBy };
+  }
+
+  /** For songs shared with `user` among `ids`: who by, and whether to edit. */
+  private async sharedByOf(user: AuthenticatedUser, ids: string[]): Promise<Map<string, SharedBy>> {
+    if (ids.length === 0) return new Map();
+    const grants = await this.prisma.client.accessGrant.findMany({
+      where: { grantedToUserId: user.id, songVersionId: { in: ids } },
+      select: { songVersionId: true, canEdit: true, grantedByUser: { select: { id: true, displayName: true } } },
+    });
+    return new Map(grants.map((g) => [g.songVersionId, { ...g.grantedByUser, canEdit: g.canEdit }]));
   }
 
   /** The tags `user` sees on a song (see SeesTag). */
@@ -890,7 +929,7 @@ export class SongVersionsService {
       await this.history.record(tx, id, { kind: "EDITED", authorUserId: user.id, before });
       return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     });
-    return toDetailItem(version, true, await this.seesTag(user));
+    return toDetailItem(version, await this.rightsOn(user, version), await this.seesTag(user));
   }
 
   /**
@@ -1011,7 +1050,7 @@ export class SongVersionsService {
       await this.history.record(tx, id, { kind: "RESTORED", authorUserId: user.id, before, restoredFromId: revisionId });
       return tx.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
     });
-    return toDetailItem(version, true, await this.seesTag(user));
+    return toDetailItem(version, await this.rightsOn(user, version), await this.seesTag(user));
   }
 
   /**
@@ -1076,7 +1115,7 @@ export class SongVersionsService {
       await this.history.record(tx, id, { kind: "EDITED", authorUserId, before });
     });
     const version = await this.prisma.client.songVersion.findUniqueOrThrow({ where: { id }, select: DETAIL_SELECT });
-    return toDetailItem(version, true);
+    return toDetailItem(version, OWNER_RIGHTS);
   }
 
   /** A ChordPro file of the song: its details from the columns, then the chart. */

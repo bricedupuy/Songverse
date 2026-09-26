@@ -18,6 +18,7 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nest
 import type { StreamingIdentifierType } from "@songverse/core";
 import { AccessPolicyService } from "../access/access-policy.service";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
@@ -123,7 +124,7 @@ export class SongVersionsController {
   }
 
   @Patch(":songVersionId")
-  @UseGuards(SongVersionOwnerGuard)
+  @UseGuards(SongVersionEditorGuard)
   @ApiOkResponse({ type: SongVersionResponseDto })
   update(
     @CurrentUser() user: AuthenticatedUser | undefined,
@@ -162,7 +163,7 @@ export class SongVersionsController {
 
   /** Puts the song back as that entry left it, as a new save. */
   @Post(":songVersionId/history/:revisionId/restore")
-  @UseGuards(SongVersionOwnerGuard)
+  @UseGuards(SongVersionEditorGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ type: SongVersionResponseDto })
   restore(

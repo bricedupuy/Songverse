@@ -76,6 +76,9 @@ export class UserDeletionService {
         data: { submitterId: toUserId },
       });
       await tx.songVersion.updateMany({ where: { contributedByUserId: fromUserId }, data: { contributedByUserId: toUserId } });
+      // Their songs stay shared with the people they shared them with (#77), now by the new owner.
+      await tx.accessGrant.deleteMany({ where: { grantedByUserId: fromUserId, grantedToUserId: toUserId } });
+      await tx.accessGrant.updateMany({ where: { grantedByUserId: fromUserId }, data: { grantedByUserId: toUserId } });
       // The new owner's storage limit now covers these files.
       await tx.attachment.updateMany({ where: { uploadedByUserId: fromUserId }, data: { uploadedByUserId: toUserId } });
       return this.removeAccount(tx, fromUserId);

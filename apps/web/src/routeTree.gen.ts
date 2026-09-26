@@ -16,6 +16,7 @@ import { Route as ProtectedAccountRouteImport } from './routes/_protected/accoun
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedOfflineRouteImport } from './routes/_protected/offline'
+import { Route as ProtectedPeopleRouteImport } from './routes/_protected/people'
 import { Route as ProtectedReviewRouteImport } from './routes/_protected/review'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as SetInviteTokenRouteImport } from './routes/set-invite.$token'
@@ -82,6 +83,11 @@ const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
 const ProtectedOfflineRoute = ProtectedOfflineRouteImport.update({
   id: '/offline',
   path: '/offline',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedPeopleRoute = ProtectedPeopleRouteImport.update({
+  id: '/people',
+  path: '/people',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedReviewRoute = ProtectedReviewRouteImport.update({
@@ -268,6 +274,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof ProtectedAdminRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
   '/offline': typeof ProtectedOfflineRoute
+  '/people': typeof ProtectedPeopleRoute
   '/review': typeof ProtectedReviewRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
@@ -308,6 +315,7 @@ export interface FileRoutesByTo {
   '/account': typeof ProtectedAccountRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/offline': typeof ProtectedOfflineRoute
+  '/people': typeof ProtectedPeopleRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -350,6 +358,7 @@ export interface FileRoutesById {
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/offline': typeof ProtectedOfflineRoute
+  '/_protected/people': typeof ProtectedPeopleRoute
   '/_protected/review': typeof ProtectedReviewRouteWithChildren
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
@@ -393,6 +402,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/offline'
+    | '/people'
     | '/review'
     | '/join/$token'
     | '/set-invite/$token'
@@ -433,6 +443,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/dashboard'
     | '/offline'
+    | '/people'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -474,6 +485,7 @@ export interface FileRouteTypes {
     | '/_protected/admin'
     | '/_protected/dashboard'
     | '/_protected/offline'
+    | '/_protected/people'
     | '/_protected/review'
     | '/join/$token'
     | '/set-invite/$token'
@@ -567,6 +579,13 @@ declare module '@tanstack/react-router' {
       path: '/offline'
       fullPath: '/offline'
       preLoaderRoute: typeof ProtectedOfflineRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/people': {
+      id: '/_protected/people'
+      path: '/people'
+      fullPath: '/people'
+      preLoaderRoute: typeof ProtectedPeopleRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/review': {
@@ -847,6 +866,7 @@ interface ProtectedRouteChildren {
   ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedOfflineRoute: typeof ProtectedOfflineRoute
+  ProtectedPeopleRoute: typeof ProtectedPeopleRoute
   ProtectedReviewRoute: typeof ProtectedReviewRouteWithChildren
   ProtectedLibrarySongVersionIdRoute: typeof ProtectedLibrarySongVersionIdRoute
   ProtectedLibraryArtistsRoute: typeof ProtectedLibraryArtistsRoute
@@ -875,6 +895,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAdminRoute: ProtectedAdminRouteWithChildren,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedOfflineRoute: ProtectedOfflineRoute,
+  ProtectedPeopleRoute: ProtectedPeopleRoute,
   ProtectedReviewRoute: ProtectedReviewRouteWithChildren,
   ProtectedLibrarySongVersionIdRoute: ProtectedLibrarySongVersionIdRoute,
   ProtectedLibraryArtistsRoute: ProtectedLibraryArtistsRoute,

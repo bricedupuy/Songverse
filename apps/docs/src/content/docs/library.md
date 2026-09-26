@@ -55,6 +55,8 @@ That's the song in **Edit** mode. In **Practice** its page is the chart itself, 
 
 The **Suggested capo** is only a suggestion (for example, the capo used on the recording): it's used when a version doesn't set its own.
 
+A song can also be shared with you by one of your [people](/people/): it's marked **Shared by** them, and you can view it, or edit it too if they chose **Can edit**.
+
 If a song isn't yours to change (a global song, or a team song when you're not one of the team's admins), you can read it, make your own version of it and add files of your own to it (see [Who sees a file](/library/#who-sees-a-file)), but not edit it.
 
 ## Linked songs

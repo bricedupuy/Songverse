@@ -51,6 +51,7 @@ export default defineConfig({
             { slug: "sets" },
             { slug: "songbooks" },
             { slug: "teams" },
+            { slug: "people" },
             { slug: "offline" },
           ],
         },

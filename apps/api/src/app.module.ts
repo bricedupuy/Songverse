@@ -24,6 +24,7 @@ import { UsersModule } from "./users/users.module";
 import { WorksModule } from "./works/works.module";
 import { PublishingModule } from "./publishing/publishing.module";
 import { SuggestionsModule } from "./suggestions/suggestions.module";
+import { PeopleModule } from "./people/people.module";
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { SuggestionsModule } from "./suggestions/suggestions.module";
     AdminModule,
     PublishingModule,
     SuggestionsModule,
+    PeopleModule,
   ],
   controllers: [AppController],
   providers: [

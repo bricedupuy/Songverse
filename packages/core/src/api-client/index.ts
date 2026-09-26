@@ -629,6 +629,8 @@ export interface SongVersionSummary {
   /** Who put it in the catalogue (issue #73): a person, and the team whose song it was. */
   contributedBy: { id: string; displayName: string } | null;
   contributedByTeam: { id: string; name: string } | null;
+  /** Shared with the viewer by its owner (issue #77): who by, and whether to edit. */
+  sharedBy?: SharedBy | null;
   createdAt: string;
   updatedAt: string;
   artists: ArtistSummary[];
@@ -750,6 +752,35 @@ export interface SuggestionDetail extends Suggestion {
   conflicts: string[];
 }
 
+/** Who shared a song with you (issue #77), and whether to edit. */
+export interface SharedBy {
+  id: string;
+  displayName: string;
+  canEdit: boolean;
+}
+
+/** Someone in SongVerse (People, issue #77). */
+export interface Person {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface PeopleOverview {
+  people: (Person & { connectionId: string; email: string })[];
+  /** Asking to connect with you. */
+  incoming: { id: string; createdAt: string; from: Person & { email: string } }[];
+  /** You asked, and they haven't said yes yet. */
+  outgoing: { id: string; createdAt: string; email: string }[];
+  /** People from your teams you're not connected to. */
+  suggestions: Person[];
+}
+
+export interface SongShare {
+  user: Person;
+  canEdit: boolean;
+}
+
 export type StreamingLinkType = "SPOTIFY" | "APPLE_MUSIC" | "YOUTUBE";
 
 export interface SongVersionLink {
@@ -781,8 +812,10 @@ export interface SongVersionDetail extends SongVersionSummary {
   capo: number | null;
   contributors: VersionContributor[];
   identifiers: SongVersionLink[];
-  /** Whether the current user may change it. */
+  /** Whether the current user may change its chart, details and credits. */
   canEdit: boolean;
+  /** Whether they may delete, publish or share it, or change its links and everyone's files (#77). */
+  canManage: boolean;
 }
 
 /** A song's optional fields. A field left out is left alone; null clears it. */
@@ -1341,6 +1374,20 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     declineSuggestion: (id: string, notes: string) =>
       request<Suggestion>(`/suggestions/${id}/decline`, { method: "POST", body: JSON.stringify({ notes }) }),
     withdrawSuggestion: (id: string) => request<Suggestion>(`/suggestions/${id}/withdraw`, { method: "POST" }),
+    getPeople: () => request<PeopleOverview>("/people"),
+    /** Asks someone to connect, by email or (someone from your teams) id; `connected` when they'd already asked you. */
+    requestConnection: (to: { email?: string; userId?: string }) =>
+      request<{ connected: boolean }>("/people/requests", { method: "POST", body: JSON.stringify(to) }),
+    acceptConnection: (id: string) => request<void>(`/people/requests/${id}/accept`, { method: "POST" }),
+    declineConnection: (id: string) => request<void>(`/people/requests/${id}/decline`, { method: "POST" }),
+    cancelConnection: (id: string) => request<void>(`/people/requests/${id}`, { method: "DELETE" }),
+    removePerson: (userId: string) => request<void>(`/people/${userId}`, { method: "DELETE" }),
+    getSongShares: (songVersionId: string) => request<SongShare[]>(`/song-versions/${songVersionId}/shares`),
+    shareSong: (songVersionId: string, userId: string, canEdit: boolean) =>
+      request<SongShare[]>(`/song-versions/${songVersionId}/shares/${userId}`, { method: "PUT", body: JSON.stringify({ canEdit }) }),
+    unshareSong: (songVersionId: string, userId: string) => request<void>(`/song-versions/${songVersionId}/shares/${userId}`, { method: "DELETE" }),
+    /** Takes a song shared with you out of your library. */
+    leaveSharedSong: (songVersionId: string) => request<void>(`/song-versions/${songVersionId}/shares/me`, { method: "DELETE" }),
     getSongHistory: (songVersionId: string) => request<SongRevisionEntry[]>(`/song-versions/${songVersionId}/history`),
     getSongRevision: (songVersionId: string, revisionId: string) =>
       request<SongRevisionDetail>(`/song-versions/${songVersionId}/history/${revisionId}`),

@@ -598,7 +598,7 @@ export function LinksTab({
         <CardContent className="flex flex-col gap-4">
           {STREAMING.map(({ type, label }) => {
             const current = version.identifiers.find((identifier) => identifier.type === type);
-            if (!version.canEdit) {
+            if (!version.canManage) {
               return (
                 <p key={type} className="text-sm">
                   <span className="font-medium">{label}: </span>
@@ -637,7 +637,7 @@ export function LinksTab({
           <CardDescription>{t("songEditor.links.workDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
-          {version.canEdit ? (
+          {version.canManage ? (
             <MusicBrainzMatchPanel
               kind="work"
               initialQuery={version.title}

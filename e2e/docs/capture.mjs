@@ -61,8 +61,8 @@ Early in the [Bm]morning our [E]song shall rise to [A]Thee;
 ];
 
 const LOCALES = {
-  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", reviewer: "Robin Lee", why: "It's 'relieved', with one l.", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only" },
-  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", reviewer: "Alice Moreau", why: "C'est « relieved », avec un seul l.", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul" },
+  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", guest: "Jordan Kim", friend: "Chris Lane", asking: "Taylor Reed", reviewer: "Robin Lee", why: "It's 'relieved', with one l.", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only" },
+  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", guest: "Lucas Martin", friend: "Chloe Bernard", asking: "Emma Roux", reviewer: "Alice Moreau", why: "C'est « relieved », avec un seul l.", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul" },
 };
 
 const nextSunday = () => {
@@ -219,6 +219,29 @@ try {
     await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
     await shoot("songbook", `/songbooks/${songbook.id}`, null, { fullPage: true });
     await shoot("team", `/teams/${team.id}`);
+    // People (issue #77): a guest musician connected, the song shared with them, someone asking.
+    // Plain addresses rather than the harness's, since they show on the page.
+    const named = async (name) => {
+      const person = await user(name);
+      person.email = `${name.toLowerCase().replace(" ", ".")}.${locale}@example.com`;
+      sql(`update "User" set email='${person.email}' where id='${person.id}'`);
+      return person;
+    };
+    const guest = await named(text.guest);
+    for (const person of [guest, await named(text.friend)]) {
+      await api(me, "POST", "/people/requests", { email: person.email });
+      const request = (await api(person, "GET", "/people")).incoming[0];
+      await api(person, "POST", `/people/requests/${request.id}/accept`);
+    }
+    const asking = await named(text.asking);
+    await api(asking, "POST", "/people/requests", { email: text.email });
+    await api(me, "PUT", `/song-versions/${grace.id}/shares/${guest.id}`, { canEdit: false });
+    await shoot("people", "/people", () => page.getByTestId("people-list").waitFor());
+    await shoot("share-song", `/library/${grace.id}`, async () => {
+      await page.getByRole("button", { name: /^(Share|Partager)$/ }).click();
+      await page.getByTestId("song-shares").waitFor();
+    });
+    await page.keyboard.press("Escape");
     // What the device keeps offline, once it has caught up (the set is coming up).
     await shoot("offline-storage", "/offline", () => page.getByText(/Last caught up|Dernière mise à jour/).waitFor({ timeout: 30_000 }));
     await context.close();

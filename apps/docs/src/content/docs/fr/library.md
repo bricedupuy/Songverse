@@ -55,6 +55,8 @@ Voilà le chant en mode **Édition**. En **Session**, sa page est la grille elle
 
 Le **Capo suggéré** n'est qu'une suggestion (par exemple le capo de l'enregistrement) : il s'applique quand une version n'indique pas le sien.
 
+Un chant peut aussi vous être partagé par une de vos [personnes](/fr/people/) : il est marqué **Partagé par** elle, et vous pouvez le lire, ou aussi le modifier si elle a choisi **Peut modifier**.
+
 Si un chant n'est pas à vous (un chant global, ou un chant d'équipe dont vous n'êtes pas administrateur), vous pouvez le lire, en faire votre version et y ajouter vos propres fichiers (voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)), mais pas le modifier.
 
 ## Chants liés

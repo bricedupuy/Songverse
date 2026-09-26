@@ -17,6 +17,7 @@ const PAGES: [RegExp, string][] = [
   [/^\/(admin|review)/, "admin"],
   [/^\/dashboard/, "account"],
   [/^\/offline/, "offline"],
+  [/^\/people/, "people"],
 ];
 
 /** The docs page about where the user is (the docs' home otherwise), in their language. */

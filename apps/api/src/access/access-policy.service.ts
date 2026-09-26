@@ -27,15 +27,18 @@ export const OPEN_SUBMISSION_STATES = ["SUBMITTED", "UNDER_REVIEW", "NEEDS_CHANG
  * for lists, and as a yes/no, for one record):
  *
  * - Songs: anyone sees approved global songs (global admins, every global
- *   song), a user's own songs, and their teams' songs. Reviewers can also
- *   open a song while it's submitted to the global catalogue.
+ *   song), a user's own songs, their teams' songs, and songs shared with
+ *   them (AccessGrant, issue #77). Reviewers can also open a song while
+ *   it's submitted to the global catalogue.
  * - Songbooks: anyone sees global songbooks, plus their own and their teams'.
  * - Tags: approved global tags, the user's own, and their teams'.
  * - Arrangements: the user's own and their teams' (of songs they can see;
  *   through a set, anyone who can open the set sees the one it plays).
  * - Changing a song, songbook or arrangement: its owner for a personal one, the team's
  *   admins for a team one, and only global admins for a global one. Global
- *   admins can change anything.
+ *   admins can change anything. Someone a song is shared with to edit
+ *   changes its chart, details and credits (canEditContent), not the rest
+ *   (deleting, publishing, sharing it…).
  */
 @Injectable()
 export class AccessPolicyService {
@@ -63,8 +66,15 @@ export class AccessPolicyService {
         viewer.isGlobalAdmin ? { ownerScope: "GLOBAL" } : { ownerScope: "GLOBAL", publicationState: "APPROVED" },
         { ownerScope: "USER", ownerUserId: viewer.id },
         { ownerScope: "TEAM", ownerTeamId: { in: teamIds } },
+        { ownerScope: { not: "GLOBAL" }, accessGrants: { some: { grantedToUserId: viewer.id } } },
       ],
     };
+  }
+
+  /** The songs shared with the user (issue #77): which, and whether to edit. */
+  async sharedWith(userId: string): Promise<Map<string, { canEdit: boolean }>> {
+    const grants = await this.prisma.client.accessGrant.findMany({ where: { grantedToUserId: userId }, select: { songVersionId: true, canEdit: true } });
+    return new Map(grants.map((grant) => [grant.songVersionId, { canEdit: grant.canEdit }]));
   }
 
   /** Songs `viewer` can see. */
@@ -75,7 +85,18 @@ export class AccessPolicyService {
   async canSeeSong(viewer: Viewer, song: OwnedSong & { id?: string }): Promise<boolean> {
     if (song.ownerScope === "GLOBAL") return viewer.isGlobalAdmin || song.publicationState === "APPROVED";
     if (await this.ownsOrBelongsTo(viewer, song)) return true;
+    if (song.id && (await this.prisma.client.accessGrant.count({ where: { songVersionId: song.id, grantedToUserId: viewer.id } })) > 0) return true;
     return !!viewer.isReviewer && !!song.id && (await this.isAwaitingReview(song.id));
+  }
+
+  /**
+   * Whether `viewer` may change the song's chart, details and credits: who
+   * can edit it (canEdit), or someone it's shared with to edit (#77).
+   */
+  async canEditContent(viewer: Viewer, song: OwnedRecord & { id: string }): Promise<boolean> {
+    if (await this.canEdit(viewer, song)) return true;
+    if (song.ownerScope === "GLOBAL") return false;
+    return (await this.prisma.client.accessGrant.count({ where: { songVersionId: song.id, grantedToUserId: viewer.id, canEdit: true } })) > 0;
   }
 
   /** Whether the song has a submission to the global catalogue still open. */
@@ -86,10 +107,11 @@ export class AccessPolicyService {
     return open > 0;
   }
 
-  /** canSeeSong for many songs at once, given the viewer's teams (see teamIds). */
-  songVisibleGivenTeams(viewer: Viewer, teamIds: ReadonlySet<string>, song: OwnedSong): boolean {
+  /** canSeeSong for many songs at once, given the viewer's teams (see teamIds) and the songs shared with them (see sharedWith). */
+  songVisibleGivenTeams(viewer: Viewer, teamIds: ReadonlySet<string>, song: OwnedSong & { id?: string }, shared: ReadonlyMap<string, unknown> = new Map()): boolean {
     if (viewer.isGlobalAdmin) return true;
     if (song.ownerScope === "GLOBAL") return song.publicationState === "APPROVED";
+    if (song.id && shared.has(song.id)) return true;
     if (song.ownerScope === "USER") return song.ownerUserId === viewer.id;
     return !!song.ownerTeamId && teamIds.has(song.ownerTeamId);
   }

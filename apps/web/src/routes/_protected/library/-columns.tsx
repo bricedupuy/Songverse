@@ -98,8 +98,10 @@ export function useLibraryColumns(currentUserId: string): ColumnDef<SongVersionS
  * submission is, in the publish card's words; a catalogue song the user
  * put there is theirs still (issue #73).
  */
-function statusLabel(version: Pick<SongVersionSummary, "publicationState" | "ownerScope" | "contributedBy">, t: TFunction, currentUserId: string): string {
+function statusLabel(version: Pick<SongVersionSummary, "publicationState" | "ownerScope" | "contributedBy" | "sharedBy">, t: TFunction, currentUserId: string): string {
   if (version.ownerScope === "GLOBAL" && version.contributedBy?.id === currentUserId) return t("library.statusPublishedByYou");
+  // Shared with the user by its owner (issue #77).
+  if (version.sharedBy) return t("library.statusSharedBy", { name: version.sharedBy.displayName });
   switch (version.publicationState) {
     case "DRAFT":
       return version.ownerScope === "USER" ? t("library.statusPersonal") : version.ownerScope === "TEAM" ? t("library.statusTeam") : t("library.statusDraft");
