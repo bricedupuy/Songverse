@@ -55,6 +55,7 @@ Create a **Project** to hold everything, then add these five resources.
 - Build context / base directory: `.` (repo root) — see [Gotcha #1](#1-docker-build-context) if this matters to you
 - Port: `3001`
 - Domain: `api.songverse.one`
+- Watch paths (if you use auto-deploy): `apps/api/**`, `packages/core/**`, `packages/db/**`, `packages/secret-crypto/**`, `packages/tsconfig/**`, `Dockerfile.api`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` - see [Watch paths](#watch-paths)
 
 Environment variables:
 ```
@@ -136,6 +137,7 @@ Storage shows which path is currently active.
 - Build context: `.`
 - **No domain, no port** — it doesn't serve web traffic
 - **Command override** (usually under an "Advanced" tab, field is typically called "Command"): `node dist/worker.js`
+- Watch paths (if you use auto-deploy): the same as the API's - it's the same image, and must be rebuilt whenever the API is
 
 Environment variables: same as the API app (`DATABASE_URL`, `REDIS_URL`,
 `SETTINGS_ENCRYPTION_KEY`, and the `R2_*` vars if using the env-var
@@ -155,6 +157,7 @@ mounted in (the API). `PORT` isn't used here either.
 - Build context: `.`
 - Port: `3000`
 - Domain: `app.songverse.one`
+- Watch paths (if you use auto-deploy): `apps/web/**`, `packages/core/**`, `packages/tsconfig/**`, `Dockerfile.web`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`
 
 Environment variables:
 ```
@@ -198,7 +201,7 @@ The website at the root domain (`apps/site`, #43): one static page in English an
 - Build context: `.`
 - Port: `80`
 - Domain: `songverse.one`
-- Watch paths (if you use auto-deploy): `apps/site/**`
+- Watch paths (if you use auto-deploy): `apps/site/**`, `Dockerfile.site`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`
 
 Environment variables: none needed. `APP_URL` (default `https://app.songverse.one`) is where paths that aren't website pages are redirected.
 
@@ -213,7 +216,7 @@ The user documentation (`apps/docs`), a static site served by nginx.
 - Build context: `.`
 - Port: `80`
 - Domain: `docs.songverse.one`
-- Watch paths (under the app's advanced settings, if you use auto-deploy): `apps/docs/**`, so only docs changes rebuild it.
+- Watch paths (under the app's advanced settings, if you use auto-deploy): `apps/docs/**`, `Dockerfile.docs`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, so only docs changes rebuild it.
 
 No environment variables. The build fails if any page links to a page or heading that doesn't exist, so a broken docs change never deploys.
 
@@ -269,3 +272,22 @@ If sign-in appears to succeed (a 200 comes back) but the user is immediately sig
 ## Redeploying after a code change
 
 Push to `main`, then trigger a rebuild in Dokploy for whichever app(s) changed (API and Worker share an image, so a backend change means rebuilding both). New Prisma migrations apply automatically when the API restarts (see step 3).
+
+### Watch paths
+
+With auto-deploy on, Dokploy rebuilds an app only when a push changes a file matching its watch paths. They're exactly what each app's Dockerfile copies:
+
+| App | Watch paths |
+|---|---|
+| API, Worker | `apps/api/**`, `packages/core/**`, `packages/db/**`, `packages/secret-crypto/**`, `packages/tsconfig/**`, `Dockerfile.api` |
+| Web | `apps/web/**`, `packages/core/**`, `packages/tsconfig/**`, `Dockerfile.web` |
+| Site | `apps/site/**`, `Dockerfile.site` |
+| Docs | `apps/docs/**`, `Dockerfile.docs` |
+
+Every app also watches the root `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`: every image installs its dependencies from them, so a dependency change rebuilds them all.
+
+- `packages/core` (shared types, translations, the API client) is in both the API's and the Web's: a change there has to reach both, or the web app and the API disagree.
+- `packages/db` holds the Prisma schema and migrations: a new migration rebuilds the API, which applies it as it starts (step 3).
+- `e2e/`, `docs/` and the `.md` files at the root aren't in any image, so changing them rebuilds nothing.
+
+If a Dockerfile starts copying something new (another package, say), add it to that app's watch paths too, or a change there won't redeploy it.
