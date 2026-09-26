@@ -61,8 +61,8 @@ Early in the [Bm]morning our [E]song shall rise to [A]Thee;
 ];
 
 const LOCALES = {
-  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", guest: "Jordan Kim", friend: "Chris Lane", asking: "Taylor Reed", reviewer: "Robin Lee", why: "It's 'relieved', with one l.", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only" },
-  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", guest: "Lucas Martin", friend: "Chloe Bernard", asking: "Emma Roux", reviewer: "Alice Moreau", why: "C'est « relieved », avec un seul l.", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul" },
+  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", guest: "Jordan Kim", friend: "Chris Lane", asking: "Taylor Reed", reviewer: "Robin Lee", why: "It's 'relieved', with one l.", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only", addedLine: "Sing it a|gain" },
+  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", guest: "Lucas Martin", friend: "Chloe Bernard", asking: "Emma Roux", reviewer: "Alice Moreau", why: "C'est « relieved », avec un seul l.", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul", addedLine: "Chante-le en|core" },
 };
 
 const nextSunday = () => {
@@ -110,7 +110,7 @@ try {
     });
     earlier(2);
 
-    // The band's usual arrangement: a tone up, capo 2, a replaced chord, a hidden one and a note.
+    // The band's usual arrangement: a tone up, capo 2, a replaced chord, a hidden one, a note and an added line.
     let arrangement = await api(me, "POST", `/song-versions/${grace.id}/arrangements`, { name: text.arrangement, teamId: team.id });
     const song = (await api(me, "GET", `/song-versions/${grace.id}`)).documentJson;
     const [verse1, verse2] = song.sections;
@@ -122,7 +122,16 @@ try {
       { type: "chord", chordId: verse1.lines[0].chords[1].id, raw: "G/B" },
       { type: "performance_note", lineId: verse1.lines[0].id, note: text.note },
     ];
-    document.items[1].overrides = [{ type: "hide_chord", chordId: verse2.lines[1].chords[1].id }];
+    // A line only this version sings (#24), with its chords.
+    const [before, after] = text.addedLine.split("|");
+    document.items[1].overrides = [
+      { type: "hide_chord", chordId: verse2.lines[1].chords[1].id },
+      {
+        type: "insert_line",
+        afterLineId: verse2.lines[verse2.lines.length - 1].id,
+        line: { id: "ins_line_docs", kind: "lyric", text: before + after, chords: [{ id: "ins_chd_docs1", at: 0, raw: "G" }, { id: "ins_chd_docs2", at: before.length, raw: "D" }] },
+      },
+    ];
     arrangement = await api(me, "PATCH", `/arrangements/${arrangement.id}`, { document, updatedAt: arrangement.updatedAt });
     arrangement = await api(me, "PATCH", `/arrangements/${arrangement.id}`, { isTeamDefault: true, updatedAt: arrangement.updatedAt });
 

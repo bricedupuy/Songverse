@@ -20,8 +20,9 @@ A team's versions are seen by the team's members and changed by its admins.
 - **Settings** - its **Key** (from the song's), **Capo**, **Tempo** and a description.
 - **Song order** - which passes are played, in what order, with key changes and notes, like [the song's own order](/song-editor/#the-song-order).
 - **Passes** - the chart as this version plays it, in the key each pass is played in:
-  - **click a chord** to replace it on that pass (type it in the key it's played in), **hide** it for the band, or put it back **as in the song**;
-  - beside each line, **hide the line** on that pass, or add a **note** to it ("Softly, piano only").
+  - **click a chord** to replace it on that pass (type it in the key it's played in), **hide** it for the band, or put it back **as in the song**. **Move** puts it on another character: click the one it goes on;
+  - beside each line, **hide the line** on that pass, add a **note** to it ("Softly, piano only"), or **change the words** on that pass - a line sung in another language, "we" for "I" on the last chorus. The chords stay on the same characters (pulled in to the end of a shorter line; **Move** them if needed), and the line is marked **words changed**. **Back to the song's words** undoes it;
+  - **add a line** after any line, or **at the start** of the pass: a tag line, a spoken intro. Type it with its chords in brackets, before the word or syllable they're on: `[G]Sing it a[D]gain`. It's marked **added**; its chords can be replaced, moved or hidden like the others, and beside it you **edit** or **remove** it.
 
 Passes you've changed are marked **Changed in this version**, here and on the band's charts. **Save** when you're done.
 
@@ -33,7 +34,7 @@ A team admin can make one of the team's versions **the team's usual one** for a 
 
 If the song is edited after you last checked the version, the version editor says so. It keeps working meanwhile. Changes that point at something since removed from the song (a chord or line that's gone) are listed on their pass: remove them, or leave them - they do nothing. **Mark as checked** once you've looked it over.
 
-A version made when your own copy of a song was folded into the catalogue song (see [Submitting to the global catalogue](/library/#submitting-to-the-global-catalogue)) can also change a line's words and add lines, to play the song as you had it.
+A version made when your own copy of a song was folded into the catalogue song (see [Submitting to the global catalogue](/library/#submitting-to-the-global-catalogue)) plays the song as you had it, with its words changed and lines added the same way - and you edit them the same way too.
 
 ## Your own view of a chart
 

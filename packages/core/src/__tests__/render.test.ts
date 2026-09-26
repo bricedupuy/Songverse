@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { ArrangementDocumentV2 } from "../schemas/arrangement-document-v2.js";
+import { findArrangementProblems, type ArrangementDocumentV2 } from "../schemas/arrangement-document-v2.js";
 import { chartSeconds, newArrangementDocument, renderChart, type RenderedPass } from "../song-document/render.js";
 import { songDocumentFromText } from "../song-document/text.js";
 
@@ -74,6 +74,22 @@ describe("renderChart", () => {
     expect(pass.lines[1]).toMatchObject({ inserted: true, chords: [{ id: "ins_chd_1", label: "D" }] });
     // The same section on another pass is untouched.
     expect(renderChart(song, doc).passes[1]!.differs).toBe(false);
+  });
+
+  it("a line added after a hidden line shows where it was; a note can go on an added line", () => {
+    const [first, second] = verse!.lines;
+    const doc = arrangement((d) => {
+      d.items[0]!.overrides = [
+        { type: "hide_line", lineId: first!.id },
+        { type: "insert_line", afterLineId: first!.id, line: { id: "ins_line_2", kind: "lyric", text: "Instead", chords: [] } },
+        { type: "performance_note", lineId: "ins_line_2", note: "Spoken" },
+      ];
+    });
+    const pass = renderChart(song, doc).passes[0]!;
+    expect(pass.lines.map((line) => line.text)).toEqual(["Instead", second!.text]);
+    expect(pass.lines[0]!.note).toBe("Spoken");
+    expect(pass.problems).toEqual([]);
+    expect(findArrangementProblems(doc, song)).toEqual([]);
   });
 
   it("shows what no longer matches the song, and draws the rest", () => {

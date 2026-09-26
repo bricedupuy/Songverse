@@ -48,10 +48,10 @@ song's sections, lines and chords by ID and records the differences.
 ## First version
 
 The arrangement editor starts with the order, key, capo and tempo, and on
-each pass: replacing or hiding a chord, hiding a line, and notes (on the
-pass or a line). Changing a line's words (`lyric`) and inserting lines
-(`insert_line`) are in the format, validated and rendered, but their
-editing UI comes later (bricedupuy/SongVerse#24).
+each pass: replacing, moving or hiding a chord, hiding a line, changing a
+line's words (`lyric`), inserting lines (`insert_line`, typed with their
+chords in brackets), and notes (on the pass or a line, inserted ones
+included). Words and inserted lines came with bricedupuy/SongVerse#24.
 
 In the app:
 - A song's **Arrangements** tab lists yours and your teams', and makes one
@@ -149,8 +149,9 @@ It returns every pass with its lines and chords as shown, the key in
 effect, whether the pass differs from the song, and any problems.
 
 1. Take the section from the song (`sectionId`).
-2. Remove hidden lines.
-3. Insert inserted lines.
+2. Insert inserted lines (among all the section's lines, so one inserted
+   after a hidden line shows where that line was).
+3. Remove hidden lines.
 4. Replace lyrics (moving the chords as `chordPositions` says).
 5. Replace chords, then remove hidden chords.
 6. Attach performance notes.

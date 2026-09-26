@@ -109,6 +109,8 @@ export function findArrangementProblems(arrangement: ArrangementDocumentV2, song
     );
     // A line added after another added line (earlier in the pass) follows it.
     const insertedLines = new Set<string>();
+    // A note can go on any line added on the pass.
+    const addedLines = new Set(item.overrides.flatMap((override) => (override.type === "insert_line" ? [override.line.id] : [])));
     for (const override of item.overrides) {
       switch (override.type) {
         case "chord":
@@ -118,8 +120,10 @@ export function findArrangementProblems(arrangement: ArrangementDocumentV2, song
           }
           break;
         case "hide_line":
-        case "performance_note":
           if (!lineIds.has(override.lineId)) problems.push(`${where}: line ${override.lineId} not found`);
+          break;
+        case "performance_note":
+          if (!lineIds.has(override.lineId) && !addedLines.has(override.lineId)) problems.push(`${where}: line ${override.lineId} not found`);
           break;
         case "insert_line":
           if (override.afterLineId && !lineIds.has(override.afterLineId) && !insertedLines.has(override.afterLineId)) {

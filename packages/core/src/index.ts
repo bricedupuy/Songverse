@@ -11,6 +11,7 @@ export * from "./schemas/parsed-song.js";
 export * from "./song-document/text.js";
 export * from "./song-document/reconcile.js";
 export * from "./song-document/layout.js";
+export * from "./song-document/chord-line.js";
 export * from "./song-document/render.js";
 export * from "./song-document/structure.js";
 export * from "./schemas/midi.js";

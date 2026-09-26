@@ -132,7 +132,8 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
       lyricChanged: false,
     });
     const hiddenLines = new Set(overrides.flatMap((o) => (o.type === "hide_line" ? [o.lineId] : [])));
-    let lines: Working[] = section.lines.filter((line) => !hiddenLines.has(line.id)).map((line) => toWorking(line, false));
+    // Placed among every line, hidden ones too: a line added after a hidden one shows where it was.
+    let lines: Working[] = section.lines.map((line) => toWorking(line, false));
     for (const override of overrides) {
       if (override.type !== "insert_line") continue;
       const inserted = toWorking(override.line, true);
@@ -140,10 +141,10 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
       else {
         const at = lines.findIndex((line) => line.id === override.afterLineId);
         if (at >= 0) lines.splice(at + 1, 0, inserted);
-        else if (lineIds.has(override.afterLineId)) lines.push(inserted); // after a hidden line: where it would have been is gone
         else problems.push(`line ${override.afterLineId} not found`);
       }
     }
+    lines = lines.filter((line) => line.inserted || !hiddenLines.has(line.id));
     const byLine = new Map(lines.map((line) => [line.id, line]));
     const findChord = (chordId: string) => {
       for (const line of lines) {
