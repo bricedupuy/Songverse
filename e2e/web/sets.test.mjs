@@ -153,8 +153,8 @@ await step("a team member sees the team set read-only (in French)", async () => 
   await memberPage.getByText("seuls les administrateurs de l'équipe").waitFor();
   if ((await memberPage.getByRole("button", { name: /Faire glisser/ }).count()) !== 0) throw new Error("drag handles shown to a read-only member");
   if ((await memberPage.getByLabel("Tonalité").count()) !== 0) throw new Error("key picker shown to a read-only member");
-  await memberPage.getByText(`How Great ${tag}`).waitFor();
-  await memberPage.getByText("C (originale)").waitFor();
+  await memberPage.locator("main").getByText(`How Great ${tag}`).waitFor();
+  await memberPage.locator("main").getByText("C (originale)").waitFor();
   await memberPage.screenshot({ path: `${SP}/sets-readonly-fr.png`, fullPage: true });
   await memberPage.goto(setUrl);
   await memberPage.getByText("Liste introuvable").waitFor(); // leader's personal set

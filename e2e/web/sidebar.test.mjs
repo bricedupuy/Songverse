@@ -1,7 +1,7 @@
 // The nested sidebar (issue #80, after shadcn's sidebar-09): a rail of
 // sections and a panel listing what's in the one you're in - songs, sets,
-// songbooks - to go from one to the next; filtering it; collapsing it to the
-// rail (remembered), and a rail icon opening it again.
+// songbooks - to go from one to the next, and in a set its songs; filtering
+// it; collapsing it to the rail (remembered), and a rail icon opening it again.
 import { chromium } from "playwright";
 import { WEB, api, finish, railLink, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
@@ -12,6 +12,8 @@ const first = await api(me, "POST", "/song-versions", { title: `Aardvark hymn ${
 const second = await api(me, "POST", "/song-versions", { title: `Aardvark psalm ${stamp}`, language: "en", artists: ["Someone Else"] });
 const set = await api(me, "POST", "/setlists", { name: `Sidebar set ${stamp}` });
 await api(me, "POST", "/setlists", { name: `Other set ${stamp}` });
+for (const song of [first, second]) await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: song.id });
+const { items } = await api(me, "GET", `/setlists/${set.id}`);
 
 const browser = await chromium.launch();
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -47,6 +49,25 @@ await step("Sets on the rail: the panel lists the sets, filtered as you type", a
   if (await panel().getByRole("link", { name: new RegExp(`Other set ${stamp}`) }).count()) throw new Error("not filtered");
   await panel().getByRole("link", { name: new RegExp(`Sidebar set ${stamp}`) }).click();
   await page.waitForURL(`${WEB}/sets/${set.id}`);
+});
+
+await step("in a set, the panel lists its songs; one opens, and is marked; back to the sets", async () => {
+  await panel().getByRole("link", { name: new RegExp(`^Sidebar set ${stamp}`) }).waitFor();
+  const songs = panel().getByTestId("sidebar-panel-list");
+  await songs.getByRole("link", { name: `1. Aardvark hymn ${stamp}` }).waitFor();
+  await songs.getByRole("link", { name: `2. Aardvark psalm ${stamp}` }).click();
+  await page.waitForURL(`${WEB}/sets/${set.id}/songs/${items[1].id}`);
+  if ((await songs.getByRole("link", { name: `2. Aardvark psalm ${stamp}` }).getAttribute("aria-current")) !== "page") throw new Error("not marked");
+  await songs.getByRole("link", { name: `1. Aardvark hymn ${stamp}` }).click();
+  await page.waitForURL(`${WEB}/sets/${set.id}/songs/${items[0].id}`);
+  // Back lists the sets again, without leaving the song.
+  await panel().getByTestId("sidebar-panel-back").click();
+  await panel().getByLabel("Filter…").fill(""); // still what was typed before
+  await panel().getByRole("link", { name: new RegExp(`Other set ${stamp}`) }).waitFor();
+  if (!page.url().endsWith(`/songs/${items[0].id}`)) throw new Error(page.url());
+  await panel().getByRole("link", { name: new RegExp(`Sidebar set ${stamp}`) }).click();
+  await page.waitForURL(`${WEB}/sets/${set.id}`);
+  await panel().getByTestId("sidebar-panel-list").getByRole("link", { name: `1. Aardvark hymn ${stamp}` }).waitFor();
 });
 
 await step("collapsed to the rail, remembered; a rail icon opens it again", async () => {

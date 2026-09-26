@@ -27,7 +27,7 @@ La barre latérale à gauche mène partout :
 - **Équipes** - les groupes dont vous faites partie. Voir [Équipes](/fr/teams/).
 - **Personnes** - les personnes avec qui vous partagez des chants. Voir [Personnes](/fr/people/).
 
-Sur un ordinateur ou une tablette, la barre latérale a deux parties : une colonne d'icônes pour ces sections et, à côté, un panneau qui liste le contenu de la section où vous êtes - vos chants, vos listes, vos recueils, vos équipes ou vos personnes - avec une case **Filtrer…** en haut. Ce que vous consultez y est marqué : le chant, la liste ou le recueil suivant est à un clic. Le panneau de la bibliothèque propose aussi vos [listes intelligentes](/fr/library/) et **Artistes**, et **+** commence un nouveau chant, une nouvelle liste, un nouveau recueil ou une nouvelle équipe.
+Sur un ordinateur ou une tablette, la barre latérale a deux parties : une colonne d'icônes pour ces sections et, à côté, un panneau qui liste le contenu de la section où vous êtes - vos chants, vos listes, vos recueils, vos équipes ou vos personnes - avec une case **Filtrer…** en haut. Ce que vous consultez y est marqué : le chant, la liste ou le recueil suivant est à un clic. Le panneau de la bibliothèque propose aussi vos [listes intelligentes](/fr/library/) et **Artistes**, et **+** commence un nouveau chant, une nouvelle liste, un nouveau recueil ou une nouvelle équipe. Dans une liste de chants, le panneau montre ses chants, dans l'ordre, avec la version et la tonalité de chacun : passez de l'un à l'autre, ou à la liste elle-même depuis son nom ; **Listes de chants**, en haut, montre à nouveau vos listes.
 
 ![La page d'une liste de chants : la colonne d'icônes à gauche, et le panneau qui liste vos listes](../../../assets/screenshots/fr/set.jpg)
 

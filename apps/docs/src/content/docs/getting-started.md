@@ -27,7 +27,7 @@ The sidebar on the left takes you everywhere:
 - **Teams** - the bands and groups you're part of. See [Teams](/teams/).
 - **People** - the people you share songs with. See [People](/people/).
 
-On a computer or a tablet, the sidebar has two parts: a rail of icons for these sections, and beside it a panel listing what's in the section you're in - your songs, your sets, your songbooks, your teams or your people - with a **Filter…** box on top. What you're viewing is marked, so the next song, set or songbook is one click away. The library's panel also has your [smart lists](/library/) and **Artists**, and **+** starts a new song, set, songbook or team.
+On a computer or a tablet, the sidebar has two parts: a rail of icons for these sections, and beside it a panel listing what's in the section you're in - your songs, your sets, your songbooks, your teams or your people - with a **Filter…** box on top. What you're viewing is marked, so the next song, set or songbook is one click away. The library's panel also has your [smart lists](/library/) and **Artists**, and **+** starts a new song, set, songbook or team. In a set, the panel lists that set's songs, in order, with the version and key each is played in: go from one to the next, or to the set itself from its name; **Sets**, at the top, lists your sets again.
 
 ![A set's page: the rail on the left, and the panel listing your sets](../../assets/screenshots/en/set.jpg)
 

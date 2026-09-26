@@ -1,8 +1,9 @@
-import type { PeopleOverview, SetlistSummary, SongbookSummary, SongVersionSummary, TeamSummary } from "@songverse/core";
+import { keptSetDetail, onlineOrKept, transposeKey, type PeopleOverview, type SetlistDetail, type SetlistSummary, type SongbookSummary, type SongVersionSummary, type TeamSummary } from "@songverse/core";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeft,
   BookOpen,
+  ChevronLeft,
   ClipboardCheck,
   Contact,
   Database,
@@ -29,7 +30,8 @@ import { apiClient } from "#/lib/api-client";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { initials } from "#/lib/initials";
 import type { AppSession } from "#/lib/server-auth";
-import { setlistTitle } from "#/lib/setlists";
+import { deviceStorage } from "#/lib/offline-data";
+import { setlistTitle, setOwnerLabel, transposeLabel } from "#/lib/setlists";
 import { smartListSearch, useSmartLists } from "#/lib/smart-lists";
 import { cn } from "#/lib/utils";
 
@@ -314,6 +316,11 @@ function LibraryPanel({ title, pathname }: { title: string; pathname: string }) 
 function SetsPanel({ title, pathname, setlists }: { title: string; pathname: string; setlists: SetlistSummary[] }) {
   const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState("");
+  // In a set (its page, or one of its songs): the panel lists its songs; back to the sets from there.
+  const openSet = /^\/sets\/(?!new$)([^/]+)/.exec(pathname)?.[1] ?? null;
+  const [listingSets, setListingSets] = useState(false);
+  useEffect(() => setListingSets(false), [pathname]);
+  if (openSet && !listingSets) return <SetSongsPanel setId={openSet} pathname={pathname} sets={title} onBack={() => setListingSets(true)} />;
   const shown = setlists.filter((set) => fold(setlistTitle(set, t, i18n.language)).includes(fold(filter.trim())));
   return (
     <>
@@ -334,6 +341,77 @@ function SetsPanel({ title, pathname, setlists }: { title: string; pathname: str
           </PanelEntry>
         ))}
       </PanelList>
+    </>
+  );
+}
+
+/** One set's songs, in order (issue #80): its overview, then each song, the one you're on marked. */
+function SetSongsPanel({ setId, pathname, sets, onBack }: { setId: string; pathname: string; sets: string; onBack: () => void }) {
+  const { t, i18n } = useTranslation();
+  const [set, setSet] = useState<SetlistDetail | null>(null);
+  const [failed, setFailed] = useState(false);
+  // Fetched again when the set's page reloads its own (a song added, moved, removed…).
+  const reloaded = useRouterState({ select: (s) => s.matches.find((match) => match.routeId.includes("$setlistId"))?.updatedAt });
+  useEffect(() => {
+    let cancelled = false;
+    onlineOrKept(
+      () => apiClient.getSetlist(setId),
+      () => keptSetDetail(deviceStorage(), setId),
+    )
+      .then((detail) => {
+        if (cancelled) return;
+        setSet(detail);
+        setFailed(!detail);
+      })
+      .catch(() => !cancelled && setFailed(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [setId, reloaded]);
+
+  return (
+    <>
+      <div className="flex flex-col gap-2 border-b p-3">
+        <button type="button" onClick={onBack} className="flex items-center gap-1 self-start rounded-md text-sm text-muted-foreground hover:text-foreground" data-testid="sidebar-panel-back">
+          <ChevronLeft className="size-4" />
+          <span data-testid="sidebar-panel-title">{sets}</span>
+        </button>
+        {set ? (
+          <Link
+            to="/sets/$setlistId"
+            params={{ setlistId: set.id }}
+            activeOptions={{ exact: true }}
+            className="flex flex-col gap-0.5 rounded-md px-1 py-0.5 hover:bg-sidebar-accent data-[status=active]:bg-sidebar-accent"
+          >
+            <span className="truncate text-base font-medium text-foreground">{setlistTitle(set, t, i18n.language)}</span>
+            <span className="truncate text-xs text-muted-foreground">{[setOwnerLabel(set, t), t("nav.songCount", { count: set.items.length })].join(" · ")}</span>
+          </Link>
+        ) : null}
+      </div>
+      {failed ? (
+        <p className="p-3 text-sm text-muted-foreground">{t("nav.listUnavailable")}</p>
+      ) : set ? (
+        <PanelList empty={t("sets.emptySet")}>
+          {set.items.map((item, index) => {
+            const song = item.song;
+            const baseKey = song?.key && item.arrangement ? (transposeKey(song.key, item.arrangement.transposeSteps) ?? song.key) : (song?.key ?? null);
+            return (
+              <PanelEntry
+                key={item.id}
+                active={pathname === `/sets/${set.id}/songs/${item.id}`}
+                title={`${index + 1}. ${song?.title ?? t("sets.hiddenSong")}`}
+                detail={song ? [item.arrangement?.name, transposeLabel(baseKey, item.transposeSteps, t)].filter(Boolean).join(" · ") : null}
+              >
+                {(className, content) => (
+                  <Link to="/sets/$setlistId/songs/$itemId" params={{ setlistId: set.id, itemId: item.id }} className={className}>
+                    {content}
+                  </Link>
+                )}
+              </PanelEntry>
+            );
+          })}
+        </PanelList>
+      ) : null}
     </>
   );
 }
