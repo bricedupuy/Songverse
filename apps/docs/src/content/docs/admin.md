@@ -46,4 +46,6 @@ Manages the published songbook catalogs (see [Songbooks](/songbooks/#from-a-publ
 
 The **Metadata** page has two maintenance tasks: **Check status** compares the database migrations on the server with what's applied, and **Run seed script** re-applies the built-in data (tag categories, tags, tuning presets). It's safe to re-run.
 
+**Metadata providers** chooses where a song's **Auto detect** looks it up (see [The library](/library/)): MusicBrainz, Apple Music and Deezer, none of which needs a key. Tick the ones to use, and put them in order with the arrows: matches closest to the title and artist still come first, then the song's first release, and this order breaks what's left. **Save configuration** keeps it; **Revert to environment variables** goes back to the `METADATA_PROVIDERS` variable (the ones to use, in order, like `musicbrainz,deezer`), or to all three in this order without it.
+
 **Song artwork** turns artwork from Apple Music on or off (**Find artwork for songs**) and sets the **Apple Music storefront (country)** searched - two letters, like us or fr. **Save configuration** keeps them; **Revert to defaults** goes back to on, in the us storefront. **Find artwork for songs without one** looks up to 50 songs at a time, newest first; a song nothing matched isn't tried again. See [Artwork](/library/#artwork).

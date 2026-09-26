@@ -111,7 +111,7 @@ export class WorksService {
 
   /**
    * The linked MusicBrainz work, as saved when it was linked (see
-   * SongVersionsService.getMusicBrainzInfo); an older link is looked up
+   * SongVersionsService.getMetadataMatch); an older link is looked up
    * once and saved.
    */
   async getMusicBrainzInfo(user: AuthenticatedUser, workId: string): Promise<MusicBrainzWorkMatch | null> {

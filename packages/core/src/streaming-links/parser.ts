@@ -1,4 +1,4 @@
-export type StreamingIdentifierType = "SPOTIFY" | "APPLE_MUSIC" | "YOUTUBE";
+export type StreamingIdentifierType = "SPOTIFY" | "APPLE_MUSIC" | "DEEZER" | "YOUTUBE";
 
 export interface ParsedStreamingLink {
   /** The clean ID stored as the identifier's value, where one can be extracted. */
@@ -38,6 +38,12 @@ export function parseStreamingLink(type: StreamingIdentifierType, input: string)
       (url?.hostname.replace(/^www\./, "") === "youtu.be" ? url.pathname.slice(1) : null) ??
       (!url ? trimmed : null);
     if (id) return { value: id, sourceUrl: `https://www.youtube.com/watch?v=${id}` };
+  }
+
+  if (type === "DEEZER") {
+    // deezer.com/track/3135556, with or without a language (deezer.com/fr/track/…).
+    const id = url?.pathname.match(/\/track\/(\d+)/)?.[1] ?? (!url && /^\d+$/.test(trimmed) ? trimmed : null);
+    if (id) return { value: id, sourceUrl: `https://www.deezer.com/track/${id}` };
   }
 
   if (type === "APPLE_MUSIC") {

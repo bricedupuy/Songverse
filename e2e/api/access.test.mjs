@@ -17,7 +17,7 @@ const mine = await song(owner, { content: "[G]Private words" });
 for (const [label, path, ok] of [
   ["the song", `/song-versions/${mine.id}`, [403]],
   ["its ChordPro export", `/song-versions/${mine.id}/chordpro`, [403]],
-  ["its MusicBrainz link", `/song-versions/${mine.id}/musicbrainz`, [403]],
+  ["its song info", `/song-versions/${mine.id}/metadata`, [403]],
   ["its files", `/song-versions/${mine.id}/attachments`, [403]],
   ["its songbooks", `/song-versions/${mine.id}/songbooks`, [403]],
   ["its work", `/works/${mine.workId}`, [404]],

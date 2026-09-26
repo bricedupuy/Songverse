@@ -31,7 +31,7 @@ async function loadOnline(songVersionId: string) {
   });
   if (!version) throw redirect({ to: "/library" });
   const [recordingMatch, workMatch, tags, songbookMemberships, attachments, me] = await Promise.all([
-    apiClient.getSongVersionMusicBrainz(version.id).catch(() => null),
+    apiClient.getSongMetadata(version.id).catch(() => null),
     apiClient.getWorkMusicBrainz(version.workId).catch(() => null),
     apiClient.listTags(),
     apiClient.getSongVersionSongbooks(version.id),

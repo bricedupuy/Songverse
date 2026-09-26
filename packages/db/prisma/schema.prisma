@@ -30,8 +30,10 @@ enum SongIdentifierType {
   MUSICBRAINZ_RECORDING // MusicBrainz Recording UUID. Belongs on Song Version.
   SPOTIFY // Spotify track ID. Belongs on Song Version (a specific recording).
   APPLE_MUSIC // Apple Music track ID. Belongs on Song Version.
+  DEEZER // Deezer track ID. Belongs on Song Version.
   YOUTUBE // YouTube video ID. Belongs on Song Version.
   CUSTOM // Internal catalog numbers or platform-specific IDs.
+  METADATA_MATCH // The song info chosen in Auto detect (issue #22): details holds the match, value its first source.
 }
 
 enum ImportFormat {
@@ -1720,6 +1722,15 @@ model ArtworkSettings {
   id        String   @id @default("singleton")
   enabled   Boolean  @default(true)
   country   String?
+  updatedAt DateTime @updatedAt
+}
+
+// Which metadata providers Auto detect asks, and in what order (issue #22):
+// `providers` is the ordered list [{ key, enabled }]. No row: the
+// METADATA_PROVIDERS env var, then every provider in the default order.
+model MetadataSettings {
+  id        String   @id @default("singleton")
+  providers Json
   updatedAt DateTime @updatedAt
 }
 

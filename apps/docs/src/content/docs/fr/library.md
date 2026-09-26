@@ -47,7 +47,7 @@ Sur une liste intelligente, changez les filtres et **Enregistrer les changements
 Choisissez **+ Ajouter une chanson**. Un **nom** et au moins un **artiste** suffisent ; tout le reste peut venir plus tard.
 
 - **Déjà dans votre bibliothèque ?** Pendant que vous tapez le nom, Songverse montre les chants que vous avez déjà sous ce titre. Vous pouvez ouvrir l'existant, **Partir de celui-ci** (reprendre ses détails), ou **Le lier à ce chant** - quand le vôtre en est une traduction ou une adaptation (voir [Chants liés](/fr/library/#chants-liés)). Une interprétation acoustique ou pour les jeunes n'est pas un nouveau chant : c'est une [version](/fr/versions/).
-- La **Détection automatique** cherche le chant en ligne (MusicBrainz) et complète ce qui manque, comme les crédits et l'album. Choisissez **Chercher le chant**, puis **Utiliser** sur la bonne correspondance.
+- La **Détection automatique** cherche le chant en ligne - sur MusicBrainz, Apple Music et Deezer - et complète ce qui manque, comme l'artiste, l'album et l'année. Choisissez **Chercher le chant**, puis **Utiliser** sur la bonne correspondance. La même sortie trouvée sur plusieurs d'entre eux est un seul résultat, qui les nomme tous. Les plus proches du titre et de l'artiste viennent en premier ; parmi eux, la première sortie du chant avant les suivantes (une compilation, un album live) et avant les versions comme le karaoké. Une fois le chant enregistré, les liens Apple Music et Deezer du résultat s'ajoutent aux **Liens** (s'il ne les a pas déjà), et l'illustration de sa sortie devient l'image du chant.
 - **La grille** : collez les paroles et les accords, ou ajoutez un fichier (`.cho`, `.txt` ou `.pdf`). Songverse reconnaît le ChordPro, les accords écrits au-dessus des paroles et les paroles seules. Vous pouvez ensuite la travailler dans l'[éditeur](/fr/song-editor/). Un PDF est conservé dans **Fichiers**, mais son texte n'est pas lu : collez aussi les paroles.
 
 Puis **Enregistrer le chant**.
@@ -65,7 +65,7 @@ Un chant a des onglets :
 - **Versions** - la façon dont vous et vos équipes le jouez et le chantez. Voir [Versions](/fr/versions/).
 - **Fichiers** - partitions, fichier d'origine de la grille, images (25 Mo maximum chacun).
 - **Audio** - des enregistrements pour apprendre ou répéter (MP3, Opus, M4A, WAV, OGG… 50 Mo maximum chacun), et les pistes du chant (voir plus bas).
-- **Liens** - le chant sur Spotify, Apple Music et YouTube.
+- **Liens** - le chant sur Spotify, Apple Music, Deezer et YouTube.
 
 Les modifications des onglets **Infos** et **Éditeur** sont enregistrées ensemble par **Enregistrer le chant** ; les fichiers, l'audio et les liens sont enregistrés dès que vous les ajoutez. **Annuler les modifications** retire ce qui n'est pas enregistré. Le menu **⋯** permet d'**Exporter en ChordPro** ou de **Supprimer le chant**.
 

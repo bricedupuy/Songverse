@@ -22,7 +22,7 @@ import { SongVersionEditorGuard } from "../common/guards/song-version-editor.gua
 import { ArtworkService } from "../artwork/artwork.service";
 import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
+import { LinkMetadataDto } from "./dto/link-metadata.dto";
 import { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto";
@@ -31,7 +31,7 @@ import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
 import { SongHistoryService } from "./song-history.service";
 import { SongVersionsService } from "./song-versions.service";
 
-const STREAMING_TYPES = new Set(["SPOTIFY", "APPLE_MUSIC", "YOUTUBE"]);
+const STREAMING_TYPES = new Set(["SPOTIFY", "APPLE_MUSIC", "DEEZER", "YOUTUBE"]);
 
 function asStreamingType(type: string): StreamingIdentifierType {
   if (!STREAMING_TYPES.has(type)) {
@@ -216,23 +216,24 @@ export class SongVersionsController {
     return this.songVersionsService.removeStreamingLink(songVersionId, asStreamingType(type));
   }
 
-  @Post(":songVersionId/musicbrainz-link")
+  /** Links the song info chosen in Auto detect (issue #22). */
+  @Post(":songVersionId/metadata-link")
   @UseGuards(SongVersionOwnerGuard)
-  linkMusicBrainz(@Param("songVersionId") songVersionId: string, @Body() dto: LinkMusicBrainzDto) {
-    return this.songVersionsService.linkMusicBrainzRecording(songVersionId, dto.mbid);
+  linkMetadata(@Param("songVersionId") songVersionId: string, @Body() dto: LinkMetadataDto) {
+    return this.songVersionsService.linkMetadata(songVersionId, dto.sources);
   }
 
-  @Delete(":songVersionId/musicbrainz-link")
+  @Delete(":songVersionId/metadata-link")
   @UseGuards(SongVersionOwnerGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  unlinkMusicBrainz(@Param("songVersionId") songVersionId: string) {
-    return this.songVersionsService.unlinkMusicBrainzRecording(songVersionId);
+  unlinkMetadata(@Param("songVersionId") songVersionId: string) {
+    return this.songVersionsService.unlinkMetadata(songVersionId);
   }
 
-  @Get(":songVersionId/musicbrainz")
-  async getMusicBrainz(@CurrentUser() user: AuthenticatedUser | undefined, @Param("songVersionId") songVersionId: string) {
+  @Get(":songVersionId/metadata")
+  async getMetadata(@CurrentUser() user: AuthenticatedUser | undefined, @Param("songVersionId") songVersionId: string) {
     if (!user) throw new UnauthorizedException();
     await this.access.assertCanSeeSong(user, songVersionId);
-    return this.songVersionsService.getMusicBrainzInfo(songVersionId);
+    return this.songVersionsService.getMetadataMatch(songVersionId);
   }
 }

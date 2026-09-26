@@ -59,13 +59,13 @@ check("artists can be replaced while one remains", r.status === 200 && r.body.ar
 r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { artists: [] });
 check("the last artist can't be removed", r.status === 400 && /at least one artist/.test(JSON.stringify(r.body.message)), JSON.stringify(r.body));
 
-// --- MusicBrainz unlink never strips the only artist
+// --- unlinking the song info (issue #22) never strips the only artist
 const solo = await song(admin, `Solo ${stamp}`);
 sql(`update "VersionContributor" set "isAutoAttached"=true where "songVersionId"='${solo.id}'`);
 sql(`insert into "SongVersionIdentifier" (id, "songVersionId", type, value, "updatedAt") values ('mb${stamp}', '${solo.id}', 'MUSICBRAINZ_RECORDING', '00000000-0000-0000-0000-000000000000', now())`);
-r = await call(admin, "DELETE", `/song-versions/${solo.id}/musicbrainz-link`);
+r = await call(admin, "DELETE", `/song-versions/${solo.id}/metadata-link`);
 const soloArtists = (await call(admin, "GET", `/song-versions/${solo.id}`)).body.artists;
-check("unlinking MusicBrainz keeps a song's only artist", (r.status === 204 || r.status === 200) && soloArtists.length === 1 && soloArtists[0].source === "Test Artist", `${r.status} ${JSON.stringify(soloArtists)}`);
+check("unlinking the song info keeps a song's only artist", (r.status === 204 || r.status === 200) && soloArtists.length === 1 && soloArtists[0].source === "Test Artist", `${r.status} ${JSON.stringify(soloArtists)}`);
 
 // --- full carry-over from a catalogue entry
 const abbrEn = `EN${stamp % 100000}`;

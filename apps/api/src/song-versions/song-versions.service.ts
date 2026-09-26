@@ -1,8 +1,9 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import {
   computeSectionLabel,
   foldForSearch,
   formatSongbookReference,
+  MetadataMatchSchema,
   MusicBrainzRecordingMatchSchema,
   detectImportFormat,
   flowItemId,
@@ -17,6 +18,8 @@ import {
   songToChordPro,
   splitNames,
   type CatalogEntryData,
+  type MetadataMatch,
+  type MetadataSource,
   type MusicBrainzRecordingMatch,
   type SongbookSection,
   type SongDefaultsV2,
@@ -35,7 +38,9 @@ import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
 import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
 import type { SongFieldsDto } from "./dto/song-fields.dto";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
+import { ArtworkService } from "../artwork/artwork.service";
 import { songImageUrl } from "../artwork/song-image-url";
+import { MetadataService } from "../metadata/metadata.service";
 import { StorageService } from "../storage/storage.service";
 import { SongHistoryService } from "./song-history.service";
 
@@ -284,7 +289,9 @@ const LIST_SELECT = {
   },
 } satisfies Prisma.SongVersionSelect;
 
-const STREAMING_IDENTIFIER_TYPES = ["SPOTIFY", "APPLE_MUSIC", "YOUTUBE"] as const;
+const STREAMING_IDENTIFIER_TYPES = ["SPOTIFY", "APPLE_MUSIC", "DEEZER", "YOUTUBE"] as const;
+/** The streaming link a metadata provider's track is (issue #22). */
+const STREAMING_TYPE_OF: Partial<Record<MetadataSource["provider"], (typeof STREAMING_IDENTIFIER_TYPES)[number]>> = { apple_music: "APPLE_MUSIC", deezer: "DEEZER" };
 
 export interface SongVersionOwner {
   ownerScope: "GLOBAL" | "TEAM" | "USER";
@@ -312,8 +319,8 @@ const DETAIL_SELECT = {
     select: { id: true, userId: true, source: true, roles: true, isAutoAttached: true, displayOrder: true },
     orderBy: { displayOrder: "asc" },
   },
-  // CCLI has its own column and MusicBrainz its own endpoint (live lookup) -
-  // this is just the plain "links" (Spotify/Apple Music/YouTube/custom),
+  // CCLI has its own column and the song info match its own endpoint -
+  // this is just the plain "links" (Spotify/Apple Music/Deezer/YouTube/custom),
   // which have nothing more to fetch than what's stored.
   identifiers: {
     where: { type: { in: [...STREAMING_IDENTIFIER_TYPES, "CUSTOM"] } },
@@ -431,12 +438,16 @@ function listOrder(query: ListSongVersionsQueryDto): Prisma.SongVersionOrderByWi
 
 @Injectable()
 export class SongVersionsService {
+  private readonly logger = new Logger(SongVersionsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly musicBrainz: MusicBrainzService,
     private readonly access: AccessPolicyService,
     private readonly history: SongHistoryService,
     private readonly storage: StorageService,
+    private readonly metadata: MetadataService,
+    private readonly artwork: ArtworkService,
   ) {}
 
   /**
@@ -1247,49 +1258,87 @@ export class SongVersionsService {
     await this.storage.deleteUnreferenced(keys);
   }
 
-  async linkMusicBrainzRecording(songVersionId: string, mbid: string) {
-    const match = await this.musicBrainz.getRecording(mbid);
+  /**
+   * Links the song info chosen in Auto detect (issue #22), looked up again
+   * from its sources: kept with the song, its artist added (see
+   * replaceAutoAttachedArtist), its Apple Music and Deezer tracks as the
+   * song's streaming links where it has none, and its release's artwork
+   * as the song's image.
+   */
+  async linkMetadata(songVersionId: string, sources: Pick<MetadataSource, "provider" | "id">[]): Promise<MetadataMatch> {
+    const match = await this.metadata.lookup(sources);
+    const [first] = match.sources;
+    const musicBrainz = match.sources.find((source) => source.provider === "musicbrainz");
     await this.prisma.client.$transaction(async (tx) => {
+      const details = match as unknown as Prisma.InputJsonValue;
+      const value = `${first!.provider}:${first!.id}`;
       await tx.songVersionIdentifier.upsert({
-        where: { songVersionId_type: { songVersionId, type: "MUSICBRAINZ_RECORDING" } },
-        create: {
-          songVersionId,
-          type: "MUSICBRAINZ_RECORDING",
-          value: mbid,
-          sourceUrl: match.sourceUrl,
-          verifiedAt: new Date(),
-          details: match,
-        },
-        update: { value: mbid, sourceUrl: match.sourceUrl, verifiedAt: new Date(), details: match },
+        where: { songVersionId_type: { songVersionId, type: "METADATA_MATCH" } },
+        create: { songVersionId, type: "METADATA_MATCH", value, sourceUrl: first!.url, verifiedAt: new Date(), details },
+        update: { value, sourceUrl: first!.url, verifiedAt: new Date(), details },
       });
-      await replaceAutoAttachedArtist(tx, songVersionId, match.artist ?? null);
+      // The MusicBrainz recording, as its own identifier - or none, when the new match isn't one.
+      if (musicBrainz) {
+        const data = { value: musicBrainz.id, sourceUrl: musicBrainz.url, verifiedAt: new Date(), details };
+        await tx.songVersionIdentifier.upsert({
+          where: { songVersionId_type: { songVersionId, type: "MUSICBRAINZ_RECORDING" } },
+          create: { songVersionId, type: "MUSICBRAINZ_RECORDING", ...data },
+          update: data,
+        });
+      } else await tx.songVersionIdentifier.deleteMany({ where: { songVersionId, type: "MUSICBRAINZ_RECORDING" } });
+      for (const source of match.sources) {
+        const type = STREAMING_TYPE_OF[source.provider];
+        if (!type) continue;
+        const existing = await tx.songVersionIdentifier.findUnique({ where: { songVersionId_type: { songVersionId, type } }, select: { id: true } });
+        if (!existing) await tx.songVersionIdentifier.create({ data: { songVersionId, type, value: source.id, sourceUrl: source.url } });
+      }
+      await replaceAutoAttachedArtist(tx, songVersionId, match.artist);
     });
+    if (match.artworkUrl && (await this.artwork.settings()).enabled) {
+      await this.artwork.setFromUrl(songVersionId, match.artworkUrl).catch((err: Error) => this.logger.warn(`No artwork from the match for ${songVersionId}: ${err.message}`));
+    }
     return match;
   }
 
-  async unlinkMusicBrainzRecording(songVersionId: string) {
+  /** Unlinks it (and its MusicBrainz recording, and artist); the streaming links and image stay. */
+  async unlinkMetadata(songVersionId: string) {
     await this.prisma.client.$transaction(async (tx) => {
-      await tx.songVersionIdentifier.deleteMany({ where: { songVersionId, type: "MUSICBRAINZ_RECORDING" } });
+      await tx.songVersionIdentifier.deleteMany({ where: { songVersionId, type: { in: ["METADATA_MATCH", "MUSICBRAINZ_RECORDING"] } } });
       await replaceAutoAttachedArtist(tx, songVersionId, null);
     });
   }
 
   /**
-   * The linked MusicBrainz recording, as saved when it was linked - no
-   * lookup, so showing a song never waits on MusicBrainz (whose rate limit
-   * is shared by every user). A link saved before these summaries were
-   * kept is looked up once and saved.
+   * The linked song info, as saved when it was linked - no lookup, so
+   * showing a song never waits on a provider. A song linked to MusicBrainz
+   * before there were other providers shows that recording, looked up
+   * once and saved if it was linked before these summaries were kept.
    */
-  async getMusicBrainzInfo(songVersionId: string): Promise<MusicBrainzRecordingMatch | null> {
-    const identifier = await this.prisma.client.songVersionIdentifier.findUnique({
-      where: { songVersionId_type: { songVersionId, type: "MUSICBRAINZ_RECORDING" } },
+  async getMetadataMatch(songVersionId: string): Promise<MetadataMatch | null> {
+    const identifiers = await this.prisma.client.songVersionIdentifier.findMany({
+      where: { songVersionId, type: { in: ["METADATA_MATCH", "MUSICBRAINZ_RECORDING"] } },
     });
-    if (!identifier) return null;
-    const saved = MusicBrainzRecordingMatchSchema.safeParse(identifier.details);
-    if (saved.success && saved.data.mbid === identifier.value) return saved.data;
-    const match = await this.musicBrainz.getRecording(identifier.value);
-    await this.prisma.client.songVersionIdentifier.update({ where: { id: identifier.id }, data: { details: match } });
-    return match;
+    const linked = identifiers.find((identifier) => identifier.type === "METADATA_MATCH");
+    const saved = linked && MetadataMatchSchema.safeParse(linked.details);
+    if (saved?.success) return saved.data;
+    const recording = identifiers.find((identifier) => identifier.type === "MUSICBRAINZ_RECORDING");
+    if (!recording) return null;
+    const legacy = MusicBrainzRecordingMatchSchema.safeParse(recording.details);
+    let match: MusicBrainzRecordingMatch;
+    if (legacy.success && legacy.data.mbid === recording.value) match = legacy.data;
+    else {
+      match = await this.musicBrainz.getRecording(recording.value);
+      await this.prisma.client.songVersionIdentifier.update({ where: { id: recording.id }, data: { details: match } });
+    }
+    return {
+      title: match.title,
+      artist: match.artist,
+      album: match.releaseTitle,
+      releaseDate: match.releaseDate,
+      artworkUrl: null,
+      thumbnailUrl: null,
+      sources: [{ provider: "musicbrainz", id: match.mbid, url: match.sourceUrl }],
+    };
   }
 }
 

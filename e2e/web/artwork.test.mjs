@@ -1,12 +1,12 @@
 // Song images in the browser (issue #85): a song's artwork on the Library's
 // cards, in the song list and on its page; choosing another among Apple
-// Music's matches (a stand-in, lib/fake-itunes.mjs), removing it; the
+// Music's matches (a stand-in, lib/fake-providers.mjs), removing it; the
 // admin's artwork settings.
 import { chromium } from "playwright";
 import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
-import { startFakeItunes } from "../lib/fake-itunes.mjs";
+import { startFakeProviders } from "../lib/fake-providers.mjs";
 
-const fake = await startFakeItunes();
+const fake = await startFakeProviders();
 let page;
 const step = stepper(() => page);
 const me = await user("Painter");

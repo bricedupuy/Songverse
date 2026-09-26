@@ -1,12 +1,12 @@
 // Song images (issue #85): a new song's artwork found on its own, from
-// Apple Music (a stand-in, see lib/fake-itunes.mjs) and kept on our
+// Apple Music (a stand-in, see lib/fake-providers.mjs) and kept on our
 // storage; served at a signed address only to who can see the song;
 // chosen among the matches or removed by its editors; the admin's settings
 // and backfill; one image for two songs with the same artwork.
 import { API, api, call, check, finish, sql, stamp, user } from "../lib/harness.mjs";
-import { FAKE_ITUNES_URL, startFakeItunes } from "../lib/fake-itunes.mjs";
+import { FAKE_PROVIDERS_URL, startFakeProviders } from "../lib/fake-providers.mjs";
 
-const fake = await startFakeItunes();
+const fake = await startFakeProviders();
 const owner = await user("Painter");
 const viewer = await user("Viewer");
 const stranger = await user("Stranger");
@@ -30,7 +30,7 @@ const song = await make("Artful");
 const url = await imageOf(owner, song.id);
 check("a new song gets its artwork on its own", !!url, String(url));
 check("at a signed address on our API, not Apple's", url?.startsWith(`${API}/song-versions/${song.id}/image/`) && url.includes("signature="), url);
-check("where it came from is kept", sql(`select "imageSourceUrl" from "SongVersion" where id='${song.id}'`).startsWith(`${FAKE_ITUNES_URL}/art/0/800x800bb`));
+check("where it came from is kept", sql(`select "imageSourceUrl" from "SongVersion" where id='${song.id}'`).startsWith(`${FAKE_PROVIDERS_URL}/art/0/800x800bb`));
 let res = await fetchImage(`${url}&w=64`);
 check("served, resized, without a token", res.status === 200 && res.headers.get("content-type") === "image/webp", String(res.status));
 res = await fetchImage(url.replace(/signature=[^&]+/, "signature=forged"));

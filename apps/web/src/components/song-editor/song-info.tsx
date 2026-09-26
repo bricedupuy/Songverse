@@ -1,8 +1,10 @@
 import {
   getLanguageDisplayName,
   resolveTranslation,
+  METADATA_PROVIDER_NAMES,
   type LocaleValue,
-  type MusicBrainzRecordingMatch,
+  type MetadataMatch,
+  type MetadataProviderKey,
   type SongMatch,
   type SongVersionSongbookMembership,
   type Tag,
@@ -159,22 +161,35 @@ export function BasicInfoCard({
   );
 }
 
-function MatchSummary({ match }: { match: MusicBrainzRecordingMatch }) {
+/** Where a match came from: "MusicBrainz · Apple Music". */
+const sourceNames = (match: MetadataMatch) => match.sources.map((source) => METADATA_PROVIDER_NAMES[source.provider]).join(" · ");
+const matchKey = (match: MetadataMatch) => match.sources.map((source) => `${source.provider}:${source.id}`).join(",");
+
+function MatchSummary({ match }: { match: MetadataMatch }) {
   const { t } = useTranslation();
   return (
-    <div className="min-w-0 text-sm">
-      <p className="truncate font-medium">{match.title}</p>
-      <p className="truncate text-muted-foreground">
-        {[match.artist ?? t("songEditor.unknownArtist"), match.releaseTitle, match.releaseDate?.slice(0, 4)].filter(Boolean).join(" · ")}
-      </p>
+    <div className="flex min-w-0 items-center gap-3 text-sm">
+      {match.thumbnailUrl ? (
+        <img src={match.thumbnailUrl} alt="" className="size-10 shrink-0 rounded object-cover" loading="lazy" referrerPolicy="no-referrer" />
+      ) : null}
+      <div className="min-w-0">
+        <p className="truncate font-medium">{match.title}</p>
+        <p className="truncate text-muted-foreground">
+          {[match.artist ?? t("songEditor.unknownArtist"), match.album, match.releaseDate?.slice(0, 4)].filter(Boolean).join(" · ")}
+        </p>
+        <p className="truncate text-xs text-muted-foreground" data-testid="match-sources">
+          {sourceNames(match)}
+        </p>
+      </div>
     </div>
   );
 }
 
 /**
- * "Auto detect": look the song up on MusicBrainz and take what it knows
- * (album, year, an artist if there's none yet) into the empty fields. The
- * link itself is saved with the song.
+ * "Auto detect": look the song up on the metadata providers (issue #22)
+ * and take what they know (album, year, an artist if there's none yet)
+ * into the empty fields. The link itself is saved with the song, and
+ * brings its streaming links and artwork.
  */
 export function AutoDetectCard({
   title,
@@ -185,14 +200,15 @@ export function AutoDetectCard({
 }: {
   title: string;
   artist: string | undefined;
-  /** The recording the song is (or will be) linked to. */
-  shown: MusicBrainzRecordingMatch | null;
+  /** The match the song is (or will be) linked to. */
+  shown: MetadataMatch | null;
   /** Whether that differs from what's saved. */
   staged: boolean;
-  onChoose: (match: MusicBrainzRecordingMatch | null) => void;
+  onChoose: (match: MetadataMatch | null) => void;
 }) {
   const { t } = useTranslation();
-  const [results, setResults] = useState<MusicBrainzRecordingMatch[] | null>(null);
+  const [results, setResults] = useState<MetadataMatch[] | null>(null);
+  const [unavailable, setUnavailable] = useState<MetadataProviderKey[]>([]);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState(false);
   const [changing, setChanging] = useState(false);
@@ -201,7 +217,9 @@ export function AutoDetectCard({
     setSearching(true);
     setError(false);
     try {
-      setResults(await apiClient.searchMusicBrainzRecordings(title, artist));
+      const found = await apiClient.searchMetadata(title, artist);
+      setResults(found.matches);
+      setUnavailable(found.unavailable);
     } catch {
       setError(true);
     } finally {
@@ -223,12 +241,14 @@ export function AutoDetectCard({
           <div className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-center">
             <MatchSummary match={shown} />
             <div className="flex shrink-0 flex-wrap gap-2 sm:ml-auto">
-              <Button asChild variant="ghost" size="sm">
-                <a href={shown.sourceUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink />
-                  MusicBrainz
-                </a>
-              </Button>
+              {shown.sources.map((source) => (
+                <Button key={source.provider} asChild variant="ghost" size="sm">
+                  <a href={source.url} target="_blank" rel="noreferrer">
+                    <ExternalLink />
+                    {METADATA_PROVIDER_NAMES[source.provider]}
+                  </a>
+                </Button>
+              ))}
               <Button type="button" variant="outline" size="sm" onClick={() => setChanging(true)}>
                 {t("songEditor.change")}
               </Button>
@@ -256,13 +276,18 @@ export function AutoDetectCard({
             {t("songEditor.searchFailed")}
           </p>
         ) : null}
+        {results && (!shown || changing) && unavailable.length > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            {t("songEditor.providersUnavailable", { names: unavailable.map((key) => METADATA_PROVIDER_NAMES[key]).join(", ") })}
+          </p>
+        ) : null}
         {results && (!shown || changing) ? (
           results.length === 0 ? (
             <p className="text-sm text-muted-foreground">{t("songEditor.noOnlineMatches")}</p>
           ) : (
-            <ul className="flex flex-col gap-2">
-              {results.slice(0, 5).map((match) => (
-                <li key={match.mbid} className="flex items-center justify-between gap-3 rounded-md border p-3">
+            <ul className="flex flex-col gap-2" data-testid="metadata-matches">
+              {results.slice(0, 8).map((match) => (
+                <li key={matchKey(match)} className="flex items-center justify-between gap-3 rounded-md border p-3">
                   <MatchSummary match={match} />
                   <Button
                     type="button"

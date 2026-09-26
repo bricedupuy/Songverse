@@ -586,6 +586,7 @@ export function AttachmentsTab({
 const STREAMING: { type: StreamingLinkType; label: string }[] = [
   { type: "SPOTIFY", label: "Spotify" },
   { type: "APPLE_MUSIC", label: "Apple Music" },
+  { type: "DEEZER", label: "Deezer" },
   { type: "YOUTUBE", label: "YouTube" },
 ];
 

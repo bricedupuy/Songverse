@@ -32,6 +32,11 @@ describe("parseStreamingLink", () => {
     expect(result).toEqual({ value: "1440857782", sourceUrl: url });
   });
 
+  it("extracts a Deezer track ID, with or without a language in the path", () => {
+    expect(parseStreamingLink("DEEZER", "https://www.deezer.com/fr/track/3135556?utm=x")).toEqual({ value: "3135556", sourceUrl: "https://www.deezer.com/track/3135556" });
+    expect(parseStreamingLink("DEEZER", "3135556").sourceUrl).toBe("https://www.deezer.com/track/3135556");
+  });
+
   it("falls back to storing the raw input when the shape isn't recognized", () => {
     const result = parseStreamingLink("SPOTIFY", "https://example.com/whatever");
     expect(result.value).toBe("https://example.com/whatever");

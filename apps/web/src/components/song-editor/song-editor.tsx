@@ -3,7 +3,7 @@ import {
   getLanguageDisplayName,
   songToChordPro,
   type Attachment,
-  type MusicBrainzRecordingMatch,
+  type MetadataMatch,
   type MusicBrainzWorkMatch,
   type SongDocumentV2,
   type SongMatch,
@@ -57,7 +57,7 @@ import { downloadBlob } from "#/lib/download";
 type EditProps = {
   mode: "edit";
   version: SongVersionDetail;
-  recordingMatch: MusicBrainzRecordingMatch | null;
+  recordingMatch: MetadataMatch | null;
   workMatch: MusicBrainzWorkMatch | null;
   attachments: Attachment[];
   songbookMemberships: SongVersionSongbookMembership[];
@@ -120,7 +120,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
 
   const [showErrors, setShowErrors] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [mbChoice, setMbChoice] = useState<MusicBrainzRecordingMatch | null | undefined>(undefined);
+  const [mbChoice, setMbChoice] = useState<MetadataMatch | null | undefined>(undefined);
   const [sourceFile, setSourceFile] = useState<SourceFile | null>(null);
   const [basedOn, setBasedOn] = useState<BasedOn | null>(props.mode === "create" && props.linkTo ? { ...props.linkTo, copied: false } : null);
   const [matches, setMatches] = useState<SongMatch[]>([]);
@@ -175,9 +175,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
   }, [edit, basedOn, title]);
   const showMatches = matches.length > 0 && dismissedTitle !== title.toLowerCase();
 
-  function chooseRecording(match: MusicBrainzRecordingMatch | null) {
+  function chooseRecording(match: MetadataMatch | null) {
     setMessage(null);
-    if (match && edit?.recordingMatch?.mbid === match.mbid) {
+    const key = (m: MetadataMatch) => m.sources.map((source) => `${source.provider}:${source.id}`).join(",");
+    if (match && edit?.recordingMatch && key(edit.recordingMatch) === key(match)) {
       setMbChoice(undefined);
       return;
     }
@@ -187,12 +188,12 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
     }
     setMbChoice(match);
     if (!match) return;
-    // Fill in what's still empty from what MusicBrainz knows.
+    // Fill in what's still empty from what the providers know.
     setForm((current) => ({
       ...current,
       title: current.title.trim() ? current.title : match.title,
       artists: current.artists.length === 0 && match.artist ? [match.artist] : current.artists,
-      album: current.album.trim() ? current.album : (match.releaseTitle ?? ""),
+      album: current.album.trim() ? current.album : (match.album ?? ""),
       year: current.year.trim() ? current.year : (match.releaseDate?.slice(0, 4) ?? ""),
     }));
   }
@@ -275,7 +276,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
       if (!edit) {
         const created = await apiClient.createSongVersion({ ...toCreateInput(current), ...(base && { basedOnVersionId: base.id }) });
         const notices: SongNotice[] = [];
-        if (mbChoice) await apiClient.linkSongVersionMusicBrainz(created.id, mbChoice.mbid).catch(() => notices.push("linkFailed"));
+        if (mbChoice) await apiClient.linkSongMetadata(created.id, mbChoice).catch(() => notices.push("linkFailed"));
         await keepSourceFile(created.id).catch(() => notices.push("fileFailed"));
         leaving.current = true;
         await navigate({
@@ -292,8 +293,8 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
       }
       // Saved: edits made from here on are new ones, kept when the song reloads.
       baseline.current = current;
-      if (mbChoice) await apiClient.linkSongVersionMusicBrainz(edit.version.id, mbChoice.mbid);
-      else if (mbChoice === null) await apiClient.unlinkSongVersionMusicBrainz(edit.version.id);
+      if (mbChoice) await apiClient.linkSongMetadata(edit.version.id, mbChoice);
+      else if (mbChoice === null) await apiClient.unlinkSongMetadata(edit.version.id);
       setMbChoice(undefined);
       await keepSourceFile(edit.version.id);
       setSourceFile(null);

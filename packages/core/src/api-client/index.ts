@@ -8,7 +8,8 @@ import type {
 import type { ArrangementDocumentV2, ChartPreferences } from "../schemas/arrangement-document-v2.js";
 import type { CatalogEntryData, CatalogEntryFieldKey, CatalogFileProblem } from "../songbook-catalog-format/index.js";
 import type { BulkUploadFileMatch } from "../bulk-upload-matching/index.js";
-import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
+import type { MetadataMatch, MetadataProviderKey } from "../schemas/metadata.js";
+import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
@@ -691,8 +692,21 @@ export interface ArtworkCandidate {
   title: string;
   artist: string;
   album: string | null;
+  releaseDate?: string | null;
   artworkUrl: string;
   thumbnailUrl: string;
+}
+
+/** Auto detect's results (issue #22), and the providers that didn't answer. */
+export interface MetadataSearchResult {
+  matches: MetadataMatch[];
+  unavailable: MetadataProviderKey[];
+}
+
+export interface MetadataSettings {
+  /** Every provider, in the order they're asked. */
+  providers: { key: MetadataProviderKey; name: string; enabled: boolean }[];
+  source: "database" | "env" | "default";
 }
 
 export interface ArtworkSettings {
@@ -816,7 +830,7 @@ export interface SongShare {
   canEdit: boolean;
 }
 
-export type StreamingLinkType = "SPOTIFY" | "APPLE_MUSIC" | "YOUTUBE";
+export type StreamingLinkType = "SPOTIFY" | "APPLE_MUSIC" | "DEEZER" | "YOUTUBE";
 
 export interface SongVersionLink {
   id: string;
@@ -1463,23 +1477,27 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<void>(`/song-versions/${songVersionId}/links/${type}`, { method: "DELETE" }),
     listTagCategories: () => request<TagCategory[]>("/tags/categories"),
     listTags: () => request<Tag[]>("/tags"),
-    searchMusicBrainzRecordings: (title: string, artist?: string) => {
+    /** Auto detect's search across the metadata providers that are on, merged and ranked (issue #22). */
+    searchMetadata: (title: string, artist?: string) => {
       const params = new URLSearchParams({ title });
       if (artist) params.set("artist", artist);
-      return request<MusicBrainzRecordingMatch[]>(`/musicbrainz/recordings/search?${params}`);
+      return request<MetadataSearchResult>(`/metadata/search?${params}`);
     },
     searchMusicBrainzWorks: (title: string) =>
       request<MusicBrainzWorkMatch[]>(`/musicbrainz/works/search?${new URLSearchParams({ title })}`),
 
-    getSongVersionMusicBrainz: (songVersionId: string) =>
-      request<MusicBrainzRecordingMatch | null>(`/song-versions/${songVersionId}/musicbrainz`),
-    linkSongVersionMusicBrainz: (songVersionId: string, mbid: string) =>
-      request<MusicBrainzRecordingMatch>(`/song-versions/${songVersionId}/musicbrainz-link`, {
+    getSongMetadata: (songVersionId: string) => request<MetadataMatch | null>(`/song-versions/${songVersionId}/metadata`),
+    /** Links a match (looked up again from its sources): its streaming links and artwork come with it. */
+    linkSongMetadata: (songVersionId: string, match: Pick<MetadataMatch, "sources">) =>
+      request<MetadataMatch>(`/song-versions/${songVersionId}/metadata-link`, {
         method: "POST",
-        body: JSON.stringify({ mbid }),
+        body: JSON.stringify({ sources: match.sources.map(({ provider, id }) => ({ provider, id })) }),
       }),
-    unlinkSongVersionMusicBrainz: (songVersionId: string) =>
-      request<void>(`/song-versions/${songVersionId}/musicbrainz-link`, { method: "DELETE" }),
+    unlinkSongMetadata: (songVersionId: string) => request<void>(`/song-versions/${songVersionId}/metadata-link`, { method: "DELETE" }),
+    getMetadataSettings: () => request<MetadataSettings>("/admin/metadata"),
+    saveMetadataSettings: (providers: { key: MetadataProviderKey; enabled: boolean }[]) =>
+      request<MetadataSettings>("/admin/metadata", { method: "PUT", body: JSON.stringify({ providers }) }),
+    resetMetadataSettings: () => request<MetadataSettings>("/admin/metadata", { method: "DELETE" }),
 
     getWorkMusicBrainz: (workId: string) => request<MusicBrainzWorkMatch | null>(`/works/${workId}/musicbrainz`),
     linkWorkMusicBrainz: (workId: string, mbid: string) =>

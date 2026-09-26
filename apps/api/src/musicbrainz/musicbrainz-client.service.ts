@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 
-const API_ROOT = "https://musicbrainz.org/ws/2/";
+/** Where MusicBrainz's API is; pointed elsewhere only by the e2e suites. */
+const apiRoot = () => process.env.MUSICBRAINZ_API_URL ?? "https://musicbrainz.org/ws/2/";
 // MusicBrainz's documented rate limit for standard (non-commercial-tier)
 // API use is 1 request/second per client. This queue serializes every
 // call through this service and enforces a minimum spacing, regardless of
@@ -57,7 +58,7 @@ export class MusicBrainzClientService {
   }
 
   private async fetchNow<T>(path: string, searchParams: Record<string, string>): Promise<T> {
-    const url = new URL(path, API_ROOT);
+    const url = new URL(path, apiRoot());
     for (const [key, value] of Object.entries(searchParams)) {
       url.searchParams.set(key, value);
     }

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
-import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch } from "@songverse/core";
+import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch, ProviderMatch } from "@songverse/core";
 import { MusicBrainzClientService, MusicBrainzRequestError } from "./musicbrainz-client.service";
 
 /** Only a genuine upstream 404 means "doesn't exist" - anything else (a
@@ -23,6 +23,7 @@ interface MbArtistCredit {
 interface MbRelease {
   title: string;
   date?: string;
+  status?: string;
 }
 
 interface MbRecording {
@@ -31,6 +32,7 @@ interface MbRecording {
   score?: number;
   "artist-credit"?: MbArtistCredit[];
   releases?: MbRelease[];
+  "first-release-date"?: string;
 }
 
 interface MbRecordingSearchResponse {
@@ -75,6 +77,32 @@ function mapRecording(recording: MbRecording): MusicBrainzRecordingMatch {
   };
 }
 
+/**
+ * The release a recording first came out on: the earliest dated one, an
+ * official release over a promotion or bootleg of the same date - not the
+ * first listed, often a later compilation (issue #22).
+ */
+function firstRelease(recording: MbRecording): MbRelease | undefined {
+  const dated = (recording.releases ?? []).filter((release) => release.date);
+  const official = (release: MbRelease) => (release.status === "Official" ? 0 : 1);
+  dated.sort((a, b) => a.date!.slice(0, 4).localeCompare(b.date!.slice(0, 4)) || official(a) - official(b) || a.date!.localeCompare(b.date!));
+  return dated[0] ?? recording.releases?.[0];
+}
+
+/** A recording as a metadata match (issue #22): its first release, not its first listed. */
+function metadataMatch(recording: MbRecording): ProviderMatch {
+  const release = firstRelease(recording);
+  return {
+    title: recording.title,
+    artist: artistCreditName(recording["artist-credit"]),
+    album: release?.title ?? null,
+    releaseDate: recording["first-release-date"] || release?.date || null,
+    artworkUrl: null,
+    thumbnailUrl: null,
+    source: { provider: "musicbrainz", id: recording.id, url: `https://musicbrainz.org/recording/${recording.id}` },
+  };
+}
+
 function mapWork(work: MbWork): MusicBrainzWorkMatch {
   return {
     mbid: work.id,
@@ -108,6 +136,33 @@ export class MusicBrainzService {
       return (result.recordings ?? []).map(mapRecording);
     } catch {
       throw asServiceError();
+    }
+  }
+
+  /**
+   * Metadata matches for Auto detect (issue #22): more recordings than
+   * searchRecordings (the song's first release is often not among the
+   * best-scored ten), each with the release it first came out on.
+   */
+  async searchMatches(title: string, artist?: string | null): Promise<ProviderMatch[]> {
+    const titleQuery = `recording:"${escapeLucene(title)}"`;
+    if (artist) {
+      const combined = await this.client.get<MbRecordingSearchResponse>("recording", {
+        query: `${titleQuery} AND artist:"${escapeLucene(artist)}"`,
+        limit: "25",
+      });
+      if (combined.recordings?.length) return combined.recordings.map(metadataMatch);
+    }
+    const result = await this.client.get<MbRecordingSearchResponse>("recording", { query: titleQuery, limit: "25" });
+    return (result.recordings ?? []).map(metadataMatch);
+  }
+
+  /** One recording as a metadata match, looked up again when it's chosen. */
+  async match(mbid: string): Promise<ProviderMatch> {
+    try {
+      return metadataMatch(await this.client.get<MbRecording>(`recording/${mbid}`, { inc: "artist-credits+releases" }));
+    } catch (err) {
+      rethrowLookupFailure(err, "MusicBrainz recording not found");
     }
   }
 

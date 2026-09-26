@@ -47,7 +47,7 @@ On a smart list, change the filters and **Save changes to the list** keeps the n
 Choose **+ Add a song**. A **song name** and at least one **artist** are all it needs; everything else can come later.
 
 - **Already in your library?** As you type the name, Songverse shows songs you already have with that title. You can open the existing one, **Use as base** (start from its details), or **Link it to this song** - when yours is a translation or adaptation of it (see [Linked songs](/library/#linked-songs)). An acoustic or youth-band take isn't a new song: that's a [version](/versions/).
-- **Auto detect** looks the song up online (MusicBrainz) and fills in what's missing, like credits and the album. Choose **Find song info**, then **Use this** on the right match.
+- **Auto detect** looks the song up online - on MusicBrainz, Apple Music and Deezer - and fills in what's missing, like the artist, the album and the year. Choose **Find song info**, then **Use this** on the right match. The same release found on several of them is one match, naming them all. The closest to the title and artist come first; among those, the song's first release before later ones (a compilation, a live album) and before versions like karaoke. Once the song is saved, the match's Apple Music and Deezer links are added to **Links** (unless it has them already), and its release's artwork becomes the song's image.
 - **The chart**: paste the words and chords, or upload a file (`.cho`, `.txt` or `.pdf`). Songverse recognises ChordPro, chords written above the lyrics, and plain lyrics. You can then work on it in the [song editor](/song-editor/). A PDF is kept under **Files**, but its text isn't read, so paste the words too.
 
 Then **Save song**.
@@ -65,7 +65,7 @@ A song has tabs:
 - **Versions** - how you and your teams play it. See [Versions](/versions/).
 - **Files** - sheet music, the original chart file, images (up to 25 MB each).
 - **Audio** - recordings to learn or rehearse with (MP3, Opus, M4A, WAV, OGG… up to 50 MB each), and the song's stems (see below).
-- **Links** - the song on Spotify, Apple Music and YouTube.
+- **Links** - the song on Spotify, Apple Music, Deezer and YouTube.
 
 Edits on **Song info** and **Editor** are saved together by **Save song**; files, audio and links are saved as you add them. **Discard changes** takes back what you haven't saved. The **⋯** menu can **Export as ChordPro** or **Delete song**.
 
