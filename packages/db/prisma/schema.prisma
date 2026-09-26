@@ -1174,6 +1174,8 @@ enum AttachmentVisibility {
   TEAM
   // Everyone who can see the song.
   SONG
+  // Its uploader and the people the song is shared with (AccessGrant, #77, #79).
+  SHARED
 }
 
 // ============================================================

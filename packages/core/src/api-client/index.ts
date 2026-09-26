@@ -581,7 +581,7 @@ export interface Attachment {
   createdAt: string;
 }
 
-export type AttachmentVisibility = "PRIVATE" | "TEAM" | "SONG";
+export type AttachmentVisibility = "PRIVATE" | "TEAM" | "SONG" | "SHARED";
 
 /** Who sees a file: `teamId` for TEAM. */
 export interface AttachmentAudience {

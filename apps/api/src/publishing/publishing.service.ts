@@ -477,10 +477,10 @@ async function promoteToGlobal(tx: Tx, songVersionId: string, trustLabel: string
     select: { ownerScope: true, ownerUserId: true, ownerTeamId: true },
   });
   if (song.ownerScope === "TEAM" && song.ownerTeamId) {
-    await tx.attachment.updateMany({ where: { songVersionId, visibility: "SONG" }, data: { visibility: "TEAM", visibleToTeamId: song.ownerTeamId } });
+    await tx.attachment.updateMany({ where: { songVersionId, visibility: { in: ["SONG", "SHARED"] } }, data: { visibility: "TEAM", visibleToTeamId: song.ownerTeamId } });
   } else {
-    await tx.attachment.updateMany({ where: { songVersionId, visibility: "SONG", uploadedByUserId: null }, data: { uploadedByUserId: song.ownerUserId } });
-    await tx.attachment.updateMany({ where: { songVersionId, visibility: "SONG" }, data: { visibility: "PRIVATE" } });
+    await tx.attachment.updateMany({ where: { songVersionId, visibility: { in: ["SONG", "SHARED"] }, uploadedByUserId: null }, data: { uploadedByUserId: song.ownerUserId } });
+    await tx.attachment.updateMany({ where: { songVersionId, visibility: { in: ["SONG", "SHARED"] } }, data: { visibility: "PRIVATE" } });
   }
   await tx.songOwnershipRequest.updateMany({ where: { songVersionId, status: "PENDING" }, data: { status: "DECLINED", decidedAt: new Date() } });
   // Everyone sees it now: sharing it with someone (#77) means nothing more.

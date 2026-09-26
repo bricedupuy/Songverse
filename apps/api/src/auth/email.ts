@@ -10,8 +10,9 @@ import { getEffectiveAuthSettings } from "./auth-settings";
  * still work without needing a real Resend account. This is the only
  * place SongVerse sends email - keep it that way, since Resend's free tier
  * has a low daily/monthly send cap and this app should only ever send
- * account mail (verification, password reset, email change), never bulk or
- * marketing mail.
+ * account mail (verification, password reset, email change) and a person's
+ * request to connect (#79, limited per requester in PeopleService), never
+ * bulk or marketing mail.
  */
 async function sendEmail(params: { to: string; subject: string; html: string; text: string }): Promise<void> {
   const settings = await getEffectiveAuthSettings();
@@ -86,6 +87,25 @@ export async function sendPasswordResetEmail(to: string, url: string): Promise<v
       <p>Someone requested a password reset for your SongVerse account.</p>
       <p><a href="${url}">Reset password</a></p>
       <p style="color:#666;font-size:13px">If you didn't request this, you can ignore this email - your password won't change.</p>
+    `,
+  });
+}
+
+/**
+ * Someone asks to connect (issue #79). The same email whether the address
+ * has an account or not: without one, it's an invitation - signing up with
+ * this address finds the request waiting in People.
+ */
+export async function sendConnectionRequestEmail(to: string, from: string, url: string): Promise<void> {
+  await sendEmail({
+    to,
+    subject: `${from} would like to share songs with you on SongVerse`,
+    text: `${from} would like to share songs with you on SongVerse. To say yes (or no), sign in - or sign up with this address - and open People:\n\n${url}\n\nIf you don't know them, you can ignore this email.`,
+    html: `
+      <p><strong>${escapeHtml(from)}</strong> would like to share songs with you on SongVerse.</p>
+      <p>To say yes (or no), sign in - or sign up with this address - and open People.</p>
+      <p><a href="${url}">Open People</a></p>
+      <p style="color:#666;font-size:13px">If you don't know them, you can ignore this email.</p>
     `,
   });
 }

@@ -5,7 +5,7 @@ import { IsIn, IsNumber, IsOptional, IsString, Max, MaxLength, Min } from "class
 
 const ATTACHMENT_TYPES = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE", "AUDIO", "OTHER"] as const;
 export type AttachmentTypeValue = (typeof ATTACHMENT_TYPES)[number];
-export const ATTACHMENT_VISIBILITIES = ["PRIVATE", "TEAM", "SONG"] as const;
+export const ATTACHMENT_VISIBILITIES = ["PRIVATE", "TEAM", "SONG", "SHARED"] as const;
 export type AttachmentVisibilityValue = (typeof ATTACHMENT_VISIBILITIES)[number];
 
 export class UploadAttachmentDto {
@@ -23,7 +23,7 @@ export class UploadAttachmentDto {
   @ApiProperty({
     enum: ATTACHMENT_VISIBILITIES,
     required: false,
-    description: "Who sees it besides you: PRIVATE (nobody, the default), TEAM (teamId's members), SONG (everyone who sees the song; needs edit rights on it).",
+    description: "Who sees it besides you: PRIVATE (nobody, the default), TEAM (teamId's members), SONG (everyone who sees the song) and SHARED (the people the song is shared with) need to manage the song.",
   })
   @IsOptional()
   @Transform(({ value }) => (value === "" ? undefined : value))

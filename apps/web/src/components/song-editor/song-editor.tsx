@@ -638,10 +638,10 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         </TabsContent>
         <TabsContent value="arrangements">{edit ? <ArrangementsTab songVersionId={edit.version.id} /> : <SaveFirst />}</TabsContent>
         <TabsContent value="files">
-          {edit ? <AttachmentsTab kind="files" songVersionId={edit.version.id} attachments={attachments} canEdit={canManage} /> : <SaveFirst />}
+          {edit ? <AttachmentsTab kind="files" songVersionId={edit.version.id} attachments={attachments} canEdit={canManage} canShare={canManage && edit.version.ownerScope !== "GLOBAL"} /> : <SaveFirst />}
         </TabsContent>
         <TabsContent value="audio">
-          {edit ? <AttachmentsTab kind="audio" songVersionId={edit.version.id} attachments={attachments} canEdit={canManage} songKey={form.key} songTempo={form.tempo} /> : <SaveFirst />}
+          {edit ? <AttachmentsTab kind="audio" songVersionId={edit.version.id} attachments={attachments} canEdit={canManage} canShare={canManage && edit.version.ownerScope !== "GLOBAL"} songKey={form.key} songTempo={form.tempo} /> : <SaveFirst />}
         </TabsContent>
         <TabsContent value="links">{edit ? <LinksTab version={edit.version} workMatch={edit.workMatch} /> : <SaveFirst />}</TabsContent>
         <TabsContent value="history">

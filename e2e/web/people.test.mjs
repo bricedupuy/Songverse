@@ -1,6 +1,7 @@
 // People and sharing in the browser (issue #77): asking someone by email,
 // their accepting, sharing a song with them to edit; what they see and
-// can do; taking it out of their library.
+// can do; a file for the people it's shared with (#79); taking it out of
+// their library.
 import { chromium } from "playwright";
 import { WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
@@ -27,7 +28,7 @@ await step("Alice asks Bob, by email, from People in the sidebar", async () => {
   await page.waitForURL(`${WEB}/people`);
   await page.getByLabel("Their email address").fill(bob.email);
   await page.getByRole("button", { name: "Ask" }).click();
-  await page.getByText("Asked. They'll see your request when they sign in.").waitFor();
+  await page.getByText("Asked. We've emailed them; they'll see your request when they sign in.").waitFor();
   await page.getByTestId("people-outgoing").getByText(bob.email.toLowerCase()).waitFor();
 });
 
@@ -71,7 +72,22 @@ await step("Bob finds it in his library, shared by Alice, and edits it", async (
   await page.keyboard.press("Escape");
 });
 
+await step("Alice shows a file to the people she shares it with; Bob sees it", async () => {
+  page = alicePage;
+  await page.goto(`${WEB}/library/${song.id}?tab=files`);
+  await page.waitForLoadState("networkidle"); // hydrated: the choice sticks
+  await page.getByLabel("Who sees the files you add").selectOption({ label: "The people I share it with" });
+  await page.getByTestId("files-input").setInputFiles({ name: "for-bob.pdf", mimeType: "application/pdf", buffer: Buffer.from(`%PDF-1.4 ${title}`) });
+  const who = page.getByTestId("files-list").getByLabel("Who sees for-bob.pdf");
+  await who.waitFor();
+  if ((await who.inputValue()) !== "SHARED") throw new Error(await who.inputValue());
+  page = bobPage;
+  await page.goto(`${WEB}/library/${song.id}?tab=files`);
+  await page.getByTestId("files-list").getByText("Shared by Alice with the people this song is shared with").waitFor();
+});
+
 await step("Bob takes it out of his library", async () => {
+  await page.goto(`${WEB}/library/${song.id}`);
   await page.getByRole("button", { name: "More actions" }).click();
   await page.getByRole("menuitem", { name: "Remove from my library" }).click();
   await page.waitForURL(`${WEB}/library`);

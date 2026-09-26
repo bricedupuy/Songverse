@@ -9,7 +9,9 @@ description: Connect with the people you play with, and share songs with them to
 
 ## Adding someone
 
-Under **Add someone**, type **Their email address** and **Ask**. They see your request under **Asking to connect with you** once they're signed in with that address, and **Accept** or **Decline** it. Until then it's listed under **Waiting for an answer**, where **Cancel** takes it back.
+Under **Add someone**, type **Their email address** and **Ask**. SongVerse emails them that you'd like to share songs with them. They see your request under **Asking to connect with you** once they're signed in with that address, and **Accept** or **Decline** it. Until then it's listed under **Waiting for an answer**, where **Cancel** takes it back.
+
+The email is the same whether or not they have an account: someone new to SongVerse signs up with that address and finds your request waiting. Asking again doesn't send another email, and you can ask up to 20 people a day.
 
 SongVerse never tells whether an address has an account, or whether someone declined: a request just stays waiting.
 
@@ -25,6 +27,8 @@ On your song's page, **Share** lists who it's shared with, and adds one of your 
 - **Can edit** - they also change its chart, details and credits. Their changes are in its [history](/song-editor/#history) under their name. They can't delete it, publish it or share it further.
 
 ![Sharing a song](../../assets/screenshots/en/share-song.jpg)
+
+The files you add to the song can go to the people it's shared with too: choose **The people I share it with** under **Who sees it** (see [Who sees a file](/library/#who-sees-a-file)).
 
 Change what someone can do, or stop sharing with them (**×**), in the same place. A team's admins share the team's songs the same way. A song in the [global catalogue](/library/#submitting-to-the-global-catalogue) is everyone's already: publishing it ends its sharing.
 

@@ -162,10 +162,10 @@ export class SongFoldService implements OnApplicationBootstrap {
 
     // Files: still its owner's (or team's) only, as publishing does (#73).
     if (song.ownerScope === "TEAM" && song.ownerTeamId) {
-      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: "SONG" }, data: { visibility: "TEAM", visibleToTeamId: song.ownerTeamId } });
+      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: { in: ["SONG", "SHARED"] } }, data: { visibility: "TEAM", visibleToTeamId: song.ownerTeamId } });
     } else {
-      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: "SONG", uploadedByUserId: null }, data: { uploadedByUserId: song.ownerUserId } });
-      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: "SONG" }, data: { visibility: "PRIVATE" } });
+      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: { in: ["SONG", "SHARED"] }, uploadedByUserId: null }, data: { uploadedByUserId: song.ownerUserId } });
+      await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: { in: ["SONG", "SHARED"] } }, data: { visibility: "PRIVATE" } });
     }
     await tx.attachment.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
 

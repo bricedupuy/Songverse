@@ -1,8 +1,12 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
 import { AccessPolicyService } from "../access/access-policy.service";
+import { sendConnectionRequestEmail } from "../auth/email";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { PrismaService } from "../prisma/prisma.service";
+
+/** New requests one person may send in a day, each an email (#79). */
+export const DAILY_REQUESTS = 20;
 
 const PERSON = { id: true, displayName: true, email: true, avatarUrl: true } satisfies Prisma.UserSelect;
 
@@ -15,6 +19,8 @@ const PERSON = { id: true, displayName: true, email: true, avatarUrl: true } sat
  */
 @Injectable()
 export class PeopleService {
+  private readonly logger = new Logger(PeopleService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: AccessPolicyService,
@@ -94,13 +100,32 @@ export class PeopleService {
       await this.prisma.client.connection.update({ where: { id: theirs.id }, data: { status: "ACCEPTED", addresseeId: user.id, respondedAt: new Date() } });
       return { connected: true };
     }
-    // Already connected, or already asked (a declined request stays as it is).
-    await this.prisma.client.connection.upsert({
+    // Already connected, or already asked (a declined request stays as it is): no second email.
+    const asked = await this.prisma.client.connection.findUnique({
       where: { requesterId_addresseeEmail: { requesterId: user.id, addresseeEmail: email } },
-      create: { requesterId: user.id, addresseeEmail: email },
-      update: {},
+      select: { id: true },
     });
+    if (asked) return { connected: false };
+    const today = await this.prisma.client.connection.count({ where: { requesterId: user.id, createdAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } } });
+    if (today >= DAILY_REQUESTS) throw new HttpException(`You can ask up to ${DAILY_REQUESTS} people a day. Try again tomorrow.`, HttpStatus.TOO_MANY_REQUESTS);
+    try {
+      await this.prisma.client.connection.create({ data: { requesterId: user.id, addresseeEmail: email } });
+    } catch {
+      return { connected: false }; // asked twice at once: the first one emails
+    }
+    await this.notify(user.id, email);
     return { connected: false };
+  }
+
+  /** Emails the address a request went to; a failure to send doesn't undo the request. */
+  private async notify(requesterId: string, email: string) {
+    const requester = await this.prisma.client.user.findUniqueOrThrow({ where: { id: requesterId }, select: { displayName: true } });
+    const web = process.env.WEB_URL ?? "http://localhost:3000";
+    try {
+      await sendConnectionRequestEmail(email, requester.displayName, `${web.replace(/\/$/, "")}/people`);
+    } catch (err) {
+      this.logger.warn(`Couldn't email a request to connect: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   async answer(user: AuthenticatedUser, id: string, accept: boolean) {

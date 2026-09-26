@@ -20,14 +20,20 @@ export class AttachmentsService {
   ) {}
 
   /**
-   * The files `viewer` sees (issue #72): their own, the song's (SONG), and
-   * their teams' (TEAM); a global admin sees them all. Seeing the song
+   * The files `viewer` sees (issue #72): their own, the song's (SONG),
+   * their teams' (TEAM), and those for the people the song is shared with
+   * when it's shared with them (SHARED, #79); a global admin sees them all. Seeing the song
    * itself is checked separately.
    */
   static visibleWhere(viewer: Viewer, teamIds: string[]): Prisma.AttachmentWhereInput {
     if (viewer.isGlobalAdmin) return {};
     return {
-      OR: [{ visibility: "SONG" }, { uploadedByUserId: viewer.id }, { visibility: "TEAM", visibleToTeamId: { in: teamIds } }],
+      OR: [
+        { visibility: "SONG" },
+        { uploadedByUserId: viewer.id },
+        { visibility: "TEAM", visibleToTeamId: { in: teamIds } },
+        { visibility: "SHARED", songVersion: { accessGrants: { some: { grantedToUserId: viewer.id } } } },
+      ],
     };
   }
 
@@ -44,8 +50,9 @@ export class AttachmentsService {
 
   /**
    * A file on the song, for its uploader. Anyone who can see the song may
-   * add their own (PRIVATE, or for a team of theirs); only who can edit
-   * the song may show one to everyone who sees it (SONG).
+   * add their own (PRIVATE, or for a team of theirs); only who manages
+   * the song may show one to everyone who sees it (SONG) or to the people
+   * it's shared with (SHARED).
    */
   async upload(
     viewer: Viewer,
@@ -59,8 +66,9 @@ export class AttachmentsService {
     teamId: string | null = null,
   ) {
     if (stemPart && type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
-    const canEditSong = await this.canEditSong(viewer, songVersionId);
-    const audience = await this.audience(viewer, canEditSong, visibility, teamId);
+    const song = await this.songRights(viewer, songVersionId);
+    const canEditSong = song.canEditSong;
+    const audience = await this.audience(viewer, song, visibility, teamId);
     await this.quota.assertCanStore(viewer.id, body.length);
     const { hash, sizeBytes } = await this.storage.put(body, mimeType);
     const row = await this.prisma.client.attachment.create({
@@ -99,7 +107,7 @@ export class AttachmentsService {
     if (Object.keys(data).length > 0 && !rights.canChange) throw new ForbiddenException("Only its uploader or the song's editors can change this file");
     if (change.visibility !== undefined) {
       if (!rights.canChangeVisibility) throw new ForbiddenException("Only its uploader decides who sees this file");
-      Object.assign(data, await this.audience(viewer, canEditSong, change.visibility, change.teamId ?? null));
+      Object.assign(data, await this.audience(viewer, await this.songRights(viewer, songVersionId), change.visibility, change.teamId ?? null));
     }
     const row = await this.prisma.client.attachment.update({ where: { id: attachment.id }, data, include: ATTACHMENT_INCLUDE });
     return present(row, viewer, canEditSong);
@@ -134,22 +142,30 @@ export class AttachmentsService {
   }
 
   private async canEditSong(viewer: Viewer, songVersionId: string): Promise<boolean> {
+    return (await this.songRights(viewer, songVersionId)).canEditSong;
+  }
+
+  private async songRights(viewer: Viewer, songVersionId: string) {
     const song = await this.prisma.client.songVersion.findUnique({
       where: { id: songVersionId },
       select: { ownerScope: true, ownerUserId: true, ownerTeamId: true },
     });
     if (!song) throw new NotFoundException("Song version not found");
-    return this.access.canEdit(viewer, song);
+    return { canEditSong: await this.access.canEdit(viewer, song), isGlobal: song.ownerScope === "GLOBAL" };
   }
 
   /** Checks who a file may be shown to, as the columns that say so. */
   private async audience(
     viewer: Viewer,
-    canEditSong: boolean,
+    { canEditSong, isGlobal }: { canEditSong: boolean; isGlobal: boolean },
     visibility: AttachmentVisibilityValue,
     teamId: string | null,
   ): Promise<{ visibility: AttachmentVisibilityValue; visibleToTeamId: string | null }> {
     if (visibility === "SONG" && !canEditSong) throw new ForbiddenException("Only who can edit the song can show a file to everyone who sees it");
+    if (visibility === "SHARED") {
+      if (!canEditSong) throw new ForbiddenException("Only who shares the song can show a file to the people it's shared with");
+      if (isGlobal) throw new BadRequestException("A catalogue song isn't shared with anyone: everyone sees it");
+    }
     if (visibility !== "TEAM") return { visibility, visibleToTeamId: null };
     if (!teamId) throw new BadRequestException("Choose the team that sees it");
     if (!viewer.isGlobalAdmin && !(await this.access.teamRole(viewer.id, teamId))) throw new ForbiddenException("Not a member of that team");

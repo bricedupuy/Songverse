@@ -43,19 +43,21 @@ export function SaveFirst() {
 
 const FILE_TYPES: AttachmentType[] = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE", "OTHER"];
 
-/** A file's audience as one select value: "PRIVATE", "SONG" or "TEAM:<id>". */
+/** A file's audience as one select value: "PRIVATE", "SONG", "SHARED" or "TEAM:<id>". */
 const audienceValue = (audience: AttachmentAudience) => (audience.visibility === "TEAM" ? `TEAM:${audience.teamId}` : audience.visibility);
 const audienceOf = (value: string): AttachmentAudience =>
-  value.startsWith("TEAM:") ? { visibility: "TEAM", teamId: value.slice(5) } : { visibility: value as "PRIVATE" | "SONG" };
+  value.startsWith("TEAM:") ? { visibility: "TEAM", teamId: value.slice(5) } : { visibility: value as "PRIVATE" | "SONG" | "SHARED" };
 
 /**
- * Who sees a file (issue #72): only me, one of my teams, or everyone who
- * can see the song (for the song's editors).
+ * Who sees a file (issue #72): only me, one of my teams, everyone who can
+ * see the song, or the people it's shared with (#79) - those two for who
+ * manages the song.
  */
 function AudienceSelect({
   value,
   teams,
   canShowToSong,
+  canShowToShared,
   disabled,
   label,
   onChange,
@@ -63,6 +65,7 @@ function AudienceSelect({
   value: AttachmentAudience;
   teams: TeamSummary[];
   canShowToSong: boolean;
+  canShowToShared: boolean;
   disabled?: boolean;
   label: string;
   onChange: (audience: AttachmentAudience) => void;
@@ -79,6 +82,7 @@ function AudienceSelect({
         </option>
       ))}
       {listed ? <option value={audienceValue(value)}>{t("fileVisibility.team", { team: "…" })}</option> : null}
+      {canShowToShared || value.visibility === "SHARED" ? <option value="SHARED">{t("fileVisibility.shared")}</option> : null}
       {canShowToSong || value.visibility === "SONG" ? <option value="SONG">{t("fileVisibility.song")}</option> : null}
     </NativeSelect>
   );
@@ -89,6 +93,7 @@ function audienceText(attachment: Attachment, t: (key: string, options?: Record<
   const by = attachment.uploadedBy?.displayName;
   if (attachment.visibility === "TEAM") return t(by ? "fileVisibility.sharedByWithTeam" : "fileVisibility.sharedWithTeam", { name: by, team: attachment.visibleToTeam?.name ?? "" });
   if (attachment.visibility === "PRIVATE") return t("fileVisibility.privateOf", { name: by ?? "" });
+  if (attachment.visibility === "SHARED") return by ? t("fileVisibility.sharedByWithPeople", { name: by }) : t("fileVisibility.sharedWithPeople");
   return by ? t("fileVisibility.addedBy", { name: by }) : "";
 }
 
@@ -246,6 +251,7 @@ export function AttachmentsTab({
   songVersionId,
   attachments,
   canEdit,
+  canShare = false,
   songKey = "",
   songTempo = "",
 }: {
@@ -254,6 +260,8 @@ export function AttachmentsTab({
   attachments: Attachment[];
   /** Can edit the song: can show files to everyone who sees it. Anyone who sees it adds their own. */
   canEdit: boolean;
+  /** Can show files to the people the song is shared with (#79): who manages a personal or team song. */
+  canShare?: boolean;
   /** The song's own, which a recording's key and tempo default to (#65). */
   songKey?: string;
   songTempo?: string;
@@ -424,6 +432,7 @@ export function AttachmentsTab({
                           value={{ visibility: attachment.visibility, teamId: attachment.visibleToTeamId }}
                           teams={teams}
                           canShowToSong={canEdit}
+                          canShowToShared={canShare}
                           disabled={busyId !== null}
                           label={t("fileVisibility.labelFor", { name: attachment.filename })}
                           onChange={(next) => void update([attachment], { visibility: next.visibility, teamId: next.teamId ?? null })}
@@ -550,6 +559,7 @@ export function AttachmentsTab({
                   value={audience}
                   teams={teams}
                   canShowToSong={canEdit}
+                  canShowToShared={canShare}
                   label={t("fileVisibility.forNew")}
                   onChange={setAudience}
                 />

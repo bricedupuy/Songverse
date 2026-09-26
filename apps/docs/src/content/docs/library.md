@@ -71,6 +71,7 @@ Each file on the **Files** and **Audio** tabs has its own **Who sees it**, set b
 
 - **Only me** - just you. New files start this way: recordings and stems are often someone else's copyright.
 - **Morning Band (team)** - you and that team's members (one of your teams).
+- **The people I share it with** - you and the [people the song is shared with](/people/#sharing-a-song), for whoever shares it (a personal or team song).
 - **Everyone who can see this song** - for those who can edit the song.
 
 Choose it before adding files, under the drop area, or change it under a file afterwards. Others see who shared a file ("Shared by Sam with Morning Band"); a file you can't see doesn't show at all, in the song, its sets, Practice or offline.

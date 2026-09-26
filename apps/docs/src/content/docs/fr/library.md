@@ -71,6 +71,7 @@ Chaque fichier des onglets **Fichiers** et **Audio** a son propre réglage **Vis
 
 - **Moi seulement** - vous seul·e. C'est le réglage des nouveaux fichiers : enregistrements et pistes sont souvent sous le droit d'auteur de quelqu'un d'autre.
 - **Groupe du matin (équipe)** - vous et les membres de cette équipe (une de vos équipes).
+- **Les personnes avec qui je le partage** - vous et les [personnes avec qui le chant est partagé](/fr/people/#partager-un-chant), pour qui le partage (un chant personnel ou d'équipe).
 - **Tous ceux qui voient ce chant** - pour qui peut modifier le chant.
 
 Choisissez-le avant d'ajouter des fichiers, sous la zone de dépôt, ou changez-le ensuite sous le fichier. Les autres voient qui a partagé un fichier (« Partagé par Hugo avec Groupe du matin ») ; un fichier que vous ne pouvez pas voir n'apparaît nulle part, ni dans le chant, ni dans ses listes, ni en Session, ni hors ligne.
