@@ -22,6 +22,7 @@ import {
   Users,
   UsersRound,
   Contact,
+  Star,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -219,8 +220,9 @@ interface NavItem {
 
 /**
  * A sidebar entry with its own list under it (Library, Sets, Songbooks,
- * Teams), as a collapsible list: the phone's sidebar. On a wider screen the
- * lists are in the nested sidebar's panel instead (#80).
+ * Teams), as a collapsible list: the full sidebar, on a phone and on a
+ * section's own page; inside a section, the nested sidebar's panel lists
+ * them instead (#80).
  */
 function NavGroup({
   icon,
@@ -311,6 +313,13 @@ function MainNav({
             items={[
               // Songs (what Library opens on), artists, and the user's smart lists (issue #58).
               { key: "songs", label: t("nav.songs"), isActive: pathname === "/library" && !listId, link: { to: "/library" } },
+              {
+                key: "favorites",
+                label: t("library.home.favorites"),
+                icon: <Star className="size-3.5" />,
+                isActive: false,
+                link: { to: "/library" as const, search: { favorites: true } },
+              },
               { key: "artists", label: t("nav.artists"), isActive: pathname === "/library/artists", link: { to: "/library/artists" as const } },
               ...smartLists.map((list) => ({
                 key: list.id,

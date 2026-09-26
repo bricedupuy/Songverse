@@ -1,5 +1,5 @@
 import type { SetlistSummary, SongbookSummary, TeamSummary } from "@songverse/core";
-import { useMatches } from "@tanstack/react-router";
+import { useMatches, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { AppSidebar } from "#/components/app-sidebar";
 import { OfflineBanner } from "#/components/offline-banner";
@@ -8,6 +8,7 @@ import { StemDockSlot, StemReturnButton } from "#/components/stem-dock";
 import { YouTubeHost } from "#/components/youtube-dock";
 import { unloadStems } from "#/lib/stem-engine";
 import type { AppSession } from "#/lib/server-auth";
+import { nestedSidebarFor } from "#/lib/sidebar-kind";
 import { NestedSidebar } from "#/components/nested-sidebar";
 import { SidebarInset, SidebarProvider, useSidebar } from "#/components/ui/sidebar";
 
@@ -57,8 +58,12 @@ export function AppShell({
   );
 }
 
-/** A phone's sidebar is the one list in a sheet; a wider screen's, the rail and its panel (issue #80). */
+/**
+ * The full sidebar on a phone (in a sheet) and on a section's own page;
+ * inside a section, on a wider screen, the rail and its panel (issue #80).
+ */
 function ShellSidebar(props: { session: AppSession; teams: TeamSummary[]; songbooks: SongbookSummary[]; setlists: SetlistSummary[] }) {
   const { isMobile } = useSidebar();
-  return isMobile ? <AppSidebar {...props} /> : <NestedSidebar {...props} />;
+  const nested = useRouterState({ select: (s) => nestedSidebarFor(s.location.pathname, s.location.search as Record<string, unknown>) });
+  return isMobile || !nested ? <AppSidebar {...props} /> : <NestedSidebar {...props} />;
 }

@@ -1,7 +1,8 @@
-// The nested sidebar (issue #80, after shadcn's sidebar-09): a rail of
-// sections and a panel listing what's in the one you're in - songs, sets,
-// songbooks - to go from one to the next, and in a set or a songbook its songs; filtering
-// it; collapsing it to the rail (remembered), and a rail icon opening it again.
+// The sidebar (issue #80): the full one on a section's own page; inside a
+// section, after shadcn's sidebar-09, a rail of sections and a panel listing
+// what's in the one you're in - songs, sets, songbooks - to go from one to
+// the next, and in a set or a songbook its songs; filtering it; collapsing
+// either (remembered).
 import { chromium } from "playwright";
 import { WEB, api, finish, railLink, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
@@ -25,32 +26,35 @@ const panel = () => page.getByTestId("sidebar-panel");
 const state = () => page.locator('[data-slot="sidebar"]').getAttribute("data-state");
 const until = (want) => page.waitForFunction((w) => document.querySelector('[data-slot="sidebar"]')?.getAttribute("data-state") === w, want);
 
-await step("the library's panel lists its songs; one opens, and is marked", async () => {
+await step("a section's own page has the full sidebar, its lists under each section", async () => {
   await page.goto(`${WEB}/library`);
   await page.waitForLoadState("networkidle");
   if ((await state()) !== "expanded") throw new Error(await state());
+  if (await page.getByTestId("sidebar-rail").count()) throw new Error("the rail on Library's home");
+  await page.getByTestId("library-sections").getByRole("link", { name: "Artists", exact: true }).waitFor();
+  await page.locator('[data-slot="sidebar"]').getByRole("link", { name: `Sidebar set ${stamp}` }).waitFor();
+});
+
+await step("inside it - a song - the rail and the library's panel; one song marked, the next one click away", async () => {
+  await page.goto(`${WEB}/library/${first.id}`);
+  await page.waitForLoadState("networkidle");
   if ((await railLink(page, "Library").getAttribute("data-active")) !== "true") throw new Error("Library isn't marked");
   await panel().getByLabel("Filter…").fill(`Aardvark`);
   await panel().getByRole("link", { name: `Aardvark psalm ${stamp}` }).waitFor();
-  await panel().getByRole("link", { name: `Aardvark hymn ${stamp}` }).click();
-  await page.waitForURL(`${WEB}/library/${first.id}`);
   if ((await panel().getByRole("link", { name: `Aardvark hymn ${stamp}` }).getAttribute("aria-current")) !== "page") throw new Error("not marked");
-});
-
-await step("the next song is one click away", async () => {
   await panel().getByRole("link", { name: `Aardvark psalm ${stamp}` }).click();
   await page.waitForURL(`${WEB}/library/${second.id}`);
   await page.getByRole("heading", { name: `Aardvark psalm ${stamp}` }).first().waitFor();
 });
 
-await step("Sets on the rail: the panel lists the sets, filtered as you type", async () => {
+await step("Artists is inside Library too; Sets on the rail is the full sidebar again", async () => {
+  await panel().getByRole("link", { name: "Artists", exact: true }).click();
+  await page.waitForURL(`${WEB}/library/artists`);
+  await page.getByTestId("sidebar-rail").waitFor();
   await railLink(page, "Sets").click();
   await page.waitForURL(`${WEB}/sets`);
-  await panel().getByTestId("sidebar-panel-title").getByText("Sets", { exact: true }).waitFor();
-  await panel().getByLabel("Filter…").fill("sidebar set");
-  await panel().getByRole("link", { name: new RegExp(`Sidebar set ${stamp}`) }).waitFor();
-  if (await panel().getByRole("link", { name: new RegExp(`Other set ${stamp}`) }).count()) throw new Error("not filtered");
-  await panel().getByRole("link", { name: new RegExp(`Sidebar set ${stamp}`) }).click();
+  await page.getByTestId("sidebar-rail").waitFor({ state: "detached" });
+  await page.locator('[data-slot="sidebar"]').getByRole("link", { name: `Sidebar set ${stamp}` }).click();
   await page.waitForURL(`${WEB}/sets/${set.id}`);
 });
 
@@ -94,7 +98,7 @@ await step("in a songbook, the panel lists its songs by number; a song opened fr
   await panel().getByRole("link", { name: new RegExp(`Sidebar book ${stamp}`) }).waitFor();
 });
 
-await step("collapsed to the rail, remembered; a rail icon opens it again", async () => {
+await step("collapsed, remembered: the panel hides, and the full sidebar is icons; the header's button opens both", async () => {
   await page.keyboard.press("Control+b");
   await until("collapsed");
   // The panel's container closes to nothing; the rail stays.
@@ -103,10 +107,14 @@ await step("collapsed to the rail, remembered; a rail icon opens it again", asyn
   await page.reload();
   await page.waitForLoadState("networkidle");
   await until("collapsed");
-  await railLink(page, "Songbooks").click();
-  await page.waitForURL(`${WEB}/songbooks`);
+  await page.goto(`${WEB}/songbooks`);
+  await page.waitForLoadState("networkidle");
+  await until("collapsed");
+  const labelShown = () => page.locator('[data-slot="sidebar"]').getByText("Songbooks", { exact: true }).evaluateAll((els) => els.some((el) => el.checkVisibility()));
+  if (await labelShown()) throw new Error("labels while collapsed");
+  await page.getByRole("button", { name: "Toggle Sidebar" }).click();
   await until("expanded");
-  await panel().getByTestId("sidebar-panel-title").getByText("Songbooks", { exact: true }).waitFor();
+  if (!(await labelShown())) throw new Error("no labels once expanded");
   await page.locator('[data-slot="sidebar-rail"]').click();
   await until("collapsed");
   await page.getByRole("button", { name: "Toggle Sidebar" }).click();

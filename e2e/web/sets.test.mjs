@@ -35,7 +35,7 @@ await step("create a dated set without a name; it's titled by its date", async (
   await page.getByRole("link", { name: "Sets", exact: true }).click();
   await page.waitForURL("**/sets");
   await page.waitForLoadState("networkidle");
-  await page.getByTestId("sidebar-panel").getByText("No sets yet").waitFor();
+  await page.locator('[data-slot="sidebar"]').getByText("No sets yet").waitFor();
   await page.getByRole("link", { name: "New set" }).click();
   await page.waitForURL("**/sets/new");
   await page.waitForLoadState("networkidle");

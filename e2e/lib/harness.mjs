@@ -112,21 +112,23 @@ export async function signIn(p, who) {
   await p.waitForLoadState("networkidle");
 }
 
-/** A section's link on the sidebar's rail ("Sets", "Library"…), on a wider screen (#80). */
+/** A section's link on the sidebar's rail ("Sets", "Library"…): inside a section, on a wider screen (#80). */
 export const railLink = (p, section) => p.getByTestId("sidebar-rail").getByRole("link", { name: section, exact: true });
 
-/** Goes to a section's page from the sidebar's rail. */
+/** Goes to a section's page from the sidebar: its rail, or the full sidebar on a section's own page. */
 export async function sidebarGo(p, section) {
-  await railLink(p, section).click();
+  if (await p.getByTestId("sidebar-rail").count()) await railLink(p, section).click();
+  else await p.locator('[data-slot="sidebar"]').getByRole("link", { name: section, exact: true }).click();
 }
 
 /**
- * An entry in the sidebar's panel (a song, a set…), under `section`: the
- * panel shows the section of the page you're on, so on another page its
- * rail link is followed first.
+ * An entry of the sidebar's (a song, a set…) under `section`: in the
+ * panel inside a section (following the section's rail link first if the
+ * panel shows another), or in the full sidebar's list.
  */
 export async function sidebarEntry(p, section, name) {
   const panel = p.getByTestId("sidebar-panel");
+  if (!(await panel.count())) return p.locator('[data-slot="sidebar"]').getByRole("link", { name });
   if ((await panel.getAttribute("aria-label")) !== `${section} list`) {
     await sidebarGo(p, section);
     await p.waitForFunction((label) => document.querySelector('[data-testid="sidebar-panel"]')?.getAttribute("aria-label") === label, `${section} list`);
