@@ -19,8 +19,10 @@ const logger = new Logger("Jobs");
  * Admin > Metadata > Background jobs. Returns a stop for the heartbeat.
  */
 export function startJobs(app: INestApplicationContext, role: "worker" | "api"): () => void {
+  const queues: string[] = [];
   for (const processor of PROCESSORS) {
     const host = app.get<WorkerHost>(processor, { strict: false });
+    queues.push(host.worker.name);
     host.worker.run().catch((err: unknown) => logger.error(`${processor.name} stopped: ${err instanceof Error ? err.message : String(err)}`));
   }
   const beat = () =>
@@ -29,6 +31,7 @@ export function startJobs(app: INestApplicationContext, role: "worker" | "api"):
       .catch(() => undefined);
   void beat();
   const timer = setInterval(beat, 15000);
-  logger.log(`Running background jobs in the ${role}`);
+  // Named, so a deploy's logs show which queues this process runs.
+  logger.log(`Running background jobs in the ${role}: ${queues.join(", ")}`);
   return () => clearInterval(timer);
 }
