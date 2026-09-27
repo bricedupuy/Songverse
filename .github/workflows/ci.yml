@@ -155,8 +155,10 @@ jobs:
       - name: Start the API, the Worker and the web app
         run: |
           (cd apps/api && JOBS_IN_API=false PORT=3001 node dist/main.js > /tmp/api.log 2>&1 &)
-          # Without BETTER_AUTH_SECRET, as the Worker is deployed: nothing it runs may need it.
-          (cd apps/api && env -u BETTER_AUTH_SECRET node dist/worker.js > /tmp/worker.log 2>&1 &)
+          # As the Worker is deployed (Deploy.md): without BETTER_AUTH_SECRET or the
+          # addresses (issue #96) - only the database, Redis, the settings key, and
+          # here the providers' stand-ins.
+          (cd apps/api && env -u BETTER_AUTH_SECRET -u AUTH_URL -u WEB_URL -u API_URL -u E2E_API_LOG node dist/worker.js > /tmp/worker.log 2>&1 &)
           (cd apps/web && PORT=3000 node server.mjs > /tmp/web.log 2>&1 &)
           for i in $(seq 1 60); do
             curl -sf http://localhost:3001/health > /dev/null && curl -sf http://localhost:3000/ > /dev/null && exit 0

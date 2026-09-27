@@ -23,19 +23,18 @@ export interface BetterAuthJwtPayload extends JWTPayload {
 @Injectable()
 export class JwtVerifierService {
   private readonly jwks: ReturnType<typeof createRemoteJWKSet>;
-  private readonly issuer: string;
 
   constructor(private readonly config: ConfigService) {
-    this.issuer = this.config.getOrThrow<string>("AUTH_URL");
     const port = this.config.get<string>("PORT") ?? "3001";
     this.jwks = createRemoteJWKSet(new URL(`http://localhost:${port}/api/auth/jwks`));
   }
 
   async verify(token: string): Promise<BetterAuthJwtPayload> {
+    // Read here, not when created: the Worker, deployed without AUTH_URL,
+    // creates this service too but never verifies a token (issue #96).
+    const issuer = this.config.getOrThrow<string>("AUTH_URL");
     try {
-      const { payload } = await jwtVerify<BetterAuthJwtPayload>(token, this.jwks, {
-        issuer: this.issuer,
-      });
+      const { payload } = await jwtVerify<BetterAuthJwtPayload>(token, this.jwks, { issuer });
       return payload;
     } catch {
       throw new UnauthorizedException("Invalid or expired token");
