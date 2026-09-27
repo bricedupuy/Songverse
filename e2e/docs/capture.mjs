@@ -213,6 +213,22 @@ try {
     await shoot("version-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
     await shoot("set", `/sets/${set.id}`, () => page.getByTestId("set-song-row").first().waitFor());
     await shoot("set-song", `/sets/${set.id}/songs/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor(), { fullPage: true });
+    // Sync play (issue #13): on, leading, its menu open; then ended and off, for the rest.
+    const syncControl = page.getByTestId("sync-control");
+    const syncItem = (name) => page.getByTestId("sync-menu").getByRole("menuitem", { name });
+    await shoot("sync", `/sets/${set.id}`, async () => {
+      await syncControl.click();
+      await syncItem(/^(Turn sync on|Activer la synchro)$/).click();
+      await page.locator('[data-testid="sync-control"][data-state-sync="on"]').waitFor();
+      await syncControl.click();
+      await syncItem(/^(Lead the set|Mener la liste)$/).click();
+      await page.locator('[data-testid="sync-control"][data-state-sync="leading"]').waitFor();
+      await syncControl.click();
+      await page.getByTestId("sync-members").waitFor();
+    });
+    await syncItem(/^(End the session|Terminer la session)$/).click();
+    await syncControl.click();
+    await syncItem(/^(Turn sync off|Désactiver la synchro)$/).click();
     // Live mode (it's remembered, so back to Edit for the rest).
     await shoot("live", `/sets/${set.id}/live/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
     // Practice: the song's stems, docked at the bottom - one row, then expanded - one muted.

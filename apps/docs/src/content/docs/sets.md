@@ -64,6 +64,23 @@ On a phone or tablet, swipe left for the next song and right for the previous on
 
 When the leader calls a song that wasn't planned, use the search (the magnifying glass at the top): by its title, or by its number when it's called that way ("Hymn 42!": **HY 42**). In Live, a song you pick opens full screen too, with autoscroll and your text size. **Back** (**×**) returns to the set's song you were on.
 
+## Playing in sync
+
+With **Sync**, everyone in a set plays together: one person leads, and the others' metronome - on their screen and in their ears - follows theirs, at the same instant, and their screen follows the leader's song. **Sync** is on the set's page, on its songs' pages and at the top of Live (the tower icon).
+
+![Sync on a set](../../assets/screenshots/en/sync.jpg)
+
+- **Turn sync on**, on each device: it says who's leading, and how many devices are in sync. Sync stays on while you move around Songverse, and comes back if the page reloads; **Turn sync off** leaves.
+- Someone who can edit the set - its owner, or an admin of its team - chooses **Lead the set**. Another one can take over with **Lead instead**: the metronome carries on as it was.
+- The leader starts the [metronome](/metronome/): the metronome button in Live or on a song's page, or the Metronome page, where they set the tempo, time signature and pattern. Everyone's starts at the same beat, and a new tempo reaches everyone on the same beat. The others' metronome shows **Following** and the leader's name: its settings are the leader's, but its sound and volume are their own.
+- When the leader moves to another song of the set, in Live or on its page, everyone's screen follows. You can still look at another song meanwhile: the next time the leader moves, you follow again.
+- If a device loses its connection, its metronome keeps time on its own, and catches up when it's back. If the leader loses theirs, the session carries on, and they take the lead back when they're back.
+- **End the session** stops everyone's metronome.
+
+After a reload, a browser only lets the metronome make sound after a tap: **Tap to hear the metronome** (under **Sync**, or on the Metronome page) does it.
+
+For the beats to line up by ear, use wired headphones or the device's speaker: Bluetooth headphones add a delay of their own. Each device keeps time with its own clock, set against Songverse's; only the tempo and when the beat falls go over the network, never the sound.
+
 ## Sharing a set with guests
 
 Under **Share**, **Create a share link** and send it to whoever should see the set - a guest musician, say. Anyone signed in who opens it can read every song in the set, even ones not in their library, and keep their own notes. They can't change it.

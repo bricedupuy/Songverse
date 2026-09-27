@@ -10,6 +10,7 @@ import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setMode } from "#/lib/mode";
 import { setlistTitle } from "#/lib/setlists";
 import { useSongView } from "#/lib/song-views";
+import { useSyncSong } from "#/lib/sync-client";
 
 /** One song of a set, full screen, in Live mode (components/live-view.tsx). */
 export const Route = createFileRoute("/_protected/sets/$setlistId_/live/$itemId")({
@@ -56,6 +57,8 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
   const navigate = useNavigate();
   const { set, item, song } = view;
   useSongView(song?.id);
+  // Sync play (issue #13): the leader's song, followed.
+  useSyncSong(set.id, item.id, (itemId) => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }));
   const goTo = (itemId: string | null) =>
     itemId ? () => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }) : null;
 
@@ -64,6 +67,7 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
     title: song?.title ?? t("sets.hiddenSong"),
     artist: song?.artists?.join(", ") || null,
     setName: setlistTitle(set, t, i18n.language),
+    setId: set.id,
     chartFor: (extraSteps) =>
       song ? renderPlayerChart(view, undefined, undefined, undefined, extraSteps) : null,
     keyShift: (view.arrangement?.document.defaults.transposeSteps ?? 0) + item.transposeSteps,

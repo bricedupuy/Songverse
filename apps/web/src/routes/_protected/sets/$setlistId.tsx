@@ -4,6 +4,7 @@ import { Mic } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "#/components/ui/badge";
+import { SyncControl } from "#/components/sync-control";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "#/components/ui/dialog";
@@ -115,6 +116,8 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <OfflinePinButton kind="SET" targetId={set.id} />
+          {/* Sync play (issue #13). */}
+          <SyncControl setId={set.id} />
           {set.items.length > 0 ? (
             <Button asChild onClick={() => setMode("live")}>
               <Link to="/sets/$setlistId/live/$itemId" params={{ setlistId: set.id, itemId: set.items[0]!.id }}>

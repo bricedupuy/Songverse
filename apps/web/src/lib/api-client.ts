@@ -43,6 +43,13 @@ function getToken(): Promise<string | null> {
   return pending;
 }
 
+/** The API token, for what isn't a plain API call: Sync play's WebSocket signs in with it (issue #13). */
+export const apiToken = getToken;
+/** A token the API refused: the next one is fresh. */
+export function forgetApiToken() {
+  cached = null;
+}
+
 /**
  * Shared instance for calling the NestJS API from web routes/components.
  * `getApiToken` is a TanStack Start server function — calling it works

@@ -110,6 +110,19 @@ holds across the API's instances and the Worker. The Worker is deployed without
 build anything signed with it - a song's or artist's image address, a file
 link - so don't return a response DTO from a service method a job calls.
 
+## Sync play
+
+Sync play (issue #13) shares a set's metronome and song between devices:
+a WebSocket on the API at `/sync` (`apps/api/src/sync/sync.server.ts`,
+attached in `main.ts` - not in the Worker), its session and who's there
+in Redis, announced across the API's instances on a Redis channel. The
+messages and the clock maths are in `@songverse/core` (`sync/`), kept
+small and JSON for a headless device (#62). Only the timeline crosses the
+network - "beat N at server time T" - never the beat: each device plays
+it on its own clock (`apps/web/src/lib/sync-client.ts` and the metronome
+engine's anchor on the device's clock). A new thing to share goes in the
+session (`SyncSession`) the same way, as the leader's `update`.
+
 ## Tests
 
 Features are covered end to end by the suites in `e2e/` (API calls and

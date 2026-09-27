@@ -24,6 +24,7 @@ import { UsersModule } from "./users/users.module";
 import { WorksModule } from "./works/works.module";
 import { PublishingModule } from "./publishing/publishing.module";
 import { SuggestionsModule } from "./suggestions/suggestions.module";
+import { SyncModule } from "./sync/sync.module";
 import { PeopleModule } from "./people/people.module";
 import { LibraryHomeModule } from "./library-home/library-home.module";
 import { JobsModule } from "./jobs/jobs.module";
@@ -61,6 +62,7 @@ import { LookupsModule } from "./lookups/lookups.module";
     PublishingModule,
     SuggestionsModule,
     PeopleModule,
+    SyncModule,
     LibraryHomeModule,
   ],
   controllers: [AppController],

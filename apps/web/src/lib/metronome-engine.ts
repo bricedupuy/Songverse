@@ -18,17 +18,27 @@ const STORAGE_KEY = "songverse.metronome";
 const LOOKAHEAD = 0.15;
 const HIDDEN_LOOKAHEAD = 1.5;
 const TICK_MS = 25;
-/** Time to start after a press, so the first click isn't late. */
-const START_DELAY = 0.08;
+/** Time to start after a press, so the first click isn't late; longer when leading Sync play, for the others to hear it too (issue #13). */
+let startDelay = 0.08;
 
 export interface MetronomeState {
   settings: MetronomeSettings;
   playing: boolean;
   /** Its settings came from this song (a Live, Practice or song page button), else null. */
   songId: string | null;
+  /** Following Sync play's leader (issue #13): their name; they set it, this device only its sound and volume. */
+  following: string | null;
+  /** Following, but the browser hasn't let it make a sound yet: a press will (unlockMetronomeAudio). */
+  audioBlocked: boolean;
+  /**
+   * Where the timeline is anchored, a new object at each change: beat
+   * `position` at `time` on the audio clock, heard at `epoch` on the
+   * device's clock (ms). The device's clock is what Sync play shares.
+   */
+  anchor: { time: number; position: number; epoch: number } | null;
 }
 
-let state: MetronomeState = { settings: normalizeMetronome(null), playing: false, songId: null };
+let state: MetronomeState = { settings: normalizeMetronome(null), playing: false, songId: null, following: null, audioBlocked: false, anchor: null };
 let loaded = false;
 const listeners = new Set<() => void>();
 
@@ -64,6 +74,8 @@ let output: GainNode | null = null;
 let buffers: Map<string, AudioBuffer> | null = null;
 /** Where the timeline was anchored: position `anchorPosition` (beats) at `anchorTime` on the audio clock. */
 let anchorTime = 0;
+/** When beat `anchorPosition` is heard on the device's clock (ms): what the audio clock is kept against. */
+let anchorEpoch = 0;
 let anchorPosition = 0;
 /** Scheduled up to here, in beats. */
 let scheduledUntil = 0;
@@ -112,6 +124,9 @@ function makeBuffers(ctx: AudioContext): Map<string, AudioBuffer> {
 function audio(): AudioContext {
   if (!context) {
     context = new AudioContext({ latencyHint: "interactive" });
+    const ctx = context;
+    pairings = [];
+    setInterval(() => readOutputClock(ctx), 50);
     output = context.createGain();
     output.connect(context.destination);
     buffers = makeBuffers(context);
@@ -129,14 +144,74 @@ function timeOf(position: number): number {
 
 /** For the end-to-end suites, which can't hear it: the last clicks scheduled, on the audio clock. */
 interface MetronomeProbe {
-  clicks: (Pick<MetronomeClick, "position" | "bar" | "beat" | "sub" | "level"> & { time: number })[];
+  /**
+   * `heardAt`: when it's meant to be heard, on the device's clock (ms since
+   * the epoch), from the timeline's anchor there; `outputAt`: when the
+   * audio output said it would be, as it was scheduled.
+   */
+  clicks: (Pick<MetronomeClick, "position" | "bar" | "beat" | "sub" | "level"> & { time: number; heardAt: number; outputAt: number })[];
   now: () => number;
+  /** When a time on the audio clock is heard, in ms since the epoch on this device's clock. */
+  epoch: (time: number) => number;
 }
 function probe(): MetronomeProbe | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as { songverseMetronome?: MetronomeProbe };
-  w.songverseMetronome ??= { clicks: [], now: () => context?.currentTime ?? 0 };
+  w.songverseMetronome ??= {
+    clicks: [],
+    now: () => context?.currentTime ?? 0,
+    epoch: epochFromAudioTime,
+  };
   return w.songverseMetronome;
+}
+
+// --- the audio clock against the device's own (Sync play, issue #13)
+
+/** This device's clock, ms since the epoch: steady, unlike Date.now(). */
+export const deviceNow = () => performance.timeOrigin + performance.now();
+
+/** How long sound takes to come out: the browser's own measure, where it has one. */
+const outputDelay = (ctx: AudioContext) => ctx.outputLatency || ctx.baseLatency || 0;
+
+/**
+ * The output timestamp pairs the sample being heard with the device's
+ * clock (so the output's delay is counted), but a reading can come a
+ * little late when the page is busy - never early. So: read often, and
+ * keep the earliest pairing of the last few seconds (the clocks drift
+ * apart too slowly to matter over that).
+ */
+const CLOCK_WINDOW_MS = 3000;
+let pairings: { at: number; lag: number }[] = [];
+function readOutputClock(ctx: AudioContext) {
+  const stamp = ctx.getOutputTimestamp?.();
+  if (!stamp?.contextTime || !stamp.performanceTime) return;
+  const now = performance.now();
+  pairings.push({ at: now, lag: stamp.performanceTime - stamp.contextTime * 1000 });
+  if (pairings[0]!.at < now - CLOCK_WINDOW_MS) pairings = pairings.filter((pairing) => pairing.at >= now - CLOCK_WINDOW_MS);
+}
+/** performance.now() at which audio time 0 is heard, or null before the output says. */
+function outputLag(ctx: AudioContext): number | null {
+  readOutputClock(ctx);
+  let lag: number | null = null;
+  for (const pairing of pairings) if (lag === null || pairing.lag < lag) lag = pairing.lag;
+  return lag;
+}
+
+/** When a time on the audio clock is heard, on the device's clock. */
+export function epochFromAudioTime(time: number): number {
+  const ctx = context;
+  if (!ctx) return Number.NaN;
+  const lag = outputLag(ctx);
+  if (lag !== null) return performance.timeOrigin + lag + time * 1000;
+  return deviceNow() + (time - ctx.currentTime + outputDelay(ctx)) * 1000;
+}
+
+/** The audio clock's time to schedule a sound at, for it to be heard at `epoch` (device clock, ms). */
+export function audioTimeFromEpoch(epoch: number): number {
+  const ctx = audio();
+  const lag = outputLag(ctx);
+  if (lag !== null) return (epoch - performance.timeOrigin - lag) / 1000;
+  return ctx.currentTime + (epoch - deviceNow()) / 1000 - outputDelay(ctx);
 }
 
 function schedule() {
@@ -153,7 +228,7 @@ function schedule() {
     source.connect(output);
     source.start(time);
     scheduled.push({ source, time });
-    log?.clicks.push({ time, position: click.position, bar: click.bar, beat: click.beat, sub: click.sub, level: click.level });
+    log?.clicks.push({ time, heardAt: anchorEpoch + (time - anchorTime) * 1000, outputAt: epochFromAudioTime(time), position: click.position, bar: click.bar, beat: click.beat, sub: click.sub, level: click.level });
   }
   if (log && log.clicks.length > 200) log.clicks.splice(0, log.clicks.length - 200);
   scheduledUntil = Math.max(scheduledUntil, until);
@@ -181,6 +256,9 @@ function cancelFrom(time: number) {
 /** Starts from the top (count-in first), with these settings if given; from a song's button, `songId` says which. */
 export function startMetronome(settings?: MetronomeSettings, songId: string | null = null) {
   load();
+  // Following Sync play's leader: theirs to start.
+  if (state.following) return unlockMetronomeAudio();
+  adopted = null;
   const ctx = audio();
   // Within the press: browsers only let sound start from one.
   void ctx.resume();
@@ -188,27 +266,46 @@ export function startMetronome(settings?: MetronomeSettings, songId: string | nu
   const next = settings ? normalizeMetronome(settings) : state.settings;
   if (settings) save(next);
   output!.gain.value = next.volume;
-  anchorTime = ctx.currentTime + START_DELAY;
+  anchorTime = ctx.currentTime + startDelay;
+  anchorEpoch = epochFromAudioTime(anchorTime);
   anchorPosition = 0;
   scheduledUntil = 0;
-  emit({ settings: next, playing: true, songId });
+  emit({ settings: next, playing: true, songId, anchor: { time: anchorTime, position: anchorPosition, epoch: anchorEpoch } });
   timer ??= setInterval(schedule, TICK_MS);
   schedule();
 }
 
 export function stopMetronome() {
+  if (state.following) return;
+  halt();
+}
+
+function halt() {
+  adopted = null;
   if (timer) clearInterval(timer);
   timer = null;
   cancelFrom(0);
-  if (state.playing) emit({ playing: false });
+  if (state.playing) emit({ playing: false, anchor: null });
 }
 
 /** New settings, kept; while it plays, from the next beat (or, for a new bar length, a new bar there). */
 export function updateMetronome(change: Partial<MetronomeSettings>) {
   load();
   const previous = state.settings;
+  // The leader's own change: what was picked up from the session is theirs now.
+  if (!state.following) adopted = null;
+  // Following Sync play's leader: only this device's sound and volume are its own.
+  if (state.following) change = { ...(change.sound !== undefined && { sound: change.sound }), ...(change.volume !== undefined && { volume: change.volume }) };
   const next = normalizeMetronome({ ...previous, ...change });
-  save(next);
+  if (state.following) {
+    // Kept as this device's own, the leader's settings aside.
+    try {
+      const own = normalizeMetronome(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as Partial<MetronomeSettings>);
+      save({ ...own, sound: next.sound, volume: next.volume });
+    } catch {
+      // Storage blocked.
+    }
+  } else save(next);
   if (!state.playing || !context) return emit({ settings: next, songId: null });
   output!.gain.value = next.volume;
   const timing = (["tempo", "numerator", "denominator", "beats", "subdivision", "countIn", "countInOnly", "sound"] as const).some(
@@ -220,6 +317,8 @@ export function updateMetronome(change: Partial<MetronomeSettings>) {
   cancelFrom(at);
   const oldCount = previous.countIn * previous.numerator;
   const newCount = next.countIn * next.numerator;
+  // On the device's clock, from the anchor it had: the relation read then still holds.
+  anchorEpoch += (at - anchorTime) * 1000;
   anchorTime = at;
   if (nextBeat < oldCount) {
     // In the count-in: it carries on, or starts again for another one.
@@ -231,8 +330,142 @@ export function updateMetronome(change: Partial<MetronomeSettings>) {
     anchorPosition = newCount + (Math.floor((nextBeat - oldCount) / previous.numerator) + 1) * next.numerator;
   }
   scheduledUntil = anchorPosition;
-  emit({ settings: next, songId: null });
+  emit({ settings: next, songId: null, anchor: { time: anchorTime, position: anchorPosition, epoch: anchorEpoch } });
   schedule();
+}
+
+/** A timeline is placed on the audio clock again only when it's drifted further than this from where the device's clock says (s). */
+const REPLACE_BEYOND = 0.003;
+
+/**
+ * Keeps this device's own metronome (Sync play's leader's, issue #13) where
+ * its device-clock anchor says, as the audio and device clocks drift apart:
+ * the others follow that anchor, so this device does too.
+ */
+export function realignMetronome() {
+  const ctx = context;
+  if (!ctx || !state.playing || state.following) return;
+  const placed = audioTimeFromEpoch(anchorEpoch);
+  if (Math.abs(placed - anchorTime) < REPLACE_BEYOND) return;
+  const now = ctx.currentTime;
+  cancelFrom(now);
+  anchorTime = placed;
+  scheduledUntil = Math.max(0, positionAt(now));
+  emit({ anchor: { time: anchorTime, position: anchorPosition, epoch: anchorEpoch } });
+  schedule();
+}
+
+/** How long a start waits: longer while leading Sync play, so the followers hear the first beat too. */
+export function setMetronomeStartDelay(seconds: number) {
+  startDelay = seconds;
+}
+
+/** The leader's timeline (issue #13): the settings they share, and beat `anchorPosition` heard at `anchorEpoch` on this device's clock. */
+export interface FollowedTimeline {
+  settings: Omit<MetronomeSettings, "sound" | "volume">;
+  playing: boolean;
+  anchorEpoch: number;
+  anchorPosition: number;
+}
+
+let followed: { timeline: FollowedTimeline | null; leader: string } | null = null;
+/** The session's timeline a new leader picked up, to place again once the browser lets it make sound. */
+let adopted: FollowedTimeline | null = null;
+
+/**
+ * Plays the leader's timeline from where it is now (clicks already due are
+ * dropped, what's ahead rescheduled), with this device's own sound and
+ * volume; called again whenever it or the clocks' offset changes. Null: the
+ * leader's metronome is stopped.
+ */
+export function followMetronome(timeline: FollowedTimeline | null, leader: string, attempt = 0) {
+  load();
+  followed = { timeline, leader };
+  const own = state.settings;
+  const settings = timeline ? normalizeMetronome({ ...timeline.settings, sound: own.sound, volume: own.volume }) : own;
+  if (!timeline?.playing) {
+    halt();
+    return emit({ settings, following: leader, songId: null });
+  }
+  const ctx = audio();
+  output!.gain.value = settings.volume;
+  const placed = audioTimeFromEpoch(timeline.anchorEpoch);
+  // The same timeline, already placed within a few milliseconds: left as it is (the output's timestamp wavers a little).
+  if (
+    state.playing &&
+    state.following === leader &&
+    anchorEpoch === timeline.anchorEpoch &&
+    anchorPosition === timeline.anchorPosition &&
+    JSON.stringify(state.settings) === JSON.stringify(settings) &&
+    Math.abs(placed - anchorTime) < REPLACE_BEYOND
+  ) {
+    return;
+  }
+  const now = ctx.currentTime;
+  cancelFrom(now);
+  state = { ...state, settings };
+  anchorTime = placed;
+  anchorEpoch = timeline.anchorEpoch;
+  anchorPosition = timeline.anchorPosition;
+  scheduledUntil = Math.max(0, positionAt(now));
+  emit({ playing: true, following: leader, songId: null, audioBlocked: ctx.state !== "running", anchor: { time: anchorTime, position: anchorPosition, epoch: anchorEpoch } });
+  timer ??= setInterval(schedule, TICK_MS);
+  schedule();
+  // Just started (a new audio clock only runs a moment later), it doesn't say yet when its output is heard: placed again once it does.
+  if (pairings.length === 0 && attempt < 40) {
+    setTimeout(() => {
+      if (followed?.timeline === timeline) followMetronome(timeline, followed.leader, attempt + 1);
+    }, 250);
+  }
+}
+
+/** Stops following: the metronome stops, and is this device's own again. */
+export function unfollowMetronome() {
+  if (!state.following) return;
+  followed = null;
+  halt();
+  let own = state.settings;
+  try {
+    own = normalizeMetronome(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as Partial<MetronomeSettings>);
+  } catch {
+    // Storage blocked: as it was.
+  }
+  emit({ following: null, audioBlocked: false, settings: own });
+}
+
+/** The metronome as it is now, outside React. */
+export function getMetronomeState(): MetronomeState {
+  load();
+  return state;
+}
+
+/**
+ * Taking over Sync play's lead (issue #13): what was followed carries on
+ * as this device's own, without a gap; or, stopped here, the session's
+ * timeline is picked up where it is.
+ */
+export function takeOverMetronome(timeline: FollowedTimeline | null) {
+  adopted = null;
+  if (!state.following && !state.playing && timeline?.playing) {
+    followMetronome(timeline, "");
+    adopted = timeline;
+  }
+  followed = null;
+  if (state.following !== null) emit({ following: null });
+}
+
+/** From a press: lets the browser make sound, then catches up with the leader. */
+export function unlockMetronomeAudio() {
+  const ctx = audio();
+  void ctx.resume().then(() => {
+    if (followed) followMetronome(followed.timeline, followed.leader);
+    else if (adopted && state.playing) {
+      // Placed while the audio clock was stopped: again, now it runs.
+      followMetronome(adopted, "");
+      emit({ following: null });
+    }
+    if (state.audioBlocked) emit({ audioBlocked: false });
+  });
 }
 
 /** The latest settings and whether it plays. */

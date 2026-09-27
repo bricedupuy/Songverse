@@ -67,3 +67,16 @@ describe("the metronome's timeline (issue #2)", () => {
     expect(tapTempo([0, 500, 5000, 5750])).toBe(80);
   });
 });
+
+describe("Sync play's clock (issue #13)", () => {
+  it("the offset from the quickest round trip", async () => {
+    const { clockOffset } = await import("../sync/index.js");
+    // Server 1000 ms ahead; the second ping was held up on its way back.
+    expect(clockOffset([
+      { sent: 0, at: 1010, received: 20 },
+      { sent: 100, at: 1105, received: 190 },
+      { sent: 200, at: 1204, received: 208 },
+    ])).toEqual({ offset: 1000, rtt: 8 });
+    expect(clockOffset([])).toBeNull();
+  });
+});

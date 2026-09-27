@@ -1,0 +1,273 @@
+import { Injectable, Logger, type OnModuleDestroy } from "@nestjs/common";
+import { SYNC_PATH, type SyncClientMessage, type SyncMember, type SyncMetronome, type SyncServerMessage, type SyncSession } from "@songverse/core";
+import type { Redis } from "ioredis";
+import { randomUUID } from "node:crypto";
+import type { IncomingMessage, Server } from "node:http";
+import type { Duplex } from "node:stream";
+import { WebSocketServer, type WebSocket } from "ws";
+import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { JwtVerifierService } from "../auth/jwt-verifier.service";
+import { redis } from "../jobs/redis";
+import { PrismaService } from "../prisma/prisma.service";
+import { SetlistAccessService } from "../setlists/setlist-access.service";
+
+/** A session outlasts its leader's last change by this long, then goes. */
+const SESSION_TTL_S = 12 * 60 * 60;
+/** A device's presence is refreshed this often, and forgotten when older than twice that (its API instance stopped). */
+const PRESENCE_MS = 20_000;
+const CHANNEL = "songverse:sync:changed";
+const sessionKey = (setId: string) => `songverse:sync:session:${setId}`;
+const membersKey = (setId: string) => `songverse:sync:members:${setId}`;
+
+interface StoredSession extends Omit<SyncSession, "leader"> {
+  leader: { id: string; name: string; conn: string };
+}
+
+interface Connection {
+  id: string;
+  socket: WebSocket;
+  user: (AuthenticatedUser & { name: string }) | null;
+  setId: string | null;
+  canLead: boolean;
+}
+
+/**
+ * Sync play (issue #13): the API's WebSocket at /sync. A device signs in
+ * with its first message (the API token the web app already has), joins a
+ * set it can open, and hears the set's session - who leads, the metronome's
+ * timeline, the song they're on - each time it changes. Someone who can
+ * edit the set leads it: their updates are the session. Pings let each
+ * device work out its clock against the server's.
+ *
+ * The session and who's connected are in Redis, and a change is announced
+ * on a Redis channel, so it works across the API's instances: each sends
+ * the new state to its own connections in that set.
+ */
+@Injectable()
+export class SyncServer implements OnModuleDestroy {
+  private readonly logger = new Logger("Sync");
+  private readonly instance = randomUUID();
+  private readonly connections = new Map<string, Connection>();
+  private wss: WebSocketServer | null = null;
+  private subscriber: Redis | null = null;
+  private presenceTimer: ReturnType<typeof setInterval> | null = null;
+
+  constructor(
+    private readonly jwt: JwtVerifierService,
+    private readonly prisma: PrismaService,
+    private readonly access: SetlistAccessService,
+  ) {}
+
+  /** Takes the WebSocket upgrades to /sync on the API's HTTP server (not in the Worker). */
+  attach(server: Server) {
+    this.wss = new WebSocketServer({ noServer: true, maxPayload: 16 * 1024 });
+    server.on("upgrade", (request: IncomingMessage, socket: Duplex, head: Buffer) => {
+      const path = (request.url ?? "").split("?")[0];
+      if (path !== SYNC_PATH) return;
+      this.wss!.handleUpgrade(request, socket, head, (ws) => this.connected(ws));
+    });
+    this.subscriber = redis().duplicate();
+    this.subscriber.subscribe(CHANNEL).catch((err: unknown) => this.logger.error(`Can't listen for sync changes: ${String(err)}`));
+    this.subscriber.on("message", (_channel, setId: string) => void this.broadcastLocal(setId));
+    this.presenceTimer = setInterval(() => void this.refreshPresence(), PRESENCE_MS);
+  }
+
+  async onModuleDestroy() {
+    if (this.presenceTimer) clearInterval(this.presenceTimer);
+    for (const connection of this.connections.values()) connection.socket.close(1001, "Server stopping");
+    this.wss?.close();
+    await this.subscriber?.quit().catch(() => undefined);
+  }
+
+  private connected(socket: WebSocket) {
+    const connection: Connection = { id: randomUUID(), socket, user: null, setId: null, canLead: false };
+    this.connections.set(connection.id, connection);
+    // A device that doesn't sign in soon is dropped.
+    const signIn = setTimeout(() => {
+      if (!connection.user) socket.close(4001, "Sign in first");
+    }, 10_000);
+    socket.on("message", (data) => {
+      let message: SyncClientMessage;
+      try {
+        message = JSON.parse(String(data)) as SyncClientMessage;
+      } catch {
+        return this.send(connection, { type: "error", code: "bad-request", message: "Not JSON" });
+      }
+      this.handle(connection, message).catch((err: unknown) => {
+        this.logger.warn(`Sync message failed: ${err instanceof Error ? err.message : String(err)}`);
+        this.send(connection, { type: "error", code: "bad-request", message: "Something went wrong" });
+      });
+    });
+    socket.on("close", () => {
+      clearTimeout(signIn);
+      this.connections.delete(connection.id);
+      if (connection.setId) void this.leaveSet(connection);
+    });
+    socket.on("error", () => undefined);
+  }
+
+  private send(connection: Connection, message: SyncServerMessage) {
+    if (connection.socket.readyState === connection.socket.OPEN) connection.socket.send(JSON.stringify(message));
+  }
+
+  private async handle(connection: Connection, message: SyncClientMessage) {
+    // The clock first: answered at once, before anything else.
+    if (message.type === "ping") return this.send(connection, { type: "pong", id: message.id, sent: message.sent, at: Date.now() });
+    if (message.type === "hello") return this.signIn(connection, message.token);
+    if (!connection.user) return this.send(connection, { type: "error", code: "unauthorized", message: "Sign in first" });
+    switch (message.type) {
+      case "join":
+        return this.join(connection, message.setId);
+      case "leave":
+        return this.leaveSet(connection);
+      case "lead":
+        return this.lead(connection);
+      case "update":
+        return this.update(connection, message);
+      case "end":
+        return this.end(connection);
+      default:
+        return this.send(connection, { type: "error", code: "bad-request", message: "Unknown message" });
+    }
+  }
+
+  private async signIn(connection: Connection, token: string) {
+    try {
+      const payload = await this.jwt.verify(String(token));
+      const user = payload.sub
+        ? await this.prisma.client.user.findUnique({
+            where: { id: payload.sub },
+            select: { id: true, email: true, isGlobalAdmin: true, isReviewer: true, displayName: true, bannedAt: true, deletedAt: true },
+          })
+        : null;
+      if (!user || user.deletedAt || user.bannedAt) throw new Error("No such user");
+      connection.user = { id: user.id, email: user.email, isGlobalAdmin: user.isGlobalAdmin, isReviewer: user.isReviewer, name: user.displayName };
+      this.send(connection, { type: "ready", userId: user.id });
+    } catch {
+      this.send(connection, { type: "error", code: "unauthorized", message: "Invalid or expired token" });
+    }
+  }
+
+  private async join(connection: Connection, setId: string) {
+    if (connection.setId) await this.leaveSet(connection);
+    const set = typeof setId === "string" ? await this.prisma.client.setlist.findUnique({ where: { id: setId }, select: { id: true, ownerUserId: true, ownerTeamId: true } }) : null;
+    const access = set ? await this.access.access(connection.user!, set) : null;
+    if (!set || !access?.canView) return this.send(connection, { type: "error", code: "not-found", message: "Set not found" });
+    connection.setId = set.id;
+    connection.canLead = access.canEdit;
+    await this.present(connection);
+    await this.changed(set.id);
+  }
+
+  private async leaveSet(connection: Connection) {
+    const setId = connection.setId;
+    if (!setId) return;
+    connection.setId = null;
+    await redis().hdel(membersKey(setId), `${this.instance}:${connection.id}`).catch(() => undefined);
+    await this.changed(setId);
+  }
+
+  private async lead(connection: Connection) {
+    const setId = connection.setId;
+    if (!setId) return this.send(connection, { type: "error", code: "bad-request", message: "Join a set first" });
+    if (!connection.canLead) return this.send(connection, { type: "error", code: "forbidden", message: "Only someone who can edit the set leads it" });
+    const current = await this.read(setId);
+    const session: StoredSession = {
+      rev: (current?.rev ?? 0) + 1,
+      leader: { id: connection.user!.id, name: connection.user!.name, conn: `${this.instance}:${connection.id}` },
+      // Taking over carries on from where it was.
+      metronome: current?.metronome ?? null,
+      itemId: current?.itemId ?? null,
+    };
+    await this.write(setId, session);
+  }
+
+  private async update(connection: Connection, message: Extract<SyncClientMessage, { type: "update" }>) {
+    const setId = connection.setId;
+    const current = setId ? await this.read(setId) : null;
+    if (!setId || !current || current.leader.conn !== `${this.instance}:${connection.id}`) {
+      return this.send(connection, { type: "error", code: "forbidden", message: "Only the leader changes the session" });
+    }
+    const next: StoredSession = { ...current, rev: current.rev + 1 };
+    if (message.metronome !== undefined) {
+      if (message.metronome !== null && !validMetronome(message.metronome)) return this.send(connection, { type: "error", code: "bad-request", message: "Invalid metronome" });
+      next.metronome = message.metronome;
+    }
+    if (message.itemId !== undefined) next.itemId = typeof message.itemId === "string" ? message.itemId.slice(0, 64) : null;
+    await this.write(setId, next);
+  }
+
+  private async end(connection: Connection) {
+    const setId = connection.setId;
+    if (!setId || !connection.canLead) return this.send(connection, { type: "error", code: "forbidden", message: "Only someone who can edit the set ends it" });
+    await redis().del(sessionKey(setId));
+    await this.changed(setId);
+  }
+
+  private async read(setId: string): Promise<StoredSession | null> {
+    const raw = await redis().get(sessionKey(setId));
+    return raw ? (JSON.parse(raw) as StoredSession) : null;
+  }
+
+  private async write(setId: string, session: StoredSession) {
+    await redis().set(sessionKey(setId), JSON.stringify(session), "EX", SESSION_TTL_S);
+    await this.changed(setId);
+  }
+
+  /** Tells every instance (this one included) that a set's session or who's in it changed. */
+  private async changed(setId: string) {
+    await redis().publish(CHANNEL, setId);
+  }
+
+  private async present(connection: Connection) {
+    if (!connection.setId || !connection.user) return;
+    const member = { id: connection.user.id, name: connection.user.name, at: Date.now() };
+    await redis().hset(membersKey(connection.setId), `${this.instance}:${connection.id}`, JSON.stringify(member));
+    await redis().expire(membersKey(connection.setId), SESSION_TTL_S);
+  }
+
+  private async refreshPresence() {
+    for (const connection of this.connections.values()) await this.present(connection).catch(() => undefined);
+  }
+
+  /** The session and who's there, to this instance's connections in the set. */
+  private async broadcastLocal(setId: string) {
+    const local = [...this.connections.values()].filter((connection) => connection.setId === setId);
+    if (local.length === 0) return;
+    const [stored, rawMembers] = await Promise.all([this.read(setId), redis().hgetall(membersKey(setId))]);
+    const now = Date.now();
+    const present = Object.entries(rawMembers)
+      .map(([conn, raw]) => ({ conn, ...(JSON.parse(raw) as { id: string; name: string; at: number }) }))
+      .filter((member) => now - member.at < PRESENCE_MS * 2);
+    const members: SyncMember[] = present.map((member) => ({ id: member.id, name: member.name, leading: member.conn === stored?.leader.conn }));
+    const session: SyncSession | null = stored
+      ? { ...stored, leader: { id: stored.leader.id, name: stored.leader.name, online: present.some((member) => member.conn === stored.leader.conn) } }
+      : null;
+    for (const connection of local) {
+      this.send(connection, {
+        type: "session",
+        setId,
+        session,
+        members,
+        leading: stored?.leader.conn === `${this.instance}:${connection.id}`,
+        canLead: connection.canLead,
+      });
+    }
+  }
+}
+
+function validMetronome(value: SyncMetronome): boolean {
+  const s = value?.settings;
+  return (
+    typeof value === "object" &&
+    typeof value.playing === "boolean" &&
+    Number.isFinite(value.anchorAt) &&
+    Number.isFinite(value.anchorPosition) &&
+    !!s &&
+    Number.isFinite(s.tempo) &&
+    Number.isInteger(s.numerator) &&
+    Number.isInteger(s.denominator) &&
+    Array.isArray(s.beats) &&
+    s.beats.length <= 32
+  );
+}

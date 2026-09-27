@@ -1,0 +1,359 @@
+import {
+  clockOffset,
+  SYNC_PATH,
+  sharedMetronomeSettings,
+  type ClockSample,
+  type SyncClientMessage,
+  type SyncMember,
+  type SyncServerMessage,
+  type SyncSession,
+} from "@songverse/core";
+import { useEffect, useRef, useSyncExternalStore } from "react";
+import { apiToken, forgetApiToken } from "#/lib/api-client";
+import {
+  deviceNow,
+  followMetronome,
+  getMetronomeState,
+  realignMetronome,
+  setMetronomeStartDelay,
+  takeOverMetronome,
+  unfollowMetronome,
+  useMetronome,
+  type FollowedTimeline,
+  type MetronomeState,
+} from "#/lib/metronome-engine";
+import { getApiUrl } from "#/lib/public-env";
+
+/**
+ * Sync play in the browser (issue #13): one connection per tab to the API's
+ * /sync, on while the player has it on for a set - across pages, and after
+ * a reload (sessionStorage) - reconnecting when it drops.
+ *
+ * Leading, the metronome's timeline goes out each time it changes (as
+ * "beat N at server time T"); following, it comes in and the metronome
+ * plays it on this device's own clock. The clocks' offset comes from pings,
+ * the quickest of the last few; the audio clock is placed against the
+ * device's through the output timestamp (metronome-engine), so a click is
+ * placed by when it's heard.
+ */
+
+const STORAGE_KEY = "songverse.sync";
+/** A start while leading waits this long, for the followers to hear the first beat too. */
+const LEADER_START_DELAY = 0.5;
+/**
+ * Pings: a few quick ones on connecting, then one a second for a while
+ * (the page is often busy starting up at first, which slows the first
+ * ones), then one every so often; the quickest of the last ones counts.
+ */
+const FIRST_PINGS = 8;
+const EARLY_PING_MS = 1000;
+const EARLY_PINGS_FOR_MS = 20_000;
+const PING_EVERY_MS = 5000;
+const SAMPLES_KEPT = 12;
+/** The leader re-sends where the beat is, and a follower re-places it, this often: the audio and device clocks drift apart slowly. */
+const RESYNC_MS = 10_000;
+
+export interface SyncState {
+  /** The set sync is on for, or null when it's off. */
+  setId: string | null;
+  status: "off" | "connecting" | "on";
+  session: SyncSession | null;
+  members: SyncMember[];
+  leading: boolean;
+  canLead: boolean;
+  error: string | null;
+  /** The server's clock less this device's (ms), once measured. */
+  offset: number | null;
+}
+
+let state: SyncState = { setId: null, status: "off", session: null, members: [], leading: false, canLead: false, error: null, offset: null };
+const listeners = new Set<() => void>();
+function emit(next: Partial<SyncState>) {
+  state = { ...state, ...next };
+  for (const listener of listeners) listener();
+}
+
+let socket: WebSocket | null = null;
+let retry: ReturnType<typeof setTimeout> | null = null;
+let retries = 0;
+let pingTimer: ReturnType<typeof setInterval> | null = null;
+let resyncTimer: ReturnType<typeof setInterval> | null = null;
+let samples: ClockSample[] = [];
+let pingId = 0;
+let userId: string | null = null;
+/** Joined the set on this connection: once the clocks' offset is known, so what's played from the session is in time from the start. */
+let joined = false;
+/** This device led the session: after a reload or a dropped connection, it takes the lead back. */
+let wantLead = false;
+
+function storedSync(): { setId?: string; lead?: boolean } | null {
+  try {
+    return JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? "null") as { setId?: string; lead?: boolean } | null;
+  } catch {
+    return null;
+  }
+}
+
+/** What's kept for after a reload: the set, and whether this device led it. */
+function keep() {
+  try {
+    if (state.setId) sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ setId: state.setId, lead: wantLead }));
+    else sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Storage blocked: it lasts for this page.
+  }
+}
+
+function send(message: SyncClientMessage) {
+  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+}
+
+function ping() {
+  send({ type: "ping", id: ++pingId, sent: deviceNow() });
+}
+
+function connect() {
+  if (typeof window === "undefined" || !state.setId) return;
+  socket?.close();
+  emit({ status: "connecting" });
+  const ws = new WebSocket(`${getApiUrl().replace(/^http/, "ws").replace(/\/$/, "")}${SYNC_PATH}`);
+  socket = ws;
+  ws.onopen = () => {
+    void apiToken().then((token) => {
+      if (socket !== ws) return;
+      if (!token) return emit({ error: "signed-out" });
+      send({ type: "hello", token });
+    });
+  };
+  ws.onmessage = (event) => {
+    if (socket !== ws) return;
+    try {
+      receive(JSON.parse(String(event.data)) as SyncServerMessage);
+    } catch {
+      // Not ours to read.
+    }
+  };
+  ws.onclose = () => {
+    if (socket !== ws) return;
+    socket = null;
+    stopTimers();
+    if (!state.setId) return;
+    // Dropped: the metronome keeps going on its own; back as soon as possible.
+    emit({ status: "connecting" });
+    retry = setTimeout(connect, Math.min(10_000, 500 * 2 ** retries++));
+  };
+}
+
+function stopTimers() {
+  if (pingTimer) clearInterval(pingTimer);
+  if (resyncTimer) clearInterval(resyncTimer);
+  pingTimer = resyncTimer = null;
+}
+
+function receive(message: SyncServerMessage) {
+  switch (message.type) {
+    case "ready": {
+      retries = 0;
+      userId = message.userId;
+      joined = false;
+      for (let i = 0; i < FIRST_PINGS; i++) setTimeout(ping, i * 120);
+      pingTimer = setInterval(ping, EARLY_PING_MS);
+      const early = pingTimer;
+      setTimeout(() => {
+        if (pingTimer !== early) return;
+        clearInterval(early);
+        pingTimer = setInterval(ping, PING_EVERY_MS);
+      }, EARLY_PINGS_FOR_MS);
+      resyncTimer = setInterval(resync, RESYNC_MS);
+      return;
+    }
+    case "pong": {
+      samples = [...samples, { sent: message.sent, at: message.at, received: deviceNow() }].slice(-SAMPLES_KEPT);
+      const measured = clockOffset(samples);
+      if (!measured) return;
+      const moved = state.offset === null || Math.abs(measured.offset - state.offset) > 2;
+      emit({ offset: measured.offset });
+      if (!joined && samples.length >= 4) {
+        joined = true;
+        send({ type: "join", setId: state.setId! });
+      } else if (moved && joined) applySession();
+      return;
+    }
+    case "session": {
+      if (message.setId !== state.setId) return;
+      const wasLeading = state.leading;
+      // Led it before a reload or a dropped connection: the lead back.
+      if (wantLead && !message.leading && message.canLead && (!message.session || message.session.leader.id === userId)) send({ type: "lead" });
+      // Someone else took over, or the session ended: not ours to take back.
+      else if (wantLead && !message.leading && (!message.session || message.session.leader.id !== userId)) {
+        wantLead = false;
+        keep();
+      }
+      if (message.leading) {
+        wantLead = true;
+        keep();
+      }
+      emit({ status: "on", error: null, session: message.session, members: message.members, leading: message.leading, canLead: message.canLead });
+      setMetronomeStartDelay(message.leading ? LEADER_START_DELAY : 0.08);
+      // Just took the lead: the metronome carries on as it was (followed, or the session's), and goes out.
+      if (message.leading && !wasLeading) {
+        takeOverMetronome(sessionTimeline());
+        lastSent = null;
+        publishMetronome(getMetronomeState());
+      }
+      applySession();
+      return;
+    }
+    case "error": {
+      if (message.code === "unauthorized") forgetApiToken();
+      if (message.code === "not-found") return disableSync();
+      emit({ error: message.message });
+      return;
+    }
+  }
+}
+
+/** Following: the leader's metronome, placed on this device's clock. */
+function applySession() {
+  const { session, leading, offset } = state;
+  if (!session || leading) {
+    if (!leading) unfollowMetronome();
+    return;
+  }
+  if (offset === null) return;
+  followMetronome(sessionTimeline(), session.leader.name);
+}
+
+/** The session's metronome, on this device's clock. */
+function sessionTimeline(): FollowedTimeline | null {
+  const metronome = state.session?.metronome;
+  if (!metronome || state.offset === null) return null;
+  return { settings: metronome.settings, playing: metronome.playing, anchorEpoch: metronome.anchorAt - state.offset, anchorPosition: metronome.anchorPosition };
+}
+
+// --- leading: the metronome's changes go out
+
+let lastSent: string | null = null;
+
+function publishMetronome(metronome: MetronomeState) {
+  if (!state.leading || state.offset === null) return;
+  const payload =
+    metronome.playing && metronome.anchor
+      ? {
+          settings: sharedMetronomeSettings(metronome.settings),
+          playing: true,
+          anchorAt: Math.round((metronome.anchor.epoch + state.offset) * 10) / 10,
+          anchorPosition: metronome.anchor.position,
+        }
+      : { settings: sharedMetronomeSettings(metronome.settings), playing: false, anchorAt: 0, anchorPosition: 0 };
+  const key = JSON.stringify(payload);
+  if (key === lastSent) return;
+  lastSent = key;
+  send({ type: "update", metronome: payload });
+}
+
+/** Every so often: the leader says again where the beat is (on the clocks as they are now); a follower re-places it. */
+function resync() {
+  if (state.leading) {
+    // Its own audio kept where its anchor says; the anchor sent again if the clocks' offset has moved.
+    realignMetronome();
+    const metronome = getMetronomeState();
+    if (!metronome.playing || !metronome.anchor || state.offset === null || !state.session?.metronome) return;
+    const shared = state.session.metronome;
+    if (shared.anchorPosition === metronome.anchor.position && Math.abs(shared.anchorAt - (metronome.anchor.epoch + state.offset)) <= 2) return;
+    lastSent = null;
+    publishMetronome(metronome);
+  } else applySession();
+}
+
+// --- what pages call
+
+/** Turns sync on for a set (from a press: the metronome may make sound then). */
+export function enableSync(setId: string, lead = false) {
+  if (state.setId === setId && state.status !== "off") return;
+  disableSync();
+  samples = [];
+  wantLead = lead;
+  emit({ setId, status: "connecting", session: null, members: [], leading: false, canLead: false, error: null, offset: null });
+  keep();
+  connect();
+}
+
+export function disableSync() {
+  wantLead = false;
+  if (retry) clearTimeout(retry);
+  retry = null;
+  stopTimers();
+  const ws = socket;
+  socket = null;
+  ws?.close();
+  if (state.setId) unfollowMetronome();
+  setMetronomeStartDelay(0.08);
+  lastSent = null;
+  emit({ setId: null, status: "off", session: null, members: [], leading: false, canLead: false, error: null, offset: null });
+  keep();
+}
+
+/** Starts a session for the set, or takes over its lead. */
+export function leadSync() {
+  wantLead = true;
+  keep();
+  send({ type: "lead" });
+}
+
+/** Ends the set's session for everyone: their metronome stops. */
+export function endSync() {
+  wantLead = false;
+  keep();
+  send({ type: "end" });
+}
+
+/** Leading: the set's song the leader has open, for the others to follow. */
+export function publishSyncItem(itemId: string) {
+  if (state.leading && state.session?.itemId !== itemId) send({ type: "update", itemId });
+}
+
+export function useSync(): SyncState {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => state,
+    () => state,
+  );
+}
+
+/**
+ * In the app, once: sync back on after a reload, and the leader's
+ * metronome sent out as it changes.
+ */
+export function useSyncBridge() {
+  const metronome = useMetronome();
+  useEffect(() => {
+    const kept = storedSync();
+    if (kept?.setId && state.status === "off") enableSync(kept.setId, !!kept.lead);
+  }, []);
+  useEffect(() => {
+    if (!metronome.following) publishMetronome(metronome);
+  }, [metronome]);
+}
+
+/**
+ * On a set's song (its page or Live): leading, the song goes out; following,
+ * the page goes to the leader's song when it changes.
+ */
+export function useSyncSong(setId: string, itemId: string, go: (itemId: string) => void) {
+  const sync = useSync();
+  const on = sync.setId === setId && sync.status === "on";
+  useEffect(() => {
+    if (on && sync.leading) publishSyncItem(itemId);
+  }, [on, sync.leading, itemId]);
+  const leaderItem = on && !sync.leading ? (sync.session?.itemId ?? null) : null;
+  const goRef = useRef(go);
+  goRef.current = go;
+  useEffect(() => {
+    if (leaderItem && leaderItem !== itemId) goRef.current(leaderItem);
+    // Only when the leader moves: the follower may look at another song meanwhile.
+  }, [leaderItem]);
+}

@@ -64,6 +64,23 @@ Sur un téléphone ou une tablette, balayez vers la gauche pour le chant suivant
 
 Quand le leader lance un chant imprévu, utilisez la recherche (la loupe en haut) : par son titre, ou par son numéro s'il est annoncé ainsi (« Cantique 42 ! » : **CA 42**). En Live, le chant choisi s'ouvre lui aussi en plein écran, avec le défilement et votre taille de texte. **Retour** (**×**) revient au chant de la liste où vous étiez.
 
+## Jouer synchronisé
+
+Avec **Synchro**, tous ceux d'une liste jouent ensemble : une personne mène, et le métronome des autres - à l'écran et dans leurs oreilles - suit le sien, au même instant, et leur écran suit le chant du meneur. **Synchro** est sur la page de la liste, sur celles de ses chants et en haut du Live (l'icône d'antenne).
+
+![La synchro sur une liste](../../../assets/screenshots/fr/sync.jpg)
+
+- **Activer la synchro**, sur chaque appareil : on voit qui mène et combien d'appareils sont synchronisés. La synchro reste active pendant que vous naviguez dans Songverse, et revient si la page se recharge ; **Désactiver la synchro** la quitte.
+- Quelqu'un qui peut modifier la liste - son propriétaire, ou un administrateur de son équipe - choisit **Mener la liste**. Un autre peut prendre le relais avec **Mener à sa place** : le métronome continue comme il était.
+- Le meneur démarre le [métronome](/fr/metronome/) : le bouton du métronome en Live ou sur la page d'un chant, ou la page Métronome, où il règle le tempo, la mesure et le motif. Celui de chacun démarre sur le même temps, et un nouveau tempo arrive chez tous sur le même temps. Le métronome des autres affiche **Suit** et le nom du meneur : ses réglages sont ceux du meneur, mais son son et son volume restent les leurs.
+- Quand le meneur passe à un autre chant de la liste, en Live ou sur sa page, l'écran de chacun suit. Vous pouvez regarder un autre chant entre-temps : au prochain changement du meneur, vous suivez à nouveau.
+- Si un appareil perd sa connexion, son métronome garde le tempo seul, et se recale à son retour. Si le meneur perd la sienne, la session continue, et il reprend la main à son retour.
+- **Terminer la session** arrête le métronome de chacun.
+
+Après un rechargement, le navigateur ne laisse le métronome jouer qu'après une touche : **Touchez pour entendre le métronome** (sous **Synchro**, ou sur la page Métronome) le permet.
+
+Pour que les temps tombent ensemble à l'oreille, utilisez un casque filaire ou le haut-parleur de l'appareil : un casque Bluetooth ajoute son propre retard. Chaque appareil garde le tempo avec sa propre horloge, calée sur celle de Songverse ; seuls le tempo et le moment où tombe le temps passent par le réseau, jamais le son.
+
 ## Partager une liste avec des invités
 
 Sous **Partager**, **Créer un lien de partage** et envoyez-le à qui doit voir la liste - un musicien invité, par exemple. Toute personne connectée qui l'ouvre peut lire chaque chant de la liste, même ceux qui ne sont pas dans sa bibliothèque, et garder ses propres notes. Elle ne peut pas la modifier.

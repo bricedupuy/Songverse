@@ -1,31 +1,17 @@
-import {
-  ApiError,
-  keptFile,
-  keptSetSong,
-  keptSongCopy,
-  onlineOrKept,
-  transposeKey,
-  type Attachment,
-  type SetlistSongView,
-} from "@songverse/core";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { ApiError, keptFile, keptSetSong, keptSongCopy, onlineOrKept, transposeKey, type Attachment, type SetlistSongView } from "@songverse/core";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { MetronomeSongButton } from "#/components/metronome";
 import { PlayerChart } from "#/components/player-chart";
+import { SyncControl } from "#/components/sync-control";
 import { StemDock } from "#/components/stem-dock";
 import { YouTubeDock } from "#/components/youtube-dock";
 import { playableOf } from "#/lib/stem-engine";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "#/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { apiClient } from "#/lib/api-client";
@@ -33,26 +19,23 @@ import { useMode } from "#/lib/mode";
 import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setlistTitle, transposeLabel } from "#/lib/setlists";
 import { useSongView } from "#/lib/song-views";
+import { useSyncSong } from "#/lib/sync-client";
 
 /**
  * One song of a set, readable by anyone who can open the set - guests
  * included, and songs that aren't in the viewer's own library - with the
  * viewer's private notes and a way through the set in order.
  */
-export const Route = createFileRoute(
-  "/_protected/sets/$setlistId_/songs/$itemId",
-)({
+export const Route = createFileRoute("/_protected/sets/$setlistId_/songs/$itemId")({
   // Null when the set or song doesn't exist or isn't visible to this user.
   // Offline, from the set kept on the device (issue #50).
   loader: ({ params }) =>
     onlineOrKept(
       () =>
-        apiClient
-          .getSetlistSong(params.setlistId, params.itemId)
-          .catch((error: unknown) => {
-            if (error instanceof ApiError && error.status === 404) return null;
-            throw error;
-          }),
+        apiClient.getSetlistSong(params.setlistId, params.itemId).catch((error: unknown) => {
+          if (error instanceof ApiError && error.status === 404) return null;
+          throw error;
+        }),
       () => keptSetSong(deviceStorage(), params.setlistId, params.itemId),
     ),
   component: SetSongRoute,
@@ -67,9 +50,7 @@ function SetSongRoute() {
     return (
       <div className="flex flex-col items-start gap-4">
         <h1 className="text-2xl font-semibold">{t("sets.notFoundTitle")}</h1>
-        <p className="text-sm text-muted-foreground">
-          {t("sets.notFoundDescription")}
-        </p>
+        <p className="text-sm text-muted-foreground">{t("sets.notFoundDescription")}</p>
         <Button asChild variant="outline">
           <Link to="/sets">{t("sets.backToSets")}</Link>
         </Button>
@@ -82,7 +63,10 @@ function SetSongRoute() {
 function SetSongPage({ view }: { view: SetlistSongView }) {
   const { t, i18n } = useTranslation();
   const { set, item, song } = view;
+  const navigate = useNavigate();
   useSongView(song?.id);
+  // Sync play (issue #13): the leader's song, followed.
+  useSyncSong(set.id, item.id, (itemId) => void navigate({ to: "/sets/$setlistId/songs/$itemId", params: { setlistId: set.id, itemId } }));
 
   // The arrangement's key and tempo, with the set's own key on top.
   const arrangement = view.arrangement?.document.defaults;
@@ -90,18 +74,8 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
   const details = [
     t("sets.songOfSet", { position: item.position + 1, count: set.itemCount }),
     // The set's own transposition, from the arrangement's key.
-    song
-      ? transposeLabel(
-          song.key && arrangement
-            ? (transposeKey(song.key, arrangement.transposeSteps) ?? song.key)
-            : song.key,
-          item.transposeSteps,
-          t,
-        )
-      : null,
-    view.arrangement
-      ? t("sets.playedAs", { name: view.arrangement.name })
-      : null,
+    song ? transposeLabel(song.key && arrangement ? (transposeKey(song.key, arrangement.transposeSteps) ?? song.key) : song.key, item.transposeSteps, t) : null,
+    view.arrangement ? t("sets.playedAs", { name: view.arrangement.name }) : null,
     tempo ? `${tempo} BPM` : null,
   ]
     .filter(Boolean)
@@ -120,37 +94,28 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="text-2xl font-semibold">
-            {song?.title ?? t("sets.hiddenSong")}
-          </h1>
+          <h1 className="text-2xl font-semibold">{song?.title ?? t("sets.hiddenSong")}</h1>
           <p className="text-sm text-muted-foreground">{details}</p>
           {view.sharedBy ? (
             <div>
-              <Badge variant="muted">
-                {t("sets.sharedBy", { name: view.sharedBy.displayName })}
-              </Badge>
+              <Badge variant="muted">{t("sets.sharedBy", { name: view.sharedBy.displayName })}</Badge>
             </div>
           ) : null}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <SyncControl setId={set.id} className="h-8" />
           {song ? (
             <MetronomeSongButton
               songId={item.id}
               tempo={tempo}
-              timeSignature={
-                arrangement?.timeSignature ??
-                song.document.defaults.timeSignature
-              }
+              timeSignature={arrangement?.timeSignature ?? song.document.defaults.timeSignature}
               variant="button"
               className="h-8"
             />
           ) : null}
           {song && view.inLibrary ? (
             <Button asChild variant="outline" size="sm">
-              <Link
-                to="/library/$songVersionId"
-                params={{ songVersionId: song.id }}
-              >
+              <Link to="/library/$songVersionId" params={{ songVersionId: song.id }}>
                 {t("sets.openInLibrary")}
               </Link>
             </Button>
@@ -158,13 +123,7 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
         </div>
       </div>
 
-      {song ? (
-        <SetSongStems
-          songVersionId={song.id}
-          title={song.title}
-          returnTo={`/sets/${set.id}/songs/${item.id}`}
-        />
-      ) : null}
+      {song ? <SetSongStems songVersionId={song.id} title={song.title} returnTo={`/sets/${set.id}/songs/${item.id}`} /> : null}
 
       {song ? (
         <Card>
@@ -187,16 +146,10 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
 
       <MyNotesCard view={view} />
 
-      <nav
-        className="flex items-center justify-between gap-3"
-        aria-label={t("sets.songs")}
-      >
+      <nav className="flex items-center justify-between gap-3" aria-label={t("sets.songs")}>
         {view.previousItemId ? (
           <Button asChild variant="outline">
-            <Link
-              to="/sets/$setlistId/songs/$itemId"
-              params={{ setlistId: set.id, itemId: view.previousItemId }}
-            >
+            <Link to="/sets/$setlistId/songs/$itemId" params={{ setlistId: set.id, itemId: view.previousItemId }}>
               <ChevronLeft />
               {t("sets.previousSong")}
             </Link>
@@ -206,10 +159,7 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
         )}
         {view.nextItemId ? (
           <Button asChild variant="outline">
-            <Link
-              to="/sets/$setlistId/songs/$itemId"
-              params={{ setlistId: set.id, itemId: view.nextItemId }}
-            >
+            <Link to="/sets/$setlistId/songs/$itemId" params={{ setlistId: set.id, itemId: view.nextItemId }}>
               {t("sets.nextSong")}
               <ChevronRight />
             </Link>
@@ -225,10 +175,7 @@ function MyNotesCard({ view }: { view: SetlistSongView }) {
   const [text, setText] = useState(view.myNote);
   const [saved, setSaved] = useState(view.myNote);
   const [pending, setPending] = useState(false);
-  const [message, setMessage] = useState<{
-    kind: "ok" | "error";
-    text: string;
-  } | null>(null);
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
   // Moving to another song of the set reuses this component.
   useEffect(() => {
@@ -241,19 +188,12 @@ function MyNotesCard({ view }: { view: SetlistSongView }) {
     setPending(true);
     setMessage(null);
     try {
-      const { myNote } = await apiClient.setSetlistNote(
-        view.set.id,
-        view.item.id,
-        text,
-      );
+      const { myNote } = await apiClient.setSetlistNote(view.set.id, view.item.id, text);
       setText(myNote);
       setSaved(myNote);
       setMessage({ kind: "ok", text: t("sets.saved") });
     } catch (err) {
-      setMessage({
-        kind: "error",
-        text: err instanceof Error ? err.message : String(err),
-      });
+      setMessage({ kind: "error", text: err instanceof Error ? err.message : String(err) });
     } finally {
       setPending(false);
     }
@@ -292,15 +232,7 @@ function MyNotesCard({ view }: { view: SetlistSongView }) {
               {pending ? t("sets.saving") : t("sets.saveNotes")}
             </Button>
             {message ? (
-              <p
-                className={
-                  message.kind === "error"
-                    ? "text-sm text-destructive"
-                    : "text-sm text-muted-foreground"
-                }
-              >
-                {message.text}
-              </p>
+              <p className={message.kind === "error" ? "text-sm text-destructive" : "text-sm text-muted-foreground"}>{message.text}</p>
             ) : null}
           </div>
         </form>
@@ -313,44 +245,20 @@ function MyNotesCard({ view }: { view: SetlistSongView }) {
  * Practice: the song's stems (issue #64), for someone who can open the song
  * itself - from the API, or from the device's copy when offline.
  */
-function SetSongStems({
-  songVersionId,
-  title,
-  returnTo,
-}: {
-  songVersionId: string;
-  title: string;
-  returnTo: string;
-}) {
+function SetSongStems({ songVersionId, title, returnTo }: { songVersionId: string; title: string; returnTo: string }) {
   const { mode } = useMode();
-  const [files, setFiles] = useState<{
-    attachments: Attachment[];
-    offline: boolean;
-    youtubeId: string | null;
-  }>({ attachments: [], offline: false, youtubeId: null });
+  const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean; youtubeId: string | null }>({ attachments: [], offline: false, youtubeId: null });
 
   useEffect(() => {
     if (mode !== "practice") return;
     let cancelled = false;
-    Promise.all([
-      apiClient.listAttachments(songVersionId),
-      apiClient.getSongVersion(songVersionId).catch(() => null),
-    ])
+    Promise.all([apiClient.listAttachments(songVersionId), apiClient.getSongVersion(songVersionId).catch(() => null)])
       .then(([attachments, version]) => ({
         attachments,
         offline: false,
-        youtubeId:
-          version?.identifiers.find(
-            (identifier) => identifier.type === "YOUTUBE",
-          )?.value ?? null,
+        youtubeId: version?.identifiers.find((identifier) => identifier.type === "YOUTUBE")?.value ?? null,
       }))
-      .catch(async () => ({
-        attachments:
-          (await keptSongCopy(deviceStorage(), songVersionId))?.attachments ??
-          [],
-        offline: true,
-        youtubeId: null,
-      }))
+      .catch(async () => ({ attachments: (await keptSongCopy(deviceStorage(), songVersionId))?.attachments ?? [], offline: true, youtubeId: null }))
       .then((next) => {
         if (!cancelled) setFiles(next);
       })
@@ -364,11 +272,7 @@ function SetSongStems({
   if (mode !== "practice") return null;
   // No audio of its own: its YouTube video, if it has one (issue #66).
   if (stems.length === 0) {
-    return files.youtubeId ? (
-      <YouTubeDock
-        video={{ songVersionId, videoId: files.youtubeId, title, returnTo }}
-      />
-    ) : null;
+    return files.youtubeId ? <YouTubeDock video={{ songVersionId, videoId: files.youtubeId, title, returnTo }} /> : null;
   }
   return (
     <StemDock
@@ -378,12 +282,7 @@ function SetSongStems({
         returnTo,
         stems,
         load: async (file, onProgress) => {
-          if (!files.offline)
-            return apiClient.downloadAttachment(
-              songVersionId,
-              file.id,
-              onProgress,
-            );
+          if (!files.offline) return apiClient.downloadAttachment(songVersionId, file.id, onProgress);
           const blob = await keptFile<Blob>(deviceStorage(), file.id);
           if (!blob) throw new Error("not kept");
           return blob;

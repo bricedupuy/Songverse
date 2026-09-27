@@ -37,3 +37,4 @@ export * from "./stems/index.js";
 export * from "./song-history/index.js";
 export * from "./song-document/fold.js";
 export * from "./metronome/index.js";
+export * from "./sync/index.js";

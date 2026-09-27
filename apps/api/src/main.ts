@@ -3,6 +3,7 @@ import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { jobsInApi } from "./jobs/jobs.constants";
 import { startJobs } from "./jobs/start-jobs";
+import { SyncServer } from "./sync/sync.server";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
@@ -70,6 +71,9 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/docs", app, document);
+
+  // Sync play's WebSocket (issue #13), on the same port.
+  app.get(SyncServer).attach(app.getHttpServer());
 
   const port = process.env.PORT ? Number(process.env.PORT) : 3001;
   await app.listen(port);

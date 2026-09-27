@@ -98,6 +98,7 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         title: song.title,
         artist: song.artists,
         setName: null,
+        setId: null,
         // As written, through the player's own chord settings; moved only by the last-minute transpose.
         chartFor: (extraSteps) =>
           renderChart(song.document, null, {

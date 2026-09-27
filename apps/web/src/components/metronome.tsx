@@ -3,7 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Metronome, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
-import { startMetronome, stopMetronome, useMetronome, useMetronomeBeat, type MetronomeBeat } from "#/lib/metronome-engine";
+import { startMetronome, stopMetronome, unlockMetronomeAudio, useMetronome, useMetronomeBeat, type MetronomeBeat } from "#/lib/metronome-engine";
 import { cn } from "#/lib/utils";
 
 const NEXT_LEVEL: Record<BeatLevel, BeatLevel> = { accent: "normal", normal: "mute", mute: "accent" };
@@ -83,8 +83,17 @@ export function MetronomeSongButton({
   const metronome = useMetronome();
   const beat = useMetronomeBeat();
   const mine = metronome.playing && metronome.songId === songId;
-  const label = !tempo ? t("metronome.noTempo") : mine ? t("metronome.songStop") : t("metronome.songStart", { tempo });
+  // Following Sync play's leader (issue #13): theirs; a press only lets the browser make sound.
+  const following = metronome.following;
+  const label = following
+    ? t("sync.followingShort", { name: following })
+    : !tempo
+      ? t("metronome.noTempo")
+      : mine
+        ? t("metronome.songStop")
+        : t("metronome.songStart", { tempo });
   const press = () => {
+    if (following) return unlockMetronomeAudio();
     if (mine) return stopMetronome();
     if (tempo) startMetronome(metronomeForSong(metronome.settings, { tempo, timeSignature }), songId);
   };
@@ -92,7 +101,7 @@ export function MetronomeSongButton({
   const flash = metronome.playing && beat ? (beat.beat === 0 ? "bg-primary text-primary-foreground" : "bg-primary/30") : null;
   if (variant === "button") {
     return (
-      <Button type="button" variant="outline" onClick={press} disabled={!tempo} aria-pressed={mine} title={label} className={cn(flash, className)} data-testid="metronome-song">
+      <Button type="button" variant="outline" onClick={press} disabled={!tempo && !following} aria-pressed={mine} title={label} className={cn(flash, className)} data-testid="metronome-song">
         <Metronome />
         {mine ? t("metronome.stop") : tempo ? `${tempo} BPM` : t("metronome.title")}
       </Button>
@@ -102,7 +111,7 @@ export function MetronomeSongButton({
     <button
       type="button"
       onClick={press}
-      disabled={!tempo}
+      disabled={!tempo && !following}
       aria-label={label}
       aria-pressed={mine}
       title={label}
@@ -140,9 +149,12 @@ export function MetronomeReturnButton() {
         <span className="tabular-nums">{metronome.settings.tempo} BPM</span>
         <BeatLights settings={metronome.settings} beat={beat} size="small" />
       </Link>
-      <Button type="button" variant="ghost" size="icon" className="rounded-full" onClick={stopMetronome} aria-label={t("metronome.stop")}>
-        <Square />
-      </Button>
+      {/* Following Sync play's leader: theirs to stop. */}
+      {metronome.following ? null : (
+        <Button type="button" variant="ghost" size="icon" className="rounded-full" onClick={stopMetronome} aria-label={t("metronome.stop")}>
+          <Square />
+        </Button>
+      )}
     </div>
   );
 }

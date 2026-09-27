@@ -12,6 +12,6 @@ import { SongOwnershipService } from "./song-ownership.service";
   imports: [ArrangementsModule],
   controllers: [SetlistsController, SetInvitesController, OwnershipRequestsController],
   providers: [SetlistAccessService, SetlistsService, SetlistSharingService, SongOwnershipService],
-  exports: [SetlistsService],
+  exports: [SetlistsService, SetlistAccessService],
 })
 export class SetlistsModule {}

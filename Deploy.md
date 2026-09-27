@@ -132,6 +132,12 @@ survives a redeploy either way. Set one of the two paths before anyone
 uploads an attachment or runs a bulk content upload for real. Admin >
 Storage shows which path is currently active.
 
+**Sync play** (#13) is a WebSocket on the API itself, at
+`wss://api.songverse.one/sync` - the same app and port, nothing to add.
+Dokploy's proxy (Traefik) passes WebSocket connections through as they
+are; a proxy of your own in front must allow the `Upgrade` header. The
+sessions live in Redis, so it works with more than one API instance.
+
 ### Worker app
 
 **Application**, same source and Dockerfile as the API:
@@ -254,6 +260,7 @@ Don't use `pnpm --filter @songverse/db exec ...` there: the image doesn't includ
 - `https://app.songverse.one` → the app's sign-in page (and `https://songverse.one/library` redirects there)
 - `https://docs.songverse.one` → the documentation, with a language menu (English, Français)
 - Sign up for an account → should land on `/dashboard`, showing your name and the results of a live call to the API
+- On a set, **Sync** → **Turn sync on** → it says who's leading (or that no one is) rather than "Connecting…": the WebSocket gets through
 
 If all of those work, the deployment is healthy end to end: DNS → HTTPS → Web → Auth → API → Database.
 

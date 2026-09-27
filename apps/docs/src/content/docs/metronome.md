@@ -34,3 +34,5 @@ Use wired headphones or the device's speaker: Bluetooth headphones hear it a fra
 ## At a song's tempo
 
 In [Live](/sets/#playing-a-set-live), on a song's page in a set and on a song's page in Practice, the metronome button (on a song's page, it shows the song's tempo: **76 BPM**) starts it at the song's tempo and time signature (its version's, when the set plays one) in one press; press it again to stop. It uses your pattern, sound and count-in from the Metronome page, and flashes with the beat. A song without a tempo can't start it: add one on its **Song info**.
+
+Playing with others, the leader's metronome can be everyone's, in time: see [Playing in sync](/sets/#playing-in-sync).

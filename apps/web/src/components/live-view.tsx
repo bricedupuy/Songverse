@@ -7,6 +7,7 @@ import { MetronomeSongButton } from "#/components/metronome";
 import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { SongChart } from "#/components/song-chart";
+import { SyncControl } from "#/components/sync-control";
 import { cn } from "#/lib/utils";
 
 const TEXT_SIZE_KEY = "songverse.liveTextSize";
@@ -24,6 +25,8 @@ export interface LiveSong {
   artist: string | null;
   /** The set it's played in, the header's only text; null for a song on its own. */
   setName: string | null;
+  /** The set's ID, for Sync play (issue #13); null for a song on its own. */
+  setId: string | null;
   /** The chart, moved `extraSteps` semitones more (the last-minute transpose); null when the player can't read the song. */
   chartFor: (extraSteps: number) => RenderedChart | null;
   /** Semitones from the song's own key before that (the arrangement's and the set's): the key's "+1". */
@@ -219,6 +222,7 @@ export function LiveView({ song }: { song: LiveSong }) {
         </p>
         <OfflineBanner compact />
         {/* The song's tempo and time signature, one press (issue #2); the rest on the Metronome page. */}
+        {song.setId ? <SyncControl setId={song.setId} compact /> : null}
         <MetronomeSongButton songId={song.id} tempo={chart?.tempo} timeSignature={chart?.timeSignature} />
         <CommandSearch />
         {fullScreen.available ? (

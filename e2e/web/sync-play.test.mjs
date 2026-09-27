@@ -1,0 +1,172 @@
+// Sync play (issue #13), in two browsers: a follower and a leader in a
+// team's set, in Live. The leader starts the metronome: the follower hears
+// the same beats at the same instants (each click's time as heard, on each
+// device's clock, compared); a new tempo reaches them in time; the leader's
+// next song opens on the follower's screen; a follower's metronome is the
+// leader's (only sound and volume their own); a reload rejoins, the
+// leader's included (still leading, still in time); ending the session
+// stops everyone's. The suites can't hear it: they read the clicks the
+// engine scheduled (window.songverseMetronome).
+import { chromium } from "playwright";
+import { WEB, api, check, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
+
+let page;
+const step = stepper(() => page);
+const leaderUser = await user("Leader");
+const followerUser = await user("Follower");
+const team = await api(leaderUser, "POST", "/teams", { name: `Band ${stamp}` });
+sql(`insert into "TeamMembership" (id, "teamId", "userId", role, "updatedAt") values ('tmsp${stamp}', '${team.id}', '${followerUser.id}', 'MEMBER', now())`);
+const song = (title, tempo) => api(leaderUser, "POST", "/song-versions", { title, language: "en", artists: ["Band"], tempo, teamId: team.id, content: "[G]Line\n", contentFormat: "CHORDPRO" });
+const first = await song(`First ${stamp}`, 90);
+const second = await song(`Second ${stamp}`, 120);
+const set = await api(leaderUser, "POST", "/setlists", { name: `Sunday ${stamp}`, teamId: team.id });
+await api(leaderUser, "POST", `/setlists/${set.id}/items`, { songVersionId: first.id });
+await api(leaderUser, "POST", `/setlists/${set.id}/items`, { songVersionId: second.id });
+const [item1, item2] = (await api(leaderUser, "GET", `/setlists/${set.id}`)).items;
+
+const browser = await chromium.launch();
+const open = async (who) => {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const p = await context.newPage();
+  await signIn(p, who);
+  return p;
+};
+const follower = await open(followerUser);
+const leader = await open(leaderUser);
+page = follower;
+
+const control = (p) => p.getByTestId("sync-control").first();
+const menu = (p) => p.getByTestId("sync-menu");
+async function choose(p, item) {
+  await control(p).click();
+  await menu(p).getByRole("menuitem", { name: item }).click();
+}
+const syncState = (p, value) => p.locator(`[data-testid="sync-control"][data-state-sync="${value}"]`).first().waitFor({ timeout: 10000 });
+
+/** Each click as heard: its position in the timeline, and when (ms since the epoch, on the device's clock). */
+const heard = (p) => p.evaluate(() => {
+  const m = window.songverseMetronome;
+  return (m?.clicks ?? []).map((c) => ({ position: c.position, at: c.heardAt, output: c.outputAt }));
+});
+/** Waits for the follower's clicks from now on, and compares them with the leader's at the same positions: the most they're apart (ms). */
+async function apart(count = 6) {
+  const since = Date.now();
+  await follower.waitForFunction(([n, s]) => {
+    const m = window.songverseMetronome;
+    return (m?.clicks ?? []).filter((c) => c.heardAt > s).length >= n;
+  }, [count, since], { timeout: 15000 });
+  // Only clicks already heard: each device schedules a little ahead, not always as far as the other yet.
+  await follower.waitForTimeout(300);
+  const [mine, theirs] = await Promise.all([heard(follower), heard(leader)]);
+  const heardBy = Date.now();
+  const recent = mine.filter((c) => c.at > since && c.at < heardBy);
+  const pairs = recent.map((c) => [c, theirs.filter((l) => Math.abs(l.position - c.position) < 1e-6).sort((a, b) => Math.abs(a.at - c.at) - Math.abs(b.at - c.at))[0]]);
+  const worstOf = (key) => Math.max(...pairs.map(([c, l]) => (l ? Math.abs(l[key] - c[key]) : Infinity)));
+  // `worst`: the timelines each device plays, on its own clock - what Sync play keeps together. `output`: the same through each
+  // one's audio output, as it reports it: a headless browser's stand-in output is off by an audio buffer or two (10 ms each)
+  // after a reload, so only a loose bound here; a real device's output says when it plays.
+  return { worst: worstOf("at"), output: worstOf("output"), recent };
+}
+const gapsOf = (clicks) => clicks.slice(1).map((c, i) => c.at - clicks[i].at);
+
+await step("the follower turns sync on in Live: no one leads yet, and they can't", async () => {
+  await follower.goto(`${WEB}/sets/${set.id}/live/${item1.id}`);
+  await choose(follower, "Turn sync on");
+  await syncState(follower, "on");
+  await control(follower).click();
+  await menu(follower).getByText("Waiting for someone who can edit the set to lead.").waitFor();
+  if (await menu(follower).getByRole("menuitem", { name: "Lead the set" }).count()) throw new Error("a member can lead");
+  await follower.keyboard.press("Escape");
+});
+
+await step("the leader turns it on and leads: the follower follows them", async () => {
+  page = leader;
+  await leader.goto(`${WEB}/sets/${set.id}/live/${item1.id}`);
+  await choose(leader, "Turn sync on");
+  await syncState(leader, "on");
+  await choose(leader, "Lead the set");
+  await syncState(leader, "leading");
+  page = follower;
+  await syncState(follower, "following");
+  await control(follower).click();
+  await menu(follower).getByText("Leader is leading").waitFor();
+  await menu(follower).getByTestId("sync-members").getByText("2 devices in sync").waitFor();
+  await follower.keyboard.press("Escape");
+});
+
+await step("the leader starts the metronome: the follower hears the same beats at the same instants", async () => {
+  page = leader;
+  await leader.getByTestId("metronome-song").click();
+  page = follower;
+  const { worst, output, recent } = await apart();
+  check("in time with the leader (ms apart, at most)", worst < 5 && output < 40, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms)`);
+  if (!gapsOf(recent).every((gap) => Math.abs(gap - 60000 / 90) < 3)) throw new Error(`gaps ${gapsOf(recent)}`);
+  // The follower's button is the leader's metronome.
+  if ((await follower.getByTestId("metronome-song").getAttribute("title")) !== "Following Leader") throw new Error("not the leader's");
+});
+
+await step("the leader's next song opens on the follower's screen", async () => {
+  page = leader;
+  await leader.getByTestId("live-next").click();
+  await leader.waitForURL(new RegExp(`/live/${item2.id}$`));
+  page = follower;
+  await follower.waitForURL(new RegExp(`/live/${item2.id}$`), { timeout: 10000 });
+});
+
+await step("a new tempo from the leader's Metronome page: the follower's changes with it, in time", async () => {
+  page = leader;
+  await leader.getByRole("button", { name: "Back to the set" }).click();
+  await leader.getByRole("link", { name: "Metronome", exact: true }).first().click();
+  await leader.waitForURL(`${WEB}/metronome`);
+  const tempo = leader.getByTestId("metronome-tempo");
+  await tempo.fill("100");
+  await tempo.blur();
+  page = follower;
+  await follower.waitForTimeout(1500);
+  const { worst, output, recent } = await apart();
+  check("still in time after the change (ms apart, at most)", worst < 5 && output < 40, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms)`);
+  if (!gapsOf(recent).every((gap) => Math.abs(gap - 600) < 3)) throw new Error(`gaps ${gapsOf(recent)}`);
+});
+
+await step("the follower's Metronome page: the leader's, but for their sound and volume; back after a reload", async () => {
+  page = follower;
+  await follower.goto(`${WEB}/metronome`);
+  await follower.getByTestId("metronome-following").getByText("Leader leads the metronome").waitFor({ timeout: 10000 });
+  if (!(await follower.getByTestId("metronome-tempo").isDisabled())) throw new Error("the tempo can be changed");
+  if (!(await follower.getByTestId("metronome-play").isDisabled())) throw new Error("it can be stopped");
+  if (await follower.getByLabel("Sound").isDisabled()) throw new Error("the sound can't be chosen");
+  await follower.waitForFunction(() => document.querySelector('[data-testid="metronome-tempo"]')?.value === "100", null, { timeout: 10000 });
+  // A reload: the browser may want a press before it makes a sound.
+  const tap = follower.getByRole("button", { name: "Tap to hear the metronome" });
+  if (await tap.isVisible()) await tap.click();
+  const { worst, output } = await apart();
+  check("in time after the follower's reload (ms apart, at most)", worst < 5 && output < 40, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms)`);
+});
+
+await step("the leader reloads: still leading, the metronome picked up where it is", async () => {
+  page = leader;
+  await leader.reload();
+  await leader.getByTestId("metronome-tempo").waitFor();
+  const tap = leader.getByRole("button", { name: "Tap to hear the metronome" });
+  await leader.waitForFunction(() => (window.songverseMetronome?.clicks ?? []).length > 0, null, { timeout: 10000 });
+  if (await tap.isVisible()) await tap.click();
+  page = follower;
+  const { worst, output } = await apart();
+  check("in time after the leader's reload (ms apart, at most)", worst < 5 && output < 40, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms)`);
+  await follower.getByTestId("metronome-following").waitFor();
+});
+
+await step("the leader ends the session: everyone's metronome stops", async () => {
+  page = leader;
+  await leader.goto(`${WEB}/sets/${set.id}`);
+  await choose(leader, "End the session");
+  page = follower;
+  await follower.getByTestId("metronome-following").waitFor({ state: "detached", timeout: 10000 });
+  const count = await follower.evaluate(() => window.songverseMetronome.clicks.length);
+  await follower.waitForTimeout(1500);
+  if ((await follower.evaluate(() => window.songverseMetronome.clicks.length)) !== count) throw new Error("still clicking");
+  if (!(await follower.getByTestId("metronome-play").isEnabled())) throw new Error("still locked");
+});
+
+await browser.close();
+finish();
