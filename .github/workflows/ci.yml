@@ -2,10 +2,15 @@ name: CI
 
 on:
   push:
-    # Work branches too, so they're checked before reaching main. Deploys
-    # stay main-only (see deploy-api's condition).
-    branches: [main, "claude/**"]
+    # Only main: a work branch is checked through its pull request, once.
+    branches: [main]
   pull_request:
+
+# A newer push to the same branch (or PR) cancels the run it makes pointless;
+# its own run checks, and on main deploys, everything the older one had.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/songverse_test?schema=public"
@@ -53,13 +58,15 @@ jobs:
       - name: Test
         run: pnpm turbo test
 
-  # Whether a push changes more than documentation (the user docs in
+  # What a push changes: whether more than documentation (the user docs in
   # apps/docs, the website in apps/site, the specs in docs/, Markdown
-  # files), which the e2e suites have nothing to say about.
+  # files), which the e2e suites have nothing to say about; and which
+  # Docker images it can affect (see the docker job).
   changes:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.diff.outputs.code }}
+      images: ${{ steps.diff.outputs.images }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,13 +75,30 @@ jobs:
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
-          # A new branch has no "before" to compare with: treat it as code.
-          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; fi
-          if git diff --name-only "$BASE" "$GITHUB_SHA" | grep -qvE '^(apps/docs/|apps/site/|docs/)|\.md$'; then
+          # A new branch has no "before" to compare with: treat it as code, every image built.
+          if [ -z "$BASE" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo 'images=["api","web","docs","site"]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files=$(git diff --name-only "$BASE" "$GITHUB_SHA")
+          if echo "$files" | grep -qvE '^(apps/docs/|apps/site/|docs/)|\.md$'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
+          # An image is built when what shapes it changes - its Dockerfile, the
+          # dependencies and workspace, how it's built - not for every line of
+          # code: build-test and e2e compile and run that already. The docs and
+          # the website are built for any change to them (the docs' build
+          # checks their links; the website's image, its redirects).
+          deps='^(pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|turbo\.json|\.dockerignore|packages/[^/]+/package\.json|packages/tsconfig/)'
+          images=()
+          echo "$files" | grep -qE "$deps|^Dockerfile\.api$|^apps/api/(package\.json|nest-cli\.json|tsconfig)|^packages/db/prisma/" && images+=('"api"')
+          echo "$files" | grep -qE "$deps|^Dockerfile\.web$|^apps/web/(package\.json|server\.mjs|vite\.config|tsconfig)" && images+=('"web"')
+          echo "$files" | grep -qE "$deps|^Dockerfile\.docs$|^apps/docs/" && images+=('"docs"')
+          echo "$files" | grep -qE "$deps|^Dockerfile\.site$|^apps/site/" && images+=('"site"')
+          echo "images=[$(IFS=,; echo "${images[*]}")]" >> "$GITHUB_OUTPUT"
 
   e2e:
     # The API and browser suites in e2e/, against production builds of the
@@ -184,11 +208,14 @@ jobs:
   # Builds the images Dokploy deploys, so a Dockerfile that no longer
   # matches the code fails here rather than on the server. Nothing is pushed.
   # (The docs image also checks every internal link, in its build.)
+  # Only the images the push can affect (see changes).
   docker:
+    needs: changes
+    if: needs.changes.outputs.images != '[]'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: [api, web, docs, site]
+        image: ${{ fromJSON(needs.changes.outputs.images) }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -214,7 +241,13 @@ jobs:
 
   deploy-api:
     needs: [build-test, e2e, docker]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # A skipped job would skip this one too: deploy when the checks passed and
+    # the images built, or had nothing to build (docs-only pushes skip e2e,
+    # and so the API's deploy, as before).
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' && github.event_name == 'push' &&
+      needs.build-test.result == 'success' && needs.e2e.result == 'success' &&
+      (needs.docker.result == 'success' || needs.docker.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
