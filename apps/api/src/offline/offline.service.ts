@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { offlineFingerprint } from "@songverse/core";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { AttachmentsService } from "../attachments/attachments.service.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
@@ -97,6 +98,10 @@ export class OfflineService {
    * - Songbooks: pinned ("Keep a local copy").
    * - Songs: the user's own, pinned, in a kept songbook, or in a kept set -
    *   with `audio` when a pin asks for their audio files.
+   *
+   * With a `fingerprint` (issue #121) the answer is only whether that's
+   * still what the device keeps: `unchanged` with the small settings, or
+   * not, and the device syncs with its lists.
    */
   async sync(user: AuthenticatedUser, dto: OfflineSyncDto) {
     const days = dto.days ?? 14;
@@ -173,16 +178,29 @@ export class OfflineService {
         attachments: { where: visibleFiles, select: { id: true, createdAt: true, stemPart: true, recordingKey: true, recordingTempo: true, recordingFirstBeat: true, visibility: true, visibleToTeamId: true } },
       },
     });
+    const entries = current.map((row) => ({ id: row.id, version: songVersion(row.updatedAt, row.attachments), audio: audio.has(row.id) }));
+    const viewerRow = await this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true } });
+    const viewer = { chordNotation: viewerRow?.chordNotation ?? "LETTERS", capoDisplayMode: viewerRow?.capoDisplayMode ?? "SOUNDING" };
+
+    // Asked only whether anything changed (issue #121): the device's
+    // fingerprint of what it keeps against this one of what it should keep.
+    if (dto.fingerprint !== undefined) {
+      const expected = await offlineFingerprint({
+        sets: sets.map(({ id, version }) => ({ id, version })),
+        songs: entries,
+        songbooks: songbooks.map(({ id, version }) => ({ id, version })),
+      });
+      return expected === dto.fingerprint ? { unchanged: true as const, days, upcoming, pins, viewer } : { unchanged: false as const };
+    }
+
+    // Full copies only for the songs the device doesn't have as they are.
     const knownSongs = new Map((dto.knownSongs ?? []).map((song) => [song.id, song.version]));
     const songs: { id: string; version: string; audio: boolean; copy?: Awaited<ReturnType<OfflineService["songCopy"]>> }[] = [];
-    for (const row of current) {
-      const version = songVersion(row.updatedAt, row.attachments);
-      const entry = { id: row.id, version, audio: audio.has(row.id) };
-      songs.push(version === knownSongs.get(row.id) ? entry : { ...entry, copy: await this.songCopy(user, row.id) });
+    for (const entry of entries) {
+      songs.push(entry.version === knownSongs.get(entry.id) ? entry : { ...entry, copy: await this.songCopy(user, entry.id) });
     }
     const goneSongs = [...knownSongs.keys()].filter((id) => !songs.some((song) => song.id === id));
 
-    const viewer = await this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true } });
     return {
       days,
       upcoming,
@@ -193,7 +211,7 @@ export class OfflineService {
       songs,
       goneSongs,
       pins,
-      viewer: { chordNotation: viewer?.chordNotation ?? "LETTERS", capoDisplayMode: viewer?.capoDisplayMode ?? "SOUNDING" },
+      viewer,
     };
   }
 }

@@ -1,7 +1,8 @@
 // Offline, step 3 (issue #51): the device keeps itself current. Upcoming
 // sets are downloaded without being opened, changes are caught up, and sets
 // that are deleted, no longer visible or past are removed.
-import { WEB, api, call, check, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
+import { offlineFingerprint } from "../../packages/core/dist/index.js";
+import { API, WEB, api, call, check, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
 
 // Playwright's offline mode doesn't reach a service worker's own requests;
 // with this, routing does (see offline.test.mjs).
@@ -44,6 +45,27 @@ r = await call(me, "POST", "/offline/sync", { known: [{ id: soon.id, version }] 
 check("editing a song in the set changes the set's version", entry(soon.id).version !== version && entry(soon.id).copy?.songs[0].song.title === `Renamed ${stamp}`);
 r = await call(me, "POST", "/offline/sync", { days: 61 });
 check("days is 1 to 60", r.status === 400, String(r.status));
+
+// --- asking only whether anything changed (issue #121)
+r = await call(me, "POST", "/offline/sync", {});
+const kept = {
+  sets: r.body.sets.map(({ id, version }) => ({ id, version })),
+  songs: r.body.songs.map(({ id, version, audio }) => ({ id, version, audio })),
+  songbooks: r.body.songbooks.map(({ id, version }) => ({ id, version })),
+};
+let fingerprint = await offlineFingerprint(kept);
+const asked = { fingerprint, known: kept.sets };
+let res = await fetch(`${API}/offline/sync`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}`, "Content-Type": "application/json" }, body: JSON.stringify(asked) });
+let text = await res.text();
+let answer = JSON.parse(text);
+check(
+  "a device that keeps what it should: unchanged, in a few hundred bytes, with its pins and settings",
+  answer.unchanged === true && text.length < 1000 && Array.isArray(answer.pins) && !!answer.viewer && !answer.songs,
+  `${text.length} bytes: ${text.slice(0, 200)}`,
+);
+await api(me, "PATCH", `/song-versions/${song.id}`, { album: `Kept album ${stamp}` });
+r = await call(me, "POST", "/offline/sync", asked);
+check("after a change to one of its songs: changed, and it syncs its lists", r.body.unchanged === false && !r.body.songs, JSON.stringify(r.body));
 
 // --- the device
 const browser = await chromium.launch();
@@ -88,6 +110,22 @@ await step("launching the app downloads the upcoming sets, without opening them"
   await page.waitForLoadState("networkidle");
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 30_000 });
   await waitForKept([soon.id, past.id]);
+});
+
+await step("up to date, the next launch only asks whether anything changed (issue #121)", async () => {
+  const syncs = [];
+  const listen = (response) => {
+    if (response.url().endsWith("/offline/sync")) syncs.push(response.request().postDataJSON() && response.json().then((body) => ({ sent: response.request().postDataJSON(), body })));
+  };
+  page.on("response", listen);
+  await page.goto(`${WEB}/dashboard`);
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(1000);
+  page.off("response", listen);
+  const done = await Promise.all(syncs);
+  if (done.length !== 1 || !done[0].sent.fingerprint || done[0].sent.knownSongs || done[0].body.unchanged !== true) {
+    throw new Error(JSON.stringify(done.map(({ sent, body }) => ({ sent: Object.keys(sent), unchanged: body.unchanged }))));
+  }
 });
 
 await step("offline, an upcoming set never opened plays in Live", async () => {

@@ -14,6 +14,9 @@ export const OfflineSyncSchema = z.strictObject({
   known: optional(z.array(knownCopy).max(200)).describe("The sets the device keeps, with their versions"),
   knownSongs: optional(z.array(knownCopy).max(5000)).describe("The songs the device keeps, with their versions"),
   knownSongbooks: optional(z.array(knownCopy).max(200)).describe("The songbooks the device keeps, with their versions"),
+  fingerprint: optional(z.string().max(128)).describe(
+    "offlineFingerprint() of what the device keeps (issue #121): the answer is only whether it's still what it should keep",
+  ),
 });
 export type OfflineSyncRequest = z.input<typeof OfflineSyncSchema>;
 

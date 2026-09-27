@@ -15,6 +15,7 @@ import {
   searchKeptEntries,
   searchKeptSongs,
   syncKeptFiles,
+  offlineFingerprint,
   syncKeptSets,
   wantedFiles,
   type OfflineStorage,
@@ -94,6 +95,31 @@ describe("syncing kept sets", () => {
     expect((await keptSetSong(storage, "changed", "i2"))?.song?.title).toBe("New");
     expect(result).toMatchObject({ updated: 2, removed: 1, kept: 3 });
     expect((await lastOfflineSync(storage))?.at).toBe(now.toISOString());
+  });
+
+  it("asks first whether anything changed (issue #121): an up-to-date device never sends its lists", async () => {
+    const storage = memoryStorage();
+    await keepSet(storage, copy("s1", [view("i1", "v1")], "2026-09-27", "a"));
+    const expected = await offlineFingerprint({ sets: [{ id: "s1", version: "a" }], songs: [], songbooks: [] });
+    let fullSyncs = 0;
+    let checked: { fingerprint: string; known: { id: string; version: string }[] } | null = null;
+    const full = async (): Promise<OfflineSyncResponse> => (fullSyncs++, { ...empty, days: 14, upcoming: [], sets: [{ id: "s1", version: "a" }], gone: [] });
+    const viewer = { chordNotation: "SOLFEGE" as const, capoDisplayMode: "SOUNDING" as const };
+    const result = await syncKeptSets(storage, full, now, async (fingerprint, known) => ((checked = { fingerprint, known }), { unchanged: true, days: 14, upcoming: [], pins: [], viewer }));
+    expect(checked).toEqual({ fingerprint: expected, known: [{ id: "s1", version: "a" }] });
+    expect(fullSyncs).toBe(0);
+    expect(result).toMatchObject({ updated: 0, removed: 0, kept: 1 });
+    expect(await storage.get("meta", "viewer")).toEqual(viewer);
+    // Out of date: the full sync, as before.
+    await syncKeptSets(storage, full, now, async () => ({ unchanged: false }));
+    expect(fullSyncs).toBe(1);
+  });
+
+  it("a fingerprint depends on what's kept, not the order it's listed in", async () => {
+    const a = { sets: [{ id: "s1", version: "a" }, { id: "s2", version: "b" }], songs: [{ id: "v1", version: "1", audio: false }], songbooks: [] };
+    const b = { ...a, sets: [...a.sets].reverse() };
+    expect(await offlineFingerprint(a)).toBe(await offlineFingerprint(b));
+    expect(await offlineFingerprint(a)).not.toBe(await offlineFingerprint({ ...a, songs: [{ id: "v1", version: "1", audio: true }] }));
   });
 
   it("drops a set a day after its date; undated sets stay", async () => {

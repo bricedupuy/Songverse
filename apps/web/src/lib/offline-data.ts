@@ -81,7 +81,13 @@ export function setOfflineDays(days: number): void {
 export function syncOffline(userId: string): Promise<void> {
   if (deviceOffline()) return Promise.resolve();
   const storage = deviceStorage(userId);
-  syncing ??= syncKeptSets(storage, (known, knownSongs, knownSongbooks) => apiClient.syncOffline({ days: offlineDays(), known, knownSongs, knownSongbooks }))
+  syncing ??= syncKeptSets(
+    storage,
+    (known, knownSongs, knownSongbooks) => apiClient.syncOffline({ days: offlineDays(), known, knownSongs, knownSongbooks }),
+    new Date(),
+    // Asked first whether anything changed, so an up-to-date device sends and gets back almost nothing (issue #121).
+    (fingerprint, known) => apiClient.checkOffline({ days: offlineDays(), fingerprint, known }),
+  )
     .then(() => syncKeptFiles(storage, ({ songVersionId, attachment }) => apiClient.downloadAttachment(songVersionId, attachment.id)))
     .then(() => undefined)
     .catch(() => undefined)

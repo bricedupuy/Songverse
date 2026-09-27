@@ -224,6 +224,15 @@ store. Choose when building it; TanStack Query is the less custom option.
   unshared, a team left). There's no change feed to keep and no
   deletion records: a version is a hash of what the device would show.
   Songbooks and pins join it in #52.
+  **Asking first (#121):** most syncs find nothing to do, so a device
+  first sends only `fingerprint` - `offlineFingerprint()` (core) of the
+  sets, songs (with their `audio`) and songbooks it keeps, with their
+  versions - and `known` (its sets, which are few). The API works out the
+  same fingerprint of what the device should keep: when they match the
+  answer is `unchanged: true` with `days`, `upcoming`, `pins` and `viewer`
+  (a few hundred bytes); otherwise `unchanged: false`, and the device
+  syncs with its lists as above. For a 3,000-song library that's about
+  0.2 KB each way every few minutes instead of about 250 KB.
 - `GET /setlists/:id/offline` - a set with every song as it's shown, in
   one response (#50). `GET /songbooks/:id/offline` and
   `POST /song-versions/offline` (a batch of songs) come with #52.

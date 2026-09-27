@@ -251,6 +251,15 @@ export interface OfflineSyncResponse {
   viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue };
 }
 
+/**
+ * POST /offline/sync with a `fingerprint` (issue #121): whether what the
+ * device keeps is still what it should keep. Unchanged, it carries only
+ * the small settings; changed, the device syncs with its lists.
+ */
+export type OfflineSyncCheck =
+  | ({ unchanged: true } & Pick<OfflineSyncResponse, "days" | "upcoming" | "pins" | "viewer">)
+  | { unchanged: false };
+
 /** A player's own way of reading charts: this chart's preferences, and their settings for every chart. */
 export interface ChartViewSettings {
   preferences: ChartPreferences | null;
@@ -1417,6 +1426,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       knownSongs?: { id: string; version: string }[];
       knownSongbooks?: { id: string; version: string }[];
     }) => request<OfflineSyncResponse>("/offline/sync", { method: "POST", body: JSON.stringify(body) }),
+    /** The same sync, asking first whether anything changed (issue #121). */
+    checkOffline: (body: { days?: number; fingerprint: string; known: { id: string; version: string }[] }) =>
+      request<OfflineSyncCheck>("/offline/sync", { method: "POST", body: JSON.stringify(body) }),
     listOfflinePins: () => request<OfflinePin[]>("/offline/pins"),
     pinOffline: (kind: OfflinePinKind, targetId: string, includeAudio = false) =>
       request<OfflinePin>("/offline/pins", { method: "PUT", body: JSON.stringify({ kind, targetId, includeAudio }) }),

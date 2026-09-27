@@ -1,6 +1,7 @@
 import type {
   Attachment,
   OfflinePin,
+  OfflineSyncCheck,
   OfflineSyncResponse,
   SetlistDetail,
   SetlistOfflineCopy,
@@ -206,27 +207,71 @@ export interface OfflineSyncResult {
 
 type Known = { id: string; version: string }[];
 
+/** What a device keeps, as the fingerprint sees it. */
+export interface OfflineHoldings {
+  sets: Known;
+  songs: (Known[number] & { audio: boolean })[];
+  songbooks: Known;
+}
+
+/**
+ * One fingerprint of what a device keeps (issue #121), worked out the same
+ * way by the device (from what it has) and the API (from what it should
+ * have): when they match, a sync has nothing to send either way. SHA-256,
+ * through Web Crypto (browsers and Node alike).
+ */
+export async function offlineFingerprint(holdings: OfflineHoldings): Promise<string> {
+  const lines = [
+    ...holdings.sets.map((set) => `set ${set.id} ${set.version}`),
+    ...holdings.songs.map((song) => `song ${song.id} ${song.version} ${song.audio ? "audio" : ""}`),
+    ...holdings.songbooks.map((book) => `songbook ${book.id} ${book.version}`),
+  ].sort();
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(lines.join("\n")));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 /**
  * Brings the device's copy up to date (issues #51, #52): sends the versions
  * of what it keeps (sets, songs, songbooks), stores the copies that changed
  * or are new, removes what's gone (deleted, access lost, unpinned), and
  * drops sets a day after their date. `send` is POST /offline/sync.
+ *
+ * With `check` (issue #121), it first sends only a fingerprint of what it
+ * keeps (and its sets, which are few): when the API's matches, nothing is
+ * out of date and the lists aren't sent either way.
  */
 export async function syncKeptSets(
   storage: OfflineStorage,
   send: (known: Known, knownSongs: Known, knownSongbooks: Known) => Promise<OfflineSyncResponse>,
   now = new Date(),
+  check?: (fingerprint: string, known: Known) => Promise<OfflineSyncCheck>,
 ): Promise<OfflineSyncResult> {
-  const versions = async (store: "songs" | "songbooks") => (await all<{ version?: string; song?: { id: string }; songbook?: { id: string } }>(storage, store)).map((kept) => ({ id: (kept.song ?? kept.songbook)!.id, version: kept.version ?? "" }));
+  const keptSongs = await all<{ version?: string; audio?: boolean; song: { id: string } }>(storage, "songs");
+  const knownSongs = keptSongs.map((kept) => ({ id: kept.song.id, version: kept.version ?? "" }));
+  const knownSongbooks = (await all<{ version?: string; songbook: { id: string } }>(storage, "songbooks")).map((kept) => ({ id: kept.songbook.id, version: kept.version ?? "" }));
   const before = await allKeptSets(storage);
-  const response = await send(
-    before.map((kept) => ({ id: kept.set.id, version: kept.version ?? "" })),
-    await versions("songs"),
-    await versions("songbooks"),
-  );
+  const known = before.map((kept) => ({ id: kept.set.id, version: kept.version ?? "" }));
   let updated = 0;
   let removed = 0;
   const savedAt = now.toISOString();
+
+  if (check) {
+    const fingerprint = await offlineFingerprint({
+      sets: known,
+      songs: keptSongs.map((kept) => ({ id: kept.song.id, version: kept.version ?? "", audio: kept.audio ?? false })),
+      songbooks: knownSongbooks,
+    });
+    const answer = await check(fingerprint, known);
+    if (answer.unchanged) {
+      await storage.put("meta", "viewer", answer.viewer);
+      await storage.put("meta", "pins", answer.pins);
+      removed += await dropPastSets(storage, now);
+      const result: OfflineSyncResult = { at: savedAt, updated, removed, kept: (await storage.keys("sets")).length };
+      await storage.put("meta", "lastSync", result);
+      return result;
+    }
+  }
+  const response = await send(known, knownSongs, knownSongbooks);
 
   for (const id of response.gone) {
     await storage.delete("sets", id);
@@ -263,17 +308,23 @@ export async function syncKeptSets(
   if (response.viewer) await storage.put("meta", "viewer", response.viewer);
   if (response.pins) await storage.put("meta", "pins", response.pins);
 
-  // A set drops off the device a day after its date.
-  const yesterday = new Date(now.getTime() - DAY_MS).toISOString().slice(0, 10);
-  for (const kept of await allKeptSets(storage)) {
-    if (kept.set.eventDate && kept.set.eventDate < yesterday) {
-      await storage.delete("sets", kept.set.id);
-      removed++;
-    }
-  }
+  removed += await dropPastSets(storage, now);
   const result: OfflineSyncResult = { at: savedAt, updated, removed, kept: (await storage.keys("sets")).length };
   await storage.put("meta", "lastSync", result);
   return result;
+}
+
+/** A set drops off the device a day after its date; how many did. */
+async function dropPastSets(storage: OfflineStorage, now: Date): Promise<number> {
+  const yesterday = new Date(now.getTime() - DAY_MS).toISOString().slice(0, 10);
+  let dropped = 0;
+  for (const kept of await allKeptSets(storage)) {
+    if (kept.set.eventDate && kept.set.eventDate < yesterday) {
+      await storage.delete("sets", kept.set.id);
+      dropped++;
+    }
+  }
+  return dropped;
 }
 
 export async function lastOfflineSync(storage: OfflineStorage): Promise<OfflineSyncResult | undefined> {
