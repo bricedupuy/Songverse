@@ -1,8 +1,9 @@
 import type { LibraryHome, SongVersionSummary } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, Music2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { ChevronLeft, ChevronRight, Music2 } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
 
 /** A song as a card shows it; `imageUrl` for when songs have images of their own. */
@@ -76,16 +77,61 @@ function SongCard({ song, from }: { song: CardSong; from?: string }) {
   );
 }
 
+/**
+ * Whether a shelf can scroll back or on (issue #94), kept up to date as it
+ * scrolls or its width changes.
+ */
+function useScrollEnds() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [ends, setEnds] = useState({ back: false, on: false });
+  const update = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const back = el.scrollLeft > 1;
+    const on = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setEnds((was) => (was.back === back && was.on === on ? was : { back, on }));
+  }, []);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [update]);
+  const scroll = (direction: 1 | -1) => ref.current?.scrollBy({ left: direction * ref.current.clientWidth * 0.9, behavior: "smooth" });
+  return { ref, ends, scroll };
+}
+
 function Shelf({ id, title, songs, more, from }: { id: string; title: string; songs: CardSong[]; more?: ReactNode; from?: string }) {
+  const { t } = useTranslation();
+  const { ref, ends, scroll } = useScrollEnds();
   return (
     <section className="flex flex-col gap-3" aria-labelledby={`shelf-${id}`} data-testid={`shelf-${id}`}>
-      <div className="flex items-baseline justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <h2 id={`shelf-${id}`} className="text-lg font-semibold">
           {title}
         </h2>
-        {more}
+        <div className="flex items-center gap-2">
+          {more}
+          {ends.back || ends.on ? (
+            // Touch screens swipe: the buttons are for a mouse (issue #94).
+            <div className="hidden items-center gap-1 [@media(pointer:fine)]:flex">
+              <Button variant="outline" size="icon" className="size-7 rounded-full" disabled={!ends.back} onClick={() => scroll(-1)} aria-label={t("library.home.scrollBack", { title })} data-testid="shelf-back">
+                <ChevronLeft className="size-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="size-7 rounded-full" disabled={!ends.on} onClick={() => scroll(1)} aria-label={t("library.home.scrollOn", { title })} data-testid="shelf-on">
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          ) : null}
+        </div>
       </div>
-      <div className="-mx-1 flex snap-x gap-4 overflow-x-auto px-1 pb-2">
+      <div ref={ref} data-testid="shelf-row" className="-mx-1 flex snap-x scroll-px-1 gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {songs.map((song) => (
           <SongCard key={song.id} song={song} from={from} />
         ))}

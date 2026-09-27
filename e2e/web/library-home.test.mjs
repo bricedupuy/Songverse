@@ -38,6 +38,30 @@ await step("Library opens on its home: newly added first, with covers; popular i
   if ((await sections.getByRole("link", { name: "Songs", exact: true }).getAttribute("data-active")) === "true") throw new Error("Songs is marked on the home");
 });
 
+await step("a shelf longer than the window: no scrollbar, buttons to go through it (issue #94)", async () => {
+  for (let i = 0; i < 10; i++) await api(me, "POST", "/song-versions", { title: `Filler ${i} ${stamp}`, language: "en", artists: ["Someone"] });
+  await page.reload();
+  await page.waitForLoadState("networkidle");
+  const row = shelf("newest").getByTestId("shelf-row");
+  if ((await row.evaluate((el) => getComputedStyle(el).scrollbarWidth)) !== "none") throw new Error("a scrollbar");
+  const back = shelf("newest").getByRole("button", { name: "Back in Newly added" });
+  const on = shelf("newest").getByRole("button", { name: "More in Newly added" });
+  if (!(await back.isDisabled()) || !(await on.isEnabled())) throw new Error("at the start: only on");
+  await on.click();
+  await page.waitForFunction((el) => el.scrollLeft > 0, await row.elementHandle());
+  await back.waitFor({ state: "visible" });
+  await page.waitForFunction((el) => !el.disabled, await back.elementHandle());
+  await back.click();
+  await page.waitForFunction((el) => el.scrollLeft === 0, await row.elementHandle());
+  // Everything fits: no buttons.
+  await page.setViewportSize({ width: 3800, height: 900 });
+  await page.waitForFunction(() => {
+    const shelf = document.querySelector('[data-testid="shelf-favorites"], [data-testid="shelf-popular"]');
+    return shelf && !shelf.querySelector('[data-testid="shelf-on"]');
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+});
+
 await step("a song opened is recently viewed; starred, it's a favorite", async () => {
   await card("newest", `Zephyr hymn ${stamp}`).click();
   await page.waitForURL(new RegExp(`/library/${older.id}(\\?|$)`)); // with where it was opened from

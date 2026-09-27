@@ -256,6 +256,8 @@ const en = {
       favorites: "Favorites",
       popular: "Popular in your teams",
       seeAll: "See all",
+      scrollBack: "Back in {{title}}",
+      scrollOn: "More in {{title}}",
       recentlyUpdated: "Recently updated",
       allSongsCount_one: "All {{count}} song",
       allSongsCount_other: "All {{count}} songs",

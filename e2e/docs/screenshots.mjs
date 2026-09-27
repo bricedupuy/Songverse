@@ -33,6 +33,10 @@ const env = {
   AUTH_URL: `http://localhost:${API_PORT}`,
   WEB_URL: `http://localhost:${WEB_PORT}`,
   API_URL: `http://localhost:${API_PORT}`,
+  // A Redis database of its own, the API running the jobs (issue #92): none of
+  // another Worker's, on another database, pick them up.
+  REDIS_URL: process.env.DOCS_REDIS_URL ?? "redis://localhost:6379/15",
+  JOBS_IN_API: "true",
 };
 const servers = [
   spawn("sh", ["-c", `node dist/main.js > ${API_LOG} 2>&1`], { cwd: path.join(root, "apps/api"), env: { ...env, PORT: String(API_PORT) }, detached: true }),

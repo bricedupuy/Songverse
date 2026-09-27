@@ -256,6 +256,8 @@ const fr: typeof en = {
       favorites: "Favoris",
       popular: "Populaires dans vos équipes",
       seeAll: "Tout voir",
+      scrollBack: "Précédents dans {{title}}",
+      scrollOn: "Suivants dans {{title}}",
       recentlyUpdated: "Modifiés récemment",
       allSongsCount_one: "Le chant ({{count}})",
       allSongsCount_other: "Les {{count}} chants",

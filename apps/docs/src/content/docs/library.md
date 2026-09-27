@@ -16,6 +16,8 @@ The **Library** holds every song you can see: your own, your teams', and the glo
 - **Favorites** - the songs you starred: the star beside **Share** on a song's page (**Add to favorites**, **Remove from favorites**). It shows once you have one. **See all** lists them, as the **Favorites** filter above the list and in the sidebar's panel do. Your favorites are your own.
 - **Popular in your teams** - what your teams play and look at most: songs in your teams' sets and opened by their members over the last 90 days.
 
+When a row has more songs than fit, swipe it, or use the arrows beside its title with a mouse.
+
 A song without an image of its own gets a cover from its title's colour and initials. Below the rows, **Recently updated** shows the songs changed last, and its link opens **Songs**. The search box at the top of the home searches **Songs**.
 
 ## Searching and filtering

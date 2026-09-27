@@ -16,6 +16,8 @@ La **Bibliothèque** contient tous les chants que vous pouvez voir : les vôtres
 - **Favoris** - les chants que vous avez marqués d'une étoile : l'étoile à côté de **Partager** sur la page d'un chant (**Ajouter aux favoris**, **Retirer des favoris**). La rangée apparaît dès que vous en avez un. **Tout voir** les liste, comme le filtre **Favoris** au-dessus de la liste et dans le panneau de la barre latérale. Vos favoris sont à vous.
 - **Populaires dans vos équipes** - ce que vos équipes jouent et consultent le plus : les chants de leurs listes et ouverts par leurs membres ces 90 derniers jours.
 
+Quand une rangée a plus de chants qu'il n'en tient, faites-la glisser, ou utilisez à la souris les flèches à côté de son titre.
+
 Un chant sans image à lui a une couverture tirée de son titre : une couleur et ses initiales. Sous les rangées, **Modifiés récemment** montre les chants modifiés en dernier, et son lien ouvre **Chants**. La recherche en haut de l'accueil cherche dans **Chants**.
 
 ## Chercher et filtrer
