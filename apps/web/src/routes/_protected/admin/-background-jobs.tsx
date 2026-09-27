@@ -93,6 +93,11 @@ export function BackgroundJobsCard() {
                 <p className={status.api ? "text-muted-foreground" : "text-destructive"}>{t("jobs.workerMissing")}</p>
               )}
               {status.thisApiRunsJobs ? <p className="text-muted-foreground">{t("jobs.apiRuns")}</p> : null}
+              {status.worker?.settingsKey === "missing" || status.worker?.settingsKey === "different" ? (
+                <p className="text-destructive" data-testid="worker-settings-key">
+                  {t(status.worker.settingsKey === "missing" ? "jobs.workerKeyMissing" : "jobs.workerKeyDifferent")}
+                </p>
+              ) : null}
             </div>
             <ul className="flex flex-col divide-y rounded-md border text-sm">
               {status.queues.map((queue) => (

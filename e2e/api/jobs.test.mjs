@@ -23,6 +23,18 @@ check("this API doesn't run jobs itself (JOBS_IN_API=false, as in production)", 
 check("the queues", status.queues.map((q) => q.name).join() === "lookups,backfills,bulk-upload,user-maintenance", JSON.stringify(status.queues));
 check("admins only", (await call(someone, "GET", "/admin/jobs")).status === 403);
 
+// The Worker's SETTINGS_ENCRYPTION_KEY against the API's (issue #95): only the verdict, never a hash of it.
+check("the Worker has the API's settings key", status.worker?.settingsKey === "same", JSON.stringify(status.worker));
+const realBeat = await redis.get("songverse:jobs:worker");
+const fakeBeat = async (settingsKey) => {
+  await redis.set("songverse:jobs:worker", JSON.stringify({ ...JSON.parse(realBeat), settingsKey }), "EX", 60);
+  return (await api(admin, "GET", "/admin/jobs")).worker;
+};
+check("a Worker without one: said so", (await fakeBeat(null))?.settingsKey === "missing");
+const different = await fakeBeat("0123456789ab");
+check("one with another: said so, without its hash", different?.settingsKey === "different" && !JSON.stringify(different).includes("0123456789ab"), JSON.stringify(different));
+await redis.set("songverse:jobs:worker", realBeat, "EX", 60);
+
 // A new song's artwork: a job, run by the Worker.
 const song = await api(someone, "POST", "/song-versions", { title: `Queued ${stamp}`, language: "en", artists: ["Queue"] });
 let imageUrl = null;

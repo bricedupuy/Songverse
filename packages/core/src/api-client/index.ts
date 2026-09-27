@@ -763,11 +763,18 @@ export interface MetadataSettings {
 }
 
 /** Background jobs (issue #92), for Admin > Metadata. */
+export interface JobsHeartbeat {
+  at: string;
+  host: string;
+  /** Its SETTINGS_ENCRYPTION_KEY against the API's (issue #95); null from a Worker too old to say. */
+  settingsKey: "missing" | "different" | "same" | null;
+}
+
 export interface JobsStatus {
   /** The Worker's last heartbeat (every 15 seconds; gone after a minute), or null. */
-  worker: { at: string; host: string } | null;
+  worker: JobsHeartbeat | null;
   /** An API process that runs jobs itself (JOBS_IN_API), or null. */
-  api: { at: string; host: string } | null;
+  api: JobsHeartbeat | null;
   thisApiRunsJobs: boolean;
   queues: { name: string; waiting: number; active: number; delayed: number; failed: number; completed: number }[];
   /** The last jobs done, newest first. */

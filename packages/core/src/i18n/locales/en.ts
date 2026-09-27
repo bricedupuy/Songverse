@@ -1206,6 +1206,8 @@ const en = {
     description: "Slow work runs in the background: finding songs' artwork and artists' pictures and bios, songbook uploads, the hourly clean-up of expired transfers. The Worker runs it; the API only adds it to the queues.",
     workerSeen: "The Worker is running (seen {{ago}} ago, on {{host}}).",
     workerMissing: "No Worker is running: background jobs wait until one starts.",
+    workerKeyMissing: "The Worker has no SETTINGS_ENCRYPTION_KEY: it can't use the secrets saved in Admin (metadata providers, storage). Set it on the Worker, the same as the API's, and redeploy it.",
+    workerKeyDifferent: "The Worker's SETTINGS_ENCRYPTION_KEY isn't the API's: it can't use the secrets saved in Admin (metadata providers, storage). Give it the same value and redeploy it.",
     apiRuns: "This API runs background jobs itself too (JOBS_IN_API).",
     queue_lookups: "Lookups (artwork, artists)",
     queue_backfills: "Backfills (artwork, artists)",

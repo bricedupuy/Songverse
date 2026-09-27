@@ -3,12 +3,17 @@ import { Injectable } from "@nestjs/common";
 import type { Job, Queue } from "bullmq";
 import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types";
 import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor";
-import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE } from "./jobs.constants";
+import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, settingsKeyCheck } from "./jobs.constants";
 import { redis } from "./redis";
 
 interface Beat {
   at: string;
   host: string;
+  /**
+   * Its SETTINGS_ENCRYPTION_KEY against this API's (issue #95): "missing",
+   * "different", "same", or null from a Worker too old to say.
+   */
+  settingsKey: "missing" | "different" | "same" | null;
 }
 
 export interface JobsStatus {
@@ -52,7 +57,12 @@ export class JobsService {
     const beat = async (role: "worker" | "api") => {
       try {
         const raw = await redis().get(HEARTBEAT_KEY(role));
-        return raw ? (JSON.parse(raw) as Beat) : null;
+        if (!raw) return null;
+        const { at, host, settingsKey } = JSON.parse(raw) as { at: string; host: string; settingsKey?: string | null };
+        const mine = settingsKeyCheck();
+        const key = settingsKey === undefined ? null : settingsKey === null ? "missing" : settingsKey === mine ? "same" : "different";
+        // Only the verdict: the hash stays in Redis.
+        return { at, host, settingsKey: key } satisfies Beat;
       } catch {
         return null;
       }

@@ -1209,6 +1209,8 @@ const fr: typeof en = {
     description: "Le travail lent se fait en arrière-plan : trouver les illustrations des chants et les photos et biographies des artistes, les imports de recueils, le nettoyage horaire des transferts expirés. Le Worker l'exécute ; l'API ne fait que l'ajouter aux files.",
     workerSeen: "Le Worker tourne (vu il y a {{ago}}, sur {{host}}).",
     workerMissing: "Aucun Worker ne tourne : les tâches de fond attendent qu'il démarre.",
+    workerKeyMissing: "Le Worker n'a pas de SETTINGS_ENCRYPTION_KEY : il ne peut pas utiliser les secrets enregistrés dans l'administration (sources de métadonnées, stockage). Définissez-la sur le Worker, identique à celle de l'API, et redéployez-le.",
+    workerKeyDifferent: "La SETTINGS_ENCRYPTION_KEY du Worker n'est pas celle de l'API : il ne peut pas utiliser les secrets enregistrés dans l'administration (sources de métadonnées, stockage). Donnez-lui la même valeur et redéployez-le.",
     apiRuns: "Cette API exécute aussi elle-même les tâches de fond (JOBS_IN_API).",
     queue_lookups: "Recherches (illustrations, artistes)",
     queue_backfills: "Recherches en lot (illustrations, artistes)",

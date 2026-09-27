@@ -153,6 +153,10 @@ saved in the Admin UI, like the API does; `SETTINGS_ENCRYPTION_KEY` is what
 decrypts the secrets saved there, so it must be the API's exact value. Only
 if you configure those through env vars instead (`R2_*`, `SPOTIFY_*`,
 `APPLE_MUSIC_*`, `MUSICBRAINZ_CONTACT`) does the Worker need them too.
+Admin > Metadata > **Background jobs** warns when the running Worker has no
+`SETTINGS_ENCRYPTION_KEY`, or one that isn't the API's (#95) - its logs then
+say "SETTINGS_ENCRYPTION_KEY is not set" or "can't be decrypted". An env var
+changed in Dokploy only reaches the container on the next deploy.
 
 It doesn't need `BETTER_AUTH_SECRET`, `AUTH_URL`, `WEB_URL`, the
 Resend/Google vars or `PORT`: it serves no HTTP traffic and signs nothing.

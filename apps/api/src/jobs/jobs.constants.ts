@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 /**
  * Background jobs (issue #92). Every processor is created stopped
  * (`autorun: false`) and started by `startJobs()` in the process that runs
@@ -7,6 +9,16 @@
 export const JOB_WORKER_OPTIONS = { autorun: false } as const;
 
 export const LOOKUPS_QUEUE = "lookups";
+
+/**
+ * A short hash of this process's SETTINGS_ENCRYPTION_KEY, or null without
+ * one (issue #95): in its heartbeat, so Admin can tell a Worker that can't
+ * decrypt the saved secrets. Never the key itself.
+ */
+export function settingsKeyCheck(): string | null {
+  const key = process.env.SETTINGS_ENCRYPTION_KEY;
+  return key ? createHash("sha256").update(`songverse-settings-key-check\n${key}`).digest("hex").slice(0, 12) : null;
+}
 /** The admin's backfills, on their own queue (issue #93): a new song's lookups never wait behind one. */
 export const BACKFILLS_QUEUE = "backfills";
 

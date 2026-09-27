@@ -5,7 +5,7 @@ import { hostname } from "node:os";
 import { BulkUploadProcessor } from "../bulk-upload/bulk-upload.processor";
 import { BackfillsProcessor, LookupsProcessor } from "../lookups/lookups.processor";
 import { TransferExpiryProcessor } from "../user-management/transfer-expiry.processor";
-import { HEARTBEAT_KEY } from "./jobs.constants";
+import { HEARTBEAT_KEY, settingsKeyCheck } from "./jobs.constants";
 import { redis } from "./redis";
 
 /** Every job processor: a new one needs adding here, or no process runs its jobs. */
@@ -27,7 +27,7 @@ export function startJobs(app: INestApplicationContext, role: "worker" | "api"):
   }
   const beat = () =>
     redis()
-      .set(HEARTBEAT_KEY(role), JSON.stringify({ at: new Date().toISOString(), host: hostname(), pid: process.pid }), "EX", 60)
+      .set(HEARTBEAT_KEY(role), JSON.stringify({ at: new Date().toISOString(), host: hostname(), pid: process.pid, settingsKey: settingsKeyCheck() }), "EX", 60)
       .catch(() => undefined);
   void beat();
   const timer = setInterval(beat, 15000);
