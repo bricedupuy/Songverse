@@ -7,6 +7,7 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
 import { openApiDoc, ZodValidationPipe } from "./common/zod-validation.js";
+import compression from "compression";
 import type { Express } from "express";
 import { AppModule } from "./app.module.js";
 import { getAuth } from "./auth/better-auth.js";
@@ -52,6 +53,14 @@ async function bootstrap() {
   // Security headers on every answer (issue #112): no framing, no sniffing,
   // no referrer; Express doesn't announce itself.
   expressApp.disable("x-powered-by");
+  // Compressed answers (issue #120): JSON and the docs, brotli or gzip as
+  // the client takes. Not files - they're served by byte ranges, and audio,
+  // images and PDFs are compressed already.
+  expressApp.use(
+    compression({
+      filter: (req, res) => !res.getHeader("Accept-Ranges") && compression.filter(req, res),
+    }),
+  );
   expressApp.use((_req: unknown, res: { setHeader: (name: string, value: string) => void }, next: () => void) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");

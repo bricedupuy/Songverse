@@ -91,6 +91,22 @@ check(
 r = await call(me, "POST", `/song-versions/${song.id}/attachments/${page.id}/link`);
 check("and gets no link that opens without signing in", r.status === 400, String(r.status));
 
+// --- compression (issue #120): text compressed, files left as they are
+const raw = (url, headers) => new Promise((resolve, reject) => {
+  // node:http, which (unlike fetch) doesn't decompress: what goes over the wire.
+  import("node:http").then(({ get }) => get(url, { headers }, (r) => { const chunks = []; r.on("data", (c) => chunks.push(c)); r.on("end", () => resolve({ status: r.statusCode, headers: r.headers, size: Buffer.concat(chunks).length })); }).on("error", reject));
+});
+let wire = await raw(`${API}/api/docs-json`, { "Accept-Encoding": "br" });
+const plain = await raw(`${API}/api/docs-json`, {});
+check("the API's JSON is compressed for a client that takes it", wire.headers["content-encoding"] === "br" && wire.size * 3 < plain.size && !plain.headers["content-encoding"], `${wire.headers["content-encoding"]} ${wire.size} vs ${plain.size}`);
+const other2 = await upload();
+wire = await raw(`${API}/song-versions/${song.id}/attachments/${other2.id}/download`, { "Accept-Encoding": "br, gzip", Authorization: `Bearer ${me.bearer}`, Range: "bytes=0-99" });
+check("a file isn't: its byte ranges still work", wire.status === 206 && !wire.headers["content-encoding"] && wire.size === 100, `${wire.status} ${wire.headers["content-encoding"]} ${wire.size}`);
+const resetPage = await (await fetch(`${WEB}/reset-password`)).text();
+const asset = resetPage.match(/\/assets\/[^"']+\.js/)?.[0];
+wire = asset ? await raw(`${WEB}${asset}`, { "Accept-Encoding": "gzip" }) : null;
+check("the web app's code is compressed too", wire?.headers["content-encoding"] === "gzip" && wire.headers.vary?.includes("Accept-Encoding"), `${asset} ${JSON.stringify(wire?.headers)}`);
+
 // --- security headers (issue #112)
 res = await fetch(`${API}/song-versions`);
 check(

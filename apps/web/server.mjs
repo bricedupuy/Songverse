@@ -10,6 +10,8 @@
 // handler.
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
+import { Readable } from "node:stream";
+import { brotliCompressSync, constants as zlib, createBrotliCompress, createGzip, gzipSync } from "node:zlib";
 import { createServerAdapter } from "@whatwg-node/server";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -132,7 +134,60 @@ function secured(response) {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-const adapter = createServerAdapter(async (request) => secured(await handle(request)));
+// Compression (issue #120): text is sent brotli- or gzip-compressed when
+// the browser takes it (a JS bundle is about a third of its size). The
+// content-hashed assets never change, so each is compressed once, at the
+// best setting, and kept; pages are compressed as they stream out, at a
+// fast one.
+const COMPRESSIBLE = /^(text\/|application\/(json|javascript|manifest\+json)|image\/svg\+xml)/;
+const MIN_COMPRESS_BYTES = 1024;
+const compressedAssets = new Map();
+
+function encodingFor(request) {
+  const accepted = request.headers.get("accept-encoding") ?? "";
+  if (/\bbr\b/.test(accepted)) return "br";
+  if (/\bgzip\b/.test(accepted)) return "gzip";
+  return null;
+}
+
+async function compressed(request, response) {
+  const encoding = encodingFor(request);
+  const type = response.headers.get("content-type") ?? "";
+  const length = Number(response.headers.get("content-length") ?? Infinity);
+  if (
+    !encoding ||
+    !response.body ||
+    request.method === "HEAD" ||
+    response.status === 204 ||
+    response.status === 304 ||
+    response.headers.has("content-encoding") ||
+    !COMPRESSIBLE.test(type) ||
+    length < MIN_COMPRESS_BYTES
+  ) {
+    return response;
+  }
+  const headers = new Headers(response.headers);
+  headers.set("Content-Encoding", encoding);
+  headers.append("Vary", "Accept-Encoding");
+  headers.delete("Content-Length");
+  const { pathname } = new URL(request.url);
+  if (pathname.startsWith("/assets/")) {
+    const key = `${encoding}:${pathname}`;
+    let body = compressedAssets.get(key);
+    if (!body) {
+      const raw = Buffer.from(await response.arrayBuffer());
+      body = encoding === "br" ? brotliCompressSync(raw, { params: { [zlib.BROTLI_PARAM_QUALITY]: 11, [zlib.BROTLI_PARAM_SIZE_HINT]: raw.length } }) : gzipSync(raw, { level: 9 });
+      compressedAssets.set(key, body);
+    }
+    headers.set("Content-Length", String(body.length));
+    return new Response(body, { status: response.status, statusText: response.statusText, headers });
+  }
+  const stream = encoding === "br" ? createBrotliCompress({ params: { [zlib.BROTLI_PARAM_QUALITY]: 4 } }) : createGzip({ level: 6 });
+  const body = Readable.toWeb(Readable.fromWeb(response.body).pipe(stream));
+  return new Response(body, { status: response.status, statusText: response.statusText, headers });
+}
+
+const adapter = createServerAdapter(async (request) => compressed(request, secured(await handle(request))));
 
 async function handle(request) {
   const redirect = redirectToWebUrl(request);
