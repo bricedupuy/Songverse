@@ -36,7 +36,10 @@ const search = async (t = title) => (await api(owner, "GET", `/metadata/search?$
 let [first] = await search();
 check("the same release from the four providers is one match", first.sources.map((s) => s.provider).join() === "musicbrainz,apple_music,deezer,spotify", JSON.stringify(first.sources));
 check("with Spotify's ISRC", first.isrc === "USSPOT1300001", JSON.stringify(first));
-check("one app token for all of it", spotifyApp.tokenHits === 1, String(spotifyApp.tokenHits));
+// A token is reused, not asked for per call: at most one per process - the
+// API's, and the Worker's once its background jobs (artwork, artist
+// pictures) reach Spotify too, which they may or may not have by now.
+check("one app token for all of it (one per process at most)", spotifyApp.tokenHits >= 1 && spotifyApp.tokenHits <= 2, String(spotifyApp.tokenHits));
 const song = await api(owner, "POST", "/song-versions", { title, language: "en", artists: ["Hillsong"] });
 r = await call(owner, "POST", `/song-versions/${song.id}/metadata-link`, { sources: [{ provider: "spotify", id: "sp1track0000000000001" }] });
 const detail = await api(owner, "GET", `/song-versions/${song.id}`);
