@@ -561,7 +561,7 @@ let followedStems: { song: StemSong; timeline: StemTimeline; leader: string } | 
  * mutes and solos; called again whenever it or the clocks change. Null:
  * nothing to follow (the leader's stems stopped, or none to play here).
  */
-export async function followStems(song: StemSong | null, timeline: StemTimeline | null, leader: string) {
+export async function followStems(song: StemSong | null, timeline: StemTimeline | null, leader: string, attempt = 0) {
   if (!song || !timeline) {
     followedStems = null;
     pause();
@@ -591,6 +591,12 @@ export async function followStems(song: StemSong | null, timeline: StemTimeline 
   startAt(from, when, { epoch: now.epoch, position: now.position });
   set({ playing: true, returnTo: song.returnTo, title: song.title });
   updateMediaSession();
+  // Just started, the audio clock doesn't say yet when its output is heard: placed again once it does.
+  if (!clock.known && attempt < 40) {
+    setTimeout(() => {
+      if (followedStems?.timeline === now) void followStems(followedStems.song, now, followedStems.leader, attempt + 1);
+    }, 250);
+  }
 }
 
 /** Stops following: the stems stop, and are this device's own again. */
@@ -609,8 +615,20 @@ export function realignStems() {
   if (!context || !clock || !state.playing || !state.anchor) return;
   const zero = clock.timeOf(state.anchor.epoch) - state.anchor.position;
   if (Math.abs(zero - startedAt) < REPLACE_BEYOND) return;
+  noteStemsCorrection(zero - startedAt);
   const when = context.currentTime + 0.05;
   startAt(when - zero, when, state.anchor);
+}
+
+const stemsCorrections: { ms: number; at: number }[] = [];
+function noteStemsCorrection(seconds: number) {
+  stemsCorrections.push({ ms: Math.round(seconds * 10000) / 10, at: Date.now() });
+  if (stemsCorrections.length > 10) stemsCorrections.shift();
+}
+
+/** What the stems' clock knows of itself, for Sync details (issue #101). */
+export function stemsClockReport() {
+  return { clock: clock?.report() ?? null, corrections: [...stemsCorrections], anchor: state.anchor, playing: state.playing, following: state.following };
 }
 
 /** From a press: lets the browser make sound, then catches up with the leader. */

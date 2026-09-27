@@ -25,13 +25,22 @@ await api(leaderUser, "POST", `/setlists/${set.id}/items`, { songVersionId: seco
 const [item1, item2] = (await api(leaderUser, "GET", `/setlists/${set.id}`)).items;
 
 const browser = await chromium.launch();
-const open = async (who) => {
+const open = async (who, init) => {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  if (init) await context.addInitScript(init);
   const p = await context.newPage();
   await signIn(p, who);
   return p;
 };
-const follower = await open(followerUser);
+// The follower's audio output timestamp is on another timeline, ten minutes
+// off, as an iPad 6th gen's on iOS 17 seems to be (issue #102): it mustn't be believed.
+const follower = await open(followerUser, () => {
+  const real = AudioContext.prototype.getOutputTimestamp;
+  AudioContext.prototype.getOutputTimestamp = function () {
+    const stamp = real.call(this);
+    return { contextTime: stamp.contextTime, performanceTime: stamp.performanceTime ? stamp.performanceTime + 600000 : 0 };
+  };
+});
 const leader = await open(leaderUser);
 page = follower;
 
@@ -46,7 +55,7 @@ const syncState = (p, value) => p.locator(`[data-testid="sync-control"][data-sta
 /** Each click as heard: its position in the timeline, and when (ms since the epoch, on the device's clock). */
 const heard = (p) => p.evaluate(() => {
   const m = window.songverseMetronome;
-  return (m?.clicks ?? []).map((c) => ({ position: c.position, at: c.heardAt, output: c.outputAt }));
+  return (m?.clicks ?? []).map((c) => ({ position: c.position, at: c.heardAt, output: c.outputAt, clock: c.clockAt }));
 });
 /** Waits for the follower's clicks from now on, and compares them with the leader's at the same positions: the most they're apart (ms). */
 async function apart(count = 6) {
@@ -61,16 +70,19 @@ async function apart(count = 6) {
   const heardBy = Date.now();
   const recent = mine.filter((c) => c.at > since && c.at < heardBy);
   const pairs = recent.map((c) => [c, theirs.filter((l) => Math.abs(l.position - c.position) < 1e-6).sort((a, b) => Math.abs(a.at - c.at) - Math.abs(b.at - c.at))[0]]);
-  const worstOf = (key) => Math.max(...pairs.map(([c, l]) => (l ? Math.abs(l[key] - c[key]) : Infinity)));
+  // Too few clicks to compare is a failure, not "nothing apart".
+  const worstOf = (key) => (pairs.length < 3 ? Infinity : Math.max(...pairs.map(([c, l]) => (l ? Math.abs(l[key] - c[key]) : Infinity))));
   // `worst`: the timelines each device plays, on its own clock - what Sync play keeps together. `output`: the same through each
   // one's audio output, as it reports it: a headless browser's stand-in output is off by an audio buffer or two (10 ms each)
   // after a reload, so only a loose bound here; a real device's output says when it plays.
-  return { worst: worstOf("at"), output: worstOf("output"), recent };
+  // `clock`: the same by each one's audio clock, read against its device clock (a block's jitter each) - which a wrong output timestamp can't hide (issue #102).
+  return { worst: worstOf("at"), output: worstOf("output"), clock: worstOf("clock"), recent };
 }
 const gapsOf = (clicks) => clicks.slice(1).map((c, i) => c.at - clicks[i].at);
 
 await step("the follower turns sync on in Live: no one leads yet, and they can't", async () => {
-  await follower.goto(`${WEB}/sets/${set.id}/live/${item1.id}`);
+  // Sync details on (issue #101), to see the skewed timestamp refused.
+  await follower.goto(`${WEB}/sets/${set.id}/live/${item1.id}?debug=sync`);
   await choose(follower, "Turn sync on");
   await syncState(follower, "on");
   await control(follower).click();
@@ -98,9 +110,11 @@ await step("the leader starts the metronome: the follower hears the same beats a
   page = leader;
   await leader.getByTestId("metronome-song").click();
   page = follower;
-  const { worst, output, recent } = await apart();
-  check("in time with the leader (ms apart, at most)", worst < 5 && output < 40, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms)`);
+  const { worst, output, clock, recent } = await apart();
+  check("in time with the leader (ms apart, at most)", worst < 5 && output < 40 && clock < 60, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms, audio clock ${clock.toFixed(2)} ms)`);
   if (!gapsOf(recent).every((gap) => Math.abs(gap - 60000 / 90) < 3)) throw new Error(`gaps ${gapsOf(recent)}`);
+  // The follower's skewed output timestamp, refused: Sync details says so.
+  await follower.getByTestId("sync-details").getByText(/output timestamp not used \(\d+ readings refused\)/).first().waitFor();
   // The follower's button is the leader's metronome.
   if ((await follower.getByTestId("metronome-song").getAttribute("title")) !== "Following Leader") throw new Error("not the leader's");
 });
@@ -123,8 +137,8 @@ await step("a new tempo from the leader's Metronome page: the follower's changes
   await tempo.blur();
   page = follower;
   await follower.waitForTimeout(1500);
-  const { worst, output, recent } = await apart();
-  check("still in time after the change (ms apart, at most)", worst < 5 && output < 40, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms)`);
+  const { worst, output, clock, recent } = await apart();
+  check("still in time after the change (ms apart, at most)", worst < 5 && output < 40 && clock < 60, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms, audio clock ${clock.toFixed(2)} ms)`);
   if (!gapsOf(recent).every((gap) => Math.abs(gap - 600) < 3)) throw new Error(`gaps ${gapsOf(recent)}`);
 });
 
@@ -139,8 +153,8 @@ await step("the follower's Metronome page: the leader's, but for their sound and
   // A reload: the browser may want a press before it makes a sound.
   const tap = follower.getByRole("button", { name: "Tap to hear the metronome" });
   if (await tap.isVisible()) await tap.click();
-  const { worst, output } = await apart();
-  check("in time after the follower's reload (ms apart, at most)", worst < 5 && output < 40, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms)`);
+  const { worst, output, clock } = await apart();
+  check("in time after the follower's reload (ms apart, at most)", worst < 5 && output < 40 && clock < 60, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms, audio clock ${clock.toFixed(2)} ms)`);
 });
 
 await step("the leader reloads: still leading, the metronome picked up where it is", async () => {
@@ -151,8 +165,8 @@ await step("the leader reloads: still leading, the metronome picked up where it 
   await leader.waitForFunction(() => (window.songverseMetronome?.clicks ?? []).length > 0, null, { timeout: 10000 });
   if (await tap.isVisible()) await tap.click();
   page = follower;
-  const { worst, output } = await apart();
-  check("in time after the leader's reload (ms apart, at most)", worst < 5 && output < 40, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms)`);
+  const { worst, output, clock } = await apart();
+  check("in time after the leader's reload (ms apart, at most)", worst < 5 && output < 40 && clock < 60, `${worst.toFixed(2)} ms (output ${output.toFixed(2)} ms, audio clock ${clock.toFixed(2)} ms)`);
   await follower.getByTestId("metronome-following").waitFor();
 });
 

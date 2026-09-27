@@ -147,9 +147,11 @@ interface MetronomeProbe {
   /**
    * `heardAt`: when it's meant to be heard, on the device's clock (ms since
    * the epoch), from the timeline's anchor there; `outputAt`: when the
-   * audio output said it would be, as it was scheduled.
+   * audio output said it would be, as it was scheduled; `clockAt`: when
+   * the audio clock itself plays it (its time against the device's, with
+   * no output timestamp - what a wrong one can't hide, issue #102).
    */
-  clicks: (Pick<MetronomeClick, "position" | "bar" | "beat" | "sub" | "level"> & { time: number; heardAt: number; outputAt: number })[];
+  clicks: (Pick<MetronomeClick, "position" | "bar" | "beat" | "sub" | "level"> & { time: number; heardAt: number; outputAt: number; clockAt: number })[];
   now: () => number;
   /** When a time on the audio clock is heard, in ms since the epoch on this device's clock. */
   epoch: (time: number) => number;
@@ -194,7 +196,7 @@ function schedule() {
     source.connect(output);
     source.start(time);
     scheduled.push({ source, time });
-    log?.clicks.push({ time, heardAt: anchorEpoch + (time - anchorTime) * 1000, outputAt: epochFromAudioTime(time), position: click.position, bar: click.bar, beat: click.beat, sub: click.sub, level: click.level });
+    log?.clicks.push({ time, heardAt: anchorEpoch + (time - anchorTime) * 1000, outputAt: epochFromAudioTime(time), clockAt: deviceNow() + (time - ctx.currentTime) * 1000, position: click.position, bar: click.bar, beat: click.beat, sub: click.sub, level: click.level });
   }
   if (log && log.clicks.length > 200) log.clicks.splice(0, log.clicks.length - 200);
   scheduledUntil = Math.max(scheduledUntil, until);
@@ -225,6 +227,7 @@ export function startMetronome(settings?: MetronomeSettings, songId: string | nu
   // Following Sync play's leader: theirs to start.
   if (state.following) return unlockMetronomeAudio();
   adopted = null;
+  placing = null;
   const ctx = audio();
   // Within the press: browsers only let sound start from one.
   void ctx.resume();
@@ -248,6 +251,7 @@ export function stopMetronome() {
 
 function halt() {
   adopted = null;
+  placing = null;
   if (timer) clearInterval(timer);
   timer = null;
   cancelFrom(0);
@@ -259,7 +263,7 @@ export function updateMetronome(change: Partial<MetronomeSettings>) {
   load();
   const previous = state.settings;
   // The leader's own change: what was picked up from the session is theirs now.
-  if (!state.following) adopted = null;
+  if (!state.following) adopted = placing = null;
   // Following Sync play's leader: only this device's sound and volume are its own.
   if (state.following) change = { ...(change.sound !== undefined && { sound: change.sound }), ...(change.volume !== undefined && { volume: change.volume }) };
   const next = normalizeMetronome({ ...previous, ...change });
@@ -315,10 +319,23 @@ export function realignMetronome() {
   if (Math.abs(placed - anchorTime) < REPLACE_BEYOND) return;
   const now = ctx.currentTime;
   cancelFrom(now);
+  noteCorrection(placed - anchorTime);
   anchorTime = placed;
   scheduledUntil = Math.max(0, positionAt(now));
   emit({ anchor: { time: anchorTime, position: anchorPosition, epoch: anchorEpoch } });
   schedule();
+}
+
+/** The last re-placings (ms, and when), for Sync details (issue #101). */
+const corrections: { ms: number; at: number }[] = [];
+function noteCorrection(seconds: number) {
+  corrections.push({ ms: Math.round(seconds * 10000) / 10, at: Date.now() });
+  if (corrections.length > 10) corrections.shift();
+}
+
+/** What the metronome's clock knows of itself, for Sync details (issue #101). */
+export function metronomeClockReport() {
+  return { clock: clock?.report() ?? null, corrections: [...corrections], anchor: state.anchor, playing: state.playing, following: state.following };
 }
 
 /** How long a start waits: longer while leading Sync play, so the followers hear the first beat too. */
@@ -369,6 +386,8 @@ export function followMetronome(timeline: FollowedTimeline | null, leader: strin
   }
   const now = ctx.currentTime;
   cancelFrom(now);
+  // The same timeline placed again: how far it had drifted.
+  if (state.playing && anchorEpoch === timeline.anchorEpoch && anchorPosition === timeline.anchorPosition) noteCorrection(placed - anchorTime);
   state = { ...state, settings };
   anchorTime = placed;
   anchorEpoch = timeline.anchorEpoch;
@@ -378,12 +397,20 @@ export function followMetronome(timeline: FollowedTimeline | null, leader: strin
   timer ??= setInterval(schedule, TICK_MS);
   schedule();
   // Just started (a new audio clock only runs a moment later), it doesn't say yet when its output is heard: placed again once it does.
+  placing = timeline;
   if (!clock!.known && attempt < 40) {
     setTimeout(() => {
-      if (followed?.timeline === timeline) followMetronome(timeline, followed.leader, attempt + 1);
+      // Still this timeline (followed, or picked up as this device's own), and still playing it.
+      if (placing !== timeline || !state.playing) return;
+      const own = !state.following;
+      followMetronome(timeline, own ? "" : state.following!, attempt + 1);
+      if (own) emit({ following: null });
     }, 250);
   }
 }
+
+/** The timeline last placed from the device's clock, until the clock can say when its output is heard. */
+let placing: FollowedTimeline | null = null;
 
 /** Stops following: the metronome stops, and is this device's own again. */
 export function unfollowMetronome() {

@@ -437,6 +437,20 @@ export function useSyncBridge() {
   }, [stemsKey]);
 }
 
+/** What Sync play knows of the clocks, for Sync details (issue #101). */
+export function syncReport() {
+  const best = clockOffset(samples);
+  return {
+    status: state.status,
+    leading: state.leading,
+    offset: state.offset,
+    rtt: best?.rtt ?? null,
+    lastRtt: samples.length ? samples[samples.length - 1]!.received - samples[samples.length - 1]!.sent : null,
+    pings: samples.length,
+    members: state.members.length,
+  };
+}
+
 /** From a press: the browser lets the leader's metronome and stems make sound. */
 export function unlockSyncAudio() {
   unlockMetronomeAudio();

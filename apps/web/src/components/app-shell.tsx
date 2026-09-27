@@ -6,6 +6,7 @@ import { OfflineBanner } from "#/components/offline-banner";
 import { SiteHeader } from "#/components/site-header";
 import { MetronomeReturnButton } from "#/components/metronome";
 import { StemDockSlot, StemReturnButton } from "#/components/stem-dock";
+import { SyncDetails } from "#/components/sync-details";
 import { YouTubeHost } from "#/components/youtube-dock";
 import { stopMetronome } from "#/lib/metronome-engine";
 import { useRecordingClickBridge } from "#/lib/recording-click";
@@ -49,6 +50,7 @@ export function AppShell({
         {children}
         <StemReturnButton />
         <YouTubeHost />
+        <SyncDetails />
       </>
     );
   }
@@ -69,6 +71,7 @@ export function AppShell({
       <StemReturnButton />
       <MetronomeReturnButton />
       <YouTubeHost />
+      <SyncDetails />
     </StemDockSlot.Provider>
   );
 }

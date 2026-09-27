@@ -82,6 +82,8 @@ After a reload, a browser only lets the metronome make sound after a tap: **Tap 
 
 For the beats to line up by ear, use wired headphones or the device's speaker: Bluetooth headphones add a delay of their own. While sync is on, an iPhone or iPad plays the stems straight to its speakers (they then stop with the screen locked: Live keeps it on). Each device keeps time with its own clock, set against Songverse's; only the tempo and when the beat falls go over the network, never the sound.
 
+If a device isn't in time with the others, add `?debug=sync` to the address on it: a box at the top left shows what it knows of its clocks (its offset to Songverse's, how long a message takes there and back, whether its audio output's own timing is used, how far its beat has been moved back into place). It stays on in that tab until its **×**. Send those numbers along with the device and browser.
+
 ## Sharing a set with guests
 
 Under **Share**, **Create a share link** and send it to whoever should see the set - a guest musician, say. Anyone signed in who opens it can read every song in the set, even ones not in their library, and keep their own notes. They can't change it.

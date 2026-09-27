@@ -82,6 +82,8 @@ Après un rechargement, le navigateur ne laisse le métronome jouer qu'après un
 
 Pour que les temps tombent ensemble à l'oreille, utilisez un casque filaire ou le haut-parleur de l'appareil : un casque Bluetooth ajoute son propre retard. Pendant la synchro, un iPhone ou un iPad joue les pistes directement sur ses haut-parleurs (elles s'arrêtent alors écran verrouillé : le Live le garde allumé). Chaque appareil garde le tempo avec sa propre horloge, calée sur celle de Songverse ; seuls le tempo et le moment où tombe le temps passent par le réseau, jamais le son.
 
+Si un appareil n'est pas en rythme avec les autres, ajoutez `?debug=sync` à l'adresse sur celui-ci : un encadré en haut à gauche montre ce qu'il sait de ses horloges (son écart avec celle de Songverse, le temps d'un aller-retour, si le minutage de sa sortie audio est utilisé, de combien son temps a été recalé). Il reste affiché dans cet onglet jusqu'à sa **×**. Envoyez ces chiffres avec le nom de l'appareil et du navigateur.
+
 ## Partager une liste avec des invités
 
 Sous **Partager**, **Créer un lien de partage** et envoyez-le à qui doit voir la liste - un musicien invité, par exemple. Toute personne connectée qui l'ouvre peut lire chaque chant de la liste, même ceux qui ne sont pas dans sa bibliothèque, et garder ses propres notes. Elle ne peut pas la modifier.
