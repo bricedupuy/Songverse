@@ -770,7 +770,23 @@ export interface JobsStatus {
   api: { at: string; host: string } | null;
   thisApiRunsJobs: boolean;
   queues: { name: string; waiting: number; active: number; delayed: number; failed: number; completed: number }[];
-  recent: { queue: string; name: string; state: "completed" | "failed"; finishedAt: string | null; result: unknown; error: string | null; subject: string | null }[];
+  /** The last jobs done, newest first. */
+  recent: JobSummary[];
+  /** The jobs that failed, with why (issue #93). */
+  failed: JobSummary[];
+  /** Failed jobs counted but whose details are gone. */
+  failedWithoutDetails: number;
+}
+
+export interface JobSummary {
+  id: string | null;
+  queue: string;
+  name: string;
+  state: "completed" | "failed";
+  finishedAt: string | null;
+  result: unknown;
+  error: string | null;
+  subject: string | null;
 }
 
 export interface ArtworkSettings {
@@ -1322,9 +1338,11 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       return request<void>(`/song-versions/${songVersionId}/artwork/upload`, { method: "POST", body: form });
     },
     /** Starts finding artwork for songs without one, as a background job (issue #92); false when one is already waiting or running. */
-    backfillArtwork: () => request<{ queued: boolean }>("/admin/artwork/backfill", { method: "POST" }),
+    backfillArtwork: () => request<{ queued: boolean; jobId: string | null }>("/admin/artwork/backfill", { method: "POST" }),
     /** Who runs background jobs, each queue's counts and the last jobs (issue #92). */
     getJobsStatus: () => request<JobsStatus>("/admin/jobs"),
+    /** Clears the failed jobs, once their errors have been read (issue #93). */
+    clearFailedJobs: () => request<{ cleared: number }>("/admin/jobs/failed", { method: "DELETE" }),
     /** The songs before and after one in a list of the library, searched and filtered as `query` says (issue #84). */
     getSongNeighbors: (songVersionId: string, query: ListSongVersionsQuery = {}) => {
       const params = new URLSearchParams(
@@ -1353,7 +1371,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     getArtistSettings: () => request<ArtistSettings>("/admin/artists"),
     saveArtistSettings: (enabled: boolean) => request<ArtistSettings>("/admin/artists", { method: "PUT", body: JSON.stringify({ enabled }) }),
     resetArtistSettings: () => request<ArtistSettings>("/admin/artists", { method: "DELETE" }),
-    backfillArtists: () => request<{ queued: boolean }>("/admin/artists/backfill", { method: "POST" }),
+    backfillArtists: () => request<{ queued: boolean; jobId: string | null }>("/admin/artists/backfill", { method: "POST" }),
     listSmartLists: () => request<SmartList[]>("/smart-lists"),
     createSmartList: (name: string, filters: SmartListFilters) => request<SmartList>("/smart-lists", { method: "POST", body: JSON.stringify({ name, filters }) }),
     updateSmartList: (id: string, change: { name?: string; filters?: SmartListFilters }) =>

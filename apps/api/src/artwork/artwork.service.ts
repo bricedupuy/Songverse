@@ -6,6 +6,9 @@ import { StorageService } from "../storage/storage.service";
 
 export type { ArtworkCandidate };
 
+/** How a song's automatic artwork went (issue #93). */
+export type ArtworkOutcome = "found" | "nomatch" | "failed" | "skipped";
+
 /** The suites' stand-ins' origins, whose artwork is allowed too. */
 const testOrigins = () =>
   [process.env.ITUNES_SEARCH_URL, process.env.DEEZER_API_URL, process.env.SPOTIFY_API_URL, process.env.APPLE_MUSIC_API_URL]
@@ -134,33 +137,43 @@ export class ArtworkService {
    * Finds a song's artwork on its own: of the matches whose title is the
    * song's and whose artist is one of its artists (or any, when it has
    * none), the earliest release's - the song's first, not a later
-   * compilation (issue #22). Nothing when artwork is off, the song has an image, or nothing
-   * matches closely enough. Never throws.
+   * compilation (issue #22) - from the first provider (in the admin's
+   * order) with one. Says how it went (issue #93): "found"; "nomatch" when
+   * the providers answered and none was close enough; "failed" when a
+   * provider or the download failed, so it may be found next time;
+   * "skipped" when artwork is off, no provider is asked for it, or the song
+   * has an image. Never throws.
    */
-  async autoFind(songVersionId: string): Promise<boolean> {
+  async autoFind(songVersionId: string): Promise<ArtworkOutcome> {
     try {
-      if (!(await this.settings()).enabled) return false;
+      if (!(await this.settings()).enabled) return "skipped";
       const song = await this.songForArtwork(songVersionId);
-      if (song.hasImage) return false;
+      if (song.hasImage) return "skipped";
       const title = fold(song.title);
       const artists = song.artists.map(fold).filter(Boolean);
       const year = (candidate: ArtworkCandidate) => candidate.releaseDate?.slice(0, 4) ?? "9999";
-      const close = (await this.search(song.title, song.artist)).filter(
+      const { candidates, failed, asked } = await this.metadata.artworkSearch(song.title, song.artist);
+      if (asked === 0) return "skipped";
+      const close = candidates.filter(
         (candidate) => fold(candidate.title) === title && (artists.length === 0 || artists.some((artist) => fold(candidate.artist).includes(artist) || artist.includes(fold(candidate.artist)))),
       );
-      // The first provider (in the admin's order) with a close match; its earliest release.
       const provider = close[0]?.provider;
       const match = close.filter((candidate) => candidate.provider === provider).sort((a, b) => year(a).localeCompare(year(b)))[0];
-      if (!match) return false;
-      return await this.setFromUrl(songVersionId, match.artworkUrl, { onlyIfNone: true });
+      // A provider that failed might have had it.
+      if (!match) return failed.length > 0 ? "failed" : "nomatch";
+      return (await this.setFromUrl(songVersionId, match.artworkUrl, { onlyIfNone: true })) ? "found" : "skipped";
     } catch (err) {
       this.logger.warn(`No artwork for ${songVersionId}: ${err instanceof Error ? err.message : String(err)}`);
-      return false;
+      return "failed";
     }
   }
 
-  /** Finds artwork for songs without an image, a few at a time (Apple limits how fast it's asked). */
-  async backfill(limit = 50): Promise<{ tried: number; found: number }> {
+  /**
+   * Finds artwork for songs without an image, a few at a time (the providers
+   * limit how fast they're asked). A song with no close match isn't tried
+   * again; one whose lookup failed is, next time (issue #93).
+   */
+  async backfill(limit = 50): Promise<{ tried: number; found: number; failed: number }> {
     const songs = await this.prisma.client.songVersion.findMany({
       where: { imageStorageKey: null, imageSourceUrl: null },
       select: { id: true },
@@ -168,13 +181,15 @@ export class ArtworkService {
       take: limit,
     });
     let found = 0;
+    let failed = 0;
     for (const song of songs) {
-      if (await this.autoFind(song.id)) found++;
-      // Not tried again next time when nothing matched.
-      else await this.prisma.client.songVersion.updateMany({ where: { id: song.id, imageStorageKey: null }, data: { imageSourceUrl: "none" } });
+      const outcome = await this.autoFind(song.id);
+      if (outcome === "found") found++;
+      else if (outcome === "failed") failed++;
+      else if (outcome === "nomatch") await this.prisma.client.songVersion.updateMany({ where: { id: song.id, imageStorageKey: null }, data: { imageSourceUrl: "none" } });
       await new Promise((resolve) => setTimeout(resolve, process.env.ITUNES_SEARCH_URL ? 0 : 3000));
     }
-    return { tried: songs.length, found };
+    return { tried: songs.length, found, failed };
   }
 
   /** A song's image, resized: only with a valid key (checked by the caller's signature). */

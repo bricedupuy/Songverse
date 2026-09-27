@@ -15,7 +15,7 @@
 // then the song on "Album 1" (2013, ISRC USSPOT1300001) and on "Spotify
 // Singles" (2021), and artists' pictures.
 // A search for anything with "Nomatch" in it finds nothing; "Deezerdown"
-// makes Deezer fail. Otherwise, for a title and
+// makes Deezer fail, "Itunesdown" Apple's iTunes Search (issue #93). Otherwise, for a title and
 // an artist:
 // - Apple Music: three albums, "Album 1" (2013), "Album 2" (2016) and
 //   "Album 3" (2019), each with artwork of its own colour;
@@ -170,6 +170,7 @@ export function startFakeProviders() {
     const path = url.pathname;
     if (path === "/search") {
       const term = url.searchParams.get("term") ?? "";
+      if (/itunesdown/i.test(term)) return json(res, { errorMessage: "down" }, 503);
       const { title, artist } = splitTerm(term);
       const results = /nomatch/i.test(term) ? [] : [0, 1, 2].map((n) => appleSong(title, artist, n));
       for (const song of results) lastApple.set(String(song.trackId), song);
@@ -226,6 +227,7 @@ export function startFakeProviders() {
     }
     if (path === "/deezer/search/artist") {
       const q = url.searchParams.get("q") ?? "";
+      if (/deezerdown/i.test(q)) return json(res, { error: "down" }, 500);
       const picture = /nopicture/i.test(q) ? "https://e-cdns-images.dzcdn.net/images/artist//1000x1000-000000-80-0-0.jpg" : `${URL_}/art/1/1000x1000.png`;
       return json(res, { data: [{ id: 9001, name: q, link: "https://www.deezer.com/artist/9001", picture_xl: picture }] });
     }

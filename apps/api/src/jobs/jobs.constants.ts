@@ -7,6 +7,8 @@
 export const JOB_WORKER_OPTIONS = { autorun: false } as const;
 
 export const LOOKUPS_QUEUE = "lookups";
+/** The admin's backfills, on their own queue (issue #93): a new song's lookups never wait behind one. */
+export const BACKFILLS_QUEUE = "backfills";
 
 /** Whether this API process runs jobs itself: JOBS_IN_API, else only out of production. */
 export function jobsInApi(): boolean {

@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from "@nestjs/common";
+import { Controller, Delete, Get, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
 import { JobsService } from "./jobs.service";
@@ -14,5 +14,11 @@ export class JobsController {
   @Get()
   status() {
     return this.jobs.status();
+  }
+
+  /** Clears the failed jobs (issue #93), once their errors have been read. */
+  @Delete("failed")
+  clearFailed() {
+    return this.jobs.clearFailed();
   }
 }

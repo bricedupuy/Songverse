@@ -516,12 +516,24 @@ export class MetadataService {
    * provider asked for album artwork, in their order, each artwork once.
    */
   async artworkCandidates(title: string, artist: string | null): Promise<ArtworkCandidate[]> {
+    const { candidates, failed, asked } = await this.artworkSearch(title, artist);
+    if (asked > 0 && failed.length === asked) throw new ServiceUnavailableException("The artwork providers are unavailable — try again in a moment");
+    return candidates;
+  }
+
+  /**
+   * The artwork search, saying which providers failed (issue #93): a song
+   * whose search failed isn't one with no artwork to find.
+   */
+  async artworkSearch(title: string, artist: string | null): Promise<{ candidates: ArtworkCandidate[]; failed: MetadataProviderKey[]; asked: number }> {
     const order = await this.providersFor("artwork");
     const settled = await Promise.allSettled(order.map((provider) => withTimeout(this.searchOne(provider, title, artist), provider)));
     const seen = new Set<string>();
     const candidates: ArtworkCandidate[] = [];
+    const failed: MetadataProviderKey[] = [];
     settled.forEach((outcome, index) => {
       if (outcome.status !== "fulfilled") {
+        failed.push(order[index]!);
         this.logger.warn(`${order[index]} artwork search failed: ${outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason)}`);
         return;
       }
@@ -539,12 +551,16 @@ export class MetadataService {
         });
       }
     });
-    if (order.length > 0 && settled.every((outcome) => outcome.status === "rejected")) throw new ServiceUnavailableException("The artwork providers are unavailable — try again in a moment");
-    return candidates;
+    return { candidates, failed, asked: order.length };
   }
 
-  /** An artist's picture (issue #89): from the first provider asked for artist pictures that has one. */
-  async artistPicture(name: string): Promise<{ provider: MetadataProviderKey; url: string; pageUrl: string } | null> {
+  /**
+   * An artist's picture (issue #89): from the first provider asked for
+   * artist pictures that has one - and, when none has, whether any of them
+   * failed (issue #93): then there may be one after all.
+   */
+  async artistPicture(name: string): Promise<{ found: { provider: MetadataProviderKey; url: string; pageUrl: string } | null; failed: MetadataProviderKey[] }> {
+    const failed: MetadataProviderKey[] = [];
     for (const provider of await this.providersFor("artistPictures")) {
       try {
         const found =
@@ -555,12 +571,13 @@ export class MetadataService {
               : provider === "apple_music"
                 ? await this.appleMusicAuth().then(async (auth) => auth && appleMusicArtistPicture(name, await this.storefront(), auth))
                 : null;
-        if (found) return { provider, ...found };
+        if (found) return { found: { provider, ...found }, failed };
       } catch (err) {
+        failed.push(provider);
         this.logger.warn(`No picture of ${name} from ${provider}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
-    return null;
+    return { found: null, failed };
   }
 }
 

@@ -3,7 +3,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import type { JobsOptions, Queue } from "bullmq";
 import { createHash } from "node:crypto";
 import { artistKey } from "../artists/artists.service";
-import { LOOKUPS_QUEUE } from "../jobs/jobs.constants";
+import { BACKFILLS_QUEUE, LOOKUPS_QUEUE } from "../jobs/jobs.constants";
 
 /** Kept for Admin > Metadata > Background jobs: the last hundred done, and failed. */
 const KEEP: JobsOptions = { removeOnComplete: { count: 100 }, removeOnFail: { count: 100 } };
@@ -13,7 +13,10 @@ const KEEP: JobsOptions = { removeOnComplete: { count: 100 }, removeOnFail: { co
 export class LookupsService {
   private readonly logger = new Logger(LookupsService.name);
 
-  constructor(@InjectQueue(LOOKUPS_QUEUE) private readonly queue: Queue) {}
+  constructor(
+    @InjectQueue(LOOKUPS_QUEUE) private readonly queue: Queue,
+    @InjectQueue(BACKFILLS_QUEUE) private readonly backfills: Queue,
+  ) {}
 
   /** A new song's artwork. Never throws: the song is saved either way. */
   async songArtwork(songVersionId: string): Promise<void> {
@@ -32,11 +35,11 @@ export class LookupsService {
     }
   }
 
-  /** A backfill, unless one is already waiting or running. */
-  async backfill(name: "artwork-backfill" | "artist-backfill"): Promise<{ queued: boolean }> {
-    const pending = await this.queue.getJobs(["waiting", "active", "delayed", "prioritized"]);
-    if (pending.some((job) => job.name === name)) return { queued: false };
-    await this.queue.add(name, {}, KEEP);
-    return { queued: true };
+  /** A backfill, unless one is already waiting or running: that one's ID then. */
+  async backfill(name: "artwork-backfill" | "artist-backfill"): Promise<{ queued: boolean; jobId: string | null }> {
+    const pending = (await this.backfills.getJobs(["waiting", "active", "delayed", "prioritized"])).find((job) => job?.name === name);
+    if (pending) return { queued: false, jobId: pending.id ?? null };
+    const job = await this.backfills.add(name, {}, KEEP);
+    return { queued: true, jobId: job.id ?? null };
   }
 }

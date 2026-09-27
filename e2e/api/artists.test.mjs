@@ -50,6 +50,18 @@ await api(owner, "POST", "/song-versions", { title: `Shy song ${stamp}`, languag
 artist = await lookedUp(owner, shy);
 check("no picture, no bio: their initials", artist.lookedUp && !artist.imageUrl && artist.bios.length === 0, JSON.stringify(artist));
 
+// --- a lookup that fails (issue #93): what was found is kept, tried again next time
+const unlucky = `Deezerdown ${stamp}`;
+await api(owner, "POST", "/song-versions", { title: `Unlucky song ${stamp}`, language: "en", artists: [unlucky] });
+for (let i = 0; i < 80; i++) {
+  artist = (await detail(owner, unlucky)).body;
+  if (artist.bios?.length) break;
+  await new Promise((resolve) => setTimeout(resolve, 250));
+}
+check("Deezer failed: the bios found are kept", artist.bios.length === 2, JSON.stringify(artist));
+check("but they're not looked up, nor marked without a picture: tried again", artist.lookedUp === false && artist.imageSource === null, JSON.stringify(artist));
+check("as the database says", sql(`select coalesce("imageSource", '') || '|' || coalesce("lookedUpAt"::text, '') from "Artist" where key = lower('${unlucky}')`) === "|");
+
 // --- admins edit them
 check("only admins upload a picture", (await call(owner, "DELETE", `/artists/picture?${new URLSearchParams({ name: band })}`)).status === 403);
 check("or write a bio", (await call(owner, "PUT", "/artists/bio", { name: band, language: "en", text: "Mine" })).status === 403);

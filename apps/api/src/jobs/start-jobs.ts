@@ -3,13 +3,13 @@ import { Logger } from "@nestjs/common";
 import type { WorkerHost } from "@nestjs/bullmq";
 import { hostname } from "node:os";
 import { BulkUploadProcessor } from "../bulk-upload/bulk-upload.processor";
-import { LookupsProcessor } from "../lookups/lookups.processor";
+import { BackfillsProcessor, LookupsProcessor } from "../lookups/lookups.processor";
 import { TransferExpiryProcessor } from "../user-management/transfer-expiry.processor";
 import { HEARTBEAT_KEY } from "./jobs.constants";
 import { redis } from "./redis";
 
 /** Every job processor: a new one needs adding here, or no process runs its jobs. */
-const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor];
+const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor, BackfillsProcessor];
 
 const logger = new Logger("Jobs");
 

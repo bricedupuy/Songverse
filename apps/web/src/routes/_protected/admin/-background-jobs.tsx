@@ -1,7 +1,8 @@
-import type { JobsStatus } from "@songverse/core";
+import type { JobSummary, JobsStatus } from "@songverse/core";
 import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ConfirmButton } from "#/components/confirm-button";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
@@ -22,6 +23,8 @@ export function BackgroundJobsCard() {
   const [status, setStatus] = useState<JobsStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [clearing, setClearing] = useState(false);
+  const [cleared, setCleared] = useState<string | null>(null);
 
   const load = useCallback(() => {
     apiClient
@@ -40,19 +43,24 @@ export function BackgroundJobsCard() {
   }, [load]);
 
   /** What a job did, in words. */
-  function outcome(job: JobsStatus["recent"][number]): string {
+  function outcome(job: JobSummary): string {
     if (job.state === "failed") return t("jobs.failed", { error: job.error ?? "?" });
     const result = job.result as Record<string, unknown> | null;
+    // A backfill's lookups that failed are tried again next time (issue #93).
+    const notLookedUp = Number(result?.failed ?? 0) > 0 ? ` ${t("jobs.notLookedUp", { count: Number(result?.failed) })}` : "";
     switch (job.name) {
       case "artwork-backfill":
-        return t("artwork.backfilled", result ?? { tried: 0, found: 0 });
+        return t("artwork.backfilled", result ?? { tried: 0, found: 0 }) + notLookedUp;
       case "artist-backfill":
-        return t("artistSettings.backfilled", result ?? { tried: 0, found: 0 });
-      case "artwork":
-        return result?.found ? t("jobs.found") : t("jobs.notFound");
+        return t("artistSettings.backfilled", result ?? { tried: 0, found: 0 }) + notLookedUp;
+      case "artwork": {
+        // Issue #93's outcome; before it, a found flag.
+        const said = (result?.outcome as string | undefined) ?? (result?.found ? "found" : "nomatch");
+        return said === "found" ? t("jobs.found") : said === "failed" ? t("jobs.lookupFailed") : said === "skipped" ? t("jobs.skipped") : t("jobs.notFound");
+      }
       case "artist":
         return result
-          ? t("jobs.artistFound", { picture: result.picture ? t("jobs.yes") : t("jobs.no"), bios: Number(result.bios ?? 0) })
+          ? t(result.failed ? "jobs.artistFailed" : "jobs.artistFound", { picture: result.picture ? t("jobs.yes") : t("jobs.no"), bios: Number(result.bios ?? 0) })
           : t("jobs.alreadyLookedUp");
       default:
         return t("jobs.done");
@@ -94,6 +102,52 @@ export function BackgroundJobsCard() {
                 </li>
               ))}
             </ul>
+            {status.failed.length > 0 || status.failedWithoutDetails > 0 ? (
+              <div className="flex flex-col gap-2" data-testid="jobs-failed">
+                <p className="text-sm font-medium">{t("jobs.failedJobs")}</p>
+                <ul className="flex flex-col gap-1.5 text-sm">
+                  {status.failed.map((job, index) => (
+                    <li key={`${job.queue}-${job.name}-${job.finishedAt}-${index}`} className="flex flex-wrap gap-x-2">
+                      <span className="font-medium">
+                        {t(`jobs.job_${job.name}`, { defaultValue: job.name })}
+                        {job.subject ? ` · ${job.subject}` : ""}
+                      </span>
+                      <span className="break-all text-destructive">{outcome(job)}</span>
+                      {job.finishedAt ? <span className="text-xs text-muted-foreground">{new Date(job.finishedAt).toLocaleString()}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+                {status.failedWithoutDetails > 0 ? (
+                  <p className="text-sm text-muted-foreground">{t("jobs.failedWithoutDetails", { count: status.failedWithoutDetails })}</p>
+                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <ConfirmButton
+                    label={t("jobs.clearFailed")}
+                    confirmLabel={t("jobs.clearFailedConfirm")}
+                    busyLabel={t("admin.running")}
+                    cancelLabel={t("admin.cancel")}
+                    busy={clearing}
+                    onConfirm={async () => {
+                      setClearing(true);
+                      try {
+                        const { cleared: count } = await apiClient.clearFailedJobs();
+                        setCleared(t("jobs.cleared", { count }));
+                        load();
+                      } catch (err) {
+                        setError(err instanceof Error ? err.message : String(err));
+                      } finally {
+                        setClearing(false);
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
+            {cleared ? (
+              <p className="text-sm text-muted-foreground" role="status">
+                {cleared}
+              </p>
+            ) : null}
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium">{t("jobs.recent")}</p>
               {status.recent.length === 0 ? (

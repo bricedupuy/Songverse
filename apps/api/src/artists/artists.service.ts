@@ -130,7 +130,7 @@ export class ArtistsService {
    * lookups queue (issue #92), one at a time: MusicBrainz takes one request
    * a second, shared with Auto detect.
    */
-  async lookUpNamed(name: string): Promise<{ picture: boolean; bios: number } | null> {
+  async lookUpNamed(name: string): Promise<{ picture: boolean; bios: number; failed: boolean } | null> {
     const key = artistKey(name);
     if (!key || !(await this.settings()).enabled) return null;
     const existing = await this.prisma.client.artist.findUnique({ where: { key }, select: { lookedUpAt: true } });
@@ -140,7 +140,7 @@ export class ArtistsService {
   }
 
   /** Looks up artists nobody has asked about yet, the most recently credited first, a few at a time (the providers limit how fast they're asked). */
-  async backfill(limit = 25): Promise<{ tried: number; found: number }> {
+  async backfill(limit = 25): Promise<{ tried: number; found: number; failed: number }> {
     if (!(await this.settings()).enabled) throw new NotFoundException("Artist pictures and bios are turned off");
     // The most recently credited first.
     const credited = await this.prisma.client.versionContributor.findMany({
@@ -158,12 +158,14 @@ export class ArtistsService {
     );
     const todo = [...byKey].filter(([key]) => !asked.has(key)).slice(0, limit);
     let found = 0;
+    let failed = 0;
     for (const [, name] of todo) {
       const artist = await this.ensure(name);
       const result = await this.lookUpArtist(artist.id, false);
       if (result.picture || result.bios > 0) found++;
+      if (result.failed) failed++;
     }
-    return { tried: todo.length, found };
+    return { tried: todo.length, found, failed };
   }
 
   /** A picture of the editor's own (already cropped square by the web app; made a WebP here like the rest). */
@@ -227,17 +229,28 @@ export class ArtistsService {
   }
 
   /** Asks Deezer for the picture and Wikipedia for the bios; one failing doesn't stop the other. */
-  private async lookUpArtist(artistId: string, force: boolean): Promise<{ picture: boolean; bios: number }> {
+  /**
+   * Asks the providers about an artist. When one fails (issue #93), what
+   * was found is kept but the artist isn't marked looked up - nor as
+   * having no picture - so the next lookup tries again.
+   */
+  private async lookUpArtist(artistId: string, force: boolean): Promise<{ picture: boolean; bios: number; failed: boolean }> {
     const artist = await this.prisma.client.artist.findUniqueOrThrow({ where: { id: artistId }, include: { bios: true } });
     let picture = false;
     let bios = 0;
+    let pictureFailed = false;
+    let bioFailed = false;
     const keepPicture = !!artist.imageStorageKey && (!force || artist.imageSource === "upload");
     if (!keepPicture && (force || artist.imageSource !== "none")) {
       try {
         // From the first provider allowed to give artist pictures that has one (issue #89).
-        const found = await this.metadata.artistPicture(artist.name);
-        if (found) picture = await this.downloadPicture(artist.id, found.url, found.pageUrl, found.provider);
+        const { found, failed } = await this.metadata.artistPicture(artist.name);
+        if (found) {
+          picture = await this.downloadPicture(artist.id, found.url, found.pageUrl, found.provider);
+          pictureFailed = !picture;
+        } else pictureFailed = failed.length > 0;
       } catch (err) {
+        pictureFailed = true;
         this.logger.warn(`No picture for ${artist.name}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
@@ -267,18 +280,23 @@ export class ArtistsService {
         }
       }
     } catch (err) {
-      if (!(err instanceof Skip)) this.logger.warn(`No bio for ${artist.name}: ${err instanceof Error ? err.message : String(err)}`);
+      if (!(err instanceof Skip)) {
+        bioFailed = true;
+        this.logger.warn(`No bio for ${artist.name}: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
+    const failed = pictureFailed || bioFailed;
     await this.prisma.client.artist.update({
       where: { id: artist.id },
       data: {
         musicbrainzId,
         wikidataId,
-        lookedUpAt: new Date(),
-        ...(!picture && !keepPicture && !artist.imageStorageKey && { imageSource: "none" }),
+        // Not looked up when a provider failed: tried again next time.
+        lookedUpAt: failed ? null : new Date(),
+        ...(!picture && !pictureFailed && !keepPicture && !artist.imageStorageKey && { imageSource: "none" }),
       },
     });
-    return { picture, bios };
+    return { picture, bios, failed };
   }
 
   private async downloadPicture(artistId: string, url: string, pageUrl: string, provider: string): Promise<boolean> {
