@@ -535,12 +535,13 @@ export function parseDuration(text: string): number | null {
   return Number(hours ?? 0) * 3600 + Number(minutes) * 60 + Number(seconds);
 }
 
-/** Seconds as m:ss, or h:mm:ss from an hour up. */
-export function formatDuration(totalSeconds: number): string {
+/** Seconds as m:ss, or h:mm:ss from an hour up (whole seconds, never below 0): durations, and a player's position. */
+export function formatDuration(seconds: number): string {
+  const totalSeconds = Math.max(0, Math.floor(Number.isFinite(seconds) ? seconds : 0));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = String(totalSeconds % 60).padStart(2, "0");
-  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${seconds}` : `${minutes}:${seconds}`;
+  const secs = String(totalSeconds % 60).padStart(2, "0");
+  return hours > 0 ? `${hours}:${String(minutes).padStart(2, "0")}:${secs}` : `${minutes}:${secs}`;
 }
 
 /**

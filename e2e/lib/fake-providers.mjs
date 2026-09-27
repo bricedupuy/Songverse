@@ -164,6 +164,9 @@ const spotifyTracks = (title, artist) => [
 const artistNames = new Map();
 const qids = new Map();
 
+/** Requests for the address an image host redirected to, which the API must never make (issue #112). */
+export const imageHost = { internalHits: 0 };
+
 export function startFakeProviders() {
   const server = createServer((req, res) => {
     const url = new URL(req.url, URL_);
@@ -284,6 +287,19 @@ export function startFakeProviders() {
     if (track) {
       const found = lastDeezer.get(track[1]);
       return json(res, found ? { ...found, release_date: ALBUM_DATES[found.album.id] } : { error: { type: "DataException", message: "no data", code: 800 } });
+    }
+    // An image host sending the server elsewhere, and one too big to take (issue #112).
+    // Elsewhere: this server, but at an address that isn't allowed (127.0.0.1, not localhost).
+    if (path === "/art/elsewhere.png") {
+      res.writeHead(302, { Location: `http://127.0.0.1:${FAKE_PROVIDERS_PORT}/art/internal.png` });
+      res.end();
+      return;
+    }
+    if (path === "/art/internal.png") imageHost.internalHits++;
+    if (path === "/art/huge.png") {
+      res.writeHead(200, { "Content-Type": "image/png" });
+      res.end(Buffer.alloc(6 * 1024 * 1024));
+      return;
     }
     const art = /^\/art\/(\d)\//.exec(path);
     if (art) {

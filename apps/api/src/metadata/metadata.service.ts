@@ -22,7 +22,7 @@ import { deezerSearch, deezerTrack } from "./deezer.provider";
 import { spotifyArtistPicture, spotifySearch, spotifyTrack, type SpotifyCredentials } from "./spotify-api";
 
 /** How long a search waits on a provider (MusicBrainz's queue included) before going on without it. */
-const PROVIDER_TIMEOUT_MS = 15000;
+const SEARCH_WAIT_MS = 15000;
 
 export type ProviderCapabilities = Record<MetadataCapability, boolean>;
 
@@ -127,7 +127,7 @@ function complete(listed: { key: MetadataProviderKey; capabilities: ProviderCapa
 function withTimeout<T>(promise: Promise<T>, provider: string): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${provider} took too long`)), PROVIDER_TIMEOUT_MS)),
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`${provider} took too long`)), SEARCH_WAIT_MS)),
   ]);
 }
 

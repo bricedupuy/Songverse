@@ -4,7 +4,7 @@
 // chosen among the matches, uploaded (issue #88) or removed by its editors; the admin's settings
 // and backfill; one image for two songs with the same artwork.
 import { API, api, call, check, finish, sql, stamp, user } from "../lib/harness.mjs";
-import { FAKE_PROVIDERS_URL, png, startFakeProviders } from "../lib/fake-providers.mjs";
+import { FAKE_PROVIDERS_URL, imageHost, png, startFakeProviders } from "../lib/fake-providers.mjs";
 
 const fake = await startFakeProviders();
 const owner = await user("Painter");
@@ -55,6 +55,10 @@ const chosen = await api(owner, "GET", `/song-versions/${song.id}`);
 check("another one chosen", r.status === 204 && chosen.imageUrl && chosen.imageUrl.split("/image/")[1].split("?")[0] !== url.split("/image/")[1].split("?")[0], String(r.status));
 r = await call(owner, "PUT", `/song-versions/${song.id}/artwork`, { url: "https://evil.example.com/cover.png" });
 check("only from Apple Music", r.status === 400, String(r.status));
+r = await call(owner, "PUT", `/song-versions/${song.id}/artwork`, { url: candidates[1].artworkUrl.replace(/\/art\/.*$/, "/art/elsewhere.png") });
+check("nor from where an image host sends it (issue #112), not even asked", r.status === 400 && /Apple Music, Deezer or Spotify/.test(r.body?.message) && imageHost.internalHits === 0, `${JSON.stringify(r.body)} ${imageHost.internalHits}`);
+r = await call(owner, "PUT", `/song-versions/${song.id}/artwork`, { url: candidates[1].artworkUrl.replace(/\/art\/.*$/, "/art/huge.png") });
+check("nor an image over 5 MB", r.status === 400 && /too big/.test(r.body?.message), JSON.stringify(r.body));
 // Shared with someone to view: they see it, can't change it.
 await api(owner, "POST", "/people/requests", { email: viewer.email });
 const request = (await api(viewer, "GET", "/people")).incoming.find((i) => i.from.id === owner.id);

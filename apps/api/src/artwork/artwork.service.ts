@@ -3,19 +3,13 @@ import { ImageService, type ProcessedImage } from "../images/image.service";
 import { MetadataService, type ArtworkCandidate } from "../metadata/metadata.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
+import { fetchProviderImage, ProviderImageError } from "../images/provider-image";
 
 export type { ArtworkCandidate };
 
 /** How a song's automatic artwork went (issue #93). */
 export type ArtworkOutcome = "found" | "nomatch" | "failed" | "skipped";
 
-/** The suites' stand-ins' origins, whose artwork is allowed too. */
-const testOrigins = () =>
-  [process.env.ITUNES_SEARCH_URL, process.env.DEEZER_API_URL, process.env.SPOTIFY_API_URL, process.env.APPLE_MUSIC_API_URL]
-    .filter((url): url is string => !!url)
-    .map((url) => new URL(url).origin);
-const TIMEOUT_MS = 8000;
-const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024;
 
 export interface EffectiveArtworkSettings {
   enabled: boolean;
@@ -83,19 +77,13 @@ export class ArtworkService {
 
   /** Downloads the artwork at `url` (Apple Music's, Deezer's or Spotify's only), keeps it and makes it the song's image. */
   async setFromUrl(songVersionId: string, url: string, options: { onlyIfNone?: boolean } = {}): Promise<boolean> {
-    let parsed: URL;
+    let body: Buffer;
     try {
-      parsed = new URL(url);
-    } catch {
-      throw new BadRequestException("Not an address");
+      body = await fetchProviderImage(url);
+    } catch (err) {
+      throw new BadRequestException(err instanceof ProviderImageError ? err.message : "Couldn't download the artwork");
     }
-    if (!this.allowedHost(parsed)) throw new BadRequestException("Artwork comes from Apple Music, Deezer or Spotify only");
-    const res = await fetch(parsed, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-    if (!res.ok) throw new BadRequestException(`Couldn't download the artwork (${res.status})`);
-    if (!(res.headers.get("content-type") ?? "").startsWith("image/")) throw new BadRequestException("That isn't an image");
-    const body = Buffer.from(await res.arrayBuffer());
-    if (body.length > MAX_DOWNLOAD_BYTES) throw new BadRequestException("That image is too big");
-    return this.store(songVersionId, body, parsed.toString(), options);
+    return this.store(songVersionId, body, new URL(url).toString(), options);
   }
 
   /** An image of the editor's own (issue #88), for songs Apple Music doesn't have: cropped square like the rest. */
@@ -197,13 +185,6 @@ export class ArtworkService {
     const song = await this.prisma.client.songVersion.findUnique({ where: { id: songVersionId }, select: { imageStorageKey: true } });
     if (!song || song.imageStorageKey !== storageKey) throw new NotFoundException("No such image");
     return this.images.resize(storageKey, () => this.storage.get(storageKey), width);
-  }
-
-  private allowedHost(url: URL): boolean {
-    const on = (domain: string) => url.hostname === domain || url.hostname.endsWith(`.${domain}`);
-    if (url.protocol === "https:" && (on("mzstatic.com") || on("dzcdn.net") || on("scdn.co"))) return true;
-    // The e2e suites' stand-ins serve their artwork too.
-    return testOrigins().includes(url.origin);
   }
 
   private async songForArtwork(songVersionId: string) {

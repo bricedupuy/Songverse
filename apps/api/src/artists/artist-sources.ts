@@ -1,9 +1,9 @@
+import { PROVIDER_TIMEOUT_MS } from "../metadata/provider-timeout";
 /**
  * Where artists' pictures and bios come from (issue #86): Deezer for the
  * picture, Wikipedia (found through MusicBrainz and Wikidata) for the bio.
  * No keys. Each address can be pointed elsewhere by the e2e suites.
  */
-const TIMEOUT_MS = 8000;
 const deezerBase = () => (process.env.DEEZER_API_URL ?? "https://api.deezer.com").replace(/\/$/, "");
 const wikidataApi = () => process.env.WIKIDATA_API_URL ?? "https://www.wikidata.org/w/api.php";
 /** A Wikipedia's address, {lang} standing for the language. */
@@ -20,7 +20,7 @@ export const fold = (text: string) =>
     .trim();
 
 async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url, { headers: { "User-Agent": userAgent(), Accept: "application/json" }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  const res = await fetch(url, { headers: { "User-Agent": userAgent(), Accept: "application/json" }, signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
   if (res.status === 404) throw Object.assign(new Error("Not found"), { status: 404 });
   if (!res.ok) throw new Error(`${new URL(url).hostname} answered ${res.status}`);
   return (await res.json()) as T;
@@ -83,19 +83,4 @@ export async function wikipediaSummary(language: string, title: string): Promise
     if ((err as { status?: number }).status === 404) return null;
     throw err;
   }
-}
-
-/** The origins artist pictures may be downloaded from: Deezer's, Spotify's and Apple's image servers (and the suites' stand-ins). */
-export function allowedPictureUrl(url: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-  const on = (domain: string) => parsed.hostname === domain || parsed.hostname.endsWith(`.${domain}`);
-  if (parsed.protocol === "https:" && (on("dzcdn.net") || on("scdn.co") || on("mzstatic.com"))) return true;
-  return [process.env.DEEZER_API_URL, process.env.SPOTIFY_API_URL, process.env.APPLE_MUSIC_API_URL, process.env.ITUNES_SEARCH_URL]
-    .filter((url): url is string => !!url)
-    .some((url) => parsed.origin === new URL(url).origin);
 }

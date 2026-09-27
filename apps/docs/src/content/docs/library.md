@@ -71,7 +71,7 @@ A song has tabs:
 - **Song info** - its name and artists, and under **More details**: composers, lyricists and other credits, album, year, key, tempo, time signature, suggested capo, duration, copyright, CCLI and ISRC numbers, a reference (e.g. the scripture it draws on), notes and tags. It also lists the songbooks it's in.
 - **Editor** - the chart itself. See [The song editor](/song-editor/).
 - **Versions** - how you and your teams play it. See [Versions](/versions/).
-- **Files** - sheet music, the original chart file, images (up to 25 MB each).
+- **Files** - sheet music, the original chart file, images (up to 25 MB each). PDFs, images, audio, video and plain text open in the browser; anything else (a web page, say) is downloaded, so it can never run inside Songverse.
 - **Audio** - recordings to learn or rehearse with (MP3, Opus, M4A, WAV, OGG… up to 50 MB each), and the song's stems (see below).
 - **Links** - the song on Spotify, Apple Music, Deezer and YouTube.
 

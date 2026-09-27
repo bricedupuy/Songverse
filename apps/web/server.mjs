@@ -118,7 +118,23 @@ function offlineResponse(pathname) {
 
 const { default: appHandler } = await import("./dist/server/server.js");
 
-const adapter = createServerAdapter(async (request) => {
+// Security headers on every page and file (issue #112): not framed by
+// another site, no type sniffing, only the origin sent on as a referrer.
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+};
+
+function secured(response) {
+  const headers = new Headers(response.headers);
+  for (const [name, value] of Object.entries(SECURITY_HEADERS)) if (!headers.has(name)) headers.set(name, value);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+const adapter = createServerAdapter(async (request) => secured(await handle(request)));
+
+async function handle(request) {
   const redirect = redirectToWebUrl(request);
   if (redirect) return redirect;
 
@@ -142,7 +158,7 @@ const adapter = createServerAdapter(async (request) => {
   const headers = new Headers(response.headers);
   headers.set("Content-Length", String(Buffer.byteLength(fixed)));
   return new Response(fixed, { status: response.status, statusText: response.statusText, headers });
-});
+}
 
 const port = Number(process.env.PORT ?? 3000);
 createServer(adapter).listen(port, () => {

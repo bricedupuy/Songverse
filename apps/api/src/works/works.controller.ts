@@ -1,9 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, UnauthorizedException } from "@nestjs/common";
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../common/types/authenticated-request";
 import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
-import { WorkResponseDto } from "./dto/work-response.dto";
 import { WorksService } from "./works.service";
 
 @ApiTags("works")
@@ -11,13 +10,6 @@ import { WorksService } from "./works.service";
 @Controller("works")
 export class WorksController {
   constructor(private readonly worksService: WorksService) {}
-
-  @Get()
-  @ApiOkResponse({ type: WorkResponseDto, isArray: true })
-  findAll(@CurrentUser() user?: AuthenticatedUser) {
-    if (!user) throw new UnauthorizedException();
-    return this.worksService.findVisibleToUser(user);
-  }
 
   @Get(":workId")
   findOne(@CurrentUser() user: AuthenticatedUser | undefined, @Param("workId") workId: string): ReturnType<WorksService["findOne"]> {

@@ -32,29 +32,6 @@ export class WorksService {
     private readonly access: AccessPolicyService,
   ) {}
 
-  /**
-   * Lists Works visible to the user: globally approved works, plus works
-   * with at least one version owned by the user or one of their teams.
-   * Phase 1 skeleton — no pagination/search yet (Phase 2/6).
-   */
-  async findVisibleToUser(user: AuthenticatedUser) {
-    const works = await this.prisma.client.work.findMany({
-      where: { versions: { some: await this.access.songsVisibleTo(user) } },
-      include: {
-        preferredOriginalVersion: { select: { id: true, title: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
-
-    return works.map((work) => ({
-      id: work.id,
-      preferredOriginalVersionId: work.preferredOriginalVersionId,
-      title: work.preferredOriginalVersion?.title ?? null,
-      createdAt: work.createdAt,
-    }));
-  }
-
   /** A Work with the versions of it the user can see - not found if they can see none. */
   async findOne(user: AuthenticatedUser, id: string) {
     const visible = await this.access.songsVisibleTo(user);

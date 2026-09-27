@@ -1,4 +1,4 @@
-import { allKeptSets, deviceOffline, keepSet, syncKeptFiles, syncKeptSets, type KeptSet, type OfflineStorage } from "@songverse/core";
+import { deviceOffline, keepSet, syncKeptFiles, syncKeptSets, type OfflineStorage } from "@songverse/core";
 import { useRouteContext } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { apiClient } from "#/lib/api-client";
@@ -45,11 +45,6 @@ export function useKeepSet(setlistId: string | null | undefined) {
   useEffect(() => {
     if (setlistId && !offline) void refreshKeptSet(session.userId, setlistId);
   }, [setlistId, session.userId, offline]);
-}
-
-/** Every set kept on the device (none when there's no device store). */
-export function keptSets(): Promise<KeptSet[]> {
-  return allKeptSets(deviceStorage()).catch(() => []);
 }
 
 // While the app is open, it catches up this often (and on launch, and when the connection is back).

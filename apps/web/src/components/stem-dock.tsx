@@ -1,5 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
-import type { StemPart } from "@songverse/core";
+import { formatDuration, type StemPart } from "@songverse/core";
 import {
   AudioLines,
   ChevronDown,
@@ -62,11 +62,6 @@ const PART_ICONS: Record<StemPart, LucideIcon> = {
 
 // Clear of the screen's rounded corners and the home indicator on a phone.
 const EDGES = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:px-6";
-
-function formatTime(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
-}
 
 function useTrackName() {
   const { t } = useTranslation();
@@ -163,7 +158,7 @@ export function StemDock({ song }: { song: StemSong }) {
   );
   const time = (
     <span className="shrink-0 text-xs tabular-nums text-muted-foreground" data-testid="stem-time">
-      {formatTime(position)} / {formatTime(duration)}
+      {formatDuration(position)} / {formatDuration(duration)}
     </span>
   );
   const status =

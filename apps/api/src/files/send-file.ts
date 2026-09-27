@@ -1,3 +1,4 @@
+import { inlineSafeType } from "@songverse/core";
 import type { Request, Response } from "express";
 import { pipeline } from "node:stream/promises";
 import type { StorageService } from "../storage/storage.service";
@@ -15,6 +16,11 @@ export interface StoredFile {
  * whole: byte ranges (206) so audio starts and seeks before it has all
  * arrived, and cached for good - a file's content never changes, its
  * storage key being the hash of its bytes.
+ *
+ * Its type is what the uploader's browser said: only one that can't carry
+ * a script is shown inline, anything else is a download, and the response
+ * is sandboxed either way (issue #112) - an uploaded HTML or SVG file
+ * mustn't run on the API's origin as whoever opened it.
  */
 export async function sendFile(
   storage: StorageService,
@@ -25,9 +31,11 @@ export async function sendFile(
 ): Promise<void> {
   const size = file.sizeBytes ?? (await storage.size(file.storageKey));
   const etag = `"${file.storageKey}"`;
+  const safe = inlineSafeType(file.mimeType);
   res.set({
-    "Content-Type": file.mimeType,
-    "Content-Disposition": `${disposition}; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
+    "Content-Type": safe ?? "application/octet-stream",
+    "Content-Disposition": `${safe ? disposition : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
+    "Content-Security-Policy": "sandbox",
     "Accept-Ranges": "bytes",
     ETag: etag,
     "Cache-Control": "private, max-age=31536000, immutable",

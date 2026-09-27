@@ -1,6 +1,8 @@
 import { Injectable, Logger, type OnApplicationBootstrap } from "@nestjs/common";
 import {
   arrangementFromChart,
+  generateId,
+  ID_PREFIXES,
   mapChartIds,
   newArrangementDocument,
   readSongDocument,
@@ -126,7 +128,7 @@ export class SongFoldService implements OnApplicationBootstrap {
     const notes = song.notes?.trim() || null;
     // (A song with no chart has nothing to play.)
     if ((played || notes) && song.ownerScope !== "GLOBAL" && songDoc.sections.length > 0) {
-      const document = played ?? newArrangementDocument(targetDoc, targetId, () => `f${Math.random().toString(36).slice(2, 10)}`);
+      const document = played ?? newArrangementDocument(targetDoc, targetId, () => generateId(ID_PREFIXES.arrangementItem));
       const french = song.ownerUser?.locale?.startsWith("fr");
       const name = song.versionName ?? song.ownerTeam?.name ?? (french ? `Version de ${song.ownerUser?.displayName ?? ""}` : `${song.ownerUser?.displayName ?? ""}'s`);
       const teamDefault =

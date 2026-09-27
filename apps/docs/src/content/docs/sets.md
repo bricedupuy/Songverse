@@ -77,6 +77,7 @@ With **Sync**, everyone in a set plays together: one person leads, and the other
 - When the leader moves to another song of the set, in Live or on its page, everyone's screen follows. You can still look at another song meanwhile: the next time the leader moves, you follow again.
 - If a device loses its connection, its metronome keeps time on its own, and catches up when it's back. If the leader loses theirs, the session carries on, and they take the lead back when they're back.
 - **End the session** stops everyone's metronome.
+- Someone who can no longer open the set (taken off its team, say) stops following it within half a minute, and someone who can no longer edit it stops leading it.
 
 After a reload, a browser only lets the metronome make sound after a tap: **Tap to hear the metronome** (under **Sync**, or on the Metronome page) does it.
 

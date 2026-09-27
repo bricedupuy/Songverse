@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { API, api, call, check, finish, stamp, user } from "../lib/harness.mjs";
+import { API, WEB, api, call, check, finish, stamp, user } from "../lib/harness.mjs";
 
 const bytes = readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures/stems/03 drums.mp3"));
 const size = bytes.length;
@@ -54,6 +54,7 @@ check("a link to the file, for an hour", r.status === 200 && r.body.path.startsW
 const link = `${API}${r.body.path}`;
 res = await get(link, {}, null);
 check("it works without signing in, shown in place", res.status === 200 && res.headers.get("content-disposition")?.startsWith("inline") && (await same(res, 0, size)), String(res.status));
+check("in a sandbox, whatever it is", res.headers.get("content-security-policy") === "sandbox" && res.headers.get("x-content-type-options") === "nosniff", String(res.headers.get("content-security-policy")));
 res = await get(link, { Range: "bytes=100-199" }, null);
 check("and streams by ranges", res.status === 206 && (await same(res, 100, 200)), String(res.status));
 const url = new URL(link);
@@ -73,5 +74,35 @@ check("someone who can't see the song gets no link", r.status === 403 || r.statu
 await call(me, "DELETE", `/song-versions/${song.id}/attachments/${file.id}`);
 res = await get(link, {}, null);
 check("a deleted file's link stops working", res.status === 403, String(res.status));
+
+// --- a file that would run in the browser (issue #112): only ever downloaded
+const page = await (async () => {
+  const form = new FormData();
+  form.append("type", "OTHER");
+  form.append("file", new Blob(["<script>alert(document.cookie)</script>"], { type: "text/html" }), "page.html");
+  return (await fetch(`${API}/song-versions/${song.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form })).json();
+})();
+res = await get(`${API}/song-versions/${song.id}/attachments/${page.id}/download`);
+check(
+  "an HTML file is downloaded as bytes, never shown",
+  res.status === 200 && res.headers.get("content-type") === "application/octet-stream" && res.headers.get("content-disposition")?.startsWith("attachment") && res.headers.get("content-security-policy") === "sandbox",
+  `${res.headers.get("content-type")} ${res.headers.get("content-disposition")}`,
+);
+r = await call(me, "POST", `/song-versions/${song.id}/attachments/${page.id}/link`);
+check("and gets no link that opens without signing in", r.status === 400, String(r.status));
+
+// --- security headers (issue #112)
+res = await fetch(`${API}/song-versions`);
+check(
+  "the API says not to guess types, frame it or send the referrer",
+  res.headers.get("x-content-type-options") === "nosniff" && res.headers.get("x-frame-options") === "DENY" && res.headers.get("referrer-policy") === "no-referrer" && !res.headers.get("x-powered-by"),
+  [...res.headers].join(" "),
+);
+res = await fetch(`${WEB}/login`);
+check(
+  "the web app too",
+  res.headers.get("x-content-type-options") === "nosniff" && res.headers.get("x-frame-options") === "SAMEORIGIN" && res.headers.get("referrer-policy") === "strict-origin-when-cross-origin",
+  [...res.headers].join(" "),
+);
 
 finish();

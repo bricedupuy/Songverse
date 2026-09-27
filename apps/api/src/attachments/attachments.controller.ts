@@ -125,7 +125,9 @@ export class AttachmentsController {
 
   /**
    * A short-lived link to the file (GET /files/:id), for what can't send a
-   * Bearer token - an <audio src> streaming and seeking (issue #33).
+   * Bearer token - an <audio src> streaming and seeking (issue #33). For
+   * audio only: a link is shown in the browser, and anything else is
+   * downloaded with the Bearer token (issue #112).
    */
   @Post(":attachmentId/link")
   @HttpCode(HttpStatus.OK)
@@ -138,6 +140,7 @@ export class AttachmentsController {
     if (!user) throw new UnauthorizedException();
     await this.access.assertCanSeeSong(user, songVersionId);
     const attachment = await this.attachmentsService.find(user, songVersionId, attachmentId);
+    if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files have links");
     return this.links.create(attachment.id);
   }
 

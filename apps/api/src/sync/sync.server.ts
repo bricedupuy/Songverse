@@ -23,12 +23,31 @@ interface StoredSession extends Omit<SyncSession, "leader"> {
   leader: { id: string; name: string; conn: string };
 }
 
+/**
+ * How many messages a connection may send (issue #112): a burst, refilled
+ * each second. A device sends a few a second at most (pings, a leader's
+ * changes); one that floods is dropped.
+ */
+const MESSAGE_BURST = 60;
+const MESSAGES_PER_SECOND = 20;
+/**
+ * How long a connection's right to its set is trusted before it's looked up
+ * again (issue #112): someone taken off the set, no longer allowed to edit
+ * it, or banned stops hearing it or leading it within this, not only when
+ * they reconnect.
+ */
+const ACCESS_RECHECK_MS = 30_000;
+
 interface Connection {
   id: string;
+  /** Messages it may still send before it's dropped. */
+  allowance: number;
+  lastMessageAt: number;
   socket: WebSocket;
   user: (AuthenticatedUser & { name: string }) | null;
   setId: string | null;
   canLead: boolean;
+  accessCheckedAt: number;
 }
 
 /**
@@ -80,13 +99,17 @@ export class SyncServer implements OnModuleDestroy {
   }
 
   private connected(socket: WebSocket) {
-    const connection: Connection = { id: randomUUID(), socket, user: null, setId: null, canLead: false };
+    const connection: Connection = { id: randomUUID(), allowance: MESSAGE_BURST, lastMessageAt: Date.now(), socket, user: null, setId: null, canLead: false, accessCheckedAt: 0 };
     this.connections.set(connection.id, connection);
     // A device that doesn't sign in soon is dropped.
     const signIn = setTimeout(() => {
       if (!connection.user) socket.close(4001, "Sign in first");
     }, 10_000);
     socket.on("message", (data) => {
+      const now = Date.now();
+      connection.allowance = Math.min(MESSAGE_BURST, connection.allowance + ((now - connection.lastMessageAt) / 1000) * MESSAGES_PER_SECOND) - 1;
+      connection.lastMessageAt = now;
+      if (connection.allowance < 0) return socket.close(1008, "Too many messages");
       let message: SyncClientMessage;
       try {
         message = JSON.parse(String(data)) as SyncClientMessage;
@@ -112,7 +135,12 @@ export class SyncServer implements OnModuleDestroy {
 
   private async handle(connection: Connection, message: SyncClientMessage) {
     // The clock first: answered at once, before anything else.
-    if (message.type === "ping") return this.send(connection, { type: "pong", id: message.id, sent: message.sent, at: Date.now() });
+    if (message.type === "ping") {
+      this.send(connection, { type: "pong", id: message.id, sent: message.sent, at: Date.now() });
+      // Pings keep coming while a device follows, so they carry the re-check.
+      if (connection.setId) await this.stillAllowed(connection);
+      return;
+    }
     if (message.type === "hello") return this.signIn(connection, message.token);
     if (!connection.user) return this.send(connection, { type: "error", code: "unauthorized", message: "Sign in first" });
     switch (message.type) {
@@ -155,8 +183,32 @@ export class SyncServer implements OnModuleDestroy {
     if (!set || !access?.canView) return this.send(connection, { type: "error", code: "not-found", message: "Set not found" });
     connection.setId = set.id;
     connection.canLead = access.canEdit;
+    connection.accessCheckedAt = Date.now();
     await this.present(connection);
     await this.changed(set.id);
+  }
+
+  /**
+   * Whether the connection may still be in its set, looked up again once
+   * ACCESS_RECHECK_MS has passed; when it may not, it's taken out of the set
+   * and told so (the device stops following).
+   */
+  private async stillAllowed(connection: Connection): Promise<boolean> {
+    const setId = connection.setId;
+    if (!setId || Date.now() - connection.accessCheckedAt < ACCESS_RECHECK_MS) return !!setId;
+    connection.accessCheckedAt = Date.now();
+    const [user, set] = await Promise.all([
+      this.prisma.client.user.findUnique({ where: { id: connection.user!.id }, select: { bannedAt: true, deletedAt: true } }),
+      this.prisma.client.setlist.findUnique({ where: { id: setId }, select: { id: true, ownerUserId: true, ownerTeamId: true } }),
+    ]);
+    const access = user && !user.bannedAt && !user.deletedAt && set ? await this.access.access(connection.user!, set) : null;
+    if (access?.canView) {
+      connection.canLead = access.canEdit;
+      return true;
+    }
+    await this.leaveSet(connection);
+    this.send(connection, { type: "error", code: "not-found", message: "Set not found" });
+    return false;
   }
 
   private async leaveSet(connection: Connection) {
@@ -170,6 +222,7 @@ export class SyncServer implements OnModuleDestroy {
   private async lead(connection: Connection) {
     const setId = connection.setId;
     if (!setId) return this.send(connection, { type: "error", code: "bad-request", message: "Join a set first" });
+    if (!(await this.stillAllowed(connection))) return;
     if (!connection.canLead) return this.send(connection, { type: "error", code: "forbidden", message: "Only someone who can edit the set leads it" });
     const current = await this.read(setId);
     const session: StoredSession = {
@@ -185,8 +238,9 @@ export class SyncServer implements OnModuleDestroy {
 
   private async update(connection: Connection, message: Extract<SyncClientMessage, { type: "update" }>) {
     const setId = connection.setId;
+    if (setId && !(await this.stillAllowed(connection))) return;
     const current = setId ? await this.read(setId) : null;
-    if (!setId || !current || current.leader.conn !== `${this.instance}:${connection.id}`) {
+    if (!setId || !current || !connection.canLead || current.leader.conn !== `${this.instance}:${connection.id}`) {
       return this.send(connection, { type: "error", code: "forbidden", message: "Only the leader changes the session" });
     }
     const next: StoredSession = { ...current, rev: current.rev + 1 };
@@ -204,6 +258,7 @@ export class SyncServer implements OnModuleDestroy {
 
   private async end(connection: Connection) {
     const setId = connection.setId;
+    if (setId && !(await this.stillAllowed(connection))) return;
     if (!setId || !connection.canLead) return this.send(connection, { type: "error", code: "forbidden", message: "Only someone who can edit the set ends it" });
     await redis().del(sessionKey(setId));
     await this.changed(setId);

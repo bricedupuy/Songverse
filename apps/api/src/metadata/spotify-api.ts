@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import type { ProviderMatch } from "@songverse/core";
+import { PROVIDER_TIMEOUT_MS } from "./provider-timeout";
 
 /** The most results a search asks for: Spotify refuses more than 10 from an app in development mode (issue #90). */
 const SEARCH_LIMIT = "10";
 /** Where Spotify's Web API and its token service are; pointed elsewhere only by the e2e suites. */
 const apiBase = () => (process.env.SPOTIFY_API_URL ?? "https://api.spotify.com").replace(/\/$/, "");
 const accountsBase = () => (process.env.SPOTIFY_ACCOUNTS_URL ?? "https://accounts.spotify.com").replace(/\/$/, "");
-const TIMEOUT_MS = 8000;
 
 /** A Spotify developer app (issue #89): its client ID and secret, and the market (country) searched. */
 export interface SpotifyCredentials {
@@ -39,7 +39,7 @@ async function appToken(credentials: SpotifyCredentials, now = Date.now()): Prom
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: "grant_type=client_credentials",
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
   });
   if (res.status === 400 || res.status === 401) throw new SpotifyApiError(res.status, "Spotify refused the client ID and secret");
   if (!res.ok) throw new SpotifyApiError(res.status, `Spotify answered ${res.status}`);
@@ -52,7 +52,7 @@ async function appToken(credentials: SpotifyCredentials, now = Date.now()): Prom
 async function get<T>(path: string, credentials: SpotifyCredentials, retried = false): Promise<T> {
   const res = await fetch(`${apiBase()}${path}`, {
     headers: { Authorization: `Bearer ${await appToken(credentials)}` },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
   });
   if (res.status === 401 && !retried) {
     // Its token ran out early: a new one, once.

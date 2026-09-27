@@ -28,7 +28,7 @@ Whenever Songverse is open with a connection, it catches up every few minutes: c
 ## Offline
 
 - **Sets** open read-only. Their songs open with their chords, and a set plays in **Live** from start to finish.
-- **Songs** open read-only: their chart, the files kept with them (**Open**), and **Live**.
+- **Songs** open read-only: their chart, the files kept with them (**Open**; a file the browser can't show safely is downloaded instead), and **Live**.
 - **Songbooks** you keep a copy of open with their entries.
 - **The search** finds every song kept on the device, and the entries of songbooks you keep a copy of by their number, so a song the leader calls can still come up full screen.
 - Anything else says **Not available offline**.

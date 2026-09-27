@@ -77,6 +77,7 @@ Avec **Synchro**, tous ceux d'une liste jouent ensemble : une personne mène, et
 - Quand le meneur passe à un autre chant de la liste, en Live ou sur sa page, l'écran de chacun suit. Vous pouvez regarder un autre chant entre-temps : au prochain changement du meneur, vous suivez à nouveau.
 - Si un appareil perd sa connexion, son métronome garde le tempo seul, et se recale à son retour. Si le meneur perd la sienne, la session continue, et il reprend la main à son retour.
 - **Terminer la session** arrête le métronome de chacun.
+- Quelqu'un qui ne peut plus ouvrir la liste (retiré de son équipe, par exemple) cesse de la suivre dans la demi-minute, et quelqu'un qui ne peut plus la modifier cesse de la mener.
 
 Après un rechargement, le navigateur ne laisse le métronome jouer qu'après une touche : **Touchez pour entendre le métronome** (sous **Synchro**, ou sur la page Métronome) le permet.
 

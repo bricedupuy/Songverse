@@ -122,6 +122,14 @@ check("back, and leading again: where it was", seen?.session.metronome?.anchorAt
 leader.send({ type: "end" });
 seen = await follower.next((m) => session(m) && m.session === null);
 check("ended: no session for anyone", seen !== null);
+
+// --- taken off the team: out of the set within the re-check (issue #112), not only when they reconnect
+await api(owner, "DELETE", `/teams/${team.id}/members/${member.id}`);
+const pinging = setInterval(() => follower.send({ type: "ping", id: 1, sent: 0 }), 2000);
+seen = await follower.next(error, 40_000);
+clearInterval(pinging);
+check("someone taken off the team stops following the set", seen?.code === "not-found", JSON.stringify(seen));
+check("and is gone from who's there", (await leader.next((m) => session(m) && !m.members.some((one) => one.id === member.id), 3000)) !== null);
 leader.close();
 follower.close();
 

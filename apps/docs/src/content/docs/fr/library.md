@@ -71,7 +71,7 @@ Un chant a des onglets :
 - **Infos** - son nom et ses artistes, et sous **Plus de détails** : compositeurs, auteurs et autres crédits, album, année, tonalité, tempo, mesure, capo suggéré, durée, copyright, numéros CCLI et ISRC, une référence (par exemple le passage biblique dont il s'inspire), des notes et des étiquettes. Il liste aussi les recueils qui le contiennent.
 - **Éditeur** - la grille elle-même. Voir [L'éditeur de chants](/fr/song-editor/).
 - **Versions** - la façon dont vous et vos équipes le jouez et le chantez. Voir [Versions](/fr/versions/).
-- **Fichiers** - partitions, fichier d'origine de la grille, images (25 Mo maximum chacun).
+- **Fichiers** - partitions, fichier d'origine de la grille, images (25 Mo maximum chacun). Les PDF, images, fichiers audio et vidéo et le texte brut s'ouvrent dans le navigateur ; tout autre fichier (une page web, par exemple) est téléchargé, pour ne jamais pouvoir s'exécuter dans Songverse.
 - **Audio** - des enregistrements pour apprendre ou répéter (MP3, Opus, M4A, WAV, OGG… 50 Mo maximum chacun), et les pistes du chant (voir plus bas).
 - **Liens** - le chant sur Spotify, Apple Music, Deezer et YouTube.
 

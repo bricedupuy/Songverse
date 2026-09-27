@@ -229,6 +229,10 @@ describe("duration helpers", () => {
   it("formats", () => {
     expect([5, 225, 3723].map(formatDuration)).toEqual(["0:05", "3:45", "1:02:03"]);
   });
+
+  it("formats a player's position: whole seconds, never below 0 (issue #112)", () => {
+    expect([59.9, -1, Number.NaN, Number.POSITIVE_INFINITY].map(formatDuration)).toEqual(["0:59", "0:00", "0:00", "0:00"]);
+  });
 });
 
 describe("splitNames", () => {

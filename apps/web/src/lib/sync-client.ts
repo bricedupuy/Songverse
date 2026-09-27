@@ -2,8 +2,6 @@ import {
   clockOffset,
   SYNC_PATH,
   sharedMetronomeSettings,
-  keptFile,
-  keptSongCopy,
   type ClockSample,
   type SyncClientMessage,
   type SyncMember,
@@ -11,7 +9,7 @@ import {
   type SyncSession,
 } from "@songverse/core";
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import { apiClient, apiToken, forgetApiToken } from "#/lib/api-client";
+import { apiToken, forgetApiToken } from "#/lib/api-client";
 import {
   deviceNow,
   followMetronome,
@@ -26,7 +24,7 @@ import {
   type MetronomeState,
 } from "#/lib/metronome-engine";
 import { getApiUrl } from "#/lib/public-env";
-import { deviceStorage } from "#/lib/offline-data";
+import { fileLoader, songFiles } from "#/lib/song-files";
 import { followStems, getStemState, playableOf, realignStems, setStemsDirectOutput, unfollowStems, unlockStemsAudio, useStems, type StemSong, type StemState } from "#/lib/stem-engine";
 
 /**
@@ -244,25 +242,11 @@ function stemSongFor(songVersionId: string, title: string): Promise<StemSong | n
   let song = stemSongs.get(songVersionId);
   if (!song) {
     const returnTo = `${window.location.pathname}${window.location.search}`;
-    song = apiClient
-      .listAttachments(songVersionId)
-      .then((attachments) => ({ attachments, offline: false }))
-      .catch(async () => ({ attachments: (await keptSongCopy(deviceStorage(), songVersionId))?.attachments ?? [], offline: true }))
+    song = songFiles(songVersionId)
       .then(({ attachments, offline }) => {
         const stems = playableOf(attachments);
         if (stems.length === 0) return null;
-        return {
-          songVersionId,
-          title,
-          returnTo,
-          stems,
-          load: async (file, onProgress) => {
-            if (!offline) return apiClient.downloadAttachment(songVersionId, file.id, onProgress);
-            const blob = await keptFile<Blob>(deviceStorage(), file.id);
-            if (!blob) throw new Error("not kept");
-            return blob;
-          },
-        } satisfies StemSong;
+        return { songVersionId, title, returnTo, stems, load: fileLoader(songVersionId, offline) } satisfies StemSong;
       })
       .catch(() => null);
     stemSongs.set(songVersionId, song);

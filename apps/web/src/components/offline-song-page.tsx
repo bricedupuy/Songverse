@@ -1,10 +1,11 @@
-import { findKeptSong, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
+import { findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SongChart } from "#/components/song-chart";
 import { StemDock } from "#/components/stem-dock";
+import { downloadBlob } from "#/lib/download";
 import { playableOf } from "#/lib/stem-engine";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
@@ -60,8 +61,11 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
   async function open(file: Attachment) {
     const blob = await keptFile<Blob>(deviceStorage(), file.id);
     if (!blob) return;
-    // A blob: URL of this page's own origin, from the device.
-    window.open(URL.createObjectURL(blob), "_blank");
+    // A blob: URL is this page's own origin: only a type that can't carry a
+    // script is shown there, anything else is saved instead (issue #112).
+    const type = inlineSafeType(file.mimeType);
+    if (!type) return downloadBlob(blob, file.filename);
+    window.open(URL.createObjectURL(new Blob([blob], { type })), "_blank");
   }
 
   return (

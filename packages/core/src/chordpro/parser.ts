@@ -4,12 +4,8 @@ import { SECTION_TYPES, type SectionType } from "../constants/index.js";
 import { generateId, ID_PREFIXES } from "../ids/index.js";
 import { LABEL_LINE, normalizeSectionType } from "./section-labels.js";
 
-// Chord normalization (root/quality/extensions via @tonaljs/tonal) is
-// deliberately deferred - NormalizedChordSchema is nullable specifically so
-// a chord can exist and render correctly before that lands. This parser
-// only ever produces `normalized: null`; see the follow-up task for
-// wiring Tonal in without blocking the paste-and-view flow that actually
-// matters to a user first.
+// Chords are kept as written (`raw`); `parseChord` in ../chords reads them
+// when they're transposed or shown, so `normalized` stays null.
 
 // ChordPro's standard short/long section directives - see
 // https://www.chordpro.org/chordpro/directives-env/ - plus

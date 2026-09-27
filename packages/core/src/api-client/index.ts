@@ -1323,7 +1323,6 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       return response.blob();
     },
 
-    listWorks: () => request<Array<{ id: string; title: string | null; createdAt: string }>>("/works"),
     getWork: (workId: string) => request<WorkDetail>(`/works/${workId}`),
     listSongVersions: (query: ListSongVersionsQuery = {}) => {
       const params = new URLSearchParams(

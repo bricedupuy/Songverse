@@ -76,6 +76,47 @@ User documentation, in English and French: [docs.songverse.one](https://docs.son
 | Website (`apps/site`) | A static Astro page at the root domain, English and French |
 | Deployment | Docker images for the API/worker, the web app, the docs and the website, run on Dokploy |
 
+## Credits
+
+Songverse stands on a lot of open-source work. Thank you to everyone behind:
+
+| Project | What it does here | Licence |
+| --- | --- | --- |
+| [TipTap](https://tiptap.dev) and [ProseMirror](https://prosemirror.net) | The structured song editor: lines, chords pinned to characters, sections dragged around | MIT |
+| [React](https://react.dev) | The web app's UI | MIT |
+| [TanStack Start, Router and Table](https://tanstack.com) | Server rendering, routing and tables in the web app | MIT |
+| [Vite](https://vite.dev) | Building and serving the web app | MIT |
+| [Tailwind CSS](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com) and [Radix UI](https://www.radix-ui.com) | Styling and the accessible building blocks (dialogs, menus, tabs) | MIT |
+| [Lucide](https://lucide.dev) | Icons | ISC |
+| [dnd-kit](https://dndkit.com) | Drag and drop (sets, songbooks, the song's order) | MIT |
+| [react-easy-crop](https://github.com/ValentinH/react-easy-crop) | Cropping avatars and song images | MIT |
+| [i18next](https://www.i18next.com) and react-i18next | English and French | MIT |
+| [NestJS](https://nestjs.com) | The API | MIT |
+| [Better Auth](https://www.better-auth.com) | Accounts, sessions, passkeys, Google sign-in, API tokens | MIT |
+| [Prisma](https://www.prisma.io) and [PostgreSQL](https://www.postgresql.org) | The database and its migrations | Apache-2.0 / PostgreSQL |
+| [BullMQ](https://bullmq.io), [ioredis](https://github.com/redis/ioredis) and [Redis](https://redis.io) | Background jobs, Sync play's sessions | MIT / MIT / RSALv2-SSPL-AGPL |
+| [ws](https://github.com/websockets/ws) | Sync play's WebSocket | MIT |
+| [sharp](https://sharp.pixelplumbing.com) | Image thumbnails and resizing | Apache-2.0 |
+| [jose](https://github.com/panva/jose) | Checking API tokens | MIT |
+| [AWS SDK for JavaScript](https://github.com/aws/aws-sdk-js-v3) | Cloudflare R2 storage (S3-compatible) | Apache-2.0 |
+| [Resend](https://resend.com) | Sending email | MIT (SDK) |
+| [zod](https://zod.dev) | Song, arrangement and API schemas | MIT |
+| [Tonal](https://github.com/tonaljs/tonal) | Chord and key theory for transposing | MIT |
+| [nanoid](https://github.com/ai/nanoid) | Section, line and chord IDs | MIT |
+| [Astro](https://astro.build) and [Starlight](https://starlight.astro.build) | The documentation site and the website | MIT |
+| [Playwright](https://playwright.dev) and [Vitest](https://vitest.dev) | End-to-end and unit tests, documentation screenshots | Apache-2.0 / MIT |
+| [Turborepo](https://turbo.build), [pnpm](https://pnpm.io), [TypeScript](https://www.typescriptlang.org), [ESLint](https://eslint.org), [Prettier](https://prettier.io) | The workspace and its checks | MIT / MIT / Apache-2.0 / MIT / MIT |
+
+Song and artist details come from outside services, each used within its
+terms: [MusicBrainz](https://musicbrainz.org) (credits, recordings and
+works, CC0), [Wikidata](https://www.wikidata.org) (CC0) and
+[Wikipedia](https://www.wikipedia.org) (artist bios, shown with their CC
+BY-SA attribution), [Deezer](https://developers.deezer.com), [Apple
+Music / iTunes](https://developer.apple.com/musickit/) and
+[Spotify](https://developer.spotify.com) (artwork, artist pictures,
+links), and [YouTube](https://developers.google.com/youtube/iframe_api_reference)
+(the embedded player).
+
 ## Getting started
 
 Requires Node 20+, pnpm and Docker.

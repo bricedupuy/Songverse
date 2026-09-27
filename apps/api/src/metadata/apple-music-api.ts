@@ -1,9 +1,9 @@
 import { createHash, createPrivateKey, sign } from "node:crypto";
 import type { ProviderMatch } from "@songverse/core";
+import { PROVIDER_TIMEOUT_MS } from "./provider-timeout";
 
 /** Where the Apple Music API is; pointed elsewhere only by the e2e suites. */
 const apiBase = () => (process.env.APPLE_MUSIC_API_URL ?? "https://api.music.apple.com").replace(/\/$/, "");
-const TIMEOUT_MS = 8000;
 /** A developer token lasts this long (Apple allows up to six months); a new one is made before it runs out. */
 const TOKEN_LIFETIME_S = 12 * 60 * 60;
 
@@ -72,7 +72,7 @@ function jwtExpiry(token: string): number | null {
 export async function fetchedToken(url: string, now = Date.now()): Promise<string> {
   const cached = fetchedTokens.get(url);
   if (cached && cached.expiresAt - now > 60 * 1000) return cached.token;
-  const res = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  const res = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`The developer token address answered ${res.status}`);
   const body = (await res.json().catch(() => null)) as { token?: unknown; cache_ttl_seconds?: unknown } | null;
   const token = typeof body?.token === "string" ? body.token.trim() : "";
@@ -113,7 +113,7 @@ export class AppleMusicApiError extends Error {
 async function get<T>(path: string, auth: AppleMusicAuth, retried = false): Promise<T> {
   const res = await fetch(`${apiBase()}${path}`, {
     headers: { Authorization: `Bearer ${await tokenFor(auth)}` },
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
   });
   if (res.status === 401 || res.status === 403) {
     // A fetched token may have been replaced early: a new one, once.

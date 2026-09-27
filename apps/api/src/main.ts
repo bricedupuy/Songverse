@@ -49,6 +49,15 @@ async function bootstrap() {
   // and a handler bound to the boot-time instance would keep serving the
   // old config until a restart.
   const expressApp = app.getHttpAdapter().getInstance() as Express;
+  // Security headers on every answer (issue #112): no framing, no sniffing,
+  // no referrer; Express doesn't announce itself.
+  expressApp.disable("x-powered-by");
+  expressApp.use((_req: unknown, res: { setHeader: (name: string, value: string) => void }, next: () => void) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    next();
+  });
   expressApp.all("/api/auth/*", (req, res, next) => {
     getAuth()
       .then((auth) => toNodeHandler(auth)(req, res))

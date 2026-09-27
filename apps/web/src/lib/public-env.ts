@@ -34,5 +34,6 @@ export function getApiUrl(): string {
  */
 export function renderPublicEnvScript(): string {
   const apiUrl = typeof process !== "undefined" ? (process.env.API_URL ?? DEFAULT_API_URL) : DEFAULT_API_URL;
-  return `window.__PUBLIC_ENV__=${JSON.stringify({ apiUrl })};`;
+  // "<" escaped, so no value can close the <script> it's written into (issue #112).
+  return `window.__PUBLIC_ENV__=${JSON.stringify({ apiUrl }).replace(/</g, "\\u003c")};`;
 }

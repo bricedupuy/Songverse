@@ -1,4 +1,4 @@
-import { ApiError, keptFile, keptSetSong, keptSongCopy, onlineOrKept, transposeKey, type Attachment, type SetlistSongView } from "@songverse/core";
+import { ApiError, keptSetSong, onlineOrKept, transposeKey, type Attachment, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -8,6 +8,7 @@ import { PlayerChart } from "#/components/player-chart";
 import { SyncControl } from "#/components/sync-control";
 import { StemDock } from "#/components/stem-dock";
 import { YouTubeDock } from "#/components/youtube-dock";
+import { fileLoader, songFiles } from "#/lib/song-files";
 import { playableOf } from "#/lib/stem-engine";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -273,13 +274,11 @@ function SetSongStems({
   useEffect(() => {
     if (mode !== "practice") return;
     let cancelled = false;
-    Promise.all([apiClient.listAttachments(songVersionId), apiClient.getSongVersion(songVersionId).catch(() => null)])
-      .then(([attachments, version]) => ({
-        attachments,
-        offline: false,
+    Promise.all([songFiles(songVersionId), apiClient.getSongVersion(songVersionId).catch(() => null)])
+      .then(([files, version]) => ({
+        ...files,
         youtubeId: version?.identifiers.find((identifier) => identifier.type === "YOUTUBE")?.value ?? null,
       }))
-      .catch(async () => ({ attachments: (await keptSongCopy(deviceStorage(), songVersionId))?.attachments ?? [], offline: true, youtubeId: null }))
       .then((next) => {
         if (!cancelled) setFiles(next);
       })
@@ -302,12 +301,7 @@ function SetSongStems({
         title,
         returnTo,
         stems,
-        load: async (file, onProgress) => {
-          if (!files.offline) return apiClient.downloadAttachment(songVersionId, file.id, onProgress);
-          const blob = await keptFile<Blob>(deviceStorage(), file.id);
-          if (!blob) throw new Error("not kept");
-          return blob;
-        },
+        load: fileLoader(songVersionId, files.offline),
         tempo,
         timeSignature,
       }}

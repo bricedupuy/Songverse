@@ -70,8 +70,9 @@ case — see the next section for why.
 the music only - sections, lines with chords pinned to characters, the
 order it's sung in (`flow`) and a `revision`. Title, credits, rights and
 the capo are columns; never copy them into the document.
-- Read it with `readSongDocument()` from `@songverse/core` (it also
-  upgrades a song still stored as v1), never by casting the JSON.
+- Read it with `readSongDocument()` from `@songverse/core`, never by
+  casting the JSON. (Every stored song is v2; v1 was migrated and its code
+  removed, issue #60.)
 - Section, line and chord IDs must survive edits. The structured editor
   (`apps/web/src/components/song-editor/structured/`) keeps them itself
   and saves `sections`, turned into a document by
@@ -152,6 +153,23 @@ Storage objects are content-addressed and shared (attachments, avatars,
 song images and artist pictures with identical bytes are one object).
 Delete them only through `StorageService.deleteUnreferenced()`, which checks
 all four.
+
+## Files, addresses and outside downloads
+
+The code review (issue #112, `docs/code-review.md`) left one way for each:
+- A user's file is sent through `apps/api/src/files/send-file.ts`, which
+  shows only types that can't run script (`inlineSafeType` in
+  `@songverse/core`) and sandboxes the rest. The web app opens a file
+  (a blob, offline) the same way, or downloads it. Never serve or open an
+  upload with the type it came with.
+- An address that works without the Bearer token (`<audio src>`,
+  `<img src>`) is signed with `signAddress`/`isValidAddress`
+  (`apps/api/src/common/utils/signed-address.ts`), with its own purpose.
+- The server downloads an address it was given only through
+  `fetchProviderImage` (`apps/api/src/images/provider-image.ts`: provider
+  hosts only, every redirect checked before it's followed, size capped).
+  A new kind of outside download gets the same checks, not a bare `fetch`.
+- A call to an outside service waits `PROVIDER_TIMEOUT_MS` at most.
 
 ## Where auth lives
 

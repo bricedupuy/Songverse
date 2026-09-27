@@ -2,6 +2,7 @@ import {
   detailChanges,
   diffHunks,
   diffLines,
+  formatDuration,
   getLanguageDisplayName,
   sectionsToChordPro,
   type SongRevisionDetail,
@@ -286,7 +287,7 @@ export function SnapshotDiff({ before: previous, after: snapshot, showLabel }: {
 function formatField(field: string, value: string, locale: string): string {
   if (!value) return "";
   if (field === "language") return getLanguageDisplayName(value, locale);
-  if (field === "durationSeconds") return `${Math.floor(Number(value) / 60)}:${String(Number(value) % 60).padStart(2, "0")}`;
+  if (field === "durationSeconds") return formatDuration(Number(value));
   return value;
 }
 

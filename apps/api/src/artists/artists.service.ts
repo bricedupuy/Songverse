@@ -9,12 +9,11 @@ import { MetadataService } from "../metadata/metadata.service";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
-import { allowedPictureUrl, wikipediaSummary, wikipediaTitles } from "./artist-sources";
+import { fetchProviderImage } from "../images/provider-image";
+import { wikipediaSummary, wikipediaTitles } from "./artist-sources";
 
 /** The languages bios are kept in: the app's. */
 export const BIO_LANGUAGES = ["en", "fr"] as const;
-const TIMEOUT_MS = 8000;
-const MAX_DOWNLOAD_BYTES = 5 * 1024 * 1024;
 
 /** How an artist is matched: its name without case, accents or extra spaces. */
 export const artistKey = (name: string) => foldForSearch(name).replace(/\s+/g, " ").trim();
@@ -300,11 +299,12 @@ export class ArtistsService {
   }
 
   private async downloadPicture(artistId: string, url: string, pageUrl: string, provider: string): Promise<boolean> {
-    if (!allowedPictureUrl(url)) return false;
-    const res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-    if (!res.ok || !(res.headers.get("content-type") ?? "").startsWith("image/")) return false;
-    const body = Buffer.from(await res.arrayBuffer());
-    if (body.length > MAX_DOWNLOAD_BYTES) return false;
+    let body: Buffer;
+    try {
+      body = await fetchProviderImage(url);
+    } catch {
+      return false;
+    }
     await this.storePicture(artistId, body, provider, pageUrl);
     return true;
   }

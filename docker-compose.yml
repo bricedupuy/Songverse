@@ -1,6 +1,5 @@
-# Local development stack. Production uses managed Postgres (Neon/Supabase)
-# and Dokploy-hosted Redis/Meilisearch — this compose file is for running
-# the same services locally without installing them on the host.
+# Local development stack: Postgres and Redis, as production runs them
+# (Deploy.md), without installing them on the host.
 services:
   postgres:
     image: postgres:16-alpine
@@ -18,16 +17,5 @@ services:
     ports:
       - "6379:6379"
 
-  meilisearch:
-    image: getmeili/meilisearch:v1.11
-    environment:
-      MEILI_MASTER_KEY: dev-master-key
-      MEILI_ENV: development
-    ports:
-      - "7700:7700"
-    volumes:
-      - meilisearch_data:/meili_data
-
 volumes:
   postgres_data:
-  meilisearch_data:
