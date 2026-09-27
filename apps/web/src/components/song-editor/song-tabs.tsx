@@ -186,24 +186,40 @@ function RecordingFields({
   songTempo: string;
   canEdit: boolean;
   busy: boolean;
-  onChange: (change: { recordingKey?: string | null; recordingTempo?: number | null }) => void;
+  onChange: (change: { recordingKey?: string | null; recordingTempo?: number | null; recordingFirstBeat?: number | null }) => void;
 }) {
   const { t } = useTranslation();
   const first = files[0];
   const saved = first?.recordingTempo != null ? String(first.recordingTempo) : "";
   const [tempo, setTempo] = useState(saved);
   useEffect(() => setTempo(saved), [saved]);
+  // Where its first beat falls (issue #100), for the metronome.
+  const savedBeat = first?.recordingFirstBeat != null ? String(first.recordingFirstBeat) : "";
+  const [firstBeat, setFirstBeat] = useState(savedBeat);
+  useEffect(() => setFirstBeat(savedBeat), [savedBeat]);
   const keyLabel = label ? t("stems.recordingKey", { name: label }) : t("stems.stemsKey");
   const tempoLabel = label ? t("stems.recordingTempo", { name: label }) : t("stems.stemsTempo");
+  const firstBeatLabel = label ? t("stems.recordingFirstBeat", { name: label }) : t("stems.stemsFirstBeat");
 
   if (!canEdit) {
-    const details = [first?.recordingKey, first?.recordingTempo ? `${first.recordingTempo} BPM` : null].filter(Boolean).join(" · ");
+    const details = [
+      first?.recordingKey,
+      first?.recordingTempo ? `${first.recordingTempo} BPM` : null,
+      first?.recordingFirstBeat ? t("stems.firstBeatAt", { seconds: first.recordingFirstBeat }) : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
     return details ? <p className="text-xs text-muted-foreground">{t("stems.recordedIn", { details })}</p> : null;
   }
   function saveTempo() {
     const next = tempo.trim() ? Number(tempo) : null;
     if ((next === null && !saved) || String(next) === saved || (next !== null && !Number.isFinite(next))) return;
     onChange({ recordingTempo: next });
+  }
+  function saveFirstBeat() {
+    const next = firstBeat.trim() ? Number(firstBeat) : null;
+    if ((next === null && !savedBeat) || String(next) === savedBeat || (next !== null && (!Number.isFinite(next) || next < 0))) return;
+    onChange({ recordingFirstBeat: next });
   }
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -237,6 +253,29 @@ function RecordingFields({
             if (event.key === "Enter") {
               event.preventDefault();
               saveTempo();
+            }
+          }}
+        />
+      </label>
+      <label className="flex items-center gap-2">
+        {t("stems.firstBeatLabel")}
+        <Input
+          type="number"
+          inputMode="decimal"
+          min={0}
+          max={600}
+          step="any"
+          value={firstBeat}
+          disabled={busy}
+          placeholder="0"
+          aria-label={firstBeatLabel}
+          className="h-8 w-20 text-xs"
+          onChange={(event) => setFirstBeat(event.target.value)}
+          onBlur={saveFirstBeat}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              saveFirstBeat();
             }
           }}
         />

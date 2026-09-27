@@ -3,7 +3,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Metronome, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
-import { startMetronome, stopMetronome, unlockMetronomeAudio, useMetronome, useMetronomeBeat, type MetronomeBeat } from "#/lib/metronome-engine";
+import { startMetronome, stopMetronome, useMetronome, useMetronomeBeat, type MetronomeBeat } from "#/lib/metronome-engine";
+import { unlockSyncAudio } from "#/lib/sync-client";
 import { cn } from "#/lib/utils";
 
 const NEXT_LEVEL: Record<BeatLevel, BeatLevel> = { accent: "normal", normal: "mute", mute: "accent" };
@@ -93,7 +94,7 @@ export function MetronomeSongButton({
         ? t("metronome.songStop")
         : t("metronome.songStart", { tempo });
   const press = () => {
-    if (following) return unlockMetronomeAudio();
+    if (following) return unlockSyncAudio();
     if (mine) return stopMetronome();
     if (tempo) startMetronome(metronomeForSong(metronome.settings, { tempo, timeSignature }), songId);
   };

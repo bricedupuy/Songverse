@@ -1157,6 +1157,9 @@ model Attachment {
   // (BPM), when they aren't the song's - null means the song's (issue #65).
   recordingKey     String?
   recordingTempo   Float?
+  // Where its first beat falls, in seconds from its start (issue #100):
+  // what places the metronome against it. Null means at 0:00.
+  recordingFirstBeat Float?
   // Who the upload counts against for storage limits. Null for files
   // uploaded before this was tracked into a team-owned song, or whose
   // uploader has since been deleted.

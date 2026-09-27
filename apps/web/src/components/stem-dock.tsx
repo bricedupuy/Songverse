@@ -24,6 +24,8 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import { setMode } from "#/lib/mode";
+import { setRecordingClick, useRecordingClick } from "#/lib/recording-click";
+import { unlockSyncAudio } from "#/lib/sync-client";
 import {
   dockStems,
   isAudible,
@@ -92,6 +94,9 @@ export function StemDock({ song }: { song: StemSong }) {
   const position = active ? engine.position : 0;
   const duration = active ? engine.duration : 0;
   const [expanded, setExpanded] = useState(false);
+  // Following Sync play's leader (issue #100): play, pause and seek are theirs.
+  const following = active ? engine.following : null;
+  const click = useRecordingClick();
   // What the stems were recorded in (#65), when it isn't the song's; they share it.
   const recording = song.stems[0];
   const recorded = [recording?.recordingKey, recording?.recordingTempo ? `${recording.recordingTempo} BPM` : null].filter(Boolean).join(" · ");
@@ -128,12 +133,32 @@ export function StemDock({ song }: { song: StemSong }) {
     <Button
       type="button"
       size="icon"
-      className="size-10 shrink-0 rounded-full"
-      onClick={() => void (playing ? pauseStems() : playStems(song))}
-      disabled={loading}
-      aria-label={playing ? t("stems.pause") : t("stems.play")}
+      className={cn("size-10 shrink-0 rounded-full", engine.following && engine.audioBlocked && "animate-pulse ring-2 ring-amber-500")}
+      onClick={() => (engine.following ? unlockSyncAudio() : void (playing ? pauseStems() : playStems(song)))}
+      disabled={loading || (!!engine.following && !engine.audioBlocked)}
+      aria-label={engine.following ? (engine.audioBlocked ? t("sync.tapToHear") : t("sync.followingShort", { name: engine.following })) : playing ? t("stems.pause") : t("stems.play")}
+      title={engine.following ? t("sync.followingShort", { name: engine.following }) : undefined}
+      data-testid="stem-play"
     >
       {loading ? <Loader2 className="animate-spin" /> : playing ? <Pause /> : <Play />}
+    </Button>
+  );
+  // The metronome with the recording (issue #100): its tempo, its first beat.
+  const beat = active ? engine.beat : null;
+  const clickButton = following ? null : (
+    <Button
+      type="button"
+      variant={click ? "secondary" : "ghost"}
+      size="icon"
+      className="shrink-0"
+      aria-pressed={click}
+      disabled={!beat && !click}
+      onClick={() => setRecordingClick(!click)}
+      aria-label={t("stems.clickWith")}
+      title={beat ? t("stems.clickWithAt", { tempo: beat.tempo }) : t("stems.clickWithNoTempo")}
+      data-testid="stem-click"
+    >
+      <Metronome />
     </Button>
   );
   const time = (
@@ -189,11 +214,12 @@ export function StemDock({ song }: { song: StemSong }) {
               max={duration || 0}
               step={0.1}
               value={Math.min(position, duration)}
-              disabled={!active || engine.status !== "ready"}
+              disabled={!active || engine.status !== "ready" || !!following}
               onChange={(event) => seekStems(Number(event.target.value))}
               aria-label={t("stems.position")}
               className="min-w-0 flex-1 accent-primary"
             />
+            {clickButton}
             <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => expand(false)} aria-label={t("stems.minimize")}>
               <ChevronDown />
             </Button>
@@ -218,7 +244,7 @@ export function StemDock({ song }: { song: StemSong }) {
                   {track.failed ? (
                     <span className="min-w-0 flex-1 text-xs text-destructive">{t("stems.failed", { name: track.filename })}</span>
                   ) : (
-                    <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} dim={!on} onSeek={active && engine.status === "ready" ? (at) => seekStems(at * duration) : undefined} />
+                    <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} dim={!on} onSeek={active && engine.status === "ready" && !following ? (at) => seekStems(at * duration) : undefined} />
                   )}
                   {/* A whole recording has nothing to solo against. */}
                   {whole ? null : (
@@ -255,6 +281,7 @@ export function StemDock({ song }: { song: StemSong }) {
             )}
           </div>
           {status ? <span className="hidden sm:block">{status}</span> : duration ? <span className="hidden sm:block">{time}</span> : null}
+          {clickButton}
           <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => expand(true)} aria-label={t("stems.expand")}>
             <ChevronUp />
           </Button>
@@ -392,9 +419,12 @@ export function StemReturnButton() {
         </span>
         <span className="max-w-40 truncate">{engine.title}</span>
       </button>
-      <Button type="button" variant="ghost" size="icon" className="rounded-full" onClick={pauseStems} aria-label={t("stems.pause")}>
-        <Pause />
-      </Button>
+      {/* Following Sync play's leader: theirs to pause. */}
+      {engine.following ? null : (
+        <Button type="button" variant="ghost" size="icon" className="rounded-full" onClick={pauseStems} aria-label={t("stems.pause")}>
+          <Pause />
+        </Button>
+      )}
     </div>
   );
 }

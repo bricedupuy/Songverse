@@ -1,5 +1,5 @@
 import { Injectable, Logger, type OnModuleDestroy } from "@nestjs/common";
-import { SYNC_PATH, type SyncClientMessage, type SyncMember, type SyncMetronome, type SyncServerMessage, type SyncSession } from "@songverse/core";
+import { SYNC_PATH, type SyncClientMessage, type SyncMember, type SyncMetronome, type SyncServerMessage, type SyncSession, type SyncStems } from "@songverse/core";
 import type { Redis } from "ioredis";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, Server } from "node:http";
@@ -177,6 +177,7 @@ export class SyncServer implements OnModuleDestroy {
       leader: { id: connection.user!.id, name: connection.user!.name, conn: `${this.instance}:${connection.id}` },
       // Taking over carries on from where it was.
       metronome: current?.metronome ?? null,
+      stems: current?.stems ?? null,
       itemId: current?.itemId ?? null,
     };
     await this.write(setId, session);
@@ -192,6 +193,10 @@ export class SyncServer implements OnModuleDestroy {
     if (message.metronome !== undefined) {
       if (message.metronome !== null && !validMetronome(message.metronome)) return this.send(connection, { type: "error", code: "bad-request", message: "Invalid metronome" });
       next.metronome = message.metronome;
+    }
+    if (message.stems !== undefined) {
+      if (message.stems !== null && !validStems(message.stems)) return this.send(connection, { type: "error", code: "bad-request", message: "Invalid stems" });
+      next.stems = message.stems;
     }
     if (message.itemId !== undefined) next.itemId = typeof message.itemId === "string" ? message.itemId.slice(0, 64) : null;
     await this.write(setId, next);
@@ -254,6 +259,20 @@ export class SyncServer implements OnModuleDestroy {
       });
     }
   }
+}
+
+function validStems(value: SyncStems): boolean {
+  return (
+    typeof value === "object" &&
+    typeof value.songVersionId === "string" &&
+    value.songVersionId.length <= 64 &&
+    typeof value.title === "string" &&
+    value.title.length <= 300 &&
+    typeof value.playing === "boolean" &&
+    Number.isFinite(value.position) &&
+    value.position >= 0 &&
+    Number.isFinite(value.anchorAt)
+  );
 }
 
 function validMetronome(value: SyncMetronome): boolean {

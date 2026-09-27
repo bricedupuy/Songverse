@@ -73,13 +73,14 @@ Avec **Synchro**, tous ceux d'une liste jouent ensemble : une personne mène, et
 - **Activer la synchro**, sur chaque appareil : on voit qui mène et combien d'appareils sont synchronisés. La synchro reste active pendant que vous naviguez dans Songverse, et revient si la page se recharge ; **Désactiver la synchro** la quitte.
 - Quelqu'un qui peut modifier la liste - son propriétaire, ou un administrateur de son équipe - choisit **Mener la liste**. Un autre peut prendre le relais avec **Mener à sa place** : le métronome continue comme il était.
 - Le meneur démarre le [métronome](/fr/metronome/) : le bouton du métronome en Live ou sur la page d'un chant, ou la page Métronome, où il règle le tempo, la mesure et le motif. Celui de chacun démarre sur le même temps, et un nouveau tempo arrive chez tous sur le même temps. Le métronome des autres affiche **Suit** et le nom du meneur : ses réglages sont ceux du meneur, mais son son et son volume restent les leurs.
+- Quand le meneur lance les pistes ou l'enregistrement d'un chant (sur la page d'un chant de la liste, en mode Session), chacun joue le même chant au même instant : la pause et la barre de position suivent aussi, et chacun garde ses propres parties coupées et en solo. Les fichiers de chacun se téléchargent dès que la page du meneur ouvre le chant ; un appareil pas encore prêt rejoint à la position en cours. En Live, où il n'y a pas de lecteur, le petit bouton en bas à droite montre le chant en lecture. **Clic avec l'enregistrement** rend le métronome de chacun calé sur l'enregistrement (voir [Pistes](/fr/library/#pistes)).
 - Quand le meneur passe à un autre chant de la liste, en Live ou sur sa page, l'écran de chacun suit. Vous pouvez regarder un autre chant entre-temps : au prochain changement du meneur, vous suivez à nouveau.
 - Si un appareil perd sa connexion, son métronome garde le tempo seul, et se recale à son retour. Si le meneur perd la sienne, la session continue, et il reprend la main à son retour.
 - **Terminer la session** arrête le métronome de chacun.
 
 Après un rechargement, le navigateur ne laisse le métronome jouer qu'après une touche : **Touchez pour entendre le métronome** (sous **Synchro**, ou sur la page Métronome) le permet.
 
-Pour que les temps tombent ensemble à l'oreille, utilisez un casque filaire ou le haut-parleur de l'appareil : un casque Bluetooth ajoute son propre retard. Chaque appareil garde le tempo avec sa propre horloge, calée sur celle de Songverse ; seuls le tempo et le moment où tombe le temps passent par le réseau, jamais le son.
+Pour que les temps tombent ensemble à l'oreille, utilisez un casque filaire ou le haut-parleur de l'appareil : un casque Bluetooth ajoute son propre retard. Pendant la synchro, un iPhone ou un iPad joue les pistes directement sur ses haut-parleurs (elles s'arrêtent alors écran verrouillé : le Live le garde allumé). Chaque appareil garde le tempo avec sa propre horloge, calée sur celle de Songverse ; seuls le tempo et le moment où tombe le temps passent par le réseau, jamais le son.
 
 ## Partager une liste avec des invités
 

@@ -57,6 +57,13 @@ export class UpdateAttachmentDto {
   @Max(400)
   recordingTempo?: number | null;
 
+  @ApiProperty({ nullable: true, required: false, description: "For AUDIO: where its first beat falls, in seconds from its start; null for 0:00." })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(600)
+  recordingFirstBeat?: number | null;
+
   @ApiProperty({ enum: ATTACHMENT_VISIBILITIES, required: false, description: "Who sees it (its uploader only): see UploadAttachmentDto." })
   @IsOptional()
   @IsIn(ATTACHMENT_VISIBILITIES)

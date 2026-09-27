@@ -99,6 +99,13 @@ follower.send({ type: "update", itemId: "item-2" });
 check("a follower can't change it", (await follower.next(error))?.code === "forbidden");
 leader.send({ type: "update", metronome: { ...metronome, anchorAt: "soon" } });
 check("nor can the leader send nonsense", (await leader.next(error))?.code === "bad-request");
+// The leader's stems (issue #100).
+const stems = { songVersionId: "song-1", title: "A song", playing: true, position: 12.5, anchorAt: Date.now() + 300 };
+leader.send({ type: "update", stems });
+seen = await follower.next((m) => session(m) && m.session?.stems);
+check("the leader's stems reach the followers, the metronome kept", seen?.session.stems.position === 12.5 && seen.session.stems.anchorAt === stems.anchorAt && seen.session.metronome?.settings.tempo === 90, JSON.stringify(seen?.session));
+leader.send({ type: "update", stems: { ...stems, position: -1 } });
+check("stems before their start: refused", (await leader.next(error))?.code === "bad-request");
 
 // --- the leader drops off: the session stays; they take the lead back
 leader.close();

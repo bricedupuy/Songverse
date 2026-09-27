@@ -13,6 +13,7 @@ export class AttachmentResponseDto {
   @ApiProperty({ enum: STEM_PARTS, nullable: true }) stemPart!: StemPart | null;
   @ApiProperty({ nullable: true }) recordingKey!: string | null;
   @ApiProperty({ nullable: true }) recordingTempo!: number | null;
+  @ApiProperty({ nullable: true }) recordingFirstBeat!: number | null;
   @ApiProperty({ enum: ["PRIVATE", "TEAM", "SONG", "SHARED"] }) visibility!: "PRIVATE" | "TEAM" | "SONG" | "SHARED";
   @ApiProperty({ nullable: true }) visibleToTeamId!: string | null;
   @ApiProperty({ nullable: true }) uploadedByUserId!: string | null;

@@ -1,5 +1,6 @@
 import { STEM_PARTS, type Attachment, type StemPart } from "@songverse/core";
 import { useSyncExternalStore } from "react";
+import { deviceNow, OutputClock } from "#/lib/output-clock";
 
 /**
  * The stem player's audio (issue #64), kept outside any page so a song
@@ -25,6 +26,9 @@ export interface StemSong {
   stems: StemFile[];
   /** The file's bytes; `onProgress` hears them arrive, when the source can tell. */
   load: (file: Attachment, onProgress?: (received: number, total: number | null) => void) => Promise<Blob>;
+  /** The song's tempo and time signature, for the metronome with the recording (issue #100); its recording's own tempo comes first. */
+  tempo?: number | null;
+  timeSignature?: { numerator: number; denominator: number } | null;
 }
 
 export interface StemTrack {
@@ -56,6 +60,14 @@ export interface StemState {
   soloed: ReadonlySet<string>;
   /** The song whose dock is on screen, if any: elsewhere a playing song gets the floating button. */
   docked: string | null;
+  /** Playing: recording position `position` (s) heard at `epoch` on the device's clock (ms) - what Sync play shares (issue #100). */
+  anchor: { epoch: number; position: number } | null;
+  /** Following Sync play's leader: their name; play, pause and seek are theirs. */
+  following: string | null;
+  /** Following, but the browser hasn't let it make a sound yet: a press will (unlockStemsAudio). */
+  audioBlocked: boolean;
+  /** The recording's beat: its tempo, time signature and where its first beat falls (s), for the metronome with it; null without a tempo. */
+  beat: { tempo: number; timeSignature: { numerator: number; denominator: number } | null; firstBeat: number } | null;
 }
 
 const PEAK_SLICES = 400;
@@ -74,11 +86,18 @@ const EMPTY: StemState = {
   muted: new Set(),
   soloed: new Set(),
   docked: null,
+  anchor: null,
+  following: null,
+  audioBlocked: false,
+  beat: null,
 };
 
 let state: StemState = EMPTY;
 const listeners = new Set<() => void>();
 let context: AudioContext | null = null;
+let clock: OutputClock | null = null;
+/** While Sync play is on: straight to the speakers, whose delay the output clock knows (not iOS's audio element, whose it can't). */
+let directOutput = false;
 // Where every part goes: the speakers, or on iPhone and iPad an <audio> element (see outputFor).
 let bus: GainNode | null = null;
 let element: HTMLAudioElement | null = null;
@@ -191,12 +210,12 @@ function now(): number {
   return context ? Math.min(state.duration, Math.max(0, context.currentTime - startedAt)) : offset;
 }
 
-function startAt(from: number) {
+function startAt(from: number, at?: number, anchor?: { epoch: number; position: number }) {
   if (!context) return;
   stopSources();
   stopTimer();
   // A moment ahead, so every part is scheduled before the first one starts.
-  const when = context.currentTime + 0.05;
+  const when = Math.max(at ?? 0, context.currentTime + 0.05);
   for (const [id, buffer] of buffers) {
     const gain = gains.get(id);
     if (!gain || from >= buffer.duration) continue;
@@ -207,6 +226,9 @@ function startAt(from: number) {
     sources.push(source);
   }
   startedAt = when - from;
+  const heard = { epoch: clock ? clock.epochOf(when) : Number.NaN, position: from };
+  probe()?.push({ zeroAt: heard.epoch - from * 1000, at: deviceNow() });
+  set({ anchor: anchor ?? heard });
   // A timer rather than animation frames, which stop in a background tab.
   timer = setInterval(() => {
     const at = now();
@@ -215,7 +237,7 @@ function startAt(from: number) {
       stopTimer();
       offset = 0;
       element?.pause();
-      set({ playing: false, position: 0 });
+      set({ playing: false, position: 0, anchor: null });
       updateMediaSession();
     } else {
       set({ position: at });
@@ -241,7 +263,7 @@ function viaElement(): boolean {
 
 function outputFor(ctx: AudioContext): GainNode {
   const mix = ctx.createGain();
-  if (viaElement() && typeof ctx.createMediaStreamDestination === "function") {
+  if (!directOutput && viaElement() && typeof ctx.createMediaStreamDestination === "function") {
     const stream = ctx.createMediaStreamDestination();
     mix.connect(stream);
     element = new Audio();
@@ -318,6 +340,8 @@ export function unloadStems() {
   generation++;
   stopSources();
   stopTimer();
+  clock?.dispose();
+  clock = null;
   void context?.close().catch(() => {});
   context = null;
   bus = null;
@@ -327,7 +351,8 @@ export function unloadStems() {
   buffers = new Map();
   gains = new Map();
   offset = 0;
-  set({ ...EMPTY, docked: state.docked });
+  // Following Sync play's leader carries on through the next song's load.
+  set({ ...EMPTY, docked: state.docked, following: state.following });
   updateMediaSession();
 }
 
@@ -353,6 +378,7 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
   setAudioSession();
   const ctx = new AudioContext();
   context = ctx;
+  clock = new OutputClock(ctx);
   const mix = outputFor(ctx);
   bus = mix;
   set({
@@ -365,6 +391,7 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
     tracks: tracksOf(song.stems),
     muted,
     soloed,
+    beat: beatOf(song),
   });
   // Bytes so far per file, against the sizes the song lists (or the server says).
   const received = new Map<string, number>();
@@ -426,6 +453,8 @@ export const otherPlayers = new Set<() => void>();
 
 /** Plays `song`, loading it first (and stopping another one) if it isn't what's loaded. */
 export async function playStems(song: StemSong) {
+  // Following Sync play's leader: theirs to start; a press only lets the browser make sound.
+  if (state.following) return unlockStemsAudio();
   lastSong = song;
   for (const pause of otherPlayers) pause();
   // load() sets up the audio before its first wait: start it here, still inside the tap,
@@ -445,16 +474,22 @@ export async function playStems(song: StemSong) {
 }
 
 export function pauseStems() {
+  if (state.following) return;
+  pause();
+}
+
+function pause() {
   if (!state.playing) return;
   offset = now();
   stopSources();
   stopTimer();
   element?.pause();
-  set({ playing: false, position: offset });
+  set({ playing: false, position: offset, anchor: null });
   updateMediaSession();
 }
 
 export function seekStems(to: number) {
+  if (state.following) return;
   offset = Math.min(Math.max(0, to), state.duration);
   set({ position: offset });
   if (state.playing) startAt(offset);
@@ -483,6 +518,113 @@ export function dockStems(songVersionId: string) {
 /** …and gone (unless another song's dock took its place meanwhile). */
 export function undockStems(songVersionId: string) {
   if (state.docked === songVersionId) set({ docked: null });
+}
+
+/** The recording's beat, from its first file (the stems share it) and the song. */
+function beatOf(song: StemSong): StemState["beat"] {
+  const first = song.stems[0];
+  const tempo = first?.recordingTempo ?? song.tempo ?? null;
+  if (!tempo) return null;
+  return { tempo, timeSignature: song.timeSignature ?? null, firstBeat: first?.recordingFirstBeat ?? 0 };
+}
+
+// --- Sync play (issue #100)
+
+/** For the end-to-end suites: when each start places the recording's 0:00, on the device's clock. */
+function probe(): { zeroAt: number; at: number }[] | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as { songverseStems?: { starts: { zeroAt: number; at: number }[] } };
+  w.songverseStems ??= { starts: [] };
+  if (w.songverseStems.starts.length > 50) w.songverseStems.starts.splice(0, 25);
+  return w.songverseStems.starts;
+}
+
+/** While Sync play is on, stems loaded from now on play straight to the speakers. */
+export function setStemsDirectOutput(direct: boolean) {
+  directOutput = direct;
+}
+
+/** The leader's playback: recording position `position` (s) heard at `epoch` (device clock, ms), or paused there. */
+export interface StemTimeline {
+  playing: boolean;
+  position: number;
+  epoch: number;
+}
+
+/** A stem start is placed again only when it's drifted further than this from where the device's clock says (s). */
+const REPLACE_BEYOND = 0.008;
+let followedStems: { song: StemSong; timeline: StemTimeline; leader: string } | null = null;
+
+/**
+ * Plays the leader's song as they do (loading it first; a device that
+ * wasn't ready joins at the current position), with this device's own
+ * mutes and solos; called again whenever it or the clocks change. Null:
+ * nothing to follow (the leader's stems stopped, or none to play here).
+ */
+export async function followStems(song: StemSong | null, timeline: StemTimeline | null, leader: string) {
+  if (!song || !timeline) {
+    followedStems = null;
+    pause();
+    return set({ following: leader });
+  }
+  followedStems = { song, timeline, leader };
+  lastSong = song;
+  if (state.following !== leader) set({ following: leader });
+  if (!(await load(song)) || !context || !clock) return;
+  const latest = followedStems;
+  if (!latest || latest.song.songVersionId !== song.songVersionId) return;
+  const { timeline: now } = latest;
+  if (!now.playing) {
+    pause();
+    offset = Math.min(Math.max(0, now.position), state.duration);
+    return set({ position: offset });
+  }
+  void context.resume();
+  if (context.state !== "running") set({ audioBlocked: true });
+  const zero = clock.timeOf(now.epoch) - now.position;
+  // Already playing it there, within a few milliseconds: left as it is.
+  if (state.playing && Math.abs(zero - startedAt) < REPLACE_BEYOND) return;
+  const when = Math.max(context.currentTime + 0.1, zero + now.position);
+  const from = when - zero;
+  if (from >= state.duration) return pause();
+  applyGains(true);
+  startAt(from, when, { epoch: now.epoch, position: now.position });
+  set({ playing: true, returnTo: song.returnTo, title: song.title });
+  updateMediaSession();
+}
+
+/** Stops following: the stems stop, and are this device's own again. */
+export function unfollowStems() {
+  if (!state.following) return;
+  followedStems = null;
+  pause();
+  set({ following: null, audioBlocked: false });
+}
+
+/**
+ * The stems kept where their anchor on the device's clock says, as the
+ * audio and device clocks drift apart (the leader's and the followers').
+ */
+export function realignStems() {
+  if (!context || !clock || !state.playing || !state.anchor) return;
+  const zero = clock.timeOf(state.anchor.epoch) - state.anchor.position;
+  if (Math.abs(zero - startedAt) < REPLACE_BEYOND) return;
+  const when = context.currentTime + 0.05;
+  startAt(when - zero, when, state.anchor);
+}
+
+/** From a press: lets the browser make sound, then catches up with the leader. */
+export function unlockStemsAudio() {
+  if (!context) return;
+  void context.resume().then(() => {
+    if (state.audioBlocked) set({ audioBlocked: false });
+    if (followedStems) void followStems(followedStems.song, followedStems.timeline, followedStems.leader);
+  });
+}
+
+/** The stems as they are now, outside React. */
+export function getStemState(): StemState {
+  return state;
 }
 
 function subscribe(listener: () => void) {

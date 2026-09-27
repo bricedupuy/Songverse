@@ -1,5 +1,6 @@
-import { beatAt, clicksBetween, normalizeMetronome, secondsPerBeat, type MetronomeClick, type MetronomeSettings, type MetronomeSound } from "@songverse/core";
+import { beatAt, clicksBetween, normalizeMetronome, secondsPerBeat, sharedMetronomeSettings, type MetronomeClick, type MetronomeSettings, type MetronomeSound } from "@songverse/core";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { deviceNow, OutputClock } from "#/lib/output-clock";
 
 /**
  * The metronome's sound (issue #2), kept outside any page like the stem
@@ -70,6 +71,7 @@ function save(settings: MetronomeSettings) {
 // --- audio
 
 let context: AudioContext | null = null;
+let clock: OutputClock | null = null;
 let output: GainNode | null = null;
 let buffers: Map<string, AudioBuffer> | null = null;
 /** Where the timeline was anchored: position `anchorPosition` (beats) at `anchorTime` on the audio clock. */
@@ -124,9 +126,7 @@ function makeBuffers(ctx: AudioContext): Map<string, AudioBuffer> {
 function audio(): AudioContext {
   if (!context) {
     context = new AudioContext({ latencyHint: "interactive" });
-    const ctx = context;
-    pairings = [];
-    setInterval(() => readOutputClock(ctx), 50);
+    clock = new OutputClock(context);
     output = context.createGain();
     output.connect(context.destination);
     buffers = makeBuffers(context);
@@ -165,53 +165,19 @@ function probe(): MetronomeProbe | null {
   return w.songverseMetronome;
 }
 
-// --- the audio clock against the device's own (Sync play, issue #13)
+// --- the audio clock against the device's own (Sync play, issue #13): see output-clock.ts
 
-/** This device's clock, ms since the epoch: steady, unlike Date.now(). */
-export const deviceNow = () => performance.timeOrigin + performance.now();
-
-/** How long sound takes to come out: the browser's own measure, where it has one. */
-const outputDelay = (ctx: AudioContext) => ctx.outputLatency || ctx.baseLatency || 0;
-
-/**
- * The output timestamp pairs the sample being heard with the device's
- * clock (so the output's delay is counted), but a reading can come a
- * little late when the page is busy - never early. So: read often, and
- * keep the earliest pairing of the last few seconds (the clocks drift
- * apart too slowly to matter over that).
- */
-const CLOCK_WINDOW_MS = 3000;
-let pairings: { at: number; lag: number }[] = [];
-function readOutputClock(ctx: AudioContext) {
-  const stamp = ctx.getOutputTimestamp?.();
-  if (!stamp?.contextTime || !stamp.performanceTime) return;
-  const now = performance.now();
-  pairings.push({ at: now, lag: stamp.performanceTime - stamp.contextTime * 1000 });
-  if (pairings[0]!.at < now - CLOCK_WINDOW_MS) pairings = pairings.filter((pairing) => pairing.at >= now - CLOCK_WINDOW_MS);
-}
-/** performance.now() at which audio time 0 is heard, or null before the output says. */
-function outputLag(ctx: AudioContext): number | null {
-  readOutputClock(ctx);
-  let lag: number | null = null;
-  for (const pairing of pairings) if (lag === null || pairing.lag < lag) lag = pairing.lag;
-  return lag;
-}
+export { deviceNow };
 
 /** When a time on the audio clock is heard, on the device's clock. */
 export function epochFromAudioTime(time: number): number {
-  const ctx = context;
-  if (!ctx) return Number.NaN;
-  const lag = outputLag(ctx);
-  if (lag !== null) return performance.timeOrigin + lag + time * 1000;
-  return deviceNow() + (time - ctx.currentTime + outputDelay(ctx)) * 1000;
+  return clock ? clock.epochOf(time) : Number.NaN;
 }
 
 /** The audio clock's time to schedule a sound at, for it to be heard at `epoch` (device clock, ms). */
 export function audioTimeFromEpoch(epoch: number): number {
-  const ctx = audio();
-  const lag = outputLag(ctx);
-  if (lag !== null) return (epoch - performance.timeOrigin - lag) / 1000;
-  return ctx.currentTime + (epoch - deviceNow()) / 1000 - outputDelay(ctx);
+  audio();
+  return clock!.timeOf(epoch);
 }
 
 function schedule() {
@@ -412,7 +378,7 @@ export function followMetronome(timeline: FollowedTimeline | null, leader: strin
   timer ??= setInterval(schedule, TICK_MS);
   schedule();
   // Just started (a new audio clock only runs a moment later), it doesn't say yet when its output is heard: placed again once it does.
-  if (pairings.length === 0 && attempt < 40) {
+  if (!clock!.known && attempt < 40) {
     setTimeout(() => {
       if (followed?.timeline === timeline) followMetronome(timeline, followed.leader, attempt + 1);
     }, 250);
@@ -452,6 +418,27 @@ export function takeOverMetronome(timeline: FollowedTimeline | null) {
   }
   followed = null;
   if (state.following !== null) emit({ following: null });
+}
+
+/**
+ * This device's own metronome on a given timeline (the recording's beat,
+ * issue #100): placed on the audio clock from its anchor on the device's
+ * clock, as a leader's is followed - but its own, so it's shared when
+ * leading. Not while following a leader.
+ */
+export function playMetronomeOn(timeline: FollowedTimeline) {
+  load();
+  if (state.following) return;
+  const same =
+    state.playing &&
+    anchorEpoch === timeline.anchorEpoch &&
+    anchorPosition === timeline.anchorPosition &&
+    JSON.stringify(sharedMetronomeSettings(state.settings)) === JSON.stringify(sharedMetronomeSettings({ ...state.settings, ...timeline.settings }));
+  if (same) return;
+  followMetronome(timeline, "");
+  followed = null;
+  adopted = timeline;
+  emit({ following: null, songId: null });
 }
 
 /** From a press: lets the browser make sound, then catches up with the leader. */

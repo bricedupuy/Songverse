@@ -170,7 +170,7 @@ export class OfflineService {
       select: {
         id: true,
         updatedAt: true,
-        attachments: { where: visibleFiles, select: { id: true, createdAt: true, stemPart: true, recordingKey: true, recordingTempo: true, visibility: true, visibleToTeamId: true } },
+        attachments: { where: visibleFiles, select: { id: true, createdAt: true, stemPart: true, recordingKey: true, recordingTempo: true, recordingFirstBeat: true, visibility: true, visibleToTeamId: true } },
       },
     });
     const knownSongs = new Map((dto.knownSongs ?? []).map((song) => [song.id, song.version]));
@@ -207,6 +207,7 @@ function songVersion(
     stemPart: string | null;
     recordingKey: string | null;
     recordingTempo: number | null;
+    recordingFirstBeat: number | null;
     visibility: string;
     visibleToTeamId: string | null;
   }[],
@@ -214,7 +215,7 @@ function songVersion(
   const files = attachments
     .map(
       (file) =>
-        `${file.id}@${new Date(file.createdAt).toISOString()}:${file.stemPart ?? ""}:${file.recordingKey ?? ""}:${file.recordingTempo ?? ""}:${file.visibility}:${file.visibleToTeamId ?? ""}`,
+        `${file.id}@${new Date(file.createdAt).toISOString()}:${file.stemPart ?? ""}:${file.recordingKey ?? ""}:${file.recordingTempo ?? ""}:${file.recordingFirstBeat ?? ""}:${file.visibility}:${file.visibleToTeamId ?? ""}`,
     )
     .sort();
   return hash({ updatedAt: new Date(updatedAt).toISOString(), files });

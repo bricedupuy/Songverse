@@ -21,11 +21,24 @@ export interface SyncMetronome {
   anchorPosition: number;
 }
 
+/** The leader's stems or recording (issue #100): followers play their own files of the song the same way. */
+export interface SyncStems {
+  songVersionId: string;
+  title: string;
+  playing: boolean;
+  /** Seconds into the recording. */
+  position: number;
+  /** Server time (ms since the epoch) at which `position` is heard; 0 while paused. */
+  anchorAt: number;
+}
+
 export interface SyncSession {
   /** Goes up with each change. */
   rev: number;
   leader: { id: string; name: string; online: boolean };
   metronome: SyncMetronome | null;
+  /** The leader's stems, or null when none are playing or paused. */
+  stems?: SyncStems | null;
   /** The set item the leader has open, for followers to follow; null when none. */
   itemId: string | null;
 }
@@ -43,7 +56,7 @@ export type SyncClientMessage =
   | { type: "leave" }
   /** Starts a session, or takes over the lead of the one going on. */
   | { type: "lead" }
-  | { type: "update"; metronome?: SyncMetronome | null; itemId?: string | null }
+  | { type: "update"; metronome?: SyncMetronome | null; stems?: SyncStems | null; itemId?: string | null }
   | { type: "end" };
 
 export type SyncServerMessage =

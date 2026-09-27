@@ -120,8 +120,12 @@ messages and the clock maths are in `@songverse/core` (`sync/`), kept
 small and JSON for a headless device (#62). Only the timeline crosses the
 network - "beat N at server time T" - never the beat: each device plays
 it on its own clock (`apps/web/src/lib/sync-client.ts` and the metronome
-engine's anchor on the device's clock). A new thing to share goes in the
-session (`SyncSession`) the same way, as the leader's `update`.
+engine's anchor on the device's clock). The stems follow the same way
+(issue #100: `followStems` in `stem-engine.ts`). Both place sound through
+`lib/output-clock.ts`, which pairs an AudioContext's clock with the
+device's; use it for anything else that must sound in time. A new thing to
+share goes in the session (`SyncSession`) the same way, as the leader's
+`update`.
 
 ## Tests
 

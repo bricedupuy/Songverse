@@ -73,13 +73,14 @@ With **Sync**, everyone in a set plays together: one person leads, and the other
 - **Turn sync on**, on each device: it says who's leading, and how many devices are in sync. Sync stays on while you move around Songverse, and comes back if the page reloads; **Turn sync off** leaves.
 - Someone who can edit the set - its owner, or an admin of its team - chooses **Lead the set**. Another one can take over with **Lead instead**: the metronome carries on as it was.
 - The leader starts the [metronome](/metronome/): the metronome button in Live or on a song's page, or the Metronome page, where they set the tempo, time signature and pattern. Everyone's starts at the same beat, and a new tempo reaches everyone on the same beat. The others' metronome shows **Following** and the leader's name: its settings are the leader's, but its sound and volume are their own.
+- When the leader plays a song's stems or recording (on a set's song page in Practice), everyone's plays the same song from the same instant: pause and the position bar follow too, and each person keeps their own mutes and solos. Everyone's files start downloading as soon as the leader's page opens the song; a device that isn't ready yet joins at the current position. In Live, where there's no player, the small button at the bottom right shows the song playing. **Click with the recording** makes the metronome everyone's on the recording's beat (see [Stems](/library/#stems)).
 - When the leader moves to another song of the set, in Live or on its page, everyone's screen follows. You can still look at another song meanwhile: the next time the leader moves, you follow again.
 - If a device loses its connection, its metronome keeps time on its own, and catches up when it's back. If the leader loses theirs, the session carries on, and they take the lead back when they're back.
 - **End the session** stops everyone's metronome.
 
 After a reload, a browser only lets the metronome make sound after a tap: **Tap to hear the metronome** (under **Sync**, or on the Metronome page) does it.
 
-For the beats to line up by ear, use wired headphones or the device's speaker: Bluetooth headphones add a delay of their own. Each device keeps time with its own clock, set against Songverse's; only the tempo and when the beat falls go over the network, never the sound.
+For the beats to line up by ear, use wired headphones or the device's speaker: Bluetooth headphones add a delay of their own. While sync is on, an iPhone or iPad plays the stems straight to its speakers (they then stop with the screen locked: Live keeps it on). Each device keeps time with its own clock, set against Songverse's; only the tempo and when the beat falls go over the network, never the sound.
 
 ## Sharing a set with guests
 

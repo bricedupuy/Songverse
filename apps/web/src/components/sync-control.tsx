@@ -9,8 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
-import { unlockMetronomeAudio, useMetronome } from "#/lib/metronome-engine";
-import { disableSync, enableSync, endSync, leadSync, useSync } from "#/lib/sync-client";
+import { useMetronome } from "#/lib/metronome-engine";
+import { useStems } from "#/lib/stem-engine";
+import { disableSync, enableSync, endSync, leadSync, unlockSyncAudio, useSync } from "#/lib/sync-client";
 import { cn } from "#/lib/utils";
 
 /**
@@ -24,7 +25,8 @@ export function SyncControl({ setId, compact = false, className }: { setId: stri
   const on = sync.setId === setId && sync.status !== "off";
   const session = on ? sync.session : null;
   const following = on && !!session && !sync.leading;
-  const blocked = following && metronome.audioBlocked;
+  const stems = useStems();
+  const blocked = following && (metronome.audioBlocked || stems.audioBlocked);
   const label = !on
     ? t("sync.button")
     : sync.leading
@@ -76,7 +78,7 @@ export function SyncControl({ setId, compact = false, className }: { setId: stri
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {blocked ? (
-          <DropdownMenuItem onSelect={unlockMetronomeAudio}>
+          <DropdownMenuItem onSelect={unlockSyncAudio}>
             <Volume2 />
             {t("sync.tapToHear")}
           </DropdownMenuItem>
@@ -85,7 +87,7 @@ export function SyncControl({ setId, compact = false, className }: { setId: stri
           <DropdownMenuItem
             onSelect={() => {
               // Within the press: the browser lets the metronome make sound from now on.
-              unlockMetronomeAudio();
+              unlockSyncAudio();
               enableSync(setId);
             }}
           >

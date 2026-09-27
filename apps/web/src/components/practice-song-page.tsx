@@ -98,6 +98,8 @@ export function PracticeSongPage({
             returnTo,
             stems: playable,
             load: (file, onProgress) => apiClient.downloadAttachment(version.id, file.id, onProgress),
+            tempo: chart.tempo,
+            timeSignature: chart.timeSignature,
           }}
         />
       ) : youtubeId ? (

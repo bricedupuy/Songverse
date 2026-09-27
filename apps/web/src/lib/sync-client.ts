@@ -2,6 +2,8 @@ import {
   clockOffset,
   SYNC_PATH,
   sharedMetronomeSettings,
+  keptFile,
+  keptSongCopy,
   type ClockSample,
   type SyncClientMessage,
   type SyncMember,
@@ -9,11 +11,12 @@ import {
   type SyncSession,
 } from "@songverse/core";
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import { apiToken, forgetApiToken } from "#/lib/api-client";
+import { apiClient, apiToken, forgetApiToken } from "#/lib/api-client";
 import {
   deviceNow,
   followMetronome,
   getMetronomeState,
+  unlockMetronomeAudio,
   realignMetronome,
   setMetronomeStartDelay,
   takeOverMetronome,
@@ -23,6 +26,8 @@ import {
   type MetronomeState,
 } from "#/lib/metronome-engine";
 import { getApiUrl } from "#/lib/public-env";
+import { deviceStorage } from "#/lib/offline-data";
+import { followStems, getStemState, playableOf, realignStems, setStemsDirectOutput, unfollowStems, unlockStemsAudio, useStems, type StemSong, type StemState } from "#/lib/stem-engine";
 
 /**
  * Sync play in the browser (issue #13): one connection per tab to the API's
@@ -198,8 +203,11 @@ function receive(message: SyncServerMessage) {
       // Just took the lead: the metronome carries on as it was (followed, or the session's), and goes out.
       if (message.leading && !wasLeading) {
         takeOverMetronome(sessionTimeline());
+        unfollowStems();
         lastSent = null;
+        lastStemsSent = null;
         publishMetronome(getMetronomeState());
+        publishStems(getStemState());
       }
       applySession();
       return;
@@ -217,11 +225,82 @@ function receive(message: SyncServerMessage) {
 function applySession() {
   const { session, leading, offset } = state;
   if (!session || leading) {
-    if (!leading) unfollowMetronome();
+    if (!leading) {
+      unfollowMetronome();
+      unfollowStems();
+    }
     return;
   }
   if (offset === null) return;
   followMetronome(sessionTimeline(), session.leader.name);
+  applyStems(session.leader.name);
+}
+
+// --- the leader's stems (issue #100)
+
+/** A song's stems as this device sees them (its own files of it), online or kept on the device; null when it has none. */
+const stemSongs = new Map<string, Promise<StemSong | null>>();
+function stemSongFor(songVersionId: string, title: string): Promise<StemSong | null> {
+  let song = stemSongs.get(songVersionId);
+  if (!song) {
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    song = apiClient
+      .listAttachments(songVersionId)
+      .then((attachments) => ({ attachments, offline: false }))
+      .catch(async () => ({ attachments: (await keptSongCopy(deviceStorage(), songVersionId))?.attachments ?? [], offline: true }))
+      .then(({ attachments, offline }) => {
+        const stems = playableOf(attachments);
+        if (stems.length === 0) return null;
+        return {
+          songVersionId,
+          title,
+          returnTo,
+          stems,
+          load: async (file, onProgress) => {
+            if (!offline) return apiClient.downloadAttachment(songVersionId, file.id, onProgress);
+            const blob = await keptFile<Blob>(deviceStorage(), file.id);
+            if (!blob) throw new Error("not kept");
+            return blob;
+          },
+        } satisfies StemSong;
+      })
+      .catch(() => null);
+    stemSongs.set(songVersionId, song);
+  }
+  return song;
+}
+
+/** Following: the leader's stems, placed on this device's clock. */
+function applyStems(leader: string) {
+  const stems = state.session?.stems;
+  if (!stems || state.offset === null) return void followStems(null, null, leader);
+  const timeline = { playing: stems.playing, position: stems.position, epoch: stems.anchorAt - state.offset };
+  void stemSongFor(stems.songVersionId, stems.title).then((song) => {
+    // Still the leader's, once the files are listed.
+    if (state.session?.stems?.songVersionId !== stems.songVersionId || state.leading) return;
+    void followStems(song, song ? timeline : null, leader);
+  });
+}
+
+let lastStemsSent: string | null = null;
+
+/** Leading: the stems' play, pause and seek go out. */
+function publishStems(stems: StemState) {
+  if (!state.leading || state.offset === null) return;
+  const payload =
+    stems.songVersionId && (stems.playing || stems.status === "ready")
+      ? {
+          songVersionId: stems.songVersionId,
+          title: stems.title,
+          playing: stems.playing && !!stems.anchor,
+          position: stems.playing && stems.anchor ? stems.anchor.position : stems.position,
+          anchorAt: stems.playing && stems.anchor ? Math.round((stems.anchor.epoch + state.offset) * 10) / 10 : 0,
+        }
+      : null;
+  const key = JSON.stringify(payload);
+  if (key === lastStemsSent) return;
+  lastStemsSent = key;
+  send({ type: "update", stems: payload });
 }
 
 /** The session's metronome, on this device's clock. */
@@ -257,6 +336,12 @@ function resync() {
   if (state.leading) {
     // Its own audio kept where its anchor says; the anchor sent again if the clocks' offset has moved.
     realignMetronome();
+    realignStems();
+    const stems = getStemState();
+    if (stems.playing && stems.anchor && state.offset !== null && state.session?.stems?.playing && Math.abs(state.session.stems.anchorAt - (stems.anchor.epoch + state.offset)) > 2) {
+      lastStemsSent = null;
+      publishStems(stems);
+    }
     const metronome = getMetronomeState();
     if (!metronome.playing || !metronome.anchor || state.offset === null || !state.session?.metronome) return;
     const shared = state.session.metronome;
@@ -274,6 +359,7 @@ export function enableSync(setId: string, lead = false) {
   disableSync();
   samples = [];
   wantLead = lead;
+  setStemsDirectOutput(true);
   emit({ setId, status: "connecting", session: null, members: [], leading: false, canLead: false, error: null, offset: null });
   keep();
   connect();
@@ -287,9 +373,15 @@ export function disableSync() {
   const ws = socket;
   socket = null;
   ws?.close();
-  if (state.setId) unfollowMetronome();
+  if (state.setId) {
+    unfollowMetronome();
+    unfollowStems();
+  }
+  setStemsDirectOutput(false);
+  stemSongs.clear();
   setMetronomeStartDelay(0.08);
   lastSent = null;
+  lastStemsSent = null;
   emit({ setId: null, status: "off", session: null, members: [], leading: false, canLead: false, error: null, offset: null });
   keep();
 }
@@ -330,6 +422,7 @@ export function useSync(): SyncState {
  */
 export function useSyncBridge() {
   const metronome = useMetronome();
+  const stems = useStems();
   useEffect(() => {
     const kept = storedSync();
     if (kept?.setId && state.status === "off") enableSync(kept.setId, !!kept.lead);
@@ -337,6 +430,17 @@ export function useSyncBridge() {
   useEffect(() => {
     if (!metronome.following) publishMetronome(metronome);
   }, [metronome]);
+  // Its position ticks along while it plays: only a start, pause, seek or another song goes out.
+  const stemsKey = JSON.stringify([stems.songVersionId, stems.status, stems.playing, stems.anchor, stems.playing ? 0 : stems.position, stems.following]);
+  useEffect(() => {
+    if (!stems.following) publishStems(getStemState());
+  }, [stemsKey]);
+}
+
+/** From a press: the browser lets the leader's metronome and stems make sound. */
+export function unlockSyncAudio() {
+  unlockMetronomeAudio();
+  unlockStemsAudio();
 }
 
 /**

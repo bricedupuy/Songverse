@@ -90,6 +90,7 @@ export class AttachmentsService {
       stemPart?: StemPart | null;
       recordingKey?: string | null;
       recordingTempo?: number | null;
+      recordingFirstBeat?: number | null;
       visibility?: AttachmentVisibilityValue;
       visibleToTeamId?: string | null;
     } = {};
@@ -101,6 +102,7 @@ export class AttachmentsService {
       data.recordingKey = written || null;
     }
     if (change.recordingTempo !== undefined) data.recordingTempo = change.recordingTempo;
+    if (change.recordingFirstBeat !== undefined) data.recordingFirstBeat = change.recordingFirstBeat;
     if (attachment.type !== "AUDIO" && Object.values(data).some((value) => value !== null)) {
       throw new BadRequestException("Only audio files can be stems or have a recording's key and tempo");
     }

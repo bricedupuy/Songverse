@@ -123,7 +123,15 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
         </div>
       </div>
 
-      {song ? <SetSongStems songVersionId={song.id} title={song.title} returnTo={`/sets/${set.id}/songs/${item.id}`} /> : null}
+      {song ? (
+        <SetSongStems
+          songVersionId={song.id}
+          title={song.title}
+          returnTo={`/sets/${set.id}/songs/${item.id}`}
+          tempo={tempo}
+          timeSignature={arrangement?.timeSignature ?? song.document.defaults.timeSignature}
+        />
+      ) : null}
 
       {song ? (
         <Card>
@@ -245,7 +253,20 @@ function MyNotesCard({ view }: { view: SetlistSongView }) {
  * Practice: the song's stems (issue #64), for someone who can open the song
  * itself - from the API, or from the device's copy when offline.
  */
-function SetSongStems({ songVersionId, title, returnTo }: { songVersionId: string; title: string; returnTo: string }) {
+function SetSongStems({
+  songVersionId,
+  title,
+  returnTo,
+  tempo,
+  timeSignature,
+}: {
+  songVersionId: string;
+  title: string;
+  returnTo: string;
+  /** The version's, for the metronome with the recording (issue #100). */
+  tempo: number | null | undefined;
+  timeSignature: { numerator: number; denominator: number } | null | undefined;
+}) {
   const { mode } = useMode();
   const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean; youtubeId: string | null }>({ attachments: [], offline: false, youtubeId: null });
 
@@ -287,6 +308,8 @@ function SetSongStems({ songVersionId, title, returnTo }: { songVersionId: strin
           if (!blob) throw new Error("not kept");
           return blob;
         },
+        tempo,
+        timeSignature,
       }}
     />
   );

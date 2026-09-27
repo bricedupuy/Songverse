@@ -569,6 +569,8 @@ export interface Attachment {
   /** For audio: the recording's key and tempo (BPM) when they aren't the song's, else null. */
   recordingKey: string | null;
   recordingTempo: number | null;
+  /** Where its first beat falls, in seconds (issue #100); null for 0:00. */
+  recordingFirstBeat: number | null;
   /** Who sees it besides its uploader (issue #72): nobody, a team, or everyone who sees the song. */
   visibility: AttachmentVisibility;
   visibleToTeamId: string | null;
@@ -1403,7 +1405,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     updateAttachment: (
       songVersionId: string,
       attachmentId: string,
-      change: { stemPart?: StemPart | null; recordingKey?: string | null; recordingTempo?: number | null; visibility?: AttachmentVisibility; teamId?: string | null },
+      change: { stemPart?: StemPart | null; recordingKey?: string | null; recordingTempo?: number | null; recordingFirstBeat?: number | null; visibility?: AttachmentVisibility; teamId?: string | null },
     ) => request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify(change) }),
     deleteAttachment: (songVersionId: string, attachmentId: string) =>
       request<void>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "DELETE" }),

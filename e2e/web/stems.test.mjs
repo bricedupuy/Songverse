@@ -61,6 +61,8 @@ check("a recording's key (as written) and tempo; its part stays", r.status === 2
 check("which changes the song's offline version too", (await version()) !== before65);
 r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { recordingKey: "H#" });
 check("a key that isn't one is refused", r.status === 400, String(r.status));
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { recordingFirstBeat: -1 });
+check("a first beat before the start: no", r.status === 400, String(r.status));
 r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { recordingTempo: 1000 });
 check("so is a tempo out of range", r.status === 400, String(r.status));
 r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${other.id}`, { recordingKey: "G" });
@@ -161,6 +163,15 @@ await step("the stems share one recording's key and tempo", async () => {
     await page.waitForTimeout(200);
   }
   if (!files.every((a) => a.recordingKey === "A" && a.recordingTempo === 80)) throw new Error(JSON.stringify(files.map((a) => [a.recordingKey, a.recordingTempo])));
+  // Where the first beat falls (issue #100), for the metronome with them.
+  await box.getByLabel("First beat of the stems (seconds)").fill("1.25");
+  await box.getByLabel("First beat of the stems (seconds)").press("Enter");
+  for (let i = 0; i < 25; i++) {
+    files = (await api(me, "GET", `/song-versions/${webSong.id}/attachments`)).filter((a) => a.stemPart);
+    if (files.every((a) => a.recordingFirstBeat === 1.25)) break;
+    await page.waitForTimeout(200);
+  }
+  if (!files.every((a) => a.recordingFirstBeat === 1.25)) throw new Error(JSON.stringify(files.map((a) => a.recordingFirstBeat)));
 });
 
 await step("in Edit there's no player, just the way to Practice", async () => {

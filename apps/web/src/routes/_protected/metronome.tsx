@@ -9,7 +9,8 @@ import { Card, CardContent } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { NativeSelect } from "#/components/ui/native-select";
-import { startMetronome, stopMetronome, unlockMetronomeAudio, updateMetronome, useMetronome, useMetronomeBeat } from "#/lib/metronome-engine";
+import { startMetronome, stopMetronome, updateMetronome, useMetronome, useMetronomeBeat } from "#/lib/metronome-engine";
+import { unlockSyncAudio } from "#/lib/sync-client";
 import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_protected/metronome")({
@@ -69,7 +70,7 @@ function MetronomePage() {
       ) : null}
       {/* Back after a reload, the browser waits for a press before it makes a sound. */}
       {audioBlocked && playing ? (
-        <Button type="button" className="self-start" onClick={unlockMetronomeAudio}>
+        <Button type="button" className="self-start" onClick={unlockSyncAudio}>
           <Volume2 />
           {t("sync.tapToHear")}
         </Button>
