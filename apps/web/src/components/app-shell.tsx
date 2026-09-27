@@ -4,8 +4,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AppSidebar } from "#/components/app-sidebar";
 import { OfflineBanner } from "#/components/offline-banner";
 import { SiteHeader } from "#/components/site-header";
+import { MetronomeReturnButton } from "#/components/metronome";
 import { StemDockSlot, StemReturnButton } from "#/components/stem-dock";
 import { YouTubeHost } from "#/components/youtube-dock";
+import { stopMetronome } from "#/lib/metronome-engine";
 import { unloadStems } from "#/lib/stem-engine";
 import type { AppSession } from "#/lib/server-auth";
 import { nestedSidebarFor } from "#/lib/sidebar-kind";
@@ -27,8 +29,14 @@ export function AppShell({
 }) {
   const fullScreen = useMatches({ select: (matches) => matches.some((match) => match.staticData.fullScreen) });
   const [dockSlot, setDockSlot] = useState<HTMLElement | null>(null);
-  // Signed out (or out of the app): the stems stop.
-  useEffect(() => unloadStems, []);
+  // Signed out (or out of the app): the stems and the metronome stop.
+  useEffect(
+    () => () => {
+      unloadStems();
+      stopMetronome();
+    },
+    [],
+  );
   if (fullScreen) {
     return (
       <>
@@ -53,6 +61,7 @@ export function AppShell({
         </SidebarInset>
       </SidebarProvider>
       <StemReturnButton />
+      <MetronomeReturnButton />
       <YouTubeHost />
     </StemDockSlot.Provider>
   );

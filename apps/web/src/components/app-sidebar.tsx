@@ -23,6 +23,7 @@ import {
   UsersRound,
   ChevronLeft,
   Contact,
+  Metronome,
   Star,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -413,6 +414,16 @@ function MainNav({
               <Link to="/people">
                 <Contact />
                 <span>{t("nav.people")}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+
+          {/* The metronome (issue #2). */}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === "/metronome"} tooltip={t("nav.metronome")}>
+              <Link to="/metronome">
+                <Metronome />
+                <span>{t("nav.metronome")}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

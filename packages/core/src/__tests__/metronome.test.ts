@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+import { beatAt, clicksBetween, DEFAULT_METRONOME, metronomeForSong, normalizeMetronome, tapTempo, type MetronomeSettings } from "../metronome/index.js";
+
+const settings = (change: Partial<MetronomeSettings> = {}) => normalizeMetronome({ ...DEFAULT_METRONOME, ...change });
+
+describe("the metronome's timeline (issue #2)", () => {
+  it("a bar of 4/4: the bell, then three clicks, on channel 10", () => {
+    const clicks = clicksBetween(settings(), 0, 4);
+    expect(clicks.map((c) => [c.position, c.beat, c.level, c.note, c.channel])).toEqual([
+      [0, 0, "accent", 34, 10],
+      [1, 1, "normal", 33, 10],
+      [2, 2, "normal", 33, 10],
+      [3, 3, "normal", 33, 10],
+    ]);
+    expect(clicksBetween(settings(), 4, 5)[0]).toMatchObject({ bar: 1, beat: 0, tick: 1920 });
+  });
+
+  it("a beat of 6/8 is an eighth: 240 ticks", () => {
+    const clicks = clicksBetween(settings({ numerator: 6, denominator: 8 }), 0, 7);
+    expect(clicks.map((c) => c.tick)).toEqual([0, 240, 480, 720, 960, 1200, 1440]);
+    expect(clicks.at(-1)).toMatchObject({ bar: 1, beat: 0, level: "accent" });
+  });
+
+  it("the pattern: muted beats are silent, subdivisions with them", () => {
+    const clicks = clicksBetween(settings({ beats: ["accent", "mute", "normal", "accent"], subdivision: 2 }), 0, 4);
+    expect(clicks.map((c) => `${c.position}:${c.level}`)).toEqual(["0:accent", "0.5:sub", "2:normal", "2.5:sub", "3:accent", "3.5:sub"]);
+  });
+
+  it("triplets land on thirds, without drifting", () => {
+    const clicks = clicksBetween(settings({ subdivision: 3 }), 10000, 10001);
+    expect(clicks.map((c) => c.sub)).toEqual([0, 1, 2]);
+    expect(clicks[1]!.position).toBeCloseTo(10000 + 1 / 3, 9);
+    // A window starting between two clicks begins at the next one.
+    expect(clicksBetween(settings({ subdivision: 3 }), 0.2, 1).map((c) => c.sub)).toEqual([1, 2]);
+  });
+
+  it("a count-in: every beat, the song's bar 0 after it; count-in only goes silent", () => {
+    const counted = settings({ countIn: 1, beats: ["accent", "mute", "mute", "mute"], subdivision: 2 });
+    const clicks = clicksBetween(counted, 0, 5);
+    expect(clicks.map((c) => `${c.bar}.${c.beat}.${c.sub}:${c.level}`)).toEqual(["-1.0.0:accent", "-1.1.0:normal", "-1.2.0:normal", "-1.3.0:normal", "0.0.0:accent", "0.0.1:sub"]);
+    expect(beatAt(counted, 4.5)).toEqual({ bar: 0, beat: 0, fraction: 0.5 });
+    expect(clicksBetween({ ...counted, countInOnly: true }, 0, 12)).toHaveLength(4);
+  });
+
+  it("stored settings are made valid", () => {
+    expect(normalizeMetronome({ tempo: 900, numerator: 3, beats: ["accent"], denominator: 5, volume: 3 })).toMatchObject({
+      tempo: 300,
+      numerator: 3,
+      beats: ["accent", "normal", "normal"],
+      denominator: 4,
+      volume: 1,
+    });
+    expect(normalizeMetronome(null)).toEqual(DEFAULT_METRONOME);
+    expect(normalizeMetronome({ countInOnly: true }).countInOnly).toBe(false);
+  });
+
+  it("a song's tempo and time signature, the player's pattern kept for a bar of the same length", () => {
+    const mine = settings({ beats: ["accent", "normal", "accent", "normal"], sound: "wood" });
+    expect(metronomeForSong(mine, { tempo: 72, timeSignature: { numerator: 4, denominator: 4 } })).toMatchObject({ tempo: 72, beats: ["accent", "normal", "accent", "normal"], sound: "wood" });
+    expect(metronomeForSong(mine, { tempo: 60, timeSignature: { numerator: 3, denominator: 4 } })).toMatchObject({ tempo: 60, numerator: 3, beats: ["accent", "normal", "normal"] });
+    expect(metronomeForSong(mine, { tempo: null }).tempo).toBe(100);
+  });
+
+  it("tap tempo: the average of the last taps; a long pause starts again", () => {
+    expect(tapTempo([0])).toBeNull();
+    expect(tapTempo([0, 500, 1000, 1500])).toBe(120);
+    expect(tapTempo([0, 500, 5000, 5750])).toBe(80);
+  });
+});

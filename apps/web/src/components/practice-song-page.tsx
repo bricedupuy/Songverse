@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { MetronomeSongButton } from "#/components/metronome";
 import { SongChart } from "#/components/song-chart";
 import { StemDock } from "#/components/stem-dock";
 import { Button } from "#/components/ui/button";
@@ -68,6 +69,7 @@ export function PracticeSongPage({
           {details.length > 0 ? <p className="text-sm font-medium text-muted-foreground">{details.join(" · ")}</p> : null}
         </div>
         <div className="flex items-center gap-2">
+          <MetronomeSongButton songId={version.id} tempo={chart.tempo} timeSignature={chart.timeSignature} variant="button" />
           <Button variant="outline" onClick={() => setMode("edit")}>
             <Pencil />
             {t("practice.edit")}

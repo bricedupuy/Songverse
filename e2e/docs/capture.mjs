@@ -243,6 +243,8 @@ try {
     });
     await page.getByTestId("stem-return").getByRole("button", { name: "Pause" }).click();
     await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
+    // The metronome (issue #2): its page, stopped.
+    await shoot("metronome", "/metronome", () => page.getByTestId("metronome-beats").waitFor(), { fullPage: true });
     await shoot("songbook", `/songbooks/${songbook.id}`, null, { fullPage: true });
     await shoot("team", `/teams/${team.id}`);
     // People (issue #77): a guest musician connected, the song shared with them, someone asking.

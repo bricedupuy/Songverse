@@ -118,8 +118,9 @@ const chord = (label) => page.locator(`[data-chord="${label}"]`);
 await step("the set's chart is the arrangement: its key, capo, chords and notes", async () => {
   await page.goto(`${WEB}/sets/${set.id}/songs/${itemId}`);
   await page.waitForLoadState("networkidle");
-  await page.getByText("Played as Sunday band").waitFor();
-  await page.getByText("92 BPM").waitFor();
+  await page.getByText(/Played as Sunday band · 92 BPM/).waitFor();
+  // The metronome at the arrangement's tempo too (issue #2).
+  await page.getByTestId("metronome-song").getByText("92 BPM").waitFor();
   await page.getByTestId("capo").getByText("Capo 2 · chords shown as they sound").waitFor();
   await chord("F#m").first().waitFor();
   await page.getByText("Softly").waitFor();

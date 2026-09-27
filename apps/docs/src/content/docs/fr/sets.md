@@ -51,6 +51,7 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 - Sa tonalité est en haut à droite : **G**, avec un petit **+2** quand la liste le joue plus haut ou plus bas qu'écrit. Touchez-la pour transposer au dernier moment, avec **−** et **+** : seulement sur votre écran, pour ce chant, jusqu'à ce que vous le quittiez. **Revenir à la tonalité de la liste** l'annule.
 - En bas : ce qui vient ensuite - **Ensuite : …** y mène - et la flèche du chant précédent.
 - Le **défilement** (le bouton lecture) fait défiler la grille au rythme du chant : sur sa durée quand elle est connue, sinon deux mesures par ligne à son tempo. La tortue et le lièvre le ralentissent ou l'accélèrent, un cran à la fois.
+- Le bouton du métronome, en haut, démarre le [métronome](/fr/metronome/) au tempo et à la mesure du chant, et clignote avec le temps ; appuyez à nouveau pour l'arrêter.
 - Les boutons **A** réduisent ou agrandissent le texte ; Songverse retient votre taille sur cet appareil.
 - Le bouton d'agrandissement passe en plein écran, sans les barres du navigateur.
 - L'écran reste allumé tant qu'un chant est ouvert.

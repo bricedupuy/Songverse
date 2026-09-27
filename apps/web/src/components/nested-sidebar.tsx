@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ClipboardCheck,
   Contact,
+  Metronome,
   Database,
   FileStack,
   KeyRound,
@@ -120,6 +121,19 @@ export function NestedSidebar({
           <Music2 className="size-5" />
         </Link>
         {rail.map(railItem)}
+        {/* The metronome (issue #2): a page of its own, no panel. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              to="/metronome"
+              aria-label={t("nav.metronome")}
+              className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4"
+            >
+              <Metronome />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right">{t("nav.metronome")}</TooltipContent>
+        </Tooltip>
         <div className="mt-auto flex flex-col items-center gap-1">
           {lower.map(railItem)}
         </div>

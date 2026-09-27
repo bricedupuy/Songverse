@@ -49,6 +49,7 @@ export default defineConfig({
           translations: { fr: "Jouer ensemble" },
           items: [
             { slug: "sets" },
+            { slug: "metronome" },
             { slug: "songbooks" },
             { slug: "teams" },
             { slug: "people" },

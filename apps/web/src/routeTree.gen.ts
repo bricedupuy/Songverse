@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
+import { Route as ProtectedMetronomeRouteImport } from './routes/_protected/metronome'
 import { Route as ProtectedOfflineRouteImport } from './routes/_protected/offline'
 import { Route as ProtectedPeopleRouteImport } from './routes/_protected/people'
 import { Route as ProtectedReviewRouteImport } from './routes/_protected/review'
@@ -80,6 +81,11 @@ const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedMetronomeRoute = ProtectedMetronomeRouteImport.update({
+  id: '/metronome',
+  path: '/metronome',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedOfflineRoute = ProtectedOfflineRouteImport.update({
@@ -286,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof ProtectedAccountRoute
   '/admin': typeof ProtectedAdminRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
+  '/metronome': typeof ProtectedMetronomeRoute
   '/offline': typeof ProtectedOfflineRoute
   '/people': typeof ProtectedPeopleRoute
   '/review': typeof ProtectedReviewRouteWithChildren
@@ -329,6 +336,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/account': typeof ProtectedAccountRoute
   '/dashboard': typeof ProtectedDashboardRoute
+  '/metronome': typeof ProtectedMetronomeRoute
   '/offline': typeof ProtectedOfflineRoute
   '/people': typeof ProtectedPeopleRoute
   '/join/$token': typeof JoinTokenRoute
@@ -374,6 +382,7 @@ export interface FileRoutesById {
   '/_protected/account': typeof ProtectedAccountRoute
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
+  '/_protected/metronome': typeof ProtectedMetronomeRoute
   '/_protected/offline': typeof ProtectedOfflineRoute
   '/_protected/people': typeof ProtectedPeopleRoute
   '/_protected/review': typeof ProtectedReviewRouteWithChildren
@@ -420,6 +429,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/dashboard'
+    | '/metronome'
     | '/offline'
     | '/people'
     | '/review'
@@ -463,6 +473,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/account'
     | '/dashboard'
+    | '/metronome'
     | '/offline'
     | '/people'
     | '/join/$token'
@@ -507,6 +518,7 @@ export interface FileRouteTypes {
     | '/_protected/account'
     | '/_protected/admin'
     | '/_protected/dashboard'
+    | '/_protected/metronome'
     | '/_protected/offline'
     | '/_protected/people'
     | '/_protected/review'
@@ -597,6 +609,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof ProtectedDashboardRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/metronome': {
+      id: '/_protected/metronome'
+      path: '/metronome'
+      fullPath: '/metronome'
+      preLoaderRoute: typeof ProtectedMetronomeRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/offline': {
@@ -904,6 +923,7 @@ interface ProtectedRouteChildren {
   ProtectedAccountRoute: typeof ProtectedAccountRoute
   ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
+  ProtectedMetronomeRoute: typeof ProtectedMetronomeRoute
   ProtectedOfflineRoute: typeof ProtectedOfflineRoute
   ProtectedPeopleRoute: typeof ProtectedPeopleRoute
   ProtectedReviewRoute: typeof ProtectedReviewRouteWithChildren
@@ -935,6 +955,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAccountRoute: ProtectedAccountRoute,
   ProtectedAdminRoute: ProtectedAdminRouteWithChildren,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
+  ProtectedMetronomeRoute: ProtectedMetronomeRoute,
   ProtectedOfflineRoute: ProtectedOfflineRoute,
   ProtectedPeopleRoute: ProtectedPeopleRoute,
   ProtectedReviewRoute: ProtectedReviewRouteWithChildren,

@@ -51,6 +51,7 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 - Its key is at the top right: **G**, with a small **+2** when the set plays it higher or lower than written. Tap it to transpose at the last moment, with **−** and **+**: only on your screen, for this song, until you leave it. **Back to the set's key** undoes it.
 - The bottom shows what's next - **Next: …** takes you there - and the previous song's arrow.
 - **Autoscroll** (the play button) scrolls the chart at the song's pace: over its duration when it has one, or else two bars a line at its tempo. The tortoise and hare slow it down or speed it up, a step at a time.
+- The metronome button, at the top, starts the [metronome](/metronome/) at the song's tempo and time signature, and flashes with the beat; press it again to stop.
 - The **A** buttons make the text smaller or bigger; Songverse remembers your size on this device.
 - The expand button goes full screen, hiding the browser's own bars.
 - The screen stays on while a song is open.

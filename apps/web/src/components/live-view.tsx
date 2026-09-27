@@ -3,6 +3,7 @@ import { AArrowDown, AArrowUp, ChevronLeft, ChevronRight, Expand, Minus, Pause, 
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { CommandSearch } from "#/components/command-search";
+import { MetronomeSongButton } from "#/components/metronome";
 import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { SongChart } from "#/components/song-chart";
@@ -217,6 +218,8 @@ export function LiveView({ song }: { song: LiveSong }) {
           {song.setName}
         </p>
         <OfflineBanner compact />
+        {/* The song's tempo and time signature, one press (issue #2); the rest on the Metronome page. */}
+        <MetronomeSongButton songId={song.id} tempo={chart?.tempo} timeSignature={chart?.timeSignature} />
         <CommandSearch />
         {fullScreen.available ? (
           <span className="hidden sm:contents">
