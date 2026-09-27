@@ -1,5 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsInt, Max, Min, ValidateIf } from "class-validator";
+import { SaveStorageLimitsSchema } from "@songverse/core";
+import { zodDto } from "../../common/zod-validation.js";
 
 export class StorageLimitsResponseDto {
   @ApiProperty({ description: "Limit applied to users without their own override, in MB" })
@@ -12,11 +13,5 @@ export class StorageLimitsResponseDto {
   builtInDefaultMb!: number;
 }
 
-export class SaveStorageLimitsDto {
-  @ApiProperty({ nullable: true, description: "Null resets to the built-in default" })
-  @ValidateIf((_, value) => value !== null)
-  @IsInt()
-  @Min(0)
-  @Max(1_000_000)
-  defaultLimitMb!: number | null;
-}
+/** Null resets to the built-in default. */
+export class SaveStorageLimitsDto extends zodDto(SaveStorageLimitsSchema) {}

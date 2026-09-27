@@ -13,6 +13,7 @@ import {
   type SongVersionDetail,
   type SupportedImportFormat,
   type UpdateSongVersionInput,
+  type LanguageCode,
 } from "@songverse/core";
 import { sameFlow, sameSections } from "./structured/document";
 
@@ -231,7 +232,7 @@ export function toCreateInput(form: SongForm): CreateSongVersionInput {
   const blank = emptyForm(form.language);
   blank.language = "";
   const data = changedFields(form, blank);
-  return { ...data, title: form.title.trim(), language: form.language, artists: form.artists };
+  return { ...data, title: form.title.trim(), language: form.language as LanguageCode, artists: form.artists };
 }
 
 export function toUpdateInput(form: SongForm, initial: SongForm): UpdateSongVersionInput {

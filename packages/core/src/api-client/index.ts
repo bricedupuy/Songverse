@@ -2,7 +2,6 @@ import type {
   CapoDisplayModeValue,
   ChordNotationValue,
   InstrumentValue,
-  SupportedImportFormat,
   TechRoleValue,
 } from "../constants/index.js";
 import type { ArrangementDocumentV2, ChartPreferences } from "../schemas/arrangement-document-v2.js";
@@ -13,6 +12,18 @@ import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
+import type { z } from "zod";
+import type {
+  CreateCatalogSchema,
+  CreateInviteLinkSchema,
+  ImportSongbookFromCatalogSchema,
+  SaveAuthConfigSchema,
+  SaveStorageConfigSchema,
+  UpdateCatalogSchema,
+  UpdateUserByAdminSchema,
+} from "../requests/index.js";
+import type { CreateSongbookRequest, UpdateSongbookRequest } from "../requests/songbooks.js";
+import type { CreateSongVersionRequest, SongSort, UpdateSongVersionRequest } from "../requests/songs.js";
 import type { SongChange, SongSnapshot } from "../song-history/index.js";
 
 export interface ApiClientOptions {
@@ -55,12 +66,7 @@ export interface AdminUserSummary {
   songCount: number;
 }
 
-export interface UpdateUserByAdminInput {
-  storageLimitMb?: number | null;
-  banned?: boolean;
-  banReason?: string;
-  isReviewer?: boolean;
-}
+export type UpdateUserByAdminInput = z.input<typeof UpdateUserByAdminSchema>;
 
 export interface TransferLink {
   transferUrl: string;
@@ -350,13 +356,7 @@ export interface StorageConfigSummary {
   endpoint: string | null;
 }
 
-export interface SaveStorageConfigInput {
-  accountId?: string;
-  accessKeyId?: string;
-  secretAccessKey?: string;
-  bucket?: string;
-  endpoint?: string;
-}
+export type SaveStorageConfigInput = z.input<typeof SaveStorageConfigSchema>;
 
 export type AuthConfigSource = "database" | "env" | "none";
 
@@ -369,12 +369,7 @@ export interface AuthConfigSummary {
   hasDatabaseGoogleSecret: boolean;
 }
 
-export interface SaveAuthConfigInput {
-  resendApiKey?: string;
-  emailFrom?: string;
-  googleClientId?: string;
-  googleClientSecret?: string;
-}
+export type SaveAuthConfigInput = z.input<typeof SaveAuthConfigSchema>;
 
 export interface AuthPublicConfig {
   hasGoogleAuth: boolean;
@@ -411,11 +406,7 @@ export interface TeamInviteLink {
   maxUses: number | null;
 }
 
-export interface CreateInviteLinkInput {
-  role?: TeamRole;
-  expiresInDays?: number;
-  maxUses?: number;
-}
+export type CreateInviteLinkInput = z.input<typeof CreateInviteLinkSchema>;
 
 export type OwnershipScope = "GLOBAL" | "TEAM" | "USER";
 
@@ -457,22 +448,9 @@ export interface SongbookDetail extends SongbookSummary {
   catalogSections?: SongbookSection[] | null;
 }
 
-export interface CreateSongbookInput {
-  name: string;
-  kind: SongbookKind;
-  abbreviation?: string;
-  language?: string;
-  publisher?: string;
-  year?: number;
-  teamId?: string;
-  global?: boolean;
-}
+export type CreateSongbookInput = CreateSongbookRequest;
 
-export interface ImportSongbookFromCatalogInput {
-  catalogId: string;
-  teamId?: string;
-  global?: boolean;
-}
+export type ImportSongbookFromCatalogInput = z.input<typeof ImportSongbookFromCatalogSchema>;
 
 export type BulkUploadContentType = "CHORDPRO" | "PDF";
 
@@ -481,14 +459,7 @@ export interface BulkUploadCommitResult {
   skipped: string[];
 }
 
-export interface UpdateSongbookInput {
-  name?: string;
-  abbreviation?: string;
-  language?: string;
-  publisher?: string;
-  year?: number;
-  sections?: SongbookSection[];
-}
+export type UpdateSongbookInput = UpdateSongbookRequest;
 
 /** Every field of the catalogue file format (see songbook-catalog-format), plus where "Original song" points. */
 export interface SongbookCatalogEntry extends CatalogEntryData {
@@ -523,19 +494,9 @@ export interface SongbookCatalogDetail extends SongbookCatalogSummary {
   entries: SongbookCatalogEntry[];
 }
 
-export interface CreateSongbookCatalogInput {
-  name: string;
-  abbreviation?: string;
-  publisher?: string;
-  isbn?: string;
-  description?: string;
-  coverImageUrl?: string;
-  officialUrl?: string;
-  language?: string;
-  licensed?: boolean;
-}
+export type CreateSongbookCatalogInput = z.input<typeof CreateCatalogSchema>;
 
-export type UpdateSongbookCatalogInput = Partial<CreateSongbookCatalogInput> & { sections?: SongbookSection[] };
+export type UpdateSongbookCatalogInput = z.input<typeof UpdateCatalogSchema>;
 
 /** Any fields of an entry; null or "" clears, a field left out is left alone. */
 export type SongbookCatalogEntryInput = { [K in keyof CatalogEntryData]?: CatalogEntryData[K] | null };
@@ -642,7 +603,6 @@ export interface SongVersionSummary {
   tags: Tag[];
 }
 
-export type SongSort = "title" | "updatedAt" | "createdAt" | "language" | "publicationState";
 
 export interface ListSongVersionsQuery {
   /** Matches title, subtitle, version name or artist (ignoring case), or a CCLI number exactly. */
@@ -959,68 +919,11 @@ export interface SongVersionDetail extends SongVersionSummary {
 }
 
 /** A song's optional fields. A field left out is left alone; null clears it. */
-export interface SongFieldsInput {
-  /** Shown as "Subtitle". */
-  alternateTitle?: string | null;
-  /** Tells this version apart from the song's others, e.g. "Acoustic". */
-  versionName?: string | null;
-  sortTitle?: string | null;
-  album?: string | null;
-  year?: number | null;
-  copyright?: string | null;
-  copyrightYear?: number | null;
-  publisher?: string | null;
-  ccli?: string | null;
-  isrc?: string | null;
-  reference?: string | null;
-  notes?: string | null;
-  key?: string | null;
-  tempo?: number | null;
-  /** "4/4" */
-  timeSignature?: string | null;
-  durationSeconds?: number | null;
-  /** Capo fret, 1-11; 0 or null for none. */
-  capo?: number | null;
-  /** Replace the song's composers. */
-  composers?: string[];
-  /** Replace the song's lyricists. */
-  lyricists?: string[];
-  /** Replace the song's writers (words and music), arrangers, translators and adaptors. */
-  writers?: string[];
-  arrangers?: string[];
-  translators?: string[];
-  adaptors?: string[];
-  /** Replace the song's tags. */
-  tagIds?: string[];
-  /** Replaces the chart (empty clears it). */
-  content?: string;
-  /** content's format; guessed when left out. */
-  contentFormat?: SupportedImportFormat;
-  /** The chart as the structured editor holds it, IDs kept as they are (instead of content). */
-  sections?: SectionV2[];
-  /** The order the song is sung in (repeats, labels, key changes, notes); left out, it follows the sections. */
-  flow?: SectionInstance[];
-}
+export type SongFieldsInput = Omit<UpdateSongVersionRequest, "title" | "language" | "artists" | "revision">;
 
-export interface CreateSongVersionInput extends SongFieldsInput {
-  workId?: string;
-  /** A song this is another version of: it joins that song's Work. */
-  basedOnVersionId?: string;
-  teamId?: string;
-  title: string;
-  language: string;
-  /** At least one. */
-  artists: string[];
-}
+export type CreateSongVersionInput = CreateSongVersionRequest;
 
-export interface UpdateSongVersionInput extends SongFieldsInput {
-  title?: string;
-  language?: string;
-  /** Replace the song's artists (at least one). */
-  artists?: string[];
-  /** The document revision the edit started from; the save fails (409) if someone saved since. */
-  revision?: number;
-}
+export type UpdateSongVersionInput = UpdateSongVersionRequest;
 
 /** A name already credited on songs you can see. */
 export interface CreditSuggestion {

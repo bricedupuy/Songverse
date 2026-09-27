@@ -1,14 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsOptional, IsString, MinLength } from "class-validator";
+import { SearchRecordingsQuerySchema } from "@songverse/core";
+import { zodDto } from "../../common/zod-validation.js";
 
-export class SearchRecordingsQueryDto {
-  @ApiProperty()
-  @IsString()
-  @MinLength(1)
-  title!: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsString()
-  artist?: string;
-}
+export class SearchRecordingsQueryDto extends zodDto(SearchRecordingsQuerySchema) {}

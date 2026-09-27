@@ -1,5 +1,4 @@
 import "reflect-metadata";
-import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { jobsInApi } from "./jobs/jobs.constants.js";
 import { startJobs } from "./jobs/start-jobs.js";
@@ -7,6 +6,7 @@ import { SyncServer } from "./sync/sync.server.js";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
+import { openApiDoc, ZodValidationPipe } from "./common/zod-validation.js";
 import type { Express } from "express";
 import { AppModule } from "./app.module.js";
 import { getAuth } from "./auth/better-auth.js";
@@ -64,22 +64,19 @@ async function bootstrap() {
       .catch(next);
   });
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      forbidNonWhitelisted: true,
-    }),
-  );
+  // Requests are checked against @songverse/core's zod schemas (issue #118).
+  app.useGlobalPipes(new ZodValidationPipe());
 
   const config = new DocumentBuilder()
     .setTitle("Songverse API")
     .setDescription("Song library, arrangement, and performance API for Songverse.")
     .setVersion("0.1.0")
+    // 3.1: nullable fields are type lists ("string" or null), as zod describes them (issue #118).
+    .setOpenAPIVersion("3.1.0")
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup("api/docs", app, document);
+  SwaggerModule.setup("api/docs", app, openApiDoc(document));
 
   // Sync play's WebSocket (issue #13), on the same port.
   app.get(SyncServer).attach(app.getHttpServer());

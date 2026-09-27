@@ -1,4 +1,4 @@
-import { isNetworkError, keptSongbook, onlineOrKept, type BulkUploadContentType, type BulkUploadFileMatch, type SongbookSection, type SongVersionSummary } from "@songverse/core";
+import { isNetworkError, keptSongbook, onlineOrKept, type BulkUploadContentType, type BulkUploadFileMatch, type LanguageCode, type SongbookSection, type SongVersionSummary } from "@songverse/core";
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -112,7 +112,7 @@ function SongbookDetail() {
       await apiClient.updateSongbook(songbook.id, {
         name,
         abbreviation: abbreviation.trim() || undefined,
-        language: language.trim() || undefined,
+        language: (language.trim() || undefined) as LanguageCode | undefined,
         publisher: publisher.trim() || undefined,
         year: year.trim() ? Number(year) : undefined,
       });

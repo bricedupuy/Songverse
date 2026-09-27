@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { foldForSearch } from "@songverse/core";
+import { BIO_LANGUAGES, foldForSearch } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { artistImageUrl } from "../artwork/song-image-url.js";
@@ -13,7 +13,6 @@ import { fetchProviderImage } from "../images/provider-image.js";
 import { wikipediaSummary, wikipediaTitles } from "./artist-sources.js";
 
 /** The languages bios are kept in: the app's. */
-export const BIO_LANGUAGES = ["en", "fr"] as const;
 
 /** How an artist is matched: its name without case, accents or extra spaces. */
 export const artistKey = (name: string) => foldForSearch(name).replace(/\s+/g, " ").trim();

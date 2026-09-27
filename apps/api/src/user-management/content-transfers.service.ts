@@ -4,9 +4,6 @@ import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { TransferUnavailableError, UserDeletionService } from "./user-deletion.service.js";
 
-export const DEFAULT_TRANSFER_RETENTION_DAYS = 30;
-export const MAX_TRANSFER_RETENTION_DAYS = 365;
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function hashToken(token: string): string {

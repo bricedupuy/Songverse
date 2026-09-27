@@ -27,6 +27,7 @@ import {
   type SongSnapshot,
   type StreamingIdentifierType,
   type SupportedImportFormat,
+  type SongFields,
 } from "@songverse/core";
 import type { ContributorRole, Prisma, VersionRelationshipType } from "@songverse/db";
 import { MusicBrainzService } from "../musicbrainz/musicbrainz.service.js";
@@ -36,7 +37,6 @@ import { AccessPolicyService } from "../access/access-policy.service.js";
 import { setOrder } from "../common/utils/set-order.js";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto.js";
 import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto.js";
-import type { SongFieldsDto } from "./dto/song-fields.dto.js";
 import type { UpdateSongVersionDto } from "./dto/update-song-version.dto.js";
 import { ArtistsService, artistKey } from "../artists/artists.service.js";
 import { ArtworkService } from "../artwork/artwork.service.js";
@@ -121,7 +121,7 @@ async function replaceAutoAttachedArtist(tx: Prisma.TransactionClient, songVersi
 }
 
 /** The chart's defaults a DTO sets (undefined leaves one alone, null clears it). */
-function defaultsFrom(dto: SongFieldsDto): SongDefaultsV2 {
+function defaultsFrom(dto: SongFields): SongDefaultsV2 {
   return {
     ...(dto.key !== undefined && { key: dto.key }),
     ...(dto.tempo !== undefined && { tempo: dto.tempo }),
@@ -131,7 +131,7 @@ function defaultsFrom(dto: SongFieldsDto): SongDefaultsV2 {
 }
 
 /** The credits a DTO lists, by role; roles it leaves out aren't there. */
-function creditListsFrom(dto: SongFieldsDto & { artists?: string[] }): Partial<Record<ContributorRole, string[]>> {
+function creditListsFrom(dto: SongFields & { artists?: string[] }): Partial<Record<ContributorRole, string[]>> {
   return {
     ...(dto.artists && { PERFORMER: dto.artists }),
     ...(dto.composers && { COMPOSER: dto.composers }),
@@ -226,7 +226,7 @@ function staleRevision(): ConflictException {
  * `current` stands in for sections not sent.
  */
 function chartFrom(
-  dto: SongFieldsDto,
+  dto: SongFields,
   current: SongDocumentV2["sections"],
 ): { sections: SongDocumentV2["sections"]; flow: SongDocumentV2["flow"] | undefined } | undefined {
   if (dto.sections === undefined && dto.flow === undefined) return undefined;

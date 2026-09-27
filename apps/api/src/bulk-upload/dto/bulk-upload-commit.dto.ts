@@ -1,11 +1,6 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsIn } from "class-validator";
+import { BulkUploadCommitSchema } from "@songverse/core";
+import { zodDto } from "../../common/zod-validation.js";
 
-const BULK_UPLOAD_TYPES = ["CHORDPRO", "PDF"] as const;
-export type BulkUploadTypeValue = (typeof BULK_UPLOAD_TYPES)[number];
+export type { BulkUploadTypeValue } from "@songverse/core";
 
-export class BulkUploadCommitDto {
-  @ApiProperty({ enum: BULK_UPLOAD_TYPES, description: "What kind of content every file in this batch is" })
-  @IsIn(BULK_UPLOAD_TYPES)
-  type!: BulkUploadTypeValue;
-}
+export class BulkUploadCommitDto extends zodDto(BulkUploadCommitSchema) {}

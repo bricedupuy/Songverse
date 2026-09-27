@@ -17,9 +17,10 @@ import {
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import { ArtworkSettingsSchema, SetArtworkSchema } from "@songverse/core";
+import { zodDto } from "../common/zod-validation.js";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger";
-import { IsBoolean, IsOptional, IsString, IsUrl, MaxLength } from "class-validator";
 import type { Response } from "express";
 import { Public } from "../common/decorators/public.decorator.js";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
@@ -31,22 +32,9 @@ const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Pictures only: no SVG, which is a document rather than an image.
 const UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif", "image/heic", "image/heif"]);
 
-export class SetArtworkDto {
-  @IsUrl({ protocols: ["https", "http"], require_tld: false })
-  @MaxLength(2000)
-  url!: string;
-}
+export class SetArtworkDto extends zodDto(SetArtworkSchema) {}
 
-export class ArtworkSettingsDto {
-  @IsOptional()
-  @IsBoolean()
-  enabled?: boolean;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2)
-  country?: string;
-}
+export class ArtworkSettingsDto extends zodDto(ArtworkSettingsSchema) {}
 
 /** Song images (issue #85): the image itself, choosing a song's artwork, and the admin's settings. */
 @ApiTags("artwork")

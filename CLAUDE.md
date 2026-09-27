@@ -154,6 +154,25 @@ song images and artist pictures with identical bytes are one object).
 Delete them only through `StorageService.deleteUnreferenced()`, which checks
 all four.
 
+## Requests
+
+What the API takes is described once, as zod schemas in `@songverse/core`
+(`packages/core/src/requests/`, issue #118): the API validates with them
+and clients take their types from them (`z.input<typeof XSchema>`).
+- A request DTO is `class XDto extends zodDto(XSchema) {}`
+  (`apps/api/src/common/zod-validation.ts`); the global pipe refuses a
+  whole `@Body()`/`@Query()` that isn't one. No class-validator.
+- Objects are `z.strictObject` (an unknown field is refused, by name).
+  Use the helpers in `requests/fields.ts`: `optional()` (null is left
+  out), `clearableText()`/`clearableInt()` (null or "" clears),
+  `nameList()`, `queryInt()`/`queryBoolean()` for query strings.
+- A failed request answers 400 with `message: string[]`, worded like
+  "year must not be less than 1000"; a message a schema sets itself is
+  used as it is, so write it as a sentence with the field's name.
+- The API's docs (`/api/docs`, OpenAPI 3.1) describe bodies and queries
+  from the same schemas; `z.custom` can't be described - type an unknown
+  value with a transform instead.
+
 ## Files, addresses and outside downloads
 
 The code review (issue #112, `docs/code-review.md`) left one way for each:

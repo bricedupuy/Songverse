@@ -53,6 +53,23 @@ for (const [field, value, pattern] of [
 r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { title: "" });
 check("the title can't be cleared", r.status === 400);
 
+// --- requests are checked against @songverse/core's schemas (issue #118)
+const titleBefore = (await call(admin, "GET", `/song-versions/${s1.id}`)).body.title;
+r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { colour: "red" });
+check("a field the API doesn't know is refused, by name", r.status === 400 && r.body.message.includes("property colour should not exist"), JSON.stringify(r.body));
+r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { tempo: "fast", album: 7 });
+check(
+  "each problem is its own message",
+  r.status === 400 && r.body.message.includes("tempo must be a number") && r.body.message.includes("album must be a string"),
+  JSON.stringify(r.body.message),
+);
+r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { title: null, isrc: " us-rc1-76-07839 " });
+check("null for a field that can't be cleared leaves it alone; values are normalized", r.status === 200 && r.body.title === titleBefore && r.body.isrc === "USRC17607839", JSON.stringify({ s: r.status, t: r.body.title, i: r.body.isrc }));
+r = await call(admin, "GET", "/song-versions?page=0");
+check("a query is checked too", r.status === 400 && r.body.message.includes("page must not be less than 1"), JSON.stringify(r.body));
+r = await call(admin, "GET", "/song-versions?pageSize=2&favorites=false");
+check("and read as numbers and yes/no", r.status === 200 && r.body.items.length <= 2, String(r.status));
+
 // --- the last artist stays
 r = await call(admin, "PATCH", `/song-versions/${s1.id}`, { artists: ["Only One"] });
 check("artists can be replaced while one remains", r.status === 200 && r.body.artists.length === 1, String(r.status));

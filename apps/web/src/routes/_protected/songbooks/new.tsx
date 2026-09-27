@@ -1,4 +1,4 @@
-import type { SongbookKind } from "@songverse/core";
+import type { LanguageCode, SongbookKind } from "@songverse/core";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -39,7 +39,7 @@ function NewSongbook() {
         name,
         kind,
         abbreviation: abbreviation.trim() || undefined,
-        language: language.trim() || undefined,
+        language: (language.trim() || undefined) as LanguageCode | undefined,
         publisher: publisher.trim() || undefined,
         year: year.trim() ? Number(year) : undefined,
         teamId: ownership.startsWith("team:") ? ownership.slice(5) : undefined,

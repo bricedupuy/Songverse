@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, UnauthorizedException, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { DEFAULT_TRANSFER_RETENTION_DAYS } from "@songverse/core";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AdminUsersService } from "../user-management/admin-users.service.js";
-import { DEFAULT_TRANSFER_RETENTION_DAYS } from "../user-management/content-transfers.service.js";
 import { AdminService, type AdminCommandResult } from "./admin.service.js";
 import { AuthConfigResponseDto } from "./dto/admin-auth-response.dto.js";
 import { AdminStorageResponseDto, StorageConfigResponseDto } from "./dto/admin-storage-response.dto.js";

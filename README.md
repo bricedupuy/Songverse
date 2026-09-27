@@ -68,7 +68,7 @@ User documentation, in English and French: [docs.songverse.one](https://docs.son
 | --- | --- |
 | Monorepo | pnpm workspaces, Turborepo, TypeScript |
 | Web app (`apps/web`) | TanStack Start and Router (React 19, SSR), Vite, Tailwind CSS 4, shadcn/ui, dnd-kit, react-i18next |
-| API (`apps/api`) | NestJS, BetterAuth (sessions, passkeys, OAuth, JWTs for API calls), BullMQ workers on Redis, sharp for images, Resend for email |
+| API (`apps/api`) | NestJS (ES modules), requests checked against the shared zod schemas, BetterAuth (sessions, passkeys, OAuth, JWTs for API calls), BullMQ workers on Redis, sharp for images, Resend for email |
 | Data (`packages/db`) | PostgreSQL with Prisma; migrations run when the API starts |
 | Shared (`packages/core`) | API client, zod schemas, ChordPro and chords-over-lyrics parsers, key transposition, translations, tested with Vitest |
 | Storage | Cloudflare R2 (S3-compatible) or local disk, content-addressed |
@@ -100,7 +100,7 @@ Songverse stands on a lot of open-source work. Thank you to everyone behind:
 | [jose](https://github.com/panva/jose) | Checking API tokens | MIT |
 | [AWS SDK for JavaScript](https://github.com/aws/aws-sdk-js-v3) | Cloudflare R2 storage (S3-compatible) | Apache-2.0 |
 | [Resend](https://resend.com) | Sending email | MIT (SDK) |
-| [zod](https://zod.dev) | Song, arrangement and API schemas | MIT |
+| [zod](https://zod.dev) and [nestjs-zod](https://github.com/BenLorantfy/nestjs-zod) | Song, arrangement and request schemas, shared by the API and its clients | MIT |
 | [Tonal](https://github.com/tonaljs/tonal) | Chord and key theory for transposing | MIT |
 | [nanoid](https://github.com/ai/nanoid) | Section, line and chord IDs | MIT |
 | [Astro](https://astro.build) and [Starlight](https://starlight.astro.build) | The documentation site and the website | MIT |

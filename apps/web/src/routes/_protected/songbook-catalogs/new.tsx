@@ -1,3 +1,4 @@
+import type { LanguageCode } from "@songverse/core";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -43,7 +44,7 @@ function NewSongbookCatalog() {
         isbn: isbn.trim() || undefined,
         description: description.trim() || undefined,
         officialUrl: officialUrl.trim() || undefined,
-        language: language.trim() || undefined,
+        language: (language.trim() || undefined) as LanguageCode | undefined,
       });
       await navigate({ to: "/songbook-catalogs/$catalogId", params: { catalogId: catalog.id } });
     } catch (err) {

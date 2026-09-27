@@ -1,7 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service.js";
-import type { CreateSmartListDto, SmartListFiltersDto, UpdateSmartListDto } from "./smart-list.dto.js";
+import type { CreateSmartListDto, UpdateSmartListDto } from "./smart-list.dto.js";
+
+type SmartListFiltersDto = CreateSmartListDto["filters"];
 
 const MAX_LISTS = 100;
 const SELECT = { id: true, name: true, filters: true, createdAt: true, updatedAt: true } as const;

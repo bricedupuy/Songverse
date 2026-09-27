@@ -27,16 +27,16 @@
     "@songverse/secret-crypto": "workspace:*",
     "better-auth": "^1.7.5",
     "bullmq": "^5.34.6",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.1",
     "ioredis": "5.11.1",
     "jose": "^6.1.0",
     "multer": "^2.4.0",
+    "nestjs-zod": "^5.5.0",
     "reflect-metadata": "^0.2.2",
     "resend": "^6.28.1",
     "rxjs": "^7.8.1",
     "sharp": "^0.35.4",
-    "ws": "^8.22.0"
+    "ws": "^8.22.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.4.9",

@@ -1,8 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsUUID } from "class-validator";
+import { LinkMusicBrainzSchema } from "@songverse/core";
+import { zodDto } from "../../common/zod-validation.js";
 
-export class LinkMusicBrainzDto {
-  @ApiProperty({ description: "MusicBrainz MBID (UUID) of the recording or work to link" })
-  @IsUUID()
-  mbid!: string;
-}
+export class LinkMusicBrainzDto extends zodDto(LinkMusicBrainzSchema) {}

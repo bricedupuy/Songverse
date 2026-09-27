@@ -1,4 +1,4 @@
-import { slugify, type SongbookCatalogImportResult } from "@songverse/core";
+import { slugify, type LanguageCode, type SongbookCatalogImportResult } from "@songverse/core";
 import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { Download, Upload } from "lucide-react";
 import { useState } from "react";
@@ -79,7 +79,7 @@ function SongbookCatalogDetail() {
         isbn: isbn.trim() || undefined,
         description: description.trim() || undefined,
         officialUrl: officialUrl.trim() || undefined,
-        language: language.trim() || undefined,
+        language: (language.trim() || undefined) as LanguageCode | undefined,
         licensed,
       });
       await router.invalidate();

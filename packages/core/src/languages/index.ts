@@ -27,6 +27,9 @@ export const ISO_639_1_CODES = [
   "yo", "za", "zh", "zu",
 ] as const;
 
+/** An ISO 639-1 code, as the API takes it. */
+export type LanguageCode = (typeof ISO_639_1_CODES)[number];
+
 export type Iso6391Code = (typeof ISO_639_1_CODES)[number];
 
 /**

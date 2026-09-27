@@ -58,7 +58,8 @@ export const MetadataMatchSchema = z.object({
 });
 export type MetadataMatch = z.infer<typeof MetadataMatchSchema>;
 
-export const LinkMetadataSchema = z.object({
-  sources: z.array(MetadataSourceSchema.pick({ provider: true, id: true })).min(1).max(METADATA_PROVIDERS.length),
+/** A match chosen in Auto detect (issue #22): its sources, looked up again. The request POST /song-versions/:id/metadata takes. */
+export const LinkMetadataSchema = z.strictObject({
+  sources: z.array(z.strictObject(MetadataSourceSchema.pick({ provider: true, id: true }).shape)).min(1).max(METADATA_PROVIDERS.length),
 });
 export type LinkMetadata = z.infer<typeof LinkMetadataSchema>;

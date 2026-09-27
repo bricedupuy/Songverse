@@ -18,58 +18,29 @@ import {
   UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
+import { ArtistBioSchema, ArtistQuerySchema, ArtistSettingsSchema, LookUpArtistSchema } from "@songverse/core";
+import { zodDto } from "../common/zod-validation.js";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger";
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import type { Response } from "express";
 import { isValidArtistImageSignature } from "../artwork/song-image-url.js";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { Public } from "../common/decorators/public.decorator.js";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
-import { ArtistsService, BIO_LANGUAGES } from "./artists.service.js";
+import { ArtistsService } from "./artists.service.js";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Pictures only: no SVG, which is a document rather than an image.
 const UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif", "image/heic", "image/heif"]);
 
-export class ArtistQueryDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(300)
-  name!: string;
-}
+export class ArtistQueryDto extends zodDto(ArtistQuerySchema) {}
 
-export class LookUpArtistDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(300)
-  name!: string;
+export class LookUpArtistDto extends zodDto(LookUpArtistSchema) {}
 
-  /** Ask again even about what was found before (admins only). */
-  @IsOptional()
-  @IsBoolean()
-  force?: boolean;
-}
+export class ArtistBioDto extends zodDto(ArtistBioSchema) {}
 
-export class ArtistBioDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(300)
-  name!: string;
-
-  @IsIn(BIO_LANGUAGES)
-  language!: string;
-
-  @IsString()
-  @MaxLength(5000)
-  text!: string;
-}
-
-export class ArtistSettingsDto {
-  @IsBoolean()
-  enabled!: boolean;
-}
+export class ArtistSettingsDto extends zodDto(ArtistSettingsSchema) {}
 
 /**
  * Artists (issue #86): an artist's page (picture, bio, how many of their

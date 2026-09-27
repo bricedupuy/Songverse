@@ -1,132 +1,16 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { Transform } from "class-transformer";
-import {
-  ArrayMaxSize,
-  ArrayUnique,
-  IsArray,
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  Max,
-  MaxLength,
-  MinLength,
-  Min,
-  ValidateIf,
-} from "class-validator";
+import { CreateSetlistSchema, UpdateSetlistSchema, AddSetlistItemSchema, UpdateSetlistItemSchema, SetArrangementSchema, ReorderSetlistItemsSchema, MyNoteSchema } from "@songverse/core";
+import { zodDto } from "../../common/zod-validation.js";
 
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-const trim = ({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value);
+export class CreateSetlistDto extends zodDto(CreateSetlistSchema) {}
 
-export class CreateSetlistDto {
-  @ApiProperty({ required: false, description: "Omit to have the set shown by its date" })
-  @IsOptional()
-  @Transform(trim)
-  @IsString()
-  @MaxLength(120)
-  name?: string;
+export class UpdateSetlistDto extends zodDto(UpdateSetlistSchema) {}
 
-  @ApiProperty({ required: false, example: "2026-10-04", description: "Date only; today or later" })
-  @IsOptional()
-  @Matches(DATE_ONLY, { message: "eventDate must be YYYY-MM-DD" })
-  eventDate?: string;
+export class AddSetlistItemDto extends zodDto(AddSetlistItemSchema) {}
 
-  @ApiProperty({ required: false, description: "Team to own the set (you must be one of its admins). Omit for a personal set." })
-  @IsOptional()
-  @IsString()
-  teamId?: string;
-}
+export class UpdateSetlistItemDto extends zodDto(UpdateSetlistItemSchema) {}
 
-/** Omitted fields are left unchanged; null (or an empty name) clears. */
-export class UpdateSetlistDto {
-  @ApiProperty({ required: false, nullable: true, type: String })
-  @IsOptional()
-  @Transform(trim)
-  @ValidateIf((_, value) => value !== null)
-  @IsString()
-  @MaxLength(120)
-  name?: string | null;
+export class SetArrangementDto extends zodDto(SetArrangementSchema) {}
 
-  @ApiProperty({ required: false, nullable: true, type: String, example: "2026-10-04" })
-  @IsOptional()
-  @ValidateIf((_, value) => value !== null)
-  @Matches(DATE_ONLY, { message: "eventDate must be YYYY-MM-DD" })
-  eventDate?: string | null;
+export class ReorderSetlistItemsDto extends zodDto(ReorderSetlistItemsSchema) {}
 
-  @ApiProperty({
-    required: false,
-    nullable: true,
-    type: String,
-    description: "Move the set to this team (you must be one of its admins), or null to make it your personal set",
-  })
-  @IsOptional()
-  @ValidateIf((_, value) => value !== null)
-  @IsString()
-  teamId?: string | null;
-}
-
-export class AddSetlistItemDto {
-  @ApiProperty()
-  @IsString()
-  songVersionId!: string;
-
-  @ApiProperty({ required: false, description: "Semitones relative to the song's own key" })
-  @IsOptional()
-  @IsInt()
-  @Min(-11)
-  @Max(11)
-  transposeSteps?: number;
-}
-
-export class UpdateSetlistItemDto {
-  @ApiProperty({ required: false, description: "Another version of the same song" })
-  @IsOptional()
-  @IsString()
-  songVersionId?: string;
-
-  @ApiProperty({ required: false })
-  @IsOptional()
-  @IsInt()
-  @Min(-11)
-  @Max(11)
-  transposeSteps?: number;
-
-  @ApiProperty({ required: false, nullable: true, type: String })
-  @IsOptional()
-  @Transform(trim)
-  @ValidateIf((_, value) => value !== null)
-  @IsString()
-  @MaxLength(500)
-  notes?: string | null;
-
-  @ApiProperty({ required: false, nullable: true, type: String, description: "The arrangement to play; null plays the song as written" })
-  @IsOptional()
-  @ValidateIf((_, value) => value !== null)
-  @IsString()
-  arrangementId?: string | null;
-}
-
-export class SetArrangementDto {
-  @ApiProperty({ description: "Its name, e.g. \"For Sunday 12 October\"", maxLength: 100 })
-  @IsString()
-  @MaxLength(100)
-  @Transform(trim)
-  @MinLength(1)
-  name!: string;
-}
-
-export class ReorderSetlistItemsDto {
-  @ApiProperty({ type: [String], description: "Every item id of the set, in the new order" })
-  @IsArray()
-  @ArrayUnique()
-  @ArrayMaxSize(500)
-  @IsString({ each: true })
-  itemIds!: string[];
-}
-
-export class MyNoteDto {
-  @ApiProperty({ description: "Private to you; empty deletes it", maxLength: 5000 })
-  @IsString()
-  @MaxLength(5000)
-  content!: string;
-}
+export class MyNoteDto extends zodDto(MyNoteSchema) {}

@@ -7,7 +7,7 @@ import { z } from "zod";
  * MUSICBRAINZ_RECORDING).
  */
 export const MusicBrainzRecordingMatchSchema = z.object({
-  mbid: z.string().uuid(),
+  mbid: z.guid(),
   title: z.string(),
   artist: z.string().nullable(),
   releaseTitle: z.string().nullable(), // the album/release this recording appears on
@@ -23,7 +23,7 @@ export type MusicBrainzRecordingMatch = z.infer<typeof MusicBrainzRecordingMatch
  * a Work links to (SongIdentifierType MUSICBRAINZ_WORK).
  */
 export const MusicBrainzWorkMatchSchema = z.object({
-  mbid: z.string().uuid(),
+  mbid: z.guid(),
   title: z.string(),
   iswc: z.string().nullable(),
   language: z.string().nullable(),
@@ -32,7 +32,7 @@ export const MusicBrainzWorkMatchSchema = z.object({
 });
 export type MusicBrainzWorkMatch = z.infer<typeof MusicBrainzWorkMatchSchema>;
 
-export const LinkMusicBrainzSchema = z.object({
-  mbid: z.string().uuid(),
+export const LinkMusicBrainzSchema = z.strictObject({
+  mbid: z.guid(),
 });
 export type LinkMusicBrainz = z.infer<typeof LinkMusicBrainzSchema>;

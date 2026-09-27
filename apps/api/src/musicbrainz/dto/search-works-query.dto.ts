@@ -1,9 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { IsString, MinLength } from "class-validator";
+import { SearchWorksQuerySchema } from "@songverse/core";
+import { zodDto } from "../../common/zod-validation.js";
 
-export class SearchWorksQueryDto {
-  @ApiProperty()
-  @IsString()
-  @MinLength(1)
-  title!: string;
-}
+export class SearchWorksQueryDto extends zodDto(SearchWorksQuerySchema) {}

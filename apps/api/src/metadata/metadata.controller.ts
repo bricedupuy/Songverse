@@ -1,101 +1,19 @@
 import { Body, Controller, Delete, Get, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { AppleMusicKeySchema, MetadataSearchQuerySchema, MetadataSettingsSchema, MusicBrainzContactSchema, SpotifyAppSchema } from "@songverse/core";
+import { zodDto } from "../common/zod-validation.js";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from "class-validator";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
 import { MetadataService } from "./metadata.service.js";
 
-export class MetadataSearchQueryDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(300)
-  title!: string;
+export class MetadataSearchQueryDto extends zodDto(MetadataSearchQuerySchema) {}
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(300)
-  artist?: string;
-}
+export class SpotifyAppDto extends zodDto(SpotifyAppSchema) {}
 
-export class MetadataProviderSettingDto {
-  @IsString()
-  @MaxLength(40)
-  key!: string;
+export class MusicBrainzContactDto extends zodDto(MusicBrainzContactSchema) {}
 
-  /** What it's asked for (issue #89); left out, on. `enabled` is song info, as issue #22's lists said. */
-  @IsOptional()
-  @IsBoolean()
-  songInfo?: boolean;
+export class MetadataSettingsDto extends zodDto(MetadataSettingsSchema) {}
 
-  @IsOptional()
-  @IsBoolean()
-  artwork?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  artistPictures?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  artistBios?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  enabled?: boolean;
-}
-
-export class SpotifyAppDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  clientId?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  clientSecret?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(2)
-  market?: string;
-}
-
-export class MusicBrainzContactDto {
-  @IsString()
-  @MaxLength(200)
-  contact!: string;
-}
-
-export class MetadataSettingsDto {
-  @IsArray()
-  @ArrayMaxSize(20)
-  @ValidateNested({ each: true })
-  @Type(() => MetadataProviderSettingDto)
-  providers!: MetadataProviderSettingDto[];
-}
-
-export class AppleMusicKeyDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  teamId?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(20)
-  keyId?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(5000)
-  privateKey?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  tokenUrl?: string;
-}
+export class AppleMusicKeyDto extends zodDto(AppleMusicKeySchema) {}
 
 /**
  * Metadata providers (issue #22): Auto detect's search - read only, like
