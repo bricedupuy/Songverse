@@ -4,11 +4,11 @@ import type { StorageSettings } from "@songverse/db";
 import { decryptSecret, encryptSecret, maskSecret } from "@songverse/secret-crypto";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
-import { PrismaService } from "../prisma/prisma.service";
-import { LocalDiskStorageDriver } from "./local-disk-storage.driver";
-import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { LocalDiskStorageDriver } from "./local-disk-storage.driver.js";
+import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver.js";
 import type { Readable } from "node:stream";
-import { S3StorageDriver } from "./s3-storage.driver";
+import { S3StorageDriver } from "./s3-storage.driver.js";
 
 export interface StoredObject {
   hash: string;

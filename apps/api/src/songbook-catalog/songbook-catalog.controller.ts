@@ -15,13 +15,13 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiQuery, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
-import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import { CatalogEntryInputDto } from "./dto/catalog-entry-input.dto";
-import { CatalogEntryResponseDto, CatalogResponseDto, ImportCatalogResultDto } from "./dto/catalog-response.dto";
-import { CreateCatalogDto } from "./dto/create-catalog.dto";
-import { CatalogFileDto, ImportCatalogEntriesDto } from "./dto/import-catalog-file.dto";
-import { UpdateCatalogDto } from "./dto/update-catalog.dto";
-import { SongbookCatalogService } from "./songbook-catalog.service";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import { CatalogEntryInputDto } from "./dto/catalog-entry-input.dto.js";
+import { CatalogEntryResponseDto, CatalogResponseDto, ImportCatalogResultDto } from "./dto/catalog-response.dto.js";
+import { CreateCatalogDto } from "./dto/create-catalog.dto.js";
+import { CatalogFileDto, ImportCatalogEntriesDto } from "./dto/import-catalog-file.dto.js";
+import { UpdateCatalogDto } from "./dto/update-catalog.dto.js";
+import { SongbookCatalogService } from "./songbook-catalog.service.js";
 
 /** Reading is open to everyone signed in; changes are global-admin-only. File format: docs/songbook-catalog-format.md. */
 @ApiTags("songbook-catalog")

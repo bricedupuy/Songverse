@@ -1,9 +1,9 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { orderInstruments, orderTechRoles, slugify, type TeamRoleValue } from "@songverse/core";
 import { Prisma } from "@songverse/db";
-import { PrismaService } from "../prisma/prisma.service";
-import type { CreateInviteLinkDto } from "./dto/create-invite-link.dto";
-import type { CreateTeamDto } from "./dto/create-team.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import type { CreateInviteLinkDto } from "./dto/create-invite-link.dto.js";
+import type { CreateTeamDto } from "./dto/create-team.dto.js";
 
 @Injectable()
 export class TeamsService {

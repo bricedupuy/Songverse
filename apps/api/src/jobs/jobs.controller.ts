@@ -1,7 +1,7 @@
 import { Controller, Delete, Get, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import { JobsService } from "./jobs.service";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import { JobsService } from "./jobs.service.js";
 
 @ApiTags("admin")
 @ApiBearerAuth()

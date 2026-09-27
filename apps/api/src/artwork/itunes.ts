@@ -1,4 +1,4 @@
-import { PROVIDER_TIMEOUT_MS } from "../metadata/provider-timeout";
+import { PROVIDER_TIMEOUT_MS } from "../metadata/provider-timeout.js";
 /** Where the iTunes Search API is; pointed elsewhere only by the e2e suites. */
 export const itunesBase = () => (process.env.ITUNES_SEARCH_URL ?? "https://itunes.apple.com").replace(/\/$/, "");
 

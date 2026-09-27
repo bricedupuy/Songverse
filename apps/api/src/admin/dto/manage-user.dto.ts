@@ -3,7 +3,7 @@ import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, Vali
 import {
   DEFAULT_TRANSFER_RETENTION_DAYS,
   MAX_TRANSFER_RETENTION_DAYS,
-} from "../../user-management/content-transfers.service";
+} from "../../user-management/content-transfers.service.js";
 
 /** Each field is optional; omitted fields are left unchanged. */
 export class UpdateUserByAdminDto {

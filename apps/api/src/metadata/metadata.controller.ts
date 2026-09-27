@@ -2,8 +2,8 @@ import { Body, Controller, Delete, Get, Post, Put, Query, UseGuards } from "@nes
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { Type } from "class-transformer";
 import { ArrayMaxSize, IsArray, IsBoolean, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from "class-validator";
-import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import { MetadataService } from "./metadata.service";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import { MetadataService } from "./metadata.service.js";
 
 export class MetadataSearchQueryDto {
   @IsString()

@@ -1,9 +1,9 @@
 import { Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { LibraryHomeService } from "./library-home.service";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { LibraryHomeService } from "./library-home.service.js";
 
 function requireUser(user: AuthenticatedUser | undefined): AuthenticatedUser {
   if (!user) throw new UnauthorizedException();

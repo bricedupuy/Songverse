@@ -1,4 +1,4 @@
-import type { BulkUploadTypeValue } from "./dto/bulk-upload-commit.dto";
+import type { BulkUploadTypeValue } from "./dto/bulk-upload-commit.dto.js";
 
 /**
  * BullMQ job payload - deliberately small (references, not bytes). The

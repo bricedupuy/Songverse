@@ -1,15 +1,15 @@
 import "reflect-metadata";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
-import { jobsInApi } from "./jobs/jobs.constants";
-import { startJobs } from "./jobs/start-jobs";
-import { SyncServer } from "./sync/sync.server";
+import { jobsInApi } from "./jobs/jobs.constants.js";
+import { startJobs } from "./jobs/start-jobs.js";
+import { SyncServer } from "./sync/sync.server.js";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
 import type { Express } from "express";
-import { AppModule } from "./app.module";
-import { getAuth } from "./auth/better-auth";
+import { AppModule } from "./app.module.js";
+import { getAuth } from "./auth/better-auth.js";
 
 async function bootstrap() {
   const webUrl = process.env.WEB_URL ?? "http://localhost:3000";

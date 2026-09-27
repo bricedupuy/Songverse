@@ -2,12 +2,12 @@ import { InjectQueue } from "@nestjs/bullmq";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { matchFilenamesToEntryCodes, type BulkUploadFileMatch } from "@songverse/core";
 import type { Queue } from "bullmq";
-import { PrismaService } from "../prisma/prisma.service";
-import { SongbooksService } from "../songbooks/songbooks.service";
-import { StorageQuotaService } from "../storage/storage-quota.service";
-import { StorageService } from "../storage/storage.service";
-import { BULK_UPLOAD_QUEUE, type BulkUploadJobData } from "./bulk-upload.types";
-import type { BulkUploadTypeValue } from "./dto/bulk-upload-commit.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SongbooksService } from "../songbooks/songbooks.service.js";
+import { StorageQuotaService } from "../storage/storage-quota.service.js";
+import { StorageService } from "../storage/storage.service.js";
+import { BULK_UPLOAD_QUEUE, type BulkUploadJobData } from "./bulk-upload.types.js";
+import type { BulkUploadTypeValue } from "./dto/bulk-upload-commit.dto.js";
 
 export interface BulkUploadCommitResult {
   queued: number;

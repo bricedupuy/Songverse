@@ -1,12 +1,12 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { mergeSnapshots, snapshotChanges, type SongSnapshot } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
-import { AccessPolicyService } from "../access/access-policy.service";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { PrismaService } from "../prisma/prisma.service";
-import { SongHistoryService } from "../song-versions/song-history.service";
-import { SongVersionsService } from "../song-versions/song-versions.service";
-import type { CreateSuggestionDto } from "./suggestions.dto";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SongHistoryService } from "../song-versions/song-history.service.js";
+import { SongVersionsService } from "../song-versions/song-versions.service.js";
+import type { CreateSuggestionDto } from "./suggestions.dto.js";
 
 /** What a suggestion stores: the song as it was when it was made, and as it would leave it. */
 interface SuggestedChange {

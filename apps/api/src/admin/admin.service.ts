@@ -10,10 +10,10 @@ import {
   saveAuthConfig as saveAuthConfigSetting,
   type AuthConfigSummary,
   type SaveAuthConfigInput,
-} from "../auth/auth-settings";
-import { PrismaService } from "../prisma/prisma.service";
-import { BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB, StorageQuotaService } from "../storage/storage-quota.service";
-import { StorageService, type SaveStorageConfigInput } from "../storage/storage.service";
+} from "../auth/auth-settings.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB, StorageQuotaService } from "../storage/storage-quota.service.js";
+import { StorageService, type SaveStorageConfigInput } from "../storage/storage.service.js";
 
 // packages/db is always a sibling two levels up from wherever the API
 // process's cwd is - true both in local dev (pnpm runs each package's

@@ -12,17 +12,17 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { TeamAdminGuard } from "../common/guards/team-admin.guard";
-import { TeamMemberGuard } from "../common/guards/team-member.guard";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { CreateInviteLinkDto } from "./dto/create-invite-link.dto";
-import { CreateTeamDto } from "./dto/create-team.dto";
-import { InviteLinkResponseDto } from "./dto/invite-link-response.dto";
-import { TeamMemberResponseDto } from "./dto/team-member-response.dto";
-import { TeamResponseDto } from "./dto/team-response.dto";
-import { UpdateMemberRoleDto } from "./dto/update-member-role.dto";
-import { TeamsService } from "./teams.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { TeamAdminGuard } from "../common/guards/team-admin.guard.js";
+import { TeamMemberGuard } from "../common/guards/team-member.guard.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { CreateInviteLinkDto } from "./dto/create-invite-link.dto.js";
+import { CreateTeamDto } from "./dto/create-team.dto.js";
+import { InviteLinkResponseDto } from "./dto/invite-link-response.dto.js";
+import { TeamMemberResponseDto } from "./dto/team-member-response.dto.js";
+import { TeamResponseDto } from "./dto/team-response.dto.js";
+import { UpdateMemberRoleDto } from "./dto/update-member-role.dto.js";
+import { TeamsService } from "./teams.service.js";
 
 @ApiTags("teams")
 @ApiBearerAuth()

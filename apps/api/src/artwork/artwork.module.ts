@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
-import { ImagesModule } from "../images/images.module";
-import { MetadataModule } from "../metadata/metadata.module";
-import { StorageModule } from "../storage/storage.module";
-import { ArtworkController } from "./artwork.controller";
-import { ArtworkService } from "./artwork.service";
+import { ImagesModule } from "../images/images.module.js";
+import { MetadataModule } from "../metadata/metadata.module.js";
+import { StorageModule } from "../storage/storage.module.js";
+import { ArtworkController } from "./artwork.controller.js";
+import { ArtworkService } from "./artwork.service.js";
 
 @Module({
   imports: [ImagesModule, StorageModule, MetadataModule],

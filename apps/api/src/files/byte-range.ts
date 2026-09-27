@@ -1,4 +1,4 @@
-import type { ByteRange } from "../storage/object-storage-driver";
+import type { ByteRange } from "../storage/object-storage-driver.js";
 
 /**
  * The part of a `size`-byte file an HTTP `Range` header asks for (issue #33):

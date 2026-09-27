@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { PrismaService } from "../prisma/prisma.service";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 
 @Injectable()
 export class TagsService {

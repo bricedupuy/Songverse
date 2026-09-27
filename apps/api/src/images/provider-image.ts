@@ -6,7 +6,7 @@
  * than it may be. The one place the server fetches an address it was given
  * (issue #112: no SSRF).
  */
-import { PROVIDER_TIMEOUT_MS } from "../metadata/provider-timeout";
+import { PROVIDER_TIMEOUT_MS } from "../metadata/provider-timeout.js";
 
 export const MAX_PROVIDER_IMAGE_BYTES = 5 * 1024 * 1024;
 const IMAGE_HOSTS = ["mzstatic.com", "dzcdn.net", "scdn.co"];

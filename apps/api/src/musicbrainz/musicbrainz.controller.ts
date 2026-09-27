@@ -1,8 +1,8 @@
 import { Controller, Get, Param, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { SearchRecordingsQueryDto } from "./dto/search-recordings-query.dto";
-import { SearchWorksQueryDto } from "./dto/search-works-query.dto";
-import { MusicBrainzService } from "./musicbrainz.service";
+import { SearchRecordingsQueryDto } from "./dto/search-recordings-query.dto.js";
+import { SearchWorksQueryDto } from "./dto/search-works-query.dto.js";
+import { MusicBrainzService } from "./musicbrainz.service.js";
 
 /**
  * Read-only proxy to MusicBrainz - no ownership/edit checks needed here,

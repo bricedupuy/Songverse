@@ -4,14 +4,14 @@ import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { jwt } from "better-auth/plugins/jwt";
 import { passkey } from "@better-auth/passkey";
 import { prisma } from "@songverse/db";
-import { getEffectiveAuthSettings, type EffectiveAuthSettings } from "./auth-settings";
-import { passkeyRpId, sharedCookieDomain } from "./auth-domains";
+import { getEffectiveAuthSettings, type EffectiveAuthSettings } from "./auth-settings.js";
+import { passkeyRpId, sharedCookieDomain } from "./auth-domains.js";
 import {
   sendChangeEmailConfirmation,
   sendNewEmailVerification,
   sendPasswordResetEmail,
   sendVerificationEmail,
-} from "./email";
+} from "./email.js";
 
 // Comma-separated list of emails that should be promoted to global admin
 // the moment they sign up — there's no other bootstrap path (no "first

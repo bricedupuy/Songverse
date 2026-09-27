@@ -21,11 +21,11 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger";
 import { IsBoolean, IsOptional, IsString, IsUrl, MaxLength } from "class-validator";
 import type { Response } from "express";
-import { Public } from "../common/decorators/public.decorator";
-import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard";
-import { ArtworkService } from "./artwork.service";
-import { isValidSongImageSignature } from "./song-image-url";
+import { Public } from "../common/decorators/public.decorator.js";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard.js";
+import { ArtworkService } from "./artwork.service.js";
+import { isValidSongImageSignature } from "./song-image-url.js";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Pictures only: no SVG, which is a document rather than an image.

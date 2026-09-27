@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { isValidAddress, signAddress } from "../common/utils/signed-address";
+import { isValidAddress, signAddress } from "../common/utils/signed-address.js";
 
 /** How long a file link works: a rehearsal's worth; a player whose link runs out asks for a new one. */
 export const FILE_LINK_LIFETIME_MS = 60 * 60 * 1000;

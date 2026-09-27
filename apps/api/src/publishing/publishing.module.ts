@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
-import { SongVersionsModule } from "../song-versions/song-versions.module";
-import { PublishingService } from "./publishing.service";
-import { SongFoldController } from "./song-fold.controller";
-import { SongFoldService } from "./song-fold.service";
-import { SongPublishingController, SubmissionsController } from "./publishing.controller";
+import { SongVersionsModule } from "../song-versions/song-versions.module.js";
+import { PublishingService } from "./publishing.service.js";
+import { SongFoldController } from "./song-fold.controller.js";
+import { SongFoldService } from "./song-fold.service.js";
+import { SongPublishingController, SubmissionsController } from "./publishing.controller.js";
 
 @Module({
   imports: [SongVersionsModule],

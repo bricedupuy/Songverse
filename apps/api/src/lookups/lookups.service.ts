@@ -2,8 +2,8 @@ import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable, Logger } from "@nestjs/common";
 import type { JobsOptions, Queue } from "bullmq";
 import { createHash } from "node:crypto";
-import { artistKey } from "../artists/artists.service";
-import { BACKFILLS_QUEUE, LOOKUPS_QUEUE } from "../jobs/jobs.constants";
+import { artistKey } from "../artists/artists.service.js";
+import { BACKFILLS_QUEUE, LOOKUPS_QUEUE } from "../jobs/jobs.constants.js";
 
 /** Kept for Admin > Metadata > Background jobs: the last hundred done, and failed. */
 const KEEP: JobsOptions = { removeOnComplete: { count: 100 }, removeOnFail: { count: 100 } };

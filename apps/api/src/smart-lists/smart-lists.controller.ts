@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { CreateSmartListDto, UpdateSmartListDto } from "./smart-list.dto";
-import { SmartListsService } from "./smart-lists.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { CreateSmartListDto, UpdateSmartListDto } from "./smart-list.dto.js";
+import { SmartListsService } from "./smart-lists.service.js";
 
 /** Saved library filters (issue #58), each user's own. */
 @ApiTags("smart-lists")

@@ -1,9 +1,9 @@
 import { BadRequestException, ForbiddenException, HttpException, HttpStatus, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { sendConnectionRequestEmail } from "../auth/email";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { PrismaService } from "../prisma/prisma.service";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { sendConnectionRequestEmail } from "../auth/email.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 
 /** New requests one person may send in a day, each an email (#79). */
 export const DAILY_REQUESTS = 20;

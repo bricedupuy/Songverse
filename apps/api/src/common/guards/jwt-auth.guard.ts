@@ -1,9 +1,9 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { PrismaService } from "../../prisma/prisma.service";
-import { JwtVerifierService } from "../../auth/jwt-verifier.service";
-import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
-import type { AuthenticatedRequest } from "../types/authenticated-request";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import { JwtVerifierService } from "../../auth/jwt-verifier.service.js";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator.js";
+import type { AuthenticatedRequest } from "../types/authenticated-request.js";
 
 /**
  * Verifies the BetterAuth-issued Bearer JWT on every protected endpoint and

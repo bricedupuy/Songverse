@@ -7,7 +7,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { NotFoundException } from "@nestjs/common";
 import { Readable } from "node:stream";
-import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver";
+import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver.js";
 
 const notFound = (error: unknown): never => {
   if (error instanceof Error && (error.name === "NoSuchKey" || error.name === "NotFound")) {

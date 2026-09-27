@@ -1,10 +1,10 @@
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
 import type { Job, Queue } from "bullmq";
-import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types";
-import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor";
-import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, settingsKeyCheck } from "./jobs.constants";
-import { redis } from "./redis";
+import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types.js";
+import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor.js";
+import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, settingsKeyCheck } from "./jobs.constants.js";
+import { redis } from "./redis.js";
 
 interface Beat {
   at: string;

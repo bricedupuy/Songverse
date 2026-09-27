@@ -119,7 +119,7 @@ links), and [YouTube](https://developers.google.com/youtube/iframe_api_reference
 
 ## Getting started
 
-Requires Node 20+, pnpm and Docker.
+Requires Node 22.13+, pnpm and Docker.
 
 ```sh
 pnpm install

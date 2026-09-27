@@ -1,16 +1,16 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { foldForSearch } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { artistImageUrl } from "../artwork/song-image-url";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { ImageService, type ProcessedImage } from "../images/image.service";
-import { MetadataService } from "../metadata/metadata.service";
-import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
-import { PrismaService } from "../prisma/prisma.service";
-import { StorageService } from "../storage/storage.service";
-import { fetchProviderImage } from "../images/provider-image";
-import { wikipediaSummary, wikipediaTitles } from "./artist-sources";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { artistImageUrl } from "../artwork/song-image-url.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { ImageService, type ProcessedImage } from "../images/image.service.js";
+import { MetadataService } from "../metadata/metadata.service.js";
+import { MusicBrainzService } from "../musicbrainz/musicbrainz.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { StorageService } from "../storage/storage.service.js";
+import { fetchProviderImage } from "../images/provider-image.js";
+import { wikipediaSummary, wikipediaTitles } from "./artist-sources.js";
 
 /** The languages bios are kept in: the app's. */
 export const BIO_LANGUAGES = ["en", "fr"] as const;

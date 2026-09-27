@@ -1,7 +1,7 @@
 import { Controller, HttpCode, HttpStatus, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import { SongFoldService } from "./song-fold.service";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import { SongFoldService } from "./song-fold.service.js";
 
 @ApiTags("admin")
 @ApiBearerAuth()

@@ -1,5 +1,5 @@
 import { Global, Module } from "@nestjs/common";
-import { AccessPolicyService } from "./access-policy.service";
+import { AccessPolicyService } from "./access-policy.service.js";
 
 /** Makes the access rules (AccessPolicyService) available to every guard and service. */
 @Global()

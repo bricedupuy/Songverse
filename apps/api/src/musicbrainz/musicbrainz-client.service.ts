@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { sharedTurn } from "../jobs/redis";
-import { PrismaService } from "../prisma/prisma.service";
+import { sharedTurn } from "../jobs/redis.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 
 /** Where MusicBrainz's API is; pointed elsewhere only by the e2e suites. */
 const apiRoot = () => process.env.MUSICBRAINZ_API_URL ?? "https://musicbrainz.org/ws/2/";

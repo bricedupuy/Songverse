@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { PrismaService } from "../prisma/prisma.service";
-import { SetlistAccessService } from "./setlist-access.service";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SetlistAccessService } from "./setlist-access.service.js";
 
 /**
  * Handing a personal song over to a team. When a personal set moves to a

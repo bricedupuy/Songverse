@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { requireUser } from "../setlists/setlists.controller";
-import { ArrangementsService } from "./arrangements.service";
-import { ChartPreferencesDto, CreateArrangementDto, UpdateArrangementDto } from "./dto/arrangement.dto";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { requireUser } from "../setlists/setlists.controller.js";
+import { ArrangementsService } from "./arrangements.service.js";
+import { ChartPreferencesDto, CreateArrangementDto, UpdateArrangementDto } from "./dto/arrangement.dto.js";
 
 /** Arrangements of a song, and a player's own chart preferences (docs/arrangement-document-v2.md). */
 @ApiTags("arrangements")

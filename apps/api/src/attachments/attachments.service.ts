@@ -1,13 +1,13 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
 import { parseKey, type StemPart } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
-import { AccessPolicyService, type Viewer } from "../access/access-policy.service";
-import type { AttachmentVisibilityValue, UpdateAttachmentDto } from "./dto/upload-attachment.dto";
-import { ImageService, type ProcessedImage } from "../images/image.service";
-import { PrismaService } from "../prisma/prisma.service";
-import { StorageQuotaService } from "../storage/storage-quota.service";
-import { StorageService } from "../storage/storage.service";
-import type { AttachmentTypeValue } from "./dto/upload-attachment.dto";
+import { AccessPolicyService, type Viewer } from "../access/access-policy.service.js";
+import type { AttachmentVisibilityValue, UpdateAttachmentDto } from "./dto/upload-attachment.dto.js";
+import { ImageService, type ProcessedImage } from "../images/image.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { StorageQuotaService } from "../storage/storage-quota.service.js";
+import { StorageService } from "../storage/storage.service.js";
+import type { AttachmentTypeValue } from "./dto/upload-attachment.dto.js";
 
 @Injectable()
 export class AttachmentsService {

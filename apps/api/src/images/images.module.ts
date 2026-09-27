@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { ImageService } from "./image.service";
+import { ImageService } from "./image.service.js";
 
 @Module({
   providers: [ImageService],

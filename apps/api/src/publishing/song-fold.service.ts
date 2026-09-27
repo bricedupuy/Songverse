@@ -12,8 +12,8 @@ import {
   type SongSnapshot,
 } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
-import { PrismaService } from "../prisma/prisma.service";
-import { SongHistoryService } from "../song-versions/song-history.service";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SongHistoryService } from "../song-versions/song-history.service.js";
 
 type Tx = Prisma.TransactionClient;
 

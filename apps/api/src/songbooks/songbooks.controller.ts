@@ -1,14 +1,14 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UnauthorizedException, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { AddSongbookEntryDto } from "./dto/add-songbook-entry.dto";
-import { CreateSongbookDto } from "./dto/create-songbook.dto";
-import { ImportSongbookFromCatalogDto } from "./dto/import-songbook-from-catalog.dto";
-import { SongbookResponseDto } from "./dto/songbook-response.dto";
-import { UpdateSongbookDto } from "./dto/update-songbook.dto";
-import { SongbooksService } from "./songbooks.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { AddSongbookEntryDto } from "./dto/add-songbook-entry.dto.js";
+import { CreateSongbookDto } from "./dto/create-songbook.dto.js";
+import { ImportSongbookFromCatalogDto } from "./dto/import-songbook-from-catalog.dto.js";
+import { SongbookResponseDto } from "./dto/songbook-response.dto.js";
+import { UpdateSongbookDto } from "./dto/update-songbook.dto.js";
+import { SongbooksService } from "./songbooks.service.js";
 
 @ApiTags("songbooks")
 @ApiBearerAuth()

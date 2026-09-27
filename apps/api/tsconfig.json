@@ -6,12 +6,10 @@
     "skipLibCheck": true,
     "outDir": "./dist",
     // This is a runnable application, never imported as a library by
-    // anything else - declaration output serves no purpose and (with
-    // classic Node moduleResolution) forces every inferred public type to
-    // be nameable via a package's classic main/types fields, which several
-    // of better-auth's own transitive types (behind subpath `exports`
-    // maps, e.g. @better-auth/core/db/adapter) simply aren't under this
-    // resolution mode.
+    // anything else - declaration output serves no purpose. It would also
+    // have to name every type in better-auth's inferred config, some of
+    // which come from packages pnpm keeps out of this app's reach
+    // (@simplewebauthn/server, better-auth's own zod), so it can't build.
     "declaration": false,
     "declarationMap": false
   },

@@ -1,13 +1,13 @@
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { Body, Controller, Param, Post, UnauthorizedException, UseGuards, UseInterceptors, UploadedFiles } from "@nestjs/common";
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { BulkUploadService } from "./bulk-upload.service";
-import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto";
-import { BulkUploadPreviewDto } from "./dto/bulk-upload-preview.dto";
-import { BulkUploadCommitResultDto, BulkUploadFileMatchDto } from "./dto/bulk-upload-response.dto";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { BulkUploadService } from "./bulk-upload.service.js";
+import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto.js";
+import { BulkUploadPreviewDto } from "./dto/bulk-upload-preview.dto.js";
+import { BulkUploadCommitResultDto, BulkUploadFileMatchDto } from "./dto/bulk-upload-response.dto.js";
 
 const MAX_BULK_UPLOAD_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const MAX_BULK_UPLOAD_FILES_PER_REQUEST = 200;

@@ -1,13 +1,13 @@
 import { createHash } from "node:crypto";
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { AttachmentsService } from "../attachments/attachments.service";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { PrismaService } from "../prisma/prisma.service";
-import { SetlistsService } from "../setlists/setlists.service";
-import { SongbooksService } from "../songbooks/songbooks.service";
-import { SongVersionsService } from "../song-versions/song-versions.service";
-import type { OfflinePinDto, OfflineSyncDto, PinKind } from "./dto/offline.dto";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { AttachmentsService } from "../attachments/attachments.service.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SetlistsService } from "../setlists/setlists.service.js";
+import { SongbooksService } from "../songbooks/songbooks.service.js";
+import { SongVersionsService } from "../song-versions/song-versions.service.js";
+import type { OfflinePinDto, OfflineSyncDto, PinKind } from "./dto/offline.dto.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

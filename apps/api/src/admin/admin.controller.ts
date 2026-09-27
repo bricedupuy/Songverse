@@ -1,18 +1,18 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, UnauthorizedException, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { AdminUsersService } from "../user-management/admin-users.service";
-import { DEFAULT_TRANSFER_RETENTION_DAYS } from "../user-management/content-transfers.service";
-import { AdminService, type AdminCommandResult } from "./admin.service";
-import { AuthConfigResponseDto } from "./dto/admin-auth-response.dto";
-import { AdminStorageResponseDto, StorageConfigResponseDto } from "./dto/admin-storage-response.dto";
-import { AdminUserResponseDto } from "./dto/admin-user-response.dto";
-import { DeleteUserDto, TransferLinkResponseDto, UpdateUserByAdminDto } from "./dto/manage-user.dto";
-import { SaveAuthConfigDto } from "./dto/save-auth-config.dto";
-import { SaveStorageConfigDto } from "./dto/save-storage-config.dto";
-import { SaveStorageLimitsDto, StorageLimitsResponseDto } from "./dto/storage-limits.dto";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { AdminUsersService } from "../user-management/admin-users.service.js";
+import { DEFAULT_TRANSFER_RETENTION_DAYS } from "../user-management/content-transfers.service.js";
+import { AdminService, type AdminCommandResult } from "./admin.service.js";
+import { AuthConfigResponseDto } from "./dto/admin-auth-response.dto.js";
+import { AdminStorageResponseDto, StorageConfigResponseDto } from "./dto/admin-storage-response.dto.js";
+import { AdminUserResponseDto } from "./dto/admin-user-response.dto.js";
+import { DeleteUserDto, TransferLinkResponseDto, UpdateUserByAdminDto } from "./dto/manage-user.dto.js";
+import { SaveAuthConfigDto } from "./dto/save-auth-config.dto.js";
+import { SaveStorageConfigDto } from "./dto/save-storage-config.dto.js";
+import { SaveStorageLimitsDto, StorageLimitsResponseDto } from "./dto/storage-limits.dto.js";
 
 /**
  * Operational tools for global admins - today, the migrate/seed steps

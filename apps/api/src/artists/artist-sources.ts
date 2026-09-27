@@ -1,4 +1,4 @@
-import { PROVIDER_TIMEOUT_MS } from "../metadata/provider-timeout";
+import { PROVIDER_TIMEOUT_MS } from "../metadata/provider-timeout.js";
 /**
  * Where artists' pictures and bios come from (issue #86): Deezer for the
  * picture, Wikipedia (found through MusicBrainz and Wikidata) for the bio.

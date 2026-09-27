@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { ImageService, type ProcessedImage } from "../images/image.service";
-import { MetadataService, type ArtworkCandidate } from "../metadata/metadata.service";
-import { PrismaService } from "../prisma/prisma.service";
-import { StorageService } from "../storage/storage.service";
-import { fetchProviderImage, ProviderImageError } from "../images/provider-image";
+import { ImageService, type ProcessedImage } from "../images/image.service.js";
+import { MetadataService, type ArtworkCandidate } from "../metadata/metadata.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { StorageService } from "../storage/storage.service.js";
+import { fetchProviderImage, ProviderImageError } from "../images/provider-image.js";
 
 export type { ArtworkCandidate };
 

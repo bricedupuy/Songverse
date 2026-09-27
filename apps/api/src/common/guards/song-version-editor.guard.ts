@@ -1,8 +1,8 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
-import { AccessPolicyService } from "../../access/access-policy.service";
-import { PrismaService } from "../../prisma/prisma.service";
-import type { AuthenticatedRequest } from "../types/authenticated-request";
-import { stringParam } from "../utils/route-param";
+import { AccessPolicyService } from "../../access/access-policy.service.js";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import type { AuthenticatedRequest } from "../types/authenticated-request.js";
+import { stringParam } from "../utils/route-param.js";
 
 /**
  * Lets through who may change the song version's chart, details and

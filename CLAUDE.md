@@ -229,10 +229,11 @@ Consequences worth knowing before touching auth-adjacent code:
 - **If you touch `apps/api/src/auth/better-auth.ts` or `main.ts`'s auth
   mount**, keep `apps/api/tsconfig.json`'s `declaration: false`. Without
   it, `tsc` demands every type nested in BetterAuth's inferred config
-  (several of which sit behind subpath `exports` maps that classic
-  `moduleResolution: "Node"` can't follow) be independently nameable,
-  which it structurally can't satisfy - this isn't a style preference,
-  the build doesn't type-check without it.
+  be nameable from the API, and some come from packages pnpm keeps out of
+  its reach (`@simplewebauthn/server`, BetterAuth's own zod) - this isn't
+  a style preference, the build doesn't type-check without it. (The API
+  is ESM with `NodeNext` resolution since issue #117; relative imports
+  end in `.js`.)
 - A `createServerFn` used from client-reachable code must live in a file
   that exports *only* `createServerFn` results, calling plain functions
   defined in a *different* module for the actual logic - a plain function

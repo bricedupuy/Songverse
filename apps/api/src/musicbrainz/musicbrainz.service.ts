@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ServiceUnavailableException } from "@nestjs/common";
 import type { MusicBrainzRecordingMatch, MusicBrainzWorkMatch, ProviderMatch } from "@songverse/core";
-import { MusicBrainzClientService, MusicBrainzRequestError } from "./musicbrainz-client.service";
+import { MusicBrainzClientService, MusicBrainzRequestError } from "./musicbrainz-client.service.js";
 
 /** Only a genuine upstream 404 means "doesn't exist" - anything else (a
  * network failure, or a 503 that outlasted our retries) is transient and

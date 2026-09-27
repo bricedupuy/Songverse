@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { ISO_639_1_CODES } from "@songverse/core";
 import { Transform } from "class-transformer";
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, MaxLength, Min, MinLength } from "class-validator";
-import { SongFieldsDto, trimNames } from "./song-fields.dto";
+import { SongFieldsDto, trimNames } from "./song-fields.dto.js";
 
 /**
  * Partial update: a field left out is left alone; null (or "") clears it.

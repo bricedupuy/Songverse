@@ -1,4 +1,4 @@
-import { isValidAddress, signAddress } from "../common/utils/signed-address";
+import { isValidAddress, signAddress } from "../common/utils/signed-address.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** The end of the next day (UTC): the same address all day, so the browser keeps the image. */

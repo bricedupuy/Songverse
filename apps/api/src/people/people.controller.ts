@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { ConnectionRequestDto, ShareDto } from "./people.dto";
-import { PeopleService } from "./people.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { ConnectionRequestDto, ShareDto } from "./people.dto.js";
+import { PeopleService } from "./people.service.js";
 
 function requireUser(user: AuthenticatedUser | undefined): AuthenticatedUser {
   if (!user) throw new UnauthorizedException();

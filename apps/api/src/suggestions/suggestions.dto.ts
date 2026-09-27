@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { IsIn, IsOptional, IsString, MaxLength } from "class-validator";
-import { UpdateSongVersionDto } from "../song-versions/dto/update-song-version.dto";
+import { UpdateSongVersionDto } from "../song-versions/dto/update-song-version.dto.js";
 
 /** A suggested change: what the song editor would save, and a word for the reviewer. Tags aren't part of it. */
 export class CreateSuggestionDto extends UpdateSongVersionDto {

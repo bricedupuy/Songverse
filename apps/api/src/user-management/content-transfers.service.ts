@@ -1,8 +1,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { PrismaService } from "../prisma/prisma.service";
-import { TransferUnavailableError, UserDeletionService } from "./user-deletion.service";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { TransferUnavailableError, UserDeletionService } from "./user-deletion.service.js";
 
 export const DEFAULT_TRANSFER_RETENTION_DAYS = 30;
 export const MAX_TRANSFER_RETENTION_DAYS = 365;

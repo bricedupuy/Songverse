@@ -1,10 +1,10 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
-import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types";
-import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor";
-import { JobsController } from "./jobs.controller";
-import { BACKFILLS_QUEUE, LOOKUPS_QUEUE } from "./jobs.constants";
-import { JobsService } from "./jobs.service";
+import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types.js";
+import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor.js";
+import { JobsController } from "./jobs.controller.js";
+import { BACKFILLS_QUEUE, LOOKUPS_QUEUE } from "./jobs.constants.js";
+import { JobsService } from "./jobs.service.js";
 
 @Module({
   imports: [BullModule.registerQueue({ name: LOOKUPS_QUEUE }, { name: BACKFILLS_QUEUE }, { name: BULK_UPLOAD_QUEUE }, { name: USER_MAINTENANCE_QUEUE })],

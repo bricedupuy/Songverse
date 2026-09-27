@@ -1,4 +1,5 @@
-import { parseByteRange } from "./byte-range";
+import { describe, expect, it } from "vitest";
+import { parseByteRange } from "./byte-range.js";
 
 describe("parseByteRange", () => {
   it("reads a start and an end, both included", () => {

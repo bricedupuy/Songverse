@@ -2,11 +2,11 @@ import type { INestApplicationContext } from "@nestjs/common";
 import { Logger } from "@nestjs/common";
 import type { WorkerHost } from "@nestjs/bullmq";
 import { hostname } from "node:os";
-import { BulkUploadProcessor } from "../bulk-upload/bulk-upload.processor";
-import { BackfillsProcessor, LookupsProcessor } from "../lookups/lookups.processor";
-import { TransferExpiryProcessor } from "../user-management/transfer-expiry.processor";
-import { HEARTBEAT_KEY, settingsKeyCheck } from "./jobs.constants";
-import { redis } from "./redis";
+import { BulkUploadProcessor } from "../bulk-upload/bulk-upload.processor.js";
+import { BackfillsProcessor, LookupsProcessor } from "../lookups/lookups.processor.js";
+import { TransferExpiryProcessor } from "../user-management/transfer-expiry.processor.js";
+import { HEARTBEAT_KEY, settingsKeyCheck } from "./jobs.constants.js";
+import { redis } from "./redis.js";
 
 /** Every job processor: a new one needs adding here, or no process runs its jobs. */
 const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor, BackfillsProcessor];

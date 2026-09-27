@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { MusicBrainzModule } from "../musicbrainz/musicbrainz.module";
-import { MetadataController } from "./metadata.controller";
-import { MetadataService } from "./metadata.service";
+import { MusicBrainzModule } from "../musicbrainz/musicbrainz.module.js";
+import { MetadataController } from "./metadata.controller.js";
+import { MetadataService } from "./metadata.service.js";
 
 @Module({
   imports: [MusicBrainzModule],

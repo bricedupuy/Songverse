@@ -1,9 +1,9 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { requireUser } from "./setlists.controller";
-import { SongOwnershipService } from "./song-ownership.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { requireUser } from "./setlists.controller.js";
+import { SongOwnershipService } from "./song-ownership.service.js";
 
 /** Teams asking for songs you own (see SongOwnershipService). */
 @ApiTags("setlists")

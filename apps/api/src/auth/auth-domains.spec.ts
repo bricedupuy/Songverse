@@ -1,4 +1,5 @@
-import { passkeyRpId, sharedCookieDomain } from "./auth-domains";
+import { describe, expect, it } from "vitest";
+import { passkeyRpId, sharedCookieDomain } from "./auth-domains.js";
 
 describe("sharedCookieDomain", () => {
   it("is the parent both apps share", () => {

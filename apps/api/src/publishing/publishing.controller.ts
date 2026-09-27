@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { requireUser } from "../setlists/setlists.controller";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { requireUser } from "../setlists/setlists.controller.js";
 import {
   ApproveSubmissionDto,
   ListSubmissionsQueryDto,
@@ -11,8 +11,8 @@ import {
   ResubmitDto,
   ReviewNotesDto,
   SubmitSongDto,
-} from "./dto/publishing.dto";
-import { PublishingService } from "./publishing.service";
+} from "./dto/publishing.dto.js";
+import { PublishingService } from "./publishing.service.js";
 
 /** Submitting a song to the global catalogue, from its page. */
 @ApiTags("publishing")

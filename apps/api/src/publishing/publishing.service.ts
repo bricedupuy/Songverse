@@ -1,10 +1,10 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import { foldForSearch } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
-import { AccessPolicyService, OPEN_SUBMISSION_STATES } from "../access/access-policy.service";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { PrismaService } from "../prisma/prisma.service";
-import { SongFoldService } from "./song-fold.service";
+import { AccessPolicyService, OPEN_SUBMISSION_STATES } from "../access/access-policy.service.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SongFoldService } from "./song-fold.service.js";
 
 type Tx = Prisma.TransactionClient;
 type SubmissionState = "SUBMITTED" | "UNDER_REVIEW" | "NEEDS_CHANGES" | "APPROVED" | "REJECTED" | "WITHDRAWN";

@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
-import { StorageModule } from "../storage/storage.module";
-import { UserManagementModule } from "../user-management/user-management.module";
-import { AdminController } from "./admin.controller";
-import { AdminService } from "./admin.service";
+import { StorageModule } from "../storage/storage.module.js";
+import { UserManagementModule } from "../user-management/user-management.module.js";
+import { AdminController } from "./admin.controller.js";
+import { AdminService } from "./admin.service.js";
 
 @Module({
   imports: [StorageModule, UserManagementModule],

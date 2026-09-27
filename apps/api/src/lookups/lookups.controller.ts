@@ -1,9 +1,9 @@
 import { Controller, NotFoundException, Post, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { ArtistsService } from "../artists/artists.service";
-import { ArtworkService } from "../artwork/artwork.service";
-import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import { LookupsService } from "./lookups.service";
+import { ArtistsService } from "../artists/artists.service.js";
+import { ArtworkService } from "../artwork/artwork.service.js";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import { LookupsService } from "./lookups.service.js";
 
 /** The admin's backfills (issues #85, #86), started as background jobs (issue #92): their results show under Background jobs. */
 @ApiTags("admin")

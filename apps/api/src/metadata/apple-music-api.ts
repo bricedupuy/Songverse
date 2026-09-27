@@ -1,6 +1,6 @@
 import { createHash, createPrivateKey, sign } from "node:crypto";
 import type { ProviderMatch } from "@songverse/core";
-import { PROVIDER_TIMEOUT_MS } from "./provider-timeout";
+import { PROVIDER_TIMEOUT_MS } from "./provider-timeout.js";
 
 /** Where the Apple Music API is; pointed elsewhere only by the e2e suites. */
 const apiBase = () => (process.env.APPLE_MUSIC_API_URL ?? "https://api.music.apple.com").replace(/\/$/, "");

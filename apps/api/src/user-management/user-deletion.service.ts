@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
-import { PrismaService } from "../prisma/prisma.service";
-import { StorageService } from "../storage/storage.service";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { StorageService } from "../storage/storage.service.js";
 
 type Tx = Prisma.TransactionClient;
 

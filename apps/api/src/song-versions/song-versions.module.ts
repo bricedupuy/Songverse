@@ -1,13 +1,13 @@
 import { Module } from "@nestjs/common";
-import { ArtworkModule } from "../artwork/artwork.module";
-import { ArtistsModule } from "../artists/artists.module";
-import { LookupsModule } from "../lookups/lookups.module";
-import { MetadataModule } from "../metadata/metadata.module";
-import { MusicBrainzModule } from "../musicbrainz/musicbrainz.module";
-import { StorageModule } from "../storage/storage.module";
-import { SongVersionsController } from "./song-versions.controller";
-import { SongHistoryService } from "./song-history.service";
-import { SongVersionsService } from "./song-versions.service";
+import { ArtworkModule } from "../artwork/artwork.module.js";
+import { ArtistsModule } from "../artists/artists.module.js";
+import { LookupsModule } from "../lookups/lookups.module.js";
+import { MetadataModule } from "../metadata/metadata.module.js";
+import { MusicBrainzModule } from "../musicbrainz/musicbrainz.module.js";
+import { StorageModule } from "../storage/storage.module.js";
+import { SongVersionsController } from "./song-versions.controller.js";
+import { SongHistoryService } from "./song-history.service.js";
+import { SongVersionsService } from "./song-versions.service.js";
 
 @Module({
   imports: [MusicBrainzModule, StorageModule, ArtworkModule, MetadataModule, ArtistsModule, LookupsModule],

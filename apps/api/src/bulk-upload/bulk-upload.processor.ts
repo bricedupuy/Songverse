@@ -1,12 +1,12 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
-import { JOB_WORKER_OPTIONS } from "../jobs/jobs.constants";
+import { JOB_WORKER_OPTIONS } from "../jobs/jobs.constants.js";
 import { Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
-import { PrismaService } from "../prisma/prisma.service";
-import { SongbooksService } from "../songbooks/songbooks.service";
-import { SongVersionsService } from "../song-versions/song-versions.service";
-import { StorageService } from "../storage/storage.service";
-import { BULK_UPLOAD_QUEUE, type BulkUploadJobData } from "./bulk-upload.types";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SongbooksService } from "../songbooks/songbooks.service.js";
+import { SongVersionsService } from "../song-versions/song-versions.service.js";
+import { StorageService } from "../storage/storage.service.js";
+import { BULK_UPLOAD_QUEUE, type BulkUploadJobData } from "./bulk-upload.types.js";
 
 /**
  * One job per file (see bulk-upload.types.ts for why the payload stays

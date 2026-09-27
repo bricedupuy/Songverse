@@ -1,8 +1,8 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import { StorageQuotaService } from "../storage/storage-quota.service";
-import { ContentTransfersService } from "./content-transfers.service";
-import { UserDeletionService } from "./user-deletion.service";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { StorageQuotaService } from "../storage/storage-quota.service.js";
+import { ContentTransfersService } from "./content-transfers.service.js";
+import { UserDeletionService } from "./user-deletion.service.js";
 
 export interface UpdateUserInput {
   /** Null clears the override (back to the default limit). */

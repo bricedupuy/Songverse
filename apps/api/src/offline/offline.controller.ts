@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseEnumPipe, Post, Put } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { requireUser } from "../setlists/setlists.controller";
-import { OfflinePinDto, OfflineSongsDto, OfflineSyncDto, PIN_KINDS, type PinKind } from "./dto/offline.dto";
-import { OfflineService } from "./offline.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { requireUser } from "../setlists/setlists.controller.js";
+import { OfflinePinDto, OfflineSongsDto, OfflineSyncDto, PIN_KINDS, type PinKind } from "./dto/offline.dto.js";
+import { OfflineService } from "./offline.service.js";
 
 /** What a user's devices keep offline, and keeping it current (docs/offline.md); the mobile app uses it too. */
 @ApiTags("offline")

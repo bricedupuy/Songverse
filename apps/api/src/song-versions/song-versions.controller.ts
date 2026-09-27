@@ -16,20 +16,20 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import type { StreamingIdentifierType } from "@songverse/core";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard";
-import { LookupsService } from "../lookups/lookups.service";
-import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { LinkMetadataDto } from "./dto/link-metadata.dto";
-import { CreateSongVersionDto } from "./dto/create-song-version.dto";
-import { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
-import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto";
-import { SongVersionResponseDto, SongVersionSongbookMembershipDto } from "./dto/song-version-response.dto";
-import { UpdateSongVersionDto } from "./dto/update-song-version.dto";
-import { SongHistoryService } from "./song-history.service";
-import { SongVersionsService } from "./song-versions.service";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard.js";
+import { LookupsService } from "../lookups/lookups.service.js";
+import { SongVersionOwnerGuard } from "../common/guards/song-version-owner.guard.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { LinkMetadataDto } from "./dto/link-metadata.dto.js";
+import { CreateSongVersionDto } from "./dto/create-song-version.dto.js";
+import { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto.js";
+import { SetStreamingLinkDto } from "./dto/set-streaming-link.dto.js";
+import { SongVersionResponseDto, SongVersionSongbookMembershipDto } from "./dto/song-version-response.dto.js";
+import { UpdateSongVersionDto } from "./dto/update-song-version.dto.js";
+import { SongHistoryService } from "./song-history.service.js";
+import { SongVersionsService } from "./song-versions.service.js";
 
 const STREAMING_TYPES = new Set(["SPOTIFY", "APPLE_MUSIC", "DEEZER", "YOUTUBE"]);
 

@@ -14,10 +14,10 @@ import {
   type SongDocumentV2,
 } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
-import { AccessPolicyService } from "../access/access-policy.service";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { PrismaService } from "../prisma/prisma.service";
-import type { CreateArrangementDto, UpdateArrangementDto } from "./dto/arrangement.dto";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import type { CreateArrangementDto, UpdateArrangementDto } from "./dto/arrangement.dto.js";
 
 const SELECT = {
   id: true,

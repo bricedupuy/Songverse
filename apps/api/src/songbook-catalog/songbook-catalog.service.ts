@@ -16,10 +16,10 @@ import {
   type SongbookSection,
 } from "@songverse/core";
 import { Prisma } from "@songverse/db";
-import { PrismaService } from "../prisma/prisma.service";
-import type { CatalogEntryInputDto } from "./dto/catalog-entry-input.dto";
-import type { CreateCatalogDto } from "./dto/create-catalog.dto";
-import type { UpdateCatalogDto } from "./dto/update-catalog.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import type { CatalogEntryInputDto } from "./dto/catalog-entry-input.dto.js";
+import type { CreateCatalogDto } from "./dto/create-catalog.dto.js";
+import type { UpdateCatalogDto } from "./dto/update-catalog.dto.js";
 
 type EntryRow = Prisma.SongbookCatalogEntryGetPayload<object>;
 

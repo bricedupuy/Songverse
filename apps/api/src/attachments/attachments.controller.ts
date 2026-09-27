@@ -22,16 +22,16 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { AttachmentsService } from "./attachments.service";
-import { AttachmentResponseDto } from "./dto/attachment-response.dto";
-import { UpdateAttachmentDto, UploadAttachmentDto } from "./dto/upload-attachment.dto";
-import { sniffAudioType } from "./sniff-audio";
-import { FileLinksService } from "../files/file-links.service";
-import { sendFile } from "../files/send-file";
-import { StorageService } from "../storage/storage.service";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { AttachmentsService } from "./attachments.service.js";
+import { AttachmentResponseDto } from "./dto/attachment-response.dto.js";
+import { UpdateAttachmentDto, UploadAttachmentDto } from "./dto/upload-attachment.dto.js";
+import { sniffAudioType } from "./sniff-audio.js";
+import { FileLinksService } from "../files/file-links.service.js";
+import { sendFile } from "../files/send-file.js";
+import { StorageService } from "../storage/storage.service.js";
 
 const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
 /** Recordings run bigger than sheets and charts. */

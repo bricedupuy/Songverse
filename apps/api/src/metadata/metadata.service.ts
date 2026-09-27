@@ -13,13 +13,13 @@ import {
 } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { decryptSecret, encryptSecret } from "@songverse/secret-crypto";
-import { artworkAtSize, itunesLookup, itunesSearch, type ITunesSong } from "../artwork/itunes";
-import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
-import { PrismaService } from "../prisma/prisma.service";
-import { deezerArtistPicture } from "../artists/artist-sources";
-import { appleMusicArtistPicture, appleMusicSearch, appleMusicSong, musicKitKeyProblem, type AppleMusicAuth, type MusicKitCredentials } from "./apple-music-api";
-import { deezerSearch, deezerTrack } from "./deezer.provider";
-import { spotifyArtistPicture, spotifySearch, spotifyTrack, type SpotifyCredentials } from "./spotify-api";
+import { artworkAtSize, itunesLookup, itunesSearch, type ITunesSong } from "../artwork/itunes.js";
+import { MusicBrainzService } from "../musicbrainz/musicbrainz.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { deezerArtistPicture } from "../artists/artist-sources.js";
+import { appleMusicArtistPicture, appleMusicSearch, appleMusicSong, musicKitKeyProblem, type AppleMusicAuth, type MusicKitCredentials } from "./apple-music-api.js";
+import { deezerSearch, deezerTrack } from "./deezer.provider.js";
+import { spotifyArtistPicture, spotifySearch, spotifyTrack, type SpotifyCredentials } from "./spotify-api.js";
 
 /** How long a search waits on a provider (MusicBrainz's queue included) before going on without it. */
 const SEARCH_WAIT_MS = 15000;

@@ -1,8 +1,8 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { AccessPolicyService, type Viewer } from "../access/access-policy.service";
-import { PrismaService } from "../prisma/prisma.service";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { AccessPolicyService, type Viewer } from "../access/access-policy.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 
 export const SONG_SELECT = {
   id: true,

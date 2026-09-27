@@ -2,6 +2,7 @@
   "name": "@songverse/api",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
@@ -9,7 +10,7 @@
     "worker": "node dist/worker.js",
     "lint": "eslint src --max-warnings 0",
     "type-check": "tsc --noEmit -p tsconfig.json",
-    "test": "jest"
+    "test": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
@@ -40,16 +41,12 @@
   "devDependencies": {
     "@nestjs/cli": "^10.4.9",
     "@nestjs/schematics": "^10.2.3",
-    "@nestjs/testing": "^10.4.15",
     "@songverse/tsconfig": "workspace:*",
     "@types/express": "^5.0.0",
-    "@types/jest": "^29.5.14",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.10.5",
     "@types/ws": "^8.18.1",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.2.5",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^5.0.2"
   }
 }

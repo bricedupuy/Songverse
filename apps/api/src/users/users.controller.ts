@@ -17,13 +17,13 @@ import {
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiExcludeEndpoint, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import type { Response } from "express";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { Public } from "../common/decorators/public.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { StorageUsageResponseDto } from "./dto/storage-usage.dto";
-import { UpdateUserDto } from "./dto/update-user.dto";
-import { UserResponseDto } from "./dto/user-response.dto";
-import { UsersService } from "./users.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { Public } from "../common/decorators/public.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { StorageUsageResponseDto } from "./dto/storage-usage.dto.js";
+import { UpdateUserDto } from "./dto/update-user.dto.js";
+import { UserResponseDto } from "./dto/user-response.dto.js";
+import { UsersService } from "./users.service.js";
 
 // The web app uploads an already-cropped image well under this; the server
 // normalizes whatever it gets anyway (see ImageService.normalizeAvatar).

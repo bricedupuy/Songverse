@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto";
-import { WorksService } from "./works.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { LinkMusicBrainzDto } from "../musicbrainz/dto/link-musicbrainz.dto.js";
+import { WorksService } from "./works.service.js";
 
 @ApiTags("works")
 @ApiBearerAuth()

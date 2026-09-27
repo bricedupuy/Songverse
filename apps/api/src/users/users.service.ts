@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { orderInstruments, orderTechRoles } from "@songverse/core";
-import { PrismaService } from "../prisma/prisma.service";
-import { ImageService } from "../images/image.service";
-import { StorageQuotaService } from "../storage/storage-quota.service";
-import { StorageService } from "../storage/storage.service";
-import { detectAvatarImageType } from "./avatar-image";
-import type { UpdateUserDto } from "./dto/update-user.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { ImageService } from "../images/image.service.js";
+import { StorageQuotaService } from "../storage/storage-quota.service.js";
+import { StorageService } from "../storage/storage.service.js";
+import { detectAvatarImageType } from "./avatar-image.js";
+import type { UpdateUserDto } from "./dto/update-user.dto.js";
 
 const SELECT = {
   id: true,

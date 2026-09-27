@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { ISO_639_1_CODES } from "@songverse/core";
 import { Transform } from "class-transformer";
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
-import { SongFieldsDto, trimNames } from "./song-fields.dto";
+import { SongFieldsDto, trimNames } from "./song-fields.dto.js";
 
 export class CreateSongVersionDto extends SongFieldsDto {
   @ApiProperty({

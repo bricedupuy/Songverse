@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { SongVersionsModule } from "../song-versions/song-versions.module";
-import { SuggestionsController } from "./suggestions.controller";
-import { SuggestionsService } from "./suggestions.service";
+import { SongVersionsModule } from "../song-versions/song-versions.module.js";
+import { SuggestionsController } from "./suggestions.controller.js";
+import { SuggestionsService } from "./suggestions.service.js";
 
 @Module({
   imports: [SongVersionsModule],

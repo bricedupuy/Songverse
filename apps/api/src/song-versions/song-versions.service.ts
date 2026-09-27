@@ -29,21 +29,21 @@ import {
   type SupportedImportFormat,
 } from "@songverse/core";
 import type { ContributorRole, Prisma, VersionRelationshipType } from "@songverse/db";
-import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
-import { PrismaService } from "../prisma/prisma.service";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { setOrder } from "../common/utils/set-order";
-import type { CreateSongVersionDto } from "./dto/create-song-version.dto";
-import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto";
-import type { SongFieldsDto } from "./dto/song-fields.dto";
-import type { UpdateSongVersionDto } from "./dto/update-song-version.dto";
-import { ArtistsService, artistKey } from "../artists/artists.service";
-import { ArtworkService } from "../artwork/artwork.service";
-import { songImageUrl } from "../artwork/song-image-url";
-import { MetadataService } from "../metadata/metadata.service";
-import { StorageService } from "../storage/storage.service";
-import { SongHistoryService } from "./song-history.service";
+import { MusicBrainzService } from "../musicbrainz/musicbrainz.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { setOrder } from "../common/utils/set-order.js";
+import type { CreateSongVersionDto } from "./dto/create-song-version.dto.js";
+import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto.js";
+import type { SongFieldsDto } from "./dto/song-fields.dto.js";
+import type { UpdateSongVersionDto } from "./dto/update-song-version.dto.js";
+import { ArtistsService, artistKey } from "../artists/artists.service.js";
+import { ArtworkService } from "../artwork/artwork.service.js";
+import { songImageUrl } from "../artwork/song-image-url.js";
+import { MetadataService } from "../metadata/metadata.service.js";
+import { StorageService } from "../storage/storage.service.js";
+import { SongHistoryService } from "./song-history.service.js";
 
 /** A version's own fields: the columns (the document holds only the music). */
 type VersionFields = {

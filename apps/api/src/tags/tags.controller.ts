@@ -1,9 +1,9 @@
 import { Controller, Get, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiTags as ApiSwaggerTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { TagCategoryResponseDto, TagResponseDto } from "./dto/tag-response.dto";
-import { TagsService } from "./tags.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { TagCategoryResponseDto, TagResponseDto } from "./dto/tag-response.dto.js";
+import { TagsService } from "./tags.service.js";
 
 @ApiSwaggerTags("tags")
 @ApiBearerAuth()

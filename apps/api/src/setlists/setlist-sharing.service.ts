@@ -1,9 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { Injectable, NotFoundException } from "@nestjs/common";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { PrismaService } from "../prisma/prisma.service";
-import { SetlistAccessService } from "./setlist-access.service";
-import { summarize } from "./setlists.service";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SetlistAccessService } from "./setlist-access.service.js";
+import { summarize } from "./setlists.service.js";
 
 /**
  * Sharing a set by link. Its editors (the owner, or a team set's admins) can

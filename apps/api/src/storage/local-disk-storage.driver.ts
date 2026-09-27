@@ -3,7 +3,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Readable } from "node:stream";
-import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver";
+import type { ByteRange, ObjectStorageDriver } from "./object-storage-driver.js";
 
 /**
  * Dev/test fallback when R2 isn't configured (see StorageService) - a real

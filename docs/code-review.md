@@ -112,9 +112,9 @@ e2e coverage:
 - The API asked for `jose ^5` while Better Auth needs `jose ^6.1` as a
   peer. The lockfile only worked because it happened to hold both
   versions. Any fresh resolve printed an unmet-peer warning and gave
-  Better Auth jose 5. The API now uses jose 6 (ESM, loaded through Node
-  22's `require(esm)`). The lockfile has one jose and one Better Auth
-  core.
+  Better Auth jose 5. The API now uses jose 6. The lockfile has one
+  jose and one Better Auth core. The API itself became ESM afterwards
+  (#117), so it no longer needs Node's `require(esm)` to load either.
 
 ### Kept on purpose
 

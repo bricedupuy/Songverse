@@ -1,8 +1,8 @@
 import { inlineSafeType } from "@songverse/core";
 import type { Request, Response } from "express";
 import { pipeline } from "node:stream/promises";
-import type { StorageService } from "../storage/storage.service";
-import { parseByteRange } from "./byte-range";
+import type { StorageService } from "../storage/storage.service.js";
+import { parseByteRange } from "./byte-range.js";
 
 export interface StoredFile {
   storageKey: string;

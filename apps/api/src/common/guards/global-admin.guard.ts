@@ -1,5 +1,5 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
-import type { AuthenticatedRequest } from "../types/authenticated-request";
+import type { AuthenticatedRequest } from "../types/authenticated-request.js";
 
 /** Requires the authenticated user to hold the global admin role. */
 @Injectable()

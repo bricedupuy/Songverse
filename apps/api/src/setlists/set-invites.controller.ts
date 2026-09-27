@@ -1,10 +1,10 @@
 import { Controller, Get, Param, Post } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { Public } from "../common/decorators/public.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { SetlistSharingService } from "./setlist-sharing.service";
-import { requireUser } from "./setlists.controller";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { Public } from "../common/decorators/public.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { SetlistSharingService } from "./setlist-sharing.service.js";
+import { requireUser } from "./setlists.controller.js";
 
 /** A set's share link, as opened by the person it was sent to. */
 @ApiTags("setlists")

@@ -1,10 +1,10 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@songverse/db";
 import { MusicBrainzWorkMatchSchema, type MusicBrainzWorkMatch } from "@songverse/core";
-import { AccessPolicyService } from "../access/access-policy.service";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { MusicBrainzService } from "../musicbrainz/musicbrainz.service";
-import { PrismaService } from "../prisma/prisma.service";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { MusicBrainzService } from "../musicbrainz/musicbrainz.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 
 const DETAIL_INCLUDE = {
   versions: {

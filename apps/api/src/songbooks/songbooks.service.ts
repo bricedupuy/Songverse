@@ -11,14 +11,14 @@ import {
   type SongbookSection,
 } from "@songverse/core";
 import { Prisma } from "@songverse/db";
-import { PrismaService } from "../prisma/prisma.service";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { SongVersionsService, type SongVersionOwner } from "../song-versions/song-versions.service";
-import type { AddSongbookEntryDto } from "./dto/add-songbook-entry.dto";
-import type { CreateSongbookDto } from "./dto/create-songbook.dto";
-import type { ImportSongbookFromCatalogDto } from "./dto/import-songbook-from-catalog.dto";
-import type { UpdateSongbookDto } from "./dto/update-songbook.dto";
+import { PrismaService } from "../prisma/prisma.service.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { SongVersionsService, type SongVersionOwner } from "../song-versions/song-versions.service.js";
+import type { AddSongbookEntryDto } from "./dto/add-songbook-entry.dto.js";
+import type { CreateSongbookDto } from "./dto/create-songbook.dto.js";
+import type { ImportSongbookFromCatalogDto } from "./dto/import-songbook-from-catalog.dto.js";
+import type { UpdateSongbookDto } from "./dto/update-songbook.dto.js";
 
 const DETAIL_INCLUDE = {
   entries: {

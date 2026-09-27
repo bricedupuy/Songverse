@@ -1,8 +1,8 @@
 import { Controller, Get, HttpCode, HttpStatus, Param, Post, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiOkResponse, ApiProperty, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { ContentTransfersService } from "./content-transfers.service";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { ContentTransfersService } from "./content-transfers.service.js";
 
 class TransferPreviewResponseDto {
   @ApiProperty() fromDisplayName!: string;

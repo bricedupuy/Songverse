@@ -1,18 +1,18 @@
 import { createHash } from "node:crypto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { computeSectionLabel, formatSongbookReference, readSongDocument, type SongbookSection } from "@songverse/core";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { AccessPolicyService } from "../access/access-policy.service";
-import { PrismaService } from "../prisma/prisma.service";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { AccessPolicyService } from "../access/access-policy.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
 import type {
   AddSetlistItemDto,
   CreateSetlistDto,
   UpdateSetlistDto,
   UpdateSetlistItemDto,
-} from "./dto/setlist.dto";
-import { SetlistAccessService, SONG_SELECT, type SetRow, type SongRow } from "./setlist-access.service";
-import { ArrangementsService } from "../arrangements/arrangements.service";
-import { setOrder } from "../common/utils/set-order";
+} from "./dto/setlist.dto.js";
+import { SetlistAccessService, SONG_SELECT, type SetRow, type SongRow } from "./setlist-access.service.js";
+import { ArrangementsService } from "../arrangements/arrangements.service.js";
+import { setOrder } from "../common/utils/set-order.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const CANDIDATE_LIMIT = 20;

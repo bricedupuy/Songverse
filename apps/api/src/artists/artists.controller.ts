@@ -22,12 +22,12 @@ import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiExcludeEndpoint, ApiTags } from "@nestjs/swagger";
 import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import type { Response } from "express";
-import { isValidArtistImageSignature } from "../artwork/song-image-url";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import { Public } from "../common/decorators/public.decorator";
-import { GlobalAdminGuard } from "../common/guards/global-admin.guard";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { ArtistsService, BIO_LANGUAGES } from "./artists.service";
+import { isValidArtistImageSignature } from "../artwork/song-image-url.js";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import { Public } from "../common/decorators/public.decorator.js";
+import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { ArtistsService, BIO_LANGUAGES } from "./artists.service.js";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Pictures only: no SVG, which is a document rather than an image.

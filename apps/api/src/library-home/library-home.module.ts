@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { SongVersionsModule } from "../song-versions/song-versions.module";
-import { LibraryHomeController } from "./library-home.controller";
-import { LibraryHomeService } from "./library-home.service";
+import { SongVersionsModule } from "../song-versions/song-versions.module.js";
+import { LibraryHomeController } from "./library-home.controller.js";
+import { LibraryHomeService } from "./library-home.service.js";
 
 @Module({
   imports: [SongVersionsModule],

@@ -1,7 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import { IsIn, IsObject, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from "class-validator";
-import { SONG_SORTS, type SongSort } from "../song-versions/dto/list-song-versions-query.dto";
+import { SONG_SORTS, type SongSort } from "../song-versions/dto/list-song-versions-query.dto.js";
 
 const trim = ({ value }: { value: unknown }) => (typeof value === "string" ? value.trim() : value);
 

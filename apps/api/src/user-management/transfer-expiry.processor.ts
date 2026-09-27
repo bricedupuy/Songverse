@@ -1,8 +1,8 @@
 import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
-import { JOB_WORKER_OPTIONS } from "../jobs/jobs.constants";
+import { JOB_WORKER_OPTIONS } from "../jobs/jobs.constants.js";
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import type { Queue } from "bullmq";
-import { ContentTransfersService } from "./content-transfers.service";
+import { ContentTransfersService } from "./content-transfers.service.js";
 
 export const USER_MAINTENANCE_QUEUE = "user-maintenance";
 const PURGE_SCHEDULER_ID = "purge-expired-transfers";

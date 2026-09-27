@@ -1,9 +1,9 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
-import { ArtistsService } from "../artists/artists.service";
-import { ArtworkService } from "../artwork/artwork.service";
-import { BACKFILLS_QUEUE, JOB_WORKER_OPTIONS, LOOKUPS_QUEUE } from "../jobs/jobs.constants";
+import { ArtistsService } from "../artists/artists.service.js";
+import { ArtworkService } from "../artwork/artwork.service.js";
+import { BACKFILLS_QUEUE, JOB_WORKER_OPTIONS, LOOKUPS_QUEUE } from "../jobs/jobs.constants.js";
 
 export type LookupJob =
   | { name: "artwork"; data: { songVersionId: string } }

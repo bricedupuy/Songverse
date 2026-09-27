@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
-import { AccessPolicyService } from "../../access/access-policy.service";
-import type { AuthenticatedRequest } from "../types/authenticated-request";
-import { stringParam } from "../utils/route-param";
+import { AccessPolicyService } from "../../access/access-policy.service.js";
+import type { AuthenticatedRequest } from "../types/authenticated-request.js";
+import { stringParam } from "../utils/route-param.js";
 
 /**
  * Requires the authenticated user to be a member of the team named by the route's

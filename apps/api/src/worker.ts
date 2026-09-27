@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
-import { AppModule } from "./app.module";
-import { startJobs } from "./jobs/start-jobs";
+import { AppModule } from "./app.module.js";
+import { startJobs } from "./jobs/start-jobs.js";
 
 /**
  * The Worker (issue #92): the same image and app graph as the API

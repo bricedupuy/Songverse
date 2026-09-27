@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
-import { MusicBrainzModule } from "../musicbrainz/musicbrainz.module";
-import { WorksController } from "./works.controller";
-import { WorksService } from "./works.service";
+import { MusicBrainzModule } from "../musicbrainz/musicbrainz.module.js";
+import { WorksController } from "./works.controller.js";
+import { WorksService } from "./works.service.js";
 
 @Module({
   imports: [MusicBrainzModule],

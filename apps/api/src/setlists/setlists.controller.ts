@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Put, Query, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { CurrentUser } from "../common/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
+import { CurrentUser } from "../common/decorators/current-user.decorator.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import {
   AddSetlistItemDto,
   CreateSetlistDto,
@@ -10,11 +10,11 @@ import {
   SetArrangementDto,
   UpdateSetlistDto,
   UpdateSetlistItemDto,
-} from "./dto/setlist.dto";
-import { SetChartPreferencesDto } from "../arrangements/dto/arrangement.dto";
-import { SetlistSharingService } from "./setlist-sharing.service";
-import { SetlistsService } from "./setlists.service";
-import { SongOwnershipService } from "./song-ownership.service";
+} from "./dto/setlist.dto.js";
+import { SetChartPreferencesDto } from "../arrangements/dto/arrangement.dto.js";
+import { SetlistSharingService } from "./setlist-sharing.service.js";
+import { SetlistsService } from "./setlists.service.js";
+import { SongOwnershipService } from "./song-ownership.service.js";
 
 export function requireUser(user: AuthenticatedUser | undefined): AuthenticatedUser {
   if (!user) throw new UnauthorizedException();

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { snapshotChanges, songSnapshot, readSongDocument, type SongChange, type SongSnapshot } from "@songverse/core";
 import type { Prisma, SongRevisionKind } from "@songverse/db";
-import { PrismaService } from "../prisma/prisma.service";
+import { PrismaService } from "../prisma/prisma.service.js";
 
 /** Saves by the same person this close together are one history entry. */
 export const MERGE_WINDOW_MS = 10 * 60 * 1000;

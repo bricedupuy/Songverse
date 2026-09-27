@@ -1,7 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiExcludeEndpoint } from "@nestjs/swagger";
-import { Public } from "../common/decorators/public.decorator";
-import { getEffectiveAuthSettings } from "./auth-settings";
+import { Public } from "../common/decorators/public.decorator.js";
+import { getEffectiveAuthSettings } from "./auth-settings.js";
 
 /**
  * The one piece of auth config unauthenticated pages need to know: whether

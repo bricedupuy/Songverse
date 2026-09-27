@@ -1,11 +1,11 @@
 import { Controller, ForbiddenException, Get, Param, Query, Req, Res } from "@nestjs/common";
 import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import type { Request, Response } from "express";
-import { Public } from "../common/decorators/public.decorator";
-import { PrismaService } from "../prisma/prisma.service";
-import { StorageService } from "../storage/storage.service";
-import { FileLinksService } from "./file-links.service";
-import { sendFile } from "./send-file";
+import { Public } from "../common/decorators/public.decorator.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { StorageService } from "../storage/storage.service.js";
+import { FileLinksService } from "./file-links.service.js";
+import { sendFile } from "./send-file.js";
 
 /** A file by a signed link (issue #33): see POST /song-versions/:id/attachments/:id/link. */
 @ApiTags("attachments")

@@ -5,11 +5,11 @@ import { randomUUID } from "node:crypto";
 import type { IncomingMessage, Server } from "node:http";
 import type { Duplex } from "node:stream";
 import { WebSocketServer, type WebSocket } from "ws";
-import type { AuthenticatedUser } from "../common/types/authenticated-request";
-import { JwtVerifierService } from "../auth/jwt-verifier.service";
-import { redis } from "../jobs/redis";
-import { PrismaService } from "../prisma/prisma.service";
-import { SetlistAccessService } from "../setlists/setlist-access.service";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { JwtVerifierService } from "../auth/jwt-verifier.service.js";
+import { redis } from "../jobs/redis.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { SetlistAccessService } from "../setlists/setlist-access.service.js";
 
 /** A session outlasts its leader's last change by this long, then goes. */
 const SESSION_TTL_S = 12 * 60 * 60;

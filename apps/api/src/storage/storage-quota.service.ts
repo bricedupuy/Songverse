@@ -1,5 +1,5 @@
 import { Injectable, PayloadTooLargeException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { PrismaService } from "../prisma/prisma.service.js";
 
 /** Used when neither the user nor Admin > Storage sets a limit. */
 export const BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB = 50;
