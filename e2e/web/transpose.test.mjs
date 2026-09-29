@@ -184,6 +184,9 @@ await step("each part moved or not, as chosen (issue #135): the A left alone at 
   await player().getByRole("button", { name: "Down a semitone" }).click();
   await player().getByRole("button", { name: "Down a semitone" }).click();
   await player().getByTestId("stem-transpose-label").getByText("A", { exact: true }).waitFor();
+  // Its stretch node mono, as the parts are (issue #138), and stopped now nothing's moved: idle, it costs as much as working.
+  const stretch = await page.evaluate(() => window.songverseStems.stretch);
+  if (!stretch?.length || stretch.some((node) => node.shift !== null || node.channels !== 1)) throw new Error(JSON.stringify(stretch));
 });
 
 await step("a take sung while transposed +2 (issue #135): moved down to fit at 0, as sung at +2", async () => {

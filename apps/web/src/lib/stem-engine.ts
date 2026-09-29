@@ -177,8 +177,9 @@ let gains = new Map<string, GainNode>();
 let tracksInfo = new Map<string, { part: StemPart | null; offset: number }>();
 let plain: GainNode | null = null;
 let shiftBuses = new Map<number, GainNode>();
-let pool: { node: StretchNode; shift: number | null }[] = [];
-let making: Promise<StretchNode | null> | null = null;
+/** The stretch nodes: the amount each moves by (null: free, and stopped), as last told (`scheduled`). */
+let pool: { node: StretchNode; channels: number; shift: number | null; scheduled?: number | null }[] = [];
+let making: Promise<{ node: StretchNode; channels: number } | null> | null = null;
 let stretchLatency = 0;
 let delay: DelayNode | null = null;
 let latency = 0;
@@ -691,29 +692,51 @@ async function route() {
   const ctx = context;
   if (!ctx || !bus || !plain) return;
   const mine = generation;
-  const wanted = () => new Set([...gains.keys()].map(shiftOf).filter((shift) => shift !== 0));
-  // Enough stretch nodes, made one at a time (two changes in a row share one).
-  while (!state.transposeFailed && pool.length < wanted().size) {
-    making ??= makeStretch(ctx, bus);
-    const node = await making;
+  // Each amount a node with as many channels as its parts have: a mono take
+  // alone, mono (about two thirds of the work).
+  const wanted = () => {
+    const shifts = new Map<number, number>();
+    for (const id of gains.keys()) {
+      const shift = shiftOf(id);
+      if (shift !== 0) shifts.set(shift, Math.max(shifts.get(shift) ?? 1, Math.min(2, buffers.get(id)?.numberOfChannels ?? 2)));
+    }
+    return shifts;
+  };
+  // The nodes for the amounts still wanted kept, the rest free; what's still missing.
+  const assign = () => {
+    const shifts = wanted();
+    for (const entry of pool) if (entry.shift !== null && shifts.get(entry.shift) !== entry.channels) entry.shift = null;
+    const missing: number[] = [];
+    for (const [shift, channels] of shifts) {
+      if (pool.some((entry) => entry.shift === shift)) continue;
+      const free = pool.find((entry) => entry.shift === null && entry.channels === channels);
+      if (free) free.shift = shift;
+      else missing.push(channels);
+    }
+    return missing;
+  };
+  // The nodes missing, made one at a time (two changes in a row share one).
+  let missing = state.transposeFailed ? [] : assign();
+  while (missing.length > 0) {
+    making ??= makeStretch(ctx, bus, missing[0]!);
+    const made = await making;
     making = null;
     if (mine !== generation) return;
-    if (!node) {
+    if (!made) {
       set({ transposeFailed: true });
       break;
     }
-    if (!pool.some((entry) => entry.node === node)) pool.push({ node, shift: null });
+    if (!pool.some((entry) => entry.node === made.node)) pool.push({ ...made, shift: null, scheduled: undefined });
+    missing = assign();
   }
   if (mine !== generation) return;
-  const shifts = state.transposeFailed ? new Set<number>() : wanted();
-  // Each amount a node: the one it had, else one that's free.
-  for (const entry of pool) if (entry.shift !== null && !shifts.has(entry.shift)) entry.shift = null;
-  for (const shift of shifts) {
-    if (pool.some((entry) => entry.shift === shift)) continue;
-    const free = pool.find((entry) => entry.shift === null);
-    if (!free) continue;
-    free.shift = shift;
-    void free.node.schedule({ semitones: shift, output: ctx.currentTime });
+  if (state.transposeFailed) for (const entry of pool) entry.shift = null;
+  // A node not in use is stopped: running, it costs as much as moving a part
+  // (measured: 2 idle nodes, 8.6 s of work for 120 s of audio; stopped, 0.7).
+  for (const entry of pool) {
+    if (entry.scheduled === entry.shift) continue;
+    entry.scheduled = entry.shift;
+    void entry.node.schedule(entry.shift === null ? { active: false, output: ctx.currentTime } : { active: true, semitones: entry.shift, output: ctx.currentTime });
   }
   for (const shiftBus of shiftBuses.values()) shiftBus.disconnect();
   plain.disconnect();
@@ -730,13 +753,16 @@ async function route() {
   plain.connect(moving && delay ? delay : bus);
   latency = moving ? stretchLatency : 0;
   rewire();
+  // For the end-to-end suites: the stretch nodes, what each moves by (null: stopped) and its channels.
+  const w = window as unknown as { songverseStems?: { stretch?: { shift: number | null; channels: number }[] } };
+  if (w.songverseStems) w.songverseStems.stretch = pool.map((entry) => ({ shift: entry.shift, channels: entry.channels }));
 }
 
-/** A stretch node on the output (and, with the first, a delay as long as its latency for the parts it doesn't move); null when it can't be made here. */
-async function makeStretch(ctx: AudioContext, output: AudioNode): Promise<StretchNode | null> {
+/** A stretch node on the output, of `channels` (and, with the first, a delay as long as its latency for the parts it doesn't move); null when it can't be made here. */
+async function makeStretch(ctx: AudioContext, output: AudioNode, channels: number): Promise<{ node: StretchNode; channels: number } | null> {
   try {
     const { default: SignalsmithStretch } = await import("signalsmith-stretch");
-    const node = (await SignalsmithStretch(ctx, { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] })) as StretchNode;
+    const node = (await SignalsmithStretch(ctx, { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [channels] })) as StretchNode;
     // Its defaults: formant compensation is for one voice alone - on a mix of
     // parts it made the sound wobble, and quieter (measured: twice the
     // wobble of a held chord, a third of its level).
@@ -755,7 +781,7 @@ async function makeStretch(ctx: AudioContext, output: AudioNode): Promise<Stretc
       delay.delayTime.value = stretchLatency;
       delay.connect(output);
     }
-    return node;
+    return { node, channels };
   } catch {
     return null;
   }
