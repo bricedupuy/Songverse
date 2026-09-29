@@ -24,7 +24,7 @@ Modifier les paroles garde les accords avec elles : taper avant un accord l'emm�
 
 ## Les sections
 
-Chaque bloc est une section : couplet, refrain, pont…
+Chaque bloc est une section : intro, couplet, pré-refrain, refrain, post-refrain, pont, vamp (une phrase répétée autant qu'il faut), break, instrumental, interlude, outro ou tag.
 
 - **Ajoutez une section** depuis la liste **Sections** de la palette.
 - Changez le **type** ou le **libellé** d'une section (« Couplet 2 ») en haut de celle-ci. Le bouton en forme d'œil masque son libellé sur la grille.

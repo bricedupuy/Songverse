@@ -24,7 +24,7 @@ Editing the words keeps the chords with them: typing before a chord carries it a
 
 ## Sections
 
-Each block is a section: verse, chorus, bridge and so on.
+Each block is a section: intro, verse, pre-chorus, chorus, post-chorus, bridge, vamp (a phrase repeated as long as needed), breakdown, instrumental, interlude, outro or tag.
 
 - **Add a section** from the palette's **Sections** list.
 - Change a section's **type** or **label** ("Verse 2") at its top. The eye button hides its label on the chart.

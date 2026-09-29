@@ -5,7 +5,12 @@ export const SECTION_TYPES = [
   "pre-chorus",
   "post-chorus",
   "bridge",
+  // A phrase repeated as long as it's needed; the band stripped back (issue #143).
+  "vamp",
+  "breakdown",
   "instrumental",
+  // Music between two sections.
+  "interlude",
   "outro",
   "tag",
   "other",

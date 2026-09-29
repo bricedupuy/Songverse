@@ -13,7 +13,10 @@ const GROUPS: Record<SectionType, StructureGroup> = {
   chorus: "chorus",
   "post-chorus": "chorus",
   bridge: "bridge",
+  vamp: "bridge",
+  breakdown: "instrumental",
   instrumental: "instrumental",
+  interlude: "instrumental",
   other: "other",
 };
 

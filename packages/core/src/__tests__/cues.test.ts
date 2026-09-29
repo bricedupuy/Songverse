@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cueAt, cueSectionsOf, nextCueSection, snapToBeat, sortedCues } from "../index.js";
+import { cueAt, cueSectionsOf, nextCueSection, sectionsFromText, snapToBeat, sortedCues, structureGroupOf, type SectionType } from "../index.js";
 
 const doc = {
   sections: [
@@ -52,5 +52,13 @@ describe("cue points (issue #110)", () => {
     expect(snapToBeat(12.3, { tempo: 120, firstBeat: 0.25 })).toBeCloseTo(12.25);
     expect(snapToBeat(12.3, null)).toBe(12.3);
     expect(snapToBeat(0.1, { tempo: 60, firstBeat: 0.5 })).toBe(0.5);
+  });
+});
+
+describe("vamp, breakdown and interlude (issue #143)", () => {
+  it("are section types ChordPro reads, as directives and as label lines, coloured like a bridge or an instrumental", () => {
+    const sections = sectionsFromText("{start_of_vamp}\n[G]Again\n{end_of_vamp}\n\nInterlude:\n[C] [D]\n\n[Breakdown]\n[Em]Down\n", "chordpro");
+    expect(sections.map((section) => section.type)).toEqual(["vamp", "interlude", "breakdown"]);
+    expect(["vamp", "breakdown", "interlude"].map((type) => structureGroupOf(type as SectionType))).toEqual(["bridge", "instrumental", "instrumental"]);
   });
 });

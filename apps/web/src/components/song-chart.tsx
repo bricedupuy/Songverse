@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "#/lib/utils";
 
 // Section types with a heading of their own; "other" has none.
-const LABELLED_SECTIONS = new Set(["intro", "verse", "pre-chorus", "chorus", "post-chorus", "bridge", "instrumental", "outro", "tag"]);
+const LABELLED_SECTIONS = new Set(["intro", "verse", "pre-chorus", "chorus", "post-chorus", "bridge", "vamp", "breakdown", "instrumental", "interlude", "outro", "tag"]);
 
 /** A chart of sections as written (the song editor's preview, a review): no arrangement, no player's view. */
 export function chartOfSections(sections: SectionV2[], flow: SectionInstance[] = [], key: string | null = null): RenderedChart {

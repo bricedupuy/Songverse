@@ -46,7 +46,7 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 ![Un chant d'une liste en mode Live](../../../assets/screenshots/fr/live.jpg)
 
 - L'en-tête montre le nom de la liste ; **×** y revient.
-- Dessous, la structure du chant : ses parties dans l'ordre où on les chante, en petits cercles - **S1** **R** **S2** **R** **P** **R** (strophe, refrain, pont…) - colorés par genre : intros et outros, strophes et pré-refrains, refrains, ponts et instrumentaux ont chacun leur couleur. La partie en cours est entourée et celles déjà chantées sont pleines, au fil du défilement ; touchez-en une pour y aller.
+- Dessous, la structure du chant : ses parties dans l'ordre où on les chante, en petits cercles - **S1** **R** **S2** **R** **P** **R** (strophe, refrain, pont…) - colorés par genre : intros et outros, strophes et pré-refrains, refrains, ponts et vamps, et instrumentaux, interludes et breaks ont chacun leur couleur. La partie en cours est entourée et celles déjà chantées sont pleines, au fil du défilement ; touchez-en une pour y aller.
 - Le chant commence par son titre et son artiste, son numéro de recueil (**JEM 855 · JEM3**), son capo et son tempo, et défile avec les accords et les paroles.
 - Sa tonalité est en haut à droite : **G**, avec un petit **+2** quand la liste le joue plus haut ou plus bas qu'écrit. Touchez-la pour transposer au dernier moment, avec **−** et **+** : seulement sur votre écran, pour ce chant, jusqu'à ce que vous le quittiez. **Revenir à la tonalité de la liste** l'annule.
 - En bas : ce qui vient ensuite - **Ensuite : …** y mène - et la flèche du chant précédent.
