@@ -136,6 +136,8 @@ await step("collapsed, remembered: the panel hides, and the full sidebar is icon
   await until("collapsed");
   const labelShown = () => page.locator('[data-slot="sidebar"]').getByText("Songbooks", { exact: true }).evaluateAll((els) => els.some((el) => el.checkVisibility()));
   if (await labelShown()) throw new Error("labels while collapsed");
+  // The account's avatar stays, as the icon for the account menu (issue #147).
+  if (!(await page.getByTestId("account-menu").locator('[data-slot="avatar"]').isVisible())) throw new Error("no avatar while collapsed");
   await page.getByRole("button", { name: "Toggle Sidebar" }).click();
   await until("expanded");
   if (!(await labelShown())) throw new Error("no labels once expanded");
@@ -143,6 +145,23 @@ await step("collapsed, remembered: the panel hides, and the full sidebar is icon
   await until("collapsed");
   await page.getByRole("button", { name: "Toggle Sidebar" }).click();
   await until("expanded");
+});
+
+await step("sub-items have icons; Tools has the metronome and the tuner; the documentation is docked at the bottom (issue #147)", async () => {
+  await page.goto(`${WEB}/library`);
+  await page.waitForLoadState("networkidle");
+  const sidebar = page.locator('[data-slot="sidebar"]');
+  const subItems = await sidebar.locator('[data-slot="sidebar-menu-sub-button"]').evaluateAll((links) => links.map((link) => `${link.textContent.trim()}:${!!link.querySelector("svg")}`));
+  if (!subItems.length || subItems.some((item) => item.endsWith(":false") && !/^View all/.test(item))) throw new Error(subItems.join(" "));
+  await sidebar.getByText("Tools", { exact: true }).waitFor();
+  await sidebar.getByRole("link", { name: "Tuner" }).click();
+  await page.getByTestId("tuner").getByText("Coming soon").waitFor();
+  // Docked: below everything else, above the account.
+  const docs = await sidebar.getByTestId("sidebar-docs").boundingBox();
+  const tuner = await sidebar.getByRole("link", { name: "Tuner" }).boundingBox();
+  const account = await sidebar.getByTestId("account-menu").boundingBox();
+  if (!(docs.y > tuner.y && docs.y < account.y)) throw new Error(`docs at ${docs.y}, tuner ${tuner.y}, account ${account.y}`);
+  if (!(await sidebar.getByTestId("sidebar-docs").getAttribute("href")).startsWith("https://docs.songverse.one/")) throw new Error("not the docs");
 });
 
 await browser.close();

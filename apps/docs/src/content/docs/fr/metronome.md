@@ -3,7 +3,7 @@ title: Métronome
 description: Gardez le tempo avec le métronome - réglez le tempo, la mesure et le motif, ou démarrez-le au tempo d'un chant en une pression.
 ---
 
-**Métronome**, dans la barre latérale, ouvre sa page : tout ce qu'il sait faire, réglé une fois et retenu sur cet appareil. Il garde le tempo pendant que vous naviguez dans Songverse ; un petit bouton en bas de l'écran montre son tempo et le temps, ramène à sa page et l'arrête.
+**Métronome**, dans les **Outils** de la barre latérale, ouvre sa page : tout ce qu'il sait faire, réglé une fois et retenu sur cet appareil. Il garde le tempo pendant que vous naviguez dans Songverse ; un petit bouton en bas de l'écran montre son tempo et le temps, ramène à sa page et l'arrête.
 
 ![Le métronome](../../../assets/screenshots/fr/metronome.jpg)
 

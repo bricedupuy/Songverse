@@ -3,7 +3,7 @@ title: Metronome
 description: Keep time with the metronome - set the tempo, time signature and pattern, or start it at a song's tempo in one press.
 ---
 
-**Metronome**, in the sidebar, opens its page: everything it can do, set once and remembered on this device. It keeps time while you move around Songverse; a small button at the bottom of the screen shows its tempo and beat, takes you back to its page and stops it.
+**Metronome**, in the sidebar's **Tools**, opens its page: everything it can do, set once and remembered on this device. It keeps time while you move around Songverse; a small button at the bottom of the screen shows its tempo and beat, takes you back to its page and stops it.
 
 ![The metronome](../../assets/screenshots/en/metronome.jpg)
 

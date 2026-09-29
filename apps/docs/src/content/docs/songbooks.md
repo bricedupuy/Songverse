@@ -16,6 +16,8 @@ Give it a name, and optionally an abbreviation, language, publisher and year. Ch
 
 ![A songbook](../../assets/screenshots/en/songbook.jpg)
 
+A songbook's page is about its entries: its name, with how many entries it has (and its publisher and year), then the entries. **Details** opens what describes it - its name, abbreviation, language, publisher and year, a numbered songbook's sections - and **Delete songbook**.
+
 ## Songs in a songbook
 
 Under **Entries**, **Add a song** by searching for it and, in a numbered songbook, giving its number.

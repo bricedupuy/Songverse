@@ -217,7 +217,15 @@ const fr: typeof en = {
     playing: "Métronome à {{tempo}} BPM",
     settings: "Réglages du métronome",
   },
+  tuner: {
+    comingSoon: "Bientôt",
+    description: "Un accordeur pour votre instrument et votre voix, avec le micro de votre appareil, sera ici, à côté du métronome.",
+  },
   nav: {
+    tools: "Outils",
+    tuner: "Accordeur",
+    documentation: "Documentation",
+    adminDashboard: "Tableau de bord",
     metronome: "Métronome",
     offlineStorage: "Stockage hors ligne",
     platform: "Plateforme",
@@ -554,6 +562,8 @@ const fr: typeof en = {
     expires: "expire",
   },
   songbooks: {
+    entriesCount_one: "{{count}} entrée",
+    entriesCount_other: "{{count}} entrées",
     catalogSections: "Les volumes du catalogue : {{sections}}.",
     useCatalogSections: "Utiliser les volumes du catalogue",
     title: "Recueils",

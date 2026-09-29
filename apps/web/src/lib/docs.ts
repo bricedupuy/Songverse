@@ -20,6 +20,7 @@ const PAGES: [RegExp, string][] = [
   [/^\/offline/, "offline"],
   [/^\/people/, "people"],
   [/^\/metronome/, "metronome"],
+  [/^\/tuner/, "metronome"],
 ];
 
 /** The docs page about where the user is (the docs' home otherwise), in their language. */

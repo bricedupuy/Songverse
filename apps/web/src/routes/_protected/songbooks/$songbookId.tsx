@@ -1,5 +1,6 @@
 import { isNetworkError, keptSongbook, onlineOrKept, type BulkUploadContentType, type BulkUploadFileMatch, type LanguageCode, type SongbookSection, type SongVersionSummary } from "@songverse/core";
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
+import { ChevronDown, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
@@ -65,6 +66,7 @@ function SongbookDetail() {
   const [sectionFilter, setSectionFilter] = useState("");
 
   const [sections, setSections] = useState<SongbookSection[]>(songbook.sections ?? []);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const [materializingId, setMaterializingId] = useState<string | null>(null);
   const [materializeError, setMaterializeError] = useState<string | null>(null);
@@ -233,94 +235,108 @@ function SongbookDetail() {
                 ? t("songbooks.teamOwned")
                 : t("songbooks.personal"),
             isNumbered ? t("songbooks.kindNumbered") : t("songbooks.kindSimple"),
-          ].join(" · ")}
+            t("songbooks.entriesCount", { count: songbook.entries.length }),
+            songbook.publisher,
+            songbook.year,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
-        <div className="mt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <OfflinePinButton kind="SONGBOOK" targetId={songbook.id} />
+          {/* Its details, sections and deletion, tucked away: the page is about its entries (issue #148). */}
+          <Button type="button" variant="outline" size="sm" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(!detailsOpen)} data-testid="songbook-details-toggle">
+            <Settings2 />
+            {t("songbooks.details")}
+            <ChevronDown className={detailsOpen ? "rotate-180 transition-transform" : "transition-transform"} />
+          </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">{t("songbooks.details")}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="songbook-name">{t("songbooks.name")}</Label>
-            <Input id="songbook-name" value={name} onChange={(e) => setName(e.target.value)} disabled={!canEdit} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="songbook-abbreviation">{t("songbooks.abbreviation")}</Label>
-            <Input
-              id="songbook-abbreviation"
-              value={abbreviation}
-              onChange={(e) => setAbbreviation(e.target.value)}
-              disabled={!canEdit}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="songbook-language">{t("songbooks.language")}</Label>
-            <LanguageSelect
-              id="songbook-language"
-              value={language}
-              onChange={setLanguage}
-              disabled={!canEdit}
-              allowEmpty
-              emptyLabel={t("common.noLanguage")}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="songbook-publisher">{t("songbooks.publisher")}</Label>
-            <Input
-              id="songbook-publisher"
-              value={publisher}
-              onChange={(e) => setPublisher(e.target.value)}
-              disabled={!canEdit}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="songbook-year">{t("songbooks.year")}</Label>
-            <Input
-              id="songbook-year"
-              type="number"
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-              disabled={!canEdit}
-            />
-          </div>
-          {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
-          {canEdit ? (
-            <div className="flex items-center justify-between">
-              <Button onClick={() => void save()} disabled={saving || !name.trim()}>
-                {saving ? t("songbooks.saving") : t("songbooks.save")}
-              </Button>
-              <ConfirmButton
-                label={t("songbooks.deleteSongbook")}
-                confirmLabel={t("songbooks.confirmDelete")}
-                busyLabel={t("songbooks.deleting")}
-                cancelLabel={t("songbooks.cancel")}
-                busy={deleting}
-                onConfirm={remove}
-              />
-            </div>
+      {detailsOpen ? (
+        <div className="flex flex-col gap-6" data-testid="songbook-details">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">{t("songbooks.details")}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="songbook-name">{t("songbooks.name")}</Label>
+                <Input id="songbook-name" value={name} onChange={(e) => setName(e.target.value)} disabled={!canEdit} />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="songbook-abbreviation">{t("songbooks.abbreviation")}</Label>
+                <Input
+                  id="songbook-abbreviation"
+                  value={abbreviation}
+                  onChange={(e) => setAbbreviation(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="songbook-language">{t("songbooks.language")}</Label>
+                <LanguageSelect
+                  id="songbook-language"
+                  value={language}
+                  onChange={setLanguage}
+                  disabled={!canEdit}
+                  allowEmpty
+                  emptyLabel={t("common.noLanguage")}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="songbook-publisher">{t("songbooks.publisher")}</Label>
+                <Input
+                  id="songbook-publisher"
+                  value={publisher}
+                  onChange={(e) => setPublisher(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="songbook-year">{t("songbooks.year")}</Label>
+                <Input
+                  id="songbook-year"
+                  type="number"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  disabled={!canEdit}
+                />
+              </div>
+              {saveError ? <p className="text-sm text-destructive">{saveError}</p> : null}
+              {canEdit ? (
+                <div className="flex items-center justify-between">
+                  <Button onClick={() => void save()} disabled={saving || !name.trim()}>
+                    {saving ? t("songbooks.saving") : t("songbooks.save")}
+                  </Button>
+                  <ConfirmButton
+                    label={t("songbooks.deleteSongbook")}
+                    confirmLabel={t("songbooks.confirmDelete")}
+                    busyLabel={t("songbooks.deleting")}
+                    cancelLabel={t("songbooks.cancel")}
+                    busy={deleting}
+                    onConfirm={remove}
+                  />
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+          {isNumbered ? (
+            <SectionsEditor sections={sections} canEdit={canEdit} onSave={saveSections}>
+              {canEdit && songbook.catalogSections?.length ? (
+                // The catalogue's printed volumes differ: offered, never applied silently (issue #55).
+                <div className="flex flex-wrap items-center gap-3 rounded-md bg-muted px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">
+                    {t("songbooks.catalogSections", { sections: songbook.catalogSections.map((section) => `${section.label} (${section.start}–${section.end})`).join(", ") })}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => void saveSections(songbook.catalogSections!).then(() => router.invalidate())}>
+                    {t("songbooks.useCatalogSections")}
+                  </Button>
+                </div>
+              ) : null}
+            </SectionsEditor>
           ) : null}
-        </CardContent>
-      </Card>
-
-      {isNumbered ? (
-        <SectionsEditor sections={sections} canEdit={canEdit} onSave={saveSections}>
-          {canEdit && songbook.catalogSections?.length ? (
-            // The catalogue's printed volumes differ: offered, never applied silently (issue #55).
-            <div className="flex flex-wrap items-center gap-3 rounded-md bg-muted px-3 py-2 text-sm">
-              <span className="text-muted-foreground">
-                {t("songbooks.catalogSections", { sections: songbook.catalogSections.map((section) => `${section.label} (${section.start}–${section.end})`).join(", ") })}
-              </span>
-              <Button variant="outline" size="sm" onClick={() => void saveSections(songbook.catalogSections!).then(() => router.invalidate())}>
-                {t("songbooks.useCatalogSections")}
-              </Button>
-            </div>
-          ) : null}
-        </SectionsEditor>
+        </div>
       ) : null}
 
       {songbook.pendingEntries && songbook.pendingEntries.length > 0 ? (

@@ -217,7 +217,15 @@ const en = {
     playing: "Metronome at {{tempo}} BPM",
     settings: "Metronome settings",
   },
+  tuner: {
+    comingSoon: "Coming soon",
+    description: "A tuner for your instrument and your voice, from your device's microphone, will be here, beside the metronome.",
+  },
   nav: {
+    tools: "Tools",
+    tuner: "Tuner",
+    documentation: "Documentation",
+    adminDashboard: "Dashboard",
     metronome: "Metronome",
     offlineStorage: "Offline storage",
     platform: "Platform",
@@ -551,6 +559,8 @@ const en = {
     expires: "expires",
   },
   songbooks: {
+    entriesCount_one: "{{count}} entry",
+    entriesCount_other: "{{count}} entries",
     catalogSections: "The catalogue's volumes: {{sections}}.",
     useCatalogSections: "Use the catalogue's volumes",
     title: "Songbooks",

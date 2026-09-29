@@ -20,6 +20,9 @@ await signIn(page, owner);
 await step("cancel keeps the songbook; confirm deletes it", async () => {
   await page.goto(`${WEB}/songbooks/${songbook.id}`);
   await page.waitForLoadState("networkidle");
+  // Behind Details (issue #148): the page is about its entries.
+  if (await page.getByRole("button", { name: "Delete songbook" }).count()) throw new Error("the details open to start with");
+  await page.getByTestId("songbook-details-toggle").click();
   await page.getByRole("button", { name: "Delete songbook" }).click();
   await page.getByRole("button", { name: "Cancel" }).click();
   await page.getByRole("button", { name: "Delete songbook" }).click();

@@ -19,6 +19,7 @@ import { Route as ProtectedMetronomeRouteImport } from './routes/_protected/metr
 import { Route as ProtectedOfflineRouteImport } from './routes/_protected/offline'
 import { Route as ProtectedPeopleRouteImport } from './routes/_protected/people'
 import { Route as ProtectedReviewRouteImport } from './routes/_protected/review'
+import { Route as ProtectedTunerRouteImport } from './routes/_protected/tuner'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as SetInviteTokenRouteImport } from './routes/set-invite.$token'
 import { Route as TransferTokenRouteImport } from './routes/transfer.$token'
@@ -101,6 +102,11 @@ const ProtectedPeopleRoute = ProtectedPeopleRouteImport.update({
 const ProtectedReviewRoute = ProtectedReviewRouteImport.update({
   id: '/review',
   path: '/review',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedTunerRoute = ProtectedTunerRouteImport.update({
+  id: '/tuner',
+  path: '/tuner',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const JoinTokenRoute = JoinTokenRouteImport.update({
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/offline': typeof ProtectedOfflineRoute
   '/people': typeof ProtectedPeopleRoute
   '/review': typeof ProtectedReviewRouteWithChildren
+  '/tuner': typeof ProtectedTunerRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -339,6 +346,7 @@ export interface FileRoutesByTo {
   '/metronome': typeof ProtectedMetronomeRoute
   '/offline': typeof ProtectedOfflineRoute
   '/people': typeof ProtectedPeopleRoute
+  '/tuner': typeof ProtectedTunerRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/_protected/offline': typeof ProtectedOfflineRoute
   '/_protected/people': typeof ProtectedPeopleRoute
   '/_protected/review': typeof ProtectedReviewRouteWithChildren
+  '/_protected/tuner': typeof ProtectedTunerRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -433,6 +442,7 @@ export interface FileRouteTypes {
     | '/offline'
     | '/people'
     | '/review'
+    | '/tuner'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -476,6 +486,7 @@ export interface FileRouteTypes {
     | '/metronome'
     | '/offline'
     | '/people'
+    | '/tuner'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -522,6 +533,7 @@ export interface FileRouteTypes {
     | '/_protected/offline'
     | '/_protected/people'
     | '/_protected/review'
+    | '/_protected/tuner'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -637,6 +649,13 @@ declare module '@tanstack/react-router' {
       path: '/review'
       fullPath: '/review'
       preLoaderRoute: typeof ProtectedReviewRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/tuner': {
+      id: '/_protected/tuner'
+      path: '/tuner'
+      fullPath: '/tuner'
+      preLoaderRoute: typeof ProtectedTunerRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/join/$token': {
@@ -927,6 +946,7 @@ interface ProtectedRouteChildren {
   ProtectedOfflineRoute: typeof ProtectedOfflineRoute
   ProtectedPeopleRoute: typeof ProtectedPeopleRoute
   ProtectedReviewRoute: typeof ProtectedReviewRouteWithChildren
+  ProtectedTunerRoute: typeof ProtectedTunerRoute
   ProtectedLibrarySongVersionIdRoute: typeof ProtectedLibrarySongVersionIdRoute
   ProtectedLibraryArtistsRoute: typeof ProtectedLibraryArtistsRoute
   ProtectedLibraryNewRoute: typeof ProtectedLibraryNewRoute
@@ -959,6 +979,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedOfflineRoute: ProtectedOfflineRoute,
   ProtectedPeopleRoute: ProtectedPeopleRoute,
   ProtectedReviewRoute: ProtectedReviewRouteWithChildren,
+  ProtectedTunerRoute: ProtectedTunerRoute,
   ProtectedLibrarySongVersionIdRoute: ProtectedLibrarySongVersionIdRoute,
   ProtectedLibraryArtistsRoute: ProtectedLibraryArtistsRoute,
   ProtectedLibraryNewRoute: ProtectedLibraryNewRoute,

@@ -61,7 +61,8 @@ export function AppShell({
         <SidebarInset>
           <SiteHeader />
           <OfflineBanner />
-          <div className="flex-1 px-4 py-8 md:px-6">
+          {/* The page's column; its gutter (--gutter) and width (@container) let a part bleed to the edges (.bleed-x, issue #147). */}
+          <div className="@container flex-1 px-(--gutter) py-8 [--gutter:1rem] md:[--gutter:1.5rem]">
             <div className="mx-auto w-full max-w-7xl">{children}</div>
           </div>
           {/* A song's stem player docks here, at the bottom of the screen (issue #64). */}

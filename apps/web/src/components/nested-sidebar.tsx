@@ -7,6 +7,8 @@ import {
   ClipboardCheck,
   Contact,
   Metronome,
+  Gauge,
+  HelpCircle,
   Database,
   FileStack,
   KeyRound,
@@ -28,6 +30,7 @@ import { SidebarRail, useSidebar } from "#/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { apiClient } from "#/lib/api-client";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
+import { docsUrl } from "#/lib/docs";
 import { initials } from "#/lib/initials";
 import type { AppSession } from "#/lib/server-auth";
 import { deviceStorage } from "#/lib/offline-data";
@@ -64,7 +67,7 @@ export function NestedSidebar({
   songbooks: SongbookSummary[];
   setlists: SetlistSummary[];
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { state, open, setOpen } = useSidebar();
   // A song opened from a songbook stays in the songbook (issue #80).
   const { section, fromSongbook, pathname } = useSidebarSection();
@@ -120,7 +123,21 @@ export function NestedSidebar({
             </TooltipTrigger>
           <TooltipContent side="right">{t("nav.metronome")}</TooltipContent>
         </Tooltip>
+        {/* The tuner (issue #147), a Tool beside it. */}
+        <Tooltip>
+          <TooltipTrigger render={<Link to="/tuner" aria-label={t("nav.tuner")} className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4" />}>
+            <Gauge />
+          </TooltipTrigger>
+          <TooltipContent side="right">{t("nav.tuner")}</TooltipContent>
+        </Tooltip>
         <div className="mt-auto flex flex-col items-center gap-1">
+          {/* The documentation, for everyone, above Review and Admin (issue #147). */}
+          <Tooltip>
+            <TooltipTrigger render={<a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener" aria-label={t("nav.documentation")} data-testid="rail-docs" className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4" />}>
+              <HelpCircle />
+            </TooltipTrigger>
+            <TooltipContent side="right">{t("nav.documentation")}</TooltipContent>
+          </Tooltip>
           {lower.map(railItem)}
         </div>
         <div data-slot="sidebar-footer" className="flex flex-col items-center">

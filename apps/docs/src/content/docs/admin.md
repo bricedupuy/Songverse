@@ -19,7 +19,7 @@ The **Review** page also lists **Suggested changes** to catalogue songs (see [Su
 
 ## Global admins
 
-Global admins manage the whole server from **Admin** in the sidebar.
+Global admins manage the whole server from **Dashboard**, in the sidebar's **Admin** section (reviewers find **Review** there).
 
 ### Users
 

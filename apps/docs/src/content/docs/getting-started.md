@@ -26,6 +26,9 @@ The sidebar on the left takes you everywhere:
 - **Songbooks** - collections of songs, numbered or not. See [Songbooks](/songbooks/).
 - **Teams** - the bands and groups you're part of. See [Teams](/teams/).
 - **People** - the people you share songs with. See [People](/people/).
+- **Tools** - the **Metronome** (see [Metronome](/metronome/)), and soon a **Tuner**.
+- **Documentation**, at the bottom - these pages, opened at the one about where you are.
+- **Admin**, just above it, for reviewers and admins - **Review** and the admin **Dashboard**. See [For admins](/admin/).
 
 On a section's pages and lists (the library's home, **Songs**, **Favorites**, **Artists**, Sets, Songbooks…), the sidebar shows every section with its lists underneath: your smart lists, your upcoming sets, your songbooks, your teams. Once you open one thing - a song, a set, a songbook, a team - on a computer or a tablet it becomes two parts: a rail of icons for the sections, and beside it a panel listing where you opened it from, with a **Filter…** box on top. A song opened from your **Favorites** has your favorites beside it; from **Songs**, the songs as you'd searched, filtered and sorted them; from a [smart list](/library/), that list. What you're viewing is marked, so the next one is one click away, and the list's name at the top takes you back to it. In a set, the panel lists that set's songs, in order, with the version and key each is played in: go from one to the next, or to the set itself from its name; **Sets**, at the top, lists your sets again. A songbook works the same way: its songs by number (type a number in **Filter…** to find it), and a song opened from the songbook keeps the songbook's list beside it.
 

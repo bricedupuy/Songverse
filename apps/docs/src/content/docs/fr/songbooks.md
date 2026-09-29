@@ -16,6 +16,8 @@ Donnez-lui un nom, et si vous voulez une abréviation, une langue, un éditeur e
 
 ![Un recueil](../../../assets/screenshots/fr/songbook.jpg)
 
+La page d'un recueil parle de ses entrées : son nom, avec son nombre d'entrées (et son éditeur et son année), puis les entrées. **Détails** ouvre ce qui le décrit - son nom, son abréviation, sa langue, son éditeur et son année, les sections d'un recueil numéroté - et **Supprimer le recueil**.
+
 ## Les chants d'un recueil
 
 Sous **Chansons**, **Ajouter une chanson** en la cherchant et, dans un recueil numéroté, en indiquant son numéro.

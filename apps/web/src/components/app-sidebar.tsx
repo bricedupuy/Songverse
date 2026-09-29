@@ -26,6 +26,11 @@ import {
   Contact,
   Metronome,
   Star,
+  Book,
+  CalendarDays,
+  Gauge,
+  MicVocal,
+  Music,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -336,19 +341,19 @@ function MainNav({
             testId="library-sections"
             items={[
               // Songs (the whole list), favorites, artists, and the user's smart lists (issues #58, #81).
-              { key: "songs", label: t("nav.songs"), isActive: pathname === "/library/songs" && !listId && !favorites, link: { to: "/library/songs" as const } },
+              { key: "songs", label: t("nav.songs"), icon: <Music />, isActive: pathname === "/library/songs" && !listId && !favorites, link: { to: "/library/songs" as const } },
               {
                 key: "favorites",
                 label: t("library.home.favorites"),
-                icon: <Star className="size-3.5" />,
+                icon: <Star />,
                 isActive: pathname === "/library/songs" && favorites,
                 link: { to: "/library/songs" as const, search: { favorites: true } },
               },
-              { key: "artists", label: t("nav.artists"), isActive: pathname === "/library/artists" || pathname.startsWith("/library/artists/"), link: { to: "/library/artists" as const } },
+              { key: "artists", label: t("nav.artists"), icon: <MicVocal />, isActive: pathname === "/library/artists" || pathname.startsWith("/library/artists/"), link: { to: "/library/artists" as const } },
               ...smartLists.map((list) => ({
                 key: list.id,
                 label: list.name,
-                icon: <ListFilter className="size-3.5" />,
+                icon: <ListFilter />,
                 isActive: pathname === "/library/songs" && listId === list.id,
                 link: { to: "/library/songs" as const, search: smartListSearch(list) },
               })),
@@ -364,6 +369,7 @@ function MainNav({
               ...shownSetlists.map((set) => ({
                 key: set.id,
                 label: setlistTitle(set, t, i18n.language),
+                icon: <CalendarDays />,
                 isActive: pathname === `/sets/${set.id}`,
                 link: { to: "/sets/$setlistId" as const, params: { setlistId: set.id } },
               })),
@@ -381,6 +387,7 @@ function MainNav({
             items={songbooks.map((songbook) => ({
               key: songbook.id,
               label: songbook.name,
+              icon: <Book />,
               isActive: pathname === `/songbooks/${songbook.id}`,
               link: { to: "/songbooks/$songbookId" as const, params: { songbookId: songbook.id } },
             }))}
@@ -407,19 +414,43 @@ function MainNav({
                 <span>{t("nav.people")}</span>
               </SidebarMenuButton>
           </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroup>
 
-          {/* The metronome (issue #2). */}
+      {/* Tools (issue #147): the metronome (issue #2), and a tuner to come. */}
+      <SidebarGroup>
+        <SidebarGroupLabel>{t("nav.tools")}</SidebarGroupLabel>
+        <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton isActive={pathname === "/metronome"} tooltip={t("nav.metronome")} render={<Link to="/metronome" />}>
-                <Metronome />
-                <span>{t("nav.metronome")}</span>
-              </SidebarMenuButton>
+              <Metronome />
+              <span>{t("nav.metronome")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton isActive={pathname === "/tuner"} tooltip={t("nav.tuner")} render={<Link to="/tuner" />}>
+              <Gauge />
+              <span>{t("nav.tuner")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarGroup>
+
+      {/* The documentation, docked at the bottom for everyone (issue #147). */}
+      <SidebarGroup className="mt-auto">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip={t("nav.documentation")} render={<a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener" data-testid="sidebar-docs" />}>
+              <HelpCircle />
+              <span>{t("nav.documentation")}</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
 
       {canReview || isGlobalAdmin ? (
-        <SidebarGroup className="mt-auto">
+        <SidebarGroup>
+          <SidebarGroupLabel>{t("nav.admin")}</SidebarGroupLabel>
           <SidebarMenu>
             {canReview ? (
               <SidebarMenuItem>
@@ -431,9 +462,9 @@ function MainNav({
             ) : null}
             {isGlobalAdmin ? (
               <SidebarMenuItem>
-                <SidebarMenuButton isActive={pathname.startsWith("/admin")} tooltip={t("nav.admin")} render={<Link to="/admin" />}>
+                <SidebarMenuButton isActive={pathname.startsWith("/admin")} tooltip={t("nav.adminDashboard")} render={<Link to="/admin" />}>
                     <ShieldCheck />
-                    <span>{t("nav.admin")}</span>
+                    <span>{t("nav.adminDashboard")}</span>
                   </SidebarMenuButton>
               </SidebarMenuItem>
             ) : null}

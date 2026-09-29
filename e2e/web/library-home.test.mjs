@@ -53,6 +53,14 @@ await step("a shelf longer than the window: no scrollbar, buttons to go through 
   await page.waitForFunction((el) => !el.disabled, await back.elementHandle());
   await back.click();
   await page.waitForFunction((el) => el.scrollLeft === 0, await row.elementHandle());
+  // Out to the main area's edges, not cut at the page's column; its first card lined up with the heading (issue #147).
+  const edges = await row.evaluate((el) => {
+    const main = document.querySelector('[data-slot="sidebar-inset"]').getBoundingClientRect();
+    const box = el.getBoundingClientRect();
+    const heading = el.closest("section").querySelector("h2").getBoundingClientRect();
+    return { left: box.left - main.left, right: main.right - box.right, first: el.firstElementChild.getBoundingClientRect().left - heading.left };
+  });
+  if (Math.abs(edges.left) > 1 || Math.abs(edges.right) > 1 || Math.abs(edges.first) > 1) throw new Error(JSON.stringify(edges));
   // Everything fits: no buttons.
   await page.setViewportSize({ width: 3800, height: 900 });
   await page.waitForFunction(() => {

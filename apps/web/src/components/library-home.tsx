@@ -131,7 +131,7 @@ function Shelf({ id, title, songs, more, from }: { id: string; title: string; so
           ) : null}
         </div>
       </div>
-      <div ref={ref} data-testid="shelf-row" className="-mx-1 flex snap-x scroll-px-1 gap-4 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={ref} data-testid="shelf-row" className="bleed-x flex snap-x gap-4 overflow-x-auto pt-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {songs.map((song) => (
           <SongCard key={song.id} song={song} from={from} />
         ))}

@@ -19,7 +19,7 @@ La page **Relecture** liste aussi les **Modifications proposées** pour les chan
 
 ## Administrateurs globaux
 
-Les administrateurs globaux gèrent tout le serveur depuis **Administration** dans la barre latérale.
+Les administrateurs globaux gèrent tout le serveur depuis **Tableau de bord**, dans la section **Administration** de la barre latérale (les relecteurs y trouvent **Relecture**).
 
 ### Utilisateurs
 

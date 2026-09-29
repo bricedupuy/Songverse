@@ -274,7 +274,7 @@ function SidebarMenuButton({
         // Collapsing the sidebar shrinks its own width, but the button's
         // text label needs hiding explicitly - it doesn't just disappear
         // on its own, it'd otherwise wrap/overflow the icon-only rail.
-        collapsed && "size-8 justify-center p-2 [&>span]:hidden",
+        collapsed && "size-8 justify-center p-2 [&>span:not([data-slot=avatar])]:hidden",
         className,
       ),
       ...props,
