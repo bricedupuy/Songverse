@@ -584,6 +584,32 @@ export class SongVersionsService {
     return { ...toDetailItem(version, await this.rightsOn(user, version), await this.seesTag(user)), isFavorite };
   }
 
+  /**
+   * findOne for many songs at once (issue #122: a device's first offline
+   * sync), with a few queries in all rather than several per song. Songs the
+   * user can't see, or that don't exist, are left out.
+   */
+  async findDetails(user: AuthenticatedUser, ids: string[]): Promise<Map<string, DetailItem & { isFavorite: boolean }>> {
+    if (ids.length === 0) return new Map();
+    const [visible, canEdit, seesTag, shared, favorites] = await Promise.all([
+      this.access.songsVisibleTo(user),
+      this.access.editChecker(user),
+      this.seesTag(user),
+      this.sharedByOf(user, ids),
+      this.prisma.client.favoriteSong.findMany({ where: { userId: user.id, songVersionId: { in: ids } }, select: { songVersionId: true } }),
+    ]);
+    const versions = await this.prisma.client.songVersion.findMany({ where: { AND: [visible, { id: { in: ids } }] }, select: DETAIL_SELECT });
+    const favorite = new Set(favorites.map((row) => row.songVersionId));
+    return new Map(
+      versions.map((version) => {
+        const canManage = canEdit(version);
+        const sharedBy = canManage ? null : (shared.get(version.id) ?? null);
+        const rights: Rights = { canManage, canEdit: canManage || !!sharedBy?.canEdit, sharedBy };
+        return [version.id, { ...toDetailItem(version, rights, seesTag), isFavorite: favorite.has(version.id) }];
+      }),
+    );
+  }
+
   /** The songs `ids` the user can see, as the library lists them, in that order (issue #81). */
   async listItems(user: AuthenticatedUser, ids: string[]): Promise<ListItem[]> {
     if (ids.length === 0) return [];

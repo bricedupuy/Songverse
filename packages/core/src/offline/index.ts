@@ -196,6 +196,8 @@ export async function offlinePins(storage: OfflineStorage): Promise<OfflinePin[]
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** POST /offline/songs takes a hundred at most. */
+const SONGS_PER_FETCH = 100;
 
 /** What a sync did, and when it last ran. */
 export interface OfflineSyncResult {
@@ -239,13 +241,21 @@ export async function offlineFingerprint(holdings: OfflineHoldings): Promise<str
  * With `check` (issue #121), it first sends only a fingerprint of what it
  * keeps (and its sets, which are few): when the API's matches, nothing is
  * out of date and the lists aren't sent either way.
+ *
+ * An answer carries so many song copies at most (issue #122): the others
+ * come `pending`, and `fetchSongs` (POST /offline/songs) gets them a
+ * hundred at a time. Without it they come with the next syncs.
  */
 export async function syncKeptSets(
   storage: OfflineStorage,
   send: (known: Known, knownSongs: Known, knownSongbooks: Known) => Promise<OfflineSyncResponse>,
   now = new Date(),
-  check?: (fingerprint: string, known: Known) => Promise<OfflineSyncCheck>,
+  options: {
+    check?: (fingerprint: string, known: Known) => Promise<OfflineSyncCheck>;
+    fetchSongs?: (ids: string[]) => Promise<SongOfflineCopy[]>;
+  } = {},
 ): Promise<OfflineSyncResult> {
+  const { check, fetchSongs } = options;
   const keptSongs = await all<{ version?: string; audio?: boolean; song: { id: string } }>(storage, "songs");
   const knownSongs = keptSongs.map((kept) => ({ id: kept.song.id, version: kept.version ?? "" }));
   const knownSongbooks = (await all<{ version?: string; songbook: { id: string } }>(storage, "songbooks")).map((kept) => ({ id: kept.songbook.id, version: kept.version ?? "" }));
@@ -299,10 +309,23 @@ export async function syncKeptSets(
     if (entry.copy) {
       await storage.put("songs", entry.id, { ...entry.copy, audio: entry.audio, savedAt } satisfies KeptSongCopy);
       updated++;
+    } else if (entry.pending) {
+      continue;
     } else {
       // Same song, but its audio may have been asked for (or no longer).
       const kept = await keptSongCopy(storage, entry.id);
       if (kept && kept.audio !== entry.audio) await storage.put("songs", entry.id, { ...kept, audio: entry.audio });
+    }
+  }
+  // The copies the answer had no room for, a hundred at a time.
+  const pending = (response.songs ?? []).filter((entry) => entry.pending);
+  if (fetchSongs) {
+    const audio = new Map(pending.map((entry) => [entry.id, entry.audio]));
+    for (let start = 0; start < pending.length; start += SONGS_PER_FETCH) {
+      for (const copy of await fetchSongs(pending.slice(start, start + SONGS_PER_FETCH).map((entry) => entry.id))) {
+        await storage.put("songs", copy.song.id, { ...copy, audio: audio.get(copy.song.id) ?? false, savedAt } satisfies KeptSongCopy);
+        updated++;
+      }
     }
   }
   if (response.viewer) await storage.put("meta", "viewer", response.viewer);

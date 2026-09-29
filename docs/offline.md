@@ -233,6 +233,13 @@ store. Choose when building it; TanStack Query is the less custom option.
   (a few hundred bytes); otherwise `unchanged: false`, and the device
   syncs with its lists as above. For a 3,000-song library that's about
   0.2 KB each way every few minutes instead of about 250 KB.
+  **At most 100 song copies per answer (#122):** a new device's first
+  sync of a big library would otherwise be one huge answer. Songs beyond
+  the first 100 out of date come with `pending: true` and no copy, and the
+  device fetches them with `POST /offline/songs`, a hundred at a time.
+  The API builds copies many at once (a few queries per batch, not
+  several per song): a 3,000-song first sync takes about a second in
+  all, not half a minute.
 - `GET /setlists/:id/offline` - a set with every song as it's shown, in
   one response (#50). `GET /songbooks/:id/offline` and
   `POST /song-versions/offline` (a batch of songs) come with #52.

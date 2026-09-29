@@ -11,10 +11,19 @@ import { SongVersionsService } from "../song-versions/song-versions.service.js";
 import type { OfflinePinDto, OfflineSyncDto, PinKind } from "./dto/offline.dto.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Song copies in one sync answer at most (issue #122); a device fetches the rest. */
+export const MAX_COPIES_PER_SYNC = 100;
 
 function hash(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 32);
 }
+
+/** A song to keep offline: its details, its files' list, and a version that changes when either does. */
+type SongCopy = {
+  song: Awaited<ReturnType<SongVersionsService["findDetails"]>> extends Map<string, infer Song> ? Song : never;
+  attachments: Awaited<ReturnType<AttachmentsService["listForSongVersions"]>> extends Map<string, infer Files> ? Files : never;
+  version: string;
+};
 
 /** Not found and not visible look the same to a device: either way, it goes. */
 function isGone(error: unknown): boolean {
@@ -62,29 +71,34 @@ export class OfflineService {
     await this.prisma.client.offlinePin.deleteMany({ where: { userId: user.id, kind, targetId } });
   }
 
-  /** A song to keep offline: its details and its files' list, and a version that changes when either does. */
-  async songCopy(user: AuthenticatedUser, songVersionId: string) {
-    const song = await this.songs.findOne(user, songVersionId);
-    const attachments = await this.attachments.listForSongVersion(user, songVersionId);
-    return { song, attachments, version: songVersion(song.updatedAt, attachments) };
-  }
-
   async songbookCopy(user: AuthenticatedUser, songbookId: string) {
     const songbook = await this.songbooks.findOne(user, songbookId);
     return { songbook, version: hash(songbook) };
   }
 
-  /** Several songs at once (up to 100); ones that can't be opened are left out. */
+  /** Several songs at once (up to 100), in their order; ones that can't be opened are left out. */
   async songCopies(user: AuthenticatedUser, ids: string[]) {
-    const copies = [];
-    for (const id of new Set(ids)) {
-      try {
-        copies.push(await this.songCopy(user, id));
-      } catch (error) {
-        if (!isGone(error)) throw error;
-      }
-    }
-    return copies;
+    const copies = await this.buildCopies(user, [...new Set(ids)]);
+    return [...new Set(ids)].flatMap((id) => copies.get(id) ?? []);
+  }
+
+  /**
+   * Songs to keep offline, each with its details, its files' list, and a
+   * version that changes when either does - for many songs at once, with a
+   * few queries in all (issue #122). Ones the user can't see are left out.
+   */
+  private async buildCopies(user: AuthenticatedUser, ids: string[]): Promise<Map<string, SongCopy>> {
+    const details = await this.songs.findDetails(user, ids);
+    const files = await this.attachments.listForSongVersions(
+      user,
+      [...details.values()].map((song) => ({ id: song.id, canEditSong: song.canManage })),
+    );
+    return new Map(
+      [...details.values()].map((song) => {
+        const attachments = files.get(song.id) ?? [];
+        return [song.id, { song, attachments, version: songVersion(song.updatedAt, attachments) }] as const;
+      }),
+    );
   }
 
   /**
@@ -193,13 +207,18 @@ export class OfflineService {
       return expected === dto.fingerprint ? { unchanged: true as const, days, upcoming, pins, viewer } : { unchanged: false as const };
     }
 
-    // Full copies only for the songs the device doesn't have as they are.
+    // Full copies only for the songs the device doesn't have as they are,
+    // and only so many in one answer (issue #122): the rest are `pending`,
+    // for the device to fetch a hundred at a time (POST /offline/songs).
     const knownSongs = new Map((dto.knownSongs ?? []).map((song) => [song.id, song.version]));
-    const songs: { id: string; version: string; audio: boolean; copy?: Awaited<ReturnType<OfflineService["songCopy"]>> }[] = [];
-    for (const entry of entries) {
-      songs.push(entry.version === knownSongs.get(entry.id) ? entry : { ...entry, copy: await this.songCopy(user, entry.id) });
-    }
-    const goneSongs = [...knownSongs.keys()].filter((id) => !songs.some((song) => song.id === id));
+    const outOfDate = entries.filter((entry) => entry.version !== knownSongs.get(entry.id));
+    const sent = new Set(outOfDate.slice(0, MAX_COPIES_PER_SYNC).map((entry) => entry.id));
+    const copies = await this.buildCopies(user, [...sent]);
+    const songs: { id: string; version: string; audio: boolean; copy?: SongCopy; pending?: true }[] = entries.map(
+      (entry) => (copies.has(entry.id) ? { ...entry, copy: copies.get(entry.id) } : entry.version === knownSongs.get(entry.id) ? entry : { ...entry, pending: true as const }),
+    );
+    const wantedNow = new Set(entries.map((entry) => entry.id));
+    const goneSongs = [...knownSongs.keys()].filter((id) => !wantedNow.has(id));
 
     return {
       days,

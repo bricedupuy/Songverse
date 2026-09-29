@@ -176,6 +176,18 @@ export class AccessPolicyService {
     return false;
   }
 
+  /**
+   * canEdit for many records at once (issue #122): the user's admin teams
+   * are looked up once, then each record is decided without a query.
+   */
+  async editChecker(viewer: Viewer): Promise<(record: OwnedRecord) => boolean> {
+    if (viewer.isGlobalAdmin) return () => true;
+    const admin = await this.prisma.client.teamMembership.findMany({ where: { userId: viewer.id, role: "ADMIN" }, select: { teamId: true } });
+    const adminTeams = new Set(admin.map((membership) => membership.teamId));
+    return (record) =>
+      record.ownerScope === "USER" ? record.ownerUserId === viewer.id : record.ownerScope === "TEAM" && !!record.ownerTeamId && adminTeams.has(record.ownerTeamId);
+  }
+
   /** Throws the reason `viewer` can't change `record` (a "song version", a "songbook"), if they can't. */
   async assertCanEdit(viewer: Viewer, record: OwnedRecord, noun: string): Promise<void> {
     if (await this.canEdit(viewer, record)) return;

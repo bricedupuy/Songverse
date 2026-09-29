@@ -85,8 +85,12 @@ export function syncOffline(userId: string): Promise<void> {
     storage,
     (known, knownSongs, knownSongbooks) => apiClient.syncOffline({ days: offlineDays(), known, knownSongs, knownSongbooks }),
     new Date(),
-    // Asked first whether anything changed, so an up-to-date device sends and gets back almost nothing (issue #121).
-    (fingerprint, known) => apiClient.checkOffline({ days: offlineDays(), fingerprint, known }),
+    {
+      // Asked first whether anything changed, so an up-to-date device sends and gets back almost nothing (issue #121).
+      check: (fingerprint, known) => apiClient.checkOffline({ days: offlineDays(), fingerprint, known }),
+      // A big library's songs, a hundred at a time rather than all in one answer (issue #122).
+      fetchSongs: (ids) => apiClient.getOfflineSongs(ids),
+    },
   )
     .then(() => syncKeptFiles(storage, ({ songVersionId, attachment }) => apiClient.downloadAttachment(songVersionId, attachment.id)))
     .then(() => undefined)

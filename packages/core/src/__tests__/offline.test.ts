@@ -105,13 +105,13 @@ describe("syncing kept sets", () => {
     let checked: { fingerprint: string; known: { id: string; version: string }[] } | null = null;
     const full = async (): Promise<OfflineSyncResponse> => (fullSyncs++, { ...empty, days: 14, upcoming: [], sets: [{ id: "s1", version: "a" }], gone: [] });
     const viewer = { chordNotation: "SOLFEGE" as const, capoDisplayMode: "SOUNDING" as const };
-    const result = await syncKeptSets(storage, full, now, async (fingerprint, known) => ((checked = { fingerprint, known }), { unchanged: true, days: 14, upcoming: [], pins: [], viewer }));
+    const result = await syncKeptSets(storage, full, now, { check: async (fingerprint, known) => ((checked = { fingerprint, known }), { unchanged: true, days: 14, upcoming: [], pins: [], viewer }) });
     expect(checked).toEqual({ fingerprint: expected, known: [{ id: "s1", version: "a" }] });
     expect(fullSyncs).toBe(0);
     expect(result).toMatchObject({ updated: 0, removed: 0, kept: 1 });
     expect(await storage.get("meta", "viewer")).toEqual(viewer);
     // Out of date: the full sync, as before.
-    await syncKeptSets(storage, full, now, async () => ({ unchanged: false }));
+    await syncKeptSets(storage, full, now, { check: async () => ({ unchanged: false }) });
     expect(fullSyncs).toBe(1);
   });
 
@@ -137,6 +137,21 @@ describe("songs, songbooks and files kept offline", () => {
   const songCopy = (id: string, title: string, attachments: ReturnType<typeof file>[] = [], artist = "John Newton") =>
     ({ song: { id, title, versionName: null, artists: [{ source: artist, userId: null }], documentJson: { sections: [] }, capo: 2 }, attachments, version: "1" }) as never;
   const base = { days: 14, upcoming: [], sets: [], gone: [], pins: [], viewer: { chordNotation: "SOLFEGE" as const, capoDisplayMode: "FINGERED" as const } };
+
+  it("songs the answer had no room for are fetched a hundred at a time (issue #122)", async () => {
+    const storage = memoryStorage();
+    const ids = Array.from({ length: 230 }, (_, i) => `v${i}`);
+    const asked: string[][] = [];
+    await syncKeptSets(
+      storage,
+      async () => ({ ...base, songbooks: [], goneSongbooks: [], goneSongs: [], songs: ids.map((id) => ({ id, version: "1", audio: id === "v200", pending: true as const })) }),
+      new Date(),
+      { fetchSongs: async (batch) => (asked.push(batch), batch.map((id) => songCopy(id, `Song ${id}`, []))) },
+    );
+    expect(asked.map((batch) => batch.length)).toEqual([100, 100, 30]);
+    expect((await keptSongCopy(storage, "v229"))?.song.title).toBe("Song v229");
+    expect((await keptSongCopy(storage, "v200"))?.audio).toBe(true);
+  });
 
   it("keeps songs and songbooks, finds songs by artist, removes the gone ones, keeps the viewer's settings", async () => {
     const storage = memoryStorage();

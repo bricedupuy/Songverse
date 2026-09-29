@@ -243,8 +243,13 @@ export interface OfflineSyncResponse {
   /** Pinned songbooks. */
   songbooks: { id: string; version: string; copy?: SongbookOfflineCopy }[];
   goneSongbooks: string[];
-  /** The user's own songs, pinned ones, and those in kept sets and songbooks; `audio`: download their audio files too. */
-  songs: { id: string; version: string; audio: boolean; copy?: SongOfflineCopy }[];
+  /**
+   * The user's own songs, pinned ones, and those in kept sets and songbooks;
+   * `audio`: download their audio files too. `pending`: out of date on the
+   * device but not in this answer (it carries so many copies at most, issue
+   * #122) - fetch it with POST /offline/songs.
+   */
+  songs: { id: string; version: string; audio: boolean; copy?: SongOfflineCopy; pending?: true }[];
   goneSongs: string[];
   pins: OfflinePin[];
   /** The user's chord settings, for songs shown on their own. */

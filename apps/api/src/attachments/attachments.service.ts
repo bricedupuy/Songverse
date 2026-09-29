@@ -49,6 +49,23 @@ export class AttachmentsService {
   }
 
   /**
+   * listForSongVersion for many songs at once (issue #122), in one query:
+   * `canEditSong` says, for each song, whether the viewer manages it.
+   */
+  async listForSongVersions(viewer: Viewer, songs: { id: string; canEditSong: boolean }[]) {
+    const teamIds = await this.access.teamIds(viewer.id);
+    const rows = await this.prisma.client.attachment.findMany({
+      where: { songVersionId: { in: songs.map((song) => song.id) }, ...AttachmentsService.visibleWhere(viewer, teamIds) },
+      include: ATTACHMENT_INCLUDE,
+      orderBy: { createdAt: "desc" },
+    });
+    const bySong = new Map(songs.map((song) => [song.id, [] as ReturnType<typeof present>[]]));
+    const canEdit = new Map(songs.map((song) => [song.id, song.canEditSong]));
+    for (const row of rows) bySong.get(row.songVersionId)?.push(present(row, viewer, canEdit.get(row.songVersionId) ?? false));
+    return bySong;
+  }
+
+  /**
    * A file on the song, for its uploader. Anyone who can see the song may
    * add their own (PRIVATE, or for a team of theirs); only who manages
    * the song may show one to everyone who sees it (SONG) or to the people
