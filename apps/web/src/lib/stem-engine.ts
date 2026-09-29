@@ -149,6 +149,7 @@ type StretchNode = AudioWorkletNode & {
   schedule: (change: Record<string, number | boolean>) => Promise<unknown>;
   start: (when?: number) => Promise<unknown>;
   latency: () => Promise<number>;
+  configure: (config: { blockMs?: number; intervalMs?: number; splitComputation?: boolean }) => Promise<unknown>;
 };
 
 let state: StemState = EMPTY;
@@ -739,6 +740,11 @@ async function makeStretch(ctx: AudioContext, output: AudioNode): Promise<Stretc
     // Its defaults: formant compensation is for one voice alone - on a mix of
     // parts it made the sound wobble, and quieter (measured: twice the
     // wobble of a held chord, a third of its level).
+    // Its default block and interval (120 and 30 ms), the work spread over
+    // each interval rather than done at once: all at once, a phone's audio
+    // thread misses its turn now and then - a crackle, and through iOS's
+    // <audio> element a waver in pitch as it catches up (issue #138).
+    await node.configure({ blockMs: 120, intervalMs: 30, splitComputation: true });
     await node.start();
     const nodeLatency = await node.latency();
     if (context !== ctx) return null;
