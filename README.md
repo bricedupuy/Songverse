@@ -98,6 +98,7 @@ Songverse stands on a lot of open-source work. Thank you to everyone behind:
 | [BullMQ](https://bullmq.io), [ioredis](https://github.com/redis/ioredis) and [Redis](https://redis.io) | Background jobs, Sync play's sessions | MIT / MIT / RSALv2-SSPL-AGPL |
 | [ws](https://github.com/websockets/ws) | Sync play's WebSocket | MIT |
 | [sharp](https://sharp.pixelplumbing.com) | Image thumbnails and resizing | Apache-2.0 |
+| [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/) | Transposing the stems as they play | MIT |
 | [FFmpeg](https://ffmpeg.org) with [libopus](https://opus-codec.org) | Recorded takes turned into Opus: silence trimmed, level evened out (EBU R128), noise reduced (run by the Worker, not linked) | LGPL-2.1+ / BSD-3-Clause |
 | [jose](https://github.com/panva/jose) | Checking API tokens | MIT |
 | [AWS SDK for JavaScript](https://github.com/aws/aws-sdk-js-v3) | Cloudflare R2 storage (S3-compatible) | Apache-2.0 |
@@ -137,3 +138,16 @@ pnpm dev                                     # web :3000, API :3001, docs :4321,
 `pnpm lint`, `pnpm type-check` and `pnpm test` run the checks across the
 workspace. `pnpm e2e` runs the end-to-end suites (API and browser) against
 the running app - see [e2e/README.md](e2e/README.md). See [Deploy.md](Deploy.md) for production setup.
+
+## Licence
+
+Songverse is free software: you can use it, study it, share it and change
+it under the terms of the [GNU Affero General Public License, version 3](LICENSE)
+(AGPL-3.0). If you run a modified copy that other people use over a
+network, the licence asks you to offer them its source: the app links to
+it (**Source code**, in the account menu and on the sign-in page) through
+`SOURCE_CODE_URL` in `packages/core/src/constants/index.ts` - point it at
+your own.
+
+Songs, charts and recordings people add to a Songverse server are theirs,
+not covered by this licence.

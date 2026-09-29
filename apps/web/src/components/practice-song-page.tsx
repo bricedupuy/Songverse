@@ -101,6 +101,7 @@ export function PracticeSongPage({
             load: (file, onProgress) => apiClient.downloadAttachment(version.id, file.id, onProgress),
             tempo: chart.tempo,
             timeSignature: chart.timeSignature,
+            songKey: chart.key,
             record: { attachments, songKey: chart.key ?? undefined, onSaved: () => void router.invalidate() },
           }}
         />

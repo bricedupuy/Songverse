@@ -38,6 +38,10 @@ await step("a French browser gets the sign-in card in French", async () => {
   await page.waitForLoadState("networkidle");
   await page.getByText("Bienvenue").waitFor();
   await page.getByRole("tab", { name: "S'inscrire" }).waitFor();
+  // Free software (AGPL-3.0): its source offered to whoever uses it, on the sign-in page too.
+  const source = page.getByTestId("source-code").getByRole("link", { name: "Code source" });
+  if ((await source.getAttribute("href")) !== "https://github.com/bricedupuy/Songverse") throw new Error(await source.getAttribute("href"));
+  await page.getByText("Songverse est un logiciel libre (AGPL-3.0).").waitFor();
   await page.getByRole("button", { name: "Se connecter avec une clé d'accès" }).waitFor();
 });
 

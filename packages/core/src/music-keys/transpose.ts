@@ -35,6 +35,19 @@ export function transposeKey(key: string, steps: number): string | null {
 }
 
 /**
+ * The smaller move, in semitones (-5 to +6), from one key to another: how
+ * far to transpose something in `from` to play it in `to`. Null when
+ * either isn't a key.
+ */
+export function semitonesBetween(from: string, to: string): number | null {
+  const a = parseKey(from);
+  const b = parseKey(to);
+  if (!a || !b) return null;
+  const up = mod12(b.semitone - a.semitone);
+  return up > 6 ? up - 12 : up;
+}
+
+/**
  * The twelve distinct transpositions, as semitone offsets from -5 to +6 -
  * each target key once, reached by the smaller move.
  */

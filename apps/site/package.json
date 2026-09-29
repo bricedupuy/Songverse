@@ -2,6 +2,7 @@
   "name": "@songverse/site",
   "version": "0.0.0",
   "private": true,
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "astro dev --port 4322",

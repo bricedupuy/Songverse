@@ -324,6 +324,8 @@ function validStems(value: SyncStems): boolean {
     (value.multitrackId === undefined || value.multitrackId === null || (typeof value.multitrackId === "string" && value.multitrackId.length <= 40)) &&
     typeof value.title === "string" &&
     value.title.length <= 300 &&
+    (value.transpose === undefined || (Number.isInteger(value.transpose) && Math.abs(value.transpose) <= 12)) &&
+    (value.transposeAll === undefined || typeof value.transposeAll === "boolean") &&
     typeof value.playing === "boolean" &&
     Number.isFinite(value.position) &&
     value.position >= 0 &&

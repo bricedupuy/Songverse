@@ -8,6 +8,17 @@ import { foldForSearch } from "../search-text/index.js";
 export const STEM_PARTS = ["VOCALS", "BACKING_VOCALS", "DRUMS", "BASS", "GUITAR", "KEYS", "OTHER", "CLICK"] as const;
 export type StemPart = (typeof STEM_PARTS)[number];
 
+/**
+ * Parts with no pitch to move (issue #129): the drums, and the click and
+ * cues. Transposing the stems leaves them alone unless asked.
+ */
+export const UNPITCHED_PARTS: readonly StemPart[] = ["DRUMS", "CLICK"];
+
+/** Whether transposing moves this part: every part but the drums and cues - or every part at all, with `all`. */
+export function transposesPart(part: StemPart | null, all = false): boolean {
+  return all || part === null || !UNPITCHED_PARTS.includes(part);
+}
+
 export function isStemPart(value: unknown): value is StemPart {
   return typeof value === "string" && (STEM_PARTS as readonly string[]).includes(value);
 }

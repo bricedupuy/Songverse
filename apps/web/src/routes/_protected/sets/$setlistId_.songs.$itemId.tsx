@@ -132,6 +132,9 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
           tempo={tempo}
           timeSignature={arrangement?.timeSignature ?? song.document.defaults.timeSignature}
           setlist={{ id: set.id, name: setlistTitle(set, t, i18n.language) }}
+          songKey={song.key}
+          // The key the set plays it in: its arrangement's, with the set's own transposition on top.
+          targetKey={song.key ? transposeKey(song.key, (arrangement?.transposeSteps ?? 0) + item.transposeSteps) : null}
         />
       ) : null}
 
@@ -262,12 +265,17 @@ function SetSongStems({
   tempo,
   timeSignature,
   setlist,
+  songKey,
+  targetKey,
 }: {
   songVersionId: string;
   title: string;
   returnTo: string;
   /** The set: a multitrack recorded for it is what plays here by default (issue #127), and one recorded here can be its. */
   setlist: { id: string; name: string };
+  /** The song's key, and the one the set plays it in: the stems are transposed to it by default (issue #129). */
+  songKey: string | null | undefined;
+  targetKey: string | null;
   /** The version's, for the metronome with the recording (issue #100). */
   tempo: number | null | undefined;
   timeSignature: { numerator: number; denominator: number } | null | undefined;
@@ -312,6 +320,8 @@ function SetSongStems({
         ...playable,
         load: fileLoader(songVersionId, files.offline),
         choiceKey,
+        songKey,
+        targetKey,
         record: files.offline ? undefined : { attachments: files.attachments, setlist, onSaved: () => setReload((n) => n + 1) },
         tempo,
         timeSignature,

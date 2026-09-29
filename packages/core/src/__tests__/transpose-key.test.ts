@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatKey, parseKey, transposeKey } from "../music-keys/transpose.js";
+import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
 
 describe("parseKey", () => {
   it.each([
@@ -49,5 +49,17 @@ describe("transposeKey", () => {
 
   it("returns null for unrecognized keys", () => {
     expect(transposeKey("??", 2)).toBeNull();
+  });
+});
+
+describe("semitonesBetween (issue #129)", () => {
+  it("the smaller move from one key to another", () => {
+    expect(semitonesBetween("G", "A")).toBe(2);
+    expect(semitonesBetween("A", "G")).toBe(-2);
+    expect(semitonesBetween("C", "F#")).toBe(6);
+    expect(semitonesBetween("F#", "C")).toBe(6);
+    expect(semitonesBetween("Em", "Gm")).toBe(3);
+    expect(semitonesBetween("Bb", "Bb")).toBe(0);
+    expect(semitonesBetween("G", "not a key")).toBeNull();
   });
 });

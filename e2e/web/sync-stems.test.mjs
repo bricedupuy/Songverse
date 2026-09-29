@@ -145,6 +145,22 @@ await step("the metronome with the recording: bar 1 on its first beat, at its te
   check("the follower's click with it (ms apart, at most)", apart < 5, `${apart.toFixed(2)} ms`);
 });
 
+await step("the leader transposes (issue #129): the follower's stems transposed the same, still together", async () => {
+  page = leader;
+  const since = Date.now();
+  await player(leader).getByRole("button", { name: "Up a semitone" }).click();
+  await player(leader).getByRole("button", { name: "Up a semitone" }).click();
+  await player(leader).locator('[data-testid="stem-transpose"][data-steps="2"]').waitFor();
+  page = follower;
+  await player(follower).getByRole("button", { name: "Expand the player" }).click();
+  await player(follower).locator('[data-testid="stem-transpose"][data-steps="2"]').waitFor({ timeout: 10000 });
+  if (!(await player(follower).getByRole("button", { name: "Up a semitone" }).isDisabled())) throw new Error("the follower's transposing isn't the leader's");
+  // Transposing restarts the stems a little later (its latency made up): both the same instant again.
+  await leader.waitForTimeout(1500);
+  const [mine, theirs] = await Promise.all([zero(follower, since), zero(leader, since)]);
+  check("transposed, the same instant (ms apart)", Math.abs(mine - theirs) < 5, `${Math.abs(mine - theirs).toFixed(2)} ms`);
+});
+
 await step("the leader turns the click off and ends the session: the follower's stems stop", async () => {
   page = leader;
   await leader.getByTestId("stem-click").click();

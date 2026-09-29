@@ -3,6 +3,7 @@ import { Music2 } from "lucide-react";
 import { useEffect } from "react";
 import { AuthCard } from "#/components/auth-card";
 import { LocaleProvider } from "#/components/locale-provider";
+import { SourceCodeLink } from "#/components/source-code-link";
 import { apiClient } from "#/lib/api-client";
 import { loadAppData } from "#/lib/app-data";
 import { forgetOffline } from "#/lib/offline-db";
@@ -34,6 +35,7 @@ function Home() {
           Songverse
         </div>
         <AuthCard hasGoogleAuth={hasGoogleAuth} />
+        <SourceCodeLink />
       </main>
     </LocaleProvider>
   );

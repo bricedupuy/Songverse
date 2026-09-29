@@ -128,6 +128,8 @@ The arrow at the end expands it: a row per part with the same round button, its 
 
 ![The stem player expanded, with each part's waveform](../../assets/screenshots/en/stems.jpg)
 
+**Transpose** moves the stems up or down, a semitone at a time (**Up a semitone**, **Down a semitone**), as they play: to a singer's range, or another key. Between the two buttons is the key they're heard in, "B (+2)" for stems in A. The drums and the click and cues aren't transposed (their rows say **Not transposed**); the drum button beside it, **Transpose the drums and cues too**, moves them as well. Songverse remembers the transposition for each song on the device. On a set's song page, the stems are transposed to the key the set plays the song in unless you choose otherwise: stems in A, for a set in C, play in C (+3).
+
 The metronome button beside it, **Click with the recording**, plays the [metronome](/metronome/) with the stems: at the recording's tempo (or the song's), its first beat where the recording's falls, with your pattern, sound and count-in. It follows **Play**, pause and the position bar. Playing in sync, the leader's is everyone's (see [Playing in sync](/sets/#playing-in-sync)).
 
 The song keeps playing while you go to another page or leave Practice, and on a phone with the screen locked, where the lock screen can pause it too. A small button at the bottom right shows what's playing: tap the song's name to go back to it, or pause it from there.

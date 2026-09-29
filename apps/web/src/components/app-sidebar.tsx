@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   Database,
   FileStack,
+  Code,
   HelpCircle,
   HardDrive,
   KeyRound,
@@ -33,6 +34,7 @@ import type { AppSession } from "#/lib/server-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { docsUrl } from "#/lib/docs";
+import { SOURCE_CODE_URL } from "@songverse/core";
 import { forgetOffline } from "#/lib/offline-db";
 import { setTheme, useMode } from "#/lib/mode";
 import { forgetSmartLists, smartListSearch, useSmartLists } from "#/lib/smart-lists";
@@ -192,6 +194,13 @@ export function AccountMenuContent({ session, side, align }: { session: AppSessi
           <a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener">
             <HelpCircle />
             {t("nav.help")}
+          </a>
+        </DropdownMenuItem>
+        {/* AGPL-3.0, section 13: the source, offered to whoever uses it. */}
+        <DropdownMenuItem asChild>
+          <a href={SOURCE_CODE_URL} target="_blank" rel="noopener" data-testid="source-code">
+            <Code />
+            {t("nav.sourceCode")}
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

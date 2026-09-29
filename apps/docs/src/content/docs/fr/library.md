@@ -128,6 +128,8 @@ La flèche au bout l'agrandit : une ligne par partie avec le même bouton rond, 
 
 ![Le lecteur de pistes agrandi, avec la forme d'onde de chaque partie](../../../assets/screenshots/fr/stems.jpg)
 
+**Transposer** monte ou descend les pistes d'un demi-ton à la fois (**Un demi-ton plus haut**, **Un demi-ton plus bas**), pendant la lecture : pour la tessiture d'un chanteur, ou une autre tonalité. Entre les deux boutons, la tonalité entendue : « B (+2) » pour des pistes en A. La batterie, le clic et les repères ne sont pas transposés (leur ligne indique **Pas transposée**) ; le bouton batterie à côté, **Transposer aussi la batterie et les repères**, les transpose aussi. Songverse retient la transposition de chaque chant sur l'appareil. Sur la page d'un chant dans une liste, les pistes sont transposées dans la tonalité de la liste, sauf si vous choisissez autrement : des pistes en A, pour une liste en C, jouent en C (+3).
+
 Le bouton du métronome à côté, **Clic avec l'enregistrement**, joue le [métronome](/fr/metronome/) avec les pistes : au tempo de l'enregistrement (ou du chant), son premier temps là où tombe celui de l'enregistrement, avec votre motif, votre son et votre décompte. Il suit **Lecture**, la pause et la barre de position. En jeu synchronisé, celui du meneur est celui de chacun (voir [Jouer synchronisé](/fr/sets/#jouer-synchronisé)).
 
 Le chant continue de jouer quand vous allez sur une autre page ou quittez le mode Session, et sur un téléphone écran verrouillé, où l'écran de verrouillage peut aussi le mettre en pause. Un petit bouton en bas à droite montre ce qui joue : touchez le nom du chant pour y revenir, ou mettez-le en pause de là.

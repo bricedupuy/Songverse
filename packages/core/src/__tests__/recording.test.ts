@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { transposesPart, type StemPart } from "../index.js";
 import { alignTake, clapDelayFrom, clickTimes, encodeWav, multitracksOf, punchInAt, recordingPlan, roundTripFrom, spliceTake } from "../index.js";
 
 describe("multitracks (issue #123)", () => {
@@ -95,5 +96,12 @@ describe("recording, step 2 (issue #127)", () => {
     });
     expect(clapDelayFrom(captured, { sampleRate, capturedAt: 0, playedAt: played })).toBeCloseTo(0.2, 2);
     expect(clapDelayFrom(new Float32Array(6000), { sampleRate, capturedAt: 0, playedAt: played })).toBeNull();
+  });
+});
+
+describe("transposing the stems (issue #129)", () => {
+  it("every part but the drums and cues, unless asked for all", () => {
+    expect(["VOCALS", "BASS", "DRUMS", "CLICK", null].map((part) => transposesPart(part as StemPart | null))).toEqual([true, true, false, false, true]);
+    expect(transposesPart("DRUMS", true)).toBe(true);
   });
 });

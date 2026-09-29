@@ -1,4 +1,4 @@
-import { multitracksOf, STEM_PARTS, TIME_SIGNATURE_PATTERN, type Attachment, type StemPart } from "@songverse/core";
+import { multitracksOf, STEM_PARTS, TIME_SIGNATURE_PATTERN, transposesPart, type Attachment, type StemPart } from "@songverse/core";
 import { useSyncExternalStore } from "react";
 import { deviceNow, OutputClock } from "#/lib/output-clock";
 
@@ -35,6 +35,13 @@ export interface StemSong {
   multitracks?: MultitrackChoice[];
   /** Where the choice of multitrack is remembered: the song, or the song in a set (issue #127). */
   choiceKey?: string;
+  /** Transposed by this many semitones as it plays (issue #129), the drums and cues too with `transposeAll`. */
+  transpose?: number;
+  transposeAll?: boolean;
+  /** The song's own key: what the stems are in when they don't say (for the key they're transposed to). */
+  songKey?: string | null;
+  /** The key the page plays the song in (a set's): with nothing chosen, the stems are transposed to it. */
+  targetKey?: string | null;
   /** Recording a part from the player (issue #127): what the recorder needs; left out where it can't (offline). */
   record?: {
     attachments: Attachment[];
@@ -90,6 +97,11 @@ export interface StemState {
   following: string | null;
   /** Following, but the browser hasn't let it make a sound yet: a press will (unlockStemsAudio). */
   audioBlocked: boolean;
+  /** Transposed by this many semitones (issue #129); the drums and cues too with transposeAll. */
+  transpose: number;
+  transposeAll: boolean;
+  /** Transposing couldn't start here (no AudioWorklet, say): it plays as recorded. */
+  transposeFailed: boolean;
   /** The recording's beat: its tempo, time signature and where its first beat falls (s), for the metronome with it; null without a tempo. */
   beat: { tempo: number; timeSignature: { numerator: number; denominator: number } | null; firstBeat: number } | null;
 }
@@ -114,7 +126,17 @@ const EMPTY: StemState = {
   anchor: null,
   following: null,
   audioBlocked: false,
+  transpose: 0,
+  transposeAll: false,
+  transposeFailed: false,
   beat: null,
+};
+
+/** The stretch node's own methods (signalsmith-stretch). */
+type StretchNode = AudioWorkletNode & {
+  schedule: (change: Record<string, number | boolean>) => Promise<unknown>;
+  start: (when?: number) => Promise<unknown>;
+  latency: () => Promise<number>;
 };
 
 let state: StemState = EMPTY;
@@ -130,6 +152,18 @@ let element: HTMLAudioElement | null = null;
 let lastSong: StemSong | null = null;
 let buffers = new Map<string, AudioBuffer>();
 let gains = new Map<string, GainNode>();
+// Transposing (issue #129): the parts it moves go through `pitched` - into
+// the stretch node when transposing - and the others (drums, cues) through
+// `plain`, delayed by as much as the stretch node delays the rest. Sources
+// start that much earlier (`latency`), so what's heard stays in place.
+let parts = new Map<string, StemPart | null>();
+let pitched: GainNode | null = null;
+let plain: GainNode | null = null;
+let stretch: StretchNode | null = null;
+let stretchLoading: Promise<boolean> | null = null;
+let stretchLatency = 0;
+let delay: DelayNode | null = null;
+let latency = 0;
 let sources: AudioBufferSourceNode[] = [];
 // The context's time at which the song's 0:00 is (or would be) playing.
 let startedAt = 0;
@@ -182,6 +216,50 @@ export function stemFilesOf(
     .filter((multitrack) => multitrack.files.length > 0)
     .map((multitrack) => ({ id: multitrack.id, name: multitrack.name, parts: multitrack.files.length, setlistId: multitrack.setlistId }));
   return { stems, multitrackId: stems[0]?.multitrackId ?? null, multitracks };
+}
+
+// --- how far each song's stems are transposed (issue #129), remembered on the device
+
+const TRANSPOSE_KEY = "songverse.stems.transpose.";
+const transposes = new Map<string, { steps: number; all: boolean } | undefined>();
+const transposeListeners = new Set<() => void>();
+
+function transposeOf(key: string): { steps: number; all: boolean } | undefined {
+  if (transposes.has(key)) return transposes.get(key);
+  let saved: { steps: number; all: boolean } | undefined;
+  try {
+    const raw = localStorage.getItem(TRANSPOSE_KEY + key);
+    const parsed = raw ? (JSON.parse(raw) as { steps?: unknown; all?: unknown }) : null;
+    if (parsed && typeof parsed.steps === "number") saved = { steps: parsed.steps, all: parsed.all === true };
+  } catch {
+    // Storage blocked, or not ours.
+  }
+  transposes.set(key, saved);
+  return saved;
+}
+
+/** Transposes the song's stems (`key`: the song, or the song in a set) from now on; undefined goes back to the default. */
+export function chooseStemTranspose(key: string, value: { steps: number; all: boolean } | undefined) {
+  transposes.set(key, value);
+  try {
+    if (value) localStorage.setItem(TRANSPOSE_KEY + key, JSON.stringify(value));
+    else localStorage.removeItem(TRANSPOSE_KEY + key);
+  } catch {
+    // Remembered until the page reloads.
+  }
+  for (const listener of transposeListeners) listener();
+}
+
+/** The transposition chosen for the song; undefined when none was (the default then). */
+export function useChosenTranspose(key: string): { steps: number; all: boolean } | undefined {
+  return useSyncExternalStore(
+    (listener) => {
+      transposeListeners.add(listener);
+      return () => transposeListeners.delete(listener);
+    },
+    () => transposeOf(key),
+    () => undefined,
+  );
 }
 
 // --- which multitrack each song plays (issue #123), remembered on the device
@@ -301,14 +379,15 @@ function startAt(from: number, at?: number, anchor?: { epoch: number; position: 
   stopSources();
   stopTimer();
   // A moment ahead, so every part is scheduled before the first one starts.
-  const when = Math.max(at ?? 0, context.currentTime + 0.05);
+  const when = Math.max(at ?? 0, context.currentTime + 0.05 + latency);
   for (const [id, buffer] of buffers) {
     const gain = gains.get(id);
     if (!gain || from >= buffer.duration) continue;
     const source = context.createBufferSource();
     source.buffer = buffer;
     source.connect(gain);
-    source.start(when, from);
+    // Early by the transposing's latency: heard at `when`.
+    source.start(when - latency, from);
     sources.push(source);
   }
   startedAt = when - from;
@@ -436,6 +515,13 @@ export function unloadStems() {
   element = null;
   buffers = new Map();
   gains = new Map();
+  parts = new Map();
+  pitched = null;
+  plain = null;
+  stretch = null;
+  stretchLoading = null;
+  delay = null;
+  latency = 0;
   offset = 0;
   // Following Sync play's leader carries on through the next song's load.
   set({ ...EMPTY, docked: state.docked, following: state.following });
@@ -467,7 +553,16 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
   clock = new OutputClock(ctx);
   const mix = outputFor(ctx);
   bus = mix;
+  pitched = ctx.createGain();
+  plain = ctx.createGain();
+  pitched.connect(mix);
+  plain.connect(mix);
+  tapFor(ctx, mix);
+  latency = 0;
   set({
+    transpose: song.transpose ?? 0,
+    transposeAll: song.transposeAll ?? false,
+    transposeFailed: false,
     key,
     songVersionId: song.songVersionId,
     multitrackId: song.multitrackId ?? song.stems[0]?.multitrackId ?? null,
@@ -511,7 +606,8 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
   for (const { stem, buffer } of decoded) {
     if (!buffer) continue;
     const gain = ctx.createGain();
-    gain.connect(mix);
+    parts.set(stem.id, stem.stemPart);
+    gain.connect(transposesPart(stem.stemPart, state.transposeAll) ? pitched : plain);
     buffers.set(stem.id, buffer);
     gains.set(stem.id, gain);
   }
@@ -521,8 +617,105 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
     set({ status: "error", tracks });
     return false;
   }
+  await route();
+  if (mine !== generation) return false;
   set({ status: "ready", tracks, duration: Math.max(...[...buffers.values()].map((buffer) => buffer.duration)) });
   return true;
+}
+
+// --- transposing (issue #129)
+
+/**
+ * Wires the buses for the transposition: straight to the output when
+ * there's none; else the parts it moves through the stretch node, the
+ * others through a delay as long as its latency. Loaded only when needed.
+ */
+async function route() {
+  const ctx = context;
+  if (!ctx || !bus || !pitched || !plain) return;
+  const mine = generation;
+  pitched.disconnect();
+  plain.disconnect();
+  if (state.transpose === 0) {
+    pitched.connect(bus);
+    plain.connect(bus);
+    latency = 0;
+    return;
+  }
+  // Two changes in a row share one stretch node, made once.
+  stretchLoading ??= makeStretch(ctx, bus);
+  const made = await stretchLoading;
+  // Loaded, or back to 0 meanwhile (which wired it straight already).
+  if (mine !== generation || state.transpose === 0) return;
+  if (!made) {
+    pitched.connect(bus);
+    plain.connect(bus);
+    latency = 0;
+    return set({ transposeFailed: true });
+  }
+  if (!stretch || !delay) return;
+  void stretch.schedule({ semitones: state.transpose, output: ctx.currentTime });
+  pitched.connect(stretch);
+  plain.connect(delay);
+  latency = stretchLatency;
+}
+
+/** The stretch node, and a delay as long as its latency for the parts it doesn't move; null when it can't be made here. */
+async function makeStretch(ctx: AudioContext, output: AudioNode): Promise<boolean> {
+  try {
+    const { default: SignalsmithStretch } = await import("signalsmith-stretch");
+    const node = (await SignalsmithStretch(ctx, { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] })) as StretchNode;
+    await node.start();
+    // Voices keep their character, moved up or down (not a chipmunk).
+    await node.schedule({ formantCompensation: true });
+    stretchLatency = await node.latency();
+    if (context !== ctx) return false;
+    node.connect(output);
+    stretch = node;
+    delay = ctx.createDelay(2);
+    delay.delayTime.value = stretchLatency;
+    delay.connect(output);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Each part to the bus its transposing says: moved, or as recorded (the drums and cues, unless all are). */
+function rewire() {
+  for (const [id, gain] of gains) {
+    gain.disconnect();
+    const bus = transposesPart(parts.get(id) ?? null, state.transposeAll) ? pitched : plain;
+    if (bus) gain.connect(bus);
+  }
+}
+
+/** Starts again where it's heard, after the transposing's latency changed. */
+function replay() {
+  if (!context || !state.playing) return;
+  const ahead = 0.05 + latency;
+  if (state.following && clock && state.anchor) {
+    const zero = clock.timeOf(state.anchor.epoch) - state.anchor.position;
+    const when = context.currentTime + ahead;
+    return startAt(when - zero, when, state.anchor);
+  }
+  startAt(now() + ahead, context.currentTime + ahead);
+}
+
+/**
+ * Transposes the stems as they play (issue #129): by `steps` semitones,
+ * the drums and cues too with `all`. Taken up at the next load when
+ * nothing's loaded.
+ */
+export async function setStemsTranspose(steps: number, all: boolean) {
+  if (state.transpose === steps && state.transposeAll === all) return;
+  const before = latency;
+  const allChanged = state.transposeAll !== all;
+  set({ transpose: steps, transposeAll: all, transposeFailed: false });
+  if (!context || state.status !== "ready") return;
+  if (allChanged) rewire();
+  await route();
+  if (latency !== before) replay();
 }
 
 /**
@@ -632,6 +825,16 @@ function probe(): { zeroAt: number; at: number }[] | null {
   return w.songverseStems.starts;
 }
 
+/** For the end-to-end suites (issue #129): what the stems play, as a stream they can record, when `songverseStems.tap` is set. */
+function tapFor(ctx: AudioContext, mix: GainNode) {
+  if (typeof window === "undefined") return;
+  const w = window as unknown as { songverseStems?: { tap?: boolean; stream?: MediaStream } };
+  if (!w.songverseStems?.tap) return;
+  const tap = ctx.createMediaStreamDestination();
+  mix.connect(tap);
+  w.songverseStems.stream = tap.stream;
+}
+
 /** While Sync play is on, stems loaded from now on play straight to the speakers. */
 export function setStemsDirectOutput(direct: boolean) {
   directOutput = direct;
@@ -677,7 +880,7 @@ export async function followStems(song: StemSong | null, timeline: StemTimeline 
   const zero = clock.timeOf(now.epoch) - now.position;
   // Already playing it there, within a few milliseconds: left as it is.
   if (state.playing && Math.abs(zero - startedAt) < REPLACE_BEYOND) return;
-  const when = Math.max(context.currentTime + 0.1, zero + now.position);
+  const when = Math.max(context.currentTime + 0.1 + latency, zero + now.position);
   const from = when - zero;
   if (from >= state.duration) return pause();
   applyGains(true);
@@ -709,7 +912,7 @@ export function realignStems() {
   const zero = clock.timeOf(state.anchor.epoch) - state.anchor.position;
   if (Math.abs(zero - startedAt) < REPLACE_BEYOND) return;
   noteStemsCorrection(zero - startedAt);
-  const when = context.currentTime + 0.05;
+  const when = context.currentTime + 0.05 + latency;
   startAt(when - zero, when, state.anchor);
 }
 

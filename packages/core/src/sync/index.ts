@@ -26,6 +26,10 @@ export interface SyncStems {
   songVersionId: string;
   /** Which of the song's multitracks (issue #123); null or left out, its original stems. */
   multitrackId?: string | null;
+  /** Transposed by this many semitones (issue #129); 0 or left out, as recorded. */
+  transpose?: number;
+  /** The drums and cues transposed too. */
+  transposeAll?: boolean;
   title: string;
   playing: boolean;
   /** Seconds into the recording. */

@@ -154,3 +154,9 @@ export const SEED_TUNING_PRESETS = [
   { slug: "open_g", name: "Open G", instrument: "GUITAR_ALTERNATE", notes: ["D", "G", "D", "G", "B", "D"], isDefault: false },
   { slug: "standard_ukulele", name: "Standard", instrument: "UKULELE_STANDARD", notes: ["G", "C", "E", "A"], isDefault: true },
 ] as const;
+
+/**
+ * Where Songverse's source is (AGPL-3.0, section 13: whoever uses it over
+ * the network is offered it). A modified copy points this at its own.
+ */
+export const SOURCE_CODE_URL = "https://github.com/bricedupuy/Songverse";

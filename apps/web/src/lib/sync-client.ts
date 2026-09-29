@@ -25,7 +25,7 @@ import {
 } from "#/lib/metronome-engine";
 import { getApiUrl } from "#/lib/public-env";
 import { fileLoader, songFiles } from "#/lib/song-files";
-import { followStems, getStemState, playableOf, realignStems, setStemsDirectOutput, unfollowStems, unlockStemsAudio, useStems, type StemSong, type StemState } from "#/lib/stem-engine";
+import { followStems, getStemState, playableOf, realignStems, setStemsDirectOutput, setStemsTranspose, unfollowStems, unlockStemsAudio, useStems, type StemSong, type StemState } from "#/lib/stem-engine";
 
 /**
  * Sync play in the browser (issue #13): one connection per tab to the API's
@@ -265,7 +265,11 @@ function applyStems(leader: string) {
     // Still the leader's, once the files are listed.
     const now = state.session?.stems;
     if (now?.songVersionId !== stems.songVersionId || (now.multitrackId ?? null) !== (stems.multitrackId ?? null) || state.leading) return;
-    void followStems(song, song ? timeline : null, leader);
+    // Transposed as the leader's (issue #129).
+    const transpose = stems.transpose ?? 0;
+    const transposeAll = stems.transposeAll ?? false;
+    void setStemsTranspose(transpose, transposeAll);
+    void followStems(song ? { ...song, transpose, transposeAll } : null, song ? timeline : null, leader);
   });
 }
 
@@ -279,6 +283,8 @@ function publishStems(stems: StemState) {
       ? {
           songVersionId: stems.songVersionId,
           multitrackId: stems.multitrackId,
+          transpose: stems.transpose,
+          transposeAll: stems.transposeAll,
           title: stems.title,
           playing: stems.playing && !!stems.anchor,
           position: stems.playing && stems.anchor ? stems.anchor.position : stems.position,
@@ -418,8 +424,18 @@ export function useSyncBridge() {
   useEffect(() => {
     if (!metronome.following) publishMetronome(metronome);
   }, [metronome]);
-  // Its position ticks along while it plays: only a start, pause, seek or another song goes out.
-  const stemsKey = JSON.stringify([stems.songVersionId, stems.status, stems.playing, stems.anchor, stems.playing ? 0 : stems.position, stems.following]);
+  // Its position ticks along while it plays: only a start, pause, seek, another song or multitrack, or a transposition goes out.
+  const stemsKey = JSON.stringify([
+    stems.songVersionId,
+    stems.multitrackId,
+    stems.status,
+    stems.playing,
+    stems.anchor,
+    stems.playing ? 0 : stems.position,
+    stems.following,
+    stems.transpose,
+    stems.transposeAll,
+  ]);
   useEffect(() => {
     if (!stems.following) publishStems(getStemState());
   }, [stemsKey]);
