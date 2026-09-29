@@ -164,6 +164,10 @@ jobs:
       - name: Install Chromium for Playwright
         run: pnpm --filter @songverse/e2e exec playwright install --with-deps chromium
 
+      # The Worker turns recorded takes into Opus with it (issue #127), as in the API/Worker image.
+      - name: Install ffmpeg
+        run: command -v ffmpeg || (sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends ffmpeg)
+
       - name: Apply database migrations
         run: pnpm --filter @songverse/db exec prisma migrate deploy
 

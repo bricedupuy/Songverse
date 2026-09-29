@@ -11,6 +11,7 @@ import {
   Headphones,
   Loader2,
   Metronome,
+  Mic,
   MicVocal,
   Music,
   Pause,
@@ -22,8 +23,11 @@ import {
 import { createContext, useContext, useEffect, useId, useMemo, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { multitracksOf } from "@songverse/core";
+import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
 import { Button } from "#/components/ui/button";
 import { setMode } from "#/lib/mode";
+import { useMultitrackName } from "#/lib/multitrack-name";
 import { setRecordingClick, useRecordingClick } from "#/lib/recording-click";
 import { unlockSyncAudio } from "#/lib/sync-client";
 import {
@@ -63,13 +67,6 @@ const PART_ICONS: Record<StemPart, LucideIcon> = {
 
 // Clear of the screen's rounded corners and the home indicator on a phone.
 const EDGES = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:px-6";
-
-/** A multitrack's name: its own, "Original stems" for the song's first, else "Multitrack 2"… */
-export function useMultitrackName() {
-  const { t } = useTranslation();
-  return (multitrack: { id: string | null; name: string | null }, index: number) =>
-    multitrack.name ?? (multitrack.id === null ? t("stems.originalStems") : t("stems.multitrackNumber", { number: index + 1 }));
-}
 
 function useTrackName() {
   const { t } = useTranslation();
@@ -113,7 +110,7 @@ export function StemDock({ song }: { song: StemSong }) {
         value={song.multitrackId ?? ""}
         onChange={(event) => {
           if (playing) pauseStems();
-          chooseMultitrack(song.songVersionId, event.target.value || null);
+          chooseMultitrack(song.choiceKey ?? song.songVersionId, event.target.value || null);
         }}
         aria-label={t("stems.multitrack")}
         data-testid="stem-multitrack"
@@ -124,6 +121,38 @@ export function StemDock({ song }: { song: StemSong }) {
           </option>
         ))}
       </select>
+    ) : null;
+  // Recording a part (issue #127), into the multitrack playing; not while following the leader.
+  const [recorderOpen, setRecorderOpen] = useState(false);
+  const recordButton =
+    song.record && !following ? (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="shrink-0"
+        onClick={() => setRecorderOpen(true)}
+        aria-label={t("recorder.recordPart")}
+        title={t("recorder.recordPart")}
+        data-testid="stem-record"
+      >
+        <Mic />
+      </Button>
+    ) : null;
+  const recorder =
+    recorderOpen && song.record ? (
+      <RecorderDialog
+        songVersionId={song.songVersionId}
+        songTitle={song.title}
+        multitracks={multitracksOf(song.record.attachments)}
+        target={song.stems[0] && (song.stems[0].stemPart !== null || song.stems[0].multitrackId) ? (song.multitrackId ?? "") : NEW_TARGET}
+        songTempo={song.tempo ?? null}
+        songTimeSignature={song.timeSignature ? `${song.timeSignature.numerator}/${song.timeSignature.denominator}` : ""}
+        songKey={song.record.songKey ?? ""}
+        setlist={song.record.setlist}
+        onClose={() => setRecorderOpen(false)}
+        onSaved={song.record.onSaved}
+      />
     ) : null;
 
   useEffect(() => {
@@ -245,6 +274,7 @@ export function StemDock({ song }: { song: StemSong }) {
               className="min-w-0 flex-1 accent-primary"
             />
             {picker}
+            {recordButton}
             {clickButton}
             <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => expand(false)} aria-label={t("stems.minimize")}>
               <ChevronDown />
@@ -317,7 +347,12 @@ export function StemDock({ song }: { song: StemSong }) {
     </section>
   );
 
-  return slot ? createPortal(dock, slot) : null;
+  return slot ? (
+    <>
+      {createPortal(dock, slot)}
+      {recorder}
+    </>
+  ) : null;
 }
 
 /**

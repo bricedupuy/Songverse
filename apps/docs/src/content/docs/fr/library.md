@@ -140,24 +140,43 @@ Les pistes gardées sur votre appareil pour le hors ligne (**Avec l'audio**, voi
 
 ### Multipistes
 
-Un chant peut avoir plus d'un jeu de pistes : ses **Pistes d'origine**, et des multipistes - des pistes enregistrées ensemble, une autre version ou vos propres couches (voir [Enregistrer une piste](/fr/library/#enregistrer-une-piste)). Chacun a son cadre dans l'onglet **Audio**, avec son **Nom**, son nombre de pistes, et ce dans quoi ses pistes ont été enregistrées : tonalité, tempo, mesure et premier temps, qu'elles partagent. Sous une piste, la liste **Multipiste** la déplace dans un autre, ou dans un **Nouveau multipiste** à elle : importez les fichiers d'une autre version, puis rassemblez-les ainsi.
+Un chant peut avoir plus d'un jeu de pistes : ses **Pistes d'origine**, et des multipistes - des pistes enregistrées ensemble, une autre version ou vos propres couches (voir [Enregistrer une piste](/fr/library/#enregistrer-une-piste)). Chacun a son cadre dans l'onglet **Audio**, avec son **Nom**, son nombre de pistes (et d'autres prises), la liste pour laquelle il a été enregistré s'il y en a une (**Pour aucune liste** l'en retire), et ce dans quoi ses pistes ont été enregistrées : tonalité, tempo, mesure et premier temps, qu'elles partagent. Sous une piste, la liste **Multipiste** la déplace dans un autre, ou dans un **Nouveau multipiste** à elle : importez les fichiers d'une autre version, puis rassemblez-les ainsi.
 
-En mode **Session**, le lecteur de pistes joue un multipiste à la fois : quand un chant en a plusieurs, la liste à côté de la barre de position passe de l'un à l'autre (**Pistes d'origine**, puis les autres par leur nom, ou **Multipiste 2**…). Songverse retient votre choix pour chaque chant sur l'appareil. En jeu synchronisé, chacun joue le multipiste du meneur, avec ses propres fichiers.
+En mode **Session**, le lecteur de pistes joue un multipiste à la fois : quand un chant en a plusieurs, la liste à côté de la barre de position passe de l'un à l'autre (**Pistes d'origine**, puis les autres par leur nom, ou **Multipiste 2**…). Songverse retient votre choix pour chaque chant sur l'appareil, et pour chaque page de chant d'une liste. En jeu synchronisé, chacun joue le multipiste du meneur, avec ses propres fichiers.
 
 ### Enregistrer une piste
 
 Vous pouvez enregistrer une piste directement dans Songverse, sur un ordinateur, un téléphone ou une tablette avec un micro :
 
 - **Enregistrer un nouveau multipiste**, en bas de l'onglet **Audio** : la première couche d'un chant, ou une autre version, avec le métronome seul. Donnez-lui un **Nom**, un **Tempo (BPM)** et une **Mesure** (ceux du chant pour commencer). Il commence par une mesure de décompte, qui est gardée : le premier temps du multipiste tombe une mesure plus loin.
-- **Enregistrer une piste**, dans le cadre d'un multipiste : une autre de ses pistes, en entendant les autres (décochez-en une sous **Entendre** pour la laisser de côté) et le clic, à son tempo, avec une mesure de décompte avant son premier temps.
+- **Enregistrer une piste**, dans le cadre d'un multipiste, ou le bouton micro de la vue agrandie du lecteur de pistes en mode **Session** : une autre piste de ce multipiste, en entendant les autres (décochez-en une sous **Entendre** pour la laisser de côté) et le clic, à son tempo, avec une mesure de décompte avant son premier temps.
+
+**Dans** passe d'un multipiste du chant à l'autre, ou à **Nouveau multipiste**. Sur la page d'un chant dans une liste, un nouveau multipiste peut être celui de cette liste (**Pour cette liste**) : là, c'est celui que joue le lecteur de pistes, sauf si vous en choisissez un autre.
 
 ![Enregistrer une piste, en entendant les autres](../../../assets/screenshots/fr/recorder.jpg)
 
 Choisissez la **Piste** que vous enregistrez, décochez **Clic** pour enregistrer sans métronome, et appuyez sur **Enregistrer** ; **Arrêter** termine la prise. Utilisez un casque, pour que le micro n'entende que vous, pas le clic et les autres pistes.
 
-Ce que vous jouez est calé sur ce que vous avez entendu : Songverse compense le retard entre un son qui sort de l'appareil et le moment où le micro l'entend. La fenêtre l'indique - estimé par le navigateur pour commencer. Pour une valeur plus juste, **Le mesurer** avec le son sur les haut-parleurs (casque retiré, son monté) : Songverse joue quelques clics, les écoute, et retient la mesure sur cet appareil.
+**La prise** indique ce qu'elle devient une fois gardée, quand le multipiste a déjà cette piste :
 
-**Écouter** rejoue la prise avec le reste. Si elle est encore un peu en avance ou en retard, déplacez **Caler** (en millisecondes) et réécoutez. **Garder** l'ajoute au multipiste comme cette piste - un fichier WAV que vous seul voyez, jusqu'à ce que vous choisissiez qui d'autre le voit (voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)) ; **Recommencer** refait une prise. Une prise peut durer jusqu'à neuf minutes environ.
+- **Remplace** celle qui y est, gardée comme **Autre prise** : pas jouée, mais là pour y revenir.
+- **Joue avec les autres** : une deuxième piste du même genre (deux guitares).
+- **Gardée comme autre prise, pas jouée**.
+
+Dans l'onglet **Audio**, **Utiliser cette prise** sous une autre prise la joue à la place de celle de sa piste, qui devient l'autre prise.
+
+**À partir de la mesure** enregistre à partir d'une mesure plutôt que du début - un punch-in : le décompte est la mesure d'avant, et la prise remplacée s'entend jusque-là. Ce qui précède reste tel quel, et ce que vous enregistrez remplace la suite, avec un court fondu enchaîné à la jonction.
+
+Ce que vous jouez est calé sur ce que vous avez entendu : Songverse compense le retard entre un son qui sort de l'appareil et le moment où le micro l'entend. La fenêtre l'indique - estimé par le navigateur pour commencer. Pour une valeur plus juste :
+
+- **Taper dans les mains**, casque sur les oreilles : écoutez deux clics, puis tapez dans les mains sur chacun des huit suivants, près du micro. Cela mesure tout le trajet - casque Bluetooth compris.
+- **Le mesurer**, avec le son sur les haut-parleurs (casque retiré, son monté) : Songverse joue quelques clics et les écoute.
+
+Songverse retient la mesure sur cet appareil. Un casque filaire est préférable : le Bluetooth ajoute un retard grand et variable, et la fenêtre prévient quand le son semble aller vers du Bluetooth. Refaites la mesure si une prise sonne en retard.
+
+**Écouter** rejoue la prise avec le reste. Si elle est encore un peu en avance ou en retard, déplacez **Caler** (en millisecondes) et réécoutez. **Garder** l'ajoute au multipiste comme cette piste, que vous seul voyez jusqu'à ce que vous choisissiez qui d'autre la voit (voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)) ; **Recommencer** refait une prise. Une prise peut durer jusqu'à neuf minutes environ.
+
+Une prise gardée est enregistrée en WAV, puis convertie en Opus en arrière-plan (mono, 96 kbit/s : environ un huitième de la taille) - **En cours de traitement…** s'affiche dessous jusque-là. Le silence après sa fin est coupé, jamais avant, pour qu'elle reste en place. **Égaliser le niveau** (coché pour commencer) l'amène à un volume standard ; **Réduire le bruit de fond** retire un bruit constant - souffle, ronflement, ventilateur - appris sur le décompte quand c'est possible, en douceur pour ne pas toucher à la musique.
 
 ## Proposer au catalogue global
 

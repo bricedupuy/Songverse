@@ -551,6 +551,13 @@ export interface Attachment {
   /** The multitrack it's part of (issue #123): files recorded together; null for the song's original stems. */
   multitrackId: string | null;
   multitrackName: string | null;
+  /** The set its multitrack was recorded for (issue #127). */
+  multitrackSetlistId: string | null;
+  multitrackSetlist: { id: string; name: string | null; eventDate: string | null } | null;
+  /** Another take of its part, kept but not played (issue #127). */
+  otherTake: boolean;
+  /** A recorded take being turned into Opus (PENDING), or that couldn't be (FAILED); null once done, or for any other file. */
+  processing: "PENDING" | "FAILED" | null;
   /** Who sees it besides its uploader (issue #72): nobody, a team, or everyone who sees the song. */
   visibility: AttachmentVisibility;
   visibleToTeamId: string | null;
@@ -575,6 +582,10 @@ export interface RecordingDetails {
   recordingFirstBeat?: number;
   multitrackId?: string;
   multitrackName?: string;
+  multitrackSetlistId?: string;
+  /** A recorded WAV take to turn into Opus (issue #127): "encode", plus ",level" and ",noise" if wanted. */
+  process?: string;
+  otherTake?: boolean;
 }
 
 export interface AttachmentAudience {
@@ -759,6 +770,8 @@ export interface JobsHeartbeat {
   host: string;
   /** Its SETTINGS_ENCRYPTION_KEY against the API's (issue #95); null from a Worker too old to say. */
   settingsKey: "missing" | "different" | "same" | null;
+  /** Its ffmpeg's version, "" without one (recorded takes stay WAV, issue #127); null from a process too old to say. */
+  ffmpeg: string | null;
 }
 
 export interface JobsStatus {
@@ -1337,8 +1350,11 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     updateAttachment: (
       songVersionId: string,
       attachmentId: string,
-      change: { stemPart?: StemPart | null; visibility?: AttachmentVisibility; teamId?: string | null } & { [K in keyof RecordingDetails]?: RecordingDetails[K] | null },
+      change: { stemPart?: StemPart | null; visibility?: AttachmentVisibility; teamId?: string | null } & { [K in Exclude<keyof RecordingDetails, "process" | "otherTake">]?: RecordingDetails[K] | null } & { otherTake?: boolean },
     ) => request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify(change) }),
+    /** Plays this take of its part (issue #127), instead of `instead` (kept as another take) if given; answers the song's files. */
+    useTake: (songVersionId: string, attachmentId: string, instead: string | null = null) =>
+      request<Attachment[]>(`/song-versions/${songVersionId}/attachments/${attachmentId}/use-take`, { method: "POST", body: JSON.stringify({ instead }) }),
     deleteAttachment: (songVersionId: string, attachmentId: string) =>
       request<void>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "DELETE" }),
     /** The file; `onProgress` hears each chunk as it arrives (bytes so far, and the size if the server says). */

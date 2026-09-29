@@ -17,6 +17,10 @@ export class AttachmentResponseDto {
   @ApiProperty({ nullable: true, description: '"4/4", "6/8"…' }) recordingTimeSignature!: string | null;
   @ApiProperty({ nullable: true, description: "The multitrack it's part of (files recorded together); null for the song's original stems." }) multitrackId!: string | null;
   @ApiProperty({ nullable: true }) multitrackName!: string | null;
+  @ApiProperty({ nullable: true, description: "The set its multitrack was recorded for." }) multitrackSetlistId!: string | null;
+  @ApiProperty({ nullable: true, description: "That set: its id, name and date (YYYY-MM-DD)." }) multitrackSetlist!: { id: string; name: string | null; eventDate: string | null } | null;
+  @ApiProperty({ description: "Another take of its part, kept but not played." }) otherTake!: boolean;
+  @ApiProperty({ enum: ["PENDING", "FAILED"], nullable: true, description: "A recorded take being turned into Opus, or that couldn't be; null once done." }) processing!: "PENDING" | "FAILED" | null;
   @ApiProperty({ enum: ["PRIVATE", "TEAM", "SONG", "SHARED"] }) visibility!: "PRIVATE" | "TEAM" | "SONG" | "SHARED";
   @ApiProperty({ nullable: true }) visibleToTeamId!: string | null;
   @ApiProperty({ nullable: true }) uploadedByUserId!: string | null;

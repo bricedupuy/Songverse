@@ -26,6 +26,7 @@ import { StreamingLinkRow } from "#/components/streaming-link-row";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
+import { setlistTitle } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 import { attachmentTypeFor } from "./attachment-types";
 import { downloadBlob } from "#/lib/download";
@@ -35,8 +36,8 @@ import { Input } from "#/components/ui/input";
 import { KeySelect } from "#/components/key-select";
 import { setMode, useMode } from "#/lib/mode";
 import { stemsOf } from "#/lib/stem-engine";
-import { useMultitrackName } from "#/components/stem-dock";
-import { RecorderDialog } from "#/components/recorder-dialog";
+import { useMultitrackName } from "#/lib/multitrack-name";
+import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
 
 const NEW_MULTITRACK = "__new";
 
@@ -332,9 +333,10 @@ function MultitrackBox({
   onChange: (files: Attachment[], change: Parameters<typeof apiClient.updateAttachment>[2]) => void;
   onRecord: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const nameOf = useMultitrackName();
-  const changeable = multitrack.files.filter((file) => file.canChange);
+  const changeable = [...multitrack.files, ...multitrack.otherTakes].filter((file) => file.canChange);
+  const set = [...multitrack.files, ...multitrack.otherTakes].find((file) => file.multitrackSetlist)?.multitrackSetlist ?? null;
   const name = nameOf(multitrack, index);
   const [draft, setDraft] = useState(multitrack.name ?? "");
   useEffect(() => setDraft(multitrack.name ?? ""), [multitrack.name]);
@@ -347,13 +349,28 @@ function MultitrackBox({
     <div className="flex flex-col gap-2 rounded-lg border p-3" data-testid="stems-recording" data-multitrack={multitrack.id ?? ""}>
       <div className="flex flex-wrap items-center gap-2">
         <p className="min-w-0 flex-1 text-sm font-medium">
-          {name} <span className="font-normal text-muted-foreground">· {t("stems.partsCount", { count: multitrack.files.length })}</span>
+          {name}{" "}
+          <span className="font-normal text-muted-foreground">
+            · {t("stems.partsCount", { count: multitrack.files.length })}
+            {multitrack.otherTakes.length > 0 ? ` · ${t("stems.otherTakesCount", { count: multitrack.otherTakes.length })}` : ""}
+          </span>
         </p>
         <Button type="button" variant="outline" size="sm" onClick={onRecord} disabled={busy} data-testid="record-part">
           <Mic />
           {t("recorder.recordPart")}
         </Button>
       </div>
+      {/* Recorded for a set (issue #127): what that set's song page plays. */}
+      {set ? (
+        <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" data-testid="multitrack-set">
+          {t("stems.forSet", { name: setlistTitle(set, t, i18n.language) })}
+          {changeable.length > 0 ? (
+            <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" disabled={busy} onClick={() => onChange(changeable, { multitrackSetlistId: null })}>
+              {t("stems.notForSet")}
+            </Button>
+          ) : null}
+        </p>
+      ) : null}
       <p className="text-xs text-muted-foreground">{t("stems.recordingHint")}</p>
       {changeable.length > 0 ? (
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -432,7 +449,31 @@ export function AttachmentsTab({
   const multitracks = kind === "audio" ? multitracksOf(attachments) : [];
   const nameOf = useMultitrackName();
   // Recording a part (issue #123): into a multitrack, or a new one (null).
-  const [recording, setRecording] = useState<{ multitrack: Multitrack<Attachment> | null } | null>(null);
+  const [recording, setRecording] = useState<{ target: string } | null>(null);
+  // Takes being turned into Opus by the Worker (issue #127): looked at again until they're done.
+  const processing = attachments.some((file) => file.processing === "PENDING");
+  useEffect(() => {
+    if (!processing) return;
+    const timer = setInterval(() => void router.invalidate(), 3000);
+    return () => clearInterval(timer);
+  }, [processing]);
+
+  /** Plays another take of a part (issue #127), instead of the one of that part playing, which becomes another take. */
+  async function useTake(take: Attachment) {
+    const playing = attachments.find(
+      (file) => file.type === "AUDIO" && !file.otherTake && file.canChange && file.stemPart === take.stemPart && (file.multitrackId ?? null) === (take.multitrackId ?? null),
+    );
+    setBusyId(take.id);
+    setError(null);
+    try {
+      await apiClient.useTake(songVersionId, take.id, playing?.id ?? null);
+      await router.invalidate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  }
   const shown = attachments.filter((a) => (kind === "audio" ? a.type === "AUDIO" : a.type !== "AUDIO"));
 
   useEffect(() => {
@@ -531,7 +572,7 @@ export function AttachmentsTab({
                 songTempo={songTempo}
                 busy={busyId !== null}
                 onChange={(files, change) => void update(files, change)}
-                onRecord={() => setRecording({ multitrack })}
+                onRecord={() => setRecording({ target: multitrack.id ?? "" })}
               />
             ))}
             <ul className="flex flex-col divide-y" data-testid={`${kind}-list`}>
@@ -574,6 +615,23 @@ export function AttachmentsTab({
                       ) : null}
                     </span>
                   </div>
+                  {/* A recorded take (issue #127): being processed, or not played (another take of its part). */}
+                  {kind === "audio" && (attachment.otherTake || attachment.processing) ? (
+                    <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="take-state">
+                      {attachment.processing === "PENDING" ? <span className="text-muted-foreground">{t("recorder.processing")}</span> : null}
+                      {attachment.processing === "FAILED" ? <span className="text-destructive">{t("recorder.processingFailed")}</span> : null}
+                      {attachment.otherTake ? (
+                        <>
+                          <span className="rounded-md bg-muted px-2 py-1 font-medium">{t("recorder.otherTake")}</span>
+                          {attachment.canChange ? (
+                            <Button type="button" variant="outline" size="sm" onClick={() => void useTake(attachment)} disabled={busyId !== null} data-testid="use-take">
+                              {t("recorder.useThisTake")}
+                            </Button>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" data-testid="file-visibility">
                     {attachment.canChangeVisibility ? (
                       <label className="flex items-center gap-2">
@@ -672,7 +730,7 @@ export function AttachmentsTab({
           {kind === "audio" ? <p className="text-xs text-muted-foreground">{t("stems.detectHint")}</p> : null}
           {/* The first layer of a song, or another version of it: a new multitrack, with the metronome only (#123). */}
           {kind === "audio" ? (
-            <Button type="button" variant="outline" className="self-start" onClick={() => setRecording({ multitrack: null })} disabled={busyId !== null} data-testid="record-new">
+            <Button type="button" variant="outline" className="self-start" onClick={() => setRecording({ target: NEW_TARGET })} disabled={busyId !== null} data-testid="record-new">
               <Mic />
               {t("recorder.recordNew")}
             </Button>
@@ -681,8 +739,8 @@ export function AttachmentsTab({
             <RecorderDialog
               songVersionId={songVersionId}
               songTitle={songTitle}
-              multitrack={recording.multitrack}
-              multitrackName={recording.multitrack ? nameOf(recording.multitrack, multitracks.indexOf(recording.multitrack)) : null}
+              multitracks={multitracks}
+              target={recording.target}
               songTempo={songTempo ? Number(songTempo) : null}
               songTimeSignature={songTimeSignature}
               songKey={songKey}

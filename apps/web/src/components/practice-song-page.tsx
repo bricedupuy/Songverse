@@ -1,5 +1,5 @@
 import { getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type SongVersionDetail } from "@songverse/core";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -34,6 +34,7 @@ export function PracticeSongPage({
   capoDisplay: CapoDisplayModeValue;
 }) {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const chart = useMemo(
     () =>
       renderChart(version.documentJson, null, {
@@ -100,6 +101,7 @@ export function PracticeSongPage({
             load: (file, onProgress) => apiClient.downloadAttachment(version.id, file.id, onProgress),
             tempo: chart.tempo,
             timeSignature: chart.timeSignature,
+            record: { attachments, songKey: chart.key ?? undefined, onSaved: () => void router.invalidate() },
           }}
         />
       ) : youtubeId ? (

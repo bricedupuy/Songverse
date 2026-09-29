@@ -4,12 +4,14 @@ import type { WorkerHost } from "@nestjs/bullmq";
 import { hostname } from "node:os";
 import { BulkUploadProcessor } from "../bulk-upload/bulk-upload.processor.js";
 import { BackfillsProcessor, LookupsProcessor } from "../lookups/lookups.processor.js";
+import { RecordingsProcessor } from "../recordings/recordings.processor.js";
+import { ffmpegVersion } from "../recordings/ffmpeg.js";
 import { TransferExpiryProcessor } from "../user-management/transfer-expiry.processor.js";
 import { HEARTBEAT_KEY, settingsKeyCheck } from "./jobs.constants.js";
 import { redis } from "./redis.js";
 
 /** Every job processor: a new one needs adding here, or no process runs its jobs. */
-const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor, BackfillsProcessor];
+const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor, BackfillsProcessor, RecordingsProcessor];
 
 const logger = new Logger("Jobs");
 
@@ -25,10 +27,17 @@ export function startJobs(app: INestApplicationContext, role: "worker" | "api"):
     queues.push(host.worker.name);
     host.worker.run().catch((err: unknown) => logger.error(`${processor.name} stopped: ${err instanceof Error ? err.message : String(err)}`));
   }
+  // Whether this process can process recorded takes (issue #127), for Admin.
+  let ffmpeg: string | null | undefined;
   const beat = () =>
     redis()
-      .set(HEARTBEAT_KEY(role), JSON.stringify({ at: new Date().toISOString(), host: hostname(), pid: process.pid, settingsKey: settingsKeyCheck() }), "EX", 60)
+      .set(HEARTBEAT_KEY(role), JSON.stringify({ at: new Date().toISOString(), host: hostname(), pid: process.pid, settingsKey: settingsKeyCheck(), ffmpeg }), "EX", 60)
       .catch(() => undefined);
+  void ffmpegVersion().then((version) => {
+    ffmpeg = version;
+    if (!version) logger.warn("ffmpeg isn't installed: recorded takes stay as WAV");
+    void beat();
+  });
   void beat();
   const timer = setInterval(beat, 15000);
   // Named, so a deploy's logs show which queues this process runs.

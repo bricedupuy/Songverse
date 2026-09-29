@@ -118,3 +118,70 @@ export function roundTripFrom(captured: Float32Array, options: { sampleRate: num
 }
 
 const round = (value: number) => Math.round(value * 100000) / 100000;
+
+/**
+ * Where a take recorded from bar `fromBar` starts (issue #127): its first
+ * beat plus that many bars (s), with a bar of count-in before it. Bar 1
+ * is the take's start, as recordingPlan says.
+ */
+export function punchInAt(options: { tempo: number; beatsPerBar: number; firstBeat: number; fromBar: number }): { from: number; lead: number } {
+  const bar = (60 / options.tempo) * options.beatsPerBar;
+  if (options.fromBar <= 1) return { from: 0, lead: Math.max(0, bar - options.firstBeat) };
+  return { from: round(options.firstBeat + (options.fromBar - 1) * bar), lead: round(bar) };
+}
+
+/**
+ * A punch-in (issue #127): the take it replaces up to `at` (samples),
+ * then the new one from there, crossfaded over `fade` samples so the
+ * seam doesn't click. Both from the multitrack's 0:00.
+ */
+export function spliceTake(existing: Float32Array, take: Float32Array, at: number, fade = 480): Float32Array {
+  const start = Math.max(0, Math.min(at, existing.length));
+  const out = new Float32Array(Math.max(take.length, start));
+  out.set(existing.subarray(0, start));
+  for (let i = start; i < take.length; i++) {
+    const into = i - start;
+    if (into < fade && i < existing.length) {
+      const mix = (into + 0.5) / fade;
+      out[i] = existing[i]! * (1 - mix) + take[i]! * mix;
+    } else {
+      out[i] = take[i]!;
+    }
+  }
+  return out;
+}
+
+/**
+ * The round trip measured by clapping along (issue #127): the clicks go to
+ * the headphones, the microphone hears the claps. Each clap is looked for
+ * from a little before its click (a clap can be early) to a little after;
+ * the median lateness of those heard is the delay - everything between
+ * the click being played and the clap being captured, Bluetooth included,
+ * with the clapper's own timing averaged out. Null when fewer than half
+ * the claps were heard.
+ */
+export function clapDelayFrom(captured: Float32Array, options: { sampleRate: number; capturedAt: number; playedAt: number[] }): number | null {
+  const { sampleRate } = options;
+  // The room: most samples are between claps.
+  const sorted = Float32Array.from(captured, Math.abs).sort();
+  const floor = sorted[Math.floor(sorted.length * 0.8)] ?? 0;
+  const delays: number[] = [];
+  for (const played of options.playedAt) {
+    const at = Math.round((played - options.capturedAt) * sampleRate);
+    const start = Math.max(0, at - Math.round(0.2 * sampleRate));
+    const end = Math.min(captured.length, at + Math.round(0.6 * sampleRate));
+    let peak = 0;
+    for (let i = start; i < end; i++) peak = Math.max(peak, Math.abs(captured[i]!));
+    if (peak < 0.02 || peak < floor * 6) continue;
+    const threshold = Math.max(floor * 4, peak * 0.3);
+    for (let i = start; i < end; i++) {
+      if (Math.abs(captured[i]!) >= threshold) {
+        delays.push((i - at) / sampleRate);
+        break;
+      }
+    }
+  }
+  if (delays.length === 0 || delays.length < options.playedAt.length / 2) return null;
+  delays.sort((a, b) => a - b);
+  return round(Math.max(0, delays[Math.floor(delays.length / 2)]!));
+}

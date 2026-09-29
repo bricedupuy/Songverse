@@ -140,24 +140,43 @@ Stems kept on your device for offline use (**Include audio**, see [Working offli
 
 ### Multitracks
 
-A song can have more than one set of stems: its **Original stems**, and multitracks - parts recorded together, another version or your own layers (see [Recording a part](/library/#recording-a-part)). Each has its box on the **Audio** tab, with its **Name**, its number of parts, and what its parts were recorded in: its key, tempo, time signature and first beat, which they share. Under a stem, the **Multitrack** list moves it into another one, or into a **New multitrack** of its own: upload the files of another version, then put them together that way.
+A song can have more than one set of stems: its **Original stems**, and multitracks - parts recorded together, another version or your own layers (see [Recording a part](/library/#recording-a-part)). Each has its box on the **Audio** tab, with its **Name**, its number of parts (and of other takes), the set it was recorded for if any (**Not for a set** takes it off), and what its parts were recorded in: its key, tempo, time signature and first beat, which they share. Under a stem, the **Multitrack** list moves it into another one, or into a **New multitrack** of its own: upload the files of another version, then put them together that way.
 
-In **Practice**, the stem player plays one multitrack at a time: when a song has more than one, the list beside the position bar switches between them (**Original stems**, then the others by name, or **Multitrack 2**...). Songverse remembers your choice for each song on the device. Playing in sync, everyone plays the leader's multitrack, with their own files of it.
+In **Practice**, the stem player plays one multitrack at a time: when a song has more than one, the list beside the position bar switches between them (**Original stems**, then the others by name, or **Multitrack 2**...). Songverse remembers your choice for each song on the device, and for each set's song page. Playing in sync, everyone plays the leader's multitrack, with their own files of it.
 
 ### Recording a part
 
 You can record a part straight into Songverse, on a computer, phone or tablet with a microphone:
 
 - **Record a new multitrack**, at the bottom of the **Audio** tab: the first layer of a song, or another version of it, with the metronome only. Give it a **Name**, a **Tempo (BPM)** and a **Time signature** (the song's to start with). It starts with a bar of count-in, which is kept: the multitrack's first beat is one bar in.
-- **Record a part**, in a multitrack's box: another part of it, hearing its other parts (untick one under **Hear** to leave it out) and the click, at its tempo, with a bar of count-in before its first beat.
+- **Record a part**, in a multitrack's box, or the microphone button in the stem player's expanded view in **Practice**: another part of that multitrack, hearing its other parts (untick one under **Hear** to leave it out) and the click, at its tempo, with a bar of count-in before its first beat.
+
+**Into** switches between the song's multitracks and **New multitrack**. On a set's song page, a new multitrack can be that set's (**For this set**): there, it's the one the stem player plays, unless you choose another.
 
 ![Recording a part of the stems, hearing the others](../../assets/screenshots/en/recorder.jpg)
 
 Choose the **Part** you're recording, untick **Click** to record without the metronome, and press **Record**; **Stop** ends the take. Use headphones, so the microphone only hears you, not the click and the other parts.
 
-What you play is lined up with what you heard: Songverse takes off the delay between a sound leaving the device and the microphone hearing it. The dialog shows it - the browser's estimate to start with. For a closer one, **Measure it** with the sound on the speakers (headphones off, sound up): Songverse plays a few clicks and listens for them, and remembers what it measured on this device.
+**The take** says what it does once kept, when the multitrack already has that part:
 
-**Listen** plays the take back with the rest. If it's still a little early or late, move **Line up** (in milliseconds) and listen again. **Keep** adds it to the multitrack as that part - a WAV file only you see, until you choose who else does (see [Who sees a file](/library/#who-sees-a-file)); **Record again** tries again. A take can be up to about nine minutes long.
+- **Plays instead of** the one there, which is kept as an **Other take**: not played, but there to go back to.
+- **Plays with the others**: a second part of the same kind (two guitars).
+- **Kept as another take, not played**.
+
+On the **Audio** tab, **Use this take** under an other take plays it instead of the one of its part playing, which becomes the other take.
+
+**From bar** records from a bar on rather than from the start - a punch-in: the count-in is the bar before it, and the take it replaces is heard up to there. What's before it stays as it was, and what you record replaces the rest, with a short crossfade at the seam.
+
+What you play is lined up with what you heard: Songverse takes off the delay between a sound leaving the device and the microphone hearing it. The dialog shows it - the browser's estimate to start with. For a closer one:
+
+- **Clap along**, with your headphones on: listen to two clicks, then clap on each of the next eight, near the microphone. It measures the whole way round - Bluetooth headphones included.
+- **Measure it**, with the sound on the speakers (headphones off, sound up): Songverse plays a few clicks and listens for them.
+
+Songverse remembers what it measured on this device. Wired headphones are best: Bluetooth adds a delay that's large and can change, so the dialog warns when the sound seems to go to Bluetooth. Clap along again if a take sounds late.
+
+**Listen** plays the take back with the rest. If it's still a little early or late, move **Line up** (in milliseconds) and listen again. **Keep** adds it to the multitrack as that part, only you see it until you choose who else does (see [Who sees a file](/library/#who-sees-a-file)); **Record again** tries again. A take can be up to about nine minutes long.
+
+A kept take is recorded as a WAV file, then turned into Opus in the background (mono, 96 kbps: about an eighth of the size) - **Being processed…** shows under it until then. The silence after its end is trimmed, never before it, so it stays in time. **Even out the level** (on to start with) brings it to a standard loudness; **Reduce background noise** takes out steady noise - hiss, hum, a fan - learning it from the count-in when it can, gently so the music is left alone.
 
 ## Submitting to the global catalogue
 

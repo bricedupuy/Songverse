@@ -98,6 +98,20 @@ export function BackgroundJobsCard() {
                   {t(status.worker.settingsKey === "missing" ? "jobs.workerKeyMissing" : "jobs.workerKeyDifferent")}
                 </p>
               ) : null}
+              {/* Recorded takes need ffmpeg where the jobs run (issue #127). */}
+              {(() => {
+                const ffmpeg = (status.worker ?? status.api)?.ffmpeg;
+                if (ffmpeg === null || ffmpeg === undefined) return null;
+                return ffmpeg ? (
+                  <p className="text-muted-foreground" data-testid="jobs-ffmpeg">
+                    {t("jobs.ffmpeg", { version: ffmpeg })}
+                  </p>
+                ) : (
+                  <p className="text-destructive" data-testid="jobs-ffmpeg">
+                    {t("jobs.ffmpegMissing")}
+                  </p>
+                );
+              })()}
             </div>
             <ul className="flex flex-col divide-y rounded-md border text-sm">
               {status.queues.map((queue) => (

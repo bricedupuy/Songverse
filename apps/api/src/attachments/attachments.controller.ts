@@ -27,7 +27,7 @@ import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AttachmentsService } from "./attachments.service.js";
 import { AttachmentResponseDto } from "./dto/attachment-response.dto.js";
-import { UpdateAttachmentDto, UploadAttachmentDto } from "./dto/upload-attachment.dto.js";
+import { UpdateAttachmentDto, UploadAttachmentDto, UseTakeDto } from "./dto/upload-attachment.dto.js";
 import { sniffAudioType } from "./sniff-audio.js";
 import { FileLinksService } from "../files/file-links.service.js";
 import { sendFile } from "../files/send-file.js";
@@ -98,7 +98,9 @@ export class AttachmentsController {
         recordingFirstBeat: dto.recordingFirstBeat,
         multitrackId: dto.multitrackId,
         multitrackName: dto.multitrackName,
+        multitrackSetlistId: dto.multitrackSetlistId,
       },
+      { process: dto.process, otherTake: dto.otherTake },
     );
   }
 
@@ -114,6 +116,21 @@ export class AttachmentsController {
     if (!user) throw new UnauthorizedException();
     await this.access.assertCanSeeSong(user, songVersionId);
     return this.attachmentsService.update(user, songVersionId, attachmentId, dto);
+  }
+
+  /** Plays this take of its part (issue #127), instead of another file of its multitrack, which is kept as another take. Answers the song's files. */
+  @Post(":attachmentId/use-take")
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ type: AttachmentResponseDto, isArray: true })
+  async useTake(
+    @Param("songVersionId") songVersionId: string,
+    @Param("attachmentId") attachmentId: string,
+    @Body() dto: UseTakeDto,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ): ReturnType<AttachmentsService["useTake"]> {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
+    return this.attachmentsService.useTake(user, songVersionId, attachmentId, dto.instead ?? null);
   }
 
   /** Streamed, with byte ranges (issue #33). */

@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 import type { Job, Queue } from "bullmq";
 import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types.js";
 import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor.js";
-import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, settingsKeyCheck } from "./jobs.constants.js";
+import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, RECORDINGS_QUEUE, settingsKeyCheck } from "./jobs.constants.js";
 import { redis } from "./redis.js";
 
 interface Beat {
@@ -14,6 +14,8 @@ interface Beat {
    * "different", "same", or null from a Worker too old to say.
    */
   settingsKey: "missing" | "different" | "same" | null;
+  /** Its ffmpeg's version, "" when it has none (recorded takes stay WAV, issue #127), or null from a process too old to say. */
+  ffmpeg: string | null;
 }
 
 export interface JobsStatus {
@@ -51,23 +53,28 @@ export class JobsService {
     @InjectQueue(BACKFILLS_QUEUE) private readonly backfills: Queue,
     @InjectQueue(BULK_UPLOAD_QUEUE) private readonly bulkUpload: Queue,
     @InjectQueue(USER_MAINTENANCE_QUEUE) private readonly maintenance: Queue,
+    @InjectQueue(RECORDINGS_QUEUE) private readonly recordings: Queue,
   ) {}
+
+  private get queues(): Queue[] {
+    return [this.lookups, this.backfills, this.bulkUpload, this.maintenance, this.recordings];
+  }
 
   async status(): Promise<JobsStatus> {
     const beat = async (role: "worker" | "api") => {
       try {
         const raw = await redis().get(HEARTBEAT_KEY(role));
         if (!raw) return null;
-        const { at, host, settingsKey } = JSON.parse(raw) as { at: string; host: string; settingsKey?: string | null };
+        const { at, host, settingsKey, ffmpeg } = JSON.parse(raw) as { at: string; host: string; settingsKey?: string | null; ffmpeg?: string | null };
         const mine = settingsKeyCheck();
         const key = settingsKey === undefined ? null : settingsKey === null ? "missing" : settingsKey === mine ? "same" : "different";
         // Only the verdict: the hash stays in Redis.
-        return { at, host, settingsKey: key } satisfies Beat;
+        return { at, host, settingsKey: key, ffmpeg: ffmpeg === undefined ? null : (ffmpeg ?? "") } satisfies Beat;
       } catch {
         return null;
       }
     };
-    const queues = [this.lookups, this.backfills, this.bulkUpload, this.maintenance];
+    const queues = this.queues;
     const [worker, api, counts, completed, failedJobs] = await Promise.all([
       beat("worker"),
       beat("api"),
@@ -111,7 +118,7 @@ export class JobsService {
   /** Clears every queue's failed jobs (issue #93), those without details left too; returns how many. */
   async clearFailed(): Promise<{ cleared: number }> {
     let cleared = 0;
-    for (const queue of [this.lookups, this.backfills, this.bulkUpload, this.maintenance]) {
+    for (const queue of this.queues) {
       cleared += (await queue.clean(0, 100000, "failed")).length;
       // IDs left in the failed set with no job behind them: clean() only sees jobs it can read.
       const client = await queue.client;

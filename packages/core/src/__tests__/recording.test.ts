@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alignTake, clickTimes, encodeWav, multitracksOf, recordingPlan, roundTripFrom } from "../index.js";
+import { alignTake, clapDelayFrom, clickTimes, encodeWav, multitracksOf, punchInAt, recordingPlan, roundTripFrom, spliceTake } from "../index.js";
 
 describe("multitracks (issue #123)", () => {
   const file = (filename: string, stemPart: string | null, multitrackId: string | null, createdAt: string, multitrackName: string | null = null, type = "AUDIO") =>
@@ -67,5 +67,33 @@ describe("recording a part (issue #123)", () => {
     for (const at of played) for (let i = 0; i < 20; i++) captured[Math.round((at + 0.087 - 0.1) * sampleRate) + i] = 0.4 * (i % 2 ? -1 : 1);
     expect(roundTripFrom(captured, { sampleRate, capturedAt: 0.1, playedAt: played })).toBeCloseTo(0.087, 3);
     expect(roundTripFrom(new Float32Array(3000), { sampleRate, capturedAt: 0.1, playedAt: played })).toBeNull();
+  });
+});
+
+describe("recording, step 2 (issue #127)", () => {
+  it("a punch-in from a bar: that bar's start, with a bar of count-in", () => {
+    expect(punchInAt({ tempo: 120, beatsPerBar: 4, firstBeat: 0.5, fromBar: 3 })).toEqual({ from: 4.5, lead: 2 });
+    expect(punchInAt({ tempo: 120, beatsPerBar: 4, firstBeat: 0.5, fromBar: 1 })).toEqual({ from: 0, lead: 1.5 });
+  });
+
+  it("a punch-in keeps the old take up to the seam, crossfades, then the new one", () => {
+    const old = new Float32Array(10).fill(1);
+    const take = new Float32Array(12).fill(0.5);
+    const spliced = spliceTake(old, take, 4, 2);
+    expect([...spliced]).toEqual([1, 1, 1, 1, 0.875, 0.625, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+    // A take shorter than the seam: the old one up to it.
+    expect(spliceTake(old, new Float32Array(2), 4).length).toBe(4);
+  });
+
+  it("the delay from claps along with the clicks: their median lateness, an early clap counted too", () => {
+    const sampleRate = 1000;
+    const captured = new Float32Array(6000).map(() => (Math.random() - 0.5) * 0.004);
+    const played = [0.5, 1.1, 1.7, 2.3, 2.9, 3.5];
+    const late = [0.21, 0.19, 0.2, 0.25, 0.18, 0.2];
+    played.forEach((at, i) => {
+      for (let k = 0; k < 15; k++) captured[Math.round((at + late[i]!) * sampleRate) + k] = 0.5 * (k % 2 ? -1 : 1);
+    });
+    expect(clapDelayFrom(captured, { sampleRate, capturedAt: 0, playedAt: played })).toBeCloseTo(0.2, 2);
+    expect(clapDelayFrom(new Float32Array(6000), { sampleRate, capturedAt: 0, playedAt: played })).toBeNull();
   });
 });

@@ -51,6 +51,15 @@ export const UploadAttachmentSchema = z.strictObject({
   recordingTempo: formField(formNumber("recordingTempo", 20, 400)),
   recordingTimeSignature: formField(timeSignature),
   recordingFirstBeat: formField(formNumber("recordingFirstBeat", 0, 600)),
+  multitrackSetlistId: formField(z.string().max(40)),
+  /**
+   * A recorded take (issue #127), turned into Opus by the Worker: "encode"
+   * alone, or with "level" (even out its level) and "noise" (reduce
+   * background noise), comma-separated. Only for a WAV file.
+   */
+  process: formField(z.string().regex(/^encode(,(level|noise))*$/, { message: "process must be encode, then level and noise if wanted, comma-separated" })),
+  /** Kept as another take of its part, not played (issue #127). */
+  otherTake: formField(z.enum(["true", "false"]).transform((value) => value === "true")),
 });
 
 /** What's left out stays as it is; null clears it. */
@@ -63,9 +72,18 @@ export const UpdateAttachmentSchema = z.strictObject({
   /** Null: the song's original stems. */
   multitrackId: multitrackId.nullable().optional(),
   multitrackName: multitrackName.transform((value) => value || null).nullable().optional(),
+  /** The set its multitrack was recorded for (issue #127); null for none. */
+  multitrackSetlistId: z.string().max(40).nullable().optional(),
+  /** Another take, not played (true), or the one played (false) - see UseTakeSchema to swap. */
+  otherTake: z.boolean().optional(),
   visibility: optional(visibility),
   teamId: optional(z.string()),
 });
+/** Plays this take of a part (issue #127), instead of another file of the multitrack, which becomes another take. */
+export const UseTakeSchema = z.strictObject({
+  instead: z.string().max(40).nullable().optional(),
+});
+
 export type UpdateAttachmentRequest = z.input<typeof UpdateAttachmentSchema>;
 
 export const BULK_UPLOAD_TYPES = ["CHORDPRO", "PDF"] as const;

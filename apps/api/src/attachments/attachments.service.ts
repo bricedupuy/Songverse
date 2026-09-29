@@ -1,4 +1,6 @@
+import { InjectQueue } from "@nestjs/bullmq";
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
+import type { Queue } from "bullmq";
 import { parseKey, type StemPart } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
 import { AccessPolicyService, type Viewer } from "../access/access-policy.service.js";
@@ -7,6 +9,8 @@ import { ImageService, type ProcessedImage } from "../images/image.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { StorageQuotaService } from "../storage/storage-quota.service.js";
 import { StorageService } from "../storage/storage.service.js";
+import { RECORDINGS_QUEUE } from "../jobs/jobs.constants.js";
+import type { ProcessTakeJob } from "../recordings/recordings.processor.js";
 import type { AttachmentTypeValue } from "./dto/upload-attachment.dto.js";
 
 @Injectable()
@@ -17,6 +21,7 @@ export class AttachmentsService {
     private readonly quota: StorageQuotaService,
     private readonly images: ImageService,
     private readonly access: AccessPolicyService,
+    @InjectQueue(RECORDINGS_QUEUE) private readonly recordings: Queue<ProcessTakeJob>,
   ) {}
 
   /**
@@ -82,22 +87,80 @@ export class AttachmentsService {
     visibility: AttachmentVisibilityValue = "PRIVATE",
     teamId: string | null = null,
     recording: RecordingChange = {},
+    take: { process?: string; otherTake?: boolean } = {},
   ) {
     if (stemPart && type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
     const details = recordingData(recording);
-    if (type !== "AUDIO" && Object.values(details).some((value) => value !== null)) {
+    if (type !== "AUDIO" && (Object.values(details).some((value) => value !== null) || take.otherTake || take.process)) {
       throw new BadRequestException("Only audio files can have a recording's key and tempo or be part of a multitrack");
     }
+    // A recorded take to turn into Opus (issue #127): the browser's WAV.
+    const steps = take.process?.split(",") ?? [];
+    if (take.process && !WAV_TYPES.has(mimeType)) throw new BadRequestException("Only a WAV file can be processed");
+    if (details.multitrackSetlistId) await this.assertSetOfSong(viewer, details.multitrackSetlistId, songVersionId);
     const song = await this.songRights(viewer, songVersionId);
     const canEditSong = song.canEditSong;
     const audience = await this.audience(viewer, song, visibility, teamId);
     await this.quota.assertCanStore(viewer.id, body.length);
     const { hash, sizeBytes } = await this.storage.put(body, mimeType);
     const row = await this.prisma.client.attachment.create({
-      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes, uploadedByUserId: viewer.id, stemPart, ...details, ...audience },
+      data: {
+        songVersionId,
+        type,
+        filename,
+        mimeType,
+        storageKey: hash,
+        sizeBytes,
+        uploadedByUserId: viewer.id,
+        stemPart,
+        ...details,
+        ...audience,
+        otherTake: take.otherTake ?? false,
+        processing: take.process ? "PENDING" : null,
+      },
       include: ATTACHMENT_INCLUDE,
     });
+    if (take.process) {
+      await this.recordings.add(
+        "process-take",
+        { attachmentId: row.id, filename, level: steps.includes("level"), noise: steps.includes("noise"), quietFor: row.recordingFirstBeat },
+        { attempts: 2, backoff: { type: "exponential", delay: 10000 }, removeOnComplete: { count: 200 }, removeOnFail: { count: 200 } },
+      );
+    }
     return present(row, viewer, canEditSong);
+  }
+
+  /** A set the viewer's (theirs, or their team's) with the song in it: what a multitrack can be recorded for (issue #127). */
+  private async assertSetOfSong(viewer: Viewer, setlistId: string, songVersionId: string) {
+    const set = await this.prisma.client.setlist.findFirst({
+      where: { id: setlistId, items: { some: { songVersionId } } },
+      select: { ownerUserId: true, ownerTeamId: true },
+    });
+    const mine =
+      !!set && (viewer.isGlobalAdmin || set.ownerUserId === viewer.id || (!!set.ownerTeamId && (await this.access.teamRole(viewer.id, set.ownerTeamId)) !== null));
+    if (!mine) throw new BadRequestException("multitrackSetlistId must be a set of yours with this song in it");
+  }
+
+  /**
+   * Plays this take of its part (issue #127) - instead of `instead`, which
+   * becomes another take, when given. Both in the same multitrack, and the
+   * viewer's to change.
+   */
+  async useTake(viewer: Viewer, songVersionId: string, attachmentId: string, instead: string | null) {
+    const { attachment, canEditSong } = await this.findVisible(viewer, songVersionId, attachmentId);
+    if (!present(attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can change this file");
+    const replaced = instead ? await this.findVisible(viewer, songVersionId, instead) : null;
+    if (replaced) {
+      if (!present(replaced.attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can change the take it replaces");
+      if (replaced.attachment.id === attachment.id || (replaced.attachment.multitrackId ?? null) !== (attachment.multitrackId ?? null) || replaced.attachment.type !== "AUDIO") {
+        throw new BadRequestException("instead must be another file of the same multitrack");
+      }
+    }
+    await this.prisma.client.$transaction([
+      this.prisma.client.attachment.update({ where: { id: attachment.id }, data: { otherTake: false } }),
+      ...(replaced ? [this.prisma.client.attachment.update({ where: { id: replaced.attachment.id }, data: { otherTake: true } })] : []),
+    ]);
+    return this.listForSongVersion(viewer, songVersionId);
   }
 
   /**
@@ -110,6 +173,11 @@ export class AttachmentsService {
     const rights = present(attachment, viewer, canEditSong);
     const data: Prisma.AttachmentUncheckedUpdateInput = recordingData(change);
     if (change.stemPart !== undefined) data.stemPart = change.stemPart;
+    if (change.multitrackSetlistId) await this.assertSetOfSong(viewer, change.multitrackSetlistId, songVersionId);
+    if (change.otherTake !== undefined) {
+      if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be takes");
+      data.otherTake = change.otherTake;
+    }
     if (attachment.type !== "AUDIO" && Object.values(data).some((value) => value !== null)) {
       throw new BadRequestException("Only audio files can be stems or have a recording's key and tempo");
     }
@@ -196,6 +264,7 @@ export class AttachmentsService {
 const ATTACHMENT_INCLUDE = {
   uploadedBy: { select: { id: true, displayName: true } },
   visibleToTeam: { select: { id: true, name: true } },
+  multitrackSetlist: { select: { id: true, name: true, eventDate: true } },
 } satisfies Prisma.AttachmentInclude;
 
 type AttachmentRow = Prisma.AttachmentGetPayload<{ include: typeof ATTACHMENT_INCLUDE }>;
@@ -214,7 +283,10 @@ export interface RecordingChange {
   recordingTimeSignature?: string | null;
   multitrackId?: string | null;
   multitrackName?: string | null;
+  multitrackSetlistId?: string | null;
 }
+
+const WAV_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave"]);
 
 function recordingData(change: RecordingChange) {
   const data: RecordingChange = {};
@@ -224,7 +296,7 @@ function recordingData(change: RecordingChange) {
     if (written && !parseKey(written)) throw new BadRequestException(`"${written}" isn't a key Songverse can read`);
     data.recordingKey = written || null;
   }
-  for (const field of ["recordingTempo", "recordingFirstBeat", "recordingTimeSignature", "multitrackId", "multitrackName"] as const) {
+  for (const field of ["recordingTempo", "recordingFirstBeat", "recordingTimeSignature", "multitrackId", "multitrackName", "multitrackSetlistId"] as const) {
     if (change[field] !== undefined) (data as Record<string, unknown>)[field] = change[field];
   }
   return data;
@@ -232,8 +304,11 @@ function recordingData(change: RecordingChange) {
 
 function present(row: AttachmentRow, viewer: Viewer, canEditSong: boolean) {
   const mine = row.uploadedByUserId === viewer.id;
+  const set = row.multitrackSetlist;
   return {
     ...row,
+    // The set its multitrack was recorded for (issue #127), named as sets are: its date a calendar day.
+    multitrackSetlist: set ? { id: set.id, name: set.name, eventDate: set.eventDate ? set.eventDate.toISOString().slice(0, 10) : null } : null,
     canChange: viewer.isGlobalAdmin || canEditSong || mine,
     canChangeVisibility: viewer.isGlobalAdmin || mine || (row.uploadedByUserId === null && canEditSong),
   };

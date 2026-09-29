@@ -901,6 +901,8 @@ model Setlist {
   shareLink         SetlistShareLink?
   guests            SetlistGuest[]
   ownershipRequests SongOwnershipRequest[]
+  // Multitracks recorded for this set (issue #127).
+  multitrackFiles   Attachment[]           @relation("AttachmentMultitrackSetlist")
 
   @@index([ownerUserId])
   @@index([ownerTeamId])
@@ -1169,6 +1171,16 @@ model Attachment {
   // they already did its key and tempo.
   multitrackId   String?
   multitrackName String?
+  // The set its multitrack was recorded for (issue #127): on that set's
+  // song page, it's the one the player picks. Kept on every file of the
+  // multitrack, as its name is.
+  multitrackSetlistId String?
+  // Another take of a part (issue #127): kept, not played; "Use this take"
+  // swaps it with the one playing.
+  otherTake      Boolean @default(false)
+  // A recorded take being turned into Opus by the Worker (issue #127):
+  // PENDING until then, FAILED if it couldn't be (it stays as recorded).
+  processing     TakeProcessing?
   // Who the upload counts against for storage limits. Null for files
   // uploaded before this was tracked into a team-owned song, or whose
   // uploader has since been deleted.
@@ -1184,9 +1196,15 @@ model Attachment {
   songVersion   SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
   uploadedBy    User?       @relation("AttachmentUploader", fields: [uploadedByUserId], references: [id], onDelete: SetNull)
   visibleToTeam Team?       @relation("AttachmentVisibleToTeam", fields: [visibleToTeamId], references: [id], onDelete: SetNull)
+  multitrackSetlist Setlist? @relation("AttachmentMultitrackSetlist", fields: [multitrackSetlistId], references: [id], onDelete: SetNull)
 
   @@index([songVersionId])
   @@index([uploadedByUserId])
+}
+
+enum TakeProcessing {
+  PENDING
+  FAILED
 }
 
 enum AttachmentVisibility {

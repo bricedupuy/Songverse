@@ -131,6 +131,7 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
           returnTo={`/sets/${set.id}/songs/${item.id}`}
           tempo={tempo}
           timeSignature={arrangement?.timeSignature ?? song.document.defaults.timeSignature}
+          setlist={{ id: set.id, name: setlistTitle(set, t, i18n.language) }}
         />
       ) : null}
 
@@ -260,16 +261,23 @@ function SetSongStems({
   returnTo,
   tempo,
   timeSignature,
+  setlist,
 }: {
   songVersionId: string;
   title: string;
   returnTo: string;
+  /** The set: a multitrack recorded for it is what plays here by default (issue #127), and one recorded here can be its. */
+  setlist: { id: string; name: string };
   /** The version's, for the metronome with the recording (issue #100). */
   tempo: number | null | undefined;
   timeSignature: { numerator: number; denominator: number } | null | undefined;
 }) {
   const { mode } = useMode();
-  const chosen = useChosenMultitrack(songVersionId);
+  // Chosen for the song in this set: the set's own multitrack by default.
+  const choiceKey = `${songVersionId}@${setlist.id}`;
+  const chosen = useChosenMultitrack(choiceKey);
+  // Bumped when a part's recorded here, to list the files again.
+  const [reload, setReload] = useState(0);
   const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean; youtubeId: string | null }>({ attachments: [], offline: false, youtubeId: null });
 
   useEffect(() => {
@@ -287,9 +295,9 @@ function SetSongStems({
     return () => {
       cancelled = true;
     };
-  }, [mode, songVersionId]);
+  }, [mode, songVersionId, reload]);
 
-  const playable = stemFilesOf(files.attachments, chosen);
+  const playable = stemFilesOf(files.attachments, chosen, setlist.id);
   if (mode !== "practice") return null;
   // No audio of its own: its YouTube video, if it has one (issue #66).
   if (playable.stems.length === 0) {
@@ -303,6 +311,8 @@ function SetSongStems({
         returnTo,
         ...playable,
         load: fileLoader(songVersionId, files.offline),
+        choiceKey,
+        record: files.offline ? undefined : { attachments: files.attachments, setlist, onSaved: () => setReload((n) => n + 1) },
         tempo,
         timeSignature,
       }}

@@ -1,4 +1,4 @@
-import { alignTake, clickTimes, roundTripFrom } from "@songverse/core";
+import { alignTake, clapDelayFrom, clickTimes, roundTripFrom } from "@songverse/core";
 
 /**
  * Recording a part in the browser (issue #123). One AudioContext plays
@@ -161,29 +161,41 @@ export class Recorder {
     this.sources.push(oscillator);
   }
 
-  /** Plays the parts heard (from 0:00 at `zeroAt`), the take if any, and the click, scheduled as it goes. */
-  private play(zeroAt: number, options: { beat: Beat | null; lead: number; click: boolean; heard: Set<string>; take?: { buffer: AudioBuffer; offset: number } }) {
+  /**
+   * Plays the parts heard (0:00 at `zeroAt`, from `from` s in), the take if
+   * any, and the click, scheduled as it goes. A part in `stopAt` stops
+   * there (the take a punch-in replaces, from where it's replaced).
+   */
+  private play(
+    zeroAt: number,
+    options: { beat: Beat | null; lead: number; from: number; click: boolean; heard: Set<string>; stopAt?: Map<string, number>; take?: { buffer: AudioBuffer; offset: number } },
+  ) {
+    const startAt = zeroAt + options.from;
     for (const [id, buffer] of this.backing) {
-      if (!options.heard.has(id)) continue;
+      if (!options.heard.has(id) || options.from >= buffer.duration) continue;
+      const stop = options.stopAt?.get(id);
+      if (stop !== undefined && stop <= options.from) continue;
       const source = this.context.createBufferSource();
       source.buffer = buffer;
       source.connect(this.context.destination);
-      source.start(zeroAt);
+      source.start(startAt, options.from);
+      if (stop !== undefined) source.stop(zeroAt + stop);
       this.sources.push(source);
     }
     if (options.take) {
+      // A positive offset: the take was late, so it's heard that far on.
+      const offset = options.from + options.take.offset;
       const source = this.context.createBufferSource();
       source.buffer = options.take.buffer;
       source.connect(this.context.destination);
-      // A positive offset: the take was late, so it starts that far in.
-      if (options.take.offset >= 0) source.start(zeroAt, options.take.offset);
-      else source.start(zeroAt - options.take.offset);
+      if (offset >= 0) source.start(startAt, offset);
+      else source.start(startAt - offset);
       this.sources.push(source);
     }
     const { beat } = options;
     if (!beat || !options.click) return;
     // The next click not yet scheduled is at `next` or after.
-    let next = -options.lead;
+    let next = options.from - options.lead;
     const schedule = () => {
       const until = this.context.currentTime + LOOKAHEAD - zeroAt;
       if (until < next) return;
@@ -194,15 +206,32 @@ export class Recorder {
     this.timer = setInterval(schedule, 50);
   }
 
-  /** Starts a take: the count-in (`lead` s before 0:00), then the parts heard and the click, capturing all along. Returns when 0:00 is. */
-  start(options: { beat: Beat | null; lead: number; click: boolean; heard: Set<string> }): number {
+  /**
+   * Starts a take: from `from` s into the multitrack (0 its start; later,
+   * a punch-in), after `lead` s of count-in, the parts heard and the
+   * click, capturing all along. Returns when the multitrack's 0:00 is (or
+   * would have been), on the audio clock.
+   */
+  start(options: { beat: Beat | null; lead: number; from: number; click: boolean; heard: Set<string>; stopAt?: Map<string, number> }): number {
     this.stopPlaying();
     this.chunks = [];
     void this.context.resume();
-    const zeroAt = this.context.currentTime + 0.2 + options.lead;
+    const zeroAt = this.context.currentTime + 0.2 + options.lead - options.from;
     this.capture.port.postMessage(true);
     this.play(zeroAt, options);
     return zeroAt;
+  }
+
+  /** A part's audio, mono, at this context's rate: what a punch-in keeps the start of. */
+  monoOf(id: string): Float32Array | null {
+    const buffer = this.backing.get(id);
+    if (!buffer) return null;
+    const mono = new Float32Array(buffer.length);
+    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+      const data = buffer.getChannelData(channel);
+      for (let i = 0; i < mono.length; i++) mono[i]! += data[i]! / buffer.numberOfChannels;
+    }
+    return mono;
   }
 
   /** Ends the take; resolves with what was captured once the last block is in. */
@@ -234,13 +263,14 @@ export class Recorder {
   }
 
   /** Plays the take back with the parts heard and the click; `nudge` s later or earlier than it was aligned. */
-  preview(aligned: Float32Array, options: { beat: Beat | null; click: boolean; heard: Set<string>; nudge: number }): number {
+  preview(aligned: Float32Array, options: { beat: Beat | null; click: boolean; heard: Set<string>; nudge: number; from?: number; stopAt?: Map<string, number> }): number {
     this.stopPlaying();
     void this.context.resume();
     const buffer = this.context.createBuffer(1, Math.max(1, aligned.length), this.context.sampleRate);
     buffer.copyToChannel(aligned as Float32Array<ArrayBuffer>, 0);
-    const zeroAt = this.context.currentTime + 0.1;
-    this.play(zeroAt, { ...options, lead: 0, take: { buffer, offset: options.nudge } });
+    const from = options.from ?? 0;
+    const zeroAt = this.context.currentTime + 0.1 - from;
+    this.play(zeroAt, { ...options, from, lead: 0, take: { buffer, offset: options.nudge } });
     return zeroAt;
   }
 
@@ -277,6 +307,46 @@ export class Recorder {
     const measured = roundTripFrom(take.captured, { sampleRate: take.sampleRate, capturedAt: take.capturedAt, playedAt });
     if (measured !== null) saveRoundTrip(measured);
     return measured;
+  }
+
+  /**
+   * Measures the delay by clapping along (issue #127), for headphones -
+   * which the microphone can't hear, Bluetooth ones included: ten clicks
+   * in the headphones, a clap on each; the first two are to get the feel,
+   * the other eight are counted. Kept on this device; null when too few
+   * claps were heard.
+   */
+  async calibrateByClapping(onClick?: (index: number) => void): Promise<number | null> {
+    this.stopPlaying();
+    await this.context.resume();
+    this.chunks = [];
+    this.capture.port.postMessage(true);
+    const start = this.context.currentTime + 0.5;
+    const playedAt = Array.from({ length: 10 }, (_, i) => start + i * 0.6);
+    playedAt.forEach((at, i) => {
+      this.click(at, i % 4 === 0);
+      if (onClick) setTimeout(() => onClick(i), (at - this.context.currentTime) * 1000);
+    });
+    await new Promise((resolve) => setTimeout(resolve, (start - this.context.currentTime + 6.4) * 1000));
+    this.capture.port.postMessage(false);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const take = this.collect(0);
+    const measured = clapDelayFrom(take.captured, { sampleRate: take.sampleRate, capturedAt: take.capturedAt, playedAt: playedAt.slice(2) });
+    if (measured !== null) saveRoundTrip(measured);
+    return measured;
+  }
+
+  /** Whether the sound seems to go to Bluetooth headphones or speakers, whose delay is large and can change (issue #127). */
+  async bluetoothOutput(): Promise<boolean> {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const outputs = devices.filter((device) => device.kind === "audiooutput");
+      // The default output first (Chrome names it "Default - …"); else, where there's only one.
+      const current = outputs.find((device) => device.deviceId === "default") ?? (outputs.length === 1 ? outputs[0] : undefined);
+      return !!current && /bluetooth|airpods|buds|beats|headset \(|hands-free|\bbt\b/i.test(current.label);
+    } catch {
+      return false;
+    }
   }
 
   /** Forgets the measured round trip: the browser's estimate again. */

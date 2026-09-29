@@ -33,6 +33,15 @@ export interface StemSong {
   multitrackId?: string | null;
   /** The song's multitracks, for the player to offer the others. */
   multitracks?: MultitrackChoice[];
+  /** Where the choice of multitrack is remembered: the song, or the song in a set (issue #127). */
+  choiceKey?: string;
+  /** Recording a part from the player (issue #127): what the recorder needs; left out where it can't (offline). */
+  record?: {
+    attachments: Attachment[];
+    songKey?: string;
+    setlist?: { id: string; name: string } | null;
+    onSaved: () => void;
+  };
 }
 
 /** A multitrack as the player lists it. */
@@ -40,6 +49,8 @@ export interface MultitrackChoice {
   id: string | null;
   name: string | null;
   parts: number;
+  /** The set it was recorded for (issue #127). */
+  setlistId: string | null;
 }
 
 export interface StemTrack {
@@ -148,7 +159,8 @@ export function stemsOf(attachments: Attachment[]): (Attachment & { stemPart: St
  * multitrack asked for (Sync play follows the leader's, not another).
  */
 export function playableOf(attachments: Attachment[], multitrackId?: string | null, strict = false): StemFile[] {
-  const multitracks = multitracksOf(attachments);
+  // One with only other takes has nothing to play.
+  const multitracks = multitracksOf(attachments).filter((multitrack) => multitrack.files.length > 0);
   const chosen = multitrackId === undefined ? undefined : multitracks.find((multitrack) => multitrack.id === multitrackId);
   if (chosen) return chosen.files;
   if (strict && multitrackId) return [];
@@ -158,9 +170,17 @@ export function playableOf(attachments: Attachment[], multitrackId?: string | nu
 }
 
 /** A song's files for the player: the chosen multitrack's (see chooseMultitrack), and the others to offer. */
-export function stemFilesOf(attachments: Attachment[], multitrackId: string | null | undefined): Pick<StemSong, "stems" | "multitrackId" | "multitracks"> {
-  const stems = playableOf(attachments, multitrackId);
-  const multitracks = multitracksOf(attachments).map((multitrack) => ({ id: multitrack.id, name: multitrack.name, parts: multitrack.files.length }));
+export function stemFilesOf(
+  attachments: Attachment[],
+  multitrackId: string | null | undefined,
+  /** On a set's song page (issue #127): with nothing chosen, the multitrack recorded for that set. */
+  setlistId?: string,
+): Pick<StemSong, "stems" | "multitrackId" | "multitracks"> {
+  const forSet = multitrackId === undefined && setlistId ? multitracksOf(attachments).find((multitrack) => multitrack.setlistId === setlistId && multitrack.files.length > 0) : undefined;
+  const stems = playableOf(attachments, forSet ? forSet.id : multitrackId);
+  const multitracks = multitracksOf(attachments)
+    .filter((multitrack) => multitrack.files.length > 0)
+    .map((multitrack) => ({ id: multitrack.id, name: multitrack.name, parts: multitrack.files.length, setlistId: multitrack.setlistId }));
   return { stems, multitrackId: stems[0]?.multitrackId ?? null, multitracks };
 }
 

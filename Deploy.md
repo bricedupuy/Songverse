@@ -18,7 +18,7 @@ Seven things get created in Dokploy, all in one Project:
 
 The API and Worker share one Docker image because they're the same codebase — only the command that starts the container differs.
 
-**What the Worker does** (#92): it runs every background job - bulk songbook uploads, the hourly clean-up of expired account transfers, and lookups (a new song's artwork, new artists' pictures and bios, the backfills started from Admin > Metadata). The API only adds jobs to the queues; with no Worker running they wait, so songs get no artwork and uploads aren't processed. Admin > Metadata > **Background jobs** shows whether a Worker is running (from a heartbeat it keeps in Redis), each queue's jobs and the last ones' results. For a small setup without a Worker, set `JOBS_IN_API=true` on the API and it runs the jobs itself (it does by default outside production, for `pnpm dev`).
+**What the Worker does** (#92): it runs every background job - bulk songbook uploads, recorded takes turned into Opus with ffmpeg (#127: `Dockerfile.api` installs it; running the Worker elsewhere, install ffmpeg there or takes stay WAV), the hourly clean-up of expired account transfers, and lookups (a new song's artwork, new artists' pictures and bios, the backfills started from Admin > Metadata). The API only adds jobs to the queues; with no Worker running they wait, so songs get no artwork and uploads aren't processed. Admin > Metadata > **Background jobs** shows whether a Worker is running (from a heartbeat it keeps in Redis), each queue's jobs and the last ones' results. For a small setup without a Worker, set `JOBS_IN_API=true` on the API and it runs the jobs itself (it does by default outside production, for `pnpm dev`).
 
 ## 1. DNS
 

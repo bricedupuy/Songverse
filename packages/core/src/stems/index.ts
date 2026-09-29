@@ -53,6 +53,8 @@ export interface MultitrackFile {
   createdAt: string;
   multitrackId?: string | null;
   multitrackName?: string | null;
+  multitrackSetlistId?: string | null;
+  otherTake?: boolean;
 }
 
 /** A song's multitrack (issue #123): the parts recorded together, played together. */
@@ -63,6 +65,10 @@ export interface Multitrack<F extends MultitrackFile = MultitrackFile> {
   name: string | null;
   /** In the player's order: by part, then by name. */
   files: F[];
+  /** Other takes of its parts, kept but not played (issue #127), newest first. */
+  otherTakes: F[];
+  /** The set it was recorded for, if any. */
+  setlistId: string | null;
 }
 
 const byPart = (a: MultitrackFile, b: MultitrackFile) =>
@@ -84,7 +90,13 @@ export function multitracksOf<F extends MultitrackFile>(files: F[]): Multitrack<
   const started = (group: F[]) => group.reduce((first, file) => (file.createdAt < first ? file.createdAt : first), group[0]!.createdAt);
   return [...groups.entries()]
     .sort(([a, x], [b, y]) => (a === null ? -1 : b === null ? 1 : started(x).localeCompare(started(y))))
-    .map(([id, group]) => ({ id, name: group.find((file) => file.multitrackName)?.multitrackName ?? null, files: [...group].sort(byPart) }));
+    .map(([id, group]) => ({
+      id,
+      name: group.find((file) => file.multitrackName)?.multitrackName ?? null,
+      files: group.filter((file) => !file.otherTake).sort(byPart),
+      otherTakes: group.filter((file) => file.otherTake).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      setlistId: group.find((file) => file.multitrackSetlistId)?.multitrackSetlistId ?? null,
+    }));
 }
 
 /** A fresh multitrack id, for the first file of a new one. */
