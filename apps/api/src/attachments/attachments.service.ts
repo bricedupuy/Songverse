@@ -87,7 +87,7 @@ export class AttachmentsService {
     visibility: AttachmentVisibilityValue = "PRIVATE",
     teamId: string | null = null,
     recording: RecordingChange = {},
-    take: { process?: string; otherTake?: boolean } = {},
+    take: { process?: string; otherTake?: boolean; partName?: string } = {},
   ) {
     if (stemPart && type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
     const details = recordingData(recording);
@@ -116,6 +116,7 @@ export class AttachmentsService {
         ...details,
         ...audience,
         otherTake: take.otherTake ?? false,
+        partName: type === "AUDIO" ? take.partName || null : null,
         processing: take.process ? "PENDING" : null,
       },
       include: ATTACHMENT_INCLUDE,
@@ -123,10 +124,29 @@ export class AttachmentsService {
     if (take.process) {
       await this.recordings.add(
         "process-take",
-        { attachmentId: row.id, filename, level: steps.includes("level"), noise: steps.includes("noise"), quietFor: row.recordingFirstBeat },
+        { attachmentId: row.id, filename, voice: steps.includes("voice"), level: steps.includes("level"), noise: steps.includes("noise"), quietFor: row.recordingFirstBeat },
         { attempts: 2, backoff: { type: "exponential", delay: 10000 }, removeOnComplete: { count: 200 }, removeOnFail: { count: 200 } },
       );
     }
+    return present(row, viewer, canEditSong);
+  }
+
+  /**
+   * Cleans up an audio file afterwards (issue #132): the Worker runs the
+   * steps on it - RNNoise on a voice, the level evened out, steady noise
+   * reduced - and it comes back as Opus, a new file in its place.
+   */
+  async process(viewer: Viewer, songVersionId: string, attachmentId: string, steps: ("voice" | "level" | "noise")[]) {
+    const { attachment, canEditSong } = await this.findVisible(viewer, songVersionId, attachmentId);
+    if (!present(attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can change this file");
+    if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be processed");
+    if (attachment.processing === "PENDING") throw new BadRequestException("This file is already being processed");
+    const row = await this.prisma.client.attachment.update({ where: { id: attachment.id }, data: { processing: "PENDING" }, include: ATTACHMENT_INCLUDE });
+    await this.recordings.add(
+      "process-take",
+      { attachmentId: row.id, filename: row.filename, voice: steps.includes("voice"), level: steps.includes("level"), noise: steps.includes("noise"), quietFor: row.recordingFirstBeat },
+      { attempts: 2, backoff: { type: "exponential", delay: 10000 }, removeOnComplete: { count: 200 }, removeOnFail: { count: 200 } },
+    );
     return present(row, viewer, canEditSong);
   }
 
@@ -173,6 +193,7 @@ export class AttachmentsService {
     const rights = present(attachment, viewer, canEditSong);
     const data: Prisma.AttachmentUncheckedUpdateInput = recordingData(change);
     if (change.stemPart !== undefined) data.stemPart = change.stemPart;
+    if (change.partName !== undefined) data.partName = change.partName;
     if (change.multitrackSetlistId) await this.assertSetOfSong(viewer, change.multitrackSetlistId, songVersionId);
     if (change.otherTake !== undefined) {
       if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be takes");
@@ -309,6 +330,7 @@ function present(row: AttachmentRow, viewer: Viewer, canEditSong: boolean) {
     ...row,
     // The set its multitrack was recorded for (issue #127), named as sets are: its date a calendar day.
     multitrackSetlist: set ? { id: set.id, name: set.name, eventDate: set.eventDate ? set.eventDate.toISOString().slice(0, 10) : null } : null,
+    mine,
     canChange: viewer.isGlobalAdmin || canEditSong || mine,
     canChangeVisibility: viewer.isGlobalAdmin || mine || (row.uploadedByUserId === null && canEditSong),
   };

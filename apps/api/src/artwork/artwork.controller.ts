@@ -27,6 +27,7 @@ import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
 import { SongVersionEditorGuard } from "../common/guards/song-version-editor.guard.js";
 import { ArtworkService } from "./artwork.service.js";
 import { isValidSongImageSignature } from "./song-image-url.js";
+import { UPLOAD_OPTIONS } from "../common/uploads.js";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Pictures only: no SVG, which is a document rather than an image.
@@ -85,7 +86,7 @@ export class ArtworkController {
   /** An image of the editor's own (issue #88): made a square WebP like the rest. */
   @Post("song-versions/:songVersionId/artwork/upload")
   @UseGuards(SongVersionEditorGuard)
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_UPLOAD_BYTES } }))
+  @UseInterceptors(FileInterceptor("file", { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_UPLOAD_BYTES } }))
   @ApiConsumes("multipart/form-data")
   @HttpCode(HttpStatus.NO_CONTENT)
   async upload(@Param("songVersionId") songVersionId: string, @UploadedFile() file: Express.Multer.File | undefined): Promise<void> {

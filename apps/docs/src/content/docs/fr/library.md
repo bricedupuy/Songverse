@@ -116,7 +116,13 @@ Toute personne qui voit un chant peut y ajouter ses propres fichiers, même sans
 
 ## Pistes
 
-Les pistes (ou stems) sont les parties du chant enregistrées séparément : voix, batterie, basse, etc. Importez-les dans l'onglet **Audio**. Un fichier nommé d'après sa partie (« Voix.mp3 », « 03 drums.opus », « Basse.mp3 ») devient cette piste tout seul. Pour les autres fichiers, choisissez la partie dans la liste **Piste** sous le fichier : **Voix**, **Chœurs**, **Batterie**, **Basse**, **Guitare**, **Piano et claviers**, **Autres** ou **Clic et repères**, ou **Pas une piste** pour un enregistrement complet.
+Les pistes (ou stems) sont les parties du chant enregistrées séparément : voix, batterie, basse, etc. Importez-les dans l'onglet **Audio**. Un fichier nommé d'après sa partie (« Voix.mp3 », « 03 drums.opus », « Basse.mp3 », « Alto.wav ») devient cette piste tout seul. Pour les autres fichiers, choisissez sa partie sous le fichier, en deux temps :
+
+- **Voix** : **Voix principale**, une harmonie - **Harmonie 1 (soprano)**, **Harmonie 2 (alto)**, **Harmonie 3 (ténor)**, **Harmonie 4 (basse)** - **Chœurs**, ou **Autre nom…** de votre choix (« Contre-chant »).
+- **Instrument** : **Batterie**, **Basse**, **Guitare**, **Piano et claviers** ou **Autres**, avec un nom si vous voulez (« Guitare acoustique », « Violon »).
+- **Repères** : le clic, les décomptes et les repères parlés, avec un nom (« Clic », « Guide »).
+
+**Pas une piste** est pour un enregistrement complet. Une piste enregistrée par quelqu'un d'autre dit qui, dans le lecteur de pistes (**Enregistrée par** sous son nom) et sous le fichier. Le bouton rond d'une harmonie dans le lecteur porte la lettre de sa voix : S, A, T ou B.
 
 Si les pistes (ou un enregistrement) ne sont pas dans la tonalité du chant ou à son tempo, une version live un ton plus haut par exemple, indiquez les leurs dans le cadre des pistes au-dessus des fichiers (ou sous le fichier) : **Tonalité** et **BPM**, et **Mesure** pour sa mesure. Laissés sur **Tonalité du chant**, vides et sur **Celle du chant**, ce sont ceux du chant. **Premier temps à (s)** indique où tombe son premier temps, en secondes depuis son début (vide : à 0:00) : avec le tempo, il place le métronome sur l'enregistrement.
 
@@ -124,7 +130,7 @@ En mode **Session** (voir [Édition, Session et Live](/fr/getting-started/#édit
 
 ![Le lecteur de pistes sur une ligne, la voix coupée](../../../assets/screenshots/fr/stems-compact.jpg)
 
-La flèche au bout l'agrandit : une ligne par partie avec le même bouton rond, sa forme d'onde et un bouton solo (le solo ne joue que les parties en solo), et une barre de position. Pendant un solo, un bouton rond, dans les deux vues, retire sa partie du solo ou l'y ajoute ; retirez la dernière pour entendre de nouveau toutes les parties. Cliquez sur une forme d'onde pour vous y rendre. La flèche du haut le réduit de nouveau, et Songverse retient votre préférence. Les fichiers commencent à se télécharger dès que la page du chant s'ouvre en mode Session (la ligne du haut montre où il en est), si bien que **Lecture** est en général immédiat. Une fois téléchargés, ils ne le sont plus de nouveau.
+La flèche au bout l'agrandit : une ligne par partie avec le même bouton rond, sa forme d'onde et un bouton solo (le solo ne joue que les parties en solo), et une barre de position. Pendant un solo, un bouton rond, dans les deux vues, retire sa partie du solo ou l'y ajoute ; retirez la dernière pour entendre de nouveau toutes les parties. Cliquez sur une forme d'onde pour vous y rendre. La forme d'onde de chaque piste a sa longueur : une prise qui s'arrête avant la fin du chant s'y arrête aussi. La flèche du haut le réduit de nouveau, et Songverse retient votre préférence. Les fichiers commencent à se télécharger dès que la page du chant s'ouvre en mode Session (la ligne du haut montre où il en est), si bien que **Lecture** est en général immédiat. Une fois téléchargés, ils ne le sont plus de nouveau.
 
 ![Le lecteur de pistes agrandi, avec la forme d'onde de chaque partie](../../../assets/screenshots/fr/stems.jpg)
 
@@ -157,7 +163,7 @@ Vous pouvez enregistrer une piste directement dans Songverse, sur un ordinateur,
 
 ![Enregistrer une piste, en entendant les autres](../../../assets/screenshots/fr/recorder.jpg)
 
-Choisissez la **Piste** que vous enregistrez, décochez **Clic** pour enregistrer sans métronome, et appuyez sur **Enregistrer** ; **Arrêter** termine la prise. Utilisez un casque, pour que le micro n'entende que vous, pas le clic et les autres pistes.
+Choisissez la **Piste** que vous enregistrez (une voix, un instrument ou des repères, comme ci-dessus), décochez **Clic** pour enregistrer sans métronome, et appuyez sur **Enregistrer** ; **Arrêter** termine la prise. Utilisez un casque, pour que le micro n'entende que vous, pas le clic et les autres pistes.
 
 **La prise** indique ce qu'elle devient une fois gardée, quand le multipiste a déjà cette piste :
 
@@ -178,7 +184,9 @@ Songverse retient la mesure sur cet appareil. Un casque filaire est préférable
 
 **Écouter** rejoue la prise avec le reste. Si elle est encore un peu en avance ou en retard, déplacez **Caler** (en millisecondes) et réécoutez. **Garder** l'ajoute au multipiste comme cette piste, que vous seul voyez jusqu'à ce que vous choisissiez qui d'autre la voit (voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)) ; **Recommencer** refait une prise. Une prise peut durer jusqu'à neuf minutes environ.
 
-Une prise gardée est enregistrée en WAV, puis convertie en Opus en arrière-plan (mono, 96 kbit/s : environ un huitième de la taille) - **En cours de traitement…** s'affiche dessous jusque-là. Le silence après sa fin est coupé, jamais avant, pour qu'elle reste en place. **Égaliser le niveau** (coché pour commencer) l'amène à un volume standard ; **Réduire le bruit de fond** retire un bruit constant - souffle, ronflement, ventilateur - appris sur le décompte quand c'est possible, en douceur pour ne pas toucher à la musique.
+Une prise gardée est enregistrée en WAV, puis convertie en Opus en arrière-plan (mono, 96 kbit/s : environ un huitième de la taille) - **En cours de traitement…** s'affiche dessous jusque-là. Le silence après sa fin est coupé, jamais avant, pour qu'elle reste en place. **Égaliser le niveau** (coché pour commencer) l'amène à un volume standard ; **Réduire le bruit de fond** retire un bruit constant - souffle, ronflement, ventilateur - appris sur le décompte quand c'est possible, en douceur pour ne pas toucher à la musique. Pour une voix, **Nettoyer la voix (RNNoise)** va plus loin : un réseau de neurones entraîné sur des voix garde le chant et retire le reste - la pièce, la rue, un ventilateur - mais il n'est pas fait pour les instruments, qu'il peut hacher.
+
+Pour faire de même après coup, **Nettoyer** sous un fichier audio que vous pouvez modifier propose **Nettoyer la voix (RNNoise)** pour une voix, **Égaliser le niveau** et **Réduire le bruit de fond** : c'est fait en arrière-plan, et le fichier revient en Opus, calé comme avant.
 
 ## Proposer au catalogue global
 

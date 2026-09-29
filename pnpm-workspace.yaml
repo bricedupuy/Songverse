@@ -10,3 +10,9 @@ onlyBuiltDependencies:
   - esbuild
   - "@nestjs/core"
   - msgpackr-extract
+
+overrides:
+  # @nestjs/platform-express 10 brings multer 2.0.2, which reads uploaded
+  # files' names as Latin-1 whatever it's told; 2.4 takes defParamCharset
+  # (issue #130: "même" came out "mÃªme").
+  multer: ^2.4.0

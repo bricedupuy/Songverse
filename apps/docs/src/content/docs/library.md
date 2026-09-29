@@ -116,7 +116,13 @@ Anyone who can see a song can add files of their own to it, even a song they can
 
 ## Stems
 
-Stems are the song's parts as separate recordings: vocals, drums, bass and so on. Upload them on the **Audio** tab. A file named after its part ("Vocals.mp3", "03 drums.opus", "Basse.mp3") becomes that stem on its own. For any other file, choose the part in the **Stem** list under it: **Vocals**, **Backing vocals**, **Drums**, **Bass**, **Guitar**, **Piano and keys**, **Other** or **Click and cues**, or **Not a stem** for a full recording.
+Stems are the song's parts as separate recordings: vocals, drums, bass and so on. Upload them on the **Audio** tab. A file named after its part ("Vocals.mp3", "03 drums.opus", "Basse.mp3", "Alto.wav") becomes that stem on its own. For any other file, choose its part under it, in two steps:
+
+- **Voice**: **Lead vocal**, a harmony - **Harmony 1 (soprano)**, **Harmony 2 (alto)**, **Harmony 3 (tenor)**, **Harmony 4 (bass)** - **Backing vocals**, or **Another name…** of your own ("Descant").
+- **Instrument**: **Drums**, **Bass**, **Guitar**, **Piano and keys** or **Other**, with a name if you like ("Acoustic guitar", "Violin").
+- **Cues**: the click, count-ins and spoken cues, with a name ("Click", "Guide").
+
+**Not a stem** is for a full recording. A part someone else recorded says who, in the stem player (**Recorded by** under its name) and under the file. A harmony's round button in the player carries its voice's letter: S, A, T or B.
 
 If the stems (or any recording) aren't in the song's key or at its tempo, a live version a tone up for example, set the recording's own in the stems' box above the files (or under the file): **Key** and **BPM**, and **Time** for its time signature. Left as **Song's key**, empty and **Song's**, they're the song's. **First beat at (s)** is where its first beat falls, in seconds from its start (empty: at 0:00): with the tempo, it places the metronome on the recording.
 
@@ -124,7 +130,7 @@ In **Practice** mode (see [Edit, Practice and Live](/getting-started/#edit-pract
 
 ![The stem player, one row, the vocals muted](../../assets/screenshots/en/stems-compact.jpg)
 
-The arrow at the end expands it: a row per part with the same round button, its waveform and a solo button (solo plays only the parts soloed), and a position bar. While a solo is on, a round button, in either view, takes its part out of the solo or adds it; take the last one out to hear every part again. Click a waveform to jump there. The arrow at the top minimizes it again, and Songverse remembers which you prefer. The files start downloading as soon as the song's page opens in Practice (the line along the top shows how far), so **Play** is usually instant. Once downloaded, they aren't downloaded again.
+The arrow at the end expands it: a row per part with the same round button, its waveform and a solo button (solo plays only the parts soloed), and a position bar. While a solo is on, a round button, in either view, takes its part out of the solo or adds it; take the last one out to hear every part again. Click a waveform to jump there. Each part's waveform is as long as the part: a take that stops before the end of the song stops there too. The arrow at the top minimizes it again, and Songverse remembers which you prefer. The files start downloading as soon as the song's page opens in Practice (the line along the top shows how far), so **Play** is usually instant. Once downloaded, they aren't downloaded again.
 
 ![The stem player expanded, with each part's waveform](../../assets/screenshots/en/stems.jpg)
 
@@ -157,7 +163,7 @@ You can record a part straight into Songverse, on a computer, phone or tablet wi
 
 ![Recording a part of the stems, hearing the others](../../assets/screenshots/en/recorder.jpg)
 
-Choose the **Part** you're recording, untick **Click** to record without the metronome, and press **Record**; **Stop** ends the take. Use headphones, so the microphone only hears you, not the click and the other parts.
+Choose the **Part** you're recording (a voice, an instrument or cues, as above), untick **Click** to record without the metronome, and press **Record**; **Stop** ends the take. Use headphones, so the microphone only hears you, not the click and the other parts.
 
 **The take** says what it does once kept, when the multitrack already has that part:
 
@@ -178,7 +184,9 @@ Songverse remembers what it measured on this device. Wired headphones are best: 
 
 **Listen** plays the take back with the rest. If it's still a little early or late, move **Line up** (in milliseconds) and listen again. **Keep** adds it to the multitrack as that part, only you see it until you choose who else does (see [Who sees a file](/library/#who-sees-a-file)); **Record again** tries again. A take can be up to about nine minutes long.
 
-A kept take is recorded as a WAV file, then turned into Opus in the background (mono, 96 kbps: about an eighth of the size) - **Being processed…** shows under it until then. The silence after its end is trimmed, never before it, so it stays in time. **Even out the level** (on to start with) brings it to a standard loudness; **Reduce background noise** takes out steady noise - hiss, hum, a fan - learning it from the count-in when it can, gently so the music is left alone.
+A kept take is recorded as a WAV file, then turned into Opus in the background (mono, 96 kbps: about an eighth of the size) - **Being processed…** shows under it until then. The silence after its end is trimmed, never before it, so it stays in time. **Even out the level** (on to start with) brings it to a standard loudness; **Reduce background noise** takes out steady noise - hiss, hum, a fan - learning it from the count-in when it can, gently so the music is left alone. For a voice, **Clean up the voice (RNNoise)** goes further: a neural network trained on voices keeps the singing and removes what isn't - the room, the street, a fan - but it isn't for instruments, which it can cut into.
+
+To do the same afterwards, **Clean up** under an audio file you can change offers **Clean up the voice (RNNoise)** for a voice, **Even out the level** and **Reduce background noise**: it's done in the background, and the file comes back as Opus, in time as before.
 
 ## Submitting to the global catalogue
 

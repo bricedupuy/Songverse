@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { STEM_PARTS } from "../stems/index.js";
-import { optional } from "./fields.js";
+import { clearableText, optional } from "./fields.js";
 
 export const ATTACHMENT_TYPES = ["PDF", "CHORDPRO", "MUSICXML", "ABC_NOTATION", "TEXT", "IMAGE", "AUDIO", "OTHER"] as const;
 export type AttachmentTypeValue = (typeof ATTACHMENT_TYPES)[number];
@@ -43,6 +43,8 @@ const timeSignature = z.string().trim().regex(TIME_SIGNATURE_PATTERN, { message:
 export const UploadAttachmentSchema = z.strictObject({
   type: z.enum(ATTACHMENT_TYPES),
   stemPart: formField(z.enum(STEM_PARTS)),
+  /** Its own name for the part (issue #131): "Descant", "Acoustic guitar". */
+  partName: formField(z.string().trim().max(40)),
   visibility: formField(visibility),
   teamId: formField(z.string()),
   multitrackId: formField(multitrackId),
@@ -54,10 +56,11 @@ export const UploadAttachmentSchema = z.strictObject({
   multitrackSetlistId: formField(z.string().max(40)),
   /**
    * A recorded take (issue #127), turned into Opus by the Worker: "encode"
-   * alone, or with "level" (even out its level) and "noise" (reduce
-   * background noise), comma-separated. Only for a WAV file.
+   * alone, or with "voice" (RNNoise, #132), "level" (even out its level)
+   * and "noise" (reduce background noise), comma-separated. Only for a WAV
+   * file.
    */
-  process: formField(z.string().regex(/^encode(,(level|noise))*$/, { message: "process must be encode, then level and noise if wanted, comma-separated" })),
+  process: formField(z.string().regex(/^encode(,(voice|level|noise))*$/, { message: "process must be encode, then voice, level and noise if wanted, comma-separated" })),
   /** Kept as another take of its part, not played (issue #127). */
   otherTake: formField(z.enum(["true", "false"]).transform((value) => value === "true")),
 });
@@ -65,6 +68,8 @@ export const UploadAttachmentSchema = z.strictObject({
 /** What's left out stays as it is; null clears it. */
 export const UpdateAttachmentSchema = z.strictObject({
   stemPart: z.enum(STEM_PARTS).nullable().optional(),
+  /** Its own name for the part (issue #131); "" or null: the part's. */
+  partName: clearableText(40),
   recordingKey: z.string().max(12).nullable().optional(),
   recordingTempo: z.number().min(20).max(400).nullable().optional(),
   recordingFirstBeat: z.number().min(0).max(600).nullable().optional(),
@@ -79,6 +84,11 @@ export const UpdateAttachmentSchema = z.strictObject({
   visibility: optional(visibility),
   teamId: optional(z.string()),
 });
+/** Cleans up an audio file afterwards (issue #132), in the Worker: what to do to it; it comes back as Opus. */
+export const ProcessAttachmentSchema = z.strictObject({
+  steps: z.array(z.enum(["voice", "level", "noise"])).min(1, "steps must name at least one of voice, level and noise"),
+});
+
 /** Plays this take of a part (issue #127), instead of another file of the multitrack, which becomes another take. */
 export const UseTakeSchema = z.strictObject({
   instead: z.string().max(40).nullable().optional(),

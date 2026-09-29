@@ -25,7 +25,7 @@ import {
 import { createContext, useContext, useEffect, useId, useMemo, useState, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { multitracksOf, semitonesBetween, transposeKey, transposesPart } from "@songverse/core";
+import { harmonyLetter, multitracksOf, semitonesBetween, transposeKey, transposesPart } from "@songverse/core";
 import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
 import { Button } from "#/components/ui/button";
 import { setMode } from "#/lib/mode";
@@ -61,6 +61,11 @@ const EXPANDED_KEY = "songverse.stems.expanded";
 
 const PART_ICONS: Record<StemPart, LucideIcon> = {
   VOCALS: MicVocal,
+  // Sung harmonies (issue #131): a microphone, with the voice's letter on it.
+  HARMONY_SOPRANO: Mic,
+  HARMONY_ALTO: Mic,
+  HARMONY_TENOR: Mic,
+  HARMONY_BASS: Mic,
   BACKING_VOCALS: UserRoundPlus,
   DRUMS: Drum,
   BASS: ClefBass,
@@ -75,7 +80,7 @@ const EDGES = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-ar
 
 function useTrackName() {
   const { t } = useTranslation();
-  return (track: StemTrack) => (track.part ? `${t(`stems.parts.${track.part}`)}${track.number ? ` ${track.number}` : ""}` : t("stems.fullMix"));
+  return (track: StemTrack) => track.partName || (track.part ? `${t(`stems.parts.${track.part}`)}${track.number ? ` ${track.number}` : ""}` : t("stems.fullMix"));
 }
 
 /**
@@ -356,13 +361,13 @@ export function StemDock({ song: page }: { song: StemSong }) {
                   <span className={cn("w-20 shrink-0 min-w-0 sm:w-36", !on && "opacity-50")}>
                     <span className="block truncate text-sm font-medium">{name}</span>
                     <span className="hidden truncate text-xs text-muted-foreground sm:block">
-                      {heardSteps !== 0 && !transposesPart(track.part, heardAll) ? t("stems.notTransposed") : track.filename}
+                      {heardSteps !== 0 && !transposesPart(track.part, heardAll) ? t("stems.notTransposed") : track.by ? t("stems.recordedBy", { name: track.by }) : track.filename}
                     </span>
                   </span>
                   {track.failed ? (
                     <span className="min-w-0 flex-1 text-xs text-destructive">{t("stems.failed", { name: track.filename })}</span>
                   ) : (
-                    <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} dim={!on} onSeek={active && engine.status === "ready" && !following ? (at) => seekStems(at * duration) : undefined} />
+                    <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} span={duration ? Math.min(1, track.length / duration) : 1} dim={!on} onSeek={active && engine.status === "ready" && !following ? (at) => seekStems(at * duration) : undefined} />
                   )}
                   {/* A whole recording has nothing to solo against. */}
                   {whole ? null : (
@@ -448,10 +453,12 @@ function PartButton({
 }) {
   const { t } = useTranslation();
   const Icon = track.part ? PART_ICONS[track.part] : AudioLines;
+  // A harmony's voice (S, A, T, B), or which of two of a part.
+  const badge = harmonyLetter(track.part) ?? (track.number || null);
   return (
     <button
       type="button"
-      title={name}
+      title={track.by ? `${name} · ${track.by}` : name}
       aria-label={soloed ? t("stems.unsolo", { part: name }) : soloing ? t("stems.solo", { part: name }) : t("stems.mute", { part: name })}
       aria-pressed={soloing ? soloed : muted}
       onClick={() => (soloing ? toggleStemSolo(track.id) : toggleStemMute(track.id))}
@@ -466,17 +473,21 @@ function PartButton({
       )}
     >
       <Icon className="size-4" aria-hidden />
-      {track.number ? (
+      {badge ? (
         <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border bg-background text-[10px] font-semibold text-foreground" aria-hidden>
-          {track.number}
+          {badge}
         </span>
       ) : null}
     </button>
   );
 }
 
-/** A part's waveform, the part played in the accent colour; a click or a drag seeks. */
-function Waveform({ peaks, progress, dim, onSeek }: { peaks: number[] | null; progress: number; dim: boolean; onSeek?: (at: number) => void }) {
+/**
+ * A part's waveform, the part played in the accent colour; a click or a
+ * drag seeks. Drawn as long as the part is, against the longest (`span`,
+ * 0-1): a take shorter than the rest isn't stretched to look like it lasts.
+ */
+function Waveform({ peaks, progress, span, dim, onSeek }: { peaks: number[] | null; progress: number; span: number; dim: boolean; onSeek?: (at: number) => void }) {
   const clip = useId();
   const path = useMemo(
     () =>
@@ -490,7 +501,7 @@ function Waveform({ peaks, progress, dim, onSeek }: { peaks: number[] | null; pr
   );
   const width = peaks?.length ?? 1;
 
-  function seek(event: PointerEvent<SVGSVGElement>) {
+  function seek(event: PointerEvent<HTMLDivElement>) {
     if (!onSeek || (event.type === "pointermove" && event.buttons !== 1)) return;
     const box = event.currentTarget.getBoundingClientRect();
     onSeek(Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)));
@@ -498,23 +509,31 @@ function Waveform({ peaks, progress, dim, onSeek }: { peaks: number[] | null; pr
 
   if (!peaks) return <div className="h-px min-w-0 flex-1 bg-border" aria-hidden />;
   return (
-    <svg
-      viewBox={`0 0 ${width} 100`}
-      preserveAspectRatio="none"
-      className={cn("h-8 min-w-0 flex-1 touch-none", onSeek && "cursor-pointer", dim && "opacity-40")}
+    <div
+      className={cn("relative flex h-8 min-w-0 flex-1 items-center touch-none", onSeek && "cursor-pointer", dim && "opacity-40")}
       onPointerDown={seek}
       onPointerMove={seek}
       aria-hidden
-      data-testid="stem-waveform"
     >
-      <defs>
-        <clipPath id={clip}>
-          <rect x={0} y={0} width={progress * width} height={100} />
-        </clipPath>
-      </defs>
-      <path d={path} className="fill-muted-foreground/35" />
-      <path d={path} className="fill-primary" clipPath={`url(#${clip})`} />
-    </svg>
+      {/* After its end: nothing, a line. */}
+      <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+      <svg
+        viewBox={`0 0 ${width} 100`}
+        preserveAspectRatio="none"
+        className="relative h-8 shrink-0"
+        style={{ width: `${span * 100}%` }}
+        data-testid="stem-waveform"
+        data-span={span.toFixed(3)}
+      >
+        <defs>
+          <clipPath id={clip}>
+            <rect x={0} y={0} width={Math.min(1, span ? progress / span : 0) * width} height={100} />
+          </clipPath>
+        </defs>
+        <path d={path} className="fill-muted-foreground/35" />
+        <path d={path} className="fill-primary" clipPath={`url(#${clip})`} />
+      </svg>
+    </div>
   );
 }
 

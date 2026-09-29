@@ -101,6 +101,20 @@ function frequency(samples, start, span = 0.4) {
   for (let i = a + 1; i < b; i++) if (samples[i - 1] < 0 !== samples[i] < 0) crossings++;
   return crossings / 2 / span;
 }
+/** How loud the tone is over 0.6 s from `start`, and how much that moves (%, in 20 ms windows): a wobble. */
+function loudness(samples, start) {
+  const window = RATE / 50;
+  const levels = [];
+  for (let s = Math.round(start * RATE); s + window < (start + 0.6) * RATE; s += window) {
+    let energy = 0;
+    for (let i = s; i < s + window; i++) energy += samples[i] ** 2;
+    levels.push(Math.sqrt(energy / window));
+  }
+  const mean = levels.reduce((a, b) => a + b, 0) / levels.length;
+  const sd = Math.sqrt(levels.reduce((a, b) => a + (b - mean) ** 2, 0) / levels.length);
+  return { mean, wobble: (100 * sd) / mean };
+}
+
 /** The loudest the 3 kHz click is, in the window around `at` (s): a band-pass by correlation. */
 function clickAt(samples, near) {
   let best = { at: 0, level: 0 };
@@ -140,6 +154,10 @@ await step("up 2 semitones: the A heard as a B (493.9 Hz), the drums' click not 
   const start = measure(mix);
   const f = frequency(mix, start + 0.3);
   if (Math.abs(f - 493.88) > 493.88 * 0.02) throw new Error(`${f} Hz`);
+  // As loud as it was, and steady: no wobble (formant compensation on a mix halved the level and made it waver).
+  const plainLevel = loudness(plainMix, measure(plainMix) + 0.2);
+  const level = loudness(mix, start + 0.2);
+  if (level.mean < plainLevel.mean * 0.7 || level.wobble > plainLevel.wobble + 5) throw new Error(`level ${level.mean.toFixed(0)} (as recorded ${plainLevel.mean.toFixed(0)}), wobble ${level.wobble.toFixed(1)}% (as recorded ${plainLevel.wobble.toFixed(1)}%)`);
   // The tone and the drums' second click keep their distance (1 s), as recorded: the latency made up.
   const plainGap = clickAt(plainMix, measure(plainMix) + 1) - measure(plainMix);
   const gap = clickAt(mix, start + 1) - start;

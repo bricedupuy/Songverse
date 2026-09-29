@@ -8,6 +8,7 @@ import { BulkUploadService } from "./bulk-upload.service.js";
 import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto.js";
 import { BulkUploadPreviewDto } from "./dto/bulk-upload-preview.dto.js";
 import { BulkUploadCommitResultDto, BulkUploadFileMatchDto } from "./dto/bulk-upload-response.dto.js";
+import { UPLOAD_OPTIONS } from "../common/uploads.js";
 
 const MAX_BULK_UPLOAD_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const MAX_BULK_UPLOAD_FILES_PER_REQUEST = 200;
@@ -30,7 +31,7 @@ export class BulkUploadController {
 
   @Post()
   @UseInterceptors(
-    FilesInterceptor("files", MAX_BULK_UPLOAD_FILES_PER_REQUEST, { limits: { fileSize: MAX_BULK_UPLOAD_FILE_SIZE_BYTES } }),
+    FilesInterceptor("files", MAX_BULK_UPLOAD_FILES_PER_REQUEST, { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_BULK_UPLOAD_FILE_SIZE_BYTES } }),
   )
   @ApiConsumes("multipart/form-data")
   @ApiCreatedResponse({ type: BulkUploadCommitResultDto })

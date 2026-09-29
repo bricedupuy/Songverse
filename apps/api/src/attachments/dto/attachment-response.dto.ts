@@ -11,6 +11,8 @@ export class AttachmentResponseDto {
   @ApiProperty() mimeType!: string;
   @ApiProperty({ required: false, nullable: true }) sizeBytes!: number | null;
   @ApiProperty({ enum: STEM_PARTS, nullable: true }) stemPart!: StemPart | null;
+  @ApiProperty({ nullable: true, description: "Its own name for the part, shown instead of the part's." }) partName!: string | null;
+  @ApiProperty({ description: "The viewer uploaded it." }) mine!: boolean;
   @ApiProperty({ nullable: true }) recordingKey!: string | null;
   @ApiProperty({ nullable: true }) recordingTempo!: number | null;
   @ApiProperty({ nullable: true }) recordingFirstBeat!: number | null;

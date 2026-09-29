@@ -24,6 +24,7 @@ import { StorageUsageResponseDto } from "./dto/storage-usage.dto.js";
 import { UpdateUserDto } from "./dto/update-user.dto.js";
 import { UserResponseDto } from "./dto/user-response.dto.js";
 import { UsersService } from "./users.service.js";
+import { UPLOAD_OPTIONS } from "../common/uploads.js";
 
 // The web app uploads an already-cropped image well under this; the server
 // normalizes whatever it gets anyway (see ImageService.normalizeAvatar).
@@ -57,7 +58,7 @@ export class UsersController {
   }
 
   @Put("me/avatar")
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_AVATAR_SIZE_BYTES } }))
+  @UseInterceptors(FileInterceptor("file", { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_AVATAR_SIZE_BYTES } }))
   @ApiConsumes("multipart/form-data")
   @ApiOkResponse({ type: UserResponseDto })
   setAvatar(@CurrentUser() user: AuthenticatedUser | undefined, @UploadedFile() file: Express.Multer.File | undefined) {

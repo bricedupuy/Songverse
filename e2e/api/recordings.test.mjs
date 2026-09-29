@@ -85,6 +85,26 @@ const vocals = await processed((file) => file.stemPart === "VOCALS");
 heard = vocals ? await clickAt(vocals) : { at: NaN };
 check("with the noise reduced too (whose filter delays the sound): the click still at 1.000 s", vocals?.mimeType === "audio/ogg" && Math.abs(heard.at - 1) < 0.001, `${heard.at} ${JSON.stringify(vocals)}`);
 
+// RNNoise on a voice (issue #132), whose filter delays the sound too; the name's accent kept (issue #130).
+r = await upload({ stemPart: "HARMONY_ALTO", multitrackId: "mtrecordings01", recordingFirstBeat: 1, process: "encode,voice,level" }, me, takeWav(), "Toujours le même - Alto.wav");
+check("a name with an accent, as it was sent", r.body?.filename === "Toujours le même - Alto.wav", JSON.stringify(r.body?.filename));
+const alto = await processed((file) => file.stemPart === "HARMONY_ALTO");
+heard = alto ? await clickAt(alto) : { at: NaN };
+check("the voice cleaned up (RNNoise): the click still at 1.000 s", alto?.filename === "Toujours le même - Alto.opus" && Math.abs(heard.at - 1) < 0.001, `${heard.at} ${alto?.filename}`);
+
+// Afterwards, on a file already processed (Opus): back as a new Opus file, still in time.
+r = await call(me, "POST", `/song-versions/${song.id}/attachments/${vocals.id}/process`, { steps: ["voice"] });
+check("a file cleaned up afterwards: under way", r.status === 202 && r.body.processing === "PENDING", JSON.stringify(r.body));
+r = await call(me, "POST", `/song-versions/${song.id}/attachments/${vocals.id}/process`, { steps: ["voice"] });
+check("not twice at once", r.status === 400, JSON.stringify(r.body));
+const cleaned = await processed((file) => file.stemPart === "VOCALS");
+heard = cleaned ? await clickAt(cleaned) : { at: NaN };
+check("done: a new file in its place, the click still at 1.000 s", cleaned && cleaned.id !== vocals.id && cleaned.mimeType === "audio/ogg" && Math.abs(heard.at - 1) < 0.001, `${heard.at} ${JSON.stringify(cleaned)}`);
+r = await call(other, "POST", `/song-versions/${song.id}/attachments/${cleaned.id}/process`, { steps: ["level"] });
+check("someone else can't", r.status === 403 || r.status === 404, String(r.status));
+r = await call(me, "POST", `/song-versions/${song.id}/attachments/${cleaned.id}/process`, { steps: [] });
+check("at least one step", r.status === 400, JSON.stringify(r.body));
+
 r = await upload({ stemPart: "BASS", process: "encode" }, me, Buffer.from("ID3 not a wav"), "bass.mp3", "audio/mpeg");
 check("only a WAV is processed", r.status === 400, JSON.stringify(r.body));
 r = await upload({ stemPart: "BASS", process: "encode,louder" });

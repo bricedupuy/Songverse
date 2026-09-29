@@ -99,6 +99,7 @@ Songverse stands on a lot of open-source work. Thank you to everyone behind:
 | [ws](https://github.com/websockets/ws) | Sync play's WebSocket | MIT |
 | [sharp](https://sharp.pixelplumbing.com) | Image thumbnails and resizing | Apache-2.0 |
 | [Signalsmith Stretch](https://signalsmith-audio.co.uk/code/stretch/) | Transposing the stems as they play | MIT |
+| [RNNoise](https://gitlab.xiph.org/xiph/rnnoise) (through FFmpeg's `arnndn`) and a [rnnoise-models](https://github.com/GregorR/rnnoise-models) model | Cleaning up a sung take | BSD-3-Clause / not copyrighted |
 | [FFmpeg](https://ffmpeg.org) with [libopus](https://opus-codec.org) | Recorded takes turned into Opus: silence trimmed, level evened out (EBU R128), noise reduced (run by the Worker, not linked) | LGPL-2.1+ / BSD-3-Clause |
 | [jose](https://github.com/panva/jose) | Checking API tokens | MIT |
 | [AWS SDK for JavaScript](https://github.com/aws/aws-sdk-js-v3) | Cloudflare R2 storage (S3-compatible) | Apache-2.0 |

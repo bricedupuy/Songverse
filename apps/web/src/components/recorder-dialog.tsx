@@ -2,16 +2,15 @@ import {
   encodeWav,
   formatDuration,
   newMultitrackId,
+  partKind,
   punchInAt,
   RECORDING_TIME_SIGNATURES,
   recordingPlan,
   spliceTake,
-  STEM_PARTS,
   TIME_SIGNATURE_PATTERN,
   type Attachment,
   type Multitrack,
   type RecordingDetails,
-  type StemPart,
 } from "@songverse/core";
 import { Circle, Hand, Headphones, Loader2, Play, RotateCcw, Square, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -20,6 +19,7 @@ import { Button } from "#/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { NativeSelect } from "#/components/ui/native-select";
+import { PartPicker, usePartLabel, type PartChoice } from "#/components/part-picker";
 import { apiClient } from "#/lib/api-client";
 import { getMetronomeState, stopMetronome } from "#/lib/metronome-engine";
 import { useMultitrackName } from "#/lib/multitrack-name";
@@ -85,7 +85,12 @@ export function RecorderDialog({
   const [target, setTarget] = useState(initialTarget);
   const multitrack = target === NEW_TARGET ? null : (multitracks.find((candidate) => (candidate.id ?? "") === target) ?? null);
   const first = multitrack?.files[0];
-  const [part, setPart] = useState<StemPart>(initialTarget === NEW_TARGET ? "VOCALS" : "OTHER");
+  // The part: a voice by default - the first of the lead and harmonies not recorded yet (issue #131).
+  const initialFiles = multitracks.find((candidate) => (candidate.id ?? "") === initialTarget)?.files ?? [];
+  const firstFree = (["VOCALS", "HARMONY_SOPRANO", "HARMONY_ALTO", "HARMONY_TENOR", "HARMONY_BASS"] as const).find((voice) => !initialFiles.some((file) => file.stemPart === voice && !file.partName));
+  const [choice, setChoice] = useState<PartChoice>({ stemPart: firstFree ?? "BACKING_VOCALS", partName: null });
+  const part = choice.stemPart ?? "OTHER";
+  const partLabel = usePartLabel();
   // A new multitrack's name, tempo and time signature, and its set; an existing one's are its own.
   const [name, setName] = useState("");
   const [tempo, setTempo] = useState(String(songTempo ?? 100));
@@ -98,6 +103,9 @@ export function RecorderDialog({
   const [fromBar, setFromBar] = useState("1");
   const [level, setLevel] = useState(true);
   const [noise, setNoise] = useState(false);
+  // RNNoise, for a voice (issue #132).
+  const [voiceCleanUp, setVoiceCleanUp] = useState(false);
+  const isVoice = partKind(part) === "VOICE";
   const [roundTrip, setRoundTrip] = useState<{ seconds: number; measured: boolean } | null>(null);
   const [bluetooth, setBluetooth] = useState(false);
   const [calibrating, setCalibrating] = useState<"loopback" | "claps" | null>(null);
@@ -124,7 +132,7 @@ export function RecorderDialog({
   // The take it replaces isn't heard from where it's replaced (from its start, without a punch-in).
   const stopAt = use.kind === "instead" ? new Map([[use.id, punch.from]]) : undefined;
   // The same part, already in the multitrack, that this take could replace.
-  const samePart = multitrack?.files.filter((file) => file.stemPart === part && file.canChange) ?? [];
+  const samePart = multitrack?.files.filter((file) => file.stemPart === part && (file.partName ?? null) === (choice.partName ?? null) && file.canChange) ?? [];
 
   useEffect(() => {
     let closed = false;
@@ -175,7 +183,7 @@ export function RecorderDialog({
   // Replacing the part's take by default, when there's one of it to replace.
   useEffect(() => {
     setUse(samePart[0] ? { kind: "instead", id: samePart[0].id } : { kind: "with" });
-  }, [target, part]);
+  }, [target, part, choice.partName]);
 
   // The time while recording, and the limit.
   useEffect(() => {
@@ -257,8 +265,7 @@ export function RecorderDialog({
     setError(null);
     try {
       const wav = encodeWav(result(current, take), take.sampleRate);
-      const partName = t(`stems.parts.${part}`);
-      const file = new File([wav as Uint8Array<ArrayBuffer>], `${songTitle || t("recorder.recording")} - ${partName}.wav`, { type: "audio/wav" });
+      const file = new File([wav as Uint8Array<ArrayBuffer>], `${songTitle || t("recorder.recording")} - ${partLabel(choice)}.wav`, { type: "audio/wav" });
       // A new multitrack: what it was recorded in. An existing one: its own, shared by its parts.
       const details: RecordingDetails = multitrack
         ? {
@@ -278,7 +285,8 @@ export function RecorderDialog({
             recordingFirstBeat: plan?.firstBeat ?? 0,
             ...(setlist && forSet ? { multitrackSetlistId: setlist.id } : {}),
           };
-      details.process = ["encode", level ? "level" : null, noise ? "noise" : null].filter(Boolean).join(",");
+      details.process = ["encode", isVoice && voiceCleanUp ? "voice" : null, level ? "level" : null, noise ? "noise" : null].filter(Boolean).join(",");
+      if (choice.partName) details.partName = choice.partName;
       if (use.kind === "aside") details.otherTake = true;
       const saved = await apiClient.uploadAttachment(songVersionId, "AUDIO", file, part, { visibility: "PRIVATE" }, details);
       if (use.kind === "instead") await apiClient.useTake(songVersionId, saved.id, use.id);
@@ -315,16 +323,11 @@ export function RecorderDialog({
               <option value={NEW_TARGET}>{t("stems.newMultitrack")}</option>
             </NativeSelect>
           </label>
-          <label className="flex items-center gap-2">
-            <span className="w-28 shrink-0">{t("recorder.part")}</span>
-            <NativeSelect value={part} disabled={busy} onChange={(event) => setPart(event.target.value as StemPart)} data-testid="recorder-part">
-              {STEM_PARTS.map((value) => (
-                <option key={value} value={value}>
-                  {t(`stems.parts.${value}`)}
-                </option>
-              ))}
-            </NativeSelect>
-          </label>
+          <div className="flex items-start gap-2">
+            <span className="mt-2 w-28 shrink-0">{t("recorder.part")}</span>
+            {/* A voice, an instrument or the cues, then which (issue #131). */}
+            <PartPicker value={choice} disabled={busy} label={t("recorder.part")} onChange={(next) => setChoice({ stemPart: next.stemPart ?? "VOCALS", partName: next.partName })} />
+          </div>
           {multitrack ? (
             <>
               <p className="text-xs text-muted-foreground" data-testid="recorder-beat">
@@ -404,7 +407,7 @@ export function RecorderDialog({
                       setHeard(next);
                     }}
                   />
-                  {file.stemPart ? t(`stems.parts.${file.stemPart}`) : file.filename}
+                  {file.stemPart ? partLabel(file) : file.filename}
                 </label>
               ))}
             </fieldset>
@@ -423,6 +426,12 @@ export function RecorderDialog({
               <input type="checkbox" checked={noise} disabled={phase === "saving"} onChange={(event) => setNoise(event.target.checked)} data-testid="recorder-noise" />
               {t("recorder.noise")}
             </label>
+            {isVoice ? (
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={voiceCleanUp} disabled={phase === "saving"} onChange={(event) => setVoiceCleanUp(event.target.checked)} data-testid="recorder-voice" />
+                {t("recorder.voiceCleanUp")}
+              </label>
+            ) : null}
           </div>
           <p className="flex items-start gap-2 text-xs text-muted-foreground">
             <Headphones className="mt-0.5 size-4 shrink-0" aria-hidden />

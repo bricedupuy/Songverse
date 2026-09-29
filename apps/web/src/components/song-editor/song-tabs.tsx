@@ -4,7 +4,6 @@ import {
   RECORDING_TIME_SIGNATURES,
   newMultitrackId,
   type Multitrack,
-  STEM_PARTS,
   stemPartFromFilename,
   type Attachment,
   type AttachmentAudience,
@@ -12,7 +11,6 @@ import {
   type MusicBrainzWorkMatch,
   type SongVersionDetail,
   type StorageUsage,
-  type StemPart,
   type StreamingLinkType,
   type TeamSummary,
 } from "@songverse/core";
@@ -38,6 +36,8 @@ import { setMode, useMode } from "#/lib/mode";
 import { stemsOf } from "#/lib/stem-engine";
 import { useMultitrackName } from "#/lib/multitrack-name";
 import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
+import { PartPicker, usePartLabel } from "#/components/part-picker";
+import { CleanUp } from "./clean-up";
 
 const NEW_MULTITRACK = "__new";
 
@@ -448,6 +448,7 @@ export function AttachmentsTab({
   // The parts recorded together (issue #123): the song's original stems, and the multitracks since.
   const multitracks = kind === "audio" ? multitracksOf(attachments) : [];
   const nameOf = useMultitrackName();
+  const partLabel = usePartLabel();
   // Recording a part (issue #123): into a multitrack, or a new one (null).
   const [recording, setRecording] = useState<{ target: string } | null>(null);
   // Takes being turned into Opus by the Worker (issue #127): looked at again until they're done.
@@ -458,10 +459,30 @@ export function AttachmentsTab({
     return () => clearInterval(timer);
   }, [processing]);
 
+  /** Cleans up a file afterwards (issue #132): the Worker does it; the list is looked at again until it's done. */
+  async function cleanUp(file: Attachment, steps: ("voice" | "level" | "noise")[]) {
+    setBusyId(file.id);
+    setError(null);
+    try {
+      await apiClient.processAttachment(songVersionId, file.id, steps);
+      await router.invalidate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   /** Plays another take of a part (issue #127), instead of the one of that part playing, which becomes another take. */
   async function useTake(take: Attachment) {
     const playing = attachments.find(
-      (file) => file.type === "AUDIO" && !file.otherTake && file.canChange && file.stemPart === take.stemPart && (file.multitrackId ?? null) === (take.multitrackId ?? null),
+      (file) =>
+        file.type === "AUDIO" &&
+        !file.otherTake &&
+        file.canChange &&
+        file.stemPart === take.stemPart &&
+        (file.partName ?? null) === (take.partName ?? null) &&
+        (file.multitrackId ?? null) === (take.multitrackId ?? null),
     );
     setBusyId(take.id);
     setError(null);
@@ -651,25 +672,22 @@ export function AttachmentsTab({
                     )}
                   </div>
                   {kind === "audio" && attachment.canChange ? (
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {t("stems.part")}
-                      <NativeSelect
+                      {/* A voice, an instrument or the cues, then which (issue #131). */}
+                      <PartPicker
                         compact
-                        value={attachment.stemPart ?? ""}
+                        allowNone
+                        value={{ stemPart: attachment.stemPart, partName: attachment.partName }}
                         disabled={busyId !== null}
-                        aria-label={t("stems.partOf", { name: attachment.filename })}
-                        onChange={(event) => void update([attachment], { stemPart: (event.target.value || null) as StemPart | null })}
-                      >
-                        <option value="">{t("stems.notAStem")}</option>
-                        {STEM_PARTS.map((part) => (
-                          <option key={part} value={part}>
-                            {t(`stems.parts.${part}`)}
-                          </option>
-                        ))}
-                      </NativeSelect>
-                    </label>
+                        label={t("stems.partOf", { name: attachment.filename })}
+                        onChange={(next) => void update([attachment], next)}
+                      />
+                    </div>
                   ) : kind === "audio" && attachment.stemPart ? (
-                    <span className="self-start rounded-md bg-muted px-2 py-1 text-xs font-medium">{t(`stems.parts.${attachment.stemPart}`)}</span>
+                    <span className="self-start rounded-md bg-muted px-2 py-1 text-xs font-medium" data-testid="part-label">
+                      {partLabel(attachment)}
+                    </span>
                   ) : null}
                   {/* Which multitrack it's part of (issue #123): the files of another version go in one of their own. */}
                   {kind === "audio" && attachment.canChange && attachment.stemPart ? (
@@ -722,6 +740,10 @@ export function AttachmentsTab({
                     />
                   ) : null}
                   {kind === "audio" ? <AudioPlayer songVersionId={songVersionId} attachment={attachment} /> : null}
+                  {/* Cleaned up afterwards (issue #132). */}
+                  {kind === "audio" && attachment.canChange ? (
+                    <CleanUp file={attachment} busy={busyId !== null} onCleanUp={(steps) => void cleanUp(attachment, steps)} />
+                  ) : null}
                 </li>
               ))}
             </ul>

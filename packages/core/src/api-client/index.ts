@@ -541,6 +541,10 @@ export interface Attachment {
   sizeBytes: number | null;
   /** For audio: the part of the song it is (a stem), or null for a full mix. */
   stemPart: StemPart | null;
+  /** Its own name for the part (issue #131), shown instead of the part's; null: the part's. */
+  partName: string | null;
+  /** The viewer uploaded it (issue #131): others' parts say who recorded them. */
+  mine: boolean;
   /** For audio: the recording's key and tempo (BPM) when they aren't the song's, else null. */
   recordingKey: string | null;
   recordingTempo: number | null;
@@ -583,6 +587,7 @@ export interface RecordingDetails {
   multitrackId?: string;
   multitrackName?: string;
   multitrackSetlistId?: string;
+  partName?: string;
   /** A recorded WAV take to turn into Opus (issue #127): "encode", plus ",level" and ",noise" if wanted. */
   process?: string;
   otherTake?: boolean;
@@ -1352,6 +1357,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       attachmentId: string,
       change: { stemPart?: StemPart | null; visibility?: AttachmentVisibility; teamId?: string | null } & { [K in Exclude<keyof RecordingDetails, "process" | "otherTake">]?: RecordingDetails[K] | null } & { otherTake?: boolean },
     ) => request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify(change) }),
+    /** Cleans up an audio file afterwards (issue #132): RNNoise on a voice, its level, its noise - in the background, back as Opus. */
+    processAttachment: (songVersionId: string, attachmentId: string, steps: ("voice" | "level" | "noise")[]) =>
+      request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}/process`, { method: "POST", body: JSON.stringify({ steps }) }),
     /** Plays this take of its part (issue #127), instead of `instead` (kept as another take) if given; answers the song's files. */
     useTake: (songVersionId: string, attachmentId: string, instead: string | null = null) =>
       request<Attachment[]>(`/song-versions/${songVersionId}/attachments/${attachmentId}/use-take`, { method: "POST", body: JSON.stringify({ instead }) }),

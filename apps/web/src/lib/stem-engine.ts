@@ -64,11 +64,17 @@ export interface StemTrack {
   id: string;
   /** Null: a whole recording, played when the song has no stems. */
   part: StemPart | null;
+  /** Its own name for the part (issue #131), shown instead of the part's. */
+  partName: string | null;
+  /** Who recorded it, when it isn't the viewer (issue #131). */
+  by: string | null;
   filename: string;
   /** 1, 2… when two files are the same part ("Guitar 1"), else 0. */
   number: number;
   /** The waveform, 0-1 per slice; null until decoded. */
   peaks: number[] | null;
+  /** Its length (s), once decoded: a take shorter than the rest draws as long as it is. */
+  length: number;
   failed: boolean;
 }
 
@@ -309,13 +315,17 @@ export function stemKey(song: Pick<StemSong, "songVersionId" | "stems">): string
 /** Tracks as listed before anything is decoded. */
 export function tracksOf(stems: StemFile[]): StemTrack[] {
   return stems.map((stem) => {
-    const same = stems.filter((other) => other.stemPart === stem.stemPart);
+    // Two of a part are numbered ("Guitar 1"), unless they're named.
+    const same = stems.filter((other) => other.stemPart === stem.stemPart && !other.partName);
     return {
       id: stem.id,
       part: stem.stemPart,
+      partName: stem.partName || null,
+      by: stem.mine === false ? (stem.uploadedBy?.displayName ?? null) : null,
       filename: stem.filename,
-      number: same.length > 1 ? same.indexOf(stem) + 1 : 0,
+      number: !stem.partName && same.length > 1 ? same.indexOf(stem) + 1 : 0,
       peaks: null,
+      length: 0,
       failed: false,
     };
   });
@@ -612,7 +622,8 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
     gains.set(stem.id, gain);
   }
   const peaks = new Map(decoded.map(({ stem, buffer }) => [stem.id, buffer ? peaksOf(buffer) : null]));
-  const tracks = state.tracks.map((track) => ({ ...track, peaks: peaks.get(track.id) ?? null, failed: !peaks.get(track.id) }));
+  const lengths = new Map(decoded.map(({ stem, buffer }) => [stem.id, buffer?.duration ?? 0]));
+  const tracks = state.tracks.map((track) => ({ ...track, peaks: peaks.get(track.id) ?? null, length: lengths.get(track.id) ?? 0, failed: !peaks.get(track.id) }));
   if (buffers.size === 0) {
     set({ status: "error", tracks });
     return false;
@@ -665,9 +676,10 @@ async function makeStretch(ctx: AudioContext, output: AudioNode): Promise<boolea
   try {
     const { default: SignalsmithStretch } = await import("signalsmith-stretch");
     const node = (await SignalsmithStretch(ctx, { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] })) as StretchNode;
+    // Its defaults: formant compensation is for one voice alone - on a mix of
+    // parts it made the sound wobble, and quieter (measured: twice the
+    // wobble of a held chord, a third of its level).
     await node.start();
-    // Voices keep their character, moved up or down (not a chipmunk).
-    await node.schedule({ formantCompensation: true });
     stretchLatency = await node.latency();
     if (context !== ctx) return false;
     node.connect(output);

@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
-import { API, WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { API, WEB, api, call, check, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
 
 const FIXTURES = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../fixtures/stems");
 
@@ -55,6 +55,12 @@ const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
 await signIn(page, me);
 const dialog = () => page.getByTestId("recorder");
+
+/** The recorder's part (issue #131): a voice or an instrument, then which. */
+async function pickPart(kind, which) {
+  await dialog().getByTestId("part-kind").selectOption({ label: kind });
+  await dialog().getByTestId(kind === "Voice" ? "part-voice" : "part-instrument").selectOption({ label: which });
+}
 
 /** Records a take of about `seconds` past the count-in, and keeps it. */
 async function recordAndKeep(seconds) {
@@ -104,7 +110,7 @@ await step("the first layer, with the metronome only: a new multitrack at its ow
   await dialog().getByTestId("recorder-name").fill("Acoustic");
   await dialog().getByTestId("recorder-tempo").fill("90");
   await dialog().getByTestId("recorder-signature").selectOption("3/4");
-  await dialog().getByTestId("recorder-part").selectOption({ label: "Guitar" });
+  await pickPart("Instrument", "Guitar");
   await dialog().getByTestId("recorder-latency").getByText(/Delay taken off: \d+ ms \(the browser's estimate\)/).waitFor({ timeout: 15000 });
   // Clapping along with the clicks, to measure the delay with headphones: it listens, then says what it heard.
   await dialog().getByTestId("recorder-clap").click();
@@ -155,7 +161,7 @@ await step("a part added to it: hearing the others, with the multitrack's own te
   await box.getByTestId("record-part").click();
   if ((await dialog().getByTestId("recorder-target").inputValue()) !== first.multitrackId) throw new Error("not into Acoustic");
   await dialog().getByTestId("recorder-beat").getByText("90 BPM · 3/4").waitFor();
-  await dialog().getByTestId("recorder-part").selectOption({ label: "Vocals" });
+  await pickPart("Voice", "Lead vocal");
   // No vocals yet: it plays with the others.
   if ((await dialog().getByTestId("recorder-use").inputValue()) !== "with") throw new Error(await dialog().getByTestId("recorder-use").inputValue());
   // The guitar, to hear or not.
@@ -173,7 +179,7 @@ await step("another take of the guitar: it plays instead, the first kept as anot
   await page.waitForLoadState("networkidle");
   const box = page.locator('[data-testid="stems-recording"]').filter({ hasText: "Acoustic" });
   await box.getByTestId("record-part").click();
-  await dialog().getByTestId("recorder-part").selectOption({ label: "Guitar" });
+  await pickPart("Instrument", "Guitar");
   const use = dialog().getByTestId("recorder-use");
   await page.waitForFunction(() => document.querySelector('[data-testid="recorder-use"]')?.value.startsWith("instead:"));
   const label = await use.locator("option:checked").textContent();
@@ -202,7 +208,7 @@ await step("a punch-in from bar 2: the vocals replaced from there, what's before
   await page.reload();
   await page.waitForLoadState("networkidle");
   await page.locator('[data-testid="stems-recording"]').filter({ hasText: "Acoustic" }).getByTestId("record-part").click();
-  await dialog().getByTestId("recorder-part").selectOption({ label: "Vocals" });
+  await pickPart("Voice", "Lead vocal");
   await page.waitForFunction(() => document.querySelector('[data-testid="recorder-use"]')?.value.startsWith("instead:"));
   // Bar 2: its first beat (2 s) and a bar of 3/4 at 90 BPM (2 s) in.
   await dialog().getByTestId("recorder-from-bar").fill("2");
@@ -264,6 +270,46 @@ await step("from the player in Practice: recording into the multitrack playing",
   await dialog().waitFor({ state: "detached" });
 });
 
+await step("a voice of one's own naming, and a harmony someone else recorded: named, and who recorded it (issue #131)", async () => {
+  // A friend the song's shared with sings the alto; the song's editors show it to everyone who sees the song.
+  const friend = await user("Alto singer");
+  await api(friend, "POST", "/people/requests", { email: me.email });
+  const request = (await api(me, "GET", "/people")).incoming.find((item) => item.from.id === friend.id);
+  await api(me, "POST", `/people/requests/${request.id}/accept`);
+  await api(me, "PUT", `/song-versions/${webSong.id}/shares/${friend.id}`, { canEdit: false });
+  const form = new FormData();
+  form.append("type", "AUDIO");
+  form.append("stemPart", "HARMONY_ALTO");
+  form.append("multitrackId", first.multitrackId);
+  form.append("file", new Blob([readFileSync(path.join(FIXTURES, "Morning Light - Vocals.opus"))], { type: "audio/ogg" }), "Grâce - Alto.opus");
+  const alto = await (await fetch(`${API}/song-versions/${webSong.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${friend.bearer}` }, body: form })).json();
+  if (alto.filename !== "Grâce - Alto.opus") throw new Error(`the name's accent: ${alto.filename}`);
+  sql(`update "Attachment" set visibility='SONG' where id='${alto.id}'`);
+
+  // Mine: a descant, named.
+  await page.getByTestId("stem-player").getByTestId("stem-record").click();
+  await pickPart("Voice", "Another name…");
+  await dialog().getByTestId("part-name").fill("Descant");
+  await dialog().getByTestId("recorder-voice").waitFor();
+  await recordAndKeep(1);
+  const descant = (await processedFiles(webSong.id)).find((file) => file.partName === "Descant");
+  if (descant?.stemPart !== "BACKING_VOCALS" || !descant.filename.endsWith(" - Descant.opus")) throw new Error(JSON.stringify(descant));
+
+  await page.reload();
+  const player = page.getByTestId("stem-player");
+  const row = (part) => player.locator(`[data-testid="stem-track"][data-part="${part}"]`);
+  await row("HARMONY_ALTO").getByText("Harmony 2 (alto)").waitFor({ timeout: 15000 });
+  await row("HARMONY_ALTO").getByText("Recorded by Alto singer").waitFor();
+  if ((await row("HARMONY_ALTO").getByTestId("stem-part").innerText()).trim() !== "A") throw new Error("no A on the alto's button");
+  await row("BACKING_VOCALS").getByText("Descant", { exact: true }).waitFor();
+  // Mine says its file, not who.
+  if (await row("BACKING_VOCALS").getByText(/Recorded by/).count()) throw new Error("mine says who recorded it");
+  // Each part drawn as long as it is: the short takes aren't stretched to the longest.
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  const spans = await player.getByTestId("stem-waveform").evaluateAll((els) => els.map((el) => Number(el.dataset.span)));
+  if (!spans.includes(1) || !spans.some((span) => span < 0.9)) throw new Error(spans.join());
+});
+
 const sunday = await api(me, "POST", "/setlists", { name: `Sunday ${stamp}` });
 const [sundayItem] = (await api(me, "POST", `/setlists/${sunday.id}/items`, { songVersionId: webSong.id })).items;
 let sundayBand;
@@ -276,7 +322,7 @@ await step("on a set's song page: a new multitrack for that set, what the player
   await dialog().getByText(`For this set: Sunday ${stamp}`).waitFor();
   if (!(await dialog().getByTestId("recorder-for-set").isChecked())) throw new Error("not for the set");
   await dialog().getByTestId("recorder-name").fill("Sunday band");
-  await dialog().getByTestId("recorder-part").selectOption({ label: "Piano and keys" });
+  await pickPart("Instrument", "Piano and keys");
   await recordAndKeep(1);
   sundayBand = (await files(webSong.id)).find((file) => file.multitrackName === "Sunday band");
   if (sundayBand?.multitrackSetlistId !== sunday.id || sundayBand.stemPart !== "KEYS") throw new Error(JSON.stringify(sundayBand));

@@ -15,12 +15,15 @@ export interface ProcessTakeJob {
   filename: string;
   level: boolean;
   noise: boolean;
+  /** RNNoise, for a voice (issue #132). */
+  voice?: boolean;
   /** Its first beat (s): the count-in before it is the room's noise. */
   quietFor?: number | null;
 }
 
 /**
- * A recorded take, turned from the browser's WAV into Opus (issue #127):
+ * A recorded take, turned from the browser's WAV into Opus (issue #127) -
+ * or any audio file cleaned up afterwards (issue #132):
  * about an eighth of the size, its trailing silence trimmed, its level
  * evened out and its noise reduced if asked. The result replaces the WAV
  * as a new file (a new id, so offline copies and caches fetch it again),
@@ -42,14 +45,14 @@ export class RecordingsProcessor extends WorkerHost {
     if (!take || take.processing !== "PENDING") return { skipped: "gone or already done" };
     const dir = await mkdtemp(path.join(tmpdir(), "songverse-take-"));
     try {
-      const opus = await processTake(await this.storage.get(take.storageKey), dir, { level: job.data.level, noise: job.data.noise, quietFor: job.data.quietFor });
+      const opus = await processTake(await this.storage.get(take.storageKey), dir, { level: job.data.level, noise: job.data.noise, voice: job.data.voice, quietFor: job.data.quietFor });
       const { hash, sizeBytes } = await this.storage.put(opus, "audio/ogg");
       // Everything about it but its id and file, the same.
       const rest: Partial<typeof take> = { ...take };
       delete rest.id;
       const [processed] = await this.prisma.client.$transaction([
         this.prisma.client.attachment.create({
-          data: { ...(rest as Omit<typeof take, "id">), filename: take.filename.replace(/\.wav$/i, "") + ".opus", mimeType: "audio/ogg", storageKey: hash, sizeBytes, processing: null },
+          data: { ...(rest as Omit<typeof take, "id">), filename: take.filename.replace(/\.[a-z0-9]{1,5}$/i, "") + ".opus", mimeType: "audio/ogg", storageKey: hash, sizeBytes, processing: null },
         }),
         this.prisma.client.attachment.delete({ where: { id: take.id } }),
       ]);

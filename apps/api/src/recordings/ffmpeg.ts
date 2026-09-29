@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { encodeWav } from "@songverse/core";
 
 /**
@@ -64,11 +65,16 @@ const DENOISE_OPTIONS = "nr=12:nf=-40";
 const DENOISE = `afftdn=${DENOISE_OPTIONS}:tn=1`;
 const LOUDNESS = "I=-16:TP=-1.5:LRA=11";
 
+// arnndn: RNNoise (issue #132), a voice's clean-up - for speech and singing, not instruments.
+const VOICE_MODEL = fileURLToPath(new URL("../../assets/rnnoise/bd.rnnn", import.meta.url));
+const VOICE = `arnndn=m=${VOICE_MODEL}`;
+
 /**
- * How late the noise reduction makes the sound (samples), at `sampleRate`:
- * a burst half a second into a quiet file, found again after the filter.
+ * How late a filter makes the sound (samples), at `sampleRate`: a burst
+ * half a second into a quiet file, found again after it. `otherwise` when
+ * it can't be found (the filter took it for noise).
  */
-export async function denoiseDelay(sampleRate: number): Promise<number> {
+export async function filterDelay(filter: string, sampleRate: number, otherwise = 0): Promise<number> {
   const samples = new Float32Array(sampleRate * 2);
   let seed = 1;
   for (let i = 0; i < samples.length; i++) {
@@ -77,12 +83,12 @@ export async function denoiseDelay(sampleRate: number): Promise<number> {
   }
   const at = sampleRate / 2;
   for (let i = 0; i < sampleRate / 100; i++) samples[at + i] = 0.6 * Math.sin((2 * Math.PI * 1000 * i) / sampleRate);
-  const { stdout } = await runFfmpeg(["-f", "wav", "-i", "pipe:0", "-af", DENOISE, "-f", "s16le", "-ac", "1", "pipe:1"], Buffer.from(encodeWav(samples, sampleRate)));
+  const { stdout } = await runFfmpeg(["-f", "wav", "-i", "pipe:0", "-af", filter, "-f", "s16le", "-ac", "1", "pipe:1"], Buffer.from(encodeWav(samples, sampleRate)));
   const pcm = new Int16Array(stdout.buffer, stdout.byteOffset, Math.floor(stdout.length / 2));
   let peak = 0;
   for (const value of pcm) peak = Math.max(peak, Math.abs(value));
-  const found = pcm.findIndex((value) => Math.abs(value) > peak * 0.3);
-  return found < 0 ? 0 : Math.max(0, found - at);
+  const found = peak > 1000 ? pcm.findIndex((value) => Math.abs(value) > peak * 0.3) : -1;
+  return found < 0 ? otherwise : Math.max(0, found - at);
 }
 
 /** A WAV file's sample rate, from its header. */
@@ -95,6 +101,8 @@ export interface TakeProcessing {
   level: boolean;
   /** Reduce steady background noise (hiss, hum, a fan). */
   noise: boolean;
+  /** Clean up a voice with RNNoise (issue #132). */
+  voice?: boolean;
   /**
    * How long the take is quiet at its start (s): the count-in, before its
    * first beat. The room's noise is learnt from it - better than guessing,
@@ -109,22 +117,36 @@ export interface TakeProcessing {
  * 96 kbps: its trailing silence trimmed, its noise reduced and level
  * evened out if asked. Its start stays where it was, to the sample.
  */
-export async function processTake(wav: Buffer, dir: string, options: TakeProcessing): Promise<Buffer> {
-  const sampleRate = wavSampleRate(wav);
-  if (!sampleRate) throw new Error("Not a WAV file");
+export async function processTake(audio: Buffer, dir: string, options: TakeProcessing): Promise<Buffer> {
   const { writeFile, readFile } = await import("node:fs/promises");
   const input = `${dir}/take.wav`;
   const output = `${dir}/take.opus`;
-  await writeFile(input, wav);
+  // A file processed afterwards (Opus, MP3…) is read as WAV first, its channels kept.
+  let wav = audio;
+  if (!wavSampleRate(audio)) {
+    await writeFile(`${dir}/source`, audio);
+    await runFfmpeg(["-y", "-i", `${dir}/source`, "-c:a", "pcm_s16le", "-f", "wav", input]);
+    wav = await readFile(input);
+  } else {
+    await writeFile(input, wav);
+  }
+  const sampleRate = wavSampleRate(wav);
+  if (!sampleRate) throw new Error("Not a WAV file");
+  const channels = Math.max(1, Math.min(2, wav.readUInt16LE(22)));
   const filters = [TRIM_END];
+  // Each filter that delays the sound has its delay taken off: the take starts where it did.
+  const undelay = (samples: number) => (samples > 0 ? [`atrim=start_sample=${samples}`, "asetpts=PTS-STARTPTS"] : []);
+  if (options.voice) {
+    // RNNoise works in 10 ms frames: that, if its delay can't be measured.
+    filters.push(VOICE, ...undelay(await filterDelay(VOICE, sampleRate, Math.round(sampleRate / 100))));
+  }
   if (options.noise) {
-    const delay = await denoiseDelay(sampleRate);
+    const delay = await filterDelay(DENOISE, sampleRate);
     const quiet = Math.min(options.quietFor ?? 0, 3) - 0.1;
     // The noise learnt from the count-in (a moment in, and before the first beat), else tracked.
     if (quiet >= 0.3) filters.push(`asendcmd=c='0.05 afftdn@dn sample_noise start; ${quiet.toFixed(3)} afftdn@dn sample_noise stop'`, `afftdn@dn=${DENOISE_OPTIONS}`);
     else filters.push(DENOISE);
-    // Its delay taken off: the take starts where it did.
-    if (delay > 0) filters.push(`atrim=start_sample=${delay}`, "asetpts=PTS-STARTPTS");
+    filters.push(...undelay(delay));
   }
   if (options.level) {
     const { stderr } = await runFfmpeg(["-i", input, "-af", [...filters, `loudnorm=${LOUDNESS}:print_format=json`].join(","), "-f", "null", "-"]);
@@ -137,6 +159,7 @@ export async function processTake(wav: Buffer, dir: string, options: TakeProcess
       );
     }
   }
-  await runFfmpeg(["-y", "-i", input, "-af", filters.join(","), "-ar", "48000", "-ac", "1", "-c:a", "libopus", "-b:a", "96k", "-f", "ogg", output]);
+  // Mono at 96 kbps (a recorded take); a stereo file stays stereo, at 160.
+  await runFfmpeg(["-y", "-i", input, "-af", filters.join(","), "-ar", "48000", "-ac", String(channels), "-c:a", "libopus", "-b:a", channels === 1 ? "96k" : "160k", "-f", "ogg", output]);
   return readFile(output);
 }

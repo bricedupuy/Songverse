@@ -27,11 +27,12 @@ import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AttachmentsService } from "./attachments.service.js";
 import { AttachmentResponseDto } from "./dto/attachment-response.dto.js";
-import { UpdateAttachmentDto, UploadAttachmentDto, UseTakeDto } from "./dto/upload-attachment.dto.js";
+import { ProcessAttachmentDto, UpdateAttachmentDto, UploadAttachmentDto, UseTakeDto } from "./dto/upload-attachment.dto.js";
 import { sniffAudioType } from "./sniff-audio.js";
 import { FileLinksService } from "../files/file-links.service.js";
 import { sendFile } from "../files/send-file.js";
 import { StorageService } from "../storage/storage.service.js";
+import { UPLOAD_OPTIONS } from "../common/uploads.js";
 
 const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
 /** Recordings run bigger than sheets and charts. */
@@ -61,7 +62,7 @@ export class AttachmentsController {
 
   /** Anyone who can see the song adds their own files; who else sees each is up to them (issue #72). */
   @Post()
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_AUDIO_SIZE_BYTES } }))
+  @UseInterceptors(FileInterceptor("file", { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_AUDIO_SIZE_BYTES } }))
   @ApiConsumes("multipart/form-data")
   @ApiCreatedResponse({ type: AttachmentResponseDto })
   async upload(
@@ -100,7 +101,7 @@ export class AttachmentsController {
         multitrackName: dto.multitrackName,
         multitrackSetlistId: dto.multitrackSetlistId,
       },
-      { process: dto.process, otherTake: dto.otherTake },
+      { process: dto.process, otherTake: dto.otherTake, partName: dto.partName },
     );
   }
 
@@ -131,6 +132,21 @@ export class AttachmentsController {
     if (!user) throw new UnauthorizedException();
     await this.access.assertCanSeeSong(user, songVersionId);
     return this.attachmentsService.useTake(user, songVersionId, attachmentId, dto.instead ?? null);
+  }
+
+  /** Cleans up an audio file afterwards (issue #132), in the background: RNNoise on a voice, its level, its noise. It comes back as Opus, a new file. */
+  @Post(":attachmentId/process")
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOkResponse({ type: AttachmentResponseDto })
+  async process(
+    @Param("songVersionId") songVersionId: string,
+    @Param("attachmentId") attachmentId: string,
+    @Body() dto: ProcessAttachmentDto,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+  ): ReturnType<AttachmentsService["process"]> {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
+    return this.attachmentsService.process(user, songVersionId, attachmentId, dto.steps);
   }
 
   /** Streamed, with byte ranges (issue #33). */

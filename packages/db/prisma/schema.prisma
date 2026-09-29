@@ -177,6 +177,11 @@ enum AttachmentType {
 // STEM_PARTS in @songverse/core.
 enum StemPart {
   VOCALS
+  // Sung harmonies (issue #131), from the top.
+  HARMONY_SOPRANO
+  HARMONY_ALTO
+  HARMONY_TENOR
+  HARMONY_BASS
   BACKING_VOCALS
   DRUMS
   BASS
@@ -1155,6 +1160,9 @@ model Attachment {
   storageKey       String // S3 object key
   sizeBytes        Int?
   stemPart         StemPart?
+  // Its own name for the part (issue #131): "Descant", "Acoustic guitar",
+  // "Count-in" - shown instead of the part's.
+  partName         String?
   // For audio: the recording's own key ("G", "Bbm", as written) and tempo
   // (BPM), when they aren't the song's - null means the song's (issue #65).
   recordingKey     String?

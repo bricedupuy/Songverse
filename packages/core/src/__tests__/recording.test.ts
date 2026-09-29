@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { transposesPart, type StemPart } from "../index.js";
+import { harmonyLetter, partKind, stemPartFromFilename, transposesPart, type StemPart } from "../index.js";
 import { alignTake, clapDelayFrom, clickTimes, encodeWav, multitracksOf, punchInAt, recordingPlan, roundTripFrom, spliceTake } from "../index.js";
 
 describe("multitracks (issue #123)", () => {
@@ -103,5 +103,24 @@ describe("transposing the stems (issue #129)", () => {
   it("every part but the drums and cues, unless asked for all", () => {
     expect(["VOCALS", "BASS", "DRUMS", "CLICK", null].map((part) => transposesPart(part as StemPart | null))).toEqual([true, true, false, false, true]);
     expect(transposesPart("DRUMS", true)).toBe(true);
+  });
+});
+
+describe("parts named for harmonies (issue #131)", () => {
+  it("a harmony's voice from a file's name; the bass singers', not the instrument", () => {
+    expect(["Grace - Soprano.wav", "alto.mp3", "Ténor harmony.opus", "Harmony - bass.wav", "Baryton.wav", "Bass.mp3", "Harmonies.mp3"].map(stemPartFromFilename)).toEqual([
+      "HARMONY_SOPRANO",
+      "HARMONY_ALTO",
+      "HARMONY_TENOR",
+      "HARMONY_BASS",
+      "HARMONY_BASS",
+      "BASS",
+      "BACKING_VOCALS",
+    ]);
+  });
+
+  it("each part a voice, an instrument or cues; harmonies lettered", () => {
+    expect(["VOCALS", "HARMONY_ALTO", "BACKING_VOCALS", "GUITAR", "OTHER", "CLICK"].map((part) => partKind(part as StemPart))).toEqual(["VOICE", "VOICE", "VOICE", "INSTRUMENT", "INSTRUMENT", "CUES"]);
+    expect(["HARMONY_SOPRANO", "HARMONY_BASS", "VOCALS", null].map((part) => harmonyLetter(part as StemPart | null))).toEqual(["S", "B", null, null]);
   });
 });

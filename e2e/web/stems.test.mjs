@@ -78,7 +78,9 @@ const [item] = (await api(me, "POST", `/setlists/${set.id}/items`, { songVersion
 const browser = await chromium.launch();
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 await signIn(page, me);
-const partOf = (name) => page.getByLabel(`Stem for ${name}`);
+// A file's part (issue #131): a voice, an instrument or cues, then which.
+const pickerOf = (name) => page.getByTestId("audio-list").locator("li").filter({ hasText: name }).getByTestId("part-picker");
+const partOf = async (name) => (await pickerOf(name).getAttribute("data-part")) ?? "";
 const player = () => page.getByTestId("stem-player");
 const track = (part) => player().locator(`[data-testid="stem-track"][data-part="${part}"]`);
 
@@ -88,7 +90,7 @@ await step("uploading stems: named parts are recognised, MP3 and Opus", async ()
   await page.getByTestId("audio-input").setInputFiles(["Morning Light - Vocals.opus", "Morning Light - Bass.mp3", "03 drums.mp3", "track4.opus"].map(fixture));
   await page.getByTestId("audio-list").locator("li").nth(3).waitFor();
   const parts = {};
-  for (const name of ["Morning Light - Vocals.opus", "Morning Light - Bass.mp3", "03 drums.mp3", "track4.opus"]) parts[name] = await partOf(name).inputValue();
+  for (const name of ["Morning Light - Vocals.opus", "Morning Light - Bass.mp3", "03 drums.mp3", "track4.opus"]) parts[name] = await partOf(name);
   if (JSON.stringify(parts) !== JSON.stringify({ "Morning Light - Vocals.opus": "VOCALS", "Morning Light - Bass.mp3": "BASS", "03 drums.mp3": "DRUMS", "track4.opus": "" })) {
     throw new Error(JSON.stringify(parts));
   }
@@ -135,10 +137,12 @@ await step("a link that stopped working is replaced, and it plays on", async () 
 });
 
 await step("a file the name doesn't tell is assigned by hand", async () => {
-  await partOf("track4.opus").selectOption({ label: "Piano and keys" });
+  await page.getByLabel("Stem for track4.opus", { exact: true }).selectOption({ label: "Instrument" });
+  await pickerOf("track4.opus").getByTestId("part-instrument").waitFor();
+  await pickerOf("track4.opus").getByTestId("part-instrument").selectOption({ label: "Piano and keys" });
   await page.waitForLoadState("networkidle");
   for (let i = 0; i < 25 && (await api(me, "GET", `/song-versions/${webSong.id}/attachments`)).find((a) => a.filename === "track4.opus")?.stemPart !== "KEYS"; i++) await page.waitForTimeout(200);
-  if ((await partOf("track4.opus").inputValue()) !== "KEYS") throw new Error("not saved");
+  if ((await partOf("track4.opus")) !== "KEYS") throw new Error("not saved");
 });
 
 const chips = () => player().getByTestId("stem-chip");
@@ -195,7 +199,7 @@ await step("docked at the bottom, one row: play and a round button per part, wit
   if ((await player().getAttribute("data-view")) !== "compact") throw new Error("not compact");
   if (box.height > 64) throw new Error(`${box.height}px high`);
   const parts = await chips().evaluateAll((els) => els.map((el) => `${el.dataset.part}:${el.getAttribute("title")}:${el.querySelector("svg")?.getAttribute("class")?.match(/lucide-([a-z-]+)/)?.[1]}`));
-  if (parts.join() !== "VOCALS:Vocals:mic-vocal,DRUMS:Drums:drum,BASS:Bass:clef-bass,KEYS:Piano and keys:piano") throw new Error(parts.join());
+  if (parts.join() !== "VOCALS:Lead vocal:mic-vocal,DRUMS:Drums:drum,BASS:Bass:clef-bass,KEYS:Piano and keys:piano") throw new Error(parts.join());
   // Muted before anything has loaded.
   await chip("BASS").click();
 });
@@ -295,9 +299,9 @@ await step("one row: a soloed part's button takes it out of the solo, the others
   const audible = async () => (await chips().evaluateAll((els) => els.map((el) => `${el.dataset.part}:${el.dataset.audible}`))).join();
   if ((await audible()) !== "VOCALS:false,DRUMS:false,BASS:true,KEYS:false") throw new Error(await audible());
   // A part outside the solo joins it.
-  await player().getByRole("button", { name: "Solo Vocals" }).click();
+  await player().getByRole("button", { name: "Solo Lead vocal" }).click();
   if ((await audible()) !== "VOCALS:true,DRUMS:false,BASS:true,KEYS:false") throw new Error(await audible());
-  await player().getByRole("button", { name: "Stop soloing Vocals" }).click();
+  await player().getByRole("button", { name: "Stop soloing Lead vocal" }).click();
   await player().getByRole("button", { name: "Stop soloing Bass" }).click();
   if ((await audible()) !== "VOCALS:true,DRUMS:true,BASS:true,KEYS:true") throw new Error(await audible());
   // Back to muting.

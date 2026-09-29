@@ -29,6 +29,7 @@ import { Public } from "../common/decorators/public.decorator.js";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { ArtistsService } from "./artists.service.js";
+import { UPLOAD_OPTIONS } from "../common/uploads.js";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Pictures only: no SVG, which is a document rather than an image.
@@ -70,7 +71,7 @@ export class ArtistsController {
 
   @Post("artists/picture")
   @UseGuards(GlobalAdminGuard)
-  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_UPLOAD_BYTES } }))
+  @UseInterceptors(FileInterceptor("file", { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_UPLOAD_BYTES } }))
   @ApiConsumes("multipart/form-data")
   @HttpCode(HttpStatus.NO_CONTENT)
   async uploadPicture(@CurrentUser() user: AuthenticatedUser, @Query() query: ArtistQueryDto, @UploadedFile() file: Express.Multer.File | undefined): Promise<void> {

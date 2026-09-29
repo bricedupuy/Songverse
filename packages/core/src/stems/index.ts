@@ -5,7 +5,21 @@ import { foldForSearch } from "../search-text/index.js";
  * player lists, in this order. Demucs's six (vocals, drums, bass, guitar,
  * piano, other) plus the tracks a band's multitracks usually add.
  */
-export const STEM_PARTS = ["VOCALS", "BACKING_VOCALS", "DRUMS", "BASS", "GUITAR", "KEYS", "OTHER", "CLICK"] as const;
+export const STEM_PARTS = [
+  "VOCALS",
+  // Sung harmonies (issue #131), from the top.
+  "HARMONY_SOPRANO",
+  "HARMONY_ALTO",
+  "HARMONY_TENOR",
+  "HARMONY_BASS",
+  "BACKING_VOCALS",
+  "DRUMS",
+  "BASS",
+  "GUITAR",
+  "KEYS",
+  "OTHER",
+  "CLICK",
+] as const;
 export type StemPart = (typeof STEM_PARTS)[number];
 
 /**
@@ -17,6 +31,20 @@ export const UNPITCHED_PARTS: readonly StemPart[] = ["DRUMS", "CLICK"];
 /** Whether transposing moves this part: every part but the drums and cues - or every part at all, with `all`. */
 export function transposesPart(part: StemPart | null, all = false): boolean {
   return all || part === null || !UNPITCHED_PARTS.includes(part);
+}
+
+/** What a part is (issue #131): a voice, an instrument, or the click and cues - how it's picked, and named. */
+export type PartKind = "VOICE" | "INSTRUMENT" | "CUES";
+export const VOICE_PARTS: readonly StemPart[] = ["VOCALS", "HARMONY_SOPRANO", "HARMONY_ALTO", "HARMONY_TENOR", "HARMONY_BASS", "BACKING_VOCALS"];
+export const INSTRUMENT_PARTS: readonly StemPart[] = ["DRUMS", "BASS", "GUITAR", "KEYS", "OTHER"];
+
+export function partKind(part: StemPart): PartKind {
+  return VOICE_PARTS.includes(part) ? "VOICE" : part === "CLICK" ? "CUES" : "INSTRUMENT";
+}
+
+/** A harmony's voice, for its button in the player: S, A, T or B. */
+export function harmonyLetter(part: StemPart | null): string | null {
+  return part?.startsWith("HARMONY_") ? part.slice(8, 9) : null;
 }
 
 export function isStemPart(value: unknown): value is StemPart {
@@ -31,6 +59,11 @@ const RULES: [StemPart, RegExp][] = [
   ["CLICK", word("click", "clic", "metronome", "cue", "guide")],
   // Demucs's two-stem split names the rest "no_vocals".
   ["OTHER", /(?<![a-z])(?:no|without|sans|minus)[^a-z]*(?:vocals?|vox|voix)(?![a-z])/],
+  // A harmony's voice (issue #131): "Alto.wav", "Harmony - bass.mp3" (the singers', not the instrument).
+  ["HARMONY_SOPRANO", word("soprano", "sop")],
+  ["HARMONY_ALTO", word("alto", "contralto")],
+  ["HARMONY_TENOR", word("tenor", "ténor", "tenore")],
+  ["HARMONY_BASS", /(?<![a-z])(?:harmony|harmonie|choir|choeur|vocal|voix)s?[^a-z]*(?:bass|basse|baritone|baryton)(?![a-z])|(?<![a-z])(?:baritone|baryton)(?![a-z])/],
   ["BACKING_VOCALS", word("backing", "bv", "bgv", "bgvox", "choir", "choeur", "harmony", "harmonie", "harmonies", "background")],
   ["DRUMS", word("drum", "batterie", "kit", "perc", "percussion", "kick", "snare", "overhead", "tom", "hihat", "cymbal")],
   ["BASS", word("bass", "basse")],
@@ -66,6 +99,7 @@ export interface MultitrackFile {
   multitrackName?: string | null;
   multitrackSetlistId?: string | null;
   otherTake?: boolean;
+  partName?: string | null;
 }
 
 /** A song's multitrack (issue #123): the parts recorded together, played together. */
@@ -83,7 +117,7 @@ export interface Multitrack<F extends MultitrackFile = MultitrackFile> {
 }
 
 const byPart = (a: MultitrackFile, b: MultitrackFile) =>
-  STEM_PARTS.indexOf(a.stemPart ?? "OTHER") - STEM_PARTS.indexOf(b.stemPart ?? "OTHER") || a.filename.localeCompare(b.filename);
+  STEM_PARTS.indexOf(a.stemPart ?? "OTHER") - STEM_PARTS.indexOf(b.stemPart ?? "OTHER") || (a.partName ?? a.filename).localeCompare(b.partName ?? b.filename);
 
 /**
  * A song's multitracks: its audio files with a part, or in a multitrack,
