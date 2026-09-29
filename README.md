@@ -89,6 +89,7 @@ Songverse stands on a lot of open-source work. Thank you to everyone behind:
 | [Tailwind CSS](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com) and [Radix UI](https://www.radix-ui.com) | Styling and the accessible building blocks (dialogs, menus, tabs) | MIT |
 | [Lucide](https://lucide.dev) | Icons | ISC |
 | [dnd-kit](https://dndkit.com) | Drag and drop (sets, songbooks, the song's order) | MIT |
+| [pdf.js](https://mozilla.github.io/pdf.js/) | Reading a PDF chart's words and chords, with where they are on the page | Apache-2.0 |
 | [react-easy-crop](https://github.com/ValentinH/react-easy-crop) | Cropping avatars and song images | MIT |
 | [i18next](https://www.i18next.com) and react-i18next | English and French | MIT |
 | [NestJS](https://nestjs.com) | The API | MIT |
@@ -104,6 +105,7 @@ Songverse stands on a lot of open-source work. Thank you to everyone behind:
 | [Tonal](https://github.com/tonaljs/tonal) | Chord and key theory for transposing | MIT |
 | [nanoid](https://github.com/ai/nanoid) | Section, line and chord IDs | MIT |
 | [Astro](https://astro.build) and [Starlight](https://starlight.astro.build) | The documentation site and the website | MIT |
+| [pdf-lib](https://pdf-lib.js.org) | Making the PDFs the end-to-end tests read | MIT |
 | [Playwright](https://playwright.dev) and [Vitest](https://vitest.dev) | End-to-end and unit tests, documentation screenshots | Apache-2.0 / MIT |
 | [Turborepo](https://turbo.build), [pnpm](https://pnpm.io), [TypeScript](https://www.typescriptlang.org), [ESLint](https://eslint.org), [Prettier](https://prettier.io) | The workspace and its checks | MIT / MIT / Apache-2.0 / MIT / MIT |
 

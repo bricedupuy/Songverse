@@ -98,9 +98,14 @@ const shell =
   shellHtml
     .replace(/window\.__PUBLIC_ENV__=\{[^<]*?\};/, publicEnvScript)
     .replace(staleAppCssPattern, actualAppCssHref ?? "$&");
-// Everything the app needs offline: its content-hashed code, and the web app manifest.
+// Everything the app needs offline: its content-hashed code, and the web app
+// manifest. Not pdf.js (1.7 MB, issue #124): it reads a PDF dropped on a new
+// song, which is online only, so it's fetched when that happens instead.
 const precache = [
-  ...(await readdir(join(clientDir, "assets")).catch(() => [])).sort().map((file) => `/assets/${file}`),
+  ...(await readdir(join(clientDir, "assets")).catch(() => []))
+    .filter((file) => !/^pdf[.-]/.test(file))
+    .sort()
+    .map((file) => `/assets/${file}`),
   "/manifest.webmanifest",
   "/icon.svg",
 ];

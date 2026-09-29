@@ -1,4 +1,4 @@
-import { detectImportFormatDetails, SUPPORTED_IMPORT_FORMATS, type SupportedImportFormat } from "@songverse/core";
+import { chordProFromPdfText, detectImportFormatDetails, SUPPORTED_IMPORT_FORMATS, type SupportedImportFormat } from "@songverse/core";
 import { ClipboardPaste, FileText, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,6 +7,7 @@ import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
 import { formatBytes } from "#/lib/format-bytes";
+import { pdfTextItems } from "#/lib/pdf-text";
 import { isPdf } from "./attachment-types";
 
 export const SOURCE_FILE_ACCEPT = ".cho,.chordpro,.chopro,.crd,.pro,.txt,.pdf,text/plain,application/pdf";
@@ -132,8 +133,9 @@ export function ContentTextarea({
 }
 
 /**
- * Song Info's "Song content": a source file to read the chart from (a PDF
- * is only kept, its text isn't read), the text box, and its format.
+ * Song Info's "Song content": a source file to read the chart from, the
+ * text box, and its format. A PDF is kept, and its text read when it has
+ * some (issue #124): chords placed on the syllables printed under them.
  */
 export function SongContentCard({
   content,
@@ -154,15 +156,27 @@ export function SongContentCard({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [pdfState, setPdfState] = useState<"reading" | "read" | "noText" | "unreadable" | null>(null);
 
   async function take(file: File) {
     setFileError(null);
+    setPdfState(null);
     if (file.size > MAX_SOURCE_BYTES) {
       setFileError(t("songEditor.fileTooBig", { size: "10 MB" }));
       return;
     }
     if (isPdf(file)) {
       onSourceFile({ file, keep: true });
+      setPdfState("reading");
+      try {
+        const chart = chordProFromPdfText(await pdfTextItems(file));
+        if (!chart) return setPdfState("noText");
+        onContentChange(chart);
+        onFormatChange(null);
+        setPdfState("read");
+      } catch {
+        setPdfState("unreadable");
+      }
       return;
     }
     try {
@@ -236,7 +250,13 @@ export function SongContentCard({
             </button>
           </div>
           {isPdf(sourceFile.file) ? (
-            <p className="text-xs text-muted-foreground">{t("songEditor.pdfKept")}</p>
+            <p className="text-xs text-muted-foreground" data-testid="pdf-state" data-state={pdfState ?? "kept"} role={pdfState === "noText" || pdfState === "unreadable" ? "status" : undefined}>
+              {t("songEditor.pdfKept")}
+              {pdfState === "reading" ? ` ${t("songEditor.pdfReading")}` : null}
+              {pdfState === "read" ? ` ${t("songEditor.pdfRead")}` : null}
+              {pdfState === "noText" ? ` ${t("songEditor.pdfNoText")}` : null}
+              {pdfState === "unreadable" ? ` ${t("songEditor.pdfUnreadable")}` : null}
+            </p>
           ) : (
             <label className="flex items-center gap-2 text-xs">
               <input type="checkbox" checked={sourceFile.keep} onChange={(event) => onSourceFile({ ...sourceFile, keep: event.target.checked })} />
