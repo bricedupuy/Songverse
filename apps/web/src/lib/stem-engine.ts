@@ -70,8 +70,10 @@ export interface StemTrack {
   partName: string | null;
   /** Who recorded it, when it isn't the viewer (issue #131). */
   by: string | null;
-  /** Who recorded it, the viewer too, when it's a layer of a multitrack (issue #142): their avatar on its button. */
+  /** Who recorded it, the viewer too - on a multitrack's layer, or when the parts come from more than one person (issue #142): their avatar on its button. */
   recorder?: { name: string; avatarUrl: string | null } | null;
+  /** The viewer uploaded or recorded it. */
+  mine?: boolean;
   /** The viewer can record into it, merge it or delete it (issue #142). */
   canChange?: boolean;
   filename: string;
@@ -345,6 +347,7 @@ export function stemKey(song: Pick<StemSong, "songVersionId" | "stems">): string
 
 /** Tracks as listed before anything is decoded. */
 export function tracksOf(stems: StemFile[]): StemTrack[] {
+  const uploaders = new Set(stems.map((stem) => stem.uploadedBy?.id ?? null));
   return stems.map((stem) => {
     // Two of a part are numbered ("Guitar 1"), unless they're named.
     const same = stems.filter((other) => other.stemPart === stem.stemPart && !other.partName);
@@ -353,7 +356,8 @@ export function tracksOf(stems: StemFile[]): StemTrack[] {
       part: stem.stemPart,
       partName: stem.partName || null,
       by: stem.mine === false ? (stem.uploadedBy?.displayName ?? null) : null,
-      recorder: stem.multitrackId && stem.uploadedBy ? { name: stem.uploadedBy.displayName, avatarUrl: stem.uploadedBy.avatarUrl ?? null } : null,
+      recorder: stem.uploadedBy && (stem.multitrackId || uploaders.size > 1) ? { name: stem.uploadedBy.displayName, avatarUrl: stem.uploadedBy.avatarUrl ?? null } : null,
+      mine: stem.mine,
       canChange: stem.canChange,
       filename: stem.filename,
       number: !stem.partName && same.length > 1 ? same.indexOf(stem) + 1 : 0,

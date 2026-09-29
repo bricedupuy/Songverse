@@ -303,8 +303,8 @@ export function StemDock({ song: page }: { song: StemSong }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [recorderOpen, setRecorderOpen] = useState(false);
   const recordable = !!song.record && !following;
-  /** One of the viewer's own recordings in a multitrack, loaded: record into it, merge it, delete it (someone else's are theirs, or the Audio tab's). */
-  const actionable = (track: StemTrack) => recordable && !whole && !!track.recorder && !track.by && !!track.canChange && track.id !== TAKE_ID && !track.failed && !recordPanel;
+  /** One of the viewer's own parts (uploaded or recorded), loaded: record into it, merge it, delete it (someone else's are theirs, or the Audio tab's). */
+  const actionable = (track: StemTrack) => recordable && !whole && !!track.mine && !!track.canChange && track.id !== TAKE_ID && !track.failed && !recordPanel;
   const closeRecordPanel = () => {
     setRecordPanel(false);
     setRecordInto(null);
@@ -583,12 +583,14 @@ export function StemDock({ song: page }: { song: StemSong }) {
                       {actionable(track) ? (
                         <button
                           type="button"
-                          className={cn("block max-w-full truncate rounded-sm text-left text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50", selected === track.id && "text-primary underline")}
+                          className={cn("flex max-w-full items-center gap-0.5 rounded-sm text-left text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50", selected === track.id && "text-primary underline")}
                           aria-expanded={selected === track.id}
                           onClick={() => setSelected(selected === track.id ? null : track.id)}
                           data-testid="stem-track-name"
                         >
-                          {name}
+                          <span className="truncate">{name}</span>
+                          {/* Something to tap, on a phone too. */}
+                          <ChevronDown className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform", selected === track.id && "rotate-180")} aria-hidden />
                         </button>
                       ) : (
                         <span className="block truncate text-sm font-medium">{name}</span>

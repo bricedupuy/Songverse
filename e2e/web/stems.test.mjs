@@ -441,6 +441,15 @@ await step("the parts combined with the mixer on (issue #142): one waveform, and
   await track("DRUMS").waitFor();
 });
 
+await step("a part of one's own, among the original stems (issue #142): its name opens its actions", async () => {
+  await track("DRUMS").getByTestId("stem-track-name").click();
+  const actions = track("DRUMS").getByTestId("stem-track-actions");
+  await actions.getByTestId("stem-track-record-into").waitFor();
+  await actions.getByTestId("stem-track-delete").waitFor();
+  await track("DRUMS").getByTestId("stem-track-name").click();
+  await actions.waitFor({ state: "detached" });
+});
+
 // Cue points (issue #110): a song with a verse and a chorus sung twice.
 const cued = await api(me, "POST", "/song-versions", {
   title: `Cued ${stamp}`,

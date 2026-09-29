@@ -122,7 +122,7 @@ Les pistes (ou stems) sont les parties du chant enregistrées séparément : voi
 - **Instrument** : **Batterie**, **Basse**, **Guitare**, **Piano et claviers** ou **Autres**, avec un nom si vous voulez (« Guitare acoustique », « Violon »).
 - **Repères** : le clic, les décomptes et les repères parlés, avec un nom (« Clic », « Guide »).
 
-**Pas une piste** est pour un enregistrement complet. Une piste enregistrée par quelqu'un d'autre dit qui, dans le lecteur de pistes (**Enregistrée par** sous son nom) et sous le fichier. Sur une piste enregistrée dans un multipiste, le bouton rond du lecteur porte la photo de qui l'a enregistrée (ou ses initiales).
+**Pas une piste** est pour un enregistrement complet. Une piste enregistrée par quelqu'un d'autre dit qui, dans le lecteur de pistes (**Enregistrée par** sous son nom) et sous le fichier. Sur une piste enregistrée dans un multipiste, ou quand les pistes d'un chant viennent de plusieurs personnes, le bouton rond du lecteur porte la photo de qui l'a enregistrée (ou ses initiales).
 
 Si les pistes (ou un enregistrement) ne sont pas dans la tonalité du chant ou à son tempo, une version live un ton plus haut par exemple, indiquez les leurs dans le cadre des pistes au-dessus des fichiers (ou sous le fichier) : **Tonalité** et **BPM**, et **Mesure** pour sa mesure. Laissés sur **Tonalité du chant**, vides et sur **Celle du chant**, ce sont ceux du chant. **Premier temps à (s)** indique où tombe son premier temps, en secondes depuis son début (vide : à 0:00) : avec le tempo, il place le métronome sur l'enregistrement.
 
@@ -190,7 +190,7 @@ En mode **Session**, le bouton micro du lecteur de pistes, **Enregistrer une pis
 - Pendant l'enregistrement, la prise se dessine là où elle est enregistrée. **Arrêter** la termine.
 - La prise est ensuite une piste comme les autres, **Nouvelle prise** : écoutez-la, coupez-la ou mettez-la en solo, et déplacez **Caler** pour l'ajuster. **Garder** l'ajoute au multipiste ; **Supprimer** l'abandonne ; **Recommencer** refait une prise.
 - Pour enregistrer une piste en sections (les couplets, puis le refrain), appuyez sur **Ajouter une section** après une prise : placez la tête de lecture au début de la section suivante et **Enregistrer** de nouveau. Chaque section rejoint la même prise, avec un court fondu enchaîné à chaque bout, et le lecteur les compte (« 2 sections »). **Supprimer** n'abandonne que la dernière, **Tout supprimer** toutes, et **Garder** les enregistre toutes en un seul fichier.
-- Touchez le nom d'un de vos enregistrements pour voir ce qu'on peut en faire : **Enregistrer dedans** ouvre l'enregistreur sur cette piste, ce que vous enregistrez ne remplaçant que le passage couvert ; **Fusionner avec…** y mélange un autre enregistrement du multipiste chanté dans la même tonalité, en un seul fichier joué à leur place (les deux sont gardés comme autres prises) ; **Supprimer** le supprime, après confirmation.
+- Touchez le nom d'une piste que vous avez enregistrée ou importée (la petite flèche après lui) pour voir ce qu'on peut en faire : **Enregistrer dedans** ouvre l'enregistreur sur cette piste, ce que vous enregistrez ne remplaçant que le passage couvert ; **Fusionner avec…** y mélange une autre de vos pistes chantée dans la même tonalité, en un seul fichier joué à leur place (les deux sont gardés comme autres prises) ; **Supprimer** le supprime, après confirmation.
 - **Nouveau multipiste…** enregistre plutôt la première couche d'un autre multipiste, comme ci-dessous.
 
 #### Depuis l'onglet Audio

@@ -122,7 +122,7 @@ Stems are the song's parts as separate recordings: vocals, drums, bass and so on
 - **Instrument**: **Drums**, **Bass**, **Guitar**, **Piano and keys** or **Other**, with a name if you like ("Acoustic guitar", "Violin").
 - **Cues**: the click, count-ins and spoken cues, with a name ("Click", "Guide").
 
-**Not a stem** is for a full recording. A part someone else recorded says who, in the stem player (**Recorded by** under its name) and under the file. On a part recorded into a multitrack, the round button in the player carries the picture of whoever recorded it (or their initials).
+**Not a stem** is for a full recording. A part someone else recorded says who, in the stem player (**Recorded by** under its name) and under the file. On a part recorded into a multitrack, or when a song's parts come from more than one person, the round button in the player carries the picture of whoever recorded it (or their initials).
 
 If the stems (or any recording) aren't in the song's key or at its tempo, a live version a tone up for example, set the recording's own in the stems' box above the files (or under the file): **Key** and **BPM**, and **Time** for its time signature. Left as **Song's key**, empty and **Song's**, they're the song's. **First beat at (s)** is where its first beat falls, in seconds from its start (empty: at 0:00): with the tempo, it places the metronome on the recording.
 
@@ -190,7 +190,7 @@ In **Practice**, the microphone button in the stem player, **Record a part**, re
 - While you record, the take draws itself where it's being recorded. **Stop** ends it.
 - The take is then a track like the others, **New take**: play it, mute or solo it, and move **Line up** to nudge it. **Keep** adds it to the multitrack; **Discard** drops it; **Record again** tries again.
 - To record a part in sections (the verses, then the chorus), press **Add another section** after a take: move the playhead to where the next section starts and **Record** again. Each section goes into the same take, with a short crossfade at each end, and the player counts them ("2 sections"). **Discard** drops only the last one, **Discard all** every one, and **Keep** saves them all as one file.
-- Tap the name of a recording of yours to see what can be done with it: **Record into it** opens the recorder on that part, what you record replacing only the time it covers; **Merge with…** mixes another recording of the multitrack sung in the same key into it, as one file that plays in their place (both are kept as other takes); **Delete** deletes it, once you've confirmed.
+- Tap the name of a part you recorded or uploaded (the small arrow after it) to see what can be done with it: **Record into it** opens the recorder on that part, what you record replacing only the time it covers; **Merge with…** mixes another of your parts sung in the same key into it, as one file that plays in their place (both are kept as other takes); **Delete** deletes it, once you've confirmed.
 - **New multitrack…** records the first layer of another multitrack instead, as below.
 
 #### From the Audio tab

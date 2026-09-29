@@ -44,7 +44,7 @@ export function StemTrackActions({
   const { t } = useTranslation();
   const [mode, setMode] = useState<"menu" | "merge" | "delete">("menu");
   // Merged with one sung in the same key: another's pitch would be off.
-  const others = tracks.filter((other) => other.id !== track.id && other.id !== TAKE_ID && other.canChange && !other.by && !other.failed && other.offset === track.offset);
+  const others = tracks.filter((other) => other.id !== track.id && other.id !== TAKE_ID && other.canChange && !!other.mine && !other.failed && other.offset === track.offset);
   const [withId, setWithId] = useState(others[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
