@@ -20,6 +20,7 @@ import { Button } from "#/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "#/components/ui/dialog";
 import { Input } from "#/components/ui/input";
 import { NativeSelect } from "#/components/ui/native-select";
+import { InputLevel } from "#/components/input-level";
 import { PartPicker, usePartLabel, type PartChoice } from "#/components/part-picker";
 import { apiClient } from "#/lib/api-client";
 import { getMetronomeState, stopMetronome } from "#/lib/metronome-engine";
@@ -140,6 +141,8 @@ export function RecorderDialog({
   // (an iPhone's home screen app asks only from a tap).
   const closed = useRef(false);
   const [micRefused, setMicRefused] = useState(false);
+  // The recorder once it's open, for the microphone's level (issue #141).
+  const [opened, setOpened] = useState<Recorder | null>(null);
   function openMicrophone() {
     setError(null);
     setMicRefused(false);
@@ -147,6 +150,7 @@ export function RecorderDialog({
       .then(async (opened) => {
         if (closed.current) return opened.close();
         recorder.current = opened;
+        setOpened(opened);
         setRoundTrip(opened.roundTrip());
         setBluetooth((await opened.bluetoothOutput()) || opened.context.outputLatency > 0.1);
         setReady(true);
@@ -480,6 +484,8 @@ export function RecorderDialog({
             </div>
           ) : null}
 
+          {/* What the microphone hears, before a take and during it: loud enough? */}
+          {phase === "ready" || phase === "recording" ? <InputLevel recorder={opened} /> : null}
           {phase === "recording" ? (
             <p className="flex items-center gap-2 font-medium" role="status" data-testid="recorder-status">
               <Circle className="size-3 animate-pulse fill-destructive text-destructive" aria-hidden />

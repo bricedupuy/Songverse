@@ -101,6 +101,8 @@ export interface StemState {
   duration: number;
   muted: ReadonlySet<string>;
   soloed: ReadonlySet<string>;
+  /** Each part's volume (issue #140), 0-1, by file; 1 when not set. */
+  volumes: Readonly<Record<string, number>>;
   /** The song whose dock is on screen, if any: elsewhere a playing song gets the floating button. */
   docked: string | null;
   /** Playing: recording position `position` (s) heard at `epoch` on the device's clock (ms) - what Sync play shares (issue #100). */
@@ -134,6 +136,7 @@ const EMPTY: StemState = {
   duration: 0,
   muted: new Set(),
   soloed: new Set(),
+  volumes: {},
   docked: null,
   anchor: null,
   following: null,
@@ -361,7 +364,7 @@ export function isAudible(current: Pick<StemState, "muted" | "soloed">, id: stri
 function applyGains(immediately = false) {
   if (!context) return;
   for (const [id, gain] of gains) {
-    const value = isAudible(state, id) ? 1 : 0;
+    const value = isAudible(state, id) ? volumeGain(state.volumes[id] ?? 1) : 0;
     if (immediately) gain.gain.setValueAtTime(value, context.currentTime);
     else gain.gain.setTargetAtTime(value, context.currentTime, 0.01);
   }
@@ -617,6 +620,7 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
     tracks: tracksOf(song.stems),
     muted,
     soloed,
+    volumes: savedVolumes(song.songVersionId, ids),
     beat: beatOf(song),
   });
   // Bytes so far per file, against the sizes the song lists (or the server says).
@@ -896,6 +900,51 @@ export function toggleStemMute(id: string) {
   if (!muted.delete(id)) muted.add(id);
   set({ muted });
   applyGains();
+}
+
+// --- the mixer (issue #140)
+
+const VOLUMES_KEY = "songverse.stems.volumes.";
+
+/** A fader's position (0-1) as a gain: squared, so its travel sounds even (half way is about -12 dB). */
+export function volumeGain(volume: number): number {
+  return Math.max(0, Math.min(1, volume)) ** 2;
+}
+
+/** The volumes set for a song's parts on this device, of the files it has now. */
+function savedVolumes(songVersionId: string, ids: Set<string>): Record<string, number> {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VOLUMES_KEY + songVersionId) ?? "{}") as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(saved).filter((entry): entry is [string, number] => ids.has(entry[0]) && typeof entry[1] === "number"));
+  } catch {
+    return {};
+  }
+}
+
+function saveVolumes() {
+  if (!state.songVersionId) return;
+  // The take being recorded isn't the song's: not kept.
+  const kept = Object.fromEntries(Object.entries(state.volumes).filter(([id, volume]) => id !== TAKE_ID && volume !== 1));
+  try {
+    if (Object.keys(kept).length) localStorage.setItem(VOLUMES_KEY + state.songVersionId, JSON.stringify(kept));
+    else localStorage.removeItem(VOLUMES_KEY + state.songVersionId);
+  } catch {
+    // Storage blocked: for as long as it's loaded.
+  }
+}
+
+/** A part's volume, 0-1: heard now, remembered for the song on this device. */
+export function setStemVolume(id: string, volume: number) {
+  set({ volumes: { ...state.volumes, [id]: Math.max(0, Math.min(1, volume)) } });
+  applyGains();
+  saveVolumes();
+}
+
+/** Every part back to full volume. */
+export function resetStemVolumes() {
+  set({ volumes: {} });
+  applyGains();
+  saveVolumes();
 }
 
 export function toggleStemSolo(id: string) {

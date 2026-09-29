@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { harmonyLetter, hasSound, partKind, stemPartFromFilename, transposesPart, type StemPart } from "../index.js";
-import { alignTake, clapDelayFrom, clickTimes, encodeWav, multitracksOf, punchInAt, recordingPlan, roundTripFrom, spliceTake } from "../index.js";
+import { alignTake, clapDelayFrom, clickTimes, encodeWav, mergeTake, multitracksOf, punchInAt, recordingPlan, roundTripFrom, spliceTake } from "../index.js";
 
 describe("multitracks (issue #123)", () => {
   const file = (filename: string, stemPart: string | null, multitrackId: string | null, createdAt: string, multitrackName: string | null = null, type = "AUDIO") =>
@@ -132,5 +132,26 @@ describe("a take with sound in it (issue #134)", () => {
     const take = new Float32Array(48000);
     take[20000] = 0.01;
     expect(hasSound(take, 48000)).toBe(true);
+  });
+});
+
+describe("sections merged into one take (issue #141)", () => {
+  it("a section replaces only the time it covers, crossfaded in and out; the rest kept", () => {
+    const base = new Float32Array(12).fill(1);
+    const take = new Float32Array(8).fill(0.5);
+    expect([...mergeTake(base, take, 2, 2)]).toEqual([1, 1, 0.875, 0.625, 0.5, 0.5, 0.625, 0.875, 1, 1, 1, 1]);
+  });
+
+  it("without a base: silence either side, nothing faded; a section past the base's end lengthens it", () => {
+    const take = Float32Array.from({ length: 6 }, (_, i) => i + 1);
+    expect([...mergeTake(null, take, 3)]).toEqual([0, 0, 0, 4, 5, 6]);
+    expect(mergeTake(new Float32Array(4), take, 3).length).toBe(6);
+  });
+
+  it("sections recorded one after another all stay", () => {
+    const first = mergeTake(null, Float32Array.from({ length: 4 }, () => 0.25), 0, 1);
+    const both = mergeTake(first, Float32Array.from({ length: 10 }, () => 0.75), 6, 1);
+    // Crossfaded over a sample into what was there (silence), either end.
+    expect([...both]).toEqual([0.25, 0.25, 0.25, 0.25, 0, 0, 0.375, 0.75, 0.75, 0.375]);
   });
 });

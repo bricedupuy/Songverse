@@ -299,6 +299,55 @@ body.sv-dragging {
  * Its hit area is taller than the line; hovered or dragged, the line thickens
  * and a thumb shows where it is.
  */
+/* A part's volume in the mixer (issue #140): over its waveform on a phone, beside it wider. */
+.stem-fader {
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: none;
+}
+.stem-fader:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.stem-fader:focus-visible {
+  outline: none;
+}
+.stem-fader::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-primary) var(--level), color-mix(in oklab, var(--color-muted-foreground) 35%, transparent) var(--level));
+}
+.stem-fader::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--color-primary) var(--level), color-mix(in oklab, var(--color-muted-foreground) 35%, transparent) var(--level));
+}
+.stem-fader::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.875rem;
+  height: 1.5rem;
+  margin-top: calc((4px - 1.5rem) / 2);
+  border-radius: 0.25rem;
+  border: 2px solid var(--color-primary);
+  background: var(--color-background);
+}
+.stem-fader::-moz-range-thumb {
+  width: 0.875rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  border: 2px solid var(--color-primary);
+  background: var(--color-background);
+}
+.stem-fader:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ring) 50%, transparent);
+}
+.stem-fader:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ring) 50%, transparent);
+}
 .stem-playhead {
   position: absolute;
   inset-inline: 0;

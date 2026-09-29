@@ -163,6 +163,25 @@ export function spliceTake(existing: Float32Array, take: Float32Array, at: numbe
 }
 
 /**
+ * A section recorded into a take (issue #141): `take` (lined up with the
+ * song, whatever it holds before `at`) replaces what `base` has from `at`
+ * to its own end - punched in and out, with a short crossfade at each end -
+ * and `base` is kept either side. Without a base, silence either side.
+ */
+export function mergeTake(base: Float32Array | null, take: Float32Array, at: number, fade = 480): Float32Array {
+  const end = take.length;
+  const start = Math.max(0, Math.min(at, end));
+  const out = new Float32Array(Math.max(base?.length ?? 0, end));
+  if (base) out.set(base);
+  for (let i = start; i < end; i++) {
+    let mix = 1;
+    if (base) mix = Math.min(1, (i - start + 0.5) / fade, (end - i - 0.5) / fade);
+    out[i] = (base?.[i] ?? 0) * (1 - mix) + take[i]! * mix;
+  }
+  return out;
+}
+
+/**
  * The round trip measured by clapping along (issue #127): the clicks go to
  * the headphones, the microphone hears the claps. Each clap is looked for
  * from a little before its click (a clap can be early) to a little after;

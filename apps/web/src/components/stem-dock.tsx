@@ -21,6 +21,8 @@ import {
   Pause,
   Piano,
   Play,
+  RotateCcw,
+  SlidersHorizontal,
   UserRoundPlus,
   type LucideIcon,
 } from "lucide-react";
@@ -46,6 +48,8 @@ import {
   pauseStems,
   playStems,
   prefetchStems,
+  resetStemVolumes,
+  setStemVolume,
   seekStems,
   stemKey,
   toggleStemMute,
@@ -53,6 +57,7 @@ import {
   tracksOf,
   undockStems,
   useStems,
+  volumeGain,
   type StemSong,
   type StemTrack,
 } from "#/lib/stem-engine";
@@ -60,13 +65,14 @@ import { cn } from "#/lib/utils";
 
 const NO_PARTS: Record<string, boolean> = {};
 const COMBINED_KEY = "songverse.stems.combined";
+const MIXER_KEY = "songverse.stems.mixer";
 const COMBINED_SLICES = 400;
 
 /**
  * The parts heard as one waveform (issue #137): at each moment, the
  * loudest of them there - each part as long as it is, against the longest.
  */
-export function combinePeaks(tracks: Pick<StemTrack, "peaks" | "length">[], duration: number): number[] {
+export function combinePeaks(tracks: (Pick<StemTrack, "peaks" | "length"> & { volume?: number })[], duration: number): number[] {
   const out = new Array<number>(COMBINED_SLICES).fill(0);
   if (!duration) return out;
   for (const track of tracks) {
@@ -74,7 +80,8 @@ export function combinePeaks(tracks: Pick<StemTrack, "peaks" | "length">[], dura
     for (let slice = 0; slice < COMBINED_SLICES; slice++) {
       const at = ((slice + 0.5) / COMBINED_SLICES) * duration;
       if (at >= track.length) break;
-      const value = track.peaks[Math.floor((at / track.length) * track.peaks.length)] ?? 0;
+      // As loud as the mixer has it (issue #140).
+      const value = (track.peaks[Math.floor((at / track.length) * track.peaks.length)] ?? 0) * Math.sqrt(volumeGain(track.volume ?? 1));
       if (value > out[slice]!) out[slice] = value;
     }
   }
@@ -236,14 +243,63 @@ export function StemDock({ song: page }: { song: StemSong }) {
       <Layers />
     </Button>
   );
-  const audibleKey = tracks.map((track) => `${track.id}:${isAudible(engine, track.id)}:${track.peaks ? 1 : 0}`).join();
-  const combinedPeaks = useMemo(() => (combined ? combinePeaks(tracks.filter((track) => isAudible(engine, track.id)), duration) : null), [combined, audibleKey, duration]);
+  // The mixer (issue #140): a volume per part, remembered on the device.
+  const [mixer, setMixer] = useState(false);
+  useEffect(() => {
+    try {
+      setMixer(localStorage.getItem(MIXER_KEY) === "true");
+    } catch {
+      // Storage blocked: off.
+    }
+  }, []);
+  const showMixer = (next: boolean) => {
+    setMixer(next);
+    try {
+      localStorage.setItem(MIXER_KEY, String(next));
+    } catch {
+      // Remembered for this page only.
+    }
+  };
+  const volumeOf = (track: StemTrack) => (active ? (engine.volumes[track.id] ?? 1) : 1);
+  const mixerButton = (
+    <Button
+      type="button"
+      variant={mixer ? "secondary" : "ghost"}
+      size="icon"
+      className="shrink-0"
+      aria-pressed={mixer}
+      onClick={() => showMixer(!mixer)}
+      aria-label={t("stems.mixer")}
+      title={t("stems.mixer")}
+      data-testid="stem-mixer"
+    >
+      <SlidersHorizontal />
+    </Button>
+  );
+  const mixed = active && Object.keys(engine.volumes).length > 0;
+  const resetMix =
+    mixer && mixed ? (
+      <Button type="button" variant="ghost" size="sm" className="h-8 shrink-0 px-2 text-xs" onClick={resetStemVolumes} data-testid="stem-mixer-reset">
+        <RotateCcw />
+        {t("stems.resetMix")}
+      </Button>
+    ) : null;
+  const audibleKey = tracks.map((track) => `${track.id}:${isAudible(engine, track.id)}:${track.peaks ? 1 : 0}:${volumeOf(track)}`).join();
+  const combinedPeaks = useMemo(
+    () => (combined ? combinePeaks(tracks.filter((track) => isAudible(engine, track.id)).map((track) => ({ ...track, volume: volumeOf(track) })), duration) : null),
+    [combined, audibleKey, duration],
+  );
 
   // Recording a part (issues #127, #134): in the player, over its own mix, into the multitrack playing -
   // or, for a song with only a whole recording, a new multitrack (the dialog). Not while following the leader.
   const [recordPanel, setRecordPanel] = useState(false);
   const [recorderOpen, setRecorderOpen] = useState(false);
   const recordable = !!song.record && !following;
+  const closeRecordPanel = () => {
+    setRecordPanel(false);
+    // Made afresh once the recorder's gone (issue #136): loaded again, ready to play and mix.
+    setTimeout(() => prefetchStems(song), 0);
+  };
   const recordButton = recordable ? (
     <Button
       type="button"
@@ -254,7 +310,8 @@ export function StemDock({ song: page }: { song: StemSong }) {
       onClick={() => {
         if (whole) return setRecorderOpen(true);
         if (!expanded) expand(true);
-        setRecordPanel(!recordPanel);
+        if (recordPanel) closeRecordPanel();
+        else setRecordPanel(true);
       }}
       aria-label={t("recorder.recordPart")}
       title={t("recorder.recordPart")}
@@ -399,15 +456,19 @@ export function StemDock({ song: page }: { song: StemSong }) {
       )}
       {expanded ? (
         <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-2 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", EDGES)}>
-          {/* On a phone, play, the time and minimize on one line, the rest on the next: none pushed off the screen. */}
+          {/* On a phone, play, the time, the tools and minimize on one line; the multitrack and the transposition on the next (issue #140). */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-3">
             {play}
             {time}
             <span className="min-w-0 flex-1" />
-            <div className="order-last flex w-full flex-wrap items-center justify-end gap-1 sm:order-none sm:w-auto sm:gap-2" data-testid="stem-controls">
+            <div className="order-last flex w-full flex-wrap items-center gap-1 sm:order-none sm:w-auto sm:gap-2" data-testid="stem-controls">
               {picker}
               {transposeControl}
+              {resetMix}
+            </div>
+            <div className="flex shrink-0 items-center" data-testid="stem-tools">
               {whole ? null : combineButton}
+              {whole ? null : mixerButton}
               {recordButton}
               {clickButton}
             </div>
@@ -418,11 +479,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
           {status}
           {recordPanel && recordable && active && engine.status === "ready" ? <StemRecordPanel
               song={song}
-              onClose={() => {
-                setRecordPanel(false);
-                // Made afresh once the recorder's gone (issue #136): loaded again, ready to play.
-                setTimeout(() => prefetchStems(song), 0);
-              }}
+              onClose={closeRecordPanel}
               onNewMultitrack={() => {
                 setRecordPanel(false);
                 setRecorderOpen(true);
@@ -433,7 +490,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
               {t("stems.recordedIn", { details: recorded })}
             </p>
           ) : null}
-          {combined && !whole ? (
+          {combined && !whole && !mixer ? (
             // The parts combined (issue #137): their buttons, and one waveform of what's heard - less of the screen taken.
             <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3" data-testid="stem-combined">
               <div className="flex shrink-0 flex-wrap items-center gap-2 px-1.5 py-1">
@@ -463,7 +520,18 @@ export function StemDock({ song: page }: { song: StemSong }) {
                     {track.failed ? (
                       <span className="min-w-0 flex-1 text-xs text-destructive">{t(track.empty ? "stems.emptyFile" : "stems.failed", { name })}</span>
                     ) : (
-                      <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} span={duration ? Math.min(1, track.length / duration) : 1} dim={!on} onSeek={active && engine.status === "ready" && !following ? (at) => seekStems(at * duration) : undefined} />
+                      // In the mixer (issue #140), its volume: a fader over the waveform on a phone, beside it wider; the waveform as loud.
+                      <div className="relative flex min-w-0 flex-1 items-center gap-3">
+                        <Waveform
+                          peaks={track.peaks}
+                          progress={duration ? position / duration : 0}
+                          span={duration ? Math.min(1, track.length / duration) : 1}
+                          dim={!on}
+                          scale={Math.sqrt(volumeGain(volumeOf(track)))}
+                          onSeek={active && engine.status === "ready" && !following ? (at) => seekStems(at * duration) : undefined}
+                        />
+                        {mixer && !whole ? <Fader name={name} volume={volumeOf(track)} disabled={!active || engine.status !== "ready"} onChange={(volume) => setStemVolume(track.id, volume)} /> : null}
+                      </div>
                     )}
                     {/* Moved when transposing, or not (issue #135): the drums and cues aren't, to start with. */}
                     {moving && !whole ? (
@@ -596,22 +664,47 @@ function PartButton({
   );
 }
 
+/** A part's volume in the mixer (issue #140): 0-100%, heard as it moves. */
+function Fader({ name, volume, disabled, onChange }: { name: string; volume: number; disabled: boolean; onChange: (volume: number) => void }) {
+  const { t } = useTranslation();
+  const percent = Math.round(volume * 100);
+  return (
+    <>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={percent}
+        disabled={disabled}
+        onChange={(event) => onChange(Number(event.target.value) / 100)}
+        aria-label={t("stems.volume", { part: name })}
+        aria-valuetext={`${percent}%`}
+        className="stem-fader absolute inset-0 h-full w-full sm:static sm:h-8 sm:w-32 sm:shrink-0"
+        style={{ "--level": `${percent}%` } as CSSProperties}
+        data-testid="stem-volume"
+      />
+      <span className="hidden w-9 shrink-0 text-right text-xs tabular-nums text-muted-foreground sm:block">{percent}%</span>
+    </>
+  );
+}
+
 /**
  * A part's waveform, the part played in the accent colour; a click or a
  * drag seeks. Drawn as long as the part is, against the longest (`span`,
  * 0-1): a take shorter than the rest isn't stretched to look like it lasts.
  */
-function Waveform({ peaks, progress, span, dim, onSeek }: { peaks: number[] | null; progress: number; span: number; dim: boolean; onSeek?: (at: number) => void }) {
+function Waveform({ peaks, progress, span, dim, scale = 1, onSeek }: { peaks: number[] | null; progress: number; span: number; dim: boolean; /** Drawn this high (0-1): as loud as the mixer has it. */ scale?: number; onSeek?: (at: number) => void }) {
   const clip = useId();
   const path = useMemo(
     () =>
       peaks
         ?.map((peak, i) => {
-          const height = Math.max(2, peak * 92);
+          const height = Math.max(2, peak * 92 * scale);
           return `M${i} ${(100 - height) / 2}h0.7v${height}h-0.7z`;
         })
         .join("") ?? "",
-    [peaks],
+    [peaks, scale],
   );
   const width = peaks?.length ?? 1;
 

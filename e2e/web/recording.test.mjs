@@ -93,7 +93,7 @@ async function processedFiles(songId) {
 /** A file's audio, decoded by ffmpeg: its length (s) and loudest sample. */
 async function decoded(songId, file) {
   const res = await fetch(`${API}/song-versions/${songId}/attachments/${file.id}/download`, { headers: { Authorization: `Bearer ${me.bearer}` } });
-  const pcm = execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "pipe:1"], { input: Buffer.from(await res.arrayBuffer()) });
+  const pcm = execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "pipe:1"], { input: Buffer.from(await res.arrayBuffer()), maxBuffer: 64 * 1024 * 1024 });
   const samples = new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2);
   let peak = 0;
   for (const value of samples) peak = Math.max(peak, Math.abs(value));
@@ -301,7 +301,7 @@ await step("recording in the player (issue #134): from bar 2 over the mix transp
   if (!tenor || tenor.multitrackId !== first.multitrackId || tenor.pitchOffset !== 1 || tenor.mimeType !== "audio/ogg") throw new Error(JSON.stringify(tenor));
   // From the multitrack's 0:00: silent up to bar 2, then what was recorded.
   const res = await fetch(`${API}/song-versions/${webSong.id}/attachments/${tenor.id}/download`, { headers: { Authorization: `Bearer ${me.bearer}` } });
-  const pcm = execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "pipe:1"], { input: Buffer.from(await res.arrayBuffer()) });
+  const pcm = execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "pipe:1"], { input: Buffer.from(await res.arrayBuffer()), maxBuffer: 64 * 1024 * 1024 });
   const samples = new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2);
   let before = 0;
   let after = 0;
@@ -358,6 +358,41 @@ await step("a voice of one's own naming, and a harmony someone else recorded: na
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
   const spans = await player.getByTestId("stem-waveform").evaluateAll((els) => els.map((el) => Number(el.dataset.span)));
   if (!spans.includes(1) || !spans.some((span) => span < 0.9)) throw new Error(spans.join());
+});
+
+await step("a part in sections (issue #141): the microphone's level before recording; bars 2 and 5 merged into one file, silence between", async () => {
+  const player = page.getByTestId("stem-player");
+  await player.getByTestId("stem-record").click();
+  await page.locator('[data-testid="stem-record-panel"][data-phase="ready"]').waitFor({ timeout: 15000 });
+  // What the microphone hears, before anything's recorded.
+  await page.waitForFunction(() => ["quiet", "good", "loud"].includes(document.querySelector('[data-testid="input-level"]')?.dataset.level), null, { timeout: 5000 });
+  await panel().getByTestId("part-kind").selectOption({ label: "Voice" });
+  await panel().getByTestId("part-voice").selectOption({ label: "Harmony 1 (soprano)" });
+  // Bar 2 (4 s): the first section.
+  await player.getByRole("slider", { name: "Position" }).fill("4.5");
+  await panel().getByText("From bar 2 (0:04), after a bar of count-in").waitFor();
+  await recordInPlayer(1.2);
+  await panel().getByTestId("stem-record-add-section").click();
+  await panel().getByTestId("stem-record-sections").getByText("1 section").waitFor();
+  // Bar 5 (10 s): the second.
+  await player.getByRole("slider", { name: "Position" }).fill("10.5");
+  await panel().getByText("From bar 5 (0:10), after a bar of count-in").waitFor();
+  await recordInPlayer(1.2);
+  await player.locator('[data-testid="stem-track"]').filter({ hasText: "New take · Harmony 1 (soprano) · 2 sections" }).waitFor({ timeout: 15000 });
+  await panel().getByTestId("stem-record-keep").click();
+  await panel().waitFor({ state: "detached", timeout: 15000 });
+  const sopranos = (await processedFiles(webSong.id)).filter((file) => file.stemPart === "HARMONY_SOPRANO" && file.multitrackId === first.multitrackId);
+  if (sopranos.length !== 1) throw new Error(JSON.stringify(sopranos));
+  const res = await fetch(`${API}/song-versions/${webSong.id}/attachments/${sopranos[0].id}/download`, { headers: { Authorization: `Bearer ${me.bearer}` } });
+  const pcm = execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "pipe:1"], { input: Buffer.from(await res.arrayBuffer()), maxBuffer: 64 * 1024 * 1024 });
+  const samples = new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2);
+  const peak = (from, to) => {
+    let max = 0;
+    for (let i = Math.round(from * 48000); i < Math.min(samples.length, Math.round(to * 48000)); i++) max = Math.max(max, Math.abs(samples[i]));
+    return max;
+  };
+  const levels = { before: peak(0, 3.9), first: peak(4, 5.6), between: peak(6.2, 9.8), second: peak(10, 11.6) };
+  if (levels.before > 200 || levels.between > 200 || levels.first < 1000 || levels.second < 1000) throw new Error(JSON.stringify({ seconds: samples.length / 48000, ...levels }));
 });
 
 const sunday = await api(me, "POST", "/setlists", { name: `Sunday ${stamp}` });

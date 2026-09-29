@@ -1,7 +1,8 @@
 // Demo content and the docs' screenshots, in each language (run by
 // screenshots.mjs, which starts a fresh copy of the app for it). The songs
 // are in the public domain.
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
@@ -71,8 +72,34 @@ const nextSunday = () => {
   return date.toISOString().slice(0, 10);
 };
 
-// A fake microphone, for the recorder (issue #123).
-const browser = await chromium.launch({ args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
+// A fake microphone, for the recorder (issue #123): someone singing at a
+// good level (issue #141), a held note swelling and fading - not Chromium's
+// own beeps, which are loud enough to clip.
+function singing() {
+  const rate = 48000;
+  const samples = new Int16Array(rate * 4);
+  for (let i = 0; i < samples.length; i++) {
+    const t = i / rate;
+    samples[i] = Math.round(Math.sin(2 * Math.PI * 220 * t) * (0.2 + 0.15 * Math.sin(Math.PI * t)) * 32767);
+  }
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + samples.length * 2, 4);
+  header.write("WAVEfmt ", 8);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(rate, 24);
+  header.writeUInt32LE(rate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(samples.length * 2, 40);
+  const file = path.join(tmpdir(), "songverse-docs-singing.wav");
+  writeFileSync(file, Buffer.concat([header, Buffer.from(samples.buffer)]));
+  return file;
+}
+const browser = await chromium.launch({ args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", `--use-file-for-fake-audio-capture=${singing()}`] });
 try {
   for (const [locale, text] of Object.entries(LOCALES)) {
     console.log(`\n${locale}`);
@@ -265,6 +292,16 @@ try {
     }, { element: dock });
     await dock.getByTestId("stem-record").click();
     await page.getByTestId("stem-record-panel").waitFor({ state: "detached" });
+    // The mixer (issue #140), at a phone's width: a fader over each part's waveform.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await shoot("stems-mixer", null, async () => {
+      await dock.getByTestId("stem-mixer").click();
+      await dock.getByTestId("stem-volume").nth(0).fill("45");
+      await dock.getByTestId("stem-volume").nth(2).fill("70");
+    }, { element: dock });
+    await dock.getByTestId("stem-mixer-reset").click();
+    await dock.getByTestId("stem-mixer").click();
+    await page.setViewportSize({ width: 1280, height: 800 });
     // Playing on elsewhere: the button back to the song.
     await dock.getByRole("button", { name: /^(Play|Lecture)$/ }).click();
     await shoot("stems-return", null, async () => {

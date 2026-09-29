@@ -1,7 +1,8 @@
-import { alignTake, encodeWav, formatDuration, hasSound, partKind, spliceTake, type RecordingDetails } from "@songverse/core";
-import { Circle, Hand, Loader2, Mic, Square, Trash2, TriangleAlert, X } from "lucide-react";
+import { alignTake, encodeWav, formatDuration, hasSound, mergeTake, partKind, type RecordingDetails } from "@songverse/core";
+import { Circle, Hand, ListPlus, Loader2, Mic, Square, Trash2, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { InputLevel } from "#/components/input-level";
 import { PartPicker, usePartLabel, type PartChoice } from "#/components/part-picker";
 import { Button } from "#/components/ui/button";
 import { NativeSelect } from "#/components/ui/native-select";
@@ -37,13 +38,20 @@ const useOf = (value: string): Use => (value.startsWith("instead:") ? { kind: "i
  * solos and transposition - from the playhead (the start of its bar, after
  * a bar of count-in), on the player's clock, so it lines up with what was
  * heard. Then it's a track like the others, to play, nudge, keep or drop.
- * Sung while transposed, it says how far (issue #135).
+ * Sung while transposed, it says how far (issue #135). A part can be
+ * recorded in sections (issue #141): each one kept goes into the same take,
+ * replacing only the time it covers, and the whole is kept as one file.
  */
 export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: StemSong; onClose: () => void; /** Records the first layer of another multitrack instead (the dialog). */ onNewMultitrack: () => void }) {
   const { t } = useTranslation();
   const engine = useStems();
   const partLabel = usePartLabel();
   const recorder = useRef<Recorder | null>(null);
+  // The recorder once it's open, for the microphone's level (issue #141).
+  const [opened, setOpened] = useState<Recorder | null>(null);
+  // The sections kept so far, merged (issue #141): what the next one goes into.
+  const sections = useRef<Float32Array | null>(null);
+  const [sectionCount, setSectionCount] = useState(0);
   const [phase, setPhase] = useState<Phase>("arming");
   const [error, setError] = useState<string | null>(null);
   const [micRefused, setMicRefused] = useState(false);
@@ -90,6 +98,7 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
     Recorder.open(context)
       .then(async (opened) => {
         recorder.current = opened;
+        setOpened(opened);
         opened.onChunk = (data) => {
           let peak = 0;
           for (let i = 0; i < data.length; i += 8) peak = Math.max(peak, Math.abs(data[i]!));
@@ -128,7 +137,8 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
     setError(null);
     setNudge(0);
     setLive([]);
-    await setStemsTake(null);
+    // The sections so far heard while recording the next one; nothing new yet.
+    await showSamples(sections.current);
     setTake(null);
     const start = startAt;
     setFrom(start);
@@ -166,19 +176,26 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
     await showTake(done, nudge);
   }
 
-  /** The take as it will be kept: lined up (nudged), spliced into the one it replaces from where it starts, else silent before. */
+  /**
+   * The take as it will be kept: lined up (nudged), from where it starts to
+   * where it stopped, into the sections kept so far - else into the part it
+   * replaces, what's either side kept (issue #141) - else silent either side.
+   */
   function samples(done: Take, nudgeMs: number): Float32Array {
     const delay = (recorder.current?.roundTrip().seconds ?? 0) + nudgeMs / 1000;
     const aligned = alignTake(done.captured, { sampleRate: done.sampleRate, capturedAt: done.capturedAt, zeroAt: done.zeroAt, delay });
-    const seam = Math.round(from * done.sampleRate);
-    const replaced = use.kind === "instead" && from > 0 ? stemMono(use.id) : null;
-    if (replaced) return spliceTake(replaced, aligned, seam);
-    aligned.fill(0, 0, Math.min(aligned.length, seam));
-    return aligned;
+    const base = sections.current ?? (use.kind === "instead" ? stemMono(use.id) : null);
+    return mergeTake(base, aligned, Math.round(from * done.sampleRate));
+  }
+
+  /** The take as a track the player plays with the others; null, none. */
+  async function showSamples(merged: Float32Array | null, count = sectionCount) {
+    const name = t("recorder.newTake", { part: partLabel(choice) }) + (count > 1 ? ` · ${t("recorder.sectionsCount", { count })}` : "");
+    await setStemsTake(merged ? { samples: merged, part, partName: choice.partName, name, offset: engine.transpose } : null);
   }
 
   async function showTake(done: Take, nudgeMs: number) {
-    await setStemsTake({ samples: samples(done, nudgeMs), part, partName: choice.partName, name: t("recorder.newTake", { part: partLabel(choice) }), offset: engine.transpose });
+    await showSamples(samples(done, nudgeMs), sectionCount + 1);
   }
 
   // Nudged: the take moved, heard as it will be kept.
@@ -199,12 +216,15 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
 
   async function keep() {
     const current = recorder.current;
-    if (!current || !take) return;
+    // The take just recorded with the sections before it, or those alone.
+    const merged = take && !silent ? samples(take, nudge) : sections.current;
+    const context = stemsAudioContext();
+    if (!current || !merged || !context) return;
     pauseStems();
     setPhase("saving");
     setError(null);
     try {
-      const wav = encodeWav(samples(take, nudge), take.sampleRate);
+      const wav = encodeWav(merged, take?.sampleRate ?? context.sampleRate);
       const file = new File([wav as Uint8Array<ArrayBuffer>], `${song.title} - ${partLabel(choice)}.wav`, { type: "audio/wav" });
       const first = song.stems[0];
       const details: RecordingDetails = {
@@ -231,11 +251,36 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
     }
   }
 
+  /** The take just recorded dropped: back to the sections kept, if any. */
   async function discard() {
     pauseStems();
-    await setStemsTake(null);
     setTake(null);
+    setNudge(0);
+    setSilent(false);
+    setError(null);
+    await showSamples(sections.current);
     setPhase("ready");
+  }
+
+  /** Every section dropped: a fresh start. */
+  async function discardAll() {
+    sections.current = null;
+    setSectionCount(0);
+    await discard();
+  }
+
+  /** The take just recorded kept as a section (issue #141); the next one recorded goes in with it. */
+  async function addSection() {
+    if (!take || silent) return;
+    pauseStems();
+    const merged = samples(take, nudge);
+    sections.current = merged;
+    const count = sectionCount + 1;
+    setSectionCount(count);
+    setTake(null);
+    setNudge(0);
+    setPhase("ready");
+    await showSamples(merged, count);
   }
 
   async function calibrate(method: "loopback" | "claps") {
@@ -279,19 +324,37 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
               : t("recorder.fromTime", { time: formatDuration(startAt) })}
         </span>
         <span className="min-w-0 flex-1" />
-        {phase === "recorded" || phase === "saving" ? (
+        {phase === "ready" && sectionCount > 0 ? (
+          <span className="text-xs font-medium" data-testid="stem-record-sections">
+            {t("recorder.sectionsCount", { count: sectionCount })}
+          </span>
+        ) : null}
+        {phase === "recorded" || phase === "saving" || (phase === "ready" && sectionCount > 0) ? (
           <>
-            <Button type="button" variant="ghost" size="sm" onClick={() => void discard()} disabled={phase === "saving"} data-testid="stem-record-discard">
-              <Trash2 />
-              {t("recorder.discard")}
-            </Button>
-            <Button type="button" size="sm" onClick={() => void keep()} disabled={phase === "saving" || silent} data-testid="stem-record-keep">
+            {phase === "ready" ? (
+              <Button type="button" variant="ghost" size="sm" onClick={() => void discardAll()} data-testid="stem-record-discard-all">
+                <Trash2 />
+                {t("recorder.discardAll")}
+              </Button>
+            ) : (
+              <>
+                <Button type="button" variant="ghost" size="sm" onClick={() => void discard()} disabled={phase === "saving"} data-testid="stem-record-discard">
+                  <Trash2 />
+                  {t("recorder.discard")}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => void addSection()} disabled={phase === "saving" || silent} data-testid="stem-record-add-section">
+                  <ListPlus />
+                  {t("recorder.addSection")}
+                </Button>
+              </>
+            )}
+            <Button type="button" size="sm" onClick={() => void keep()} disabled={phase === "saving" || (phase === "recorded" && silent)} data-testid="stem-record-keep">
               {phase === "saving" ? <Loader2 className="animate-spin" /> : null}
               {phase === "saving" ? t("recorder.saving") : t("recorder.keep")}
             </Button>
           </>
         ) : null}
-        {phase === "ready" || phase === "arming" ? (
+        {(phase === "ready" || phase === "arming") && sectionCount === 0 ? (
           <Button type="button" variant="link" size="sm" className="h-auto px-0 text-xs" onClick={onNewMultitrack} data-testid="stem-record-new">
             {t("recorder.newMultitrackEllipsis")}
           </Button>
@@ -301,6 +364,9 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
         </Button>
       </div>
 
+      {/* What the microphone hears, before a take and during it: loud enough? (issue #141) */}
+      {phase === "ready" || phase === "recording" ? <InputLevel recorder={opened} /> : null}
+      {phase === "ready" && sectionCount > 0 ? <p className="text-xs text-muted-foreground">{t("recorder.sectionsHint")}</p> : null}
       {/* Nothing from the microphone a moment in: said now, not after the take. */}
       {phase === "recording" && live.length > 16 && Math.max(...live) < 0.0005 ? (
         <p className="flex items-start gap-2 text-xs text-destructive" role="alert" data-testid="stem-record-silent">
@@ -345,8 +411,8 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
       <div className={cn("flex flex-col gap-2", (phase === "recording" || phase === "saving") && "pointer-events-none opacity-60")}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">{t("recorder.part")}</span>
-          <PartPicker compact value={choice} disabled={busy || phase === "recorded"} label={t("recorder.part")} onChange={(next) => setChoice({ stemPart: next.stemPart ?? "VOCALS", partName: next.partName })} />
-          <NativeSelect compact value={useValue(use)} disabled={busy || phase === "recorded"} aria-label={t("recorder.use")} onChange={(event) => setUse(useOf(event.target.value))} data-testid="stem-record-use">
+          <PartPicker compact value={choice} disabled={busy || phase === "recorded" || sectionCount > 0} label={t("recorder.part")} onChange={(next) => setChoice({ stemPart: next.stemPart ?? "VOCALS", partName: next.partName })} />
+          <NativeSelect compact value={useValue(use)} disabled={busy || phase === "recorded" || sectionCount > 0} aria-label={t("recorder.use")} onChange={(event) => setUse(useOf(event.target.value))} data-testid="stem-record-use">
             {samePart.map((file) => (
               <option key={file.id} value={`instead:${file.id}`}>
                 {t("recorder.useInstead", { name: file.partName || fileName(file) })}

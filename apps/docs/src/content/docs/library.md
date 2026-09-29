@@ -130,9 +130,13 @@ In **Practice** mode (see [Edit, Practice and Live](/getting-started/#edit-pract
 
 ![The stem player, one row, the vocals muted](../../assets/screenshots/en/stems-compact.jpg)
 
-The arrow at the end expands it: a row per part with the same round button, its waveform and a solo button (solo plays only the parts soloed). The line along the player's top edge shows how far it's played, in either view: click or drag it to go elsewhere in the song (or use the arrow keys). While a solo is on, a round button, in either view, takes its part out of the solo or adds it; take the last one out to hear every part again. Click a waveform to jump there. Each part's waveform is as long as the part: a take that stops before the end of the song stops there too. **Combine the parts** (the layers button) shows the parts' round buttons and a single waveform of what's heard instead of a row per part, to leave more of the screen to the chart; Songverse remembers it. On a phone, the controls beyond Play and the time go on a second line. The arrow at the top minimizes it again, and Songverse remembers which you prefer. The files start downloading as soon as the song's page opens in Practice (the line along the top shows how far), so **Play** is usually instant. Once downloaded, they aren't downloaded again.
+The arrow at the end expands it: a row per part with the same round button, its waveform and a solo button (solo plays only the parts soloed). The line along the player's top edge shows how far it's played, in either view: click or drag it to go elsewhere in the song (or use the arrow keys). While a solo is on, a round button, in either view, takes its part out of the solo or adds it; take the last one out to hear every part again. Click a waveform to jump there. Each part's waveform is as long as the part: a take that stops before the end of the song stops there too. **Combine the parts** (the layers button) shows the parts' round buttons and a single waveform of what's heard instead of a row per part, to leave more of the screen to the chart; Songverse remembers it. Beside the time are the player's tools: **Combine the parts**, **Mixer**, **Record a part** and **Click with the recording**. On a phone, the multitrack and the transposition go on a second line. The arrow at the top minimizes it again, and Songverse remembers which you prefer. The files start downloading as soon as the song's page opens in Practice (the line along the top shows how far), so **Play** is usually instant. Once downloaded, they aren't downloaded again.
 
 ![The stem player expanded, with each part's waveform](../../assets/screenshots/en/stems.jpg)
+
+**Mixer** gives each part a volume fader: on a phone it lies over the part's waveform, on a wider screen it sits beside it. Each waveform grows or shrinks with its volume, so the balance shows at a glance, and the combined waveform follows it too. Songverse remembers the volumes for each song on the device; **Reset the mix** puts every part back to full.
+
+![The stem player's mixer on a phone: a volume fader over each part's waveform](../../assets/screenshots/en/stems-mixer.jpg)
 
 **Transpose** moves the stems up or down, a semitone at a time (**Up a semitone**, **Down a semitone**), as they play: to a singer's range, or another key. Between the two buttons is the key they're heard in, "B (+2)" for stems in A. Each part's row then has its own arrows button, **Transpose** (the part's name): pressed, the part is moved; not pressed, it plays as recorded. The drums and the click and cues start unpressed, every other part pressed. Songverse remembers the transposition, and which parts are moved, for each song on the device. Playing in sync, the leader's are everyone's.
 
@@ -168,9 +172,11 @@ In **Practice**, the microphone button in the stem player, **Record a part**, re
 ![Recording in the stem player: its recorder above the parts](../../assets/screenshots/en/stems-record.jpg)
 
 - You hear the player as it is: your mutes, solos and transposition, and the metronome if **Click with the recording** is on. Recorded while transposed, the take is kept as sung in that key (see above).
-- It records from the playhead: move it anywhere in the song, and the take starts at the beginning of that bar ("From bar 17 (0:42)"), after a bar of count-in. Before that, the part it replaces is kept (a punch-in), or it's silent.
+- As soon as the microphone is open, **Microphone** shows what it hears, the last few seconds scrolling by, and says whether that's **Too quiet**, a **Good level** or **Too loud** (it clips): check before you record.
+- It records from the playhead: move it anywhere in the song, and the take starts at the beginning of that bar ("From bar 17 (0:42)"), after a bar of count-in. It replaces only the time it covers: the part it replaces is kept either side (a punch-in and out), or it's silent.
 - While you record, the take draws itself where it's being recorded. **Stop** ends it.
 - The take is then a track like the others, **New take**: play it, mute or solo it, and move **Line up** to nudge it. **Keep** adds it to the multitrack; **Discard** drops it; **Record again** tries again.
+- To record a part in sections (the verses, then the chorus), press **Add another section** after a take: move the playhead to where the next section starts and **Record** again. Each section goes into the same take, with a short crossfade at each end, and the player counts them ("2 sections"). **Discard** drops only the last one, **Discard all** every one, and **Keep** saves them all as one file.
 - **New multitrack…** records the first layer of another multitrack instead, as below.
 
 #### From the Audio tab
@@ -179,7 +185,7 @@ In **Practice**, the microphone button in the stem player, **Record a part**, re
 
 ![Recording a part of the stems, hearing the others](../../assets/screenshots/en/recorder.jpg)
 
-Choose the **Part** you're recording (a voice, an instrument or cues, as above), untick **Click** to record without the metronome, and press **Record**; **Stop** ends the take. Use headphones, so the microphone only hears you, not the click and the other parts.
+Choose the **Part** you're recording (a voice, an instrument or cues, as above), check **Microphone** says it hears you at a **Good level**, untick **Click** to record without the metronome, and press **Record**; **Stop** ends the take. Use headphones, so the microphone only hears you, not the click and the other parts.
 
 **The take** says what it does once kept, when the multitrack already has that part:
 

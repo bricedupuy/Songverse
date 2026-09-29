@@ -104,6 +104,9 @@ export class Recorder {
   /** Its context is its own (closed with it), not the stem player's. */
   private owned = true;
   private nodes: AudioNode[] = [];
+  /** What the microphone hears, from the moment it's open (issue #141): its level before and while recording. */
+  private meter: AnalyserNode | null = null;
+  private meterData: Float32Array<ArrayBuffer> | null = null;
 
   private constructor(context: AudioContext, stream: MediaStream, capture: AudioWorkletNode) {
     this.context = context;
@@ -147,9 +150,14 @@ export class Recorder {
       const silent = context.createGain();
       silent.gain.value = 0;
       capture.connect(silent).connect(context.destination);
+      const meter = context.createAnalyser();
+      meter.fftSize = 2048;
+      source.connect(meter);
       const recorder = new Recorder(context, stream, capture);
       recorder.owned = !existing;
-      recorder.nodes = [source, capture, silent];
+      recorder.nodes = [source, capture, silent, meter];
+      recorder.meter = meter;
+      recorder.meterData = new Float32Array(meter.fftSize);
       return recorder;
     } catch (error) {
       for (const track of stream.getTracks()) track.stop();
@@ -157,6 +165,15 @@ export class Recorder {
       setAudioSession("playback");
       throw error;
     }
+  }
+
+  /** The microphone's peak level just now (0-1, 1 is clipping), recording or not. */
+  inputPeak(): number {
+    if (!this.meter || !this.meterData) return 0;
+    this.meter.getFloatTimeDomainData(this.meterData);
+    let peak = 0;
+    for (const value of this.meterData) peak = Math.max(peak, Math.abs(value));
+    return Math.min(1, peak);
   }
 
   /** The round trip: measured on this device, else what the browser says of its output and input. */

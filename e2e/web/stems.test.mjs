@@ -344,6 +344,42 @@ await step("on a phone it fits", async () => {
   if (minimize.x + minimize.width > 360 - 12) throw new Error(`minimize at ${JSON.stringify(minimize)}`);
   const controls = await player().getByTestId("stem-controls").boundingBox();
   if (controls.x + controls.width > 360) throw new Error(`controls at ${JSON.stringify(controls)}`);
+  // The tools on the first line, with Play and minimize (issue #140); the transposition on the next.
+  const tools = await player().getByTestId("stem-tools").boundingBox();
+  const playing = await player().getByTestId("stem-play").boundingBox();
+  const centre = (b) => b.y + b.height / 2;
+  if (Math.abs(centre(tools) - centre(playing)) > 4 || Math.abs(centre(minimize) - centre(playing)) > 4 || tools.x + tools.width > minimize.x) throw new Error(`tools at ${JSON.stringify(tools)}, Play at ${JSON.stringify(playing)}`);
+  if (centre(controls) <= centre(playing) + 10) throw new Error(`the transposition beside Play: ${JSON.stringify(controls)}`);
+  for (const id of ["stem-combine", "stem-mixer", "stem-click"]) await player().getByTestId("stem-tools").getByTestId(id).waitFor();
+});
+
+await step("the mixer (issue #140): a fader over each waveform on a phone, the waveform as loud; remembered, and reset", async () => {
+  await player().getByTestId("stem-mixer").click();
+  const row = player().getByTestId("stem-track").first();
+  const fader = row.getByTestId("stem-volume");
+  await fader.waitFor();
+  // Over the waveform, on a phone.
+  const faderBox = await fader.boundingBox();
+  const waveBox = await row.getByTestId("stem-waveform").boundingBox();
+  if (faderBox.x > waveBox.x + 2 || faderBox.x + faderBox.width < waveBox.x + waveBox.width - 2) throw new Error(`fader ${JSON.stringify(faderBox)}, waveform ${JSON.stringify(waveBox)}`);
+  const height = () => row.getByTestId("stem-waveform").evaluate((svg) => svg.querySelector("path").getBBox().height);
+  const full = await height();
+  await fader.fill("50");
+  await page.waitForFunction(() => document.querySelector('[data-testid="stem-volume"]')?.getAttribute("aria-valuetext") === "50%");
+  const half = await height();
+  if (!(half < full * 0.6 && half > full * 0.4)) throw new Error(`waveform ${full} high, at 50% ${half}`);
+  await page.reload();
+  await player().getByTestId("stem-track").first().getByTestId("stem-volume").waitFor();
+  if ((await player().getByTestId("stem-track").first().getByTestId("stem-volume").inputValue()) !== "50") throw new Error("not remembered");
+  await player().getByTestId("stem-mixer-reset").click();
+  if ((await player().getByTestId("stem-track").first().getByTestId("stem-volume").inputValue()) !== "100") throw new Error("not reset");
+  // On a wide screen, beside the waveform, which still seeks.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const wideFader = await player().getByTestId("stem-track").first().getByTestId("stem-volume").boundingBox();
+  const wideWave = await player().getByTestId("stem-track").first().getByTestId("stem-waveform").boundingBox();
+  if (wideFader.x < wideWave.x + wideWave.width - 2) throw new Error(`fader ${JSON.stringify(wideFader)} over the waveform ${JSON.stringify(wideWave)}`);
+  await player().getByTestId("stem-mixer").click();
+  await page.setViewportSize({ width: 360, height: 740 });
 });
 
 await step("the parts combined (issue #137): their buttons and one waveform, a fraction of the height; remembered", async () => {
