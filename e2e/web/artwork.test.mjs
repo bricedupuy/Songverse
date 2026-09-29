@@ -72,6 +72,17 @@ await step("an image of one's own, cropped to a square", async () => {
   if (sql(`select "imageSourceUrl" from "SongVersion" where id='${song.id}'`) !== "upload") throw new Error("not kept as an upload");
 });
 
+await step("its album art by its title (issue #146): in Edit, and in Practice", async () => {
+  await page.getByTestId("song-art").waitFor();
+  if (!(await loaded(page.getByTestId("song-art")))) throw new Error("not shown in Edit");
+  await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
+  await page.goto(`${WEB}/library/${song.id}`);
+  await page.getByTestId("practice-song").getByTestId("song-art").waitFor();
+  if (!(await loaded(page.getByTestId("song-art")))) throw new Error("not shown in Practice");
+  await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
+  await page.goto(`${WEB}/library/${song.id}`);
+});
+
 await step("removed: the cover made from its title", async () => {
   const artwork = page.getByTestId("artwork-card");
   await artwork.getByRole("button", { name: "Remove" }).click();

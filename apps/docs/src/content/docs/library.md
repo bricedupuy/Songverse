@@ -79,7 +79,7 @@ Edits on **Song info** and **Editor** are saved together by **Save song**; files
 
 ### Artwork
 
-A song's image is the artwork of the album or single it's on, from Apple Music, Deezer or Spotify (as your admin set them up), kept on Songverse's own storage. A new song gets it on its own, from its title and first artist, when one of them has a close enough match; until then its cover is made from its title. It shows on the library's home, in **Songs** and on the song's page, to everyone who can see the song.
+A song's image is the artwork of the album or single it's on, from Apple Music, Deezer or Spotify (as your admin set them up), kept on Songverse's own storage. A new song gets it on its own, from its title and first artist, when one of them has a close enough match; until then its cover is made from its title. It shows on the library's home, in **Songs** and on the song's page - beside its title, in Edit and in Practice - to everyone who can see the song.
 
 On **Song info**, **Artwork** shows it. If you can edit the song, **Find artwork** lists their matches, each with where it's from - choose the album or single it's from; on a computer, hovering one shows its full name. If it isn't there, **Upload an image** takes one of your own: drag and zoom to choose the square that shows, then **Use this image**. **Remove** takes it off. Images are kept square, at up to 800×800.
 

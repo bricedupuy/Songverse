@@ -57,7 +57,8 @@ export function PracticeSongPage({
 
   return (
     <div className="flex flex-col gap-6" data-testid="practice-song">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex items-start gap-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold">
             <span className="min-w-0 break-words">{version.title}</span>
@@ -83,6 +84,9 @@ export function PracticeSongPage({
             </Link>
           </Button>
         </div>
+        </div>
+        {/* Its album art (issue #146), when it has some. */}
+        {version.imageUrl ? <img src={`${version.imageUrl}&w=256`} alt="" className="size-24 shrink-0 rounded-lg object-cover shadow-sm sm:size-32" data-testid="song-art" /> : null}
       </div>
 
       <Card>

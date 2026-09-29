@@ -489,6 +489,9 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
     >
       {/* Sticky on wider screens; a phone gets the save bar at the bottom instead. */}
       <div className="z-30 -mt-4 flex flex-wrap md:sticky md:top-14 items-center justify-between gap-3 border-b bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* Its album art (issue #146), small: the header stays in view. */}
+          {edit?.version.imageUrl ? <img src={`${edit.version.imageUrl}&w=128`} alt="" className="size-14 shrink-0 rounded-md object-cover shadow-sm sm:size-16" data-testid="song-art" /> : null}
         <div className="min-w-0">
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold">
             <span className="min-w-0 break-words">{heading}</span>
@@ -502,6 +505,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
               <OfflinePinButton kind="SONG" targetId={edit.version.id} />
             </div>
           ) : null}
+        </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {canSuggest && !suggesting ? (

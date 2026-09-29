@@ -79,7 +79,7 @@ Les modifications des onglets **Infos** et **Éditeur** sont enregistrées ensem
 
 ### Illustration
 
-L'image d'un chant est l'illustration de l'album ou du single où il figure, depuis Apple Music, Deezer ou Spotify (selon les réglages de votre administrateur), conservée sur le stockage de Songverse. Un nouveau chant la reçoit tout seul, d'après son titre et son premier artiste, quand l'un d'eux a un résultat assez proche ; en attendant, sa couverture est tirée de son titre. Elle apparaît sur l'accueil de la bibliothèque, dans **Chants** et sur la page du chant, pour tous ceux qui peuvent voir le chant.
+L'image d'un chant est l'illustration de l'album ou du single où il figure, depuis Apple Music, Deezer ou Spotify (selon les réglages de votre administrateur), conservée sur le stockage de Songverse. Un nouveau chant la reçoit tout seul, d'après son titre et son premier artiste, quand l'un d'eux a un résultat assez proche ; en attendant, sa couverture est tirée de son titre. Elle apparaît sur l'accueil de la bibliothèque, dans **Chants** et sur la page du chant - à côté de son titre, en Édition et en Session - pour tous ceux qui peuvent voir le chant.
 
 Dans **Infos**, **Illustration** la montre. Si vous pouvez modifier le chant, **Trouver l'illustration** liste leurs résultats, chacun avec sa provenance - choisissez l'album ou le single d'où il vient ; sur un ordinateur, le survoler affiche son nom complet. S'il n'y est pas, **Ajouter une image** en prend une à vous : faites glisser et zoomez pour choisir le carré affiché, puis **Utiliser cette image**. **Retirer** l'enlève. Les images sont gardées carrées, en 800×800 maximum.
 
