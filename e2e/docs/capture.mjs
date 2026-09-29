@@ -177,6 +177,12 @@ try {
       form.append("file", new Blob([readFileSync(path.join(STEMS, file))], { type: "application/octet-stream" }), file);
       await fetch(`${API}/song-versions/${grace.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form });
     }
+    // Where its sections start in them (issue #110): the verses, then the first again.
+    const cueDoc = (await api(me, "GET", `/song-versions/${grace.id}`)).documentJson;
+    const cuePoints = cueDoc.flow.map((pass, index) => ({ at: index * 6.5, sectionId: pass.sectionId }));
+    for (const file of await api(me, "GET", `/song-versions/${grace.id}/attachments`)) {
+      if (file.stemPart) await api(me, "PATCH", `/song-versions/${grace.id}/attachments/${file.id}`, { cuePoints });
+    }
 
     {
       const form = new FormData();
@@ -285,6 +291,12 @@ try {
       await dock.getByRole("slider").fill("8");
       await dock.getByRole("button", { name: /^(Pause)$/ }).click();
     }, { element: dock });
+    // Placing the sections (issue #110): the editor open, the strip above the parts.
+    await shoot("stems-sections", null, async () => {
+      await dock.getByTestId("stem-cues").click();
+      await dock.getByTestId("stem-cue-editor").waitFor();
+    }, { element: dock });
+    await dock.getByTestId("stem-cues").click();
     // Recording in the player (issue #134): its recorder open above the parts.
     await shoot("stems-record", null, async () => {
       await dock.getByTestId("stem-record").click();

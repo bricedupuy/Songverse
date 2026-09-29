@@ -42,7 +42,19 @@ const useOf = (value: string): Use => (value.startsWith("instead:") ? { kind: "i
  * recorded in sections (issue #141): each one kept goes into the same take,
  * replacing only the time it covers, and the whole is kept as one file.
  */
-export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: StemSong; onClose: () => void; /** Records the first layer of another multitrack instead (the dialog). */ onNewMultitrack: () => void }) {
+export function StemRecordPanel({
+  song,
+  into = null,
+  onClose,
+  onNewMultitrack,
+}: {
+  song: StemSong;
+  /** A recording to record into (issue #142): its part, sections punched into it. */
+  into?: string | null;
+  onClose: () => void;
+  /** Records the first layer of another multitrack instead (the dialog). */
+  onNewMultitrack: () => void;
+}) {
   const { t } = useTranslation();
   const engine = useStems();
   const partLabel = usePartLabel();
@@ -57,11 +69,15 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
   const [micRefused, setMicRefused] = useState(false);
   // The part: a voice by default - the first of the lead and harmonies not there yet (issue #131).
   const firstFree = (["VOCALS", "HARMONY_SOPRANO", "HARMONY_ALTO", "HARMONY_TENOR", "HARMONY_BASS"] as const).find((voice) => !song.stems.some((file) => file.stemPart === voice && !file.partName));
-  const [choice, setChoice] = useState<PartChoice>({ stemPart: firstFree ?? "BACKING_VOCALS", partName: null });
+  const intoFile = into ? song.stems.find((file) => file.id === into) : undefined;
+  const [choice, setChoice] = useState<PartChoice>(intoFile?.stemPart ? { stemPart: intoFile.stemPart, partName: intoFile.partName ?? null } : { stemPart: firstFree ?? "BACKING_VOCALS", partName: null });
   const part = choice.stemPart ?? "OTHER";
   const samePart = song.stems.filter((file) => file.stemPart === part && (file.partName ?? null) === (choice.partName ?? null) && file.canChange);
   const [use, setUse] = useState<Use>({ kind: "with" });
-  useEffect(() => setUse(samePart[0] ? { kind: "instead", id: samePart[0].id } : { kind: "with" }), [part, choice.partName]);
+  useEffect(() => {
+    const first = samePart.find((file) => file.id === into) ?? samePart[0];
+    setUse(first ? { kind: "instead", id: first.id } : { kind: "with" });
+  }, [part, choice.partName]);
   const [level, setLevel] = useState(true);
   const [noise, setNoise] = useState(false);
   const [voiceCleanUp, setVoiceCleanUp] = useState(false);

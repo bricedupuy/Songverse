@@ -2,7 +2,7 @@ import { InjectQueue } from "@nestjs/bullmq";
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, UnsupportedMediaTypeException } from "@nestjs/common";
 import type { Queue } from "bullmq";
 import { parseKey, type StemPart } from "@songverse/core";
-import type { Prisma } from "@songverse/db";
+import { Prisma } from "@songverse/db";
 import { AccessPolicyService, type Viewer } from "../access/access-policy.service.js";
 import type { AttachmentVisibilityValue, UpdateAttachmentDto } from "./dto/upload-attachment.dto.js";
 import { ImageService, type ProcessedImage } from "../images/image.service.js";
@@ -283,7 +283,7 @@ export class AttachmentsService {
 }
 
 const ATTACHMENT_INCLUDE = {
-  uploadedBy: { select: { id: true, displayName: true } },
+  uploadedBy: { select: { id: true, displayName: true, avatarUrl: true } },
   visibleToTeam: { select: { id: true, name: true } },
   multitrackSetlist: { select: { id: true, name: true, eventDate: true } },
 } satisfies Prisma.AttachmentInclude;
@@ -306,22 +306,27 @@ export interface RecordingChange {
   multitrackId?: string | null;
   multitrackName?: string | null;
   multitrackSetlistId?: string | null;
+  cuePoints?: { at: number; sectionId: string }[] | null;
 }
 
 const WAV_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave"]);
 
-function recordingData(change: RecordingChange) {
-  const data: RecordingChange = {};
+function recordingData(change: RecordingChange): Omit<Prisma.AttachmentUncheckedCreateInput, "songVersionId" | "type" | "filename" | "mimeType" | "storageKey"> {
+  const data: Record<string, unknown> = {};
   if (change.recordingKey !== undefined) {
     // Kept as written ("Gb" stays "Gb"), once it reads as a key.
     const written = change.recordingKey?.trim() ?? "";
     if (written && !parseKey(written)) throw new BadRequestException(`"${written}" isn't a key Songverse can read`);
     data.recordingKey = written || null;
   }
+  // Cue points (issue #110): in time order; none is no column at all.
+  if (change.cuePoints !== undefined) {
+    (data as Record<string, unknown>).cuePoints = change.cuePoints?.length ? [...change.cuePoints].sort((a, b) => a.at - b.at) : Prisma.DbNull;
+  }
   for (const field of ["recordingTempo", "recordingFirstBeat", "recordingTimeSignature", "pitchOffset", "multitrackId", "multitrackName", "multitrackSetlistId"] as const) {
     if (change[field] !== undefined) (data as Record<string, unknown>)[field] = change[field];
   }
-  return data;
+  return data as Omit<Prisma.AttachmentUncheckedCreateInput, "songVersionId" | "type" | "filename" | "mimeType" | "storageKey">;
 }
 
 function present(row: AttachmentRow, viewer: Viewer, canEditSong: boolean) {

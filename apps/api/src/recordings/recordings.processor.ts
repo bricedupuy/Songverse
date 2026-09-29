@@ -1,5 +1,6 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
+import { Prisma } from "@songverse/db";
 import { UnrecoverableError, type Job } from "bullmq";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -52,7 +53,7 @@ export class RecordingsProcessor extends WorkerHost {
       delete rest.id;
       const [processed] = await this.prisma.client.$transaction([
         this.prisma.client.attachment.create({
-          data: { ...(rest as Omit<typeof take, "id">), filename: take.filename.replace(/\.[a-z0-9]{1,5}$/i, "") + ".opus", mimeType: "audio/ogg", storageKey: hash, sizeBytes, processing: null },
+          data: { ...(rest as Omit<typeof take, "id">), cuePoints: take.cuePoints ?? Prisma.DbNull, filename: take.filename.replace(/\.[a-z0-9]{1,5}$/i, "") + ".opus", mimeType: "audio/ogg", storageKey: hash, sizeBytes, processing: null },
         }),
         this.prisma.client.attachment.delete({ where: { id: take.id } }),
       ]);

@@ -12,6 +12,7 @@ import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
+import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
 import type {
   CreateCatalogSchema,
@@ -569,7 +570,9 @@ export interface Attachment {
   visibleToTeamId: string | null;
   visibleToTeam: { id: string; name: string } | null;
   uploadedByUserId: string | null;
-  uploadedBy: { id: string; displayName: string } | null;
+  uploadedBy: { id: string; displayName: string; avatarUrl?: string | null } | null;
+  /** Where each section starts in the recording (issue #110), the same on each file of a multitrack. */
+  cuePoints?: CuePoint[] | null;
   /** The viewer may change its part, key and tempo, or remove it. */
   canChange: boolean;
   /** The viewer may change who sees it. */
@@ -1358,7 +1361,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
     updateAttachment: (
       songVersionId: string,
       attachmentId: string,
-      change: { stemPart?: StemPart | null; visibility?: AttachmentVisibility; teamId?: string | null } & { [K in Exclude<keyof RecordingDetails, "process" | "otherTake">]?: RecordingDetails[K] | null } & { otherTake?: boolean },
+      change: { stemPart?: StemPart | null; visibility?: AttachmentVisibility; teamId?: string | null } & { [K in Exclude<keyof RecordingDetails, "process" | "otherTake">]?: RecordingDetails[K] | null } & { otherTake?: boolean; cuePoints?: CuePoint[] | null },
     ) => request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify(change) }),
     /** Cleans up an audio file afterwards (issue #132): RNNoise on a voice, its level, its noise - in the background, back as Opus. */
     processAttachment: (songVersionId: string, attachmentId: string, steps: ("voice" | "level" | "noise")[]) =>

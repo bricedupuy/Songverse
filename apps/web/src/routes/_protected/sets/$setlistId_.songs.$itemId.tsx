@@ -1,4 +1,4 @@
-import { ApiError, keptSetSong, onlineOrKept, transposeKey, type Attachment, type SetlistSongView } from "@songverse/core";
+import { ApiError, cueSectionsOf, keptSetSong, onlineOrKept, transposeKey, type Attachment, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -286,7 +286,7 @@ function SetSongStems({
   const chosen = useChosenMultitrack(choiceKey);
   // Bumped when a part's recorded here, to list the files again.
   const [reload, setReload] = useState(0);
-  const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean; youtubeId: string | null }>({ attachments: [], offline: false, youtubeId: null });
+  const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean; youtubeId: string | null; cueSections?: ReturnType<typeof cueSectionsOf> }>({ attachments: [], offline: false, youtubeId: null });
 
   useEffect(() => {
     if (mode !== "practice") return;
@@ -295,6 +295,8 @@ function SetSongStems({
       .then(([files, version]) => ({
         ...files,
         youtubeId: version?.identifiers.find((identifier) => identifier.type === "YOUTUBE")?.value ?? null,
+        // Its sections, for the cue points (issue #110).
+        ...(version ? { cueSections: cueSectionsOf(version.documentJson) } : {}),
       }))
       .then((next) => {
         if (!cancelled) setFiles(next);
@@ -325,6 +327,7 @@ function SetSongStems({
         record: files.offline ? undefined : { attachments: files.attachments, setlist, onSaved: () => setReload((n) => n + 1) },
         tempo,
         timeSignature,
+        cueSections: files.cueSections,
       }}
     />
   );

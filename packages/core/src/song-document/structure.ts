@@ -17,6 +17,11 @@ const GROUPS: Record<SectionType, StructureGroup> = {
   other: "other",
 };
 
+/** The colour group of a kind of section. */
+export function structureGroupOf(type: SectionType): StructureGroup {
+  return GROUPS[type] ?? "other";
+}
+
 /** One pass of the song, as the structure bar shows it. */
 export interface StructureStep {
   /** The pass's ID, as the chart renders it (data-pass). */

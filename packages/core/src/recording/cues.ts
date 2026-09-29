@@ -1,0 +1,78 @@
+import type { SectionType } from "../constants/index.js";
+import type { SongDocumentV2 } from "../schemas/song-document-v2.js";
+import { structureGroupOf, type StructureGroup } from "../song-document/structure.js";
+
+/**
+ * Cue points (issue #110): where each section starts in a recording -
+ * "Intro 0:00, Verse 1 0:12.4, Chorus 0:41.0…". Kept with a multitrack's
+ * files (the same on each, like its key and tempo), in the recording's own
+ * order: they describe the audio, which may sing a chorus once more than
+ * the song's order does. Each points at a section by its ID, so it
+ * survives edits to the song.
+ */
+export interface CuePoint {
+  /** Seconds from the recording's 0:00. */
+  at: number;
+  sectionId: string;
+}
+
+/** A section as cue points name it: V1, C, B… in the structure bar's colours. */
+export interface CueSection {
+  id: string;
+  type: SectionType;
+  /** Its own label ("Tag"), if it has one. */
+  label: string | null;
+  /** Verse 1, verse 2…: which of its type, when the song has several; null when it has one. */
+  number: number | null;
+  group: StructureGroup;
+}
+
+/** The song's sections for cue points, and the order it's sung in (section IDs): what to place, and in which order by default. */
+export function cueSectionsOf(doc: Pick<SongDocumentV2, "sections" | "flow">): { sections: CueSection[]; flow: string[] } {
+  const flow = doc.flow.map((pass) => pass.sectionId).filter((id) => doc.sections.some((section) => section.id === id));
+  // Numbered by type in the order they're first sung, as the structure bar does; then any never sung.
+  const order = [...new Set([...flow, ...doc.sections.map((section) => section.id)])];
+  const byType = new Map<string, string[]>();
+  for (const id of order) {
+    const section = doc.sections.find((candidate) => candidate.id === id)!;
+    byType.set(section.type, [...(byType.get(section.type) ?? []), id]);
+  }
+  const sections = order.map((id) => {
+    const section = doc.sections.find((candidate) => candidate.id === id)!;
+    const same = byType.get(section.type) ?? [];
+    return { id, type: section.type as SectionType, label: section.label ?? null, number: same.length > 1 ? same.indexOf(id) + 1 : null, group: structureGroupOf(section.type as SectionType) };
+  });
+  return { sections, flow };
+}
+
+/** Cue points in time order, only those of sections the song still has. */
+export function sortedCues(cues: CuePoint[] | null | undefined, sections: Pick<CueSection, "id">[]): CuePoint[] {
+  return (cues ?? []).filter((cue) => sections.some((section) => section.id === cue.sectionId)).sort((a, b) => a.at - b.at);
+}
+
+/** The cue point playing at `position` (s): the last one started; null before the first. */
+export function cueAt(cues: CuePoint[], position: number): number | null {
+  let found: number | null = null;
+  cues.forEach((cue, index) => {
+    if (cue.at <= position + 1e-6) found = index;
+  });
+  return found;
+}
+
+/**
+ * The section to place next when tapping along (issue #110): the one after
+ * the last placed in the song's order, counting how many times each has
+ * been placed - so a recording that sings the order through gets it in
+ * order. Past the end of the order, the last section again.
+ */
+export function nextCueSection(flow: string[], placed: CuePoint[]): string | null {
+  if (flow.length === 0) return null;
+  return flow[Math.min(placed.length, flow.length - 1)] ?? null;
+}
+
+/** A time snapped to the nearest beat of a recording with a tempo (its first beat at `firstBeat`); never before 0. */
+export function snapToBeat(at: number, beat: { tempo: number; firstBeat: number } | null): number {
+  if (!beat || beat.tempo <= 0) return Math.max(0, at);
+  const length = 60 / beat.tempo;
+  return Math.max(0, beat.firstBeat + Math.round((at - beat.firstBeat) / length) * length);
+}

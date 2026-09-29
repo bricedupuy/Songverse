@@ -1164,6 +1164,8 @@ model Attachment {
   // a take sung while the player was transposed. The player shifts it by
   // its transposition minus this, so it fits with the rest.
   pitchOffset      Int?
+  /// Where each section starts in the recording (issue #110): [{ at, sectionId }], the same on each file of a multitrack.
+  cuePoints        Json?
   // Its own name for the part (issue #131): "Descant", "Acoustic guitar",
   // "Count-in" - shown instead of the part's.
   partName         String?

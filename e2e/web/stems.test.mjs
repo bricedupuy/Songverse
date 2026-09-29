@@ -69,6 +69,13 @@ r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${other.id
 check("a file that isn't audio has no recording key", r.status === 400, String(r.status));
 r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { recordingKey: "", recordingTempo: null });
 check("empty goes back to the song's", r.status === 200 && r.body.recordingKey === null && r.body.recordingTempo === null && r.body.stemPart === "DRUMS", JSON.stringify(r.body));
+// Cue points (issue #110): kept in time order; a time that can't be one refused; none clears them.
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { cuePoints: [{ at: 12.5, sectionId: "sec_b" }, { at: 0, sectionId: "sec_a" }] });
+check("cue points kept, in time order", r.status === 200 && JSON.stringify(r.body.cuePoints) === JSON.stringify([{ at: 0, sectionId: "sec_a" }, { at: 12.5, sectionId: "sec_b" }]), JSON.stringify(r.body?.cuePoints));
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { cuePoints: [{ at: -1, sectionId: "sec_a" }] });
+check("a cue point before the start is refused", r.status === 400 && r.body.message.some((m) => m.includes("cuePoints")), JSON.stringify(r.body));
+r = await call(me, "PATCH", `/song-versions/${apiSong.id}/attachments/${drums.id}`, { cuePoints: [] });
+check("none clears them", r.status === 200 && r.body.cuePoints === null, JSON.stringify(r.body?.cuePoints));
 
 // --- the web app
 const webSong = await song(`Stems ${stamp}`);
@@ -224,9 +231,9 @@ await step("expanded: a row per part with its waveform, mute and solo; the wavef
   // Still muted from the compact row.
   await track("VOCALS").and(page.locator('[data-audible="false"]')).waitFor();
   // Its round button toggles here too.
-  await track("KEYS").getByRole("button", { name: "Mute Piano and keys" }).click();
+  await track("KEYS").getByTestId("stem-part").click();
   await track("KEYS").and(page.locator('[data-audible="false"]')).waitFor();
-  await track("KEYS").getByRole("button", { name: "Mute Piano and keys" }).click();
+  await track("KEYS").getByTestId("stem-part").click();
   await track("KEYS").and(page.locator('[data-audible="true"]')).waitFor();
   await player().getByRole("button", { name: "Solo Drums" }).click();
   const audible = await player().getByTestId("stem-track").evaluateAll((rows) => rows.map((row) => `${row.dataset.part}:${row.dataset.audible}`));
@@ -397,6 +404,97 @@ await step("the parts combined (issue #137): their buttons and one waveform, a f
   await player().getByTestId("stem-combine").click();
   await player().getByTestId("stem-track").first().waitFor();
   await player().getByTestId("stem-minimize").click();
+});
+
+await step("M and S on each row (issue #142): S green while soloed; M beside it on a wide screen, not on a phone", async () => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`${WEB}/library/${webSong.id}`);
+  await player().getByRole("button", { name: "Expand the player" }).click();
+  const solo = track("DRUMS").getByTestId("stem-solo");
+  if ((await solo.innerText()).trim() !== "S") throw new Error("no S");
+  await solo.click();
+  if ((await solo.getAttribute("aria-pressed")) !== "true" || !(await solo.getAttribute("class")).includes("bg-primary")) throw new Error("S not green when on");
+  await solo.click();
+  // M, left of S, mutes its part.
+  const mute = track("BASS").getByTestId("stem-mute");
+  const [m, sBox] = [await mute.boundingBox(), await track("BASS").getByTestId("stem-solo").boundingBox()];
+  if (!m || m.x >= sBox.x) throw new Error(`M at ${JSON.stringify(m)}, S at ${JSON.stringify(sBox)}`);
+  await mute.click();
+  await track("BASS").and(page.locator('[data-audible="false"]')).waitFor();
+  await mute.click();
+  await track("BASS").and(page.locator('[data-audible="true"]')).waitFor();
+  await page.setViewportSize({ width: 360, height: 740 });
+  if (await track("BASS").getByTestId("stem-mute").isVisible()) throw new Error("M on a phone");
+  await page.setViewportSize({ width: 1280, height: 900 });
+});
+
+await step("the parts combined with the mixer on (issue #142): one waveform, and each part's button and fader", async () => {
+  await player().getByTestId("stem-combine").click();
+  await player().getByTestId("stem-mixer").click();
+  await player().getByTestId("stem-combined").getByTestId("stem-waveform").waitFor();
+  if ((await player().getByTestId("stem-combined-part").count()) !== 4) throw new Error("not a fader per part");
+  await player().getByTestId("stem-combined-part").first().getByTestId("stem-volume").fill("30");
+  await player().getByTestId("stem-mixer-reset").click();
+  await player().getByTestId("stem-mixer").click();
+  if (await player().getByTestId("stem-combined-mixer").count()) throw new Error("faders without the mixer");
+  await player().getByTestId("stem-combine").click();
+  await track("DRUMS").waitFor();
+});
+
+// Cue points (issue #110): a song with a verse and a chorus sung twice.
+const cued = await api(me, "POST", "/song-versions", {
+  title: `Cued ${stamp}`,
+  language: "en",
+  artists: [`Band ${stamp}`],
+  content: "{start_of_verse}\n[G]Hello\n{end_of_verse}\n{start_of_chorus}\n[C]World\n{end_of_chorus}\n{chorus}\n",
+  contentFormat: "CHORDPRO",
+});
+for (const [name, part] of [["Morning Light - Vocals.opus", "VOCALS"], ["Morning Light - Bass.mp3", "BASS"]]) await upload(cued.id, name, "AUDIO", { stemPart: part });
+
+await step("placing the sections (issue #110): Mark at each as it plays, in the song's order; typed, saved on every file", async () => {
+  await page.goto(`${WEB}/library/${cued.id}`);
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  if ((await player().getAttribute("data-view")) !== "expanded") await player().getByRole("button", { name: "Expand the player" }).click();
+  await player().getByTestId("stem-cues").click();
+  const editor = player().getByTestId("stem-cue-editor");
+  await editor.waitFor();
+  const position = player().getByRole("slider", { name: "Position" });
+  await position.fill("0");
+  await editor.getByRole("button", { name: "Mark Verse" }).click();
+  await position.fill("5");
+  await editor.getByRole("button", { name: "Mark Chorus" }).click();
+  // M marks too: the chorus again.
+  await position.fill("12");
+  await page.locator("body").press("m");
+  await editor.getByTestId("stem-cue").nth(2).waitFor();
+  // Typed: the second chorus a little later.
+  const third = editor.getByTestId("stem-cue-time").nth(2);
+  await third.fill("0:12.5");
+  await third.press("Enter");
+  // Shown on the player as it's edited.
+  if ((await player().getByTestId("stem-section").count()) !== 3) throw new Error("the sections not shown while editing");
+  await editor.getByTestId("stem-cue-save").click();
+  await editor.waitFor({ state: "detached", timeout: 15000 });
+  const files = await api(me, "GET", `/song-versions/${cued.id}/attachments`);
+  const cues = files.map((file) => JSON.stringify(file.cuePoints?.map((cue) => cue.at)));
+  if (files.length !== 2 || cues.some((value) => value !== "[0,5,12.5]")) throw new Error(cues.join(" "));
+});
+
+await step("the sections on the player (issue #110): a strip to jump by, the one playing named, the playhead line in their colours", async () => {
+  await page.reload();
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  const lane = player().getByTestId("stem-sections");
+  const labels = await lane.getByTestId("stem-section").allInnerTexts();
+  if (labels.map((label) => label.trim()).join() !== "V,C,C") throw new Error(labels.join());
+  await lane.getByTestId("stem-section").nth(1).click();
+  await player().getByTestId("stem-time").getByText("0:05 / ").waitFor();
+  await player().getByTestId("stem-time-section").getByText("Chorus").waitFor();
+  await lane.locator('[aria-current="step"]').getByText("C").waitFor();
+  const line = await player().getByTestId("stem-playhead").evaluate((input) => input.style.getPropertyValue("--sections"));
+  if (!line.includes("--color-sky-500") || !line.includes("--color-amber-400")) throw new Error(line);
+  // Minimized, the line keeps its colours.
+  await player().getByTestId("stem-minimize").click();
+  if (!(await player().getByTestId("stem-playhead").evaluate((input) => input.style.getPropertyValue("--sections")))) throw new Error("no colours minimized");
 });
 
 await browser.close();

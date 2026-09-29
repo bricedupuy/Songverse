@@ -122,7 +122,7 @@ Stems are the song's parts as separate recordings: vocals, drums, bass and so on
 - **Instrument**: **Drums**, **Bass**, **Guitar**, **Piano and keys** or **Other**, with a name if you like ("Acoustic guitar", "Violin").
 - **Cues**: the click, count-ins and spoken cues, with a name ("Click", "Guide").
 
-**Not a stem** is for a full recording. A part someone else recorded says who, in the stem player (**Recorded by** under its name) and under the file. A harmony's round button in the player carries its voice's letter: S, A, T or B.
+**Not a stem** is for a full recording. A part someone else recorded says who, in the stem player (**Recorded by** under its name) and under the file. On a part recorded into a multitrack, the round button in the player carries the picture of whoever recorded it (or their initials).
 
 If the stems (or any recording) aren't in the song's key or at its tempo, a live version a tone up for example, set the recording's own in the stems' box above the files (or under the file): **Key** and **BPM**, and **Time** for its time signature. Left as **Song's key**, empty and **Song's**, they're the song's. **First beat at (s)** is where its first beat falls, in seconds from its start (empty: at 0:00): with the tempo, it places the metronome on the recording.
 
@@ -130,11 +130,24 @@ In **Practice** mode (see [Edit, Practice and Live](/getting-started/#edit-pract
 
 ![The stem player, one row, the vocals muted](../../assets/screenshots/en/stems-compact.jpg)
 
-The arrow at the end expands it: a row per part with the same round button, its waveform and a solo button (solo plays only the parts soloed). The line along the player's top edge shows how far it's played, in either view: click or drag it to go elsewhere in the song (or use the arrow keys). While a solo is on, a round button, in either view, takes its part out of the solo or adds it; take the last one out to hear every part again. Click a waveform to jump there. Each part's waveform is as long as the part: a take that stops before the end of the song stops there too. **Combine the parts** (the layers button) shows the parts' round buttons and a single waveform of what's heard instead of a row per part, to leave more of the screen to the chart; Songverse remembers it. Beside the time are the player's tools: **Combine the parts**, **Mixer**, **Record a part** and **Click with the recording**. On a phone, the multitrack and the transposition go on a second line. The arrow at the top minimizes it again, and Songverse remembers which you prefer. The files start downloading as soon as the song's page opens in Practice (the line along the top shows how far), so **Play** is usually instant. Once downloaded, they aren't downloaded again.
+The arrow at the end expands it: a row per part with the same round button, its waveform and **S** (solo: plays only the parts soloed, green while on). On a wider screen, **M** (mute) sits beside **S**, as on a mixing desk. The line along the player's top edge shows how far it's played, in either view: click or drag it to go elsewhere in the song (or use the arrow keys). While a solo is on, a round button, in either view, takes its part out of the solo or adds it; take the last one out to hear every part again. Click a waveform to jump there. Each part's waveform is as long as the part: a take that stops before the end of the song stops there too. **Combine the parts** (the layers button) shows the parts' round buttons and a single waveform of what's heard instead of a row per part, to leave more of the screen to the chart; Songverse remembers it. With the **Mixer** on too, each part's button and fader are listed compactly under it. Beside the time are the player's tools: **Combine the parts**, **Mixer**, **Place the sections**, **Record a part** and **Click with the recording**. On a phone, the multitrack and the transposition go on a second line. The arrow at the top minimizes it again, and Songverse remembers which you prefer. The files start downloading as soon as the song's page opens in Practice (the line along the top shows how far), so **Play** is usually instant. Once downloaded, they aren't downloaded again.
 
 ![The stem player expanded, with each part's waveform](../../assets/screenshots/en/stems.jpg)
 
 **Mixer** gives each part a volume fader: on a phone it lies over the part's waveform, on a wider screen it sits beside it. Each waveform grows or shrinks with its volume, so the balance shows at a glance, and the combined waveform follows it too. Songverse remembers the volumes for each song on the device; **Reset the mix** puts every part back to full.
+
+#### The sections of a recording
+
+Once the sections are placed on a multitrack (see below), the player shows them as a strip above the parts: each section where it is, as long as it lasts, in the colours of Live's structure bar (V1, C, B…), the one playing ringed. Tap one to go there. The one playing is named beside the time ("0:41 / 3:52 · Chorus"), and the line along the player's top edge takes the sections' colours, bright where it's played, faint ahead, so the song's shape shows even with the player minimized.
+
+**Place the sections** (the flag button), for whoever can change the multitrack's files, places them:
+
+![Placing the sections in the stem player: Mark as each starts, then fine-tune each one; the strip of sections above the parts](../../assets/screenshots/en/stems-sections.jpg)
+
+- Play the recording and press **Mark** (or the **M** key) as each section starts: they come in the song's order ("Mark Verse 1", "Mark Chorus"…), so singing the order through places them all.
+- Then fine-tune each one in the list: type its time ("1:02.35"), move it **Earlier** or **Later** (a beat, when the recording has a tempo), **Set to the playhead**, or **Play from just before it** to check by ear. **Snap to the beat** keeps them on the recording's beats.
+- **Add at the playhead** places any section, sung more often than the song's order says, say; **Remove** takes one out.
+- **Save the sections** keeps them on every file of the multitrack, its other takes too. They point at the song's sections, so they survive edits to the song.
 
 ![The stem player's mixer on a phone: a volume fader over each part's waveform](../../assets/screenshots/en/stems-mixer.jpg)
 
@@ -172,11 +185,12 @@ In **Practice**, the microphone button in the stem player, **Record a part**, re
 ![Recording in the stem player: its recorder above the parts](../../assets/screenshots/en/stems-record.jpg)
 
 - You hear the player as it is: your mutes, solos and transposition, and the metronome if **Click with the recording** is on. Recorded while transposed, the take is kept as sung in that key (see above).
-- As soon as the microphone is open, **Microphone** shows what it hears, the last few seconds scrolling by, and says whether that's **Too quiet**, a **Good level** or **Too loud** (it clips): check before you record.
+- As soon as the microphone is open, **Microphone** shows its level on a meter, the peak held a moment, and says whether that's **Too quiet**, a **Good level** or **Too loud** (it clips): check before you record.
 - It records from the playhead: move it anywhere in the song, and the take starts at the beginning of that bar ("From bar 17 (0:42)"), after a bar of count-in. It replaces only the time it covers: the part it replaces is kept either side (a punch-in and out), or it's silent.
 - While you record, the take draws itself where it's being recorded. **Stop** ends it.
 - The take is then a track like the others, **New take**: play it, mute or solo it, and move **Line up** to nudge it. **Keep** adds it to the multitrack; **Discard** drops it; **Record again** tries again.
 - To record a part in sections (the verses, then the chorus), press **Add another section** after a take: move the playhead to where the next section starts and **Record** again. Each section goes into the same take, with a short crossfade at each end, and the player counts them ("2 sections"). **Discard** drops only the last one, **Discard all** every one, and **Keep** saves them all as one file.
+- Tap the name of a recording of yours to see what can be done with it: **Record into it** opens the recorder on that part, what you record replacing only the time it covers; **Merge with…** mixes another recording of the multitrack sung in the same key into it, as one file that plays in their place (both are kept as other takes); **Delete** deletes it, once you've confirmed.
 - **New multitrack…** records the first layer of another multitrack instead, as below.
 
 #### From the Audio tab

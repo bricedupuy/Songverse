@@ -1,4 +1,4 @@
-import { findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
+import { cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -100,6 +100,7 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
               if (!blob) throw new Error("not kept");
               return blob;
             },
+            cueSections: cueSectionsOf(song.document),
           }}
         />
       ) : null}

@@ -6,10 +6,10 @@ import {
   ChevronDown,
   ChevronUp,
   ClefBass,
+  Flag,
   Drum,
   Ellipsis,
   Guitar,
-  Headphones,
   Layers,
   Loader2,
   Metronome,
@@ -29,9 +29,11 @@ import {
 import { createContext, useContext, useEffect, useId, useMemo, useState, type CSSProperties, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { harmonyLetter, multitracksOf, semitonesBetween, transposeKey, transposesPart } from "@songverse/core";
+import { cueAt, sortedCues, type CuePoint, multitracksOf, semitonesBetween, transposeKey, transposesPart } from "@songverse/core";
 import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
 import { StemRecordPanel } from "#/components/stem-record-panel";
+import { CueEditor, SectionLane, sectionsGradient, useCueNames } from "#/components/stem-cues";
+import { StemTrackActions } from "#/components/stem-track-actions";
 import { Button } from "#/components/ui/button";
 import { setMode } from "#/lib/mode";
 import { useMultitrackName } from "#/lib/multitrack-name";
@@ -52,6 +54,7 @@ import {
   setStemVolume,
   seekStems,
   stemKey,
+  TAKE_ID,
   toggleStemMute,
   toggleStemSolo,
   tracksOf,
@@ -61,6 +64,7 @@ import {
   type StemSong,
   type StemTrack,
 } from "#/lib/stem-engine";
+import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { cn } from "#/lib/utils";
 
 const NO_PARTS: Record<string, boolean> = {};
@@ -293,10 +297,17 @@ export function StemDock({ song: page }: { song: StemSong }) {
   // Recording a part (issues #127, #134): in the player, over its own mix, into the multitrack playing -
   // or, for a song with only a whole recording, a new multitrack (the dialog). Not while following the leader.
   const [recordPanel, setRecordPanel] = useState(false);
+  // Recording into one of them (issue #142), from its row's actions.
+  const [recordInto, setRecordInto] = useState<string | null>(null);
+  // The recording whose actions are open (issue #142).
+  const [selected, setSelected] = useState<string | null>(null);
   const [recorderOpen, setRecorderOpen] = useState(false);
   const recordable = !!song.record && !following;
+  /** One of the viewer's own recordings in a multitrack, loaded: record into it, merge it, delete it (someone else's are theirs, or the Audio tab's). */
+  const actionable = (track: StemTrack) => recordable && !whole && !!track.recorder && !track.by && !!track.canChange && track.id !== TAKE_ID && !track.failed && !recordPanel;
   const closeRecordPanel = () => {
     setRecordPanel(false);
+    setRecordInto(null);
     // Made afresh once the recorder's gone (issue #136): loaded again, ready to play and mix.
     setTimeout(() => prefetchStems(song), 0);
   };
@@ -311,7 +322,10 @@ export function StemDock({ song: page }: { song: StemSong }) {
         if (whole) return setRecorderOpen(true);
         if (!expanded) expand(true);
         if (recordPanel) closeRecordPanel();
-        else setRecordPanel(true);
+        else {
+          setSelected(null);
+          setRecordPanel(true);
+        }
       }}
       aria-label={t("recorder.recordPart")}
       title={t("recorder.recordPart")}
@@ -396,9 +410,46 @@ export function StemDock({ song: page }: { song: StemSong }) {
       <Metronome />
     </Button>
   );
+  // The recording's sections (issue #110): where each starts, the same on each file of the multitrack.
+  const cueSections = song.cueSections?.sections ?? [];
+  const savedCues = useMemo(() => sortedCues(song.stems.find((file) => file.cuePoints?.length)?.cuePoints, cueSections), [song.stems, cueSections]);
+  const [draftCues, setDraftCues] = useState<CuePoint[] | null>(null);
+  const cues = draftCues ?? savedCues;
+  const cueNames = useCueNames();
+  const playingIndex = cues.length ? cueAt(cues, position) : null;
+  const playingSection = playingIndex !== null ? cueSections.find((section) => section.id === cues[playingIndex]?.sectionId) : undefined;
+  // Placed by who can change every file of the multitrack (its other takes too): they share them.
+  const canPlaceCues = recordable && !whole && cueSections.length > 0 && (song.record?.attachments ?? []).filter((file) => file.type === "AUDIO" && file.stemPart && (file.multitrackId ?? null) === (song.stems[0]?.multitrackId ?? null)).every((file) => file.canChange);
+  const [cueEditor, setCueEditor] = useState(false);
+  const cueButton = canPlaceCues ? (
+    <Button
+      type="button"
+      variant={cueEditor ? "secondary" : "ghost"}
+      size="icon"
+      className="shrink-0"
+      aria-pressed={cueEditor}
+      onClick={() => {
+        if (!expanded) expand(true);
+        setCueEditor(!cueEditor);
+      }}
+      aria-label={t("stems.placeSections")}
+      title={t("stems.placeSections")}
+      data-testid="stem-cues"
+    >
+      <Flag />
+    </Button>
+  ) : null;
   const time = (
-    <span className="shrink-0 text-xs tabular-nums text-muted-foreground" data-testid="stem-time">
-      {formatDuration(position)} / {formatDuration(duration)}
+    <span className="min-w-0 shrink truncate text-xs tabular-nums text-muted-foreground" data-testid="stem-time">
+      {formatDuration(position)}
+      <span className="hidden sm:inline"> / {formatDuration(duration)}</span>
+      {/* The section playing, from the cue points (issue #110). */}
+      {playingSection ? (
+        <span className="font-medium text-foreground" data-testid="stem-time-section">
+          {" · "}
+          {cueNames.long(playingSection)}
+        </span>
+      ) : null}
     </span>
   );
   const status =
@@ -416,6 +467,8 @@ export function StemDock({ song: page }: { song: StemSong }) {
       </p>
     ) : null;
 
+  // The playhead line in the sections' colours (issue #110).
+  const sectionsLine = duration ? sectionsGradient(cues, cueSections, duration, Math.min(1, position / duration)) : null;
   const dock = (
     <section
       className="relative border-t bg-background shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.3)]"
@@ -450,25 +503,25 @@ export function StemDock({ song: page }: { song: StemSong }) {
           aria-label={t("stems.position")}
           aria-valuetext={`${formatDuration(position)} / ${formatDuration(duration)}`}
           className="stem-playhead"
-          style={{ "--progress": duration ? `${(position / duration) * 100}%` : "0%" } as CSSProperties}
+          style={{ "--progress": duration ? `${(position / duration) * 100}%` : "0%", ...(sectionsLine ? { "--sections": sectionsLine } : {}) } as CSSProperties}
           data-testid="stem-playhead"
         />
       )}
       {expanded ? (
         <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-2 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", EDGES)}>
-          {/* On a phone, play, the time, the tools and minimize on one line; the multitrack and the transposition on the next (issue #140). */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-3">
+          {/* On a phone, play, the time, the tools and minimize on one line (the time giving way); the multitrack and the transposition on the next (issue #140). */}
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] sm:gap-x-3">
             {play}
             {time}
-            <span className="min-w-0 flex-1" />
-            <div className="order-last flex w-full flex-wrap items-center gap-1 sm:order-none sm:w-auto sm:gap-2" data-testid="stem-controls">
+            <div className="col-span-4 row-start-2 flex flex-wrap items-center gap-1 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:gap-2" data-testid="stem-controls">
               {picker}
               {transposeControl}
               {resetMix}
             </div>
-            <div className="flex shrink-0 items-center" data-testid="stem-tools">
+            <div className="flex shrink-0 items-center [&>button]:size-8 sm:[&>button]:size-9" data-testid="stem-tools">
               {whole ? null : combineButton}
               {whole ? null : mixerButton}
+              {cueButton}
               {recordButton}
               {clickButton}
             </div>
@@ -477,8 +530,11 @@ export function StemDock({ song: page }: { song: StemSong }) {
             </Button>
           </div>
           {status}
+          {cueEditor && canPlaceCues && active && engine.status === "ready" ? <CueEditor song={song} cues={savedCues} onDraft={setDraftCues} onClose={() => setCueEditor(false)} /> : null}
+          {cues.length ? <SectionLane cues={cues} sections={cueSections} duration={duration || Math.max(...cues.map((cue) => cue.at)) + 10} position={position} onSeek={active && engine.status === "ready" && !following ? seekStems : undefined} /> : null}
           {recordPanel && recordable && active && engine.status === "ready" ? <StemRecordPanel
               song={song}
+              into={recordInto}
               onClose={closeRecordPanel}
               onNewMultitrack={() => {
                 setRecordPanel(false);
@@ -490,15 +546,29 @@ export function StemDock({ song: page }: { song: StemSong }) {
               {t("stems.recordedIn", { details: recorded })}
             </p>
           ) : null}
-          {combined && !whole && !mixer ? (
+          {combined && !whole ? (
             // The parts combined (issue #137): their buttons, and one waveform of what's heard - less of the screen taken.
-            <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3" data-testid="stem-combined">
+            <div className="flex flex-col gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3" data-testid="stem-combined">
               <div className="flex shrink-0 flex-wrap items-center gap-2 px-1.5 py-1">
                 {tracks.map((track) => (
                   <PartButton key={track.id} track={track} name={nameOf(track)} on={isAudible(engine, track.id)} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} chip />
                 ))}
               </div>
               <Waveform peaks={combinedPeaks} progress={duration ? position / duration : 0} span={1} dim={false} onSeek={active && engine.status === "ready" && !following ? (at) => seekStems(at * duration) : undefined} />
+              {/* The mixer too (issue #142): each part's button and fader, compact. */}
+              {mixer ? (
+                <ul className="grid grid-cols-1 gap-x-6 gap-y-1 sm:basis-full sm:grid-cols-2" data-testid="stem-combined-mixer">
+                  {tracks.map((track) => (
+                    <li key={track.id} className="flex items-center gap-2" data-testid="stem-combined-part">
+                      <PartButton track={track} name={nameOf(track)} on={isAudible(engine, track.id)} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} chip />
+                      <span className="w-24 shrink-0 truncate text-xs">{nameOf(track)}</span>
+                      <div className="relative flex h-8 min-w-0 flex-1 items-center">
+                        <Fader name={nameOf(track)} volume={volumeOf(track)} disabled={!active || engine.status !== "ready"} onChange={(volume) => setStemVolume(track.id, volume)} compact />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
           ) : (
             <ul className="-mx-1.5 flex max-h-[45vh] flex-col divide-y overflow-y-auto px-1.5">
@@ -506,10 +576,23 @@ export function StemDock({ song: page }: { song: StemSong }) {
                 const name = nameOf(track);
                 const on = isAudible(engine, track.id);
                 return (
-                  <li key={track.id} className="flex items-center gap-2 py-1.5 sm:gap-3" data-testid="stem-track" data-part={track.part ?? "MIX"} data-audible={String(on)}>
+                  <li key={track.id} className="flex flex-wrap items-center gap-2 py-1.5 sm:gap-3" data-testid="stem-track" data-part={track.part ?? "MIX"} data-audible={String(on)}>
                     <PartButton track={track} name={name} on={on} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} />
                     <span className={cn("w-20 shrink-0 min-w-0 sm:w-36", !on && "opacity-50")}>
-                      <span className="block truncate text-sm font-medium">{name}</span>
+                      {/* A recording the viewer can change: its name opens what can be done with it (issue #142). */}
+                      {actionable(track) ? (
+                        <button
+                          type="button"
+                          className={cn("block max-w-full truncate rounded-sm text-left text-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50", selected === track.id && "text-primary underline")}
+                          aria-expanded={selected === track.id}
+                          onClick={() => setSelected(selected === track.id ? null : track.id)}
+                          data-testid="stem-track-name"
+                        >
+                          {name}
+                        </button>
+                      ) : (
+                        <span className="block truncate text-sm font-medium">{name}</span>
+                      )}
                       {/* Who recorded it, and the key it was sung in (issues #131, #135) - never its file's name. */}
                       {track.by || track.offset ? (
                         <span className="hidden truncate text-xs text-muted-foreground sm:block">
@@ -550,20 +633,30 @@ export function StemDock({ song: page }: { song: StemSong }) {
                         <ArrowUpDown />
                       </Button>
                     ) : null}
-                    {/* A whole recording has nothing to solo against. */}
+                    {/* A whole recording has nothing to mute or solo against. M on wider screens, beside S as on a desk (issue #142). */}
                     {whole ? null : (
-                      <Button
-                        type="button"
-                        size="icon"
-                        className="shrink-0"
-                        variant={engine.soloed.has(track.id) ? "secondary" : "ghost"}
-                        aria-pressed={engine.soloed.has(track.id)}
-                        aria-label={t("stems.solo", { part: name })}
-                        onClick={() => toggleStemSolo(track.id)}
-                      >
-                        <Headphones />
-                      </Button>
+                      <>
+                        <LetterButton letter="M" on={engine.muted.has(track.id)} tone="mute" className="hidden sm:flex" label={t("stems.mute", { part: name })} onClick={() => toggleStemMute(track.id)} testId="stem-mute" />
+                        <LetterButton letter="S" on={engine.soloed.has(track.id)} tone="solo" label={t("stems.solo", { part: name })} onClick={() => toggleStemSolo(track.id)} testId="stem-solo" />
+                      </>
                     )}
+                    {selected === track.id && actionable(track) ? (
+                      <div className="w-full">
+                        <StemTrackActions
+                          song={song}
+                          track={track}
+                          tracks={tracks}
+                          name={name}
+                          nameOf={nameOf}
+                          onRecordInto={() => {
+                            setSelected(null);
+                            setRecordInto(track.id);
+                            setRecordPanel(true);
+                          }}
+                          onClose={() => setSelected(null)}
+                        />
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -635,12 +728,13 @@ function PartButton({
 }) {
   const { t } = useTranslation();
   const Icon = track.part ? PART_ICONS[track.part] : AudioLines;
-  // A harmony's voice (S, A, T, B), or which of two of a part.
-  const badge = harmonyLetter(track.part) ?? (track.number || null);
+  // Who recorded it (issue #142), on a multitrack's layer; else which of two of a part.
+  const recorder = track.recorder;
+  const badge = recorder ? null : track.number || null;
   return (
     <button
       type="button"
-      title={track.by ? `${name} · ${track.by}` : name}
+      title={track.recorder ? `${name} · ${track.recorder.name}` : name}
       aria-label={soloed ? t("stems.unsolo", { part: name }) : soloing ? t("stems.solo", { part: name }) : t("stems.mute", { part: name })}
       aria-pressed={soloing ? soloed : muted}
       onClick={() => (soloing ? toggleStemSolo(track.id) : toggleStemMute(track.id))}
@@ -660,12 +754,44 @@ function PartButton({
           {badge}
         </span>
       ) : null}
+      {recorder ? (
+        <span className="absolute -right-1.5 -bottom-1.5 flex size-5 items-center justify-center overflow-hidden rounded-full border-2 border-background bg-muted text-[9px] font-semibold text-foreground" aria-hidden data-testid="stem-recorder">
+          {recorder.avatarUrl ? <img src={sizedAvatarUrl(recorder.avatarUrl, 20)} alt="" className="size-full object-cover" /> : initialsOf(recorder.name)}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+/** Two letters of a name, for an avatar that has no picture. */
+function initialsOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return ((words[0]?.[0] ?? "") + (words.length > 1 ? (words[words.length - 1]?.[0] ?? "") : "")).toUpperCase() || "?";
+}
+
+/** M or S on a part's row (issue #142), as on a mixing desk: solo green when on, mute amber. */
+function LetterButton({ letter, on, tone, label, onClick, className, testId }: { letter: string; on: boolean; tone: "mute" | "solo"; label: string; onClick: () => void; className?: string; testId: string }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      data-testid={testId}
+      className={cn(
+        "flex size-8 shrink-0 items-center justify-center rounded-md border text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+        on ? (tone === "solo" ? "border-primary bg-primary text-primary-foreground" : "border-amber-500 bg-amber-500 text-white") : "border-border text-muted-foreground hover:bg-accent hover:text-foreground",
+        className,
+      )}
+    >
+      {letter}
     </button>
   );
 }
 
 /** A part's volume in the mixer (issue #140): 0-100%, heard as it moves. */
-function Fader({ name, volume, disabled, onChange }: { name: string; volume: number; disabled: boolean; onChange: (volume: number) => void }) {
+function Fader({ name, volume, disabled, onChange, compact = false }: { name: string; volume: number; disabled: boolean; onChange: (volume: number) => void; /** On its own, not over a waveform: as wide as its place. */ compact?: boolean }) {
   const { t } = useTranslation();
   const percent = Math.round(volume * 100);
   return (
@@ -680,7 +806,7 @@ function Fader({ name, volume, disabled, onChange }: { name: string; volume: num
         onChange={(event) => onChange(Number(event.target.value) / 100)}
         aria-label={t("stems.volume", { part: name })}
         aria-valuetext={`${percent}%`}
-        className="stem-fader absolute inset-0 h-full w-full sm:static sm:h-8 sm:w-32 sm:shrink-0"
+        className={cn("stem-fader", compact ? "h-8 min-w-0 flex-1" : "absolute inset-0 h-full w-full sm:static sm:h-8 sm:w-32 sm:shrink-0")}
         style={{ "--level": `${percent}%` } as CSSProperties}
         data-testid="stem-volume"
       />

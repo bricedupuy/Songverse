@@ -1,4 +1,4 @@
-import { getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type SongVersionDetail } from "@songverse/core";
+import { cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type SongVersionDetail } from "@songverse/core";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
@@ -45,6 +45,7 @@ export function PracticeSongPage({
     [version, notation, capoDisplay],
   );
   const playable = stemFilesOf(attachments, useChosenMultitrack(version.id));
+  const cueSections = useMemo(() => cueSectionsOf(version.documentJson), [version]);
   const youtubeId = version.identifiers.find((identifier) => identifier.type === "YOUTUBE")?.value ?? null;
   const returnTo = `/library/${version.id}`;
   const details = [
@@ -102,6 +103,7 @@ export function PracticeSongPage({
             tempo: chart.tempo,
             timeSignature: chart.timeSignature,
             songKey: chart.key,
+            cueSections,
             record: { attachments, songKey: chart.key ?? undefined, onSaved: () => void router.invalidate() },
           }}
         />

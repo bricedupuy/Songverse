@@ -11,7 +11,7 @@ import {
   snapshotChanges,
   type SongSnapshot,
 } from "@songverse/core";
-import type { Prisma } from "@songverse/db";
+import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { SongHistoryService } from "../song-versions/song-history.service.js";
 
@@ -168,6 +168,13 @@ export class SongFoldService implements OnApplicationBootstrap {
     } else {
       await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: { in: ["SONG", "SHARED"] }, uploadedByUserId: null }, data: { uploadedByUserId: song.ownerUserId } });
       await tx.attachment.updateMany({ where: { songVersionId: songId, visibility: { in: ["SONG", "SHARED"] } }, data: { visibility: "PRIVATE" } });
+    }
+    // Their cue points (issue #110) at the catalogue song's sections; one that doesn't map is dropped.
+    const cued = await tx.attachment.findMany({ where: { songVersionId: songId, cuePoints: { not: Prisma.DbNull } }, select: { id: true, cuePoints: true } });
+    for (const file of cued) {
+      const cues = Array.isArray(file.cuePoints) ? (file.cuePoints as { at: number; sectionId: string }[]) : [];
+      const mapped = cues.flatMap((cue) => (map.sections.has(cue.sectionId) ? [{ at: cue.at, sectionId: map.sections.get(cue.sectionId)! }] : []));
+      await tx.attachment.update({ where: { id: file.id }, data: { cuePoints: mapped.length ? mapped : Prisma.DbNull } });
     }
     await tx.attachment.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
 

@@ -147,8 +147,9 @@ await step("the Worker turns the take into Opus: from the multitrack's 0:00, cou
   [first] = await processedFiles(webSong.id);
   if (first.mimeType !== "audio/ogg" || !first.filename.endsWith(".opus") || first.processing !== null) throw new Error(JSON.stringify(first));
   const { seconds, peak } = await decoded(webSong.id, first);
-  // The count-in (2 s), a second or more recorded, and the time to stop.
-  if (seconds < 3 || seconds > 8) throw new Error(`${seconds} s`);
+  // The count-in (2 s), a second or more recorded, and the time to stop - its
+  // trailing silence trimmed back to the fake microphone's last beep.
+  if (seconds < 2.5 || seconds > 8) throw new Error(`${seconds} s`);
   // The fake microphone's beeps are in it.
   if (peak < 1000) throw new Error(`silent: ${peak}`);
 });
@@ -350,7 +351,8 @@ await step("a voice of one's own naming, and a harmony someone else recorded: na
   const row = (part) => player.locator(`[data-testid="stem-track"][data-part="${part}"]`);
   await row("HARMONY_ALTO").getByText("Harmony 2 (alto)").waitFor({ timeout: 15000 });
   await row("HARMONY_ALTO").getByText("Recorded by Alto singer").waitFor();
-  if ((await row("HARMONY_ALTO").getByTestId("stem-part").innerText()).trim() !== "A") throw new Error("no A on the alto's button");
+  // Who recorded it on its button (issue #142): their initials, without a picture.
+  if ((await row("HARMONY_ALTO").getByTestId("stem-recorder").innerText()).trim() !== "AS") throw new Error("not the alto singer's initials on the button");
   await row("BACKING_VOCALS").getByText("Descant", { exact: true }).waitFor();
   // Mine says its file, not who.
   if (await row("BACKING_VOCALS").getByText(/Recorded by/).count()) throw new Error("mine says who recorded it");
@@ -393,6 +395,64 @@ await step("a part in sections (issue #141): the microphone's level before recor
   };
   const levels = { before: peak(0, 3.9), first: peak(4, 5.6), between: peak(6.2, 9.8), second: peak(10, 11.6) };
   if (levels.before > 200 || levels.between > 200 || levels.first < 1000 || levels.second < 1000) throw new Error(JSON.stringify({ seconds: samples.length / 48000, ...levels }));
+});
+
+await step("a recording's actions (issue #142): its name opens them; merged with another take into one file, then one deleted", async () => {
+  const player = page.getByTestId("stem-player");
+  await page.reload();
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  const row = (part) => player.locator(`[data-testid="stem-track"][data-part="${part}"]`);
+  // Someone else's (the alto's) has no actions; mine (the soprano's) does.
+  if (await row("HARMONY_ALTO").getByTestId("stem-track-name").count()) throw new Error("actions on someone else's recording");
+  await row("HARMONY_SOPRANO").getByTestId("stem-track-name").click();
+  const actions = row("HARMONY_SOPRANO").getByTestId("stem-track-actions");
+  await actions.getByTestId("stem-track-record-into").waitFor();
+  await actions.getByTestId("stem-track-merge").click();
+  // Only those sung in the same key: not the tenor, sung at +1.
+  const options = await actions.getByTestId("stem-track-merge-with").locator("option").allInnerTexts();
+  if (options.includes("Harmony 3 (tenor)") || !options.includes("Descant")) throw new Error(options.join());
+  await actions.getByTestId("stem-track-merge-with").selectOption({ label: "Descant" });
+  await actions.getByTestId("stem-track-merge-confirm").click();
+  await actions.waitFor({ state: "detached", timeout: 20000 });
+  // One file in their place, the soprano's part: both kept as other takes.
+  const all = await processedFiles(webSong.id);
+  const played = all.filter((file) => file.multitrackId === first.multitrackId && !file.otherTake);
+  const soprano = played.filter((file) => file.stemPart === "HARMONY_SOPRANO");
+  if (soprano.length !== 1 || played.some((file) => file.partName === "Descant")) throw new Error(JSON.stringify(played.map((file) => [file.stemPart, file.partName, file.otherTake])));
+  const others = all.filter((file) => file.multitrackId === first.multitrackId && file.otherTake && (file.stemPart === "HARMONY_SOPRANO" || file.partName === "Descant"));
+  if (others.length < 2) throw new Error(`${others.length} other takes`);
+  // Both in it: the descant's start, and the soprano's second section.
+  const res = await fetch(`${API}/song-versions/${webSong.id}/attachments/${soprano[0].id}/download`, { headers: { Authorization: `Bearer ${me.bearer}` } });
+  const pcm = execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "pipe:1"], { input: Buffer.from(await res.arrayBuffer()), maxBuffer: 64 * 1024 * 1024 });
+  const samples = new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2);
+  const peak = (from, to) => {
+    let max = 0;
+    for (let i = Math.round(from * 48000); i < Math.min(samples.length, Math.round(to * 48000)); i++) max = Math.max(max, Math.abs(samples[i]));
+    return max;
+  };
+  if (peak(0.2, 1.5) < 1000 || peak(10, 11.6) < 1000) throw new Error(`the descant ${peak(0.2, 1.5)}, the soprano's second section ${peak(10, 11.6)}`);
+
+  // Deleted, after asking.
+  await page.reload();
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  await row("HARMONY_SOPRANO").getByTestId("stem-track-name").click();
+  await row("HARMONY_SOPRANO").getByTestId("stem-track-delete").click();
+  await row("HARMONY_SOPRANO").getByText(/can't be undone/).waitFor();
+  await row("HARMONY_SOPRANO").getByTestId("stem-track-delete-confirm").click();
+  await row("HARMONY_SOPRANO").waitFor({ state: "detached", timeout: 20000 });
+  if ((await files(webSong.id)).some((file) => file.id === soprano[0].id)) throw new Error("not deleted");
+});
+
+await step("recording into a recording (issue #142): its part and itself chosen in the recorder", async () => {
+  const player = page.getByTestId("stem-player");
+  const row = player.locator('[data-testid="stem-track"][data-part="GUITAR"]');
+  await row.getByTestId("stem-track-name").click();
+  await row.getByTestId("stem-track-record-into").click();
+  await page.locator('[data-testid="stem-record-panel"][data-phase="ready"]').waitFor({ timeout: 15000 });
+  if ((await panel().getByTestId("part-instrument").inputValue()) !== "GUITAR") throw new Error(await panel().getByTestId("part-instrument").inputValue());
+  if (!(await panel().getByTestId("stem-record-use").inputValue()).startsWith("instead:")) throw new Error("not into it");
+  await panel().getByRole("button", { name: "Close the recorder" }).click();
+  await panel().waitFor({ state: "detached" });
 });
 
 const sunday = await api(me, "POST", "/setlists", { name: `Sunday ${stamp}` });

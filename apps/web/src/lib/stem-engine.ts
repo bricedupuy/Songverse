@@ -1,4 +1,4 @@
-import { multitracksOf, STEM_PARTS, TIME_SIGNATURE_PATTERN, transposesPart, type Attachment, type StemPart } from "@songverse/core";
+import { multitracksOf, STEM_PARTS, TIME_SIGNATURE_PATTERN, transposesPart, type Attachment, type CueSection, type StemPart } from "@songverse/core";
 import { useSyncExternalStore } from "react";
 import { deviceNow, OutputClock } from "#/lib/output-clock";
 
@@ -42,6 +42,8 @@ export interface StemSong {
   songKey?: string | null;
   /** The key the page plays the song in (a set's): with nothing chosen, the stems are transposed to it. */
   targetKey?: string | null;
+  /** The song's sections and the order they're sung in (issue #110): what cue points name and place. */
+  cueSections?: { sections: CueSection[]; flow: string[] };
   /** Recording a part from the player (issue #127): what the recorder needs; left out where it can't (offline). */
   record?: {
     attachments: Attachment[];
@@ -68,6 +70,10 @@ export interface StemTrack {
   partName: string | null;
   /** Who recorded it, when it isn't the viewer (issue #131). */
   by: string | null;
+  /** Who recorded it, the viewer too, when it's a layer of a multitrack (issue #142): their avatar on its button. */
+  recorder?: { name: string; avatarUrl: string | null } | null;
+  /** The viewer can record into it, merge it or delete it (issue #142). */
+  canChange?: boolean;
   filename: string;
   /** 1, 2… when two files are the same part ("Guitar 1"), else 0. */
   number: number;
@@ -347,6 +353,8 @@ export function tracksOf(stems: StemFile[]): StemTrack[] {
       part: stem.stemPart,
       partName: stem.partName || null,
       by: stem.mine === false ? (stem.uploadedBy?.displayName ?? null) : null,
+      recorder: stem.multitrackId && stem.uploadedBy ? { name: stem.uploadedBy.displayName, avatarUrl: stem.uploadedBy.avatarUrl ?? null } : null,
+      canChange: stem.canChange,
       filename: stem.filename,
       number: !stem.partName && same.length > 1 ? same.indexOf(stem) + 1 : 0,
       peaks: null,
