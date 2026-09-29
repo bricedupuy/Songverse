@@ -161,6 +161,8 @@ let directOutput = false;
 let bus: GainNode | null = null;
 let element: HTMLAudioElement | null = null;
 let streamOut: MediaStreamAudioDestinationNode | null = null;
+/** While the player's recorder is open (issue #134): straight to the speakers, whose delay is known. */
+let recordingDirect = false;
 // The song last played, for the lock screen's Play button.
 let lastSong: StemSong | null = null;
 let buffers = new Map<string, AudioBuffer>();
@@ -441,12 +443,11 @@ function startAt(from: number, at?: number, anchor?: { epoch: number; position: 
 
 /**
  * iOS suspends Web Audio when the screen locks, but lets a media element
- * play on: there the parts are also mixed into a stream an <audio> element
+ * play on: there the parts are mixed into a stream an <audio> element
  * plays, in the "playback" audio session (which the ring/silent switch
- * doesn't mute either). That way crackles, though, so it's only heard while
- * the page is hidden - the screen locked, another app on top - and on
- * screen they go straight to the speakers, the element playing muted (see
- * routeForScreen). Elsewhere they only go straight to the speakers.
+ * doesn't mute either). Elsewhere they go straight to the speakers.
+ * (Heard straight from the speakers while on screen, iOS then stopped
+ * them at the lock screen, the element muted: issue #136.)
  * `songverse.stems.output` = "element" forces the element (for tests).
  */
 function viaElement(): boolean {
@@ -460,39 +461,22 @@ function viaElement(): boolean {
 
 function outputFor(ctx: AudioContext): GainNode {
   const mix = ctx.createGain();
-  mix.connect(ctx.destination);
-  if (!directOutput && viaElement() && typeof ctx.createMediaStreamDestination === "function") {
+  if (!directOutput && !recordingDirect && viaElement() && typeof ctx.createMediaStreamDestination === "function") {
     streamOut = ctx.createMediaStreamDestination();
     mix.connect(streamOut);
     element = new Audio();
     element.setAttribute("playsinline", "");
     element.srcObject = streamOut.stream;
-    element.muted = true;
+    // For the end-to-end suites: which way it's heard.
+    if (typeof window !== "undefined") {
+      const w = window as unknown as { songverseStems?: { starts: unknown[]; heardVia?: string } };
+      w.songverseStems ??= { starts: [] };
+      w.songverseStems.heardVia = "element";
+    }
+  } else {
+    mix.connect(ctx.destination);
   }
   return mix;
-}
-
-/**
- * Where the stems are heard on an iPhone or iPad: on screen, straight from
- * the speakers (clean); hidden, through the element (which plays on with
- * the screen locked, but crackles). Each time the page is shown or hidden.
- */
-function routeForScreen() {
-  if (!context || !bus || !element) return;
-  const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
-  try {
-    bus.disconnect(context.destination);
-  } catch {
-    // Wasn't connected.
-  }
-  if (!hidden) bus.connect(context.destination);
-  element.muted = !hidden;
-  // For the end-to-end suites: which way it's heard.
-  if (typeof window !== "undefined") {
-    const w = window as unknown as { songverseStems?: { starts: unknown[]; heardVia?: string } };
-    w.songverseStems ??= { starts: [] };
-    w.songverseStems.heardVia = hidden ? "element" : "speakers";
-  }
 }
 
 /** The element refused to play (no gesture, say): straight to the speakers instead. */
@@ -500,7 +484,6 @@ async function startElement() {
   if (!element || !bus || !context) return;
   try {
     await element.play();
-    routeForScreen();
   } catch {
     if (streamOut) bus.disconnect(streamOut);
     element = null;
@@ -556,7 +539,6 @@ function setMediaActions() {
 // Back from the lock screen or another app with the context interrupted: carry on.
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
-    routeForScreen();
     if (document.visibilityState === "visible" && state.playing && context && context.state !== "running") void context.resume();
   });
 }
@@ -1072,7 +1054,7 @@ export function stemsAudioContext(): AudioContext | null {
  * be lined up.
  */
 export function directStemsOutput() {
-  directOutput = true;
+  recordingDirect = true;
   if (!context || !bus || !element) return;
   if (streamOut) bus.disconnect(streamOut);
   try {
@@ -1134,4 +1116,17 @@ export async function setStemsTake(take: { samples: Float32Array; part: StemPart
   applyGains(true);
   // Playing: heard from where it is, the take with it.
   if (state.playing) startAt(now() + 0.05 + latency, context.currentTime + 0.05 + latency);
+}
+
+/**
+ * A recorder closed (issue #136), the player's or the dialog's: the stems
+ * go back to their own way of being heard, afresh. On an iPhone the microphone switched the audio
+ * session to play-and-record and back, and a player made before that
+ * crackled through its <audio> element; the next Play makes a new one.
+ */
+export function endStemsRecording() {
+  recordingDirect = false;
+  if (!context) return;
+  if (state.playing) pause();
+  unloadStems();
 }

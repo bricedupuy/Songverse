@@ -317,17 +317,8 @@ await step("through an <audio> element (as on iPhone, to play on with the screen
   await player().getByRole("button", { name: "Play", exact: true }).click();
   await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
   await page.waitForFunction(() => document.querySelector('[data-testid="stem-time"]')?.textContent?.startsWith("0:02"));
-  // On screen, straight from the speakers (the element's way crackles on an iPhone); hidden - the screen locked - through the element.
-  await page.waitForFunction(() => window.songverseStems?.heardVia === "speakers");
-  const hide = (hidden) =>
-    page.evaluate((hidden) => {
-      Object.defineProperty(document, "visibilityState", { value: hidden ? "hidden" : "visible", configurable: true });
-      document.dispatchEvent(new Event("visibilitychange"));
-    }, hidden);
-  await hide(true);
+  // Through the element, on screen too: iOS stopped the stems at the lock screen when they weren't (issue #136).
   await page.waitForFunction(() => window.songverseStems?.heardVia === "element");
-  await hide(false);
-  await page.waitForFunction(() => window.songverseStems?.heardVia === "speakers");
   const session = await page.evaluate(() => [navigator.mediaSession.playbackState, navigator.mediaSession.metadata?.title]);
   if (session.join() !== `playing,Stems ${stamp}`) throw new Error(`lock screen: ${session.join()}`);
   await player().getByRole("button", { name: "Pause", exact: true }).click();
@@ -347,6 +338,29 @@ await step("on a phone it fits", async () => {
   if (play.x < 16 || box.y + box.height - (play.y + play.height) < 12) throw new Error(`the Play button is at ${JSON.stringify(play)}`);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (overflow > 0) throw new Error(`${overflow}px sideways scroll`);
+  // Expanded, minimize is on the screen, clear of its edge: the other controls wrap below.
+  await player().getByRole("button", { name: "Expand the player" }).click();
+  const minimize = await player().getByTestId("stem-minimize").boundingBox();
+  if (minimize.x + minimize.width > 360 - 12) throw new Error(`minimize at ${JSON.stringify(minimize)}`);
+  const controls = await player().getByTestId("stem-controls").boundingBox();
+  if (controls.x + controls.width > 360) throw new Error(`controls at ${JSON.stringify(controls)}`);
+});
+
+await step("the parts combined (issue #137): their buttons and one waveform, a fraction of the height; remembered", async () => {
+  const before = (await player().boundingBox()).height;
+  await player().getByTestId("stem-combine").click();
+  await player().getByTestId("stem-combined").waitFor();
+  if (await player().getByTestId("stem-track").count()) throw new Error("the parts' rows still there");
+  if ((await player().getByTestId("stem-combined").getByTestId("stem-chip").count()) !== 4) throw new Error("not a button per part");
+  await player().getByTestId("stem-combined").getByTestId("stem-waveform").waitFor();
+  const after = (await player().boundingBox()).height;
+  if (after > before * 0.7) throw new Error(`${after}px high, ${before}px apart`);
+  await page.reload();
+  await player().getByTestId("stem-combined").waitFor();
+  // Back apart, and compact.
+  await player().getByTestId("stem-combine").click();
+  await player().getByTestId("stem-track").first().waitFor();
+  await player().getByTestId("stem-minimize").click();
 });
 
 await browser.close();

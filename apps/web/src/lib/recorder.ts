@@ -1,4 +1,5 @@
 import { alignTake, clapDelayFrom, clickTimes, roundTripFrom } from "@songverse/core";
+import { endStemsRecording } from "#/lib/stem-engine";
 
 /**
  * Recording a part in the browser (issue #123). One AudioContext plays
@@ -402,5 +403,7 @@ export class Recorder {
     if (this.owned) void this.context.close().catch(() => {});
     else for (const node of [...this.nodes, this.clickGain]) node.disconnect();
     setAudioSession("playback");
+    // The stem player made afresh: one made before the session switched crackled (issue #136).
+    endStemsRecording();
   }
 }

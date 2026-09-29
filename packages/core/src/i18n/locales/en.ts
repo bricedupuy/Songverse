@@ -1072,6 +1072,7 @@ const en = {
     recordingTimeSignature: "Time signature of {{name}}",
     stemsTimeSignature: "Time signature of the stems",
     songsTimeSignature: "Song's",
+    combine: "Combine the parts",
     emptyFile: "{{name}} has no sound in it: record it again.",
     transposePart: "Transpose {{part}}",
     sungAt: "sung at {{shift}}",

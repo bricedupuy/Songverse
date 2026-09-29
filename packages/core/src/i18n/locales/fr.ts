@@ -1075,6 +1075,7 @@ const fr: typeof en = {
     recordingTimeSignature: "Mesure de {{name}}",
     stemsTimeSignature: "Mesure des pistes",
     songsTimeSignature: "Celle du chant",
+    combine: "Combiner les pistes",
     emptyFile: "{{name}} ne contient aucun son : enregistrez-la de nouveau.",
     transposePart: "Transposer {{part}}",
     sungAt: "chantée à {{shift}}",
