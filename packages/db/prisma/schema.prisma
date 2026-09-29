@@ -1160,6 +1160,10 @@ model Attachment {
   storageKey       String // S3 object key
   sizeBytes        Int?
   stemPart         StemPart?
+  // How many semitones above its multitrack it was recorded (issue #135):
+  // a take sung while the player was transposed. The player shifts it by
+  // its transposition minus this, so it fits with the rest.
+  pitchOffset      Int?
   // Its own name for the part (issue #131): "Descant", "Acoustic guitar",
   // "Count-in" - shown instead of the part's.
   partName         String?

@@ -258,6 +258,13 @@ try {
       await dock.getByRole("slider").fill("8");
       await dock.getByRole("button", { name: /^(Pause)$/ }).click();
     }, { element: dock });
+    // Recording in the player (issue #134): its recorder open above the parts.
+    await shoot("stems-record", null, async () => {
+      await dock.getByTestId("stem-record").click();
+      await page.locator('[data-testid="stem-record-panel"][data-phase="ready"]').waitFor();
+    }, { element: dock });
+    await dock.getByTestId("stem-record").click();
+    await page.getByTestId("stem-record-panel").waitFor({ state: "detached" });
     // Playing on elsewhere: the button back to the song.
     await dock.getByRole("button", { name: /^(Play|Lecture)$/ }).click();
     await shoot("stems-return", null, async () => {

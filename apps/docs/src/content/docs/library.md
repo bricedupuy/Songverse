@@ -134,7 +134,9 @@ The arrow at the end expands it: a row per part with the same round button, its 
 
 ![The stem player expanded, with each part's waveform](../../assets/screenshots/en/stems.jpg)
 
-**Transpose** moves the stems up or down, a semitone at a time (**Up a semitone**, **Down a semitone**), as they play: to a singer's range, or another key. Between the two buttons is the key they're heard in, "B (+2)" for stems in A. The drums and the click and cues aren't transposed (their rows say **Not transposed**); the drum button beside it, **Transpose the drums and cues too**, moves them as well. Songverse remembers the transposition for each song on the device. On a set's song page, the stems are transposed to the key the set plays the song in unless you choose otherwise: stems in A, for a set in C, play in C (+3).
+**Transpose** moves the stems up or down, a semitone at a time (**Up a semitone**, **Down a semitone**), as they play: to a singer's range, or another key. Between the two buttons is the key they're heard in, "B (+2)" for stems in A. Each part's row then has its own arrows button, **Transpose** (the part's name): pressed, the part is moved; not pressed, it plays as recorded. The drums and the click and cues start unpressed, every other part pressed. Songverse remembers the transposition, and which parts are moved, for each song on the device. Playing in sync, the leader's are everyone's.
+
+A take recorded while the stems were transposed is sung in that key, and its row says so ("sung at +2"). The player moves it by the difference: at +2 it plays as sung, at 0 it's moved down 2 to fit with the rest. On a set's song page, the stems are transposed to the key the set plays the song in unless you choose otherwise: stems in A, for a set in C, play in C (+3).
 
 The metronome button beside it, **Click with the recording**, plays the [metronome](/metronome/) with the stems: at the recording's tempo (or the song's), its first beat where the recording's falls, with your pattern, sound and count-in. It follows **Play**, pause and the playhead. Playing in sync, the leader's is everyone's (see [Playing in sync](/sets/#playing-in-sync)).
 
@@ -142,7 +144,7 @@ The song keeps playing while you go to another page or leave Practice, and on a 
 
 ![The button back to the song playing](../../assets/screenshots/en/stems-return.jpg)
 
-A song without stems plays its latest recording in the same player, as one part. A song with no audio at all but a YouTube link (on the **Links** tab) plays its YouTube video there instead: the video shows beside the controls, as YouTube requires, and the parts can't be separated. It keeps playing in a small window at the bottom right while you go to other pages; the song's name there takes you back. YouTube stops when the phone locks and doesn't play offline, so for those, add the recording to the **Audio** tab.
+A song without stems plays its latest recording in the same player, as one part. A song with no audio at all but a YouTube link (on the **Links** tab) plays its YouTube video there instead: the video shows beside the controls, as YouTube requires, and the parts can't be separated. The line along the top edge is its playhead too: click or drag it to go elsewhere in the video. It keeps playing in a small window at the bottom right while you go to other pages; the song's name there takes you back. YouTube stops when the phone locks and doesn't play offline, so for those, add the recording to the **Audio** tab.
 
 Stems kept on your device for offline use (**Include audio**, see [Working offline](/offline/)) play offline too.
 
@@ -157,7 +159,21 @@ In **Practice**, the stem player plays one multitrack at a time: when a song has
 You can record a part straight into Songverse, on a computer, phone or tablet with a microphone:
 
 - **Record a new multitrack**, at the bottom of the **Audio** tab: the first layer of a song, or another version of it, with the metronome only. Give it a **Name**, a **Tempo (BPM)** and a **Time signature** (the song's to start with). It starts with a bar of count-in, which is kept: the multitrack's first beat is one bar in.
-- **Record a part**, in a multitrack's box, or the microphone button in the stem player's expanded view in **Practice**: another part of that multitrack, hearing its other parts (untick one under **Hear** to leave it out) and the click, at its tempo, with a bar of count-in before its first beat.
+- **Record a part**, in a multitrack's box: another part of that multitrack, hearing its other parts (untick one under **Hear** to leave it out) and the click, at its tempo, with a bar of count-in before its first beat.
+
+#### In the stem player
+
+In **Practice**, the microphone button in the stem player, **Record a part**, records into the multitrack playing without leaving it. A small recorder opens above the parts, with the same **Part**, **The take** and clean-up options, and the delay (**Clap along**, **Measure it**):
+
+![Recording in the stem player: its recorder above the parts](../../assets/screenshots/en/stems-record.jpg)
+
+- You hear the player as it is: your mutes, solos and transposition, and the metronome if **Click with the recording** is on. Recorded while transposed, the take is kept as sung in that key (see above).
+- It records from the playhead: move it anywhere in the song, and the take starts at the beginning of that bar ("From bar 17 (0:42)"), after a bar of count-in. Before that, the part it replaces is kept (a punch-in), or it's silent.
+- While you record, the take draws itself where it's being recorded. **Stop** ends it.
+- The take is then a track like the others, **New take**: play it, mute or solo it, and move **Line up** to nudge it. **Keep** adds it to the multitrack; **Discard** drops it; **Record again** tries again.
+- **New multitrack…** records the first layer of another multitrack instead, as below.
+
+#### From the Audio tab
 
 **Into** switches between the song's multitracks and **New multitrack**. On a set's song page, a new multitrack can be that set's (**For this set**): there, it's the one the stem player plays, unless you choose another.
 

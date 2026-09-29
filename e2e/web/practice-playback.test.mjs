@@ -98,6 +98,11 @@ await step("Play plays the video, and the time follows", async () => {
   await page.locator('[data-testid="youtube-dock"][data-state="playing"]').waitFor();
   await page.waitForFunction(() => document.querySelector('[data-testid="youtube-time"]')?.textContent?.startsWith("0:01"));
   if (!(await dock().getByTestId("youtube-time").textContent()).endsWith("/ 3:32")) throw new Error(await dock().getByTestId("youtube-time").textContent());
+  // Its playhead the line along the top edge, as the stem player's: seeking there moves the video.
+  const playhead = dock().getByTestId("youtube-playhead");
+  if ((await playhead.getAttribute("class")) !== "stem-playhead") throw new Error("not the top line");
+  await playhead.fill("90");
+  await page.waitForFunction(() => /^1:3\d/.test(document.querySelector('[data-testid="youtube-time"]')?.textContent ?? ""));
 });
 
 await step("elsewhere it plays on in a corner, with a way back", async () => {

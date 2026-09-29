@@ -28,8 +28,8 @@ export interface SyncStems {
   multitrackId?: string | null;
   /** Transposed by this many semitones (issue #129); 0 or left out, as recorded. */
   transpose?: number;
-  /** The drums and cues transposed too. */
-  transposeAll?: boolean;
+  /** By file, which parts are transposed when not as their part says (issue #135). */
+  transposeParts?: Record<string, boolean>;
   title: string;
   playing: boolean;
   /** Seconds into the recording. */

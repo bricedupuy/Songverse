@@ -53,6 +53,8 @@ export const UploadAttachmentSchema = z.strictObject({
   recordingTempo: formField(formNumber("recordingTempo", 20, 400)),
   recordingTimeSignature: formField(timeSignature),
   recordingFirstBeat: formField(formNumber("recordingFirstBeat", 0, 600)),
+  /** Recorded this many semitones above its multitrack (issue #135): while the player was transposed. */
+  pitchOffset: formField(formNumber("pitchOffset", -12, 12).pipe(z.number().int())),
   multitrackSetlistId: formField(z.string().max(40)),
   /**
    * A recorded take (issue #127), turned into Opus by the Worker: "encode"
@@ -74,6 +76,8 @@ export const UpdateAttachmentSchema = z.strictObject({
   recordingTempo: z.number().min(20).max(400).nullable().optional(),
   recordingFirstBeat: z.number().min(0).max(600).nullable().optional(),
   recordingTimeSignature: timeSignature.nullable().optional(),
+  /** Recorded this many semitones above its multitrack (issue #135); null for none. */
+  pitchOffset: z.number().int().min(-12).max(12).nullable().optional(),
   /** Null: the song's original stems. */
   multitrackId: multitrackId.nullable().optional(),
   multitrackName: multitrackName.transform((value) => value || null).nullable().optional(),

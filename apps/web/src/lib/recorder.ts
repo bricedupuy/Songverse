@@ -46,6 +46,12 @@ class SongverseCapture extends AudioWorkletProcessor {
 registerProcessor("songverse-capture", SongverseCapture);
 `;
 
+/** Safari's audio session (iOS 16.4+): "playback" plays on with the screen locked, but can't record. */
+function setAudioSession(type: "playback" | "play-and-record") {
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session) session.type = type;
+}
+
 const ROUND_TRIP_KEY = "songverse.recorder.roundTrip";
 /** Clicks are scheduled this far ahead, by a timer. */
 const LOOKAHEAD = 0.4;
@@ -92,6 +98,11 @@ export class Recorder {
   private sources: AudioScheduledSourceNode[] = [];
   private timer: ReturnType<typeof setInterval> | null = null;
   private clickGain: GainNode;
+  /** Hears each block captured (4096 samples or so), for a live waveform. */
+  onChunk: ((data: Float32Array) => void) | null = null;
+  /** Its context is its own (closed with it), not the stem player's. */
+  private owned = true;
+  private nodes: AudioNode[] = [];
 
   private constructor(context: AudioContext, stream: MediaStream, capture: AudioWorkletNode) {
     this.context = context;
@@ -100,27 +111,49 @@ export class Recorder {
     this.clickGain = context.createGain();
     this.clickGain.gain.value = 0.6;
     this.clickGain.connect(context.destination);
-    capture.port.onmessage = (event: MessageEvent<{ frame: number; data: Float32Array }>) => this.chunks.push(event.data);
+    capture.port.onmessage = (event: MessageEvent<{ frame: number; data: Float32Array }>) => {
+      this.chunks.push(event.data);
+      this.onChunk?.(event.data.data);
+    };
   }
 
-  /** Asks for the microphone (unprocessed: no echo cancelling, levelling or noise removal, which would change the take and its timing). */
-  static async open(): Promise<Recorder> {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-    const context = new AudioContext({ latencyHint: "interactive" });
+  /**
+   * Asks for the microphone (unprocessed: no echo cancelling, levelling or
+   * noise removal, which would change the take and its timing), captured
+   * on `existing` (the stem player's clock, issue #134) or a context of
+   * its own. Call it from a tap: an iPhone's home screen app asks for the
+   * microphone only then.
+   */
+  static async open(existing?: AudioContext): Promise<Recorder> {
+    // iOS: the stem player's "playback" audio session can't record; this one can (put back on close).
+    setAudioSession("play-and-record");
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    } catch (error) {
+      setAudioSession("playback");
+      throw error;
+    }
+    const context = existing ?? new AudioContext({ latencyHint: "interactive" });
     try {
       const url = URL.createObjectURL(new Blob([CAPTURE_WORKLET], { type: "text/javascript" }));
       await context.audioWorklet.addModule(url);
       URL.revokeObjectURL(url);
       const capture = new AudioWorkletNode(context, "songverse-capture", { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1, channelCountMode: "explicit" });
-      context.createMediaStreamSource(stream).connect(capture);
+      const source = context.createMediaStreamSource(stream);
+      source.connect(capture);
       // Connected to the output (silently), or some browsers don't run it.
       const silent = context.createGain();
       silent.gain.value = 0;
       capture.connect(silent).connect(context.destination);
-      return new Recorder(context, stream, capture);
+      const recorder = new Recorder(context, stream, capture);
+      recorder.owned = !existing;
+      recorder.nodes = [source, capture, silent];
+      return recorder;
     } catch (error) {
       for (const track of stream.getTracks()) track.stop();
-      void context.close();
+      if (!existing) void context.close();
+      setAudioSession("playback");
       throw error;
     }
   }
@@ -232,6 +265,13 @@ export class Recorder {
       for (let i = 0; i < mono.length; i++) mono[i]! += data[i]! / buffer.numberOfChannels;
     }
     return mono;
+  }
+
+  /** Starts capturing, with nothing of its own playing: the stem player plays (issue #134). */
+  startCapture() {
+    this.stopPlaying();
+    this.chunks = [];
+    this.capture.port.postMessage(true);
   }
 
   /** Ends the take; resolves with what was captured once the last block is in. */
@@ -358,6 +398,9 @@ export class Recorder {
     this.stopPlaying();
     this.capture.port.postMessage(false);
     for (const track of this.stream.getTracks()) track.stop();
-    void this.context.close().catch(() => {});
+    // Its own context closed; the stem player's left playing, the recorder's nodes taken off it.
+    if (this.owned) void this.context.close().catch(() => {});
+    else for (const node of [...this.nodes, this.clickGain]) node.disconnect();
+    setAudioSession("playback");
   }
 }

@@ -325,7 +325,11 @@ function validStems(value: SyncStems): boolean {
     typeof value.title === "string" &&
     value.title.length <= 300 &&
     (value.transpose === undefined || (Number.isInteger(value.transpose) && Math.abs(value.transpose) <= 12)) &&
-    (value.transposeAll === undefined || typeof value.transposeAll === "boolean") &&
+    (value.transposeParts === undefined ||
+      (typeof value.transposeParts === "object" &&
+        value.transposeParts !== null &&
+        Object.keys(value.transposeParts).length <= 64 &&
+        Object.entries(value.transposeParts).every(([id, on]) => id.length <= 64 && typeof on === "boolean"))) &&
     typeof value.playing === "boolean" &&
     Number.isFinite(value.position) &&
     value.position >= 0 &&

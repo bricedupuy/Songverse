@@ -261,13 +261,59 @@ await step("in Practice, the player offers the multitracks and plays the one cho
   if ((await page.getByTestId("stem-multitrack").inputValue()) !== first.multitrackId) throw new Error(await page.getByTestId("stem-multitrack").inputValue());
 });
 
-await step("from the player in Practice: recording into the multitrack playing", async () => {
+const panel = () => page.getByTestId("stem-record-panel");
+/** Records in the player (issue #134): from where the playhead says, for about `seconds` past the count-in. */
+async function recordInPlayer(seconds) {
+  await page.locator('[data-testid="stem-record-panel"][data-phase="ready"]').waitFor({ timeout: 15000 });
+  await panel().getByTestId("stem-record-start").click();
+  await panel().getByText(/Recording \d:\d\d/).waitFor({ timeout: 15000 });
+  await page.waitForTimeout(seconds * 1000);
+  await panel().getByTestId("stem-record-stop").click();
+  await page.locator('[data-testid="stem-record-panel"][data-phase="recorded"]').waitFor({ timeout: 15000 });
+}
+
+await step("recording in the player (issue #134): from bar 2 over the mix transposed +1, the take a track to hear and nudge, then kept", async () => {
   const player = page.getByTestId("stem-player");
+  // No file names in the player: parts, and who recorded them.
+  if (await player.getByText(/\.(opus|wav|mp3)$/).count()) throw new Error("a file name in the player");
+  await player.getByRole("button", { name: "Up a semitone" }).click();
+  await player.locator('[data-testid="stem-transpose"][data-steps="1"]').waitFor();
   await player.getByTestId("stem-record").click();
-  await dialog().getByTestId("recorder-target").waitFor();
-  if ((await dialog().getByTestId("recorder-target").inputValue()) !== first.multitrackId) throw new Error(await dialog().getByTestId("recorder-target").inputValue());
-  await page.keyboard.press("Escape");
-  await dialog().waitFor({ state: "detached" });
+  await page.locator('[data-testid="stem-record-panel"][data-phase="ready"]').waitFor({ timeout: 15000 });
+  // Bar 2 of 90 BPM in 3/4 starts at 4 s (its first beat at 2 s): from anywhere in it.
+  await player.getByRole("slider", { name: "Position" }).fill("4.5");
+  await panel().getByText("From bar 2 (0:04), after a bar of count-in").waitFor();
+  await panel().getByTestId("part-kind").selectOption({ label: "Voice" });
+  await panel().getByTestId("part-voice").selectOption({ label: "Harmony 3 (tenor)" });
+  await panel().getByTestId("stem-record-start").click();
+  await panel().getByText("Count-in…").waitFor();
+  await panel().getByTestId("stem-record-live").waitFor();
+  await panel().getByText(/Recording 0:0[4-9]/).waitFor({ timeout: 15000 });
+  await page.waitForTimeout(1200);
+  await panel().getByTestId("stem-record-stop").click();
+  // The take, a track like the others.
+  await player.locator('[data-testid="stem-track"]').filter({ hasText: "New take · Harmony 3 (tenor)" }).waitFor({ timeout: 15000 });
+  await panel().getByTestId("stem-record-nudge").fill("10");
+  await panel().getByText("+10 ms").waitFor();
+  await panel().getByTestId("stem-record-keep").click();
+  await panel().waitFor({ state: "detached", timeout: 15000 });
+  const tenor = (await processedFiles(webSong.id)).find((file) => file.stemPart === "HARMONY_TENOR");
+  if (!tenor || tenor.multitrackId !== first.multitrackId || tenor.pitchOffset !== 1 || tenor.mimeType !== "audio/ogg") throw new Error(JSON.stringify(tenor));
+  // From the multitrack's 0:00: silent up to bar 2, then what was recorded.
+  const res = await fetch(`${API}/song-versions/${webSong.id}/attachments/${tenor.id}/download`, { headers: { Authorization: `Bearer ${me.bearer}` } });
+  const pcm = execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "pipe:1"], { input: Buffer.from(await res.arrayBuffer()) });
+  const samples = new Int16Array(pcm.buffer, pcm.byteOffset, pcm.length / 2);
+  let before = 0;
+  let after = 0;
+  for (let i = 0; i < samples.length; i++) {
+    if (i < 3.9 * 48000) before = Math.max(before, Math.abs(samples[i]));
+    else after = Math.max(after, Math.abs(samples[i]));
+  }
+  if (samples.length < 5 * 48000 || before > 200 || after < 1000) throw new Error(`${samples.length / 48000} s, before bar 2 ${before}, after ${after}`);
+  // Back to as recorded.
+  await player.getByRole("button", { name: "Down a semitone" }).click();
+  await player.locator('[data-testid="stem-transpose"][data-steps="0"]').waitFor();
+  await player.getByText("sung at +1").waitFor({ timeout: 15000 });
 });
 
 await step("a voice of one's own naming, and a harmony someone else recorded: named, and who recorded it (issue #131)", async () => {
@@ -286,12 +332,16 @@ await step("a voice of one's own naming, and a harmony someone else recorded: na
   if (alto.filename !== "Grâce - Alto.opus") throw new Error(`the name's accent: ${alto.filename}`);
   sql(`update "Attachment" set visibility='SONG' where id='${alto.id}'`);
 
-  // Mine: a descant, named.
+  // Mine, recorded in the player: a descant, named.
+  await page.getByTestId("stem-player").getByRole("slider", { name: "Position" }).fill("0");
   await page.getByTestId("stem-player").getByTestId("stem-record").click();
-  await pickPart("Voice", "Another name…");
-  await dialog().getByTestId("part-name").fill("Descant");
-  await dialog().getByTestId("recorder-voice").waitFor();
-  await recordAndKeep(1);
+  await panel().getByTestId("part-kind").selectOption({ label: "Voice" });
+  await panel().getByTestId("part-voice").selectOption({ label: "Another name…" });
+  await panel().getByTestId("part-name").fill("Descant");
+  await panel().getByTestId("part-name").press("Enter");
+  await recordInPlayer(1);
+  await panel().getByTestId("stem-record-keep").click();
+  await panel().waitFor({ state: "detached", timeout: 15000 });
   const descant = (await processedFiles(webSong.id)).find((file) => file.partName === "Descant");
   if (descant?.stemPart !== "BACKING_VOCALS" || !descant.filename.endsWith(" - Descant.opus")) throw new Error(JSON.stringify(descant));
 
@@ -317,7 +367,9 @@ await step("on a set's song page: a new multitrack for that set, what the player
   await page.goto(`${WEB}/sets/${sunday.id}/songs/${sundayItem.id}`);
   const player = page.getByTestId("stem-player");
   await player.waitFor();
+  // A new multitrack: from the player's recorder, the dialog.
   await player.getByTestId("stem-record").click();
+  await panel().getByTestId("stem-record-new").click();
   await dialog().getByTestId("recorder-target").selectOption("new");
   await dialog().getByText(`For this set: Sunday ${stamp}`).waitFor();
   if (!(await dialog().getByTestId("recorder-for-set").isChecked())) throw new Error("not for the set");

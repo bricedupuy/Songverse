@@ -189,7 +189,7 @@ export class OfflineService {
       select: {
         id: true,
         updatedAt: true,
-        attachments: { where: visibleFiles, select: { id: true, createdAt: true, stemPart: true, partName: true, recordingKey: true, recordingTempo: true, recordingFirstBeat: true, recordingTimeSignature: true, multitrackId: true, multitrackName: true, multitrackSetlistId: true, otherTake: true, processing: true, visibility: true, visibleToTeamId: true } },
+        attachments: { where: visibleFiles, select: { id: true, createdAt: true, stemPart: true, partName: true, recordingKey: true, recordingTempo: true, recordingFirstBeat: true, pitchOffset: true, recordingTimeSignature: true, multitrackId: true, multitrackName: true, multitrackSetlistId: true, otherTake: true, processing: true, visibility: true, visibleToTeamId: true } },
       },
     });
     const entries = current.map((row) => ({ id: row.id, version: songVersion(row.updatedAt, row.attachments), audio: audio.has(row.id) }));
@@ -246,6 +246,7 @@ function songVersion(
     recordingKey: string | null;
     recordingTempo: number | null;
     recordingFirstBeat: number | null;
+    pitchOffset: number | null;
     recordingTimeSignature: string | null;
     multitrackId: string | null;
     multitrackName: string | null;
@@ -259,7 +260,7 @@ function songVersion(
   const files = attachments
     .map(
       (file) =>
-        `${file.id}@${new Date(file.createdAt).toISOString()}:${file.stemPart ?? ""}:${file.partName ?? ""}:${file.recordingKey ?? ""}:${file.recordingTempo ?? ""}:${file.recordingFirstBeat ?? ""}:${file.recordingTimeSignature ?? ""}:${file.multitrackId ?? ""}:${file.multitrackName ?? ""}:${file.multitrackSetlistId ?? ""}:${file.otherTake}:${file.processing ?? ""}:${file.visibility}:${file.visibleToTeamId ?? ""}`,
+        `${file.id}@${new Date(file.createdAt).toISOString()}:${file.stemPart ?? ""}:${file.partName ?? ""}:${file.recordingKey ?? ""}:${file.recordingTempo ?? ""}:${file.recordingFirstBeat ?? ""}:${file.pitchOffset ?? ""}:${file.recordingTimeSignature ?? ""}:${file.multitrackId ?? ""}:${file.multitrackName ?? ""}:${file.multitrackSetlistId ?? ""}:${file.otherTake}:${file.processing ?? ""}:${file.visibility}:${file.visibleToTeamId ?? ""}`,
     )
     .sort();
   return hash({ updatedAt: new Date(updatedAt).toISOString(), files });

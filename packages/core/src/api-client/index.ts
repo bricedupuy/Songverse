@@ -550,6 +550,8 @@ export interface Attachment {
   recordingTempo: number | null;
   /** Where its first beat falls, in seconds (issue #100); null for 0:00. */
   recordingFirstBeat: number | null;
+  /** Recorded this many semitones above its multitrack (issue #135), while the player was transposed; null: in its key. */
+  pitchOffset: number | null;
   /** Its time signature ("4/4") when it isn't the song's (issue #123). */
   recordingTimeSignature: string | null;
   /** The multitrack it's part of (issue #123): files recorded together; null for the song's original stems. */
@@ -584,6 +586,7 @@ export interface RecordingDetails {
   recordingTempo?: number;
   recordingTimeSignature?: string;
   recordingFirstBeat?: number;
+  pitchOffset?: number;
   multitrackId?: string;
   multitrackName?: string;
   multitrackSetlistId?: string;

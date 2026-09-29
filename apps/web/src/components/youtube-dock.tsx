@@ -1,7 +1,7 @@
 import { formatDuration } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
 import { Loader2, Pause, Play, TvMinimalPlay } from "lucide-react";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { StemDockSlot } from "#/components/stem-dock";
@@ -51,7 +51,22 @@ export function YouTubeDock({ video }: { video: YouTubeVideo }) {
   }, [current, slot, video.songVersionId]);
 
   const dock = (
-    <section className="border-t bg-background shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.3)]" aria-label={t("youtube.label")} data-testid="youtube-dock" data-state={playing ? "playing" : current ? yt.status : "idle"}>
+    <section className="relative border-t bg-background shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.3)]" aria-label={t("youtube.label")} data-testid="youtube-dock" data-state={playing ? "playing" : current ? yt.status : "idle"}>
+      {/* The playhead, as the stem player's: the line along the top edge - click or drag it to go there (arrow keys too). */}
+      <input
+        type="range"
+        min={0}
+        max={duration || 0}
+        step={1}
+        value={Math.min(position, duration)}
+        disabled={!current || !duration}
+        onChange={(event) => seekYouTube(Number(event.target.value))}
+        aria-label={t("stems.position")}
+        aria-valuetext={`${formatDuration(position)} / ${formatDuration(duration)}`}
+        className="stem-playhead"
+        style={{ "--progress": duration ? `${(Math.min(position, duration) / duration) * 100}%` : "0%" } as CSSProperties}
+        data-testid="youtube-playhead"
+      />
       <div className={cn("mx-auto flex w-full max-w-7xl items-center gap-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
         {current ? (
           // The video goes here (YouTubeHost follows this box).
@@ -93,17 +108,6 @@ export function YouTubeDock({ video }: { video: YouTubeVideo }) {
               {formatDuration(position)} / {formatDuration(duration)}
             </span>
           </div>
-          <input
-            type="range"
-            min={0}
-            max={duration || 0}
-            step={1}
-            value={Math.min(position, duration)}
-            disabled={!current || !duration}
-            onChange={(event) => seekYouTube(Number(event.target.value))}
-            aria-label={t("stems.position")}
-            className="w-full min-w-0 accent-primary"
-          />
         </div>
       </div>
     </section>

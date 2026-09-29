@@ -267,9 +267,9 @@ function applyStems(leader: string) {
     if (now?.songVersionId !== stems.songVersionId || (now.multitrackId ?? null) !== (stems.multitrackId ?? null) || state.leading) return;
     // Transposed as the leader's (issue #129).
     const transpose = stems.transpose ?? 0;
-    const transposeAll = stems.transposeAll ?? false;
-    void setStemsTranspose(transpose, transposeAll);
-    void followStems(song ? { ...song, transpose, transposeAll } : null, song ? timeline : null, leader);
+    const transposeParts = stems.transposeParts ?? {};
+    void setStemsTranspose(transpose, transposeParts);
+    void followStems(song ? { ...song, transpose, transposeParts } : null, song ? timeline : null, leader);
   });
 }
 
@@ -284,7 +284,7 @@ function publishStems(stems: StemState) {
           songVersionId: stems.songVersionId,
           multitrackId: stems.multitrackId,
           transpose: stems.transpose,
-          transposeAll: stems.transposeAll,
+          transposeParts: stems.transposeParts,
           title: stems.title,
           playing: stems.playing && !!stems.anchor,
           position: stems.playing && stems.anchor ? stems.anchor.position : stems.position,
@@ -434,7 +434,7 @@ export function useSyncBridge() {
     stems.playing ? 0 : stems.position,
     stems.following,
     stems.transpose,
-    stems.transposeAll,
+    stems.transposeParts,
   ]);
   useEffect(() => {
     if (!stems.following) publishStems(getStemState());

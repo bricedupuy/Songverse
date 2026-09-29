@@ -134,7 +134,9 @@ La flèche au bout l'agrandit : une ligne par partie avec le même bouton rond, 
 
 ![Le lecteur de pistes agrandi, avec la forme d'onde de chaque partie](../../../assets/screenshots/fr/stems.jpg)
 
-**Transposer** monte ou descend les pistes d'un demi-ton à la fois (**Un demi-ton plus haut**, **Un demi-ton plus bas**), pendant la lecture : pour la tessiture d'un chanteur, ou une autre tonalité. Entre les deux boutons, la tonalité entendue : « B (+2) » pour des pistes en A. La batterie, le clic et les repères ne sont pas transposés (leur ligne indique **Pas transposée**) ; le bouton batterie à côté, **Transposer aussi la batterie et les repères**, les transpose aussi. Songverse retient la transposition de chaque chant sur l'appareil. Sur la page d'un chant dans une liste, les pistes sont transposées dans la tonalité de la liste, sauf si vous choisissez autrement : des pistes en A, pour une liste en C, jouent en C (+3).
+**Transposer** monte ou descend les pistes d'un demi-ton à la fois (**Un demi-ton plus haut**, **Un demi-ton plus bas**), pendant la lecture : pour la tessiture d'un chanteur, ou une autre tonalité. Entre les deux boutons, la tonalité entendue : « B (+2) » pour des pistes en A. La ligne de chaque piste a alors son bouton flèches, **Transposer** (le nom de la piste) : enfoncé, la piste est transposée ; relâché, elle joue telle qu'enregistrée. La batterie, le clic et les repères commencent relâchés, toutes les autres pistes enfoncées. Songverse retient la transposition, et quelles pistes sont transposées, pour chaque chant sur l'appareil. En jeu synchronisé, ce sont celles du meneur.
+
+Une prise enregistrée pendant que les pistes étaient transposées est chantée dans cette tonalité, et sa ligne le dit (« chantée à +2 »). Le lecteur la décale de la différence : à +2, elle joue telle que chantée ; à 0, elle est descendue de 2 pour aller avec le reste. Sur la page d'un chant dans une liste, les pistes sont transposées dans la tonalité de la liste, sauf si vous choisissez autrement : des pistes en A, pour une liste en C, jouent en C (+3).
 
 Le bouton du métronome à côté, **Clic avec l'enregistrement**, joue le [métronome](/fr/metronome/) avec les pistes : au tempo de l'enregistrement (ou du chant), son premier temps là où tombe celui de l'enregistrement, avec votre motif, votre son et votre décompte. Il suit **Lecture**, la pause et la tête de lecture. En jeu synchronisé, celui du meneur est celui de chacun (voir [Jouer synchronisé](/fr/sets/#jouer-synchronisé)).
 
@@ -142,7 +144,7 @@ Le chant continue de jouer quand vous allez sur une autre page ou quittez le mod
 
 ![Le bouton pour revenir au chant en lecture](../../../assets/screenshots/fr/stems-return.jpg)
 
-Un chant sans pistes joue son dernier enregistrement dans le même lecteur, comme une seule partie. Un chant sans aucun audio mais avec un lien YouTube (onglet **Liens**) y joue sa vidéo YouTube : la vidéo s'affiche à côté des commandes, comme YouTube l'exige, et les parties ne peuvent pas être séparées. Elle continue dans une petite fenêtre en bas à droite quand vous allez sur d'autres pages ; le nom du chant vous y ramène. YouTube s'arrête quand le téléphone se verrouille et ne joue pas hors ligne : dans ces cas, ajoutez l'enregistrement dans l'onglet **Audio**.
+Un chant sans pistes joue son dernier enregistrement dans le même lecteur, comme une seule partie. Un chant sans aucun audio mais avec un lien YouTube (onglet **Liens**) y joue sa vidéo YouTube : la vidéo s'affiche à côté des commandes, comme YouTube l'exige, et les parties ne peuvent pas être séparées. La ligne en haut est aussi sa tête de lecture : cliquez ou faites-la glisser pour aller ailleurs dans la vidéo. Elle continue dans une petite fenêtre en bas à droite quand vous allez sur d'autres pages ; le nom du chant vous y ramène. YouTube s'arrête quand le téléphone se verrouille et ne joue pas hors ligne : dans ces cas, ajoutez l'enregistrement dans l'onglet **Audio**.
 
 Les pistes gardées sur votre appareil pour le hors ligne (**Avec l'audio**, voir [Hors ligne](/fr/offline/)) se lisent aussi hors ligne.
 
@@ -157,7 +159,21 @@ En mode **Session**, le lecteur de pistes joue un multipiste à la fois : quand 
 Vous pouvez enregistrer une piste directement dans Songverse, sur un ordinateur, un téléphone ou une tablette avec un micro :
 
 - **Enregistrer un nouveau multipiste**, en bas de l'onglet **Audio** : la première couche d'un chant, ou une autre version, avec le métronome seul. Donnez-lui un **Nom**, un **Tempo (BPM)** et une **Mesure** (ceux du chant pour commencer). Il commence par une mesure de décompte, qui est gardée : le premier temps du multipiste tombe une mesure plus loin.
-- **Enregistrer une piste**, dans le cadre d'un multipiste, ou le bouton micro de la vue agrandie du lecteur de pistes en mode **Session** : une autre piste de ce multipiste, en entendant les autres (décochez-en une sous **Entendre** pour la laisser de côté) et le clic, à son tempo, avec une mesure de décompte avant son premier temps.
+- **Enregistrer une piste**, dans le cadre d'un multipiste : une autre piste de ce multipiste, en entendant les autres (décochez-en une sous **Entendre** pour la laisser de côté) et le clic, à son tempo, avec une mesure de décompte avant son premier temps.
+
+#### Dans le lecteur de pistes
+
+En mode **Session**, le bouton micro du lecteur de pistes, **Enregistrer une piste**, enregistre dans le multipiste en lecture sans le quitter. Un petit enregistreur s'ouvre au-dessus des pistes, avec les mêmes options **Piste**, **La prise** et de nettoyage, et le retard (**Taper dans les mains**, **Le mesurer**) :
+
+![Enregistrer dans le lecteur de pistes : l'enregistreur au-dessus des pistes](../../../assets/screenshots/fr/stems-record.jpg)
+
+- Vous entendez le lecteur tel qu'il est : vos pistes coupées, en solo et la transposition, et le métronome si **Clic avec l'enregistrement** est activé. Enregistrée transposée, la prise est gardée telle que chantée dans cette tonalité (voir plus haut).
+- Il enregistre à partir de la tête de lecture : placez-la n'importe où dans le chant, et la prise commence au début de cette mesure (« À partir de la mesure 17 (0:42) »), après une mesure de décompte. Avant, la piste qu'elle remplace est gardée (un punch-in), ou c'est le silence.
+- Pendant l'enregistrement, la prise se dessine là où elle est enregistrée. **Arrêter** la termine.
+- La prise est ensuite une piste comme les autres, **Nouvelle prise** : écoutez-la, coupez-la ou mettez-la en solo, et déplacez **Caler** pour l'ajuster. **Garder** l'ajoute au multipiste ; **Supprimer** l'abandonne ; **Recommencer** refait une prise.
+- **Nouveau multipiste…** enregistre plutôt la première couche d'un autre multipiste, comme ci-dessous.
+
+#### Depuis l'onglet Audio
 
 **Dans** passe d'un multipiste du chant à l'autre, ou à **Nouveau multipiste**. Sur la page d'un chant dans une liste, un nouveau multipiste peut être celui de cette liste (**Pour cette liste**) : là, c'est celui que joue le lecteur de pistes, sauf si vous en choisissez un autre.
 

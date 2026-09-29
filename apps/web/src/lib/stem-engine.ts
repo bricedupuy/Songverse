@@ -35,9 +35,9 @@ export interface StemSong {
   multitracks?: MultitrackChoice[];
   /** Where the choice of multitrack is remembered: the song, or the song in a set (issue #127). */
   choiceKey?: string;
-  /** Transposed by this many semitones as it plays (issue #129), the drums and cues too with `transposeAll`. */
+  /** Transposed by this many semitones as it plays (issue #129); `transposeParts` says, by file, which parts are (#135) - else all but the drums and cues. */
   transpose?: number;
-  transposeAll?: boolean;
+  transposeParts?: Record<string, boolean>;
   /** The song's own key: what the stems are in when they don't say (for the key they're transposed to). */
   songKey?: string | null;
   /** The key the page plays the song in (a set's): with nothing chosen, the stems are transposed to it. */
@@ -75,6 +75,10 @@ export interface StemTrack {
   peaks: number[] | null;
   /** Its length (s), once decoded: a take shorter than the rest draws as long as it is. */
   length: number;
+  /** Recorded this many semitones above the multitrack (issue #135). */
+  offset: number;
+  /** The take just recorded in the player (issue #134), not kept yet. */
+  take?: boolean;
   failed: boolean;
 }
 
@@ -103,9 +107,9 @@ export interface StemState {
   following: string | null;
   /** Following, but the browser hasn't let it make a sound yet: a press will (unlockStemsAudio). */
   audioBlocked: boolean;
-  /** Transposed by this many semitones (issue #129); the drums and cues too with transposeAll. */
+  /** Transposed by this many semitones (issue #129); by file, which parts are, when not as their part says (#135). */
   transpose: number;
-  transposeAll: boolean;
+  transposeParts: Record<string, boolean>;
   /** Transposing couldn't start here (no AudioWorklet, say): it plays as recorded. */
   transposeFailed: boolean;
   /** The recording's beat: its tempo, time signature and where its first beat falls (s), for the metronome with it; null without a tempo. */
@@ -133,7 +137,7 @@ const EMPTY: StemState = {
   following: null,
   audioBlocked: false,
   transpose: 0,
-  transposeAll: false,
+  transposeParts: {},
   transposeFailed: false,
   beat: null,
 };
@@ -158,15 +162,17 @@ let element: HTMLAudioElement | null = null;
 let lastSong: StemSong | null = null;
 let buffers = new Map<string, AudioBuffer>();
 let gains = new Map<string, GainNode>();
-// Transposing (issue #129): the parts it moves go through `pitched` - into
-// the stretch node when transposing - and the others (drums, cues) through
-// `plain`, delayed by as much as the stretch node delays the rest. Sources
-// start that much earlier (`latency`), so what's heard stays in place.
-let parts = new Map<string, StemPart | null>();
-let pitched: GainNode | null = null;
+// Transposing (issues #129, #135): each part is moved by the transposition,
+// less the semitones it was recorded above its multitrack - or not at all
+// (the drums and cues, unless asked). The parts moved by the same amount
+// share a bus into a stretch node set to it; the rest go through `plain`,
+// delayed by as much as the stretch nodes delay theirs. Sources start that
+// much earlier (`latency`), so what's heard stays in place.
+let tracksInfo = new Map<string, { part: StemPart | null; offset: number }>();
 let plain: GainNode | null = null;
-let stretch: StretchNode | null = null;
-let stretchLoading: Promise<boolean> | null = null;
+let shiftBuses = new Map<number, GainNode>();
+let pool: { node: StretchNode; shift: number | null }[] = [];
+let making: Promise<StretchNode | null> | null = null;
 let stretchLatency = 0;
 let delay: DelayNode | null = null;
 let latency = 0;
@@ -227,16 +233,25 @@ export function stemFilesOf(
 // --- how far each song's stems are transposed (issue #129), remembered on the device
 
 const TRANSPOSE_KEY = "songverse.stems.transpose.";
-const transposes = new Map<string, { steps: number; all: boolean } | undefined>();
+
+/** A song's transposition (issues #129, #135): how far, and by file which parts, when not as their part says. */
+export interface StemTranspose {
+  steps: number;
+  parts: Record<string, boolean>;
+}
+const transposes = new Map<string, StemTranspose | undefined>();
 const transposeListeners = new Set<() => void>();
 
-function transposeOf(key: string): { steps: number; all: boolean } | undefined {
+function transposeOf(key: string): StemTranspose | undefined {
   if (transposes.has(key)) return transposes.get(key);
-  let saved: { steps: number; all: boolean } | undefined;
+  let saved: StemTranspose | undefined;
   try {
     const raw = localStorage.getItem(TRANSPOSE_KEY + key);
-    const parsed = raw ? (JSON.parse(raw) as { steps?: unknown; all?: unknown }) : null;
-    if (parsed && typeof parsed.steps === "number") saved = { steps: parsed.steps, all: parsed.all === true };
+    const parsed = raw ? (JSON.parse(raw) as { steps?: unknown; parts?: unknown }) : null;
+    if (parsed && typeof parsed.steps === "number") {
+      const parts = parsed.parts && typeof parsed.parts === "object" ? Object.entries(parsed.parts).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean") : [];
+      saved = { steps: parsed.steps, parts: Object.fromEntries(parts) };
+    }
   } catch {
     // Storage blocked, or not ours.
   }
@@ -245,7 +260,7 @@ function transposeOf(key: string): { steps: number; all: boolean } | undefined {
 }
 
 /** Transposes the song's stems (`key`: the song, or the song in a set) from now on; undefined goes back to the default. */
-export function chooseStemTranspose(key: string, value: { steps: number; all: boolean } | undefined) {
+export function chooseStemTranspose(key: string, value: StemTranspose | undefined) {
   transposes.set(key, value);
   try {
     if (value) localStorage.setItem(TRANSPOSE_KEY + key, JSON.stringify(value));
@@ -257,7 +272,7 @@ export function chooseStemTranspose(key: string, value: { steps: number; all: bo
 }
 
 /** The transposition chosen for the song; undefined when none was (the default then). */
-export function useChosenTranspose(key: string): { steps: number; all: boolean } | undefined {
+export function useChosenTranspose(key: string): StemTranspose | undefined {
   return useSyncExternalStore(
     (listener) => {
       transposeListeners.add(listener);
@@ -326,6 +341,7 @@ export function tracksOf(stems: StemFile[]): StemTrack[] {
       number: !stem.partName && same.length > 1 ? same.indexOf(stem) + 1 : 0,
       peaks: null,
       length: 0,
+      offset: stem.pitchOffset ?? 0,
       failed: false,
     };
   });
@@ -525,11 +541,11 @@ export function unloadStems() {
   element = null;
   buffers = new Map();
   gains = new Map();
-  parts = new Map();
-  pitched = null;
+  tracksInfo = new Map();
   plain = null;
-  stretch = null;
-  stretchLoading = null;
+  shiftBuses = new Map();
+  pool = [];
+  making = null;
   delay = null;
   latency = 0;
   offset = 0;
@@ -563,15 +579,13 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
   clock = new OutputClock(ctx);
   const mix = outputFor(ctx);
   bus = mix;
-  pitched = ctx.createGain();
   plain = ctx.createGain();
-  pitched.connect(mix);
   plain.connect(mix);
   tapFor(ctx, mix);
   latency = 0;
   set({
     transpose: song.transpose ?? 0,
-    transposeAll: song.transposeAll ?? false,
+    transposeParts: song.transposeParts ?? {},
     transposeFailed: false,
     key,
     songVersionId: song.songVersionId,
@@ -616,8 +630,8 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
   for (const { stem, buffer } of decoded) {
     if (!buffer) continue;
     const gain = ctx.createGain();
-    parts.set(stem.id, stem.stemPart);
-    gain.connect(transposesPart(stem.stemPart, state.transposeAll) ? pitched : plain);
+    tracksInfo.set(stem.id, { part: stem.stemPart, offset: stem.pitchOffset ?? 0 });
+    gain.connect(plain);
     buffers.set(stem.id, buffer);
     gains.set(stem.id, gain);
   }
@@ -636,43 +650,67 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
 
 // --- transposing (issue #129)
 
+/** How far a part is moved: the transposition less what it was recorded above its multitrack, if it's transposed at all. */
+function shiftOf(id: string): number {
+  const info = tracksInfo.get(id);
+  if (!info) return 0;
+  const moved = state.transposeParts[id] ?? transposesPart(info.part);
+  return moved ? state.transpose - info.offset : 0;
+}
+
 /**
- * Wires the buses for the transposition: straight to the output when
- * there's none; else the parts it moves through the stretch node, the
- * others through a delay as long as its latency. Loaded only when needed.
+ * Wires the parts for the transposition: straight to the output when
+ * nothing's moved; else each amount through a stretch node set to it (made
+ * as needed, loaded only then), the rest through a delay as long as their
+ * latency.
  */
 async function route() {
   const ctx = context;
-  if (!ctx || !bus || !pitched || !plain) return;
+  if (!ctx || !bus || !plain) return;
   const mine = generation;
-  pitched.disconnect();
+  const wanted = () => new Set([...gains.keys()].map(shiftOf).filter((shift) => shift !== 0));
+  // Enough stretch nodes, made one at a time (two changes in a row share one).
+  while (!state.transposeFailed && pool.length < wanted().size) {
+    making ??= makeStretch(ctx, bus);
+    const node = await making;
+    making = null;
+    if (mine !== generation) return;
+    if (!node) {
+      set({ transposeFailed: true });
+      break;
+    }
+    if (!pool.some((entry) => entry.node === node)) pool.push({ node, shift: null });
+  }
+  if (mine !== generation) return;
+  const shifts = state.transposeFailed ? new Set<number>() : wanted();
+  // Each amount a node: the one it had, else one that's free.
+  for (const entry of pool) if (entry.shift !== null && !shifts.has(entry.shift)) entry.shift = null;
+  for (const shift of shifts) {
+    if (pool.some((entry) => entry.shift === shift)) continue;
+    const free = pool.find((entry) => entry.shift === null);
+    if (!free) continue;
+    free.shift = shift;
+    void free.node.schedule({ semitones: shift, output: ctx.currentTime });
+  }
+  for (const shiftBus of shiftBuses.values()) shiftBus.disconnect();
   plain.disconnect();
-  if (state.transpose === 0) {
-    pitched.connect(bus);
-    plain.connect(bus);
-    latency = 0;
-    return;
+  for (const entry of pool) {
+    if (entry.shift === null) continue;
+    let shiftBus = shiftBuses.get(entry.shift);
+    if (!shiftBus) {
+      shiftBus = ctx.createGain();
+      shiftBuses.set(entry.shift, shiftBus);
+    }
+    shiftBus.connect(entry.node);
   }
-  // Two changes in a row share one stretch node, made once.
-  stretchLoading ??= makeStretch(ctx, bus);
-  const made = await stretchLoading;
-  // Loaded, or back to 0 meanwhile (which wired it straight already).
-  if (mine !== generation || state.transpose === 0) return;
-  if (!made) {
-    pitched.connect(bus);
-    plain.connect(bus);
-    latency = 0;
-    return set({ transposeFailed: true });
-  }
-  if (!stretch || !delay) return;
-  void stretch.schedule({ semitones: state.transpose, output: ctx.currentTime });
-  pitched.connect(stretch);
-  plain.connect(delay);
-  latency = stretchLatency;
+  const moving = pool.some((entry) => entry.shift !== null);
+  plain.connect(moving && delay ? delay : bus);
+  latency = moving ? stretchLatency : 0;
+  rewire();
 }
 
-/** The stretch node, and a delay as long as its latency for the parts it doesn't move; null when it can't be made here. */
-async function makeStretch(ctx: AudioContext, output: AudioNode): Promise<boolean> {
+/** A stretch node on the output (and, with the first, a delay as long as its latency for the parts it doesn't move); null when it can't be made here. */
+async function makeStretch(ctx: AudioContext, output: AudioNode): Promise<StretchNode | null> {
   try {
     const { default: SignalsmithStretch } = await import("signalsmith-stretch");
     const node = (await SignalsmithStretch(ctx, { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] })) as StretchNode;
@@ -680,25 +718,28 @@ async function makeStretch(ctx: AudioContext, output: AudioNode): Promise<boolea
     // parts it made the sound wobble, and quieter (measured: twice the
     // wobble of a held chord, a third of its level).
     await node.start();
-    stretchLatency = await node.latency();
-    if (context !== ctx) return false;
+    const nodeLatency = await node.latency();
+    if (context !== ctx) return null;
     node.connect(output);
-    stretch = node;
-    delay = ctx.createDelay(2);
-    delay.delayTime.value = stretchLatency;
-    delay.connect(output);
-    return true;
+    if (!delay) {
+      stretchLatency = nodeLatency;
+      delay = ctx.createDelay(2);
+      delay.delayTime.value = stretchLatency;
+      delay.connect(output);
+    }
+    return node;
   } catch {
-    return false;
+    return null;
   }
 }
 
-/** Each part to the bus its transposing says: moved, or as recorded (the drums and cues, unless all are). */
+/** Each part to the bus of the amount it's moved by, or `plain`. */
 function rewire() {
   for (const [id, gain] of gains) {
     gain.disconnect();
-    const bus = transposesPart(parts.get(id) ?? null, state.transposeAll) ? pitched : plain;
-    if (bus) gain.connect(bus);
+    const shift = shiftOf(id);
+    const target = (shift !== 0 && shiftBuses.get(shift) && pool.some((entry) => entry.shift === shift) ? shiftBuses.get(shift) : plain) ?? null;
+    if (target) gain.connect(target);
   }
 }
 
@@ -715,19 +756,27 @@ function replay() {
 }
 
 /**
- * Transposes the stems as they play (issue #129): by `steps` semitones,
- * the drums and cues too with `all`. Taken up at the next load when
- * nothing's loaded.
+ * Transposes the stems as they play (issues #129, #135): by `steps`
+ * semitones; `parts` says, by file, which parts are moved when it's not as
+ * their part says. Taken up at the next load when nothing's loaded.
  */
-export async function setStemsTranspose(steps: number, all: boolean) {
-  if (state.transpose === steps && state.transposeAll === all) return;
+export async function setStemsTranspose(steps: number, parts: Record<string, boolean> = {}) {
+  if (state.transpose === steps && sameParts(state.transposeParts, parts)) return;
   const before = latency;
-  const allChanged = state.transposeAll !== all;
-  set({ transpose: steps, transposeAll: all, transposeFailed: false });
+  set({ transpose: steps, transposeParts: parts, transposeFailed: false });
   if (!context || state.status !== "ready") return;
-  if (allChanged) rewire();
   await route();
   if (latency !== before) replay();
+}
+
+function sameParts(a: Record<string, boolean>, b: Record<string, boolean>): boolean {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  return [...keys].every((key) => a[key] === b[key]);
+}
+
+/** Whether a part is moved when transposing (issue #135): as chosen for it, else as its part says. */
+export function isTransposed(current: Pick<StemState, "transposeParts">, track: Pick<StemTrack, "id" | "part">): boolean {
+  return current.transposeParts[track.id] ?? transposesPart(track.part);
 }
 
 /**
@@ -964,4 +1013,80 @@ export function useStems(): StemState {
     () => state,
     () => EMPTY,
   );
+}
+
+// --- recording in the player (issue #134)
+
+/** The take just recorded, as a track, until it's kept or dropped. */
+export const TAKE_ID = "__take";
+
+/** The player's audio clock, for the recorder to capture on (so a take lines up with what was heard). */
+export function stemsAudioContext(): AudioContext | null {
+  return context;
+}
+
+/**
+ * Plays straight to the speakers from now on: on an iPhone or iPad the
+ * stems go through an <audio> element (to play on with the screen
+ * locked), whose delay can't be known - a take recorded over them couldn't
+ * be lined up.
+ */
+export function directStemsOutput() {
+  directOutput = true;
+  if (!context || !bus || !element) return;
+  bus.disconnect();
+  bus.connect(context.destination);
+  element.pause();
+  element.srcObject = null;
+  element = null;
+}
+
+/** When the song's 0:00 is heard, on the audio clock, while it plays; null when it doesn't. */
+export function stemsZeroAt(): number | null {
+  return state.playing && context ? startedAt : null;
+}
+
+/** A part's audio, mono, on the player's clock: what a punch-in keeps the start of. */
+export function stemMono(id: string): Float32Array | null {
+  const buffer = buffers.get(id);
+  if (!buffer) return null;
+  const mono = new Float32Array(buffer.length);
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+    const data = buffer.getChannelData(channel);
+    for (let i = 0; i < mono.length; i++) mono[i]! += data[i]! / buffer.numberOfChannels;
+  }
+  return mono;
+}
+
+/**
+ * The take just recorded, as a track the player plays with the others (a
+ * new one replaces it); null takes it away.
+ */
+export async function setStemsTake(take: { samples: Float32Array; part: StemPart; partName: string | null; name: string; offset: number } | null) {
+  if (!context || !plain) return;
+  const had = gains.get(TAKE_ID);
+  had?.disconnect();
+  buffers.delete(TAKE_ID);
+  gains.delete(TAKE_ID);
+  tracksInfo.delete(TAKE_ID);
+  let tracks = state.tracks.filter((track) => track.id !== TAKE_ID);
+  if (take && take.samples.length > 0) {
+    const buffer = context.createBuffer(1, take.samples.length, context.sampleRate);
+    buffer.copyToChannel(take.samples as Float32Array<ArrayBuffer>, 0);
+    const gain = context.createGain();
+    gain.connect(plain);
+    buffers.set(TAKE_ID, buffer);
+    gains.set(TAKE_ID, gain);
+    tracksInfo.set(TAKE_ID, { part: take.part, offset: take.offset });
+    tracks = [
+      ...tracks,
+      { id: TAKE_ID, part: take.part, partName: take.name, by: null, filename: take.name, number: 0, peaks: peaksOf(buffer), length: buffer.duration, offset: take.offset, failed: false, take: true },
+    ];
+  }
+  const duration = Math.max(0, ...[...buffers.values()].map((buffer) => buffer.duration));
+  set({ tracks, duration });
+  await route();
+  applyGains(true);
+  // Playing: heard from where it is, the take with it.
+  if (state.playing) startAt(now() + 0.05 + latency, context.currentTime + 0.05 + latency);
 }

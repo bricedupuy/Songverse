@@ -149,7 +149,9 @@ await step("up 2 semitones: the A heard as a B (493.9 Hz), the drums' click not 
   await player().getByRole("button", { name: "Up a semitone" }).click();
   await player().getByRole("button", { name: "Up a semitone" }).click();
   await player().getByTestId("stem-transpose-label").getByText("B (+2)").waitFor();
-  await player().getByText("Not transposed").waitFor();
+  // The drums aren't moved (their toggle off), the rest is.
+  const toggle = (part) => player().locator(`[data-testid="stem-track"][data-part="${part}"]`).getByTestId("stem-transpose-part");
+  if ((await toggle("DRUMS").getAttribute("aria-pressed")) !== "false" || (await toggle("OTHER").getAttribute("aria-pressed")) !== "true") throw new Error("toggles");
   const mix = await recordMix();
   const start = measure(mix);
   const f = frequency(mix, start + 0.3);
@@ -164,18 +166,48 @@ await step("up 2 semitones: the A heard as a B (493.9 Hz), the drums' click not 
   if (Math.abs(gap - plainGap) > 0.015) throw new Error(`click ${gap.toFixed(3)} s after the tone, as recorded ${plainGap.toFixed(3)} s`);
 });
 
-await step("the drums and cues transposed too, when asked; remembered for the song", async () => {
-  await player().getByTestId("stem-transpose-all").click();
-  if ((await player().getByTestId("stem-transpose-all").getAttribute("aria-pressed")) !== "true") throw new Error("not on");
-  if (await player().getByText("Not transposed").count()) throw new Error("still said not transposed");
+await step("each part moved or not, as chosen (issue #135): the A left alone at +2; remembered for the song", async () => {
+  const toggle = (part) => player().locator(`[data-testid="stem-track"][data-part="${part}"]`).getByTestId("stem-transpose-part");
+  await toggle("DRUMS").click();
+  if ((await toggle("DRUMS").getAttribute("aria-pressed")) !== "true") throw new Error("the drums not on");
+  await toggle("OTHER").click();
+  if ((await toggle("OTHER").getAttribute("aria-pressed")) !== "false") throw new Error("the A still on");
   await page.reload();
   await player().getByTestId("stem-transpose-label").getByText("B (+2)").waitFor();
-  if ((await player().getByTestId("stem-transpose-all").getAttribute("aria-pressed")) !== "true") throw new Error("not remembered");
+  if ((await toggle("DRUMS").getAttribute("aria-pressed")) !== "true" || (await toggle("OTHER").getAttribute("aria-pressed")) !== "false") throw new Error("not remembered");
+  const mix = await recordMix();
+  const f = frequency(mix, measure(mix) + 0.3);
+  if (Math.abs(f - 440) > 440 * 0.02) throw new Error(`the A moved: ${f} Hz`);
   // Back to as recorded.
-  await player().getByTestId("stem-transpose-all").click();
+  await toggle("DRUMS").click();
+  await toggle("OTHER").click();
   await player().getByRole("button", { name: "Down a semitone" }).click();
   await player().getByRole("button", { name: "Down a semitone" }).click();
   await player().getByTestId("stem-transpose-label").getByText("A", { exact: true }).waitFor();
+});
+
+await step("a take sung while transposed +2 (issue #135): moved down to fit at 0, as sung at +2", async () => {
+  // A B (493.9 Hz), sung with the player at +2: its A.
+  const sung = await api(me, "POST", "/song-versions", { title: `Sung up ${stamp}`, language: "en", artists: ["Someone"], content: "[A]Hold\n", contentFormat: "CHORDPRO", key: "A", tempo: 120 });
+  const form = new FormData();
+  form.append("type", "AUDIO");
+  form.append("stemPart", "HARMONY_ALTO");
+  form.append("pitchOffset", "2");
+  form.append("file", new Blob([wav(4, (t) => (t >= 1 && t < 3 ? 0.5 * Math.sin(2 * Math.PI * 493.88 * t) : 0))], { type: "audio/wav" }), "Sung - Alto.wav");
+  const file = await (await fetch(`${API}/song-versions/${sung.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form })).json();
+  if (file.pitchOffset !== 2) throw new Error(JSON.stringify(file));
+  await page.goto(`${WEB}/library/${sung.id}`);
+  await player().waitFor();
+  await player().getByText("sung at +2").waitFor();
+  let mix = await recordMix();
+  let f = frequency(mix, measure(mix) + 0.3);
+  if (Math.abs(f - 440) > 440 * 0.02) throw new Error(`at 0: ${f} Hz`);
+  await player().getByRole("button", { name: "Up a semitone" }).click();
+  await player().getByRole("button", { name: "Up a semitone" }).click();
+  await player().getByTestId("stem-transpose-label").getByText("B (+2)").waitFor();
+  mix = await recordMix();
+  f = frequency(mix, measure(mix) + 0.3);
+  if (Math.abs(f - 493.88) > 493.88 * 0.02) throw new Error(`at +2: ${f} Hz`);
 });
 
 await step("on a set's song page played in C: transposed from A to C (+3) by default", async () => {

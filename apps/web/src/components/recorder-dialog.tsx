@@ -12,7 +12,7 @@ import {
   type Multitrack,
   type RecordingDetails,
 } from "@songverse/core";
-import { Circle, Hand, Headphones, Loader2, Play, RotateCcw, Square, TriangleAlert } from "lucide-react";
+import { Circle, Hand, Headphones, Loader2, Mic, Play, RotateCcw, Square, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
@@ -134,25 +134,36 @@ export function RecorderDialog({
   // The same part, already in the multitrack, that this take could replace.
   const samePart = multitrack?.files.filter((file) => file.stemPart === part && (file.partName ?? null) === (choice.partName ?? null) && file.canChange) ?? [];
 
-  useEffect(() => {
-    let closed = false;
-    // Nothing else plays over the take.
-    pauseStems();
-    if (getMetronomeState().playing && !getMetronomeState().following) stopMetronome();
+  // Asks for the microphone: as the dialog opens, and again from a tap if that was refused
+  // (an iPhone's home screen app asks only from a tap).
+  const closed = useRef(false);
+  const [micRefused, setMicRefused] = useState(false);
+  function openMicrophone() {
+    setError(null);
+    setMicRefused(false);
     Recorder.open()
       .then(async (opened) => {
-        if (closed) return opened.close();
+        if (closed.current) return opened.close();
         recorder.current = opened;
         setRoundTrip(opened.roundTrip());
         setBluetooth((await opened.bluetoothOutput()) || opened.context.outputLatency > 0.1);
         setReady(true);
       })
       .catch((err: unknown) => {
-        if (closed) return;
-        setError(err instanceof DOMException && (err.name === "NotAllowedError" || err.name === "SecurityError") ? t("recorder.noMicrophone") : t("recorder.cantOpen"));
+        if (closed.current) return;
+        const refused = err instanceof DOMException && (err.name === "NotAllowedError" || err.name === "SecurityError");
+        setMicRefused(refused);
+        setError(refused ? t("recorder.noMicrophone") : t("recorder.cantOpen"));
       });
+  }
+  useEffect(() => {
+    closed.current = false;
+    // Nothing else plays over the take.
+    pauseStems();
+    if (getMetronomeState().playing && !getMetronomeState().following) stopMetronome();
+    openMicrophone();
     return () => {
-      closed = true;
+      closed.current = true;
       recorder.current?.close();
       recorder.current = null;
     };
@@ -506,6 +517,12 @@ export function RecorderDialog({
             <p className="text-sm text-destructive" role="alert">
               {error}
             </p>
+          ) : null}
+          {micRefused ? (
+            <Button type="button" variant="outline" className="self-start" onClick={openMicrophone} data-testid="recorder-allow">
+              <Mic />
+              {t("recorder.allowMicrophone")}
+            </Button>
           ) : null}
         </div>
 

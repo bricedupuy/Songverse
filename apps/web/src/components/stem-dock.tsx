@@ -1,6 +1,7 @@
 import { useRouter } from "@tanstack/react-router";
 import { formatDuration, type StemPart } from "@songverse/core";
 import {
+  ArrowUpDown,
   AudioLines,
   ChevronDown,
   ChevronUp,
@@ -27,6 +28,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { harmonyLetter, multitracksOf, semitonesBetween, transposeKey, transposesPart } from "@songverse/core";
 import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
+import { StemRecordPanel } from "#/components/stem-record-panel";
 import { Button } from "#/components/ui/button";
 import { setMode } from "#/lib/mode";
 import { useMultitrackName } from "#/lib/multitrack-name";
@@ -36,6 +38,7 @@ import {
   chooseMultitrack,
   chooseStemTranspose,
   dockStems,
+  isTransposed,
   setStemsTranspose,
   useChosenTranspose,
   isAudible,
@@ -53,6 +56,8 @@ import {
   type StemTrack,
 } from "#/lib/stem-engine";
 import { cn } from "#/lib/utils";
+
+const NO_PARTS: Record<string, boolean> = {};
 
 /** Where the dock goes: the bottom of the page's column, kept in view (see AppShell). */
 export const StemDockSlot = createContext<HTMLElement | null>(null);
@@ -99,8 +104,9 @@ export function StemDock({ song: page }: { song: StemSong }) {
   const recordedKey = page.stems[0]?.recordingKey ?? page.songKey ?? null;
   const defaultSteps = recordedKey && page.targetKey ? (semitonesBetween(recordedKey, page.targetKey) ?? 0) : 0;
   const steps = chosenTranspose?.steps ?? defaultSteps;
-  const transposeAll = chosenTranspose?.all ?? false;
-  const song: StemSong = { ...page, transpose: steps, transposeAll };
+  // Which parts are moved, when not as their part says (issue #135).
+  const transposeParts = chosenTranspose?.parts ?? NO_PARTS;
+  const song: StemSong = { ...page, transpose: steps, transposeParts };
   const nameOf = useTrackName();
   const key = stemKey(song);
   const active = engine.key === key;
@@ -141,17 +147,27 @@ export function StemDock({ song: page }: { song: StemSong }) {
       </select>
     ) : null;
   // A transposition chosen while it's loaded is heard now; following, the leader's is.
+  const partsKey = JSON.stringify(transposeParts);
   useEffect(() => {
-    if (active && !following) void setStemsTranspose(steps, transposeAll);
-  }, [active, following, steps, transposeAll]);
+    if (active && !following) void setStemsTranspose(steps, transposeParts);
+  }, [active, following, steps, partsKey]);
   const heardSteps = following && active ? engine.transpose : steps;
-  const heardAll = following && active ? engine.transposeAll : transposeAll;
+  const heard = following && active ? engine : { transposeParts };
   const signed = (value: number) => (value > 0 ? `+${value}` : `−${Math.abs(value)}`);
   const transposedKey = recordedKey ? transposeKey(recordedKey, heardSteps) : null;
   const transposeLabel = heardSteps === 0 ? (recordedKey ?? t("stems.transposeNone")) : transposedKey ? `${transposedKey} (${signed(heardSteps)})` : signed(heardSteps);
-  const changeTranspose = (next: number, all = transposeAll) =>
-    chooseStemTranspose(transposeStore, next === defaultSteps && !all ? undefined : { steps: Math.max(-6, Math.min(6, next)), all });
-  const hasUnpitched = tracks.some((track) => !transposesPart(track.part));
+  const changeTranspose = (next: number, parts = transposeParts) =>
+    chooseStemTranspose(transposeStore, next === defaultSteps && Object.keys(parts).length === 0 ? undefined : { steps: Math.max(-6, Math.min(6, next)), parts });
+  /** A part moved or not when transposing (issue #135); its default (all but the drums and cues) isn't stored. */
+  const toggleTransposed = (track: StemTrack) => {
+    const next = { ...transposeParts };
+    const on = !isTransposed(heard, track);
+    if (on === transposesPart(track.part)) delete next[track.id];
+    else next[track.id] = on;
+    changeTranspose(steps, next);
+  };
+  // Parts recorded while transposed (issue #135) are moved even at 0: their toggles show then too.
+  const moving = heardSteps !== 0 || tracks.some((track) => track.offset !== 0);
   const transposeControl = (
     <div className="flex shrink-0 items-center" role="group" aria-label={t("stems.transpose")} data-testid="stem-transpose" data-steps={heardSteps}>
       <Button type="button" variant="ghost" size="icon" className="size-8" disabled={!!following || steps <= -6} onClick={() => changeTranspose(steps - 1)} aria-label={t("stems.transposeDown")}>
@@ -163,49 +179,40 @@ export function StemDock({ song: page }: { song: StemSong }) {
       <Button type="button" variant="ghost" size="icon" className="size-8" disabled={!!following || steps >= 6} onClick={() => changeTranspose(steps + 1)} aria-label={t("stems.transposeUp")}>
         <Plus />
       </Button>
-      {hasUnpitched && heardSteps !== 0 ? (
-        <Button
-          type="button"
-          variant={heardAll ? "secondary" : "ghost"}
-          size="icon"
-          className="size-8"
-          disabled={!!following}
-          aria-pressed={heardAll}
-          onClick={() => changeTranspose(steps, !transposeAll)}
-          aria-label={t("stems.transposeAll")}
-          title={t("stems.transposeAll")}
-          data-testid="stem-transpose-all"
-        >
-          <Drum />
-        </Button>
-      ) : null}
     </div>
   );
 
-  // Recording a part (issue #127), into the multitrack playing; not while following the leader.
+  // Recording a part (issues #127, #134): in the player, over its own mix, into the multitrack playing -
+  // or, for a song with only a whole recording, a new multitrack (the dialog). Not while following the leader.
+  const [recordPanel, setRecordPanel] = useState(false);
   const [recorderOpen, setRecorderOpen] = useState(false);
-  const recordButton =
-    song.record && !following ? (
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className="shrink-0"
-        onClick={() => setRecorderOpen(true)}
-        aria-label={t("recorder.recordPart")}
-        title={t("recorder.recordPart")}
-        data-testid="stem-record"
-      >
-        <Mic />
-      </Button>
-    ) : null;
+  const recordable = !!song.record && !following;
+  const recordButton = recordable ? (
+    <Button
+      type="button"
+      variant={recordPanel ? "secondary" : "ghost"}
+      size="icon"
+      className="shrink-0"
+      aria-pressed={recordPanel}
+      onClick={() => {
+        if (whole) return setRecorderOpen(true);
+        if (!expanded) expand(true);
+        setRecordPanel(!recordPanel);
+      }}
+      aria-label={t("recorder.recordPart")}
+      title={t("recorder.recordPart")}
+      data-testid="stem-record"
+    >
+      <Mic />
+    </Button>
+  ) : null;
   const recorder =
     recorderOpen && song.record ? (
       <RecorderDialog
         songVersionId={song.songVersionId}
         songTitle={song.title}
         multitracks={multitracksOf(song.record.attachments)}
-        target={song.stems[0] && (song.stems[0].stemPart !== null || song.stems[0].multitrackId) ? (song.multitrackId ?? "") : NEW_TARGET}
+        target={NEW_TARGET}
         songTempo={song.tempo ?? null}
         songTimeSignature={song.timeSignature ? `${song.timeSignature.numerator}/${song.timeSignature.denominator}` : ""}
         songKey={song.record.songKey ?? ""}
@@ -348,6 +355,14 @@ export function StemDock({ song: page }: { song: StemSong }) {
             </Button>
           </div>
           {status}
+          {recordPanel && recordable && active && engine.status === "ready" ? <StemRecordPanel
+              song={song}
+              onClose={() => setRecordPanel(false)}
+              onNewMultitrack={() => {
+                setRecordPanel(false);
+                setRecorderOpen(true);
+              }}
+            /> : null}
           {recorded ? (
             <p className="text-xs text-muted-foreground" data-testid="stem-recorded">
               {t("stems.recordedIn", { details: recorded })}
@@ -362,15 +377,35 @@ export function StemDock({ song: page }: { song: StemSong }) {
                   <PartButton track={track} name={name} on={on} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} />
                   <span className={cn("w-20 shrink-0 min-w-0 sm:w-36", !on && "opacity-50")}>
                     <span className="block truncate text-sm font-medium">{name}</span>
-                    <span className="hidden truncate text-xs text-muted-foreground sm:block">
-                      {heardSteps !== 0 && !transposesPart(track.part, heardAll) ? t("stems.notTransposed") : track.by ? t("stems.recordedBy", { name: track.by }) : track.filename}
-                    </span>
+                    {/* Who recorded it, and the key it was sung in (issues #131, #135) - never its file's name. */}
+                    {track.by || track.offset ? (
+                      <span className="hidden truncate text-xs text-muted-foreground sm:block">
+                        {[track.by ? t("stems.recordedBy", { name: track.by }) : null, track.offset ? t("stems.sungAt", { shift: signed(track.offset) }) : null].filter(Boolean).join(" · ")}
+                      </span>
+                    ) : null}
                   </span>
                   {track.failed ? (
-                    <span className="min-w-0 flex-1 text-xs text-destructive">{t("stems.failed", { name: track.filename })}</span>
+                    <span className="min-w-0 flex-1 text-xs text-destructive">{t("stems.failed", { name })}</span>
                   ) : (
                     <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} span={duration ? Math.min(1, track.length / duration) : 1} dim={!on} onSeek={active && engine.status === "ready" && !following ? (at) => seekStems(at * duration) : undefined} />
                   )}
+                  {/* Moved when transposing, or not (issue #135): the drums and cues aren't, to start with. */}
+                  {moving && !whole ? (
+                    <Button
+                      type="button"
+                      size="icon"
+                      className="shrink-0"
+                      variant={isTransposed(heard, track) ? "secondary" : "ghost"}
+                      aria-pressed={isTransposed(heard, track)}
+                      disabled={!!following}
+                      aria-label={t("stems.transposePart", { part: name })}
+                      title={t("stems.transposePart", { part: name })}
+                      onClick={() => toggleTransposed(track)}
+                      data-testid="stem-transpose-part"
+                    >
+                      <ArrowUpDown />
+                    </Button>
+                  ) : null}
                   {/* A whole recording has nothing to solo against. */}
                   {whole ? null : (
                     <Button

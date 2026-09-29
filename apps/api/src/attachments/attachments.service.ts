@@ -302,6 +302,7 @@ export interface RecordingChange {
   recordingTempo?: number | null;
   recordingFirstBeat?: number | null;
   recordingTimeSignature?: string | null;
+  pitchOffset?: number | null;
   multitrackId?: string | null;
   multitrackName?: string | null;
   multitrackSetlistId?: string | null;
@@ -317,7 +318,7 @@ function recordingData(change: RecordingChange) {
     if (written && !parseKey(written)) throw new BadRequestException(`"${written}" isn't a key Songverse can read`);
     data.recordingKey = written || null;
   }
-  for (const field of ["recordingTempo", "recordingFirstBeat", "recordingTimeSignature", "multitrackId", "multitrackName", "multitrackSetlistId"] as const) {
+  for (const field of ["recordingTempo", "recordingFirstBeat", "recordingTimeSignature", "pitchOffset", "multitrackId", "multitrackName", "multitrackSetlistId"] as const) {
     if (change[field] !== undefined) (data as Record<string, unknown>)[field] = change[field];
   }
   return data;
