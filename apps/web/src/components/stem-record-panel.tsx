@@ -72,7 +72,7 @@ export function StemRecordPanel({
   const intoFile = into ? song.stems.find((file) => file.id === into) : undefined;
   const [choice, setChoice] = useState<PartChoice>(intoFile?.stemPart ? { stemPart: intoFile.stemPart, partName: intoFile.partName ?? null } : { stemPart: firstFree ?? "BACKING_VOCALS", partName: null });
   const part = choice.stemPart ?? "OTHER";
-  const samePart = song.stems.filter((file) => file.stemPart === part && (file.partName ?? null) === (choice.partName ?? null) && file.canChange);
+  const samePart = song.stems.filter((file) => file.stemPart === part && (file.partName ?? null) === (choice.partName ?? null) && file.canChange && !file.locked);
   const [use, setUse] = useState<Use>({ kind: "with" });
   useEffect(() => {
     const first = samePart.find((file) => file.id === into) ?? samePart[0];

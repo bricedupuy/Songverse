@@ -118,6 +118,9 @@ export class AttachmentsService {
         otherTake: take.otherTake ?? false,
         partName: type === "AUDIO" ? take.partName || null : null,
         processing: take.process ? "PENDING" : null,
+        // Audio uploaded as it is among the song's own files - its original stems, or its recording -
+        // kept so until unlocked (issue #145); a recording, or a file added to a multitrack, isn't.
+        locked: type === "AUDIO" && !take.process && !take.otherTake && !details.multitrackId,
       },
       include: ATTACHMENT_INCLUDE,
     });
@@ -141,6 +144,7 @@ export class AttachmentsService {
     if (!present(attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can change this file");
     if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be processed");
     if (attachment.processing === "PENDING") throw new BadRequestException("This file is already being processed");
+    if (attachment.locked) throw new ForbiddenException("This file is locked: its uploader can unlock it on the Audio tab");
     const row = await this.prisma.client.attachment.update({ where: { id: attachment.id }, data: { processing: "PENDING" }, include: ATTACHMENT_INCLUDE });
     await this.recordings.add(
       "process-take",
@@ -172,6 +176,7 @@ export class AttachmentsService {
     const replaced = instead ? await this.findVisible(viewer, songVersionId, instead) : null;
     if (replaced) {
       if (!present(replaced.attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can change the take it replaces");
+      if (replaced.attachment.locked) throw new ForbiddenException("This file is locked: its uploader can unlock it on the Audio tab");
       if (replaced.attachment.id === attachment.id || (replaced.attachment.multitrackId ?? null) !== (attachment.multitrackId ?? null) || replaced.attachment.type !== "AUDIO") {
         throw new BadRequestException("instead must be another file of the same multitrack");
       }
@@ -197,12 +202,18 @@ export class AttachmentsService {
     if (change.multitrackSetlistId) await this.assertSetOfSong(viewer, change.multitrackSetlistId, songVersionId);
     if (change.otherTake !== undefined) {
       if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be takes");
+      if (change.otherTake && attachment.locked && !attachment.otherTake) throw new ForbiddenException("This file is locked: its uploader can unlock it on the Audio tab");
       data.otherTake = change.otherTake;
+    }
+    // Locked or not (issue #145): its uploader's to decide, as who sees it is.
+    if (change.locked !== undefined) {
+      if (!rights.canChangeVisibility) throw new ForbiddenException("Only its uploader can lock or unlock this file");
+      data.locked = change.locked;
     }
     if (attachment.type !== "AUDIO" && Object.values(data).some((value) => value !== null)) {
       throw new BadRequestException("Only audio files can be stems or have a recording's key and tempo");
     }
-    if (Object.keys(data).length > 0 && !rights.canChange) throw new ForbiddenException("Only its uploader or the song's editors can change this file");
+    if (Object.keys(data).some((field) => field !== "locked") && !rights.canChange) throw new ForbiddenException("Only its uploader or the song's editors can change this file");
     if (change.visibility !== undefined) {
       if (!rights.canChangeVisibility) throw new ForbiddenException("Only its uploader decides who sees this file");
       Object.assign(data, await this.audience(viewer, await this.songRights(viewer, songVersionId), change.visibility, change.teamId ?? null));
@@ -235,6 +246,7 @@ export class AttachmentsService {
   async remove(viewer: Viewer, songVersionId: string, attachmentId: string): Promise<void> {
     const { attachment, canEditSong } = await this.findVisible(viewer, songVersionId, attachmentId);
     if (!present(attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can remove this file");
+    if (attachment.locked) throw new ForbiddenException("This file is locked: its uploader can unlock it on the Audio tab");
     await this.prisma.client.attachment.delete({ where: { id: attachment.id } });
     await this.storage.deleteUnreferenced([attachment.storageKey]);
   }

@@ -74,6 +74,8 @@ export interface StemTrack {
   recorder?: { name: string; avatarUrl: string | null } | null;
   /** The viewer uploaded or recorded it. */
   mine?: boolean;
+  /** Kept as uploaded (issue #145): no actions, no one's badge. */
+  locked?: boolean;
   /** The viewer can record into it, merge it or delete it (issue #142). */
   canChange?: boolean;
   filename: string;
@@ -347,7 +349,8 @@ export function stemKey(song: Pick<StemSong, "songVersionId" | "stems">): string
 
 /** Tracks as listed before anything is decoded. */
 export function tracksOf(stems: StemFile[]): StemTrack[] {
-  const uploaders = new Set(stems.map((stem) => stem.uploadedBy?.id ?? null));
+  // Who recorded the parts, the locked stems (issue #145) aside: theirs is the song's.
+  const uploaders = new Set(stems.filter((stem) => !stem.locked).map((stem) => stem.uploadedBy?.id ?? null));
   return stems.map((stem) => {
     // Two of a part are numbered ("Guitar 1"), unless they're named.
     const same = stems.filter((other) => other.stemPart === stem.stemPart && !other.partName);
@@ -356,8 +359,9 @@ export function tracksOf(stems: StemFile[]): StemTrack[] {
       part: stem.stemPart,
       partName: stem.partName || null,
       by: stem.mine === false ? (stem.uploadedBy?.displayName ?? null) : null,
-      recorder: stem.uploadedBy && (stem.multitrackId || uploaders.size > 1) ? { name: stem.uploadedBy.displayName, avatarUrl: stem.uploadedBy.avatarUrl ?? null } : null,
+      recorder: stem.uploadedBy && !stem.locked && (stem.multitrackId || uploaders.size > 1) ? { name: stem.uploadedBy.displayName, avatarUrl: stem.uploadedBy.avatarUrl ?? null } : null,
       mine: stem.mine,
+      locked: !!stem.locked,
       canChange: stem.canChange,
       filename: stem.filename,
       number: !stem.partName && same.length > 1 ? same.indexOf(stem) + 1 : 0,

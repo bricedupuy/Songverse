@@ -304,7 +304,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
   const [recorderOpen, setRecorderOpen] = useState(false);
   const recordable = !!song.record && !following;
   /** One of the viewer's own parts (uploaded or recorded), loaded: record into it, merge it, delete it (someone else's are theirs, or the Audio tab's). */
-  const actionable = (track: StemTrack) => recordable && !whole && !!track.mine && !!track.canChange && track.id !== TAKE_ID && !track.failed && !recordPanel;
+  const actionable = (track: StemTrack) => recordable && !whole && !!track.mine && !!track.canChange && !track.locked && track.id !== TAKE_ID && !track.failed && !recordPanel;
   const closeRecordPanel = () => {
     setRecordPanel(false);
     setRecordInto(null);

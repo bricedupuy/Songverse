@@ -15,7 +15,7 @@ import {
   type TeamSummary,
 } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
-import { Download, FileAudio, Mic, Play, Trash2, Upload } from "lucide-react";
+import { Download, FileAudio, Lock, LockOpen, Mic, Play, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AttachmentThumbnail } from "#/components/attachment-thumbnail";
@@ -487,7 +487,8 @@ export function AttachmentsTab({
     setBusyId(take.id);
     setError(null);
     try {
-      await apiClient.useTake(songVersionId, take.id, playing?.id ?? null);
+      // A locked one playing (issue #145) plays on, the take with it.
+      await apiClient.useTake(songVersionId, take.id, playing && !playing.locked ? playing.id : null);
       await router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -622,14 +623,32 @@ export function AttachmentsTab({
                       >
                         <Download />
                       </Button>
+                      {/* Locked (issue #145): kept as uploaded until its uploader unlocks it. */}
+                      {kind === "audio" && (attachment.locked || attachment.canChangeVisibility) ? (
+                        <Button
+                          type="button"
+                          variant={attachment.locked ? "secondary" : "ghost"}
+                          size="sm"
+                          onClick={() => void update([attachment], { locked: !attachment.locked })}
+                          disabled={busyId !== null || !attachment.canChangeVisibility}
+                          aria-pressed={!!attachment.locked}
+                          aria-label={t(attachment.locked ? "stems.unlockName" : "stems.lockName", { name: attachment.filename })}
+                          title={attachment.locked ? (attachment.canChangeVisibility ? t("stems.lockedHint") : t("stems.lockedByUploader")) : t("stems.unlockedHint")}
+                          data-testid="file-lock"
+                        >
+                          {attachment.locked ? <Lock /> : <LockOpen />}
+                        </Button>
+                      ) : null}
                       {attachment.canChange ? (
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => void remove(attachment)}
-                          disabled={busyId !== null}
+                          disabled={busyId !== null || !!attachment.locked}
+                          title={attachment.locked ? t("stems.unlockToDelete") : undefined}
                           aria-label={t("songEditor.removeName", { name: attachment.filename })}
+                          data-testid="file-remove"
                         >
                           <Trash2 />
                         </Button>
@@ -741,7 +760,7 @@ export function AttachmentsTab({
                   ) : null}
                   {kind === "audio" ? <AudioPlayer songVersionId={songVersionId} attachment={attachment} /> : null}
                   {/* Cleaned up afterwards (issue #132). */}
-                  {kind === "audio" && attachment.canChange ? (
+                  {kind === "audio" && attachment.canChange && !attachment.locked ? (
                     <CleanUp file={attachment} busy={busyId !== null} onCleanUp={(steps) => void cleanUp(attachment, steps)} />
                   ) : null}
                 </li>

@@ -190,7 +190,7 @@ In **Practice**, the microphone button in the stem player, **Record a part**, re
 - While you record, the take draws itself where it's being recorded. **Stop** ends it.
 - The take is then a track like the others, **New take**: play it, mute or solo it, and move **Line up** to nudge it. **Keep** adds it to the multitrack; **Discard** drops it; **Record again** tries again.
 - To record a part in sections (the verses, then the chorus), press **Add another section** after a take: move the playhead to where the next section starts and **Record** again. Each section goes into the same take, with a short crossfade at each end, and the player counts them ("2 sections"). **Discard** drops only the last one, **Discard all** every one, and **Keep** saves them all as one file.
-- Tap the name of a part you recorded or uploaded (the small arrow after it) to see what can be done with it: **Record into it** opens the recorder on that part, what you record replacing only the time it covers; **Merge with…** mixes another of your parts sung in the same key into it, as one file that plays in their place (both are kept as other takes); **Delete** deletes it, once you've confirmed.
+- Tap the name of a part you recorded or uploaded, unless it's locked (see [Locked files](/library/#locked-files)) - the small arrow after it - to see what can be done with it: **Record into it** opens the recorder on that part, what you record replacing only the time it covers; **Merge with…** mixes another of your parts sung in the same key into it, as one file that plays in their place (both are kept as other takes); **Delete** deletes it, once you've confirmed.
 - **New multitrack…** records the first layer of another multitrack instead, as below.
 
 #### From the Audio tab
@@ -208,6 +208,10 @@ Choose the **Part** you're recording (a voice, an instrument or cues, as above),
 - **Kept as another take, not played**.
 
 On the **Audio** tab, **Use this take** under an other take plays it instead of the one of its part playing, which becomes the other take.
+
+#### Locked files
+
+Audio you upload is locked to start with (the lock button beside the file, pressed): it's kept as uploaded. A locked file can't be deleted, replaced by another take, merged with one or cleaned up, and the stem player shows neither whose it is nor any actions on it; its part, key, tempo and sections can still change. A take recorded beside a locked part plays with it rather than instead. Only whoever uploaded it can unlock it (**Unlock**, the same button) - to replace a stem, say - and lock it again. What you record in Songverse isn't locked.
 
 **From bar** records from a bar on rather than from the start - a punch-in: the count-in is the bar before it, and the take it replaces is heard up to there. What's before it stays as it was, and what you record replaces the rest, with a short crossfade at the seam.
 

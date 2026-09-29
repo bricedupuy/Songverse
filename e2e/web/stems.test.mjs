@@ -441,6 +441,22 @@ await step("the parts combined with the mixer on (issue #142): one waveform, and
   await track("DRUMS").waitFor();
 });
 
+await step("an uploaded stem is locked (issue #145): no actions, no badge - until its uploader unlocks it on the Audio tab", async () => {
+  if (await track("DRUMS").getByTestId("stem-track-name").count()) throw new Error("actions on a locked stem");
+  if (await track("DRUMS").getByTestId("stem-recorder").count()) throw new Error("a badge on a locked stem");
+  await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
+  await page.goto(`${WEB}/library/${webSong.id}?tab=audio`);
+  const row = page.getByTestId("audio-list").locator("li").filter({ hasText: "03 drums.mp3" });
+  const lock = row.getByTestId("file-lock");
+  if ((await lock.getAttribute("aria-pressed")) !== "true" || !(await row.getByTestId("file-remove").isDisabled())) throw new Error("not locked");
+  await lock.click();
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-testid="file-lock"]')].some((button) => button.getAttribute("aria-pressed") === "false"));
+  await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
+  await page.goto(`${WEB}/library/${webSong.id}`);
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  if ((await player().getAttribute("data-view")) !== "expanded") await player().getByRole("button", { name: "Expand the player" }).click();
+});
+
 await step("a part of one's own, among the original stems (issue #142): its name opens its actions", async () => {
   await track("DRUMS").getByTestId("stem-track-name").click();
   const actions = track("DRUMS").getByTestId("stem-track-actions");

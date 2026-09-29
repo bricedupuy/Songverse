@@ -1166,6 +1166,8 @@ model Attachment {
   pitchOffset      Int?
   /// Where each section starts in the recording (issue #110): [{ at, sectionId }], the same on each file of a multitrack.
   cuePoints        Json?
+  /// Kept as uploaded (issue #145): not deleted, replaced by another take, merged or cleaned up until its uploader unlocks it.
+  locked           Boolean  @default(false)
   // Its own name for the part (issue #131): "Descant", "Acoustic guitar",
   // "Count-in" - shown instead of the part's.
   partName         String?

@@ -85,6 +85,8 @@ export const UpdateAttachmentSchema = z.strictObject({
   multitrackSetlistId: z.string().max(40).nullable().optional(),
   /** Another take, not played (true), or the one played (false) - see UseTakeSchema to swap. */
   otherTake: z.boolean().optional(),
+  /** Kept as uploaded (issue #145): not deleted, replaced, merged or cleaned up; for its uploader to change. */
+  locked: z.boolean().optional(),
   /** Where each section starts in the recording (issue #110); null or [] for none. */
   cuePoints: z
     .array(z.strictObject({ at: z.number().min(0).max(3600), sectionId: z.string().min(1).max(64) }))

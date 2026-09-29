@@ -135,6 +135,29 @@ check("not instead of itself", r.status === 400, JSON.stringify(r.body));
 r = await call(other, "POST", `/song-versions/${song.id}/attachments/${guitar.id}/use-take`, {});
 check("someone else can't", r.status === 403 || r.status === 404, String(r.status));
 
+// --- stems uploaded as they are: locked until their uploader unlocks them (issue #145)
+r = await upload({ stemPart: "DRUMS" }, me, takeWav(), "Takes - Drums.wav");
+const drums = r.body;
+check("a stem uploaded as it is: locked", r.status === 201 && drums.locked === true, JSON.stringify(r.body?.locked));
+check("a recording (processed) or a take kept aside isn't", guitar.locked === false && second.locked === false, JSON.stringify([guitar.locked, second.locked]));
+r = await call(me, "DELETE", `/song-versions/${song.id}/attachments/${drums.id}`);
+check("locked: not deleted", r.status === 403 && /locked/.test(r.body?.message), JSON.stringify(r.body));
+r = await call(me, "POST", `/song-versions/${song.id}/attachments/${drums.id}/process`, { steps: ["level"] });
+check("nor cleaned up", r.status === 403, JSON.stringify(r.body));
+r = await upload({ stemPart: "DRUMS", otherTake: true }, me, takeWav(), "Takes - Drums 2.wav");
+r = await call(me, "POST", `/song-versions/${song.id}/attachments/${r.body.id}/use-take`, { instead: drums.id });
+check("nor replaced by another take", r.status === 403, JSON.stringify(r.body));
+r = await call(me, "PATCH", `/song-versions/${song.id}/attachments/${drums.id}`, { otherTake: true });
+check("nor set aside", r.status === 403, JSON.stringify(r.body));
+r = await call(me, "PATCH", `/song-versions/${song.id}/attachments/${drums.id}`, { recordingKey: "A", cuePoints: [{ at: 1, sectionId: "sec_x" }] });
+check("its key and cue points still change", r.status === 200 && r.body.recordingKey === "A" && r.body.locked === true, JSON.stringify(r.body));
+r = await call(other, "PATCH", `/song-versions/${song.id}/attachments/${drums.id}`, { locked: false });
+check("someone else can't unlock it", r.status === 403 || r.status === 404, String(r.status));
+r = await call(me, "PATCH", `/song-versions/${song.id}/attachments/${drums.id}`, { locked: false });
+check("its uploader unlocks it", r.status === 200 && r.body.locked === false, JSON.stringify(r.body?.locked));
+r = await call(me, "DELETE", `/song-versions/${song.id}/attachments/${drums.id}`);
+check("then it can be deleted", r.status === 204 || r.status === 200, String(r.status));
+
 // --- a multitrack for a set
 const set = await api(me, "POST", "/setlists", { name: `Sunday ${stamp}` });
 const emptySet = await api(me, "POST", "/setlists", { name: `Empty ${stamp}` });

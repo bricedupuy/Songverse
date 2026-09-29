@@ -71,6 +71,8 @@ res = await get(`${API}/files/${other.id}${url.search.replace(/expires=\d+/, `ex
 check("nor one for another file", res.status === 403, String(res.status));
 r = await call(stranger, "POST", `/song-versions/${song.id}/attachments/${file.id}/link`);
 check("someone who can't see the song gets no link", r.status === 403 || r.status === 404, String(r.status));
+// Unlocked first: audio uploaded as it is is locked (issue #145).
+await call(me, "PATCH", `/song-versions/${song.id}/attachments/${file.id}`, { locked: false });
 await call(me, "DELETE", `/song-versions/${song.id}/attachments/${file.id}`);
 res = await get(link, {}, null);
 check("a deleted file's link stops working", res.status === 403, String(res.status));

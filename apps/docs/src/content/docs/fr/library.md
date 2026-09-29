@@ -190,7 +190,7 @@ En mode **Session**, le bouton micro du lecteur de pistes, **Enregistrer une pis
 - Pendant l'enregistrement, la prise se dessine là où elle est enregistrée. **Arrêter** la termine.
 - La prise est ensuite une piste comme les autres, **Nouvelle prise** : écoutez-la, coupez-la ou mettez-la en solo, et déplacez **Caler** pour l'ajuster. **Garder** l'ajoute au multipiste ; **Supprimer** l'abandonne ; **Recommencer** refait une prise.
 - Pour enregistrer une piste en sections (les couplets, puis le refrain), appuyez sur **Ajouter une section** après une prise : placez la tête de lecture au début de la section suivante et **Enregistrer** de nouveau. Chaque section rejoint la même prise, avec un court fondu enchaîné à chaque bout, et le lecteur les compte (« 2 sections »). **Supprimer** n'abandonne que la dernière, **Tout supprimer** toutes, et **Garder** les enregistre toutes en un seul fichier.
-- Touchez le nom d'une piste que vous avez enregistrée ou importée (la petite flèche après lui) pour voir ce qu'on peut en faire : **Enregistrer dedans** ouvre l'enregistreur sur cette piste, ce que vous enregistrez ne remplaçant que le passage couvert ; **Fusionner avec…** y mélange une autre de vos pistes chantée dans la même tonalité, en un seul fichier joué à leur place (les deux sont gardés comme autres prises) ; **Supprimer** le supprime, après confirmation.
+- Touchez le nom d'une piste que vous avez enregistrée ou importée, sauf si elle est verrouillée (voir [Fichiers verrouillés](/fr/library/#fichiers-verrouillés)) - la petite flèche après lui - pour voir ce qu'on peut en faire : **Enregistrer dedans** ouvre l'enregistreur sur cette piste, ce que vous enregistrez ne remplaçant que le passage couvert ; **Fusionner avec…** y mélange une autre de vos pistes chantée dans la même tonalité, en un seul fichier joué à leur place (les deux sont gardés comme autres prises) ; **Supprimer** le supprime, après confirmation.
 - **Nouveau multipiste…** enregistre plutôt la première couche d'un autre multipiste, comme ci-dessous.
 
 #### Depuis l'onglet Audio
@@ -208,6 +208,10 @@ Choisissez la **Piste** que vous enregistrez (une voix, un instrument ou des rep
 - **Gardée comme autre prise, pas jouée**.
 
 Dans l'onglet **Audio**, **Utiliser cette prise** sous une autre prise la joue à la place de celle de sa piste, qui devient l'autre prise.
+
+#### Fichiers verrouillés
+
+L'audio que vous importez est verrouillé au départ (le bouton cadenas à côté du fichier, enfoncé) : il est gardé tel qu'importé. Un fichier verrouillé ne peut pas être supprimé, remplacé par une autre prise, fusionné ni nettoyé, et le lecteur de pistes n'affiche ni à qui il est ni d'actions dessus ; sa piste, sa tonalité, son tempo et ses sections peuvent toujours changer. Une prise enregistrée à côté d'une piste verrouillée joue avec elle plutôt qu'à sa place. Seul qui l'a importé peut le déverrouiller (**Déverrouiller**, le même bouton) - pour remplacer une piste par exemple - et le verrouiller de nouveau. Ce que vous enregistrez dans Songverse n'est pas verrouillé.
 
 **À partir de la mesure** enregistre à partir d'une mesure plutôt que du début - un punch-in : le décompte est la mesure d'avant, et la prise remplacée s'entend jusque-là. Ce qui précède reste tel quel, et ce que vous enregistrez remplace la suite, avec un court fondu enchaîné à la jonction.
 

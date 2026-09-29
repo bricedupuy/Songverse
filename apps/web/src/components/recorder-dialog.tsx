@@ -135,7 +135,7 @@ export function RecorderDialog({
   // The take it replaces isn't heard from where it's replaced (from its start, without a punch-in).
   const stopAt = use.kind === "instead" ? new Map([[use.id, punch.from]]) : undefined;
   // The same part, already in the multitrack, that this take could replace.
-  const samePart = multitrack?.files.filter((file) => file.stemPart === part && (file.partName ?? null) === (choice.partName ?? null) && file.canChange) ?? [];
+  const samePart = multitrack?.files.filter((file) => file.stemPart === part && (file.partName ?? null) === (choice.partName ?? null) && file.canChange && !file.locked) ?? [];
 
   // Asks for the microphone: as the dialog opens, and again from a tap if that was refused
   // (an iPhone's home screen app asks only from a tap).
