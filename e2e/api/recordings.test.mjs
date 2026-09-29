@@ -105,6 +105,19 @@ check("someone else can't", r.status === 403 || r.status === 404, String(r.statu
 r = await call(me, "POST", `/song-versions/${song.id}/attachments/${cleaned.id}/process`, { steps: [] });
 check("at least one step", r.status === 400, JSON.stringify(r.body));
 
+// A take with no sound (a microphone that gave nothing): kept as long as it was, playable - not trimmed to nothing.
+{
+  const silent = takeWav();
+  silent.fill(0, 44);
+  r = await upload({ stemPart: "OTHER", multitrackId: "mtsilence0001", process: "encode,level" }, me, silent, "Silence.wav");
+  const quiet = await processed((file) => file.multitrackId === "mtsilence0001");
+  const res = await fetch(`${API}/song-versions/${song.id}/attachments/${quiet?.id}/download`, { headers: { Authorization: `Bearer ${me.bearer}` } });
+  const pcm = execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-f", "s16le", "-ac", "1", "-ar", "48000", "pipe:1"], { input: Buffer.from(await res.arrayBuffer()) });
+  check("a silent take: still Opus, as long as it was", quiet?.mimeType === "audio/ogg" && pcm.length / 2 / 48000 > 4.5, `${pcm.length / 2 / 48000} s ${JSON.stringify(quiet)}`);
+  r = await upload({ stemPart: "OTHER" }, me, takeWav().subarray(0, 44), "Nothing.wav");
+  check("an empty recording is refused", r.status === 400 && r.body.message === "The recording is empty", JSON.stringify(r.body));
+}
+
 r = await upload({ stemPart: "BASS", process: "encode" }, me, Buffer.from("ID3 not a wav"), "bass.mp3", "audio/mpeg");
 check("only a WAV is processed", r.status === 400, JSON.stringify(r.body));
 r = await upload({ stemPart: "BASS", process: "encode,louder" });

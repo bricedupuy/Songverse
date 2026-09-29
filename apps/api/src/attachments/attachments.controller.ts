@@ -79,6 +79,8 @@ export class AttachmentsController {
       // Browsers give some audio files (.opus, say) no type or a generic one: then the bytes decide.
       if (!mimeType.startsWith("audio/")) mimeType = sniffAudioType(file.buffer) ?? mimeType;
       if (!mimeType.startsWith("audio/")) throw new UnsupportedMediaTypeException("That isn't an audio file");
+      // A WAV with nothing after its header (a take where nothing was captured) can't be played anywhere.
+      if (file.buffer.length <= 44 && file.buffer.toString("ascii", 0, 4) === "RIFF") throw new BadRequestException("The recording is empty");
     } else if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
       throw new PayloadTooLargeException("Files can be up to 25 MB (audio up to 50 MB)");
     }

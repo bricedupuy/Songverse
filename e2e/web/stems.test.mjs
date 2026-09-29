@@ -317,6 +317,17 @@ await step("through an <audio> element (as on iPhone, to play on with the screen
   await player().getByRole("button", { name: "Play", exact: true }).click();
   await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
   await page.waitForFunction(() => document.querySelector('[data-testid="stem-time"]')?.textContent?.startsWith("0:02"));
+  // On screen, straight from the speakers (the element's way crackles on an iPhone); hidden - the screen locked - through the element.
+  await page.waitForFunction(() => window.songverseStems?.heardVia === "speakers");
+  const hide = (hidden) =>
+    page.evaluate((hidden) => {
+      Object.defineProperty(document, "visibilityState", { value: hidden ? "hidden" : "visible", configurable: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    }, hidden);
+  await hide(true);
+  await page.waitForFunction(() => window.songverseStems?.heardVia === "element");
+  await hide(false);
+  await page.waitForFunction(() => window.songverseStems?.heardVia === "speakers");
   const session = await page.evaluate(() => [navigator.mediaSession.playbackState, navigator.mediaSession.metadata?.title]);
   if (session.join() !== `playing,Stems ${stamp}`) throw new Error(`lock screen: ${session.join()}`);
   await player().getByRole("button", { name: "Pause", exact: true }).click();

@@ -385,7 +385,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
                     ) : null}
                   </span>
                   {track.failed ? (
-                    <span className="min-w-0 flex-1 text-xs text-destructive">{t("stems.failed", { name })}</span>
+                    <span className="min-w-0 flex-1 text-xs text-destructive">{t(track.empty ? "stems.emptyFile" : "stems.failed", { name })}</span>
                   ) : (
                     <Waveform peaks={track.peaks} progress={duration ? position / duration : 0} span={duration ? Math.min(1, track.length / duration) : 1} dim={!on} onSeek={active && engine.status === "ready" && !following ? (at) => seekStems(at * duration) : undefined} />
                   )}

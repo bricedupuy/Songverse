@@ -160,6 +160,29 @@ export async function processTake(audio: Buffer, dir: string, options: TakeProce
     }
   }
   // Mono at 96 kbps (a recorded take); a stereo file stays stereo, at 160.
-  await runFfmpeg(["-y", "-i", input, "-af", filters.join(","), "-ar", "48000", "-ac", String(channels), "-c:a", "libopus", "-b:a", channels === 1 ? "96k" : "160k", "-f", "ogg", output]);
+  const encode = (chain: string[]) =>
+    runFfmpeg(["-y", "-i", input, "-af", chain.join(",") || "anull", "-ar", "48000", "-ac", String(channels), "-c:a", "libopus", "-b:a", channels === 1 ? "96k" : "160k", "-f", "ogg", output]);
+  // A take that's silence throughout is trimmed to nothing - an Opus file no
+  // browser can play, if the encoder makes one at all: kept as long as it was, untrimmed.
+  const trimmed = await encode(filters).then(
+    () => true,
+    () => false,
+  );
+  if (!trimmed || (await audioSeconds(output)) < 0.05) {
+    await encode(filters.filter((filter) => filter !== TRIM_END));
+    if ((await audioSeconds(output)) < 0.05) throw new Error("The take has no sound in it");
+  }
   return readFile(output);
+}
+
+/** How long an audio file lasts (s), as ffmpeg reads it through. */
+export async function audioSeconds(file: string): Promise<number> {
+  // An Ogg file with no audio in it can't even be opened: none.
+  const stderr = await runFfmpeg(["-i", file, "-f", "null", "-"]).then(
+    (result) => result.stderr,
+    () => "",
+  );
+  const times = [...stderr.matchAll(/time=(\d+):(\d+):(\d+(?:\.\d+)?)/g)];
+  const last = times[times.length - 1];
+  return last ? Number(last[1]) * 3600 + Number(last[2]) * 60 + Number(last[3]) : 0;
 }

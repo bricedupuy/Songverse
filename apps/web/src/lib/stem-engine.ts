@@ -80,6 +80,8 @@ export interface StemTrack {
   /** The take just recorded in the player (issue #134), not kept yet. */
   take?: boolean;
   failed: boolean;
+  /** Failed because the file has nothing in it (a take where the microphone gave nothing). */
+  empty?: boolean;
 }
 
 export interface StemState {
@@ -158,6 +160,7 @@ let directOutput = false;
 // Where every part goes: the speakers, or on iPhone and iPad an <audio> element (see outputFor).
 let bus: GainNode | null = null;
 let element: HTMLAudioElement | null = null;
+let streamOut: MediaStreamAudioDestinationNode | null = null;
 // The song last played, for the lock screen's Play button.
 let lastSong: StemSong | null = null;
 let buffers = new Map<string, AudioBuffer>();
@@ -438,9 +441,12 @@ function startAt(from: number, at?: number, anchor?: { epoch: number; position: 
 
 /**
  * iOS suspends Web Audio when the screen locks, but lets a media element
- * play on: there the parts are mixed into a stream an <audio> element
+ * play on: there the parts are also mixed into a stream an <audio> element
  * plays, in the "playback" audio session (which the ring/silent switch
- * doesn't mute either). Elsewhere they go straight to the speakers.
+ * doesn't mute either). That way crackles, though, so it's only heard while
+ * the page is hidden - the screen locked, another app on top - and on
+ * screen they go straight to the speakers, the element playing muted (see
+ * routeForScreen). Elsewhere they only go straight to the speakers.
  * `songverse.stems.output` = "element" forces the element (for tests).
  */
 function viaElement(): boolean {
@@ -454,16 +460,39 @@ function viaElement(): boolean {
 
 function outputFor(ctx: AudioContext): GainNode {
   const mix = ctx.createGain();
+  mix.connect(ctx.destination);
   if (!directOutput && viaElement() && typeof ctx.createMediaStreamDestination === "function") {
-    const stream = ctx.createMediaStreamDestination();
-    mix.connect(stream);
+    streamOut = ctx.createMediaStreamDestination();
+    mix.connect(streamOut);
     element = new Audio();
     element.setAttribute("playsinline", "");
-    element.srcObject = stream.stream;
-  } else {
-    mix.connect(ctx.destination);
+    element.srcObject = streamOut.stream;
+    element.muted = true;
   }
   return mix;
+}
+
+/**
+ * Where the stems are heard on an iPhone or iPad: on screen, straight from
+ * the speakers (clean); hidden, through the element (which plays on with
+ * the screen locked, but crackles). Each time the page is shown or hidden.
+ */
+function routeForScreen() {
+  if (!context || !bus || !element) return;
+  const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+  try {
+    bus.disconnect(context.destination);
+  } catch {
+    // Wasn't connected.
+  }
+  if (!hidden) bus.connect(context.destination);
+  element.muted = !hidden;
+  // For the end-to-end suites: which way it's heard.
+  if (typeof window !== "undefined") {
+    const w = window as unknown as { songverseStems?: { starts: unknown[]; heardVia?: string } };
+    w.songverseStems ??= { starts: [] };
+    w.songverseStems.heardVia = hidden ? "element" : "speakers";
+  }
 }
 
 /** The element refused to play (no gesture, say): straight to the speakers instead. */
@@ -471,10 +500,15 @@ async function startElement() {
   if (!element || !bus || !context) return;
   try {
     await element.play();
+    routeForScreen();
   } catch {
-    bus.disconnect();
-    bus.connect(context.destination);
+    if (streamOut) bus.disconnect(streamOut);
     element = null;
+    try {
+      bus.connect(context.destination);
+    } catch {
+      // Closed meanwhile.
+    }
   }
 }
 
@@ -522,6 +556,7 @@ function setMediaActions() {
 // Back from the lock screen or another app with the context interrupted: carry on.
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
+    routeForScreen();
     if (document.visibilityState === "visible" && state.playing && context && context.state !== "running") void context.resume();
   });
 }
@@ -539,6 +574,7 @@ export function unloadStems() {
   element?.pause();
   if (element) element.srcObject = null;
   element = null;
+  streamOut = null;
   buffers = new Map();
   gains = new Map();
   tracksInfo = new Map();
@@ -616,14 +652,17 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
   const decoded = await Promise.all(
     song.stems.map(async (stem) => {
       let buffer: AudioBuffer | null = null;
+      let empty = false;
       try {
         const blob = await song.load(stem, (bytes, total) => progress(stem.id, bytes, total));
         progress(stem.id, blob.size, blob.size, true);
+        // A few hundred bytes: headers, no sound.
+        empty = blob.size < 1024;
         buffer = await ctx.decodeAudioData(await blob.arrayBuffer());
       } catch {
         // Shown on its row; the other parts still play.
       }
-      return { stem, buffer };
+      return { stem, buffer, empty };
     }),
   );
   if (mine !== generation) return false;
@@ -637,7 +676,8 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
   }
   const peaks = new Map(decoded.map(({ stem, buffer }) => [stem.id, buffer ? peaksOf(buffer) : null]));
   const lengths = new Map(decoded.map(({ stem, buffer }) => [stem.id, buffer?.duration ?? 0]));
-  const tracks = state.tracks.map((track) => ({ ...track, peaks: peaks.get(track.id) ?? null, length: lengths.get(track.id) ?? 0, failed: !peaks.get(track.id) }));
+  const empties = new Set(decoded.filter((item) => item.empty && !item.buffer).map((item) => item.stem.id));
+  const tracks = state.tracks.map((track) => ({ ...track, peaks: peaks.get(track.id) ?? null, length: lengths.get(track.id) ?? 0, failed: !peaks.get(track.id), empty: empties.has(track.id) }));
   if (buffers.size === 0) {
     set({ status: "error", tracks });
     return false;
@@ -1034,7 +1074,12 @@ export function stemsAudioContext(): AudioContext | null {
 export function directStemsOutput() {
   directOutput = true;
   if (!context || !bus || !element) return;
-  bus.disconnect();
+  if (streamOut) bus.disconnect(streamOut);
+  try {
+    bus.disconnect(context.destination);
+  } catch {
+    // Wasn't connected.
+  }
   bus.connect(context.destination);
   element.pause();
   element.srcObject = null;

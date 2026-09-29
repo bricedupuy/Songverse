@@ -59,6 +59,17 @@ export function alignTake(captured: Float32Array, options: { sampleRate: number;
   return take;
 }
 
+/**
+ * Whether a take has sound in it (issue #134): a microphone that gave
+ * nothing (refused, or taken by another app) captures silence throughout,
+ * or nothing at all.
+ */
+export function hasSound(samples: Float32Array, sampleRate: number): boolean {
+  if (samples.length < sampleRate * 0.1) return false;
+  for (let i = 0; i < samples.length; i += 4) if (Math.abs(samples[i]!) > 0.0005) return true;
+  return false;
+}
+
 /** Mono 16-bit PCM WAV. */
 export function encodeWav(samples: Float32Array, sampleRate: number): Uint8Array {
   const bytes = new Uint8Array(44 + samples.length * 2);

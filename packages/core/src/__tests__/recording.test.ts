@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { harmonyLetter, partKind, stemPartFromFilename, transposesPart, type StemPart } from "../index.js";
+import { harmonyLetter, hasSound, partKind, stemPartFromFilename, transposesPart, type StemPart } from "../index.js";
 import { alignTake, clapDelayFrom, clickTimes, encodeWav, multitracksOf, punchInAt, recordingPlan, roundTripFrom, spliceTake } from "../index.js";
 
 describe("multitracks (issue #123)", () => {
@@ -122,5 +122,15 @@ describe("parts named for harmonies (issue #131)", () => {
   it("each part a voice, an instrument or cues; harmonies lettered", () => {
     expect(["VOCALS", "HARMONY_ALTO", "BACKING_VOCALS", "GUITAR", "OTHER", "CLICK"].map((part) => partKind(part as StemPart))).toEqual(["VOICE", "VOICE", "VOICE", "INSTRUMENT", "INSTRUMENT", "CUES"]);
     expect(["HARMONY_SOPRANO", "HARMONY_BASS", "VOCALS", null].map((part) => harmonyLetter(part as StemPart | null))).toEqual(["S", "B", null, null]);
+  });
+});
+
+describe("a take with sound in it (issue #134)", () => {
+  it("silence throughout, or next to nothing, has none", () => {
+    expect(hasSound(new Float32Array(48000), 48000)).toBe(false);
+    expect(hasSound(Float32Array.from({ length: 1000 }, () => 0.5), 48000)).toBe(false);
+    const take = new Float32Array(48000);
+    take[20000] = 0.01;
+    expect(hasSound(take, 48000)).toBe(true);
   });
 });

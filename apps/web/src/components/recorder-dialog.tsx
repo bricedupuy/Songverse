@@ -1,5 +1,6 @@
 import {
   encodeWav,
+  hasSound,
   formatDuration,
   newMultitrackId,
   partKind,
@@ -116,6 +117,7 @@ export function RecorderDialog({
   const [take, setTake] = useState<Take | null>(null);
   const [nudge, setNudge] = useState(0);
   const [previewing, setPreviewing] = useState(false);
+  const [silent, setSilent] = useState(false);
   const previewRun = useRef(0);
 
   // The beat: an existing multitrack's own (or the song's), a new one's as set here.
@@ -224,8 +226,13 @@ export function RecorderDialog({
   async function stop() {
     const current = recorder.current;
     if (!current) return;
-    setTake(await current.finish(zeroAt));
+    const done = await current.finish(zeroAt);
+    setTake(done);
     setPhase("recorded");
+    // Nothing from the microphone (issue #134): said so, and nothing to keep.
+    const nothing = !hasSound(done.captured, done.sampleRate);
+    setSilent(nothing);
+    setError(nothing ? t("recorder.silent") : null);
   }
 
   /** The take as it will be kept: lined up (nudged), and spliced into the take it replaces from the punch-in on. */
@@ -538,7 +545,7 @@ export function RecorderDialog({
                 <RotateCcw />
                 {t("recorder.again")}
               </Button>
-              <Button type="button" onClick={() => void keep()} disabled={phase === "saving"} data-testid="recorder-keep">
+              <Button type="button" onClick={() => void keep()} disabled={phase === "saving" || silent} data-testid="recorder-keep">
                 {phase === "saving" ? <Loader2 className="animate-spin" /> : null}
                 {phase === "saving" ? t("recorder.saving") : t("recorder.keep")}
               </Button>

@@ -1,4 +1,4 @@
-import { alignTake, encodeWav, formatDuration, partKind, spliceTake, type RecordingDetails } from "@songverse/core";
+import { alignTake, encodeWav, formatDuration, hasSound, partKind, spliceTake, type RecordingDetails } from "@songverse/core";
 import { Circle, Hand, Loader2, Mic, Square, Trash2, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -69,6 +69,7 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
   const [nudge, setNudge] = useState(0);
   // The take as it comes in: its loudness, block by block.
   const [live, setLive] = useState<number[]>([]);
+  const [silent, setSilent] = useState(false);
   const mutedForTake = useRef<string | null>(null);
 
   // Where it would start: the playhead, at the start of its bar (with a tempo).
@@ -158,6 +159,10 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
     (window as unknown as { songverseTake?: object }).songverseTake = { captured: done.captured.length, capturedAt: done.capturedAt, zeroAt: done.zeroAt, sampleRate: done.sampleRate, from };
     setTake(done);
     setPhase("recorded");
+    // Nothing from the microphone: said so, and nothing to keep.
+    const silent = !hasSound(done.captured, done.sampleRate);
+    setSilent(silent);
+    if (silent) return setError(t("recorder.silent"));
     await showTake(done, nudge);
   }
 
@@ -280,7 +285,7 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
               <Trash2 />
               {t("recorder.discard")}
             </Button>
-            <Button type="button" size="sm" onClick={() => void keep()} disabled={phase === "saving"} data-testid="stem-record-keep">
+            <Button type="button" size="sm" onClick={() => void keep()} disabled={phase === "saving" || silent} data-testid="stem-record-keep">
               {phase === "saving" ? <Loader2 className="animate-spin" /> : null}
               {phase === "saving" ? t("recorder.saving") : t("recorder.keep")}
             </Button>
@@ -296,6 +301,13 @@ export function StemRecordPanel({ song, onClose, onNewMultitrack }: { song: Stem
         </Button>
       </div>
 
+      {/* Nothing from the microphone a moment in: said now, not after the take. */}
+      {phase === "recording" && live.length > 16 && Math.max(...live) < 0.0005 ? (
+        <p className="flex items-start gap-2 text-xs text-destructive" role="alert" data-testid="stem-record-silent">
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {t("recorder.silent")}
+        </p>
+      ) : null}
       {/* The take as it comes in, where it's being recorded. */}
       {phase === "recording" ? (
         <div className="relative h-8 w-full" aria-hidden data-testid="stem-record-live">

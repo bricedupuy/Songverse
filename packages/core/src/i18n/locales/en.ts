@@ -1072,6 +1072,7 @@ const en = {
     recordingTimeSignature: "Time signature of {{name}}",
     stemsTimeSignature: "Time signature of the stems",
     songsTimeSignature: "Song's",
+    emptyFile: "{{name}} has no sound in it: record it again.",
     transposePart: "Transpose {{part}}",
     sungAt: "sung at {{shift}}",
     kinds: { VOICE: "Voice", INSTRUMENT: "Instrument", CUES: "Cues" },
@@ -1095,6 +1096,7 @@ const en = {
     otherTakesCount_other: "{{count}} other takes",
   },
   recorder: {
+    silent: "Nothing came from the microphone: check it isn't muted or used by another app, then record again.",
     newMultitrackEllipsis: "New multitrack…",
     stemsNotLoaded: "The stems aren't loaded yet: press Play, then Record.",
     fromBarTime: "From bar {{bar}} ({{time}}), after a bar of count-in",

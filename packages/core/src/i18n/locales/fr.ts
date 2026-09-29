@@ -1075,6 +1075,7 @@ const fr: typeof en = {
     recordingTimeSignature: "Mesure de {{name}}",
     stemsTimeSignature: "Mesure des pistes",
     songsTimeSignature: "Celle du chant",
+    emptyFile: "{{name}} ne contient aucun son : enregistrez-la de nouveau.",
     transposePart: "Transposer {{part}}",
     sungAt: "chantée à {{shift}}",
     kinds: { VOICE: "Voix", INSTRUMENT: "Instrument", CUES: "Repères" },
@@ -1098,6 +1099,7 @@ const fr: typeof en = {
     otherTakesCount_other: "{{count}} autres prises",
   },
   recorder: {
+    silent: "Rien n'est venu du micro : vérifiez qu'il n'est pas coupé ou utilisé par une autre app, puis recommencez.",
     newMultitrackEllipsis: "Nouveau multipiste…",
     stemsNotLoaded: "Les pistes ne sont pas encore chargées : appuyez sur Lecture, puis sur Enregistrer.",
     fromBarTime: "À partir de la mesure {{bar}} ({{time}}), après une mesure de décompte",
