@@ -2,7 +2,7 @@ import { resolveTranslation, type LocaleValue, type SongVersionSummary } from "@
 import { SongCover } from "#/components/library-home";
 import type { Column, ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Button } from "#/components/ui/button";
@@ -94,6 +94,20 @@ export function useLibraryColumns(currentUserId: string): ColumnDef<SongVersionS
           <span className="text-muted-foreground">{new Date(row.original.updatedAt).toLocaleDateString()}</span>
         ),
       },
+      // Offered in Columns, hidden to start with (issue #150).
+      {
+        accessorKey: "createdAt",
+        meta: { secondary: true },
+        header: sortableHeader(t("library.columnAdded")),
+        cell: ({ row }) => <span className="text-muted-foreground">{new Date(row.original.createdAt).toLocaleDateString()}</span>,
+      },
+      {
+        accessorKey: "ccli",
+        meta: { secondary: true },
+        enableSorting: false,
+        header: plainHeader(t("library.columnCcli")),
+        cell: ({ row }) => <span className="text-muted-foreground tabular-nums">{row.original.ccli ?? "—"}</span>,
+      },
     ],
     [t, locale, currentUserId],
   );
@@ -124,4 +138,51 @@ function statusLabel(version: Pick<SongVersionSummary, "publicationState" | "own
     default:
       return version.publicationState;
   }
+}
+
+/** The columns a user can choose (issue #150), in their default order; Title is always first. */
+export const LIBRARY_COLUMNS = ["artist", "language", "publicationState", "tags", "updatedAt", "createdAt", "ccli"] as const;
+export type LibraryColumn = (typeof LIBRARY_COLUMNS)[number];
+const HIDDEN_AT_FIRST: LibraryColumn[] = ["createdAt", "ccli"];
+const COLUMNS_KEY = "songverse.library.columns";
+
+export interface ColumnPrefs {
+  /** The chosen columns in order, each shown or not. */
+  columns: { id: LibraryColumn; shown: boolean }[];
+}
+
+const DEFAULT_PREFS: ColumnPrefs = { columns: LIBRARY_COLUMNS.map((id) => ({ id, shown: !HIDDEN_AT_FIRST.includes(id) })) };
+
+/** What's kept, made whole: a column it doesn't know is dropped, one it lacks (added since) comes at the end as it starts. */
+export function readColumnPrefs(raw: string | null): ColumnPrefs {
+  try {
+    const saved = JSON.parse(raw ?? "null") as ColumnPrefs | null;
+    if (!saved || !Array.isArray(saved.columns)) return DEFAULT_PREFS;
+    const known = saved.columns.filter((column): column is ColumnPrefs["columns"][number] => (LIBRARY_COLUMNS as readonly string[]).includes(column?.id) && typeof column.shown === "boolean");
+    const missing = DEFAULT_PREFS.columns.filter((column) => !known.some((kept) => kept.id === column.id));
+    return { columns: [...known, ...missing] };
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
+
+/** The Songs list's columns as chosen on this device (issue #150): which show, in what order. */
+export function useColumnPrefs(): [ColumnPrefs, (next: ColumnPrefs) => void] {
+  const [prefs, setPrefs] = useState<ColumnPrefs>(DEFAULT_PREFS);
+  useEffect(() => {
+    try {
+      setPrefs(readColumnPrefs(localStorage.getItem(COLUMNS_KEY)));
+    } catch {
+      // Storage blocked: the defaults.
+    }
+  }, []);
+  const save = (next: ColumnPrefs) => {
+    setPrefs(next);
+    try {
+      localStorage.setItem(COLUMNS_KEY, JSON.stringify(next));
+    } catch {
+      // Kept for this page only.
+    }
+  };
+  return [prefs, save];
 }

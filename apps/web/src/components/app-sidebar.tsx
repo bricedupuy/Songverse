@@ -28,6 +28,7 @@ import {
   Star,
   Book,
   CalendarDays,
+  ClipboardList,
   Gauge,
   MicVocal,
   Music,
@@ -330,7 +331,6 @@ function MainNav({
   return (
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>{t("nav.platform")}</SidebarGroupLabel>
         <SidebarMenu>
           <NavGroup
             icon={<Music2 />}
@@ -369,7 +369,8 @@ function MainNav({
               ...shownSetlists.map((set) => ({
                 key: set.id,
                 label: setlistTitle(set, t, i18n.language),
-                icon: <CalendarDays />,
+                // A set with a date, a calendar; one without, a list (issue #151).
+                icon: set.eventDate ? <CalendarDays /> : <ClipboardList />,
                 isActive: pathname === `/sets/${set.id}`,
                 link: { to: "/sets/$setlistId" as const, params: { setlistId: set.id } },
               })),

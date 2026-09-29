@@ -361,6 +361,13 @@ const fr: typeof en = {
     columnStatus: "Statut",
     columnTags: "Étiquettes",
     columnUpdated: "Mis à jour",
+    columnAdded: "Ajouté",
+    columnCcli: "CCLI",
+    columns: "Colonnes",
+    columnsHint: "Affichez ou masquez chaque colonne, et avancez-la ou reculez-la. Le titre reste en premier.",
+    columnEarlier: "Avancer {{column}}",
+    columnLater: "Reculer {{column}}",
+    showMore: "Afficher plus",
     // La colonne Statut (issue #46) : où en est un chant, lisiblement.
     statusPersonal: "Personnel",
     statusSharedBy: "Partagé par {{name}}",

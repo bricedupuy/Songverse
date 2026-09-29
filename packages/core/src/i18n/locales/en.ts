@@ -361,6 +361,13 @@ const en = {
     columnStatus: "Status",
     columnTags: "Tags",
     columnUpdated: "Updated",
+    columnAdded: "Added",
+    columnCcli: "CCLI",
+    columns: "Columns",
+    columnsHint: "Show or hide each column, and move it earlier or later. Title stays first.",
+    columnEarlier: "Move {{column}} earlier",
+    columnLater: "Move {{column}} later",
+    showMore: "Show more",
     // The Status column (issue #46): where a song stands, readably.
     statusPersonal: "Personal",
     statusSharedBy: "Shared by {{name}}",

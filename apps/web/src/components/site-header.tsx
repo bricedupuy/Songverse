@@ -14,7 +14,7 @@ export function SiteHeader() {
 
   return (
     // Always in view at the top, as the page scrolls under it.
-    <header className={cn("sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b bg-background", mode !== "edit" && "border-b-2 border-b-primary")}>
+    <header className={cn("sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b-2 bg-background", mode !== "edit" && "border-b-primary")}>
       <div className="flex w-full min-w-0 items-center gap-2 px-4">
         <SidebarTrigger className="-ml-1" />
         <div className="ml-auto flex items-center gap-2">

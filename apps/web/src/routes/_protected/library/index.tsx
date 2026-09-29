@@ -8,7 +8,7 @@ import { Card, CardContent } from "#/components/ui/card";
 import { DataTable } from "#/components/ui/data-table";
 import { Input } from "#/components/ui/input";
 import { apiClient } from "#/lib/api-client";
-import { useLibraryColumns } from "./-columns";
+import { useColumnPrefs, useLibraryColumns } from "./-columns";
 import { parseLibrarySearch } from "./-library-search";
 
 /** Songs shown under the shelves; the rest is on Songs. */
@@ -37,6 +37,8 @@ function LibraryHomePage() {
   const { home, recent } = Route.useLoaderData();
   const { session } = Route.useRouteContext();
   const columns = useLibraryColumns(session.userId);
+  // As chosen for Songs (issue #150).
+  const [columnPrefs] = useColumnPrefs();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
@@ -79,6 +81,8 @@ function LibraryHomePage() {
               <DataTable
                 columns={columns}
                 data={recent.items}
+                columnVisibility={Object.fromEntries(columnPrefs.columns.map((column) => [column.id, column.shown]))}
+                columnOrder={["title", ...columnPrefs.columns.map((column) => column.id)]}
                 emptyMessage={t("library.noMatches")}
                 onRowClick={(version) => void navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id } })}
               />

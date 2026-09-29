@@ -1,11 +1,12 @@
-import { resolveTranslation, type LocaleValue, type SongSort, type Tag } from "@songverse/core";
+import { resolveTranslation, type LocaleValue, type SongSort, type SongVersionSummary, type Tag } from "@songverse/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ListFilter, Search, Star, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ListFilter, Loader2, Search, Star, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { filtersOf, parseLibrarySearch, sameFilters, SORTS, type LibrarySearch } from "./-library-search";
-import { useLibraryColumns } from "./-columns";
+import { useColumnPrefs, useLibraryColumns } from "./-columns";
+import { ColumnsMenu } from "./-columns-menu";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
 import { DataTable } from "#/components/ui/data-table";
@@ -27,13 +28,23 @@ function fromOf(search: LibrarySearch): { from?: string } {
   return params.size ? { from: params.toString() } : {};
 }
 
+/** Pages loaded at once when the address says a later one (reloaded, or back to the list): up to 10, 500 songs. */
+const MAX_PAGES_AT_ONCE = 10;
+
 export const Route = createFileRoute("/_protected/library/songs")({
   validateSearch: parseLibrarySearch,
-  loaderDeps: ({ search }) => search,
-  loader: async ({ deps }) => {
+  // The page reached isn't what's listed (issue #150): scrolling on doesn't load it all again.
+  loaderDeps: ({ search }) => ({ ...search, page: undefined }),
+  loader: async ({ deps, location }) => {
     // `list` only names the page; the filters are the rest.
-    const query = { ...filtersOf(deps), favorites: deps.favorites, page: deps.page };
-    const [songs, tags] = await Promise.all([apiClient.listSongVersions({ ...query, pageSize: PAGE_SIZE }), apiClient.listTags().catch(() => [] as Tag[])]);
+    const query = { ...filtersOf(deps), favorites: deps.favorites };
+    // Every page up to the one the address says, so it opens where it was left.
+    const pages = Math.min(MAX_PAGES_AT_ONCE, Math.max(1, (location.search as LibrarySearch).page ?? 1));
+    const [loaded, tags] = await Promise.all([
+      Promise.all(Array.from({ length: pages }, (_, index) => apiClient.listSongVersions({ ...query, page: index + 1, pageSize: PAGE_SIZE }))),
+      apiClient.listTags().catch(() => [] as Tag[]),
+    ]);
+    const songs = { items: loaded.flatMap((page) => page.items), total: loaded[0]?.total ?? 0, pages };
     return { songs, tags };
   },
   component: LibraryIndex,
@@ -46,6 +57,55 @@ function LibraryIndex() {
   const navigate = Route.useNavigate();
   const { session } = Route.useRouteContext();
   const columns = useLibraryColumns(session.userId);
+  // Which columns show, in what order (issue #150), on this device.
+  const [columnPrefs, setColumnPrefs] = useColumnPrefs();
+  const columnVisibility = Object.fromEntries(columnPrefs.columns.map((column) => [column.id, column.shown]));
+  const columnOrder = ["title", ...columnPrefs.columns.map((column) => column.id)];
+
+  // More as it scrolls (issue #150): the next page appended, the address following.
+  const [more, setMore] = useState<SongVersionSummary[]>([]);
+  const [pages, setPages] = useState(songs.pages);
+  const [loadingMore, setLoadingMore] = useState(false);
+  useEffect(() => {
+    setMore([]);
+    setPages(songs.pages);
+  }, [songs]);
+  const items = useMemo(() => {
+    const seen = new Set(songs.items.map((song) => song.id));
+    return [...songs.items, ...more.filter((song) => !seen.has(song.id))];
+  }, [songs, more]);
+  const hasMore = items.length < songs.total;
+  const loading = useRef<SongVersionSummary[] | null>(null);
+  async function loadMore() {
+    if (loadingMore || !hasMore) return;
+    const from = songs.items;
+    loading.current = from;
+    setLoadingMore(true);
+    try {
+      const next = pages + 1;
+      const page = await apiClient.listSongVersions({ ...filtersOf(search), favorites: search.favorites, page: next, pageSize: PAGE_SIZE });
+      // Another search since: not this one's.
+      if (loading.current !== from) return;
+      setMore((before) => [...before, ...page.items]);
+      setPages(next);
+      // The address says how far, without loading anything again: back to the list, it's all there.
+      const url = new URL(window.location.href);
+      url.searchParams.set("page", String(next));
+      window.history.replaceState(window.history.state, "", url);
+    } finally {
+      if (loading.current === from) setLoadingMore(false);
+    }
+  }
+  const sentinel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasMore) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) void loadMore();
+    }, { rootMargin: "400px" });
+    observer.observe(el);
+    return () => observer.disconnect();
+  });
   const [query, setQuery] = useState(search.q ?? "");
   // Following the address (a smart list opened from the sidebar, say).
   useEffect(() => setQuery(search.q ?? ""), [search.q]);
@@ -62,14 +122,10 @@ function LibraryIndex() {
 
   const sort = search.sort ?? "updatedAt";
   const desc = (search.dir ?? (sort === "updatedAt" || sort === "createdAt" ? "desc" : "asc")) === "desc";
-  const from = songs.total === 0 ? 0 : (songs.page - 1) * songs.pageSize + 1;
-  const to = Math.min(songs.page * songs.pageSize, songs.total);
-  const lastPage = Math.max(1, Math.ceil(songs.total / songs.pageSize));
   const lists = useSmartLists();
   const list = search.list ? lists.find((candidate) => candidate.id === search.list) : undefined;
   const filtered = Object.keys(filtersOf({ ...search, sort: undefined, dir: undefined })).length > 0 || !!search.favorites;
   const setFilter = (change: Partial<LibrarySearch>) => void navigate({ search: (prev) => ({ ...prev, ...change, page: undefined }) });
-  const goToPage = (page: number) => void navigate({ search: (prev) => ({ ...prev, page: page > 1 ? page : undefined }) });
 
   return (
     <div className="flex flex-col gap-6">
@@ -127,6 +183,9 @@ function LibraryIndex() {
               <Star className={search.favorites ? "fill-current" : undefined} />
               {t("library.home.favoritesFilter")}
             </Button>
+            <span className="sm:ml-auto">
+              <ColumnsMenu prefs={columnPrefs} onChange={setColumnPrefs} />
+            </span>
             {search.artist ? (
               <span className="flex items-center gap-1 rounded-full border bg-muted px-3 py-1 text-sm" data-testid="artist-filter">
                 {t("library.byArtist", { name: search.artist })}
@@ -139,7 +198,9 @@ function LibraryIndex() {
           </div>
           <DataTable
             columns={columns}
-            data={songs.items}
+            data={items}
+            columnVisibility={columnVisibility}
+            columnOrder={columnOrder}
             emptyMessage={t("library.noMatches")}
             sorting={[{ id: sort, desc }]}
             onSortingChange={(next) => {
@@ -155,18 +216,14 @@ function LibraryIndex() {
             }}
             onRowClick={(version) => void navigate({ to: "/library/$songVersionId", params: { songVersionId: version.id }, search: fromOf(search) })}
           />
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm text-muted-foreground">
-            <span data-testid="library-range">{t("library.range", { from, to, total: songs.total })}</span>
-            {lastPage > 1 ? (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" disabled={songs.page <= 1} onClick={() => goToPage(songs.page - 1)}>
-                  {t("library.previous")}
-                </Button>
-                <span>{t("library.pageOf", { page: songs.page, pages: lastPage })}</span>
-                <Button variant="outline" size="sm" disabled={songs.page >= lastPage} onClick={() => goToPage(songs.page + 1)}>
-                  {t("library.next")}
-                </Button>
-              </div>
+          {/* Near the end, the next ones come (issue #150); the button for a keyboard, or a list too short to scroll. */}
+          <div ref={sentinel} className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm text-muted-foreground">
+            <span data-testid="library-range">{t("library.range", { from: items.length ? 1 : 0, to: items.length, total: songs.total })}</span>
+            {hasMore ? (
+              <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => void loadMore()} data-testid="library-more">
+                {loadingMore ? <Loader2 className="animate-spin" /> : null}
+                {t("library.showMore")}
+              </Button>
             ) : null}
           </div>
         </Card>

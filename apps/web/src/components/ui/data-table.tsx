@@ -3,6 +3,8 @@ import {
   type ColumnDef,
   type RowData,
   type SortingState,
+  type ColumnOrderState,
+  type VisibilityState,
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
@@ -37,6 +39,9 @@ interface DataTableProps<TData, TValue> {
    * reports it, instead of sorting `data` itself. */
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
+  /** Which columns show (by id; left out: shown), and in what order (issue #150). */
+  columnVisibility?: VisibilityState;
+  columnOrder?: ColumnOrderState;
 }
 
 export function DataTable<TData, TValue>({
@@ -47,6 +52,8 @@ export function DataTable<TData, TValue>({
   filterPlaceholder,
   sorting: controlledSorting,
   onSortingChange,
+  columnVisibility,
+  columnOrder,
 }: DataTableProps<TData, TValue>) {
   const [localSorting, setLocalSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -56,7 +63,7 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, globalFilter },
+    state: { sorting, globalFilter, ...(columnVisibility ? { columnVisibility } : {}), ...(columnOrder ? { columnOrder } : {}) },
     manualSorting,
     onSortingChange: (updater) => {
       const next = typeof updater === "function" ? updater(sorting) : updater;
@@ -110,7 +117,7 @@ export function DataTable<TData, TValue>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={table.getVisibleLeafColumns().length} className="h-24 text-center text-muted-foreground">
                 {emptyMessage}
               </TableCell>
             </TableRow>

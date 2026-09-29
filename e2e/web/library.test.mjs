@@ -21,14 +21,48 @@ const range = () => page.getByTestId("library-range").innerText();
 const rangeIs = (text) =>
   page.waitForFunction((t) => document.querySelector('[data-testid="library-range"]')?.textContent === t, text, { timeout: 10000 });
 
-await step("the library pages through every song", async () => {
+await step("more songs as it scrolls, appended; the address follows, and a reload brings them all back (issue #150)", async () => {
   await page.goto(`${WEB}/library/songs`);
   await page.waitForLoadState("networkidle");
   const text = await range();
   if (!/^1–50 of \d+$/.test(text)) throw new Error(text);
-  await page.getByRole("button", { name: "Next" }).click();
-  await page.waitForURL(/page=2/);
-  await page.waitForFunction(() => document.querySelector('[data-testid="library-range"]')?.textContent?.startsWith("51–"));
+  const total = Number(text.split(" of ")[1]);
+  const second = `1–${Math.min(100, total)} of ${total}`;
+  // Scrolled to the end: the next 50 come, under the first.
+  await page.getByTestId("library-range").scrollIntoViewIfNeeded();
+  // (It goes on loading while the end is in view.)
+  const shown = () => page.locator("tbody tr").count();
+  await page.waitForFunction((want) => document.querySelectorAll("tbody tr").length >= want, Math.min(100, total));
+  await page.waitForURL(/page=\d+/);
+  const pageReached = Number(new URL(page.url()).searchParams.get("page"));
+  const before = await shown();
+  await page.reload();
+  await page.waitForLoadState("networkidle");
+  // Reloaded: every page up to the one reached.
+  if ((await shown()) < Math.min(pageReached * 50, total, 500) - 1) throw new Error(`${await shown()} rows after reload, ${before} before (page ${pageReached})`);
+  void second;
+});
+
+await step("columns shown or hidden, and moved, remembered (issue #150)", async () => {
+  const headers = () => page.locator("thead th").allInnerTexts().then((texts) => texts.map((text) => text.trim()));
+  if ((await headers()).join("|") !== "Title|Artist|Language|Status|Tags|Updated") throw new Error((await headers()).join("|"));
+  await page.getByTestId("library-columns").click();
+  const list = page.getByTestId("library-columns-list");
+  await list.locator('[data-column="language"]').getByRole("checkbox").uncheck();
+  await list.locator('[data-column="createdAt"]').getByRole("checkbox").check();
+  await list.getByRole("button", { name: "Move Updated earlier" }).click();
+  await page.keyboard.press("Escape");
+  if ((await headers()).join("|") !== "Title|Artist|Status|Updated|Tags|Added") throw new Error((await headers()).join("|"));
+  await page.reload();
+  await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => [...document.querySelectorAll("thead th")].map((th) => th.textContent.trim()).join("|") === "Title|Artist|Status|Updated|Tags|Added", null, { timeout: 5000 }).catch(async () => {
+    throw new Error(`not remembered: ${(await headers()).join("|")}`);
+  });
+  // Back as they were, for the steps after.
+  await page.evaluate(() => localStorage.removeItem("songverse.library.columns"));
+  await page.goto(`${WEB}/library/songs`);
+  await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => [...document.querySelectorAll("thead th")].map((th) => th.textContent.trim()).join("|") === "Title|Artist|Language|Status|Tags|Updated");
 });
 
 await step("search finds songs beyond the first page, by title or artist", async () => {

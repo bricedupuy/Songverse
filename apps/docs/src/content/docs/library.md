@@ -46,6 +46,8 @@ A global admin can **Upload a picture** (dragged and zoomed into the circle), **
 
 ## Smart lists
 
+**Songs** shows 50 songs at first; more come as you scroll to the end (or with **Show more**), and a reload or going back brings back as many as you'd reached. **Columns** chooses which columns show - Artist, Language, Status, Tags, Updated, Added and CCLI - and their order (Title stays first), remembered on this device.
+
 A search, filters and sort you use often can be kept as a smart list: set them up on **Songs**, then **Save as a smart list** and give it a name. It appears at the top of the library's panel in the sidebar (under **Library** on a phone). A smart list keeps the filters, not the songs, so a new song that matches shows up in it by itself.
 
 On a smart list, change the filters and **Save changes to the list** keeps the new ones; **Rename** and **Delete list** do what they say. Smart lists are your own: no one else sees them.
