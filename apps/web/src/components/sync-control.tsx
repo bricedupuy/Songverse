@@ -37,21 +37,10 @@ export function SyncControl({ setId, compact = false, className }: { setId: stri
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant={on ? "default" : "outline"}
-          size={compact ? "icon" : "default"}
-          className={cn(blocked && "animate-pulse ring-2 ring-amber-500", compact && "size-10", className)}
-          aria-label={compact ? label : undefined}
-          title={label}
-          data-testid="sync-control"
-          data-state-sync={!on ? "off" : sync.leading ? "leading" : session ? "following" : "on"}
-        >
+      <DropdownMenuTrigger render={<Button type="button" variant={on ? "default" : "outline"} size={compact ? "icon" : "default"} className={cn(blocked && "animate-pulse ring-2 ring-amber-500", compact && "size-10", className)} aria-label={compact ? label : undefined} title={label} data-testid="sync-control" data-state-sync={!on ? "off" : sync.leading ? "leading" : session ? "following" : "on"} />}>
           <RadioTower />
           {compact ? null : <span className="max-w-40 truncate">{label}</span>}
-        </Button>
-      </DropdownMenuTrigger>
+        </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72" data-testid="sync-menu">
         <DropdownMenuLabel className="flex flex-col gap-1">
           <span>{t("sync.title")}</span>
@@ -78,14 +67,14 @@ export function SyncControl({ setId, compact = false, className }: { setId: stri
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         {blocked ? (
-          <DropdownMenuItem onSelect={unlockSyncAudio}>
+          <DropdownMenuItem onClick={unlockSyncAudio}>
             <Volume2 />
             {t("sync.tapToHear")}
           </DropdownMenuItem>
         ) : null}
         {!on ? (
           <DropdownMenuItem
-            onSelect={() => {
+            onClick={() => {
               // Within the press: the browser lets the metronome make sound from now on.
               unlockSyncAudio();
               enableSync(setId);
@@ -96,14 +85,14 @@ export function SyncControl({ setId, compact = false, className }: { setId: stri
         ) : (
           <>
             {sync.canLead && !sync.leading && sync.status === "on" ? (
-              <DropdownMenuItem onSelect={leadSync}>{session ? t("sync.leadInstead") : t("sync.lead")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={leadSync}>{session ? t("sync.leadInstead") : t("sync.lead")}</DropdownMenuItem>
             ) : null}
             {sync.canLead && session ? (
-              <DropdownMenuItem variant="destructive" onSelect={endSync} title={t("sync.endConfirm")}>
+              <DropdownMenuItem variant="destructive" onClick={endSync} title={t("sync.endConfirm")}>
                 {t("sync.end")}
               </DropdownMenuItem>
             ) : null}
-            <DropdownMenuItem onSelect={disableSync}>{t("sync.turnOff")}</DropdownMenuItem>
+            <DropdownMenuItem onClick={disableSync}>{t("sync.turnOff")}</DropdownMenuItem>
           </>
         )}
       </DropdownMenuContent>

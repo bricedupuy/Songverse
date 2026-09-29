@@ -79,12 +79,10 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
           {song.artists ? <p className="text-sm text-muted-foreground">{song.artists}</p> : null}
           <p className="text-sm text-muted-foreground">{t("offline.songReadOnly")}</p>
         </div>
-        <Button asChild onClick={() => setMode("live")}>
-          <Link to="/library/$songVersionId/live" params={{ songVersionId: song.songVersionId }}>
+        <Button onClick={() => setMode("live")} render={<Link to="/library/$songVersionId/live" params={{ songVersionId: song.songVersionId }} />}>
             <Mic />
             {t("live.start")}
-          </Link>
-        </Button>
+          </Button>
       </div>
 
       {/* Practice: the stems kept on the device (with "Include audio"), docked at the bottom. */}

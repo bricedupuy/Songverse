@@ -60,9 +60,7 @@ function SetsIndex() {
           <h1 className="text-2xl font-semibold">{t("sets.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("sets.description")}</p>
         </div>
-        <Button asChild>
-          <Link to="/sets/new">{t("sets.newSet")}</Link>
-        </Button>
+        <Button render={<Link to="/sets/new" />}>{t("sets.newSet")}</Button>
       </div>
 
       {setlists.length === 0 ? (

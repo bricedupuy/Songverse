@@ -63,12 +63,10 @@ export function LinkedSongsCard({ version }: { version: SongVersionDetail }) {
             ))}
           </ul>
         )}
-        <Button asChild variant="outline" size="sm" className="self-start">
-          <Link to="/library/new" search={{ linkTo: version.id }}>
+        <Button variant="outline" size="sm" className="self-start" render={<Link to="/library/new" search={{ linkTo: version.id }} />}>
             <Plus />
             {t("songEditor.addTranslation")}
-          </Link>
-        </Button>
+          </Button>
       </CardContent>
     </Card>
   );

@@ -59,12 +59,10 @@ function ReviewSubmission() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Button asChild variant="ghost" size="sm" className="self-start">
-        <Link to="/review">
+      <Button variant="ghost" size="sm" className="self-start" render={<Link to="/review" />}>
           <ArrowLeft />
           {t("review.back")}
-        </Link>
-      </Button>
+        </Button>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold">
@@ -139,11 +137,9 @@ function ReviewSubmission() {
             <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
               <CardTitle>{t("review.song")}</CardTitle>
               {song ? (
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/library/$songVersionId" params={{ songVersionId: song.id }}>
+                <Button variant="outline" size="sm" render={<Link to="/library/$songVersionId" params={{ songVersionId: song.id }} />}>
                     {t("review.openSong")}
-                  </Link>
-                </Button>
+                  </Button>
               ) : null}
             </CardHeader>
             <CardContent className="min-w-0">

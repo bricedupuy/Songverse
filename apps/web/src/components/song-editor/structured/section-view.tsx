@@ -60,30 +60,24 @@ export function SectionView({ node, editor, getPos, updateAttributes }: ReactNod
           {showLabel ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
         </button>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label={t("structuredEditor.sectionMenu", { section: label || typeName })}
-            >
+          <DropdownMenuTrigger render={<button type="button" className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t("structuredEditor.sectionMenu", { section: label || typeName })} />}>
               <MoreHorizontal className="size-3.5" />
-            </button>
-          </DropdownMenuTrigger>
+            </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem disabled={index === 0} onSelect={() => moveSection(editor.view, at(), -1)}>
+            <DropdownMenuItem disabled={index === 0} onClick={() => moveSection(editor.view, at(), -1)}>
               <ArrowUp />
               {t("structuredEditor.moveUp")}
             </DropdownMenuItem>
-            <DropdownMenuItem disabled={index === count - 1} onSelect={() => moveSection(editor.view, at(), 1)}>
+            <DropdownMenuItem disabled={index === count - 1} onClick={() => moveSection(editor.view, at(), 1)}>
               <ArrowDown />
               {t("structuredEditor.moveDown")}
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => duplicateSection(editor.view, at())}>
+            <DropdownMenuItem onClick={() => duplicateSection(editor.view, at())}>
               <Copy />
               {t("structuredEditor.duplicateSection")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => deleteSection(editor.view, at())}>
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteSection(editor.view, at())}>
               <Trash2 />
               {t("structuredEditor.deleteSection")}
             </DropdownMenuItem>

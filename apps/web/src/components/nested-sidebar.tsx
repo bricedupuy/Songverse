@@ -88,23 +88,15 @@ export function NestedSidebar({
   ];
   const railItem = (item: (typeof rail)[number]) => (
     <Tooltip key={item.section}>
-      <TooltipTrigger asChild>
-        <Link
-          to={item.to}
-          aria-label={item.label}
-          data-active={section === item.section}
-          onClick={() => {
+      <TooltipTrigger render={<Link to={item.to} aria-label={item.label} data-active={section === item.section} onClick={() => {
             setPanel(item.section);
             if (!open) setOpen(true);
-          }}
-          className={cn(
+          }} className={cn(
             "flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4",
             section === item.section && "bg-sidebar-accent text-sidebar-accent-foreground",
-          )}
-        >
+          )} />}>
           {item.icon}
-        </Link>
-      </TooltipTrigger>
+        </TooltipTrigger>
       <TooltipContent side="right">{item.label}</TooltipContent>
     </Tooltip>
   );
@@ -123,15 +115,9 @@ export function NestedSidebar({
         {rail.map(railItem)}
         {/* The metronome (issue #2): a page of its own, no panel. */}
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              to="/metronome"
-              aria-label={t("nav.metronome")}
-              className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4"
-            >
+          <TooltipTrigger render={<Link to="/metronome" aria-label={t("nav.metronome")} className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4" />}>
               <Metronome />
-            </Link>
-          </TooltipTrigger>
+            </TooltipTrigger>
           <TooltipContent side="right">{t("nav.metronome")}</TooltipContent>
         </Tooltip>
         <div className="mt-auto flex flex-col items-center gap-1">
@@ -139,14 +125,12 @@ export function NestedSidebar({
         </div>
         <div data-slot="sidebar-footer" className="flex flex-col items-center">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button type="button" className="mt-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" data-testid="account-menu" aria-label={session.displayName}>
+            <DropdownMenuTrigger render={<button type="button" className="mt-1 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" data-testid="account-menu" aria-label={session.displayName} />}>
                 <Avatar className="size-8">
                   {session.avatarUrl ? <AvatarImage src={sizedAvatarUrl(session.avatarUrl, 32)} alt="" /> : null}
                   <AvatarFallback className="text-xs">{initials(session.displayName)}</AvatarFallback>
                 </Avatar>
-              </button>
-            </DropdownMenuTrigger>
+              </DropdownMenuTrigger>
             <AccountMenuContent session={session} side="right" align="end" />
           </DropdownMenu>
         </div>

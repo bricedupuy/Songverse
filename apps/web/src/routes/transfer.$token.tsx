@@ -64,9 +64,7 @@ function TransferContent() {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild>
-              <Link to="/dashboard">{t("transfer.goToDashboard")}</Link>
-            </Button>
+            <Button render={<Link to="/dashboard" />}>{t("transfer.goToDashboard")}</Button>
           </CardContent>
         </Card>
       )}
@@ -112,9 +110,7 @@ function ClaimCard({ token, email, preview }: { token: string; email: string; pr
         {done ? (
           <>
             <p className="text-sm">{t("transfer.accepted")}</p>
-            <Button asChild>
-              <Link to="/library">{t("transfer.goToLibrary")}</Link>
-            </Button>
+            <Button render={<Link to="/library" />}>{t("transfer.goToLibrary")}</Button>
           </>
         ) : (
           <>

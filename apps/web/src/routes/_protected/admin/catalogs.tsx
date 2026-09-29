@@ -20,9 +20,7 @@ function AdminCatalogsPage() {
           <h1 className="text-2xl font-semibold">{t("nav.adminCatalogs")}</h1>
           <p className="text-sm text-muted-foreground">{t("songbookCatalog.description")}</p>
         </div>
-        <Button asChild>
-          <Link to="/songbook-catalogs/new">{t("songbookCatalog.createCatalog")}</Link>
-        </Button>
+        <Button render={<Link to="/songbook-catalogs/new" />}>{t("songbookCatalog.createCatalog")}</Button>
       </div>
 
       <Card>

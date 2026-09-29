@@ -52,9 +52,7 @@ function SetSongRoute() {
       <div className="flex flex-col items-start gap-4">
         <h1 className="text-2xl font-semibold">{t("sets.notFoundTitle")}</h1>
         <p className="text-sm text-muted-foreground">{t("sets.notFoundDescription")}</p>
-        <Button asChild variant="outline">
-          <Link to="/sets">{t("sets.backToSets")}</Link>
-        </Button>
+        <Button variant="outline" render={<Link to="/sets" />}>{t("sets.backToSets")}</Button>
       </div>
     );
   }
@@ -115,11 +113,9 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
             />
           ) : null}
           {song && view.inLibrary ? (
-            <Button asChild variant="outline" size="sm">
-              <Link to="/library/$songVersionId" params={{ songVersionId: song.id }}>
+            <Button variant="outline" size="sm" render={<Link to="/library/$songVersionId" params={{ songVersionId: song.id }} />}>
                 {t("sets.openInLibrary")}
-              </Link>
-            </Button>
+              </Button>
           ) : null}
         </div>
       </div>
@@ -161,22 +157,18 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
 
       <nav className="flex items-center justify-between gap-3" aria-label={t("sets.songs")}>
         {view.previousItemId ? (
-          <Button asChild variant="outline">
-            <Link to="/sets/$setlistId/songs/$itemId" params={{ setlistId: set.id, itemId: view.previousItemId }}>
+          <Button variant="outline" render={<Link to="/sets/$setlistId/songs/$itemId" params={{ setlistId: set.id, itemId: view.previousItemId }} />}>
               <ChevronLeft />
               {t("sets.previousSong")}
-            </Link>
-          </Button>
+            </Button>
         ) : (
           <span />
         )}
         {view.nextItemId ? (
-          <Button asChild variant="outline">
-            <Link to="/sets/$setlistId/songs/$itemId" params={{ setlistId: set.id, itemId: view.nextItemId }}>
+          <Button variant="outline" render={<Link to="/sets/$setlistId/songs/$itemId" params={{ setlistId: set.id, itemId: view.nextItemId }} />}>
               {t("sets.nextSong")}
               <ChevronRight />
-            </Link>
-          </Button>
+            </Button>
         ) : null}
       </nav>
     </div>

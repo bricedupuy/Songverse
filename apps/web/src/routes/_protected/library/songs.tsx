@@ -78,9 +78,7 @@ function LibraryIndex() {
           {list ? <ListFilter className="size-5 text-muted-foreground" aria-hidden /> : null}
           {list?.name ?? (search.favorites ? t("library.home.favorites") : t("nav.songs"))}
         </h1>
-        <Button asChild>
-          <Link to="/library/new">{t("library.addASong")}</Link>
-        </Button>
+        <Button render={<Link to="/library/new" />}>{t("library.addASong")}</Button>
       </div>
 
 

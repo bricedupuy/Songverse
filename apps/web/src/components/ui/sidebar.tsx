@@ -1,4 +1,4 @@
-import { Slot } from "@radix-ui/react-slot";
+import { useRender } from "@base-ui/react/use-render";
 import { PanelLeftIcon } from "lucide-react";
 import {
   createContext,
@@ -246,25 +246,27 @@ function SidebarMenuItem({ className, ...props }: ComponentProps<"li">) {
 }
 
 function SidebarMenuButton({
-  asChild = false,
+  render,
   isActive = false,
   tooltip,
   className,
   ...props
 }: ComponentProps<"button"> & {
-  asChild?: boolean;
+  /** Another element, a link say (`render={<Link to=… />}`). */
+  render?: useRender.RenderProp;
   isActive?: boolean;
   tooltip?: string;
 }) {
   const { state, isMobile } = useSidebar();
-  const Comp = asChild ? Slot : "button";
   const collapsed = state === "collapsed" && !isMobile;
 
-  const button = (
-    <Comp
-      data-slot="sidebar-menu-button"
-      data-active={isActive}
-      className={cn(
+  const button = useRender({
+    defaultTagName: "button",
+    render,
+    props: {
+      "data-slot": "sidebar-menu-button",
+      "data-active": isActive,
+      className: cn(
         "peer/menu-button flex h-8 w-full items-center gap-2 overflow-hidden rounded-md p-2 text-sm outline-none",
         "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground",
@@ -274,16 +276,16 @@ function SidebarMenuButton({
         // on its own, it'd otherwise wrap/overflow the icon-only rail.
         collapsed && "size-8 justify-center p-2 [&>span]:hidden",
         className,
-      )}
-      {...props}
-    />
-  );
+      ),
+      ...props,
+    },
+  });
 
   if (!tooltip || !collapsed) return button;
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipTrigger render={button} />
       <TooltipContent side="right" align="center">
         {tooltip}
       </TooltipContent>
@@ -291,28 +293,24 @@ function SidebarMenuButton({
   );
 }
 
-function SidebarMenuAction({
-  className,
-  asChild = false,
-  ...props
-}: ComponentProps<"button"> & { asChild?: boolean }) {
+function SidebarMenuAction({ className, render, ...props }: ComponentProps<"button"> & { render?: useRender.RenderProp }) {
   const { state, isMobile } = useSidebar();
-  const Comp = asChild ? Slot : "button";
   const collapsed = state === "collapsed" && !isMobile;
-  if (collapsed) return null;
-
-  return (
-    <Comp
-      {...props}
-      data-slot="sidebar-menu-action"
-      className={cn(
+  const action = useRender({
+    defaultTagName: "button",
+    render,
+    props: {
+      ...props,
+      "data-slot": "sidebar-menu-action",
+      className: cn(
         "absolute top-1 right-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none",
         "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
         className,
-      )}
-    />
-  );
+      ),
+    },
+  });
+  return collapsed ? null : action;
 }
 
 function SidebarMenuSub({ className, ...props }: ComponentProps<"ul">) {
@@ -336,26 +334,27 @@ function SidebarMenuSubItem({ className, ...props }: ComponentProps<"li">) {
 }
 
 function SidebarMenuSubButton({
-  asChild = false,
+  render,
   isActive = false,
   className,
   ...props
-}: ComponentProps<"a"> & { asChild?: boolean; isActive?: boolean }) {
-  const Comp = asChild ? Slot : "a";
-  return (
-    <Comp
-      data-slot="sidebar-menu-sub-button"
-      data-active={isActive}
-      className={cn(
+}: ComponentProps<"a"> & { render?: useRender.RenderProp; isActive?: boolean }) {
+  return useRender({
+    defaultTagName: "a",
+    render,
+    props: {
+      "data-slot": "sidebar-menu-sub-button",
+      "data-active": isActive,
+      className: cn(
         "flex h-7 min-w-0 items-center gap-2 overflow-hidden rounded-md px-2 text-sm outline-none",
         "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         "data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground",
         "[&>svg]:size-4 [&>svg]:shrink-0",
         className,
-      )}
-      {...props}
-    />
-  );
+      ),
+      ...props,
+    },
+  });
 }
 
 export {

@@ -62,9 +62,7 @@ function JoinTeamContent() {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button asChild>
-              <Link to="/dashboard">{t("auth.goToDashboard")}</Link>
-            </Button>
+            <Button render={<Link to="/dashboard" />}>{t("auth.goToDashboard")}</Button>
           </CardContent>
         </Card>
       ) : (

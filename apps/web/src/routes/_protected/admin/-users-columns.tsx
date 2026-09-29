@@ -138,36 +138,34 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
           const isSelf = user.id === currentUserId;
           return (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8" aria-label={t("admin.userActions", { name: user.displayName })}>
+              <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="size-8" aria-label={t("admin.userActions", { name: user.displayName })} />}>
                   <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
+                </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {user.deletedAt ? (
                   <>
-                    <DropdownMenuItem onSelect={() => onAction("newTransferLink", user)}>{t("admin.actionNewTransferLink")}</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" onSelect={() => onAction("deleteNow", user)}>
+                    <DropdownMenuItem onClick={() => onAction("newTransferLink", user)}>{t("admin.actionNewTransferLink")}</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onClick={() => onAction("deleteNow", user)}>
                       {t("admin.actionDeleteNow")}
                     </DropdownMenuItem>
                   </>
                 ) : (
                   <>
-                    <DropdownMenuItem onSelect={() => onAction("storage", user)}>{t("admin.actionEditStorage")}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onAction("storage", user)}>{t("admin.actionEditStorage")}</DropdownMenuItem>
                     {user.isGlobalAdmin ? null : (
-                      <DropdownMenuItem onSelect={() => onAction("reviewer", user)}>
+                      <DropdownMenuItem onClick={() => onAction("reviewer", user)}>
                         {user.isReviewer ? t("admin.actionRemoveReviewer") : t("admin.actionMakeReviewer")}
                       </DropdownMenuItem>
                     )}
                     {isSelf ? null : (
                       <>
                         {user.bannedAt ? (
-                          <DropdownMenuItem onSelect={() => onAction("unban", user)}>{t("admin.actionUnban")}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onAction("unban", user)}>{t("admin.actionUnban")}</DropdownMenuItem>
                         ) : (
-                          <DropdownMenuItem onSelect={() => onAction("ban", user)}>{t("admin.actionBan")}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onAction("ban", user)}>{t("admin.actionBan")}</DropdownMenuItem>
                         )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive" onSelect={() => onAction("delete", user)}>
+                        <DropdownMenuItem variant="destructive" onClick={() => onAction("delete", user)}>
                           {t("admin.actionDelete")}
                         </DropdownMenuItem>
                       </>

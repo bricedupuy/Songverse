@@ -245,12 +245,10 @@ export function AutoDetectCard({
             <MatchSummary match={shown} />
             <div className="flex shrink-0 flex-wrap gap-2 sm:ml-auto">
               {shown.sources.map((source) => (
-                <Button key={source.provider} asChild variant="ghost" size="sm">
-                  <a href={source.url} target="_blank" rel="noreferrer">
+                <Button key={source.provider} variant="ghost" size="sm" render={<a href={source.url} target="_blank" rel="noreferrer" />}>
                     <ExternalLink />
                     {METADATA_PROVIDER_NAMES[source.provider]}
-                  </a>
-                </Button>
+                  </Button>
               ))}
               <Button type="button" variant="outline" size="sm" onClick={() => setChanging(true)}>
                 {t("songEditor.change")}
@@ -384,11 +382,9 @@ export function LibraryMatchPanel({
                     <ChevronDown className={cn("transition-transform", expanded === match.workId && "rotate-180")} />
                   </Button>
                 ) : null}
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/library/$songVersionId" params={{ songVersionId: first.id }}>
+                <Button variant="outline" size="sm" render={<Link to="/library/$songVersionId" params={{ songVersionId: first.id }} />}>
                     {t("songEditor.openExisting")}
-                  </Link>
-                </Button>
+                  </Button>
                 <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => onUseAsBase(first)}>
                   {t("songEditor.useAsBase")}
                 </Button>
@@ -405,11 +401,9 @@ export function LibraryMatchPanel({
                       </span>
                     </span>
                     <span className="flex gap-2">
-                      <Button asChild variant="ghost" size="sm">
-                        <Link to="/library/$songVersionId" params={{ songVersionId: version.id }}>
+                      <Button variant="ghost" size="sm" render={<Link to="/library/$songVersionId" params={{ songVersionId: version.id }} />}>
                           {t("songEditor.open")}
-                        </Link>
-                      </Button>
+                        </Button>
                       <Button type="button" variant="ghost" size="sm" disabled={busy} onClick={() => onUseAsBase(version)}>
                         {t("songEditor.useAsBase")}
                       </Button>
@@ -499,15 +493,13 @@ export function MoreDetailsCard({
     <Card>
       <Collapsible open={open || hasErrors} onOpenChange={onOpenChange}>
         <CardHeader>
-          <CollapsibleTrigger asChild>
-            <button type="button" className="-m-2 flex min-w-0 items-center justify-between gap-2 rounded-md p-2 text-left hover:bg-muted/50">
+          <CollapsibleTrigger render={<button type="button" className="-m-2 flex min-w-0 items-center justify-between gap-2 rounded-md p-2 text-left hover:bg-muted/50" />}>
               <span>
                 <CardTitle>{t("songEditor.moreDetails")}</CardTitle>
                 <CardDescription className="mt-1">{t("songEditor.moreDetailsDescription")}</CardDescription>
               </span>
               <ChevronDown className={cn("size-4 shrink-0 transition-transform", (open || hasErrors) && "rotate-180")} aria-hidden />
-            </button>
-          </CollapsibleTrigger>
+            </CollapsibleTrigger>
           {!(open || hasErrors) ? (
             summary.length > 0 ? (
               <ul className="mt-2 flex min-w-0 flex-wrap gap-1.5" aria-label={t("songEditor.moreDetails")} data-testid="details-summary">

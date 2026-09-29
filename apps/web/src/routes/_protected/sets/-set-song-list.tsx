@@ -224,15 +224,9 @@ function SongRow({
             ) : null}
           </NativeSelect>
           {item.arrangement?.setOnly ? (
-            <Button asChild variant="ghost" size="icon" className="size-8">
-              <Link
-                to="/library/$songVersionId/arrangements/$arrangementId"
-                params={{ songVersionId: song.id, arrangementId: item.arrangement.id }}
-                aria-label={t("sets.editJustThisSet", { title })}
-              >
+            <Button variant="ghost" size="icon" className="size-8" render={<Link to="/library/$songVersionId/arrangements/$arrangementId" params={{ songVersionId: song.id, arrangementId: item.arrangement.id }} aria-label={t("sets.editJustThisSet", { title })} />}>
                 <Pencil />
-              </Link>
-            </Button>
+              </Button>
           ) : null}
         </span>
       ) : null}

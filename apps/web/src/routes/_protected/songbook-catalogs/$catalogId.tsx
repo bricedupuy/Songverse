@@ -141,15 +141,13 @@ function SongbookCatalogDetail() {
         </div>
         <div className="flex flex-wrap gap-2">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
+            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
                 <Download />
                 {t("songbookCatalog.exportLabel")}
-              </Button>
-            </DropdownMenuTrigger>
+              </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => void exportAs("csv")}>{t("songbookCatalog.exportCsv")}</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => void exportAs("json")}>{t("songbookCatalog.exportJson")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportAs("csv")}>{t("songbookCatalog.exportCsv")}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void exportAs("json")}>{t("songbookCatalog.exportJson")}</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
           {canEdit ? (

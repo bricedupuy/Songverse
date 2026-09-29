@@ -550,23 +550,21 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
           ) : null}
           {edit ? (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" aria-label={t("songEditor.moreActions")}>
+              <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon" aria-label={t("songEditor.moreActions")} />}>
                   <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
+                </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={exportChordPro}>{t("songEditor.exportChordPro")}</DropdownMenuItem>
+                <DropdownMenuItem onClick={exportChordPro}>{t("songEditor.exportChordPro")}</DropdownMenuItem>
                 {edit.version.sharedBy ? (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => void leaveShared()}>{t("sharing.leave")}</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void leaveShared()}>{t("sharing.leave")}</DropdownMenuItem>
                   </>
                 ) : null}
                 {canManage ? (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => setConfirmingDelete(true)}>
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setConfirmingDelete(true)}>
                       {t("songEditor.deleteSong")}
                     </DropdownMenuItem>
                   </>

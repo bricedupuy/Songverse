@@ -18,12 +18,8 @@ function SongbooksIndex() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">{t("songbooks.title")}</h1>
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline">
-            <Link to="/songbook-catalogs">{t("songbooks.browseCatalog")}</Link>
-          </Button>
-          <Button asChild>
-            <Link to="/songbooks/new">{t("songbooks.createSongbook")}</Link>
-          </Button>
+          <Button variant="outline" render={<Link to="/songbook-catalogs" />}>{t("songbooks.browseCatalog")}</Button>
+          <Button render={<Link to="/songbooks/new" />}>{t("songbooks.createSongbook")}</Button>
         </div>
       </div>
 

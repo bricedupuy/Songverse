@@ -27,9 +27,7 @@ export function RouteError({ error, reset }: ErrorComponentProps) {
         >
           {t("offline.retry")}
         </Button>
-        <Button asChild variant="ghost">
-          <Link to="/sets">{t("sets.backToSets")}</Link>
-        </Button>
+        <Button variant="ghost" render={<Link to="/sets" />}>{t("sets.backToSets")}</Button>
       </div>
     </div>
   );

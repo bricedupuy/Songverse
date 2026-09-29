@@ -44,6 +44,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLinkItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -133,8 +134,7 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="h-12" data-testid="account-menu">
+              <DropdownMenuTrigger render={<SidebarMenuButton className="h-12" data-testid="account-menu" />}>
                   <Avatar className="size-8 shrink-0">
                     {session.avatarUrl ? <AvatarImage src={sizedAvatarUrl(session.avatarUrl, 32)} alt="" /> : null}
                     <AvatarFallback className="text-xs">{initials(session.displayName)}</AvatarFallback>
@@ -146,8 +146,7 @@ export function AppSidebar({
                   <SidebarLabel>
                     <ChevronsUpDown className="size-4 text-muted-foreground" />
                   </SidebarLabel>
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
+                </DropdownMenuTrigger>
               <AccountMenuContent session={session} side="top" align="end" />
             </DropdownMenu>
           </SidebarMenuItem>
@@ -172,41 +171,31 @@ export function AccountMenuContent({ session, side, align }: { session: AppSessi
           <ThemeToggle />
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/dashboard">
+        <DropdownMenuLinkItem render={<Link to="/dashboard" />}>
             <LayoutDashboard />
             {t("nav.dashboard")}
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/dashboard" hash="settings">
+          </DropdownMenuLinkItem>
+        <DropdownMenuLinkItem render={<Link to="/dashboard" hash="settings" />}>
             <KeyRound />
             {t("nav.account")}
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/offline">
+          </DropdownMenuLinkItem>
+        <DropdownMenuLinkItem render={<Link to="/offline" />}>
             <HardDrive />
             {t("nav.offlineStorage")}
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener">
+          </DropdownMenuLinkItem>
+        <DropdownMenuLinkItem render={<a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener" />}>
             <HelpCircle />
             {t("nav.help")}
-          </a>
-        </DropdownMenuItem>
+          </DropdownMenuLinkItem>
         {/* AGPL-3.0, section 13: the source, offered to whoever uses it. */}
-        <DropdownMenuItem asChild>
-          <a href={SOURCE_CODE_URL} target="_blank" rel="noopener" data-testid="source-code">
+        <DropdownMenuLinkItem render={<a href={SOURCE_CODE_URL} target="_blank" rel="noopener" data-testid="source-code" />}>
             <Code />
             {t("nav.sourceCode")}
-          </a>
-        </DropdownMenuItem>
+          </DropdownMenuLinkItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
-          onSelect={() => {
+          onClick={() => {
             forgetSmartLists();
             void Promise.all([authClient.signOut(), forgetOffline()]).then(() => {
               window.location.href = "/";
@@ -284,29 +273,23 @@ function NavGroup({
   return (
     <Collapsible defaultOpen className="group/collapsible">
       <SidebarMenuItem>
-        <SidebarMenuButton asChild isActive={isActive} tooltip={label}>
-          <Link to={to}>
+        <SidebarMenuButton isActive={isActive} tooltip={label} render={<Link to={to} />}>
             {icon}
             <span>{label}</span>
-          </Link>
-        </SidebarMenuButton>
-        <CollapsibleTrigger asChild>
-          <SidebarMenuAction>
-            <ChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        <CollapsibleTrigger render={<SidebarMenuAction />}>
+            <ChevronRight className="transition-transform group-data-open/collapsible:rotate-90" />
             <span className="sr-only">{t("nav.toggle")}</span>
-          </SidebarMenuAction>
-        </CollapsibleTrigger>
+          </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub data-testid={testId}>
             {items.length === 0 && empty ? <p className="px-2 py-1 text-xs text-muted-foreground">{empty}</p> : null}
             {items.map((item) => (
               <SidebarMenuSubItem key={item.key}>
-                <SidebarMenuSubButton asChild isActive={item.isActive}>
-                  <Link {...(item.link as LinkProps)} className={cn(item.muted && "text-muted-foreground")}>
+                <SidebarMenuSubButton isActive={item.isActive} render={<Link {...(item.link as LinkProps)} className={cn(item.muted && "text-muted-foreground")} />}>
                     {item.icon}
                     <span className="truncate">{item.label}</span>
-                  </Link>
-                </SidebarMenuSubButton>
+                  </SidebarMenuSubButton>
               </SidebarMenuSubItem>
             ))}
           </SidebarMenuSub>
@@ -419,22 +402,18 @@ function MainNav({
 
           {/* The people you share songs with (issue #77). */}
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith("/people")} tooltip={t("nav.people")}>
-              <Link to="/people">
+            <SidebarMenuButton isActive={pathname.startsWith("/people")} tooltip={t("nav.people")} render={<Link to="/people" />}>
                 <Contact />
                 <span>{t("nav.people")}</span>
-              </Link>
-            </SidebarMenuButton>
+              </SidebarMenuButton>
           </SidebarMenuItem>
 
           {/* The metronome (issue #2). */}
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === "/metronome"} tooltip={t("nav.metronome")}>
-              <Link to="/metronome">
+            <SidebarMenuButton isActive={pathname === "/metronome"} tooltip={t("nav.metronome")} render={<Link to="/metronome" />}>
                 <Metronome />
                 <span>{t("nav.metronome")}</span>
-              </Link>
-            </SidebarMenuButton>
+              </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
@@ -444,22 +423,18 @@ function MainNav({
           <SidebarMenu>
             {canReview ? (
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith("/review")} tooltip={t("nav.review")}>
-                  <Link to="/review">
+                <SidebarMenuButton isActive={pathname.startsWith("/review")} tooltip={t("nav.review")} render={<Link to="/review" />}>
                     <ClipboardCheck />
                     <span>{t("nav.review")}</span>
-                  </Link>
-                </SidebarMenuButton>
+                  </SidebarMenuButton>
               </SidebarMenuItem>
             ) : null}
             {isGlobalAdmin ? (
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.startsWith("/admin")} tooltip={t("nav.admin")}>
-                  <Link to="/admin">
+                <SidebarMenuButton isActive={pathname.startsWith("/admin")} tooltip={t("nav.admin")} render={<Link to="/admin" />}>
                     <ShieldCheck />
                     <span>{t("nav.admin")}</span>
-                  </Link>
-                </SidebarMenuButton>
+                  </SidebarMenuButton>
               </SidebarMenuItem>
             ) : null}
           </SidebarMenu>
@@ -484,12 +459,10 @@ function AdminNav({ pathname }: { pathname: string }) {
       <SidebarGroup>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={t("nav.backToApp")}>
-              <Link to="/library">
+            <SidebarMenuButton tooltip={t("nav.backToApp")} render={<Link to="/library" />}>
                 <ArrowLeft />
                 <span>{t("nav.backToApp")}</span>
-              </Link>
-            </SidebarMenuButton>
+              </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
@@ -498,12 +471,10 @@ function AdminNav({ pathname }: { pathname: string }) {
         <SidebarMenu>
           {sections.map((item) => (
             <SidebarMenuItem key={item.to}>
-              <SidebarMenuButton asChild isActive={pathname.startsWith(item.to)} tooltip={item.label}>
-                <Link to={item.to}>
+              <SidebarMenuButton isActive={pathname.startsWith(item.to)} tooltip={item.label} render={<Link to={item.to} />}>
                   <item.icon />
                   <span>{item.label}</span>
-                </Link>
-              </SidebarMenuButton>
+                </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>

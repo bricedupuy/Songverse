@@ -77,12 +77,10 @@ export function PracticeSongPage({
             <Pencil />
             {t("practice.edit")}
           </Button>
-          <Button asChild onClick={() => setMode("live")}>
-            <Link to="/library/$songVersionId/live" params={{ songVersionId: version.id }}>
+          <Button onClick={() => setMode("live")} render={<Link to="/library/$songVersionId/live" params={{ songVersionId: version.id }} />}>
               <Mic />
               {t("live.start")}
-            </Link>
-          </Button>
+            </Button>
         </div>
         </div>
         {/* Its album art (issue #146), when it has some. */}

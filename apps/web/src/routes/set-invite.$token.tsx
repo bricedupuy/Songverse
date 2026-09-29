@@ -58,9 +58,7 @@ function SetInviteContent() {
           </CardHeader>
           {signedIn ? (
             <CardContent>
-              <Button asChild>
-                <Link to="/sets">{t("sets.goToSets")}</Link>
-              </Button>
+              <Button render={<Link to="/sets" />}>{t("sets.goToSets")}</Button>
             </CardContent>
           ) : null}
         </Card>

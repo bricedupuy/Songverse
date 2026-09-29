@@ -51,9 +51,7 @@ function ResetPasswordCard() {
           <CardDescription>{t("auth.invalidLinkDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild className="w-full">
-            <Link to="/">{t("auth.backToSignIn")}</Link>
-          </Button>
+          <Button className="w-full" render={<Link to="/" />}>{t("auth.backToSignIn")}</Button>
         </CardContent>
       </Card>
     );
@@ -67,9 +65,7 @@ function ResetPasswordCard() {
           <CardDescription>{t("auth.passwordUpdatedDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button asChild className="w-full">
-            <Link to="/">{t("auth.signIn")}</Link>
-          </Button>
+          <Button className="w-full" render={<Link to="/" />}>{t("auth.signIn")}</Button>
         </CardContent>
       </Card>
     );

@@ -52,12 +52,10 @@ function ReviewSuggestion() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Button asChild variant="ghost" size="sm" className="self-start">
-        <Link to="/review">
+      <Button variant="ghost" size="sm" className="self-start" render={<Link to="/review" />}>
           <ArrowLeft />
           {t("review.back")}
-        </Link>
-      </Button>
+        </Button>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold">

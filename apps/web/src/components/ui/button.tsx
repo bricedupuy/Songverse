@@ -1,4 +1,4 @@
-import { Slot } from "@radix-ui/react-slot";
+import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { cn } from "#/lib/utils";
@@ -29,15 +29,16 @@ const buttonVariants = cva(
   },
 );
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot : "button";
-  return <Comp data-slot="button" className={cn(buttonVariants({ variant, size, className }))} {...props} />;
+/**
+ * A button - or, with `render`, another element that looks like one (a
+ * router `<Link render={<Link to=… />}>`), as Base UI composes (issue #144).
+ */
+function Button({ className, variant, size, render, ...props }: ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { render?: useRender.RenderProp }) {
+  return useRender({
+    defaultTagName: "button",
+    render,
+    props: { "data-slot": "button", className: cn(buttonVariants({ variant, size, className })), ...props },
+  });
 }
 
 export { Button, buttonVariants };

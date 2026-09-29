@@ -66,11 +66,9 @@ export function PublishCard({ songVersionId }: { songVersionId: string }) {
         {published ? (
           <>
             <p className="text-sm">{t("publish.published")}</p>
-            <Button asChild variant="outline" size="sm" className="self-start">
-              <Link to="/library/$songVersionId" params={{ songVersionId: published.id }}>
+            <Button variant="outline" size="sm" className="self-start" render={<Link to="/library/$songVersionId" params={{ songVersionId: published.id }} />}>
                 {t("publish.openGlobal")}
-              </Link>
-            </Button>
+              </Button>
           </>
         ) : null}
 

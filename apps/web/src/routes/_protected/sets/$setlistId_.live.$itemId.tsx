@@ -43,9 +43,7 @@ function LiveRoute() {
       <div className="flex min-h-dvh flex-col items-start gap-4 bg-background p-6 text-foreground">
         <h1 className="text-2xl font-semibold">{t("sets.notFoundTitle")}</h1>
         <p className="text-sm text-muted-foreground">{t("sets.notFoundDescription")}</p>
-        <Button asChild variant="outline">
-          <Link to="/sets">{t("sets.backToSets")}</Link>
-        </Button>
+        <Button variant="outline" render={<Link to="/sets" />}>{t("sets.backToSets")}</Button>
       </div>
     );
   }

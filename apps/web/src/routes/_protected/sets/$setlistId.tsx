@@ -46,9 +46,7 @@ function SetRoute() {
       <div className="flex flex-col items-start gap-4">
         <h1 className="text-2xl font-semibold">{t("sets.notFoundTitle")}</h1>
         <p className="text-sm text-muted-foreground">{t("sets.notFoundDescription")}</p>
-        <Button asChild variant="outline">
-          <Link to="/sets">{t("sets.backToSets")}</Link>
-        </Button>
+        <Button variant="outline" render={<Link to="/sets" />}>{t("sets.backToSets")}</Button>
       </div>
     );
   }
@@ -119,12 +117,10 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
           {/* Sync play (issue #13). */}
           <SyncControl setId={set.id} />
           {set.items.length > 0 ? (
-            <Button asChild onClick={() => setMode("live")}>
-              <Link to="/sets/$setlistId/live/$itemId" params={{ setlistId: set.id, itemId: set.items[0]!.id }}>
+            <Button onClick={() => setMode("live")} render={<Link to="/sets/$setlistId/live/$itemId" params={{ setlistId: set.id, itemId: set.items[0]!.id }} />}>
                 <Mic />
                 {t("live.start")}
-              </Link>
-            </Button>
+              </Button>
           ) : null}
           {set.isGuest ? <LeaveSetButton setlistId={set.id} /> : null}
         </div>

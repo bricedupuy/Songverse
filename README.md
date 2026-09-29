@@ -86,7 +86,7 @@ Songverse stands on a lot of open-source work. Thank you to everyone behind:
 | [React](https://react.dev) | The web app's UI | MIT |
 | [TanStack Start, Router and Table](https://tanstack.com) | Server rendering, routing and tables in the web app | MIT |
 | [Vite](https://vite.dev) | Building and serving the web app | MIT |
-| [Tailwind CSS](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com) and [Radix UI](https://www.radix-ui.com) | Styling and the accessible building blocks (dialogs, menus, tabs) | MIT |
+| [Tailwind CSS](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com) and [Base UI](https://base-ui.com) | Styling and the accessible building blocks (dialogs, menus, tabs) | MIT |
 | [Lucide](https://lucide.dev) | Icons | ISC |
 | [dnd-kit](https://dndkit.com) | Drag and drop (sets, songbooks, the song's order) | MIT |
 | [pdf.js](https://mozilla.github.io/pdf.js/) | Reading a PDF chart's words and chords, with where they are on the page | Apache-2.0 |

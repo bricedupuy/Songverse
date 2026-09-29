@@ -150,27 +150,19 @@ export function ArtworkCard({ version, canEdit }: { version: SongVersionDetail; 
                 const year = candidate.releaseDate?.slice(0, 4);
                 return (
                   <li key={candidate.artworkUrl}>
-                    <Tooltip delayDuration={300}>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          className="flex w-full flex-col gap-1 rounded-lg p-1.5 text-left hover:bg-accent disabled:opacity-60"
-                          aria-label={t("artwork.use", { album: candidate.album ?? candidate.title })}
-                          onClick={() =>
+                    <Tooltip>
+                      <TooltipTrigger delay={300} render={<button type="button" disabled={busy} className="flex w-full flex-col gap-1 rounded-lg p-1.5 text-left hover:bg-accent disabled:opacity-60" aria-label={t("artwork.use", { album: candidate.album ?? candidate.title })} onClick={() =>
                             void run(() => apiClient.setArtwork(version.id, candidate.artworkUrl)).then((done) => {
                               if (done) setOpen(false);
                             })
-                          }
-                        >
+                          } />}>
                           <img src={candidate.thumbnailUrl} alt="" loading="lazy" className="aspect-square w-full rounded-md object-cover" />
                           <span className="line-clamp-2 text-sm leading-snug font-medium break-words">{candidate.album ?? candidate.title}</span>
                           <span className="line-clamp-2 text-xs break-words text-muted-foreground">
                             {[candidate.title, candidate.artist, year].filter(Boolean).join(" · ")}
                           </span>
                           {candidate.provider ? <span className="text-xs text-muted-foreground/80">{METADATA_PROVIDER_NAMES[candidate.provider]}</span> : null}
-                        </button>
-                      </TooltipTrigger>
+                        </TooltipTrigger>
                       <TooltipContent side="bottom" className="max-w-64" data-testid="artwork-tooltip">
                         <p className="font-medium">{candidate.album ?? candidate.title}</p>
                         <p>{[candidate.title, candidate.artist, year].filter(Boolean).join(" · ")}</p>

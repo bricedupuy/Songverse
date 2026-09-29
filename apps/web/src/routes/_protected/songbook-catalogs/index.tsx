@@ -24,9 +24,7 @@ function SongbookCatalogsIndex() {
           <p className="text-sm text-muted-foreground">{t("songbookCatalog.description")}</p>
         </div>
         {session.isGlobalAdmin ? (
-          <Button asChild>
-            <Link to="/songbook-catalogs/new">{t("songbookCatalog.createCatalog")}</Link>
-          </Button>
+          <Button render={<Link to="/songbook-catalogs/new" />}>{t("songbookCatalog.createCatalog")}</Button>
         ) : null}
       </div>
 

@@ -178,20 +178,16 @@ export function CatalogEntriesTable({
           className="max-w-xs"
         />
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
+          <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
               <Columns3 />
               {t("songbookCatalog.columns")}
-            </Button>
-          </DropdownMenuTrigger>
+            </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="max-h-80 overflow-y-auto">
             {CATALOG_ENTRY_FIELDS.filter((field) => !FIXED_COLUMNS.includes(field.key)).map((field) => (
               <DropdownMenuItem
                 key={field.key}
-                onSelect={(event) => {
-                  event.preventDefault();
-                  toggleColumn(field.key);
-                }}
+                closeOnClick={false}
+                onClick={() => toggleColumn(field.key)}
               >
                 <Check className={columns.includes(field.key) ? "opacity-100" : "opacity-0"} />
                 {t(`songbookCatalog.fields.${field.key}`)}

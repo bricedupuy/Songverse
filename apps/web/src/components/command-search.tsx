@@ -1,5 +1,5 @@
 import { foldForSearch, formatSongbookReference, onlineOrKept, searchKeptEntries, searchKeptSongs, songbookReferences, type SongbookEntryHit } from "@songverse/core";
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
 import { BookOpen, Hash, ListMusic, Music, Search, Users, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
@@ -59,31 +59,23 @@ export function CommandSearch() {
 
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      <DialogPrimitive.Trigger asChild>
-        <button
-          type="button"
-          aria-label={t("search.label")}
-          data-testid="command-search"
-          className={cn(
+      <DialogPrimitive.Trigger render={<button type="button" aria-label={t("search.label")} data-testid="command-search" className={cn(
             "flex h-8 shrink-0 items-center gap-2 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground [&_svg]:size-4",
             // A search box on a wide screen, a magnifying glass on a phone.
             "w-8 justify-center md:w-56 md:justify-start md:border md:bg-background md:px-2.5 md:shadow-xs",
-          )}
-        >
+          )} />}>
           <Search />
           <span className="hidden flex-1 text-left md:inline">{t("search.open")}</span>
           <kbd className="hidden rounded border bg-muted px-1.5 font-sans text-[0.7rem] md:inline">{shortcut}</kbd>
-        </button>
-      </DialogPrimitive.Trigger>
+        </DialogPrimitive.Trigger>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
-        <DialogPrimitive.Content
+        <DialogPrimitive.Backdrop className="fixed inset-0 z-50 bg-black/50" />
+        <DialogPrimitive.Popup
           className="fixed top-3 left-1/2 z-50 flex max-h-[calc(100dvh-1.5rem)] w-[calc(100%-1.5rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg sm:top-[12vh] sm:max-h-[70vh]"
-          aria-describedby={undefined}
         >
           <DialogPrimitive.Title className="sr-only">{t("search.label")}</DialogPrimitive.Title>
           {open ? <SearchPanel onDone={() => setOpen(false)} /> : null}
-        </DialogPrimitive.Content>
+        </DialogPrimitive.Popup>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
   );

@@ -94,18 +94,14 @@ function Dashboard() {
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm">{t("dashboard.recentlyUpdated")}</CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/library">{t("dashboard.viewAll")}</Link>
-            </Button>
+            <Button variant="ghost" size="sm" render={<Link to="/library" />}>{t("dashboard.viewAll")}</Button>
           </CardHeader>
           <CardContent>
             {recentVersions.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-8 text-center text-sm text-muted-foreground">
                 <ListMusic className="size-8" />
                 <p>{t("dashboard.noSongsYet")}</p>
-                <Button asChild size="sm">
-                  <Link to="/library/new">{t("dashboard.addASong")}</Link>
-                </Button>
+                <Button size="sm" render={<Link to="/library/new" />}>{t("dashboard.addASong")}</Button>
               </div>
             ) : (
               <ul className="flex flex-col divide-y">
@@ -139,9 +135,7 @@ function Dashboard() {
         <Card>
           <CardHeader className="flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm">{t("dashboard.teams")}</CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/teams/new">{t("teams.createTeam")}</Link>
-            </Button>
+            <Button variant="ghost" size="sm" render={<Link to="/teams/new" />}>{t("teams.createTeam")}</Button>
           </CardHeader>
           <CardContent>
             {teams.length === 0 ? (
