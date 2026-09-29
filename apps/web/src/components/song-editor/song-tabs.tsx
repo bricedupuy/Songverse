@@ -1,5 +1,9 @@
 import {
   isAudioFilename,
+  multitracksOf,
+  RECORDING_TIME_SIGNATURES,
+  newMultitrackId,
+  type Multitrack,
   STEM_PARTS,
   stemPartFromFilename,
   type Attachment,
@@ -13,7 +17,7 @@ import {
   type TeamSummary,
 } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
-import { Download, FileAudio, Play, Trash2, Upload } from "lucide-react";
+import { Download, FileAudio, Mic, Play, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AttachmentThumbnail } from "#/components/attachment-thumbnail";
@@ -31,6 +35,10 @@ import { Input } from "#/components/ui/input";
 import { KeySelect } from "#/components/key-select";
 import { setMode, useMode } from "#/lib/mode";
 import { stemsOf } from "#/lib/stem-engine";
+import { useMultitrackName } from "#/components/stem-dock";
+import { RecorderDialog } from "#/components/recorder-dialog";
+
+const NEW_MULTITRACK = "__new";
 
 export function SaveFirst() {
   const { t } = useTranslation();
@@ -186,7 +194,7 @@ function RecordingFields({
   songTempo: string;
   canEdit: boolean;
   busy: boolean;
-  onChange: (change: { recordingKey?: string | null; recordingTempo?: number | null; recordingFirstBeat?: number | null }) => void;
+  onChange: (change: { recordingKey?: string | null; recordingTempo?: number | null; recordingFirstBeat?: number | null; recordingTimeSignature?: string | null }) => void;
 }) {
   const { t } = useTranslation();
   const first = files[0];
@@ -205,6 +213,7 @@ function RecordingFields({
     const details = [
       first?.recordingKey,
       first?.recordingTempo ? `${first.recordingTempo} BPM` : null,
+      first?.recordingTimeSignature,
       first?.recordingFirstBeat ? t("stems.firstBeatAt", { seconds: first.recordingFirstBeat }) : null,
     ]
       .filter(Boolean)
@@ -280,6 +289,101 @@ function RecordingFields({
           }}
         />
       </label>
+      <label className="flex items-center gap-2">
+        {t("stems.timeSignatureLabel")}
+        <NativeSelect
+          compact
+          value={first?.recordingTimeSignature ?? ""}
+          disabled={busy}
+          aria-label={label ? t("stems.recordingTimeSignature", { name: label }) : t("stems.stemsTimeSignature")}
+          onChange={(event) => onChange({ recordingTimeSignature: event.target.value || null })}
+        >
+          <option value="">{t("stems.songsTimeSignature")}</option>
+          {RECORDING_TIME_SIGNATURES.map((value) => (
+            <option key={value} value={value}>
+              {value}
+            </option>
+          ))}
+        </NativeSelect>
+      </label>
+    </div>
+  );
+}
+
+/**
+ * One of the song's multitracks (issue #123): its name, and what its
+ * parts were recorded in - key, tempo, time signature, first beat - which
+ * they share, so a change goes to all of them. Record adds a part to it.
+ */
+function MultitrackBox({
+  multitrack,
+  index,
+  songKey,
+  songTempo,
+  busy,
+  onChange,
+  onRecord,
+}: {
+  multitrack: Multitrack<Attachment>;
+  index: number;
+  songKey: string;
+  songTempo: string;
+  busy: boolean;
+  onChange: (files: Attachment[], change: Parameters<typeof apiClient.updateAttachment>[2]) => void;
+  onRecord: () => void;
+}) {
+  const { t } = useTranslation();
+  const nameOf = useMultitrackName();
+  const changeable = multitrack.files.filter((file) => file.canChange);
+  const name = nameOf(multitrack, index);
+  const [draft, setDraft] = useState(multitrack.name ?? "");
+  useEffect(() => setDraft(multitrack.name ?? ""), [multitrack.name]);
+  function saveName() {
+    const next = draft.trim();
+    if (next === (multitrack.name ?? "")) return;
+    onChange(changeable, { multitrackName: next || null });
+  }
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border p-3" data-testid="stems-recording" data-multitrack={multitrack.id ?? ""}>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="min-w-0 flex-1 text-sm font-medium">
+          {name} <span className="font-normal text-muted-foreground">· {t("stems.partsCount", { count: multitrack.files.length })}</span>
+        </p>
+        <Button type="button" variant="outline" size="sm" onClick={onRecord} disabled={busy} data-testid="record-part">
+          <Mic />
+          {t("recorder.recordPart")}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">{t("stems.recordingHint")}</p>
+      {changeable.length > 0 ? (
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          {t("stems.multitrackNameLabel")}
+          <Input
+            value={draft}
+            maxLength={60}
+            disabled={busy}
+            placeholder={name}
+            aria-label={t("stems.multitrackNameOf", { name })}
+            className="h-8 w-48 text-xs"
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={saveName}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                saveName();
+              }
+            }}
+          />
+        </label>
+      ) : null}
+      <RecordingFields
+        files={changeable.length > 0 ? changeable : multitrack.files}
+        songKey={songKey}
+        songTempo={songTempo}
+        canEdit={changeable.length > 0}
+        busy={busy}
+        onChange={(change) => onChange(changeable, change)}
+      />
     </div>
   );
 }
@@ -293,6 +397,8 @@ export function AttachmentsTab({
   canShare = false,
   songKey = "",
   songTempo = "",
+  songTimeSignature = "",
+  songTitle = "",
 }: {
   kind: "files" | "audio";
   songVersionId: string;
@@ -304,6 +410,9 @@ export function AttachmentsTab({
   /** The song's own, which a recording's key and tempo default to (#65). */
   songKey?: string;
   songTempo?: string;
+  /** "4/4": what a new multitrack's click defaults to (#123). */
+  songTimeSignature?: string;
+  songTitle?: string;
 }) {
   const { t } = useTranslation();
   const router = useRouter();
@@ -319,7 +428,11 @@ export function AttachmentsTab({
   // Who sees what's added: only its uploader, until they choose otherwise (issue #72).
   const [audience, setAudience] = useState<AttachmentAudience>({ visibility: "PRIVATE" });
   const stems = kind === "audio" ? stemsOf(attachments) : [];
-  const changeableStems = stems.filter((stem) => stem.canChange);
+  // The parts recorded together (issue #123): the song's original stems, and the multitracks since.
+  const multitracks = kind === "audio" ? multitracksOf(attachments) : [];
+  const nameOf = useMultitrackName();
+  // Recording a part (issue #123): into a multitrack, or a new one (null).
+  const [recording, setRecording] = useState<{ multitrack: Multitrack<Attachment> | null } | null>(null);
   const shown = attachments.filter((a) => (kind === "audio" ? a.type === "AUDIO" : a.type !== "AUDIO"));
 
   useEffect(() => {
@@ -409,20 +522,18 @@ export function AttachmentsTab({
             <p className="text-sm text-muted-foreground">{t(kind === "audio" ? "songEditor.noAudio" : "songEditor.noFiles")}</p>
           ) : (
             <>
-            {kind === "audio" && stems.length > 0 ? (
-              <div className="flex flex-col gap-2 rounded-lg border p-3" data-testid="stems-recording">
-                <p className="text-sm font-medium">{t("stems.recording")}</p>
-                <p className="text-xs text-muted-foreground">{t("stems.recordingHint")}</p>
-                <RecordingFields
-                  files={changeableStems.length > 0 ? changeableStems : stems}
-                  songKey={songKey}
-                  songTempo={songTempo}
-                  canEdit={changeableStems.length > 0}
-                  busy={busyId !== null}
-                  onChange={(change) => void update(changeableStems, change)}
-                />
-              </div>
-            ) : null}
+            {multitracks.map((multitrack, index) => (
+              <MultitrackBox
+                key={multitrack.id ?? ""}
+                multitrack={multitrack}
+                index={index}
+                songKey={songKey}
+                songTempo={songTempo}
+                busy={busyId !== null}
+                onChange={(files, change) => void update(files, change)}
+                onRecord={() => setRecording({ multitrack })}
+              />
+            ))}
             <ul className="flex flex-col divide-y" data-testid={`${kind}-list`}>
               {shown.map((attachment) => (
                 <li key={attachment.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
@@ -502,6 +613,44 @@ export function AttachmentsTab({
                   ) : kind === "audio" && attachment.stemPart ? (
                     <span className="self-start rounded-md bg-muted px-2 py-1 text-xs font-medium">{t(`stems.parts.${attachment.stemPart}`)}</span>
                   ) : null}
+                  {/* Which multitrack it's part of (issue #123): the files of another version go in one of their own. */}
+                  {kind === "audio" && attachment.canChange && attachment.stemPart ? (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {t("stems.multitrack")}
+                      <NativeSelect
+                        compact
+                        value={attachment.multitrackId ?? ""}
+                        disabled={busyId !== null}
+                        aria-label={t("stems.multitrackOf", { name: attachment.filename })}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          const target = multitracks.find((multitrack) => (multitrack.id ?? "") === value);
+                          const first = target?.files.find((file) => file.id !== attachment.id);
+                          // Into another multitrack: with its key, tempo and beat; into a new one, keeping its own.
+                          void update([attachment], {
+                            multitrackId: value === NEW_MULTITRACK ? newMultitrackId() : value || null,
+                            multitrackName: value === NEW_MULTITRACK ? null : (first?.multitrackName ?? null),
+                            ...(first
+                              ? {
+                                  recordingKey: first.recordingKey,
+                                  recordingTempo: first.recordingTempo,
+                                  recordingTimeSignature: first.recordingTimeSignature,
+                                  recordingFirstBeat: first.recordingFirstBeat,
+                                }
+                              : {}),
+                          });
+                        }}
+                      >
+                        {multitracks.map((multitrack, index) => (
+                          <option key={multitrack.id ?? ""} value={multitrack.id ?? ""}>
+                            {nameOf(multitrack, index)}
+                          </option>
+                        ))}
+                        {multitracks.some((multitrack) => multitrack.id === null) ? null : <option value="">{t("stems.originalStems")}</option>}
+                        <option value={NEW_MULTITRACK}>{t("stems.newMultitrack")}</option>
+                      </NativeSelect>
+                    </label>
+                  ) : null}
                   {/* A recording on its own has its own key and tempo; the stems share theirs (above the list). */}
                   {kind === "audio" && !attachment.stemPart ? (
                     <RecordingFields
@@ -521,6 +670,26 @@ export function AttachmentsTab({
             </>
           )}
           {kind === "audio" ? <p className="text-xs text-muted-foreground">{t("stems.detectHint")}</p> : null}
+          {/* The first layer of a song, or another version of it: a new multitrack, with the metronome only (#123). */}
+          {kind === "audio" ? (
+            <Button type="button" variant="outline" className="self-start" onClick={() => setRecording({ multitrack: null })} disabled={busyId !== null} data-testid="record-new">
+              <Mic />
+              {t("recorder.recordNew")}
+            </Button>
+          ) : null}
+          {recording ? (
+            <RecorderDialog
+              songVersionId={songVersionId}
+              songTitle={songTitle}
+              multitrack={recording.multitrack}
+              multitrackName={recording.multitrack ? nameOf(recording.multitrack, multitracks.indexOf(recording.multitrack)) : null}
+              songTempo={songTempo ? Number(songTempo) : null}
+              songTimeSignature={songTimeSignature}
+              songKey={songKey}
+              onClose={() => setRecording(null)}
+              onSaved={() => void router.invalidate()}
+            />
+          ) : null}
           {kind === "audio" && mode !== "practice" && stems.length > 0 ? (
             <Button type="button" variant="link" className="h-auto self-start p-0" onClick={() => setMode("practice")}>
               {t("stems.practiceHint")}

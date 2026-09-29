@@ -9,7 +9,7 @@ import { SyncControl } from "#/components/sync-control";
 import { StemDock } from "#/components/stem-dock";
 import { YouTubeDock } from "#/components/youtube-dock";
 import { fileLoader, songFiles } from "#/lib/song-files";
-import { playableOf } from "#/lib/stem-engine";
+import { stemFilesOf, useChosenMultitrack } from "#/lib/stem-engine";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -269,6 +269,7 @@ function SetSongStems({
   timeSignature: { numerator: number; denominator: number } | null | undefined;
 }) {
   const { mode } = useMode();
+  const chosen = useChosenMultitrack(songVersionId);
   const [files, setFiles] = useState<{ attachments: Attachment[]; offline: boolean; youtubeId: string | null }>({ attachments: [], offline: false, youtubeId: null });
 
   useEffect(() => {
@@ -288,10 +289,10 @@ function SetSongStems({
     };
   }, [mode, songVersionId]);
 
-  const stems = playableOf(files.attachments);
+  const playable = stemFilesOf(files.attachments, chosen);
   if (mode !== "practice") return null;
   // No audio of its own: its YouTube video, if it has one (issue #66).
-  if (stems.length === 0) {
+  if (playable.stems.length === 0) {
     return files.youtubeId ? <YouTubeDock video={{ songVersionId, videoId: files.youtubeId, title, returnTo }} /> : null;
   }
   return (
@@ -300,7 +301,7 @@ function SetSongStems({
         songVersionId,
         title,
         returnTo,
-        stems,
+        ...playable,
         load: fileLoader(songVersionId, files.offline),
         tempo,
         timeSignature,

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { SongChart } from "#/components/song-chart";
 import { StemDock } from "#/components/stem-dock";
 import { downloadBlob } from "#/lib/download";
-import { playableOf } from "#/lib/stem-engine";
+import { stemFilesOf, useChosenMultitrack } from "#/lib/stem-engine";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { formatBytes } from "#/lib/format-bytes";
@@ -56,7 +56,7 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
     void keysOffline("files").then((keys) => setKeptFiles(new Set(keys)));
   }, [song.songVersionId]);
 
-  const stems = playableOf(song.attachments.filter((file) => keptFiles.has(file.id)));
+  const playable = stemFilesOf(song.attachments.filter((file) => keptFiles.has(file.id)), useChosenMultitrack(song.songVersionId));
 
   async function open(file: Attachment) {
     const blob = await keptFile<Blob>(deviceStorage(), file.id);
@@ -88,13 +88,13 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
       </div>
 
       {/* Practice: the stems kept on the device (with "Include audio"), docked at the bottom. */}
-      {mode === "practice" && stems.length > 0 ? (
+      {mode === "practice" && playable.stems.length > 0 ? (
         <StemDock
           song={{
             songVersionId: song.songVersionId,
             title: song.title,
             returnTo: `/library/${song.songVersionId}`,
-            stems,
+            ...playable,
             load: async (file) => {
               const blob = await keptFile<Blob>(deviceStorage(), file.id);
               if (!blob) throw new Error("not kept");

@@ -238,18 +238,20 @@ function applySession() {
 
 /** A song's stems as this device sees them (its own files of it), online or kept on the device; null when it has none. */
 const stemSongs = new Map<string, Promise<StemSong | null>>();
-function stemSongFor(songVersionId: string, title: string): Promise<StemSong | null> {
-  let song = stemSongs.get(songVersionId);
+/** The leader's multitrack of the song (issue #123), when this device sees it; its original stems (or recording) for null. */
+function stemSongFor(songVersionId: string, multitrackId: string | null, title: string): Promise<StemSong | null> {
+  const key = `${songVersionId}|${multitrackId ?? ""}`;
+  let song = stemSongs.get(key);
   if (!song) {
     const returnTo = `${window.location.pathname}${window.location.search}`;
     song = songFiles(songVersionId)
       .then(({ attachments, offline }) => {
-        const stems = playableOf(attachments);
+        const stems = playableOf(attachments, multitrackId, true);
         if (stems.length === 0) return null;
-        return { songVersionId, title, returnTo, stems, load: fileLoader(songVersionId, offline) } satisfies StemSong;
+        return { songVersionId, title, returnTo, stems, multitrackId, load: fileLoader(songVersionId, offline) } satisfies StemSong;
       })
       .catch(() => null);
-    stemSongs.set(songVersionId, song);
+    stemSongs.set(key, song);
   }
   return song;
 }
@@ -259,9 +261,10 @@ function applyStems(leader: string) {
   const stems = state.session?.stems;
   if (!stems || state.offset === null) return void followStems(null, null, leader);
   const timeline = { playing: stems.playing, position: stems.position, epoch: stems.anchorAt - state.offset };
-  void stemSongFor(stems.songVersionId, stems.title).then((song) => {
+  void stemSongFor(stems.songVersionId, stems.multitrackId ?? null, stems.title).then((song) => {
     // Still the leader's, once the files are listed.
-    if (state.session?.stems?.songVersionId !== stems.songVersionId || state.leading) return;
+    const now = state.session?.stems;
+    if (now?.songVersionId !== stems.songVersionId || (now.multitrackId ?? null) !== (stems.multitrackId ?? null) || state.leading) return;
     void followStems(song, song ? timeline : null, leader);
   });
 }
@@ -275,6 +278,7 @@ function publishStems(stems: StemState) {
     stems.songVersionId && (stems.playing || stems.status === "ready")
       ? {
           songVersionId: stems.songVersionId,
+          multitrackId: stems.multitrackId,
           title: stems.title,
           playing: stems.playing && !!stems.anchor,
           position: stems.playing && stems.anchor ? stems.anchor.position : stems.position,

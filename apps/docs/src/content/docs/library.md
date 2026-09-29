@@ -118,7 +118,7 @@ Anyone who can see a song can add files of their own to it, even a song they can
 
 Stems are the song's parts as separate recordings: vocals, drums, bass and so on. Upload them on the **Audio** tab. A file named after its part ("Vocals.mp3", "03 drums.opus", "Basse.mp3") becomes that stem on its own. For any other file, choose the part in the **Stem** list under it: **Vocals**, **Backing vocals**, **Drums**, **Bass**, **Guitar**, **Piano and keys**, **Other** or **Click and cues**, or **Not a stem** for a full recording.
 
-If the stems (or any recording) aren't in the song's key or at its tempo, a live version a tone up for example, set the recording's own under **The stems' recording** (or under the file): **Key** and **BPM**. Left as **Song's key**, and empty, they're the song's. **First beat at (s)** is where its first beat falls, in seconds from its start (empty: at 0:00): with the tempo, it places the metronome on the recording.
+If the stems (or any recording) aren't in the song's key or at its tempo, a live version a tone up for example, set the recording's own in the stems' box above the files (or under the file): **Key** and **BPM**, and **Time** for its time signature. Left as **Song's key**, empty and **Song's**, they're the song's. **First beat at (s)** is where its first beat falls, in seconds from its start (empty: at 0:00): with the tempo, it places the metronome on the recording.
 
 In **Practice** mode (see [Edit, Practice and Live](/getting-started/#edit-practice-and-live)), a song with stems has the stem player docked at the bottom of its page, and of its page in a set. It starts as one row: **Play**, then a round button per part, showing its instrument (a microphone for the vocals, a drum, a bass clef, a guitar, a piano...). Tap one to mute that part and play along with the rest; tap it again to bring it back. Hold the pointer over one to see its name.
 
@@ -137,6 +137,27 @@ The song keeps playing while you go to another page or leave Practice, and on a 
 A song without stems plays its latest recording in the same player, as one part. A song with no audio at all but a YouTube link (on the **Links** tab) plays its YouTube video there instead: the video shows beside the controls, as YouTube requires, and the parts can't be separated. It keeps playing in a small window at the bottom right while you go to other pages; the song's name there takes you back. YouTube stops when the phone locks and doesn't play offline, so for those, add the recording to the **Audio** tab.
 
 Stems kept on your device for offline use (**Include audio**, see [Working offline](/offline/)) play offline too.
+
+### Multitracks
+
+A song can have more than one set of stems: its **Original stems**, and multitracks - parts recorded together, another version or your own layers (see [Recording a part](/library/#recording-a-part)). Each has its box on the **Audio** tab, with its **Name**, its number of parts, and what its parts were recorded in: its key, tempo, time signature and first beat, which they share. Under a stem, the **Multitrack** list moves it into another one, or into a **New multitrack** of its own: upload the files of another version, then put them together that way.
+
+In **Practice**, the stem player plays one multitrack at a time: when a song has more than one, the list beside the position bar switches between them (**Original stems**, then the others by name, or **Multitrack 2**...). Songverse remembers your choice for each song on the device. Playing in sync, everyone plays the leader's multitrack, with their own files of it.
+
+### Recording a part
+
+You can record a part straight into Songverse, on a computer, phone or tablet with a microphone:
+
+- **Record a new multitrack**, at the bottom of the **Audio** tab: the first layer of a song, or another version of it, with the metronome only. Give it a **Name**, a **Tempo (BPM)** and a **Time signature** (the song's to start with). It starts with a bar of count-in, which is kept: the multitrack's first beat is one bar in.
+- **Record a part**, in a multitrack's box: another part of it, hearing its other parts (untick one under **Hear** to leave it out) and the click, at its tempo, with a bar of count-in before its first beat.
+
+![Recording a part of the stems, hearing the others](../../assets/screenshots/en/recorder.jpg)
+
+Choose the **Part** you're recording, untick **Click** to record without the metronome, and press **Record**; **Stop** ends the take. Use headphones, so the microphone only hears you, not the click and the other parts.
+
+What you play is lined up with what you heard: Songverse takes off the delay between a sound leaving the device and the microphone hearing it. The dialog shows it - the browser's estimate to start with. For a closer one, **Measure it** with the sound on the speakers (headphones off, sound up): Songverse plays a few clicks and listens for them, and remembers what it measured on this device.
+
+**Listen** plays the take back with the rest. If it's still a little early or late, move **Line up** (in milliseconds) and listen again. **Keep** adds it to the multitrack as that part - a WAV file only you see, until you choose who else does (see [Who sees a file](/library/#who-sees-a-file)); **Record again** tries again. A take can be up to about nine minutes long.
 
 ## Submitting to the global catalogue
 

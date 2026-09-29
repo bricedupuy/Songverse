@@ -44,3 +44,52 @@ export function isAudioFilename(filename: string): boolean {
   const lower = filename.toLowerCase();
   return STEM_FILE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
+
+/** What grouping needs of an audio file (the API's attachment has it all). */
+export interface MultitrackFile {
+  type: string;
+  stemPart: StemPart | null;
+  filename: string;
+  createdAt: string;
+  multitrackId?: string | null;
+  multitrackName?: string | null;
+}
+
+/** A song's multitrack (issue #123): the parts recorded together, played together. */
+export interface Multitrack<F extends MultitrackFile = MultitrackFile> {
+  /** Null: the song's original stems. */
+  id: string | null;
+  /** As its files give it, or null (the app names it). */
+  name: string | null;
+  /** In the player's order: by part, then by name. */
+  files: F[];
+}
+
+const byPart = (a: MultitrackFile, b: MultitrackFile) =>
+  STEM_PARTS.indexOf(a.stemPart ?? "OTHER") - STEM_PARTS.indexOf(b.stemPart ?? "OTHER") || a.filename.localeCompare(b.filename);
+
+/**
+ * A song's multitracks: its audio files with a part, or in a multitrack,
+ * grouped by multitrack - the original stems first, then the others in
+ * the order they were started. A whole recording (no part, no multitrack)
+ * is in none.
+ */
+export function multitracksOf<F extends MultitrackFile>(files: F[]): Multitrack<F>[] {
+  const groups = new Map<string | null, F[]>();
+  for (const file of files) {
+    if (file.type !== "AUDIO" || (file.stemPart === null && !file.multitrackId)) continue;
+    const id = file.multitrackId ?? null;
+    groups.set(id, [...(groups.get(id) ?? []), file]);
+  }
+  const started = (group: F[]) => group.reduce((first, file) => (file.createdAt < first ? file.createdAt : first), group[0]!.createdAt);
+  return [...groups.entries()]
+    .sort(([a, x], [b, y]) => (a === null ? -1 : b === null ? 1 : started(x).localeCompare(started(y))))
+    .map(([id, group]) => ({ id, name: group.find((file) => file.multitrackName)?.multitrackName ?? null, files: [...group].sort(byPart) }));
+}
+
+/** A fresh multitrack id, for the first file of a new one. */
+export function newMultitrackId(): string {
+  const bytes = new Uint8Array(12);
+  globalThis.crypto.getRandomValues(bytes);
+  return `mt${[...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}

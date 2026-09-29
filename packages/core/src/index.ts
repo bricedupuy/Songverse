@@ -34,6 +34,7 @@ export * from "./offline/index.js";
 export * from "./songbook-references/index.js";
 export * from "./search-text/index.js";
 export * from "./stems/index.js";
+export * from "./recording/index.js";
 export * from "./song-history/index.js";
 export * from "./song-document/fold.js";
 export * from "./metronome/index.js";

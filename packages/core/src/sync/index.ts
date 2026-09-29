@@ -24,6 +24,8 @@ export interface SyncMetronome {
 /** The leader's stems or recording (issue #100): followers play their own files of the song the same way. */
 export interface SyncStems {
   songVersionId: string;
+  /** Which of the song's multitracks (issue #123); null or left out, its original stems. */
+  multitrackId?: string | null;
   title: string;
   playing: boolean;
   /** Seconds into the recording. */

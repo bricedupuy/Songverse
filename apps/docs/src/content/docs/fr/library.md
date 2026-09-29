@@ -118,7 +118,7 @@ Toute personne qui voit un chant peut y ajouter ses propres fichiers, même sans
 
 Les pistes (ou stems) sont les parties du chant enregistrées séparément : voix, batterie, basse, etc. Importez-les dans l'onglet **Audio**. Un fichier nommé d'après sa partie (« Voix.mp3 », « 03 drums.opus », « Basse.mp3 ») devient cette piste tout seul. Pour les autres fichiers, choisissez la partie dans la liste **Piste** sous le fichier : **Voix**, **Chœurs**, **Batterie**, **Basse**, **Guitare**, **Piano et claviers**, **Autres** ou **Clic et repères**, ou **Pas une piste** pour un enregistrement complet.
 
-Si les pistes (ou un enregistrement) ne sont pas dans la tonalité du chant ou à son tempo, une version live un ton plus haut par exemple, indiquez les leurs sous **L'enregistrement des pistes** (ou sous le fichier) : **Tonalité** et **BPM**. Laissés sur **Tonalité du chant**, et vides, ce sont ceux du chant. **Premier temps à (s)** indique où tombe son premier temps, en secondes depuis son début (vide : à 0:00) : avec le tempo, il place le métronome sur l'enregistrement.
+Si les pistes (ou un enregistrement) ne sont pas dans la tonalité du chant ou à son tempo, une version live un ton plus haut par exemple, indiquez les leurs dans le cadre des pistes au-dessus des fichiers (ou sous le fichier) : **Tonalité** et **BPM**, et **Mesure** pour sa mesure. Laissés sur **Tonalité du chant**, vides et sur **Celle du chant**, ce sont ceux du chant. **Premier temps à (s)** indique où tombe son premier temps, en secondes depuis son début (vide : à 0:00) : avec le tempo, il place le métronome sur l'enregistrement.
 
 En mode **Session** (voir [Édition, Session et Live](/fr/getting-started/#édition-session-et-live)), un chant qui a des pistes affiche le lecteur de pistes en bas de sa page, et de sa page dans une liste. Il commence sur une seule ligne : **Lecture**, puis un bouton rond par partie, avec son instrument (un micro pour la voix, une batterie, une clé de fa, une guitare, un piano…). Touchez-en un pour couper cette partie et jouer avec le reste ; touchez-le de nouveau pour la remettre. Survolez-en un pour voir son nom.
 
@@ -137,6 +137,27 @@ Le chant continue de jouer quand vous allez sur une autre page ou quittez le mod
 Un chant sans pistes joue son dernier enregistrement dans le même lecteur, comme une seule partie. Un chant sans aucun audio mais avec un lien YouTube (onglet **Liens**) y joue sa vidéo YouTube : la vidéo s'affiche à côté des commandes, comme YouTube l'exige, et les parties ne peuvent pas être séparées. Elle continue dans une petite fenêtre en bas à droite quand vous allez sur d'autres pages ; le nom du chant vous y ramène. YouTube s'arrête quand le téléphone se verrouille et ne joue pas hors ligne : dans ces cas, ajoutez l'enregistrement dans l'onglet **Audio**.
 
 Les pistes gardées sur votre appareil pour le hors ligne (**Avec l'audio**, voir [Hors ligne](/fr/offline/)) se lisent aussi hors ligne.
+
+### Multipistes
+
+Un chant peut avoir plus d'un jeu de pistes : ses **Pistes d'origine**, et des multipistes - des pistes enregistrées ensemble, une autre version ou vos propres couches (voir [Enregistrer une piste](/fr/library/#enregistrer-une-piste)). Chacun a son cadre dans l'onglet **Audio**, avec son **Nom**, son nombre de pistes, et ce dans quoi ses pistes ont été enregistrées : tonalité, tempo, mesure et premier temps, qu'elles partagent. Sous une piste, la liste **Multipiste** la déplace dans un autre, ou dans un **Nouveau multipiste** à elle : importez les fichiers d'une autre version, puis rassemblez-les ainsi.
+
+En mode **Session**, le lecteur de pistes joue un multipiste à la fois : quand un chant en a plusieurs, la liste à côté de la barre de position passe de l'un à l'autre (**Pistes d'origine**, puis les autres par leur nom, ou **Multipiste 2**…). Songverse retient votre choix pour chaque chant sur l'appareil. En jeu synchronisé, chacun joue le multipiste du meneur, avec ses propres fichiers.
+
+### Enregistrer une piste
+
+Vous pouvez enregistrer une piste directement dans Songverse, sur un ordinateur, un téléphone ou une tablette avec un micro :
+
+- **Enregistrer un nouveau multipiste**, en bas de l'onglet **Audio** : la première couche d'un chant, ou une autre version, avec le métronome seul. Donnez-lui un **Nom**, un **Tempo (BPM)** et une **Mesure** (ceux du chant pour commencer). Il commence par une mesure de décompte, qui est gardée : le premier temps du multipiste tombe une mesure plus loin.
+- **Enregistrer une piste**, dans le cadre d'un multipiste : une autre de ses pistes, en entendant les autres (décochez-en une sous **Entendre** pour la laisser de côté) et le clic, à son tempo, avec une mesure de décompte avant son premier temps.
+
+![Enregistrer une piste, en entendant les autres](../../../assets/screenshots/fr/recorder.jpg)
+
+Choisissez la **Piste** que vous enregistrez, décochez **Clic** pour enregistrer sans métronome, et appuyez sur **Enregistrer** ; **Arrêter** termine la prise. Utilisez un casque, pour que le micro n'entende que vous, pas le clic et les autres pistes.
+
+Ce que vous jouez est calé sur ce que vous avez entendu : Songverse compense le retard entre un son qui sort de l'appareil et le moment où le micro l'entend. La fenêtre l'indique - estimé par le navigateur pour commencer. Pour une valeur plus juste, **Le mesurer** avec le son sur les haut-parleurs (casque retiré, son monté) : Songverse joue quelques clics, les écoute, et retient la mesure sur cet appareil.
+
+**Écouter** rejoue la prise avec le reste. Si elle est encore un peu en avance ou en retard, déplacez **Caler** (en millisecondes) et réécoutez. **Garder** l'ajoute au multipiste comme cette piste - un fichier WAV que vous seul voyez, jusqu'à ce que vous choisissiez qui d'autre le voit (voir [Qui voit un fichier](/fr/library/#qui-voit-un-fichier)) ; **Recommencer** refait une prise. Une prise peut durer jusqu'à neuf minutes environ.
 
 ## Proposer au catalogue global
 

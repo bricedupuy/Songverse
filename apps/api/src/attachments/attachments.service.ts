@@ -81,15 +81,20 @@ export class AttachmentsService {
     stemPart: StemPart | null = null,
     visibility: AttachmentVisibilityValue = "PRIVATE",
     teamId: string | null = null,
+    recording: RecordingChange = {},
   ) {
     if (stemPart && type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
+    const details = recordingData(recording);
+    if (type !== "AUDIO" && Object.values(details).some((value) => value !== null)) {
+      throw new BadRequestException("Only audio files can have a recording's key and tempo or be part of a multitrack");
+    }
     const song = await this.songRights(viewer, songVersionId);
     const canEditSong = song.canEditSong;
     const audience = await this.audience(viewer, song, visibility, teamId);
     await this.quota.assertCanStore(viewer.id, body.length);
     const { hash, sizeBytes } = await this.storage.put(body, mimeType);
     const row = await this.prisma.client.attachment.create({
-      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes, uploadedByUserId: viewer.id, stemPart, ...audience },
+      data: { songVersionId, type, filename, mimeType, storageKey: hash, sizeBytes, uploadedByUserId: viewer.id, stemPart, ...details, ...audience },
       include: ATTACHMENT_INCLUDE,
     });
     return present(row, viewer, canEditSong);
@@ -103,23 +108,8 @@ export class AttachmentsService {
   async update(viewer: Viewer, songVersionId: string, attachmentId: string, change: UpdateAttachmentDto) {
     const { attachment, canEditSong } = await this.findVisible(viewer, songVersionId, attachmentId);
     const rights = present(attachment, viewer, canEditSong);
-    const data: {
-      stemPart?: StemPart | null;
-      recordingKey?: string | null;
-      recordingTempo?: number | null;
-      recordingFirstBeat?: number | null;
-      visibility?: AttachmentVisibilityValue;
-      visibleToTeamId?: string | null;
-    } = {};
+    const data: Prisma.AttachmentUncheckedUpdateInput = recordingData(change);
     if (change.stemPart !== undefined) data.stemPart = change.stemPart;
-    if (change.recordingKey !== undefined) {
-      // Kept as written ("Gb" stays "Gb"), once it reads as a key.
-      const written = change.recordingKey?.trim() ?? "";
-      if (written && !parseKey(written)) throw new BadRequestException(`"${written}" isn't a key Songverse can read`);
-      data.recordingKey = written || null;
-    }
-    if (change.recordingTempo !== undefined) data.recordingTempo = change.recordingTempo;
-    if (change.recordingFirstBeat !== undefined) data.recordingFirstBeat = change.recordingFirstBeat;
     if (attachment.type !== "AUDIO" && Object.values(data).some((value) => value !== null)) {
       throw new BadRequestException("Only audio files can be stems or have a recording's key and tempo");
     }
@@ -216,6 +206,30 @@ type AttachmentRow = Prisma.AttachmentGetPayload<{ include: typeof ATTACHMENT_IN
  * `canChangeVisibility` for its uploader (or, for a file whose uploader
  * isn't known, the song's editors).
  */
+/** An audio file's recording details (#65, #100) and multitrack (#123): what's left out stays, null clears. */
+export interface RecordingChange {
+  recordingKey?: string | null;
+  recordingTempo?: number | null;
+  recordingFirstBeat?: number | null;
+  recordingTimeSignature?: string | null;
+  multitrackId?: string | null;
+  multitrackName?: string | null;
+}
+
+function recordingData(change: RecordingChange) {
+  const data: RecordingChange = {};
+  if (change.recordingKey !== undefined) {
+    // Kept as written ("Gb" stays "Gb"), once it reads as a key.
+    const written = change.recordingKey?.trim() ?? "";
+    if (written && !parseKey(written)) throw new BadRequestException(`"${written}" isn't a key Songverse can read`);
+    data.recordingKey = written || null;
+  }
+  for (const field of ["recordingTempo", "recordingFirstBeat", "recordingTimeSignature", "multitrackId", "multitrackName"] as const) {
+    if (change[field] !== undefined) (data as Record<string, unknown>)[field] = change[field];
+  }
+  return data;
+}
+
 function present(row: AttachmentRow, viewer: Viewer, canEditSong: boolean) {
   const mine = row.uploadedByUserId === viewer.id;
   return {

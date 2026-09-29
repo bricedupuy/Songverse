@@ -91,6 +91,14 @@ export class AttachmentsController {
       dto.stemPart ?? null,
       dto.visibility ?? "PRIVATE",
       dto.teamId ?? null,
+      {
+        recordingKey: dto.recordingKey,
+        recordingTempo: dto.recordingTempo,
+        recordingTimeSignature: dto.recordingTimeSignature,
+        recordingFirstBeat: dto.recordingFirstBeat,
+        multitrackId: dto.multitrackId,
+        multitrackName: dto.multitrackName,
+      },
     );
   }
 

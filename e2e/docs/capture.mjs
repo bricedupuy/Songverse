@@ -71,7 +71,8 @@ const nextSunday = () => {
   return date.toISOString().slice(0, 10);
 };
 
-const browser = await chromium.launch();
+// A fake microphone, for the recorder (issue #123).
+const browser = await chromium.launch({ args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] });
 try {
   for (const [locale, text] of Object.entries(LOCALES)) {
     console.log(`\n${locale}`);
@@ -176,7 +177,7 @@ try {
     }
 
     // --- the screenshots
-    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: locale === "fr" ? "fr-FR" : "en-US", colorScheme: "light" });
+    const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, locale: locale === "fr" ? "fr-FR" : "en-US", colorScheme: "light", permissions: ["microphone"] });
     const page = await context.newPage();
     await signIn(page, me);
     const shoot = async (name, url, ready, options = {}) => {
@@ -208,6 +209,13 @@ try {
     await shoot("song-order", null, null, { element: page.getByTestId("song-order") });
     // Who sees each file (issue #72): the stems shared with the band, a recording kept to oneself.
     await shoot("song-files", `/library/${grace.id}?tab=audio`, () => page.getByTestId("audio-list").waitFor());
+    // Recording a part into the stems (issue #123): the dialog, ready.
+    await shoot("recorder", null, async () => {
+      await page.getByTestId("record-part").first().click();
+      await page.locator('[data-testid="recorder"][data-phase="ready"]').waitFor();
+    }, { element: page.getByTestId("recorder") });
+    await page.keyboard.press("Escape");
+    await page.getByTestId("recorder").waitFor({ state: "detached" });
     await shoot("song-history", `/library/${grace.id}?tab=history`, () => page.getByTestId("history-chart-diff").waitFor());
     await shoot("versions", `/library/${grace.id}?tab=arrangements`, () => page.getByTestId("arrangement-list").waitFor());
     await shoot("version-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });

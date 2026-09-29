@@ -14,6 +14,9 @@ export class AttachmentResponseDto {
   @ApiProperty({ nullable: true }) recordingKey!: string | null;
   @ApiProperty({ nullable: true }) recordingTempo!: number | null;
   @ApiProperty({ nullable: true }) recordingFirstBeat!: number | null;
+  @ApiProperty({ nullable: true, description: '"4/4", "6/8"…' }) recordingTimeSignature!: string | null;
+  @ApiProperty({ nullable: true, description: "The multitrack it's part of (files recorded together); null for the song's original stems." }) multitrackId!: string | null;
+  @ApiProperty({ nullable: true }) multitrackName!: string | null;
   @ApiProperty({ enum: ["PRIVATE", "TEAM", "SONG", "SHARED"] }) visibility!: "PRIVATE" | "TEAM" | "SONG" | "SHARED";
   @ApiProperty({ nullable: true }) visibleToTeamId!: string | null;
   @ApiProperty({ nullable: true }) uploadedByUserId!: string | null;

@@ -12,7 +12,7 @@ import { YouTubeDock } from "#/components/youtube-dock";
 import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
 import { setMode } from "#/lib/mode";
-import { playableOf } from "#/lib/stem-engine";
+import { stemFilesOf, useChosenMultitrack } from "#/lib/stem-engine";
 
 /**
  * A library song in Practice (issue #67): its chart, as written and read
@@ -43,7 +43,7 @@ export function PracticeSongPage({
       }),
     [version, notation, capoDisplay],
   );
-  const playable = playableOf(attachments);
+  const playable = stemFilesOf(attachments, useChosenMultitrack(version.id));
   const youtubeId = version.identifiers.find((identifier) => identifier.type === "YOUTUBE")?.value ?? null;
   const returnTo = `/library/${version.id}`;
   const details = [
@@ -90,13 +90,13 @@ export function PracticeSongPage({
       </Card>
 
       {/* Its stems or recording, else its YouTube video, docked at the bottom (issues #64, #66). */}
-      {playable.length > 0 ? (
+      {playable.stems.length > 0 ? (
         <StemDock
           song={{
             songVersionId: version.id,
             title: version.title,
             returnTo,
-            stems: playable,
+            ...playable,
             load: (file, onProgress) => apiClient.downloadAttachment(version.id, file.id, onProgress),
             tempo: chart.tempo,
             timeSignature: chart.timeSignature,

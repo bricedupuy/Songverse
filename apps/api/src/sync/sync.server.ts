@@ -321,6 +321,7 @@ function validStems(value: SyncStems): boolean {
     typeof value === "object" &&
     typeof value.songVersionId === "string" &&
     value.songVersionId.length <= 64 &&
+    (value.multitrackId === undefined || value.multitrackId === null || (typeof value.multitrackId === "string" && value.multitrackId.length <= 40)) &&
     typeof value.title === "string" &&
     value.title.length <= 300 &&
     typeof value.playing === "boolean" &&

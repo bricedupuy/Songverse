@@ -27,6 +27,7 @@ import { setMode } from "#/lib/mode";
 import { setRecordingClick, useRecordingClick } from "#/lib/recording-click";
 import { unlockSyncAudio } from "#/lib/sync-client";
 import {
+  chooseMultitrack,
   dockStems,
   isAudible,
   pauseStems,
@@ -63,6 +64,13 @@ const PART_ICONS: Record<StemPart, LucideIcon> = {
 // Clear of the screen's rounded corners and the home indicator on a phone.
 const EDGES = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:px-6";
 
+/** A multitrack's name: its own, "Original stems" for the song's first, else "Multitrack 2"… */
+export function useMultitrackName() {
+  const { t } = useTranslation();
+  return (multitrack: { id: string | null; name: string | null }, index: number) =>
+    multitrack.name ?? (multitrack.id === null ? t("stems.originalStems") : t("stems.multitrackNumber", { number: index + 1 }));
+}
+
 function useTrackName() {
   const { t } = useTranslation();
   return (track: StemTrack) => (track.part ? `${t(`stems.parts.${track.part}`)}${track.number ? ` ${track.number}` : ""}` : t("stems.fullMix"));
@@ -94,7 +102,29 @@ export function StemDock({ song }: { song: StemSong }) {
   const click = useRecordingClick();
   // What the stems were recorded in (#65), when it isn't the song's; they share it.
   const recording = song.stems[0];
-  const recorded = [recording?.recordingKey, recording?.recordingTempo ? `${recording.recordingTempo} BPM` : null].filter(Boolean).join(" · ");
+  const recorded = [recording?.recordingKey, recording?.recordingTempo ? `${recording.recordingTempo} BPM` : null, recording?.recordingTimeSignature].filter(Boolean).join(" · ");
+  // The song's other multitracks (issue #123), to switch to; not while following the leader's.
+  const multitracks = song.multitracks ?? [];
+  const multitrackName = useMultitrackName();
+  const picker =
+    multitracks.length > 1 && !following ? (
+      <select
+        className="h-8 max-w-40 min-w-0 shrink rounded-md border bg-background px-2 text-sm"
+        value={song.multitrackId ?? ""}
+        onChange={(event) => {
+          if (playing) pauseStems();
+          chooseMultitrack(song.songVersionId, event.target.value || null);
+        }}
+        aria-label={t("stems.multitrack")}
+        data-testid="stem-multitrack"
+      >
+        {multitracks.map((multitrack, index) => (
+          <option key={multitrack.id ?? ""} value={multitrack.id ?? ""}>
+            {multitrackName(multitrack, index)}
+          </option>
+        ))}
+      </select>
+    ) : null;
 
   useEffect(() => {
     try {
@@ -214,6 +244,7 @@ export function StemDock({ song }: { song: StemSong }) {
               aria-label={t("stems.position")}
               className="min-w-0 flex-1 accent-primary"
             />
+            {picker}
             {clickButton}
             <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => expand(false)} aria-label={t("stems.minimize")}>
               <ChevronDown />
@@ -276,6 +307,7 @@ export function StemDock({ song }: { song: StemSong }) {
             )}
           </div>
           {status ? <span className="hidden sm:block">{status}</span> : duration ? <span className="hidden sm:block">{time}</span> : null}
+          {picker ? <span className="hidden sm:block">{picker}</span> : null}
           {clickButton}
           <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => expand(true)} aria-label={t("stems.expand")}>
             <ChevronUp />

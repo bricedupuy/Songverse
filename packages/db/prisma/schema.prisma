@@ -1160,6 +1160,15 @@ model Attachment {
   // Where its first beat falls, in seconds from its start (issue #100):
   // what places the metronome against it. Null means at 0:00.
   recordingFirstBeat Float?
+  // Its time signature ("4/4", "6/8"), when it isn't the song's (issue #123).
+  recordingTimeSignature String?
+  // The multitrack it's part of (issue #123): files recorded together,
+  // sharing their key, tempo, time signature and first beat, played
+  // together. Null: the song's original stems. A group id, not a table:
+  // the files carry the multitrack's name and values between them, as
+  // they already did its key and tempo.
+  multitrackId   String?
+  multitrackName String?
   // Who the upload counts against for storage limits. Null for files
   // uploaded before this was tracked into a team-owned song, or whose
   // uploader has since been deleted.

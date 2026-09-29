@@ -1,4 +1,4 @@
-import { STEM_PARTS, type Attachment, type StemPart } from "@songverse/core";
+import { multitracksOf, STEM_PARTS, TIME_SIGNATURE_PATTERN, type Attachment, type StemPart } from "@songverse/core";
 import { useSyncExternalStore } from "react";
 import { deviceNow, OutputClock } from "#/lib/output-clock";
 
@@ -29,6 +29,17 @@ export interface StemSong {
   /** The song's tempo and time signature, for the metronome with the recording (issue #100); its recording's own tempo comes first. */
   tempo?: number | null;
   timeSignature?: { numerator: number; denominator: number } | null;
+  /** Which of the song's multitracks `stems` are (issue #123): null its original stems. */
+  multitrackId?: string | null;
+  /** The song's multitracks, for the player to offer the others. */
+  multitracks?: MultitrackChoice[];
+}
+
+/** A multitrack as the player lists it. */
+export interface MultitrackChoice {
+  id: string | null;
+  name: string | null;
+  parts: number;
 }
 
 export interface StemTrack {
@@ -47,6 +58,8 @@ export interface StemState {
   /** What's loaded: which song, and which files (a part reassigned is another set of stems). */
   key: string | null;
   songVersionId: string | null;
+  /** Which of its multitracks is loaded (issue #123); null its original stems. */
+  multitrackId: string | null;
   title: string;
   returnTo: string;
   status: "idle" | "loading" | "ready" | "error";
@@ -75,6 +88,7 @@ const PEAK_SLICES = 400;
 const EMPTY: StemState = {
   key: null,
   songVersionId: null,
+  multitrackId: null,
   title: "",
   returnTo: "",
   status: "idle",
@@ -120,7 +134,7 @@ function set(change: Partial<StemState>) {
   for (const listener of listeners) listener();
 }
 
-/** A song's stems in the player's order: by part, then by name. */
+/** A song's stems in the player's order: by part, then by name - all of them, whatever multitrack. */
 export function stemsOf(attachments: Attachment[]): (Attachment & { stemPart: StemPart })[] {
   return attachments
     .filter((file): file is Attachment & { stemPart: StemPart } => file.type === "AUDIO" && file.stemPart !== null)
@@ -128,14 +142,66 @@ export function stemsOf(attachments: Attachment[]): (Attachment & { stemPart: St
 }
 
 /**
- * What the player plays for a song (issue #66): its stems, or when it has
- * none its latest whole recording, or nothing.
+ * What the player plays for a song (issues #66, #123): the multitrack
+ * asked for, or its first (its original stems when it has them), or when
+ * it has none its latest whole recording, or nothing. `strict`: only the
+ * multitrack asked for (Sync play follows the leader's, not another).
  */
-export function playableOf(attachments: Attachment[]): StemFile[] {
-  const stems = stemsOf(attachments);
-  if (stems.length > 0) return stems;
+export function playableOf(attachments: Attachment[], multitrackId?: string | null, strict = false): StemFile[] {
+  const multitracks = multitracksOf(attachments);
+  const chosen = multitrackId === undefined ? undefined : multitracks.find((multitrack) => multitrack.id === multitrackId);
+  if (chosen) return chosen.files;
+  if (strict && multitrackId) return [];
+  if (multitracks[0]) return multitracks[0].files;
   const [latest] = attachments.filter((file) => file.type === "AUDIO").sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   return latest ? [latest] : [];
+}
+
+/** A song's files for the player: the chosen multitrack's (see chooseMultitrack), and the others to offer. */
+export function stemFilesOf(attachments: Attachment[], multitrackId: string | null | undefined): Pick<StemSong, "stems" | "multitrackId" | "multitracks"> {
+  const stems = playableOf(attachments, multitrackId);
+  const multitracks = multitracksOf(attachments).map((multitrack) => ({ id: multitrack.id, name: multitrack.name, parts: multitrack.files.length }));
+  return { stems, multitrackId: stems[0]?.multitrackId ?? null, multitracks };
+}
+
+// --- which multitrack each song plays (issue #123), remembered on the device
+
+const CHOICE_KEY = "songverse.stems.multitrack.";
+const choices = new Map<string, string | null>();
+const choiceListeners = new Set<() => void>();
+
+function choiceOf(songVersionId: string): string | null | undefined {
+  if (choices.has(songVersionId)) return choices.get(songVersionId);
+  try {
+    const saved = localStorage.getItem(CHOICE_KEY + songVersionId);
+    if (saved !== null) return saved === "" ? null : saved;
+  } catch {
+    // Storage blocked.
+  }
+  return undefined;
+}
+
+/** Plays that multitrack of the song from now on (null: its original stems). */
+export function chooseMultitrack(songVersionId: string, multitrackId: string | null) {
+  choices.set(songVersionId, multitrackId);
+  try {
+    localStorage.setItem(CHOICE_KEY + songVersionId, multitrackId ?? "");
+  } catch {
+    // Remembered until the page reloads.
+  }
+  for (const listener of choiceListeners) listener();
+}
+
+/** The multitrack chosen for the song; undefined when none was (its first then). */
+export function useChosenMultitrack(songVersionId: string): string | null | undefined {
+  return useSyncExternalStore(
+    (listener) => {
+      choiceListeners.add(listener);
+      return () => choiceListeners.delete(listener);
+    },
+    () => choiceOf(songVersionId),
+    () => undefined,
+  );
 }
 
 export function stemKey(song: Pick<StemSong, "songVersionId" | "stems">): string {
@@ -384,6 +450,7 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
   set({
     key,
     songVersionId: song.songVersionId,
+    multitrackId: song.multitrackId ?? song.stems[0]?.multitrackId ?? null,
     title: song.title,
     returnTo: song.returnTo,
     status: "loading",
@@ -521,11 +588,17 @@ export function undockStems(songVersionId: string) {
 }
 
 /** The recording's beat, from its first file (the stems share it) and the song. */
-function beatOf(song: StemSong): StemState["beat"] {
+export function beatOf(song: Pick<StemSong, "stems" | "tempo" | "timeSignature">): StemState["beat"] {
   const first = song.stems[0];
   const tempo = first?.recordingTempo ?? song.tempo ?? null;
   if (!tempo) return null;
-  return { tempo, timeSignature: song.timeSignature ?? null, firstBeat: first?.recordingFirstBeat ?? 0 };
+  return { tempo, timeSignature: timeSignatureOf(first?.recordingTimeSignature) ?? song.timeSignature ?? null, firstBeat: first?.recordingFirstBeat ?? 0 };
+}
+
+/** "6/8" as numbers; null when there's none or it doesn't read. */
+export function timeSignatureOf(text: string | null | undefined): { numerator: number; denominator: number } | null {
+  const match = text ? TIME_SIGNATURE_PATTERN.exec(text) : null;
+  return match ? { numerator: Number(match[1]), denominator: Number(match[2]) } : null;
 }
 
 // --- Sync play (issue #100)
@@ -572,7 +645,7 @@ export async function followStems(song: StemSong | null, timeline: StemTimeline 
   if (state.following !== leader) set({ following: leader });
   if (!(await load(song)) || !context || !clock) return;
   const latest = followedStems;
-  if (!latest || latest.song.songVersionId !== song.songVersionId) return;
+  if (!latest || stemKey(latest.song) !== stemKey(song)) return;
   const { timeline: now } = latest;
   if (!now.playing) {
     pause();
