@@ -22,7 +22,7 @@ import {
   UserRoundPlus,
   type LucideIcon,
 } from "lucide-react";
-import { createContext, useContext, useEffect, useId, useMemo, useState, type PointerEvent } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useState, type CSSProperties, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { harmonyLetter, multitracksOf, semitonesBetween, transposeKey, transposesPart } from "@songverse/core";
@@ -317,26 +317,28 @@ export function StemDock({ song: page }: { song: StemSong }) {
           <div className="h-full bg-muted-foreground/60 transition-[width]" style={{ width: `${engine.downloaded * 100}%` }} />
         </div>
       ) : (
-        <div className="absolute inset-x-0 top-0 h-0.5 bg-muted" aria-hidden>
-          <div className="h-full bg-primary" style={{ width: duration ? `${(position / duration) * 100}%` : "0%" }} />
-        </div>
+        // The playhead: the line along the top edge, in both views - click or drag it to go there (arrow keys too).
+        <input
+          type="range"
+          min={0}
+          max={duration || 0}
+          step={0.1}
+          value={Math.min(position, duration)}
+          disabled={!active || engine.status !== "ready" || !!following}
+          onChange={(event) => seekStems(Number(event.target.value))}
+          aria-label={t("stems.position")}
+          aria-valuetext={`${formatDuration(position)} / ${formatDuration(duration)}`}
+          className="stem-playhead"
+          style={{ "--progress": duration ? `${(position / duration) * 100}%` : "0%" } as CSSProperties}
+          data-testid="stem-playhead"
+        />
       )}
       {expanded ? (
         <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-2 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", EDGES)}>
           <div className="flex items-center gap-3">
             {play}
             {time}
-            <input
-              type="range"
-              min={0}
-              max={duration || 0}
-              step={0.1}
-              value={Math.min(position, duration)}
-              disabled={!active || engine.status !== "ready" || !!following}
-              onChange={(event) => seekStems(Number(event.target.value))}
-              aria-label={t("stems.position")}
-              className="min-w-0 flex-1 accent-primary"
-            />
+            <span className="min-w-0 flex-1" />
             {picker}
             {transposeControl}
             {recordButton}

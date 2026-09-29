@@ -292,3 +292,94 @@ body.sv-dragging {
   user-select: none;
   -webkit-user-select: none;
 }
+
+/*
+ * The stem player's playhead (issue #64): the thin line along its top edge,
+ * the part played in the accent colour (--progress), is also what seeks.
+ * Its hit area is taller than the line; hovered or dragged, the line thickens
+ * and a thumb shows where it is.
+ */
+.stem-playhead {
+  position: absolute;
+  inset-inline: 0;
+  top: -0.5rem;
+  z-index: 1;
+  width: 100%;
+  height: 1.125rem;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: none;
+}
+.stem-playhead:disabled {
+  cursor: default;
+}
+.stem-playhead:focus-visible {
+  outline: none;
+}
+.stem-playhead::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(to right, var(--color-primary) var(--progress), var(--color-muted) var(--progress));
+  transition: height 0.1s;
+}
+.stem-playhead::-moz-range-track {
+  height: 2px;
+  background: linear-gradient(to right, var(--color-primary) var(--progress), var(--color-muted) var(--progress));
+  transition: height 0.1s;
+}
+.stem-playhead:not(:disabled):hover::-webkit-slider-runnable-track,
+.stem-playhead:not(:disabled):active::-webkit-slider-runnable-track,
+.stem-playhead:focus-visible::-webkit-slider-runnable-track {
+  height: 4px;
+}
+.stem-playhead:not(:disabled):hover::-moz-range-track,
+.stem-playhead:not(:disabled):active::-moz-range-track,
+.stem-playhead:focus-visible::-moz-range-track {
+  height: 4px;
+}
+.stem-playhead::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-top: calc((2px - 0.75rem) / 2);
+  border-radius: 9999px;
+  border: 0;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.stem-playhead::-moz-range-thumb {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  border: 0;
+  background: var(--color-primary);
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+.stem-playhead:not(:disabled):hover::-webkit-slider-thumb,
+.stem-playhead:not(:disabled):active::-webkit-slider-thumb,
+.stem-playhead:focus-visible::-webkit-slider-thumb {
+  opacity: 1;
+  margin-top: calc((4px - 0.75rem) / 2);
+}
+.stem-playhead:not(:disabled):hover::-moz-range-thumb,
+.stem-playhead:not(:disabled):active::-moz-range-thumb,
+.stem-playhead:focus-visible::-moz-range-thumb {
+  opacity: 1;
+}
+.stem-playhead:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-ring) 50%, transparent);
+}
+/* A touch screen has no hover: the thumb always shows, to grab. */
+@media (pointer: coarse) {
+  .stem-playhead:not(:disabled)::-webkit-slider-thumb {
+    opacity: 1;
+  }
+  .stem-playhead:not(:disabled)::-moz-range-thumb {
+    opacity: 1;
+  }
+}
