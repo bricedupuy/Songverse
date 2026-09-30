@@ -438,6 +438,11 @@ export function StemDock({ song: page }: { song: StemSong }) {
   // Placed by who can change every file of the multitrack (its other takes too): they share them.
   const canPlaceCues = recordable && !whole && cueSections.length > 0 && (song.record?.attachments ?? []).filter((file) => file.type === "AUDIO" && file.stemPart && (file.multitrackId ?? null) === (song.stems[0]?.multitrackId ?? null)).every((file) => file.canChange);
   const [cueEditor, setCueEditor] = useState(false);
+  // Closed: the saved cues again, not the draft.
+  const closeCueEditor = () => {
+    setCueEditor(false);
+    setDraftCues(null);
+  };
   const cueButton = canPlaceCues ? (
     <Button
       type="button"
@@ -447,7 +452,8 @@ export function StemDock({ song: page }: { song: StemSong }) {
       aria-pressed={cueEditor}
       onClick={() => {
         if (!expanded) expand(true);
-        setCueEditor(!cueEditor);
+        if (cueEditor) closeCueEditor();
+        else setCueEditor(true);
       }}
       aria-label={t("stems.placeSections")}
       title={t("stems.placeSections")}
@@ -548,8 +554,16 @@ export function StemDock({ song: page }: { song: StemSong }) {
             </Button>
           </div>
           {status}
-          {cueEditor && canPlaceCues && active && engine.status === "ready" ? <CueEditor song={song} cues={savedCues} onDraft={setDraftCues} onClose={() => setCueEditor(false)} /> : null}
-          {cues.length ? <SectionLane cues={cues} sections={cueSections} duration={duration || Math.max(...cues.map((cue) => cue.at)) + 10} position={position} onSeek={active && engine.status === "ready" && !following ? seekStems : undefined} /> : null}
+          {cueEditor && canPlaceCues && active && engine.status === "ready" ? <CueEditor song={song} cues={cues} onChange={setDraftCues} onClose={closeCueEditor} /> : null}
+          {cues.length ? <SectionLane
+              cues={cues}
+              sections={cueSections}
+              duration={duration || Math.max(...cues.map((cue) => cue.at)) + 10}
+              position={position}
+              onSeek={active && engine.status === "ready" && !following ? seekStems : undefined}
+              // Placing them: a handle on each, as in a video editor (issue #110).
+              editing={cueEditor && canPlaceCues && active && engine.status === "ready" ? { beat: engine.beat, onMove: (index, at) => setDraftCues(cues.map((cue, i) => (i === index ? { ...cue, at } : cue))) } : null}
+            /> : null}
           {recordPanel && recordable && active && engine.status === "ready" ? <StemRecordPanel
               song={song}
               into={recordInto}

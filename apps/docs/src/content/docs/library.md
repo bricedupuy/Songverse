@@ -148,6 +148,7 @@ Once the sections are placed on a multitrack (see below), the player shows them 
 
 - Play the recording and press **Mark** (or the **M** key) as each section starts: they come in the song's order ("Mark Verse 1", "Mark Chorus"…), so singing the order through places them all.
 - Then fine-tune each one in the list: type its time ("1:02.35"), move it **Earlier** or **Later** (a beat, when the recording has a tempo), **Set to the playhead**, or **Play from just before it** to check by ear. **Snap to the beat** keeps them on the recording's beats.
+- Or move them on the strip itself, as in a video editor: while placing them, each section's start has a handle, shown when the pointer is over the strip (always, on a touch screen). Drag it to move the section, snapped to the beat - hold **Alt** to place it anywhere - or focus it and use the arrow keys: a beat at a time, or 10 ms with **Shift**. A section can't be dragged past its neighbours, and the time shows under the handle as it moves. The strip and the list stay in step.
 - **Add at the playhead** places any section, sung more often than the song's order says, say; **Remove** takes one out.
 - **Save the sections** keeps them on every file of the multitrack, its other takes too. They point at the song's sections, so they survive edits to the song.
 

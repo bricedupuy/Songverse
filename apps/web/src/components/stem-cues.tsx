@@ -1,6 +1,6 @@
 import { cueAt, formatDuration, nextCueSection, snapToBeat, type CuePoint, type CueSection, type StructureGroup } from "@songverse/core";
 import { Crosshair, Flag, Loader2, Minus, Play, Plus, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import { NativeSelect } from "#/components/ui/native-select";
@@ -70,44 +70,142 @@ export function sectionsGradient(cues: CuePoint[], sections: CueSection[], durat
   return `linear-gradient(to right, ${stops.join(", ")})`;
 }
 
+/** While the sections are being placed: moving a cue by its handle (issue #110), snapped to the recording's beat when it has one. */
+export interface LaneEditing {
+  onMove: (index: number, at: number) => void;
+  beat: { tempo: number; firstBeat: number } | null;
+}
+
 /**
  * The recording's sections as a strip (issue #110): each where it is and as
  * long as it lasts, in the structure bar's colours, the one playing ringed.
- * Tap one to go there.
+ * Tap one to go there. While they're being placed, each section's start has
+ * a handle, as in a video editor's timeline - shown on hover, always on a
+ * touch screen: drag it (snapped to the beat, Alt for anywhere), or focus it
+ * and nudge with the arrow keys (a beat; Shift, 10 ms).
  */
-export function SectionLane({ cues, sections, duration, position, onSeek }: { cues: CuePoint[]; sections: CueSection[]; duration: number; position: number; onSeek?: (at: number) => void }) {
+export function SectionLane({
+  cues,
+  sections,
+  duration,
+  position,
+  onSeek,
+  editing,
+}: {
+  cues: CuePoint[];
+  sections: CueSection[];
+  duration: number;
+  position: number;
+  onSeek?: (at: number) => void;
+  editing?: LaneEditing | null;
+}) {
   const { t } = useTranslation();
   const names = useCueNames();
+  const lane = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState<{ index: number; at: number } | null>(null);
   const parts = spans(cues, sections, duration);
   const current = cueAt(cues, position);
   if (parts.length === 0) return null;
+
+  /** Where `index` may go: between its neighbours, a little clear of each. */
+  const clamp = (index: number, at: number) => {
+    const low = (cues[index - 1]?.at ?? -Infinity) + 0.05;
+    const high = (cues[index + 1]?.at ?? Infinity) - 0.05;
+    return Math.min(Math.max(at, Math.max(0, low)), Math.min(duration, high));
+  };
+  const timeAt = (clientX: number) => {
+    const box = lane.current?.getBoundingClientRect();
+    return box && box.width > 0 ? ((clientX - box.left) / box.width) * duration : 0;
+  };
+  const drag = (index: number) => (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!editing) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const handle = event.currentTarget;
+    handle.setPointerCapture(event.pointerId);
+    const place = (moveEvent: PointerEvent | ReactPointerEvent) => clamp(index, moveEvent.altKey ? timeAt(moveEvent.clientX) : snapToBeat(timeAt(moveEvent.clientX), editing.beat));
+    setDragging({ index, at: cues[index]!.at });
+    const move = (moveEvent: PointerEvent) => setDragging({ index, at: place(moveEvent) });
+    const up = (upEvent: PointerEvent) => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", up);
+      handle.removeEventListener("pointercancel", up);
+      setDragging(null);
+      if (upEvent.type === "pointerup") editing.onMove(index, place(upEvent));
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", up);
+    handle.addEventListener("pointercancel", up);
+  };
+  const nudge = (index: number) => (event: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (!editing || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
+    event.preventDefault();
+    const step = event.shiftKey || !editing.beat ? 0.01 : 60 / editing.beat.tempo;
+    editing.onMove(index, clamp(index, cues[index]!.at + (event.key === "ArrowLeft" ? -step : step)));
+  };
+  // A cue being dragged shows where it would go.
+  const shown = dragging ? spans(cues.map((cue, i) => (i === dragging.index ? { ...cue, at: dragging.at } : cue)), sections, duration) : parts;
+
   return (
-    <nav className="relative h-6 w-full" aria-label={t("stems.sections")} data-testid="stem-sections">
-      {parts.map((part) => {
-        const isCurrent = part.index === current;
-        return (
-          <button
-            key={`${part.index}-${part.cue.sectionId}`}
-            type="button"
-            disabled={!onSeek}
-            onClick={() => onSeek?.(part.start)}
-            className={cn(
-              "absolute inset-y-0 flex items-center justify-center overflow-hidden rounded-sm border border-background text-[11px] font-semibold transition-opacity",
-              GROUP_TEXT[part.section.group],
-              !isCurrent && "opacity-60 hover:opacity-90",
-              isCurrent && "ring-2 ring-foreground ring-offset-1 ring-offset-background",
-            )}
-            style={{ left: `${(part.start / duration) * 100}%`, width: `${((part.end - part.start) / duration) * 100}%`, background: GROUP_COLOURS[part.section.group] }}
-            title={`${names.long(part.section)} · ${formatDuration(part.start)}`}
-            aria-label={t("stems.goToSection", { name: names.long(part.section), time: formatDuration(part.start) })}
-            aria-current={isCurrent ? "step" : undefined}
-            data-testid="stem-section"
-          >
-            <span className="truncate px-0.5">{names.short(part.section)}</span>
-          </button>
-        );
-      })}
-    </nav>
+    <div ref={lane} className={cn("group/lane relative w-full", editing ? "h-8" : "h-6")} data-testid="stem-sections-lane">
+      <nav className="absolute inset-x-0 top-0 h-6" aria-label={t("stems.sections")} data-testid="stem-sections">
+        {shown.map((part) => {
+          const isCurrent = part.index === current;
+          return (
+            <button
+              key={`${part.index}-${part.cue.sectionId}`}
+              type="button"
+              disabled={!onSeek}
+              onClick={() => onSeek?.(part.start)}
+              className={cn(
+                "absolute inset-y-0 flex items-center justify-center overflow-hidden rounded-sm border border-background text-[11px] font-semibold transition-opacity",
+                GROUP_TEXT[part.section.group],
+                !isCurrent && "opacity-60 hover:opacity-90",
+                isCurrent && "ring-2 ring-foreground ring-offset-1 ring-offset-background",
+              )}
+              style={{ left: `${(part.start / duration) * 100}%`, width: `${((part.end - part.start) / duration) * 100}%`, background: GROUP_COLOURS[part.section.group] }}
+              title={`${names.long(part.section)} · ${formatDuration(part.start)}`}
+              aria-label={t("stems.goToSection", { name: names.long(part.section), time: formatDuration(part.start) })}
+              aria-current={isCurrent ? "step" : undefined}
+              data-testid="stem-section"
+            >
+              <span className="truncate px-0.5">{names.short(part.section)}</span>
+            </button>
+          );
+        })}
+      </nav>
+      {editing
+        ? shown.map((part) => {
+            const active = dragging?.index === part.index;
+            return (
+              <button
+                key={`handle-${part.index}`}
+                type="button"
+                onPointerDown={drag(part.index)}
+                onKeyDown={nudge(part.index)}
+                className={cn(
+                  // Wide enough to take a finger; the grip itself thin, as an editor's in and out points.
+                  "absolute top-0 z-10 flex h-8 w-4 -translate-x-1/2 cursor-ew-resize touch-none items-start justify-center outline-none",
+                  "opacity-0 transition-opacity group-hover/lane:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100",
+                  active && "opacity-100",
+                )}
+                style={{ left: `${(part.start / duration) * 100}%` }}
+                aria-label={t("stems.cueHandle", { name: names.long(part.section), time: preciseTime(part.start) })}
+                title={t("stems.cueHandleHint")}
+                data-testid="stem-cue-handle"
+                data-index={part.index}
+              >
+                <span className={cn("h-7 w-1 rounded-full bg-foreground shadow ring-2 ring-background", active && "w-1.5 bg-primary")} />
+                {active ? (
+                  <span className="pointer-events-none absolute top-8 rounded bg-foreground px-1 py-0.5 text-[10px] font-medium whitespace-nowrap text-background tabular-nums" data-testid="stem-cue-drag-time">
+                    {preciseTime(part.start)}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })
+        : null}
+    </div>
   );
 }
 
@@ -133,13 +231,12 @@ export function parseCueTime(text: string): number | null {
  * it to check by ear. Snapped to the beat when the recording has a tempo.
  * Saved on every file of the multitrack.
  */
-export function CueEditor({ song, cues: saved, onDraft, onClose }: { song: StemSong; cues: CuePoint[]; onDraft: (cues: CuePoint[] | null) => void; onClose: () => void }) {
+export function CueEditor({ song, cues, onChange, onClose }: { song: StemSong; cues: CuePoint[]; onChange: (cues: CuePoint[]) => void; onClose: () => void }) {
   const { t } = useTranslation();
   const engine = useStems();
   const names = useCueNames();
   const sections = song.cueSections?.sections ?? [];
   const flow = song.cueSections?.flow ?? [];
-  const [cues, setCues] = useState<CuePoint[]>(saved);
   const [snap, setSnap] = useState(true);
   const [adding, setAdding] = useState(flow[0] ?? sections[0]?.id ?? "");
   const [saving, setSaving] = useState(false);
@@ -147,13 +244,8 @@ export function CueEditor({ song, cues: saved, onDraft, onClose }: { song: StemS
   const beat = snap ? engine.beat : null;
   const nudgeBy = engine.beat ? 60 / engine.beat.tempo : 0.05;
 
-  const change = (next: CuePoint[]) => {
-    const sorted = [...next].sort((a, b) => a.at - b.at);
-    setCues(sorted);
-    onDraft(sorted);
-  };
-  // The draft shown on the player as it's edited; the saved ones again when it closes.
-  useEffect(() => () => onDraft(null), []);
+  // The draft is the player's (issue #110): the lane's handles move the same cues as this list.
+  const change = (next: CuePoint[]) => onChange([...next].sort((a, b) => a.at - b.at));
 
   const next = nextCueSection(flow, cues);
   const mark = () => {

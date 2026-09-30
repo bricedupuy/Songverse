@@ -522,5 +522,57 @@ await step("the sections on the player (issue #110): a strip to jump by, the one
   if (!(await player().getByTestId("stem-playhead").evaluate((input) => input.style.getPropertyValue("--sections")))) throw new Error("no colours minimized");
 });
 
+await step("the sections' handles (issue #110): shown on hover, dragged as in a video editor, nudged by key, never past a neighbour", async () => {
+  await player().getByRole("button", { name: "Expand the player" }).click();
+  await player().getByTestId("stem-cues").click();
+  const editor = player().getByTestId("stem-cue-editor");
+  await editor.waitFor();
+  const lane = player().getByTestId("stem-sections-lane");
+  const handle = (index) => lane.locator(`[data-testid="stem-cue-handle"][data-index="${index}"]`);
+  // Hidden until the strip is hovered.
+  if ((await handle(1).evaluate((el) => getComputedStyle(el).opacity)) !== "0") throw new Error("a handle shown before hovering");
+  await lane.hover();
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('[data-testid="stem-cue-handle"][data-index="1"]')).opacity === "1");
+  // Dragged with Alt (not snapped): the chorus from 0:05 to about 0:08.
+  const box = await lane.boundingBox();
+  const duration = Number(await player().getByRole("slider", { name: "Position" }).getAttribute("max"));
+  const x = (seconds) => box.x + (seconds / duration) * box.width;
+  const grip = await handle(1).boundingBox();
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.keyboard.down("Alt");
+  await page.mouse.down();
+  await page.mouse.move(x(6.5), grip.y + grip.height / 2, { steps: 5 });
+  await lane.getByTestId("stem-cue-drag-time").waitFor();
+  await page.mouse.move(x(8), grip.y + grip.height / 2, { steps: 5 });
+  await page.mouse.up();
+  await page.keyboard.up("Alt");
+  const timeOf = async (index) => parseFloat((await editor.getByTestId("stem-cue-time").nth(index).inputValue()).split(":")[1]);
+  let moved = await timeOf(1);
+  if (Math.abs(moved - 8) > 0.3) throw new Error(`dragged to ${moved}`);
+  // Nudged: Shift+Right, 10 ms later.
+  await handle(1).focus();
+  await page.keyboard.press("Shift+ArrowRight");
+  const nudged = await timeOf(1);
+  if (Math.abs(nudged - moved - 0.01) > 0.002) throw new Error(`${moved} -> ${nudged}`);
+  // Dragged past the next one (0:12.5): stops just short of it.
+  const again = await handle(1).boundingBox();
+  await page.mouse.move(again.x + again.width / 2, again.y + again.height / 2);
+  await page.keyboard.down("Alt");
+  await page.mouse.down();
+  await page.mouse.move(x(20), again.y + again.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.keyboard.up("Alt");
+  moved = await timeOf(1);
+  if (moved >= 12.5 || moved < 12.3) throw new Error(`past its neighbour: ${moved}`);
+  if ((await lane.getByTestId("stem-section").allInnerTexts()).map((label) => label.trim()).join() !== "V,C,C") throw new Error("the order changed");
+  await editor.getByTestId("stem-cue-save").click();
+  await editor.waitFor({ state: "detached", timeout: 15000 });
+  const files = await api(me, "GET", `/song-versions/${cued.id}/attachments`);
+  const second = files[0].cuePoints[1].at;
+  if (Math.abs(second - moved) > 0.001) throw new Error(`saved ${second}, dragged to ${moved}`);
+  // Closed, no handles.
+  if (await lane.getByTestId("stem-cue-handle").count()) throw new Error("handles without the editor");
+});
+
 await browser.close();
 finish();
