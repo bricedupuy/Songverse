@@ -1182,6 +1182,10 @@ const fr: typeof en = {
     },
   },
   stems: {
+    stop: "Arrêter, retour au début",
+    previousSection: "Section précédente",
+    nextSection: "Section suivante",
+    loopSection: "Boucler cette section",
     title: "Pistes",
     description: "Les parties du chant, jouées ensemble. Coupez-en une pour jouer avec le reste.",
     parts: {

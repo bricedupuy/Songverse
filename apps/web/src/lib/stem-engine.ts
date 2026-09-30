@@ -136,6 +136,8 @@ export interface StemState {
   speed: number;
   /** The recording's beat: its tempo, time signature and where its first beat falls (s), for the metronome with it; null without a tempo. */
   beat: { tempo: number; timeSignature: { numerator: number; denominator: number } | null; firstBeat: number } | null;
+  /** Played over and over (issue #162): from `start` to `end` (s, the recording's time); null: through to the end. */
+  loop: { start: number; end: number } | null;
 }
 
 const PEAK_SLICES = 400;
@@ -164,6 +166,7 @@ const EMPTY: StemState = {
   transposeFailed: false,
   speed: 1,
   beat: null,
+  loop: null,
 };
 
 /** The stretch node's own methods (signalsmith-stretch). */
@@ -210,6 +213,10 @@ let sources: AudioBufferSourceNode[] = [];
 let startedAt = 0;
 let offset = 0;
 let timer: ReturnType<typeof setInterval> | null = null;
+// Looping (issue #162): the next pass, scheduled ahead of the loop's end on the audio clock -
+// the timer that schedules it, and the time the song's 0:00 moves to (switchAt) once it's heard.
+let loopTimer: ReturnType<typeof setTimeout> | null = null;
+let nextLoop: { switchAt: number; startedAt: number } | null = null;
 // Bumped by each load, so a load that's been replaced drops its results.
 let generation = 0;
 // The load under way, so Play during a prefetch waits for it rather than starting over.
@@ -476,19 +483,33 @@ function stopSources() {
 function stopTimer() {
   if (timer) clearInterval(timer);
   timer = null;
+  clearLoopTimer();
 }
 
 /** Where it is in the recording (s): the audio clock since its 0:00, at the speed it plays. */
 function now(): number {
-  return context ? Math.min(state.duration, Math.max(0, (context.currentTime - startedAt) * state.speed)) : offset;
+  if (!context) return offset;
+  // The loop's next pass has begun: the song's 0:00 is now that pass's.
+  if (nextLoop && context.currentTime >= nextLoop.switchAt) {
+    startedAt = nextLoop.startedAt;
+    const heard = { epoch: clock ? clock.epochOf(nextLoop.switchAt) : Number.NaN, position: state.loop?.start ?? 0 };
+    nextLoop = null;
+    // Sync play's followers take it as the leader seeking back.
+    set({ anchor: heard });
+  }
+  return Math.min(state.duration, Math.max(0, (context.currentTime - startedAt) * state.speed));
 }
 
-function startAt(from: number, at?: number, anchor?: { epoch: number; position: number }) {
-  if (!context) return;
-  stopSources();
-  stopTimer();
-  // A moment ahead, so every part is scheduled before the first one starts.
-  const when = Math.max(at ?? 0, context.currentTime + 0.05 + latency);
+function clearLoopTimer() {
+  if (loopTimer) clearTimeout(loopTimer);
+  loopTimer = null;
+  nextLoop = null;
+}
+
+/** The parts from `from` (s), heard at `when` on the audio clock. */
+function startSources(from: number, when: number): AudioBufferSourceNode[] {
+  if (!context) return [];
+  const started: AudioBufferSourceNode[] = [];
   for (const [id, buffer] of buffers) {
     const gain = gains.get(id);
     if (!gain || from >= buffer.duration) continue;
@@ -499,12 +520,88 @@ function startAt(from: number, at?: number, anchor?: { epoch: number; position: 
     source.connect(gain);
     // Early by the transposing's latency: heard at `when`.
     source.start(when - latency, from);
-    sources.push(source);
+    started.push(source);
   }
+  return started;
+}
+
+/**
+ * Looping (issue #162): the parts stop exactly at the loop's end, and the
+ * next pass starts then - both scheduled on the audio clock a moment ahead,
+ * so it goes round without a gap. `zero` is the audio clock's time of the
+ * song's 0:00 for the pass playing, `pass` its sources (a source's stop,
+ * set again, replaces the first: the previous pass's are left to stop at
+ * their own end). Not while following Sync play's leader: theirs to loop,
+ * heard as their seeks.
+ */
+function armLoop(zero = startedAt, pass = sources) {
+  clearLoopTimer();
+  const loop = state.loop;
+  if (!context || !state.playing || !loop || state.following) return;
+  const endAt = zero + loop.end / state.speed;
+  if (endAt <= context.currentTime) return;
+  for (const source of pass) {
+    try {
+      source.stop(endAt - latency);
+    } catch {
+      // Never started.
+    }
+  }
+  loopTimer = setTimeout(
+    () => {
+      loopTimer = null;
+      if (!context || !state.playing || state.loop !== loop) return;
+      const next = startSources(loop.start, endAt);
+      // The previous pass's, stopping at the loop's end, are dropped once they have.
+      sources = [...sources.filter((source) => (source as AudioBufferSourceNode & { ended?: boolean }).ended !== true), ...next];
+      for (const source of next) source.onended = () => ((source as AudioBufferSourceNode & { ended?: boolean }).ended = true);
+      const nextZero = endAt - loop.start / state.speed;
+      armLoop(nextZero, next);
+      // Set after arming (which clears it): the song's 0:00 moves when the next pass is heard.
+      nextLoop = { switchAt: endAt, startedAt: nextZero };
+    },
+    Math.max(0, (endAt - context.currentTime - 0.3) * 1000),
+  );
+}
+
+/**
+ * Plays from `start` to `end` over and over (issue #162), or through to the
+ * end again (null). While playing, it starts again from where it is, so the
+ * loop is scheduled from there.
+ */
+export function setStemLoop(loop: { start: number; end: number } | null) {
+  if (state.following) return;
+  const next = loop && loop.end - loop.start > 0.2 ? { start: Math.max(0, loop.start), end: Math.min(state.duration || loop.end, loop.end) } : null;
+  set({ loop: next });
+  if (!state.playing || !context) return;
+  const ahead = 0.05 + latency;
+  // Scheduled a moment ahead: from where it'll be then, or - outside the loop - from the loop's start.
+  const then = now() + ahead * state.speed;
+  const from = next && (then < next.start || then >= next.end) ? next.start : then;
+  startAt(from, context.currentTime + ahead);
+}
+
+/** Back to the start (issue #162), or to the loop's, stopped. */
+export function stopStems() {
+  if (state.following) return;
+  pause();
+  seekStems(state.loop?.start ?? 0);
+}
+
+function startAt(from: number, at?: number, anchor?: { epoch: number; position: number }) {
+  if (!context) return;
+  stopSources();
+  stopTimer();
+  // A moment ahead, so every part is scheduled before the first one starts.
+  const when = Math.max(at ?? 0, context.currentTime + 0.05 + latency);
+  sources = startSources(from, when);
   startedAt = when - from / state.speed;
   const heard = { epoch: clock ? clock.epochOf(when) : Number.NaN, position: from };
   probe()?.push({ zeroAt: heard.epoch - (from / state.speed) * 1000, at: deviceNow() });
   set({ anchor: anchor ?? heard });
+  // Looping (issue #162): its end, and the next pass, scheduled now. Armed once
+  // `playing` is set (just after, when starting): see playStems.
+  armLoop();
   // A timer rather than animation frames, which stop in a background tab.
   timer = setInterval(() => {
     const at = now();
@@ -698,6 +795,7 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
     soloed,
     volumes: savedVolumes(song.songVersionId, ids),
     beat: beatOf(song),
+    loop: null,
   });
   // Bytes so far per file, against the sizes the song lists (or the server says).
   const received = new Map<string, number>();
@@ -977,6 +1075,8 @@ export async function playStems(song: StemSong) {
   applyGains(true);
   startAt(offset);
   set({ playing: true, returnTo: song.returnTo, title: song.title });
+  // Only now playing: the loop, if there is one, from here.
+  armLoop();
   setMediaActions();
   updateMediaSession();
 }
@@ -999,6 +1099,8 @@ function pause() {
 export function seekStems(to: number) {
   if (state.following) return;
   offset = Math.min(Math.max(0, to), state.duration);
+  // Somewhere else than the loop: no longer looping (issue #162).
+  if (state.loop && (offset < state.loop.start - 0.05 || offset >= state.loop.end)) set({ loop: null });
   set({ position: offset });
   if (state.playing) startAt(offset);
   updateMediaSession();

@@ -21,12 +21,16 @@ import {
   Pause,
   Piano,
   Play,
+  Repeat,
   RotateCcw,
+  SkipBack,
+  SkipForward,
+  Square,
   SlidersHorizontal,
   UserRoundPlus,
   type LucideIcon,
 } from "lucide-react";
-import { createContext, useContext, useEffect, useId, useMemo, useState, type CSSProperties, type PointerEvent } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { cueAt, sortedCues, type CuePoint, multitracksOf, semitonesBetween, transposeKey, transposesPart } from "@songverse/core";
@@ -54,6 +58,8 @@ import {
   pauseStems,
   playStems,
   prefetchStems,
+  setStemLoop,
+  stopStems,
   resetStemVolumes,
   setStemVolume,
   seekStems,
@@ -305,6 +311,11 @@ export function StemDock({ song: page }: { song: StemSong }) {
     () => (combined ? combinePeaks(tracks.filter((track) => isAudible(engine, track.id)).map((track) => ({ ...track, volume: volumeOf(track) })), duration) : null),
     [combined, audibleKey, duration],
   );
+  // Minimised (issue #162): what's heard as one waveform, where there's room.
+  const compactPeaks = useMemo(
+    () => (expanded || !duration ? null : combinePeaks(tracks.filter((track) => isAudible(engine, track.id)).map((track) => ({ ...track, volume: volumeOf(track) })), duration)),
+    [expanded, audibleKey, duration],
+  );
 
   // Recording a part (issues #127, #134): in the player, over its own mix, into the multitrack playing -
   // or, for a song with only a whole recording, a new multitrack (the dialog). Not while following the leader.
@@ -475,6 +486,79 @@ export function StemDock({ song: page }: { song: StemSong }) {
       ) : null}
     </span>
   );
+  // The transport (issue #162): back to the start, and - with the sections placed - from one to the next, and round one.
+  const ready = active && engine.status === "ready" && !following;
+  const loop = active ? engine.loop : null;
+  /** The section at `at` (s): from its cue to the next one's (before the first: from 0:00 to it). */
+  const sectionAt = (at: number) => {
+    const index = cueAt(cues, at);
+    if (index === null) return { start: 0, end: cues[0]?.at ?? duration };
+    return { start: cues[index]!.at, end: cues[index + 1]?.at ?? duration };
+  };
+  /** To `at`, the section there looped instead if one is. */
+  const goTo = (at: number) => {
+    if (loop) setStemLoop(sectionAt(at));
+    seekStems(at);
+  };
+  const previousSection = () => {
+    const index = cueAt(cues, position);
+    // A couple of seconds in: back to its start; else the one before's (or 0:00).
+    if (index !== null && position - cues[index]!.at > 2) return goTo(cues[index]!.at);
+    goTo(index === null || index === 0 ? 0 : cues[index - 1]!.at);
+  };
+  const nextCue = cues.find((cue) => cue.at > position + 0.05);
+  const nextSection = () => {
+    if (nextCue) goTo(nextCue.at);
+  };
+  const toggleLoop = () => setStemLoop(loop ? null : sectionAt(position));
+  const stopButton = (
+    <Button type="button" variant="ghost" size="icon" className="shrink-0" disabled={!ready || (!playing && position === (loop?.start ?? 0))} onClick={stopStems} aria-label={t("stems.stop")} title={`${t("stems.stop")} (0)`} data-testid="stem-stop">
+      <Square />
+    </Button>
+  );
+  const sectionControls = cues.length ? (
+    <span className="flex shrink-0 items-center" data-testid="stem-sections">
+      <Button type="button" variant="ghost" size="icon" disabled={!ready} onClick={previousSection} aria-label={t("stems.previousSection")} title={`${t("stems.previousSection")} ([)`} data-testid="stem-previous-section">
+        <SkipBack />
+      </Button>
+      <Button
+        type="button"
+        variant={loop ? "secondary" : "ghost"}
+        size="icon"
+        disabled={!ready}
+        aria-pressed={!!loop}
+        onClick={toggleLoop}
+        aria-label={t("stems.loopSection")}
+        title={`${t("stems.loopSection")} (L)`}
+        data-testid="stem-loop"
+      >
+        <Repeat />
+      </Button>
+      <Button type="button" variant="ghost" size="icon" disabled={!ready || !nextCue} onClick={nextSection} aria-label={t("stems.nextSection")} title={`${t("stems.nextSection")} (])`} data-testid="stem-next-section">
+        <SkipForward />
+      </Button>
+    </span>
+  ) : null;
+  // On a keyboard (issue #162): [ and ] from section to section, L to loop one, 0 back to the start - not while typing.
+  const keys = useRef({ previousSection, nextSection, toggleLoop, ready, hasCues: cues.length > 0 });
+  keys.current = { previousSection, nextSection, toggleLoop, ready, hasCues: cues.length > 0 };
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (event.metaKey || event.ctrlKey || event.altKey || !target || target.closest("input, textarea, select, [contenteditable=true]")) return;
+      const { previousSection, nextSection, toggleLoop, ready, hasCues } = keys.current;
+      if (!ready) return;
+      if (event.key === "0") stopStems();
+      else if (hasCues && event.key === "[") previousSection();
+      else if (hasCues && event.key === "]") nextSection();
+      else if (hasCues && (event.key === "l" || event.key === "L")) toggleLoop();
+      else return;
+      event.preventDefault();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const status =
     loading ? (
       <p className="text-xs text-muted-foreground" role="status">
@@ -534,9 +618,14 @@ export function StemDock({ song: page }: { song: StemSong }) {
         <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-2 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", EDGES)}>
           {/* On a phone, play, the time, the tools and minimize on one line (the time giving way); the multitrack and the transposition on the next (issue #140). */}
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] sm:gap-x-3">
-            {play}
+            <span className="flex items-center gap-1">
+              {play}
+              {/* The transport (issue #162). */}
+              <span className="hidden sm:contents">{stopButton}</span>
+            </span>
             {time}
             <div className="col-span-4 row-start-2 flex flex-wrap items-center gap-1 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:gap-2" data-testid="stem-controls">
+              {sectionControls}
               {picker}
               {transposeControl}
               {speedControl}
@@ -700,7 +789,10 @@ export function StemDock({ song: page }: { song: StemSong }) {
       ) : (
         <div className={cn("mx-auto flex w-full max-w-7xl items-center gap-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
           {play}
-          <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1.5 py-1">
+          {/* The transport (issue #162), where there's room. */}
+          <span className="hidden sm:contents">{stopButton}</span>
+          {sectionControls ? <span className="hidden md:contents">{sectionControls}</span> : null}
+          <div className={cn("flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1.5 py-1", compactPeaks && "lg:max-w-fit lg:flex-none")}>
             {whole ? (
               <span className="flex min-w-0 items-center gap-2 text-sm" data-testid="stem-recording-name">
                 <AudioLines className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -712,6 +804,12 @@ export function StemDock({ song: page }: { song: StemSong }) {
               ))
             )}
           </div>
+          {/* What's heard, as one waveform (issue #162): on a wide screen, in the room the parts leave. */}
+          {compactPeaks ? (
+            <div className="hidden h-8 min-w-24 flex-1 items-center lg:flex" data-testid="stem-compact-waveform">
+              <Waveform peaks={compactPeaks} progress={duration ? position / duration : 0} span={1} dim={false} onSeek={ready ? (at) => seekStems(at * duration) : undefined} />
+            </div>
+          ) : null}
           {status ? <span className="hidden sm:block">{status}</span> : duration ? <span className="hidden sm:block">{time}</span> : null}
           {picker ? <span className="hidden sm:block">{picker}</span> : null}
           {heardSteps !== 0 ? (

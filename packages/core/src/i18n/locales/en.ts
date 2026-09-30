@@ -1179,6 +1179,10 @@ const en = {
     },
   },
   stems: {
+    stop: "Stop, back to the start",
+    previousSection: "Previous section",
+    nextSection: "Next section",
+    loopSection: "Loop this section",
     title: "Stems",
     description: "The song's parts, played together. Mute one to play along with the rest.",
     parts: {
