@@ -129,7 +129,6 @@ await step("the leader's next song opens on the follower's screen", async () => 
 
 await step("a new tempo from the leader's Metronome page: the follower's changes with it, in time", async () => {
   page = leader;
-  await leader.getByRole("button", { name: "Back to sets" }).click();
   await leader.getByRole("link", { name: "Metronome", exact: true }).first().click();
   await leader.waitForURL(`${WEB}/metronome`);
   const tempo = leader.getByTestId("metronome-tempo");

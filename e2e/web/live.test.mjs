@@ -128,8 +128,10 @@ await step("Live on a set opens its first song full screen, dark, with no theme 
   // Live's dark isn't Edit's or Practice's.
   if (new Set([state.background, looks.editDark.background, looks.practiceDark.background]).size !== 3) throw new Error("dark themes not all different");
   if (await page.getByRole("button", { name: /Light theme|Dark theme/ }).count()) throw new Error("Live has a theme button");
-  // Full screen: no sidebar.
-  if (await page.getByRole("link", { name: "Library", exact: true }).isVisible()) throw new Error("the sidebar is showing");
+  // Beside it, the sidebar with the set's songs, this one marked (issue #154); no site header.
+  const list = page.getByTestId("sidebar-panel-list");
+  await list.getByRole("link", { name: new RegExp(`Closer ${stamp}`) }).waitFor();
+  if (!(await list.getByRole("link", { name: new RegExp(`Opener ${stamp}`) }).getAttribute("href"))?.includes(`/live/${firstItem.id}`)) throw new Error("the sidebar's songs aren't Live's");
   await checked("Live");
   await page.getByTestId("live-next").getByText(`Next: Closer ${stamp}`).waitFor();
   await page.locator('[data-chord="G"]').first().waitFor();
@@ -234,8 +236,8 @@ await step("in Live, picking a set opens it straight into Live, at the song last
   await page.getByTestId("live-next").click();
   await page.waitForURL(`**/live/${secondItem.id}`);
   await page.getByRole("heading", { name: `Closer ${stamp}` }).waitFor();
-  await page.getByRole("button", { name: "Back to sets" }).click();
-  await page.waitForURL(`${WEB}/sets`);
+  // To the sets, as from the sidebar.
+  await page.goto(`${WEB}/sets`);
   await page.getByRole("main").getByText(`Gig ${stamp}`, { exact: true }).click();
   await page.waitForURL(`**/sets/${set.id}/live/${secondItem.id}`);
   await page.getByRole("heading", { name: `Closer ${stamp}` }).waitFor();
@@ -257,8 +259,14 @@ await step("on a phone: no sideways scroll, the switch still in the header", asy
   if (overflow > 0) throw new Error(`${overflow}px sideways scroll`);
   const box = await modeSwitch().boundingBox();
   if (box.x + box.width > 360 || box.y > 60) throw new Error(`the switch is at ${JSON.stringify(box)}`);
+  // No sidebar beside it, but its button (issue #154): the set's songs in a sheet, one tap to another.
+  if (await page.getByTestId("sidebar-panel-list").isVisible()) throw new Error("the sidebar takes the phone's screen");
+  await page.getByTestId("live-sidebar").click();
+  await page.getByRole("dialog").getByRole("link", { name: new RegExp(`Closer ${stamp}`) }).click();
+  await page.waitForURL(`**/live/${secondItem.id}`);
+  await page.getByRole("heading", { name: `Closer ${stamp}` }).waitFor();
   await modeSwitch().getByRole("radio", { name: "Edit" }).click();
-  await page.waitForURL(`**/songs/${firstItem.id}`);
+  await page.waitForURL(`**/songs/${secondItem.id}`);
 });
 await context.close();
 

@@ -1,5 +1,5 @@
 import { chartSeconds, structureOf, type RenderedChart, type StructureGroup } from "@songverse/core";
-import { AArrowDown, AArrowUp, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle, X } from "lucide-react";
+import { AArrowDown, AArrowUp, ArrowLeft, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { CommandSearch } from "#/components/command-search";
@@ -8,6 +8,7 @@ import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { SongChart } from "#/components/song-chart";
 import { SyncControl } from "#/components/sync-control";
+import { SidebarTrigger } from "#/components/ui/sidebar";
 import { cn } from "#/lib/utils";
 
 const TEXT_SIZE_KEY = "songverse.liveTextSize";
@@ -36,8 +37,8 @@ export interface LiveSong {
   /** Where it is in the player's songbooks: "JEM 855 · JEM3" (issue #59). */
   references: string[];
   notes: { label?: string; text: string }[];
-  /** The × at the top left: back to the set, or wherever the song was pulled up from. */
-  exit: { label: string; go: () => void };
+  /** Back to wherever a song on its own was pulled up from (a set's song, say), beside the sidebar's button; a set's songs have the sidebar (issue #154). */
+  exit?: { label: string; go: () => void };
   /** Played through (issue #153): its chart scrolled to 95% - or, when it fits the screen, moved on from to the next song. */
   onPlayed?: () => void;
   /** Going through a set; both null for a song on its own. */
@@ -251,9 +252,13 @@ export function LiveView({ song }: { song: LiveSong }) {
     <div className="flex h-dvh flex-col bg-background text-foreground" data-testid="live-view">
       {/* Always the same height; the song's own title is at the top of its chart (issue #68). */}
       <header className="flex h-14 shrink-0 items-center gap-2 border-b-2 border-b-primary px-2 sm:gap-3 sm:px-4">
-        <IconButton label={song.exit.label} onClick={song.exit.go}>
-          <X />
-        </IconButton>
+        {/* The sidebar (issue #154): beside the song on a wider screen, a sheet on a phone. */}
+        <SidebarTrigger className="size-10 text-muted-foreground [&_svg]:size-5" data-testid="live-sidebar" />
+        {song.exit ? (
+          <IconButton label={song.exit.label} onClick={song.exit.go}>
+            <ArrowLeft />
+          </IconButton>
+        ) : null}
         <p className="min-w-0 flex-1 truncate text-sm font-medium text-muted-foreground" data-testid="live-set">
           {song.setName}
         </p>

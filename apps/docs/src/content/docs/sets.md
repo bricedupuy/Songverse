@@ -41,11 +41,11 @@ Click a song in the set to open its chart, as the set plays it: its version, in 
 
 ## Playing a set live
 
-On stage, switch to **Live** - the button on the set's page, or the mode switch at the top right of every page. Songverse turns dark (easy on the eyes in a dim room) and each song of the set opens full screen, big, as you read it with [My view](/versions/#your-own-view-of-a-chart).
+On stage, switch to **Live** - the button on the set's page, or the mode switch at the top right of every page. Songverse turns dark (easy on the eyes in a dim room) and each song of the set takes the whole page beside the sidebar, big, as you read it with [My view](/versions/#your-own-view-of-a-chart).
 
 ![A song of a set in Live mode](../../assets/screenshots/en/live.jpg)
 
-- The header shows the set's name; **×** (**Back to sets**) goes back to the list of sets.
+- The sidebar stays beside the song on a tablet or computer, with the set's songs listed (the played ones ticked): tap one to go to it. The button at the top left hides it or shows it again; on a phone, where there's no room beside the song, it opens the sidebar over it. The header also shows the set's name.
 - Under it, the song's structure: its parts in the order they're sung, as small circles - **V1** **C** **V2** **C** **B** **C** (verse, chorus, bridge...) - coloured by kind: intros and outros, verses and pre-choruses, choruses, bridges and vamps, and instrumentals, interludes and breakdowns each have their own colour. The part being sung is ringed and the ones sung are filled, as the song scrolls; tap one to go there.
 - The song starts with its title and artist, its songbook number (**JEM 855 · JEM3**), capo and tempo, and scrolls with the chords and words.
 - Its key is at the top right: **G**, with a small **+2** when the set plays it higher or lower than written. Tap it to transpose at the last moment, with **−** and **+**: only on your screen, for this song, until you leave it. **Back to the set's key** undoes it.
@@ -64,7 +64,7 @@ In Live, picking a set - from the list of sets, the sidebar or the home page - o
 
 ### A song that isn't in the set
 
-When the leader calls a song that wasn't planned, use the search (the magnifying glass at the top): by its title, or by its number when it's called that way ("Hymn 42!": **HY 42**). In Live, a song you pick opens full screen too, with autoscroll and your text size. **Back** (**×**) returns to the set's song you were on.
+When the leader calls a song that wasn't planned, use the search (the magnifying glass at the top): by its title, or by its number when it's called that way ("Hymn 42!": **HY 42**). In Live, a song you pick opens the same way, with autoscroll and your text size. **Back** (the arrow beside the sidebar button) returns to the set's song you were on.
 
 ## Playing in sync
 

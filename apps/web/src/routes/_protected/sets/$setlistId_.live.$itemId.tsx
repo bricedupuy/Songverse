@@ -77,8 +77,6 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
     // A copy kept before #59 has none.
     references: view.songbookReferences ?? [],
     notes: [...(item.notes ? [{ text: item.notes }] : []), ...(view.myNote ? [{ label: t("sets.myNotes"), text: view.myNote }] : [])],
-    // In Live a set's page opens Live (issue #153): back to the sets.
-    exit: { label: t("sets.backToSets"), go: () => void navigate({ to: "/sets" }) },
     onPlayed: () => markPlayed(set.id, item.id),
     previous: goTo(view.previousItemId),
     next: goTo(view.nextItemId),

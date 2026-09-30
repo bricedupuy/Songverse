@@ -45,9 +45,15 @@ export function AppShell({
     [],
   );
   if (fullScreen) {
+    // Live (issue #154): the song takes the whole screen but the sidebar - on a
+    // wider screen open beside it, the set's songs listed; on a phone a sheet
+    // its header's button opens.
     return (
       <>
-        {children}
+        <SidebarProvider>
+          <ShellSidebar session={session} teams={teams} songbooks={songbooks} setlists={setlists} />
+          <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        </SidebarProvider>
         <StemReturnButton />
         <YouTubeHost />
         <SyncDetails />

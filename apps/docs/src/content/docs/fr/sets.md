@@ -41,11 +41,11 @@ Cliquez sur un chant de la liste pour ouvrir sa grille, telle que la liste la jo
 
 ## Jouer une liste en live
 
-Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. Songverse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste s'ouvre en plein écran, en grand, tel que vous le lisez avec [Mon affichage](/fr/versions/#votre-propre-affichage-dune-grille).
+Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. Songverse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste occupe toute la page à côté de la barre latérale, en grand, tel que vous le lisez avec [Mon affichage](/fr/versions/#votre-propre-affichage-dune-grille).
 
 ![Un chant d'une liste en mode Live](../../../assets/screenshots/fr/live.jpg)
 
-- L'en-tête montre le nom de la liste ; **×** (**Retour aux listes**) revient à la liste des listes.
+- La barre latérale reste à côté du chant sur une tablette ou un ordinateur, avec les chants de la liste (les chants joués cochés) : touchez-en un pour y aller. Le bouton en haut à gauche la masque ou la réaffiche ; sur un téléphone, où il n'y a pas de place à côté du chant, il l'ouvre par-dessus. L'en-tête montre aussi le nom de la liste.
 - Dessous, la structure du chant : ses parties dans l'ordre où on les chante, en petits cercles - **S1** **R** **S2** **R** **P** **R** (strophe, refrain, pont…) - colorés par genre : intros et outros, strophes et pré-refrains, refrains, ponts et vamps, et instrumentaux, interludes et breaks ont chacun leur couleur. La partie en cours est entourée et celles déjà chantées sont pleines, au fil du défilement ; touchez-en une pour y aller.
 - Le chant commence par son titre et son artiste, son numéro de recueil (**JEM 855 · JEM3**), son capo et son tempo, et défile avec les accords et les paroles.
 - Sa tonalité est en haut à droite : **G**, avec un petit **+2** quand la liste le joue plus haut ou plus bas qu'écrit. Touchez-la pour transposer au dernier moment, avec **−** et **+** : seulement sur votre écran, pour ce chant, jusqu'à ce que vous le quittiez. **Revenir à la tonalité de la liste** l'annule.
@@ -64,7 +64,7 @@ En Live, choisir une liste - dans les listes, la barre latérale ou l'accueil - 
 
 ### Un chant qui n'est pas dans la liste
 
-Quand le leader lance un chant imprévu, utilisez la recherche (la loupe en haut) : par son titre, ou par son numéro s'il est annoncé ainsi (« Cantique 42 ! » : **CA 42**). En Live, le chant choisi s'ouvre lui aussi en plein écran, avec le défilement et votre taille de texte. **Retour** (**×**) revient au chant de la liste où vous étiez.
+Quand le leader lance un chant imprévu, utilisez la recherche (la loupe en haut) : par son titre, ou par son numéro s'il est annoncé ainsi (« Cantique 42 ! » : **CA 42**). En Live, le chant choisi s'ouvre de la même façon, avec le défilement et votre taille de texte. **Retour** (la flèche à côté du bouton de la barre latérale) revient au chant de la liste où vous étiez.
 
 ## Jouer synchronisé
 
