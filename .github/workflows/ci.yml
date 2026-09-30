@@ -50,13 +50,13 @@ jobs:
         run: pnpm --filter @songverse/db exec prisma migrate deploy
 
       - name: Lint
-        run: pnpm turbo lint
+        run: pnpm lint
 
       - name: Type-check
-        run: pnpm turbo type-check
+        run: pnpm type-check
 
       - name: Test
-        run: pnpm turbo test
+        run: pnpm test
 
   # What a push changes: whether more than documentation (the user docs in
   # apps/docs, the website in apps/site, the specs in docs/, Markdown
@@ -92,7 +92,7 @@ jobs:
           # code: build-test and e2e compile and run that already. The docs and
           # the website are built for any change to them (the docs' build
           # checks their links; the website's image, its redirects).
-          deps='^(pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|turbo\.json|\.dockerignore|packages/[^/]+/package\.json|packages/tsconfig/)'
+          deps='^(pnpm-lock\.yaml|pnpm-workspace\.yaml|package\.json|vite\.config\.ts|\.dockerignore|packages/[^/]+/package\.json|packages/tsconfig/)'
           images=()
           echo "$files" | grep -qE "$deps|^Dockerfile\.api$|^apps/api/(package\.json|nest-cli\.json|tsconfig)|^packages/db/prisma/" && images+=('"api"')
           echo "$files" | grep -qE "$deps|^Dockerfile\.web$|^apps/web/(package\.json|server\.mjs|vite\.config|tsconfig)" && images+=('"web"')
@@ -172,7 +172,7 @@ jobs:
         run: pnpm --filter @songverse/db exec prisma migrate deploy
 
       - name: Build the API and web app
-        run: pnpm turbo build --filter=@songverse/api --filter=@songverse/web
+        run: pnpm exec vp run --filter "@songverse/api..." --filter "@songverse/web..." build
 
       # The suites use the built-in tags and other metadata the seed adds.
       # It runs after the build, which builds @songverse/core for it.

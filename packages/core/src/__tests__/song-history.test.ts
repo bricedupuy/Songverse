@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { detailChanges, diffHunks, diffLines, mergeSnapshots, snapshotChanges, songSnapshot, type SnapshotSource } from "../song-history/index.js";
 import { songDocumentFromText } from "../song-document/text.js";
 

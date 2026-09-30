@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { diatonicChords, formatChord, keyUsesFlats, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 
 const shape = (raw: string) => {

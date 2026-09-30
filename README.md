@@ -66,7 +66,7 @@ User documentation, in English and French: [docs.songverse.one](https://docs.son
 
 | Area | Built with |
 | --- | --- |
-| Monorepo | pnpm workspaces, Turborepo, TypeScript |
+| Monorepo | pnpm workspaces, Vite+ (tasks, linting, tests), TypeScript |
 | Web app (`apps/web`) | TanStack Start and Router (React 19, SSR), Vite, Tailwind CSS 4, shadcn/ui, dnd-kit, react-i18next |
 | API (`apps/api`) | NestJS (ES modules), requests checked against the shared zod schemas, BetterAuth (sessions, passkeys, OAuth, JWTs for API calls), BullMQ workers on Redis, sharp for images, Resend for email |
 | Data (`packages/db`) | PostgreSQL with Prisma; migrations run when the API starts |
@@ -110,7 +110,7 @@ Songverse stands on a lot of open-source work. Thank you to everyone behind:
 | [Astro](https://astro.build) and [Starlight](https://starlight.astro.build) | The documentation site and the website | MIT |
 | [pdf-lib](https://pdf-lib.js.org) | Making the PDFs the end-to-end tests read | MIT |
 | [Playwright](https://playwright.dev) and [Vitest](https://vitest.dev) | End-to-end and unit tests, documentation screenshots | Apache-2.0 / MIT |
-| [Turborepo](https://turbo.build), [pnpm](https://pnpm.io), [TypeScript](https://www.typescriptlang.org), [ESLint](https://eslint.org), [Prettier](https://prettier.io) | The workspace and its checks | MIT / MIT / Apache-2.0 / MIT / MIT |
+| [Vite+](https://viteplus.dev) (with [Oxlint](https://oxc.rs)), [pnpm](https://pnpm.io), [TypeScript](https://www.typescriptlang.org), [Prettier](https://prettier.io) | The workspace and its checks | MIT / MIT / Apache-2.0 / MIT |
 
 Song and artist details come from outside services, each used within its
 terms: [MusicBrainz](https://musicbrainz.org) (credits, recordings and
@@ -124,7 +124,7 @@ links), and [YouTube](https://developers.google.com/youtube/iframe_api_reference
 
 ## Getting started
 
-Requires Node 22.13+, pnpm and Docker.
+Requires Node 22.18+, pnpm and Docker.
 
 ```sh
 pnpm install
@@ -137,7 +137,9 @@ pnpm dev                                     # web :3000, API :3001, docs :4321,
 ```
 
 `pnpm lint`, `pnpm type-check` and `pnpm test` run the checks across the
-workspace. `pnpm e2e` runs the end-to-end suites (API and browser) against
+workspace, through Vite+'s task runner (`vp run`), which replays a package's
+result when nothing it reads has changed; `pnpm exec vp cache clean` starts
+over. The lint rules are in the root `vite.config.ts`. `pnpm e2e` runs the end-to-end suites (API and browser) against
 the running app - see [e2e/README.md](e2e/README.md). See [Deploy.md](Deploy.md) for production setup.
 
 ## Licence

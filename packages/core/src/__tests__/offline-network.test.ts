@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vite-plus/test";
 import { isNetworkError, OfflineError, onlineOrKept, sessionOnlineOrSaved, withTimeout } from "../offline/network.js";
 
 const noNetwork = () => Promise.reject(new TypeError("Failed to fetch"));

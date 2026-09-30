@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { parseChordsOverLyrics } from "../chords-over-lyrics/parser.js";
 
 function lyrics(sections: ReturnType<typeof parseChordsOverLyrics>) {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { orderInstruments, orderTechRoles } from "../user-roles/index.js";
 
 describe("orderInstruments", () => {

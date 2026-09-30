@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { findArrangementProblems, type ArrangementDocumentV2 } from "../schemas/arrangement-document-v2.js";
 import { chartSeconds, newArrangementDocument, renderChart, type RenderedPass } from "../song-document/render.js";
 import { songDocumentFromText } from "../song-document/text.js";

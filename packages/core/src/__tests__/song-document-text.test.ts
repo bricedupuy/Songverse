@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { parseSongDocumentV2, type SongDocumentV2 } from "../schemas/song-document-v2.js";
 import { flowToChordPro, readSongDocument, sectionsFromText, sectionsToChordPro, songDocumentFromSections, songDocumentFromText, songFromText, songToChordPro } from "../song-document/text.js";
 import { layoutChordLine } from "../song-document/layout.js";

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
 
 describe("parseKey", () => {

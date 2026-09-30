@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { beatAt, clicksBetween, DEFAULT_METRONOME, metronomeForSong, normalizeMetronome, tapTempo, type MetronomeSettings } from "../metronome/index.js";
 
 const settings = (change: Partial<MetronomeSettings> = {}) => normalizeMetronome({ ...DEFAULT_METRONOME, ...change });

@@ -16,3 +16,18 @@ overrides:
   # files' names as Latin-1 whatever it's told; 2.4 takes defParamCharset
   # (issue #130: "même" came out "mÃªme").
   multer: ^2.4.0
+  # Vite+ (issue #159): every Vite and Vitest in the workspace is the one
+  # vite-plus bundles, so plugins (TanStack Start's) and vp test share one copy.
+  # Upgrade these two with the vite-plus version in the package.json files.
+  vite@*: npm:@voidzero-dev/vite-plus-core@1.0.0
+  vitest@*: 5.0.1
+  # One @types/node (Node 22, what runs everything): Vite+'s core is installed
+  # once per @types/node version, and `vp dev` loading one copy while TanStack
+  # Start's plugins load another left the dev server answering 404.
+  "@types/node": ^22.10.5
+
+peerDependencyRules:
+  allowedVersions:
+    # Vite+'s core is Vite 8 under its own version number (1.x), which
+    # plugins' "vite: ^8" peer ranges don't recognise.
+    vite: "*"

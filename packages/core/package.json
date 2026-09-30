@@ -13,9 +13,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "lint": "eslint src --max-warnings 0",
+    "lint": "vp lint src --deny-warnings",
     "type-check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vp test"
   },
   "dependencies": {
     "zod": "^4.6.5",
@@ -24,6 +24,6 @@
   "devDependencies": {
     "@songverse/tsconfig": "workspace:*",
     "typescript": "^5.7.3",
-    "vitest": "^5.0.2"
+    "vite-plus": "1.0.0"
   }
 }

@@ -8,10 +8,10 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite dev --port 3000",
+    "build": "vp build",
+    "dev": "vp dev --port 3000",
     "start": "node server.mjs",
-    "lint": "eslint src --max-warnings 0",
+    "lint": "vp lint src --deny-warnings",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -51,7 +51,8 @@
     "@vitejs/plugin-react": "^6.0.1",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.7.3",
-    "vite": "^8.0.0",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
+    "vite-plus": "1.0.0",
     "zod": "^4.6.5"
   }
 }

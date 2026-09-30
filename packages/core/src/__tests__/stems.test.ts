@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { isAudioFilename, stemPartFromFilename } from "../stems/index.js";
 
 describe("stemPartFromFilename", () => {

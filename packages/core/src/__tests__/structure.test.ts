@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { songDocumentFromText } from "../song-document/text.js";
 import { renderChart } from "../song-document/render.js";
 import { structureOf } from "../song-document/structure.js";

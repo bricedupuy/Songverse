@@ -180,7 +180,7 @@ export class Recorder {
   roundTrip(): { seconds: number; measured: boolean } {
     const saved = savedRoundTrip();
     if (saved !== null) return { seconds: saved, measured: true };
-    const input = (this.stream.getAudioTracks()[0]?.getSettings() as MediaTrackSettings & { latency?: number }).latency ?? 0;
+    const input = (this.stream.getAudioTracks()[0]?.getSettings() as (MediaTrackSettings & { latency?: number }) | undefined)?.latency ?? 0;
     return { seconds: (this.context.baseLatency || 0) + (this.context.outputLatency || 0) + input, measured: false };
   }
 

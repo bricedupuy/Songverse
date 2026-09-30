@@ -5,7 +5,6 @@ build/
 .output/
 .vinxi/
 .tanstack/
-.turbo/
 generated/
 *.tsbuildinfo
 

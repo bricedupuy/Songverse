@@ -135,6 +135,11 @@ Playwright browser steps against the running app; CI runs them on every
 push to `main`). Add or extend a suite there with each feature or fix -
 see `e2e/README.md` - rather than keeping test scripts outside the repo.
 
+The workspace's checks run on Vite+ (issue #159): `pnpm lint` (Oxlint, its
+rules in the root `vite.config.ts`), `pnpm type-check` and `pnpm test`, through
+`vp run`, which replays a package's result when nothing it reads changed. Unit
+tests import from `vite-plus/test`, not `vitest`.
+
 ## Deleting users
 
 Admin > Users can delete an account, either with everything the user

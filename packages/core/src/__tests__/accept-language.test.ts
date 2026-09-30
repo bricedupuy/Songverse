@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { localeFromAcceptLanguage } from "../i18n/accept-language.js";
 
 describe("localeFromAcceptLanguage", () => {

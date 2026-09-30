@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { foldForMatch, matchTier, rankMetadataMatches, type ProviderMatch } from "../metadata/rank.js";
 
 const found = (provider: ProviderMatch["source"]["provider"], id: string, details: Partial<ProviderMatch>): ProviderMatch => ({

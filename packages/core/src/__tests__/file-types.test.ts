@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { inlineSafeType } from "../file-types/index.js";
 
 describe("files shown in the browser (issue #112)", () => {

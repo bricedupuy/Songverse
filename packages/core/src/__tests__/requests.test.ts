@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { CreateSongVersionSchema, ListSongVersionsQuerySchema, UpdateSongVersionSchema, UploadAttachmentSchema } from "../requests/index.js";
 
 describe("request schemas (issue #118)", () => {

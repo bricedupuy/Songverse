@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { chordProFromPdfText, type PdfTextItem } from "../pdf-chart/index.js";
 
 // Helvetica widths for the characters these tests use (thousandths of an em).

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { harmonyLetter, hasSound, partKind, speedCorrection, stemPartFromFilename, stemSpeed, transposesPart, type StemPart } from "../index.js";
 import { alignTake, clapDelayFrom, clickTimes, encodeWav, mergeTake, multitracksOf, punchInAt, recordingPlan, roundTripFrom, spliceTake } from "../index.js";
 

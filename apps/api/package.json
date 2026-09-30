@@ -9,9 +9,9 @@
     "dev": "nest start --watch",
     "start": "node dist/main.js",
     "worker": "node dist/worker.js",
-    "lint": "eslint src --max-warnings 0",
+    "lint": "vp lint src --deny-warnings",
     "type-check": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vp test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1137.0",
@@ -50,6 +50,6 @@
     "@types/node": "^22.10.5",
     "@types/ws": "^8.18.1",
     "typescript": "^5.7.3",
-    "vitest": "^5.0.2"
+    "vite-plus": "1.0.0"
   }
 }

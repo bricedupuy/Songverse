@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { cueAt, cueSectionsOf, nextCueSection, sectionsFromText, snapToBeat, sortedCues, structureGroupOf, type SectionType } from "../index.js";
 
 const doc = {

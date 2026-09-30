@@ -8,12 +8,13 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "lint": "eslint src --max-warnings 0",
+    "lint": "vp lint src --deny-warnings",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@songverse/tsconfig": "workspace:*",
     "@types/node": "^22.10.5",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vite-plus": "1.0.0"
   }
 }

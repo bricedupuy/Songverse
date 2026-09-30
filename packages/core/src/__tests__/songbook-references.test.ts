@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { compareEntryCodes, normalizeEntryCode } from "../songbook-catalog-format/index.js";
 import { entryCodeMatches, formatSongbookReference, songbookMatches, songbookReferences } from "../songbook-references/index.js";
 

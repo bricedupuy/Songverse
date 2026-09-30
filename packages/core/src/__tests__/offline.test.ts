@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import type { SetlistOfflineCopy, SetlistSongView } from "../api-client/index.js";
 import type { OfflineSyncResponse } from "../api-client/index.js";
 import {

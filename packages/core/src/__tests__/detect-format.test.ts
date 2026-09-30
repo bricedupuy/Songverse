@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 import { detectImportFormat, detectImportFormatDetails, parseSongText } from "../import-detection/detect-format.js";
 
 describe("detectImportFormat", () => {
