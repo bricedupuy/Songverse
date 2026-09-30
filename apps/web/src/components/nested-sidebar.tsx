@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeft,
   AudioWaveform,
+  BadgeCheck,
   BookOpen,
   ChevronLeft,
   Check,
@@ -32,7 +33,7 @@ import { SidebarRail, useSidebar } from "#/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip";
 import { apiClient } from "#/lib/api-client";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
-import { docsUrl } from "#/lib/docs";
+import { docsUrl, docsView } from "#/lib/docs";
 import { initials } from "#/lib/initials";
 import { useMode } from "#/lib/mode";
 import { useSetProgress } from "#/lib/set-progress";
@@ -137,7 +138,7 @@ export function NestedSidebar({
         <div className="mt-auto flex flex-col items-center gap-1">
           {/* The documentation, for everyone, above Review and Admin (issue #147). */}
           <Tooltip>
-            <TooltipTrigger render={<a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener" aria-label={t("nav.documentation")} data-testid="rail-docs" className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4" />}>
+            <TooltipTrigger render={<a href={docsUrl(pathname, i18n.language, docsView(session))} target="_blank" rel="noopener" aria-label={t("nav.documentation")} data-testid="rail-docs" className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4" />}>
               <HelpCircle />
             </TooltipTrigger>
             <TooltipContent side="right">{t("nav.documentation")}</TooltipContent>
@@ -199,6 +200,8 @@ function SectionPanel({
         pathname={pathname}
         links={[
           { to: "/admin/users", label: t("nav.adminUsers"), icon: <Users /> },
+          { to: "/admin/teams", label: t("nav.adminTeams"), icon: <UsersRound /> },
+          { to: "/admin/roles", label: t("nav.adminRoles"), icon: <BadgeCheck /> },
           { to: "/admin/auth", label: t("nav.adminAuth"), icon: <KeyRound /> },
           { to: "/admin/security", label: t("nav.adminSecurity"), icon: <ShieldCheck /> },
           { to: "/admin/storage", label: t("nav.adminStorage"), icon: <Database /> },
@@ -652,7 +655,7 @@ function PeoplePanel({ title }: { title: string }) {
   );
 }
 
-function LinksPanel({ title, pathname, links }: { title: string; pathname: string; links: { to: "/review" | "/library" | "/admin/users" | "/admin/auth" | "/admin/security" | "/admin/storage" | "/admin/stem-separation" | "/admin/catalogs" | "/admin/metadata"; label: string; icon: ReactNode }[] }) {
+function LinksPanel({ title, pathname, links }: { title: string; pathname: string; links: { to: "/review" | "/library" | "/admin/users" | "/admin/teams" | "/admin/roles" | "/admin/auth" | "/admin/security" | "/admin/storage" | "/admin/stem-separation" | "/admin/catalogs" | "/admin/metadata"; label: string; icon: ReactNode }[] }) {
   return (
     <>
       <PanelHeader title={title} />

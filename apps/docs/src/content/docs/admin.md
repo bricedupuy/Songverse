@@ -3,9 +3,11 @@ title: For admins
 description: Reviewing songs for the global catalogue, and running a Songverse server.
 ---
 
+<div data-audience="reviewer admin">
+
 ## Reviewers
 
-A reviewer (or a global admin) checks songs submitted to the global catalogue. The **Review** page lists what's waiting. For each song you can:
+A reviewer - someone with a role that allows reviewing, such as the built-in **Reviewer** role (see [Roles](/admin/#roles)), or a global admin - checks songs submitted to the global catalogue. The **Review** page lists what's waiting. For each song you can:
 
 - **Approve and publish** it, optionally with a trust label shown on the global song ("Official publisher text"). The song itself moves to the catalogue, credited to whoever it came from; their files stay theirs;
 - **Merge into** a similar song already in the catalogue: theirs is folded into it - their versions, files and sets move over, their way of singing it becomes their version of it, and their changed details come to you as a suggestion;
@@ -17,18 +19,35 @@ The **Review** page also lists **Suggested changes** to catalogue songs (see [Su
 
 ![A suggested change, for the reviewer](../../assets/screenshots/en/suggestion-review.jpg)
 
+</div>
+
+<div data-audience="admin">
+
 ## Global admins
 
 Global admins manage the whole server from **Dashboard**, in the sidebar's **Admin** section (reviewers find **Review** there).
 
 ### Users
 
-Everyone with an account, with their status, songs and storage. For each user you can:
+Everyone with an account, with their status, roles (their teams' in outline), songs and storage. For each user you can:
 
-- **Change storage limit** - leave it blank to use the default;
-- **Make reviewer** or remove the role;
+- **Roles…** - tick the roles they have (see [Roles](/admin/#roles)); the ones they get from their teams are listed below, to change in **Teams**;
 - **Ban** them (they're signed out and can't sign in until unbanned; their content stays);
 - **Delete user**, choosing what happens to what they personally own: delete it now, or keep it for a **transfer link**. Whoever opens that link while signed in, before it expires, becomes its owner.
+
+### Teams
+
+Every team, with its roles, members, songs and **storage pool**: what's on a team's songs counts there, whoever uploaded it, not against the uploader. **Roles…** gives the team roles: each one applies to every member, and a storage tier sets the team's pool.
+
+### Roles
+
+The one place that says what people may do beyond their own and their teams' songs. A role can allow:
+
+- **Review submissions** - the global catalogue's queue (see [Reviewers](/admin/#reviewers));
+- **Split recordings into stems**, with its own **Separations per person in 30 days** or, left empty, the one in **Stem separation**;
+- **A storage tier** - how much a person may store, or a team's pool.
+
+**Reviewer** and **Stem separation** are built in: they can be edited but not deleted. **New role** adds your own, such as "Storage 10 GB". Give roles to people in **Users** and to teams in **Teams**. Someone can do what any of their roles allows - their own and their teams' - and the largest limit wins; without a storage tier, the defaults in **Storage** apply. Global admins can do everything. Changes take effect straight away.
 
 ### Auth
 
@@ -40,13 +59,13 @@ How the API protects itself. **Limit requests** caps how many requests it takes 
 
 ### Storage
 
-Where uploaded files are kept (object storage such as Cloudflare R2, or local disk for development), how much is used, and the **default storage limit** per user. Global admins have no limit.
+Where uploaded files are kept (object storage such as Cloudflare R2, or local disk for development), how much is used, the largest song file of each type (**File size limits**: PDF, ChordPro, MusicXML, ABC, Text, Image, Audio, Other - 25 MB, audio 50 MB, unless set here, up to 500 MB, since an upload is held in the server's memory until it's stored; **Reset** goes back to the built-in one), and the default storage limits: **Default limit per user (MB)** and **Default limit for a team's pool (MB)**, for whoever no storage tier (see [Roles](/admin/#roles)) gives a limit. What's on a team's songs counts toward the team's pool; the rest of what someone uploads, toward their own. Global admins have no limit.
 
 ### Stem separation
 
 The server recordings are split into stems on (a Demucs API, see [Separating a recording into stems](/library/#separating-a-recording-into-stems)): its **API address** and **API key** (leave the key blank to keep the current one), the **Quick pass model** (htdemucs; asking for 6 parts uses htdemucs_6s), **Then a finer pass** and its model (htdemucs_ft), which replaces the quick stems when the server has time, and the **Separations per person in 30 days** (empty: no limit). **Test connection** checks the address and key and lists the server's models. The server must be able to reach the API back to say when stems are ready; otherwise Songverse checks every 2 minutes.
 
-**Who can use it**: a person allowed by email address can split the recordings of the songs they can edit; a team ticked here lets every member split the team's songs' recordings. Global admins always can. **Revert to environment variables** goes back to the server's configuration.
+**Who can use it**: whoever has a role that allows it - the built-in **Stem separation** role, or one of yours - given to them or to their team (see [Roles](/admin/#roles)); they can split the recordings of the songs they can edit and of their team's songs. Global admins always can. **Revert to environment variables** goes back to the server's configuration.
 
 ### Catalogs
 
@@ -70,3 +89,6 @@ Each provider's **Settings** open under it:
 **Song artwork** turns a song's artwork on or off (**Find artwork for songs**): found on its own for a new song, from the providers ticked for **Album artwork**. **Save configuration** keeps it; **Revert to defaults** goes back to on. **Find artwork for songs without one** looks up to 50 songs at a time, newest first, in the background: its result shows under **Background jobs**. A song nothing matched isn't tried again; one whose lookup failed (a provider down or refusing) is, next time. See [Artwork](/library/#artwork).
 
 **Artist pictures and bios** turns them on or off (**Look up artists' pictures and bios**): a picture from the providers ticked for **Artist pictures**, and a short bio from Wikipedia, found through MusicBrainz and Wikidata, in English and French. **Save configuration** keeps it; **Revert to environment variables** goes back to `ARTIST_LOOKUPS` (`off` turns them off), or on without it. **Look up artists not looked up yet** asks about up to 25 at a time, the most recently credited first, in the background: its result shows under **Background jobs**. An artist whose lookup failed is tried again next time. See [Artists](/library/#artists).
+
+</div>
+

@@ -18,7 +18,7 @@ import { formatBytes } from "#/lib/format-bytes";
 import { initials } from "#/lib/initials";
 import { cn } from "#/lib/utils";
 
-export type UserAction = "storage" | "reviewer" | "ban" | "unban" | "delete" | "newTransferLink" | "deleteNow";
+export type UserAction = "roles" | "ban" | "unban" | "delete" | "newTransferLink" | "deleteNow";
 
 function sortableHeader(label: string) {
   return function SortableHeader({ column }: { column: Column<AdminUserSummary, unknown> }) {
@@ -82,8 +82,22 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
                   <span className="truncate">{user.displayName}</span>
                   {user.id === currentUserId ? <span className="text-xs font-normal text-muted-foreground">({t("admin.you")})</span> : null}
                   {user.isGlobalAdmin ? <Badge>{t("admin.globalAdmin")}</Badge> : null}
-                  {user.isReviewer ? <Badge variant="muted">{t("admin.reviewer")}</Badge> : null}
                 </p>
+                {/* Their roles (issue #160): their own, then their teams'. */}
+                {user.roles.length || user.teamRoles.length ? (
+                  <p className="mt-1 flex flex-wrap gap-1" data-testid="user-roles">
+                    {user.roles.map((role) => (
+                      <Badge key={role.id} variant="muted">
+                        {role.name}
+                      </Badge>
+                    ))}
+                    {user.teamRoles.map((role) => (
+                      <Badge key={`${role.id}-${role.teamName}`} variant="outline" title={t("admin.roleFromTeam", { role: role.name, team: role.teamName })}>
+                        {role.name}
+                      </Badge>
+                    ))}
+                  </p>
+                ) : null}
                 <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 {/* The Status column is hidden on phones. */}
                 <StatusBadges user={user} className="mt-1 sm:hidden" />
@@ -116,9 +130,6 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
               <p>
                 {formatBytes(user.usedBytes)} / {user.limitBytes === null ? t("admin.storageUnlimited") : formatBytes(user.limitBytes)}
               </p>
-              {user.storageLimitMb !== null && !user.isGlobalAdmin ? (
-                <p className="text-xs text-muted-foreground">{t("admin.storageCustomLimit")}</p>
-              ) : null}
             </div>
           );
         },
@@ -151,12 +162,7 @@ export function useUsersColumns(currentUserId: string, onAction: (action: UserAc
                   </>
                 ) : (
                   <>
-                    <DropdownMenuItem onClick={() => onAction("storage", user)}>{t("admin.actionEditStorage")}</DropdownMenuItem>
-                    {user.isGlobalAdmin ? null : (
-                      <DropdownMenuItem onClick={() => onAction("reviewer", user)}>
-                        {user.isReviewer ? t("admin.actionRemoveReviewer") : t("admin.actionMakeReviewer")}
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem onClick={() => onAction("roles", user)}>{t("admin.actionRoles")}</DropdownMenuItem>
                     {isSelf ? null : (
                       <>
                         {user.bannedAt ? (

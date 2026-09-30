@@ -73,8 +73,8 @@ Un chant a des onglets :
 - **Infos** - son nom et ses artistes, et sous **Plus de détails** : compositeurs, auteurs et autres crédits, album, année, tonalité, tempo, mesure, capo suggéré, durée, copyright, numéros CCLI et ISRC, une référence (par exemple le passage biblique dont il s'inspire), des notes et des étiquettes. Il liste aussi les recueils qui le contiennent.
 - **Éditeur** - la grille elle-même. Voir [L'éditeur de chants](/fr/song-editor/).
 - **Versions** - la façon dont vous et vos équipes le jouez et le chantez. Voir [Versions](/fr/versions/).
-- **Fichiers** - partitions, fichier d'origine de la grille, images (25 Mo maximum chacun). Les PDF, images, fichiers audio et vidéo et le texte brut s'ouvrent dans le navigateur ; tout autre fichier (une page web, par exemple) est téléchargé, pour ne jamais pouvoir s'exécuter dans Songverse.
-- **Audio** - des enregistrements pour apprendre ou répéter (MP3, Opus, M4A, WAV, OGG… 50 Mo maximum chacun), et les pistes du chant (voir plus bas).
+- **Fichiers** - partitions, fichier d'origine de la grille, images (25 Mo maximum chacun, sauf si votre administrateur a fixé d'autres limites ; l'onglet l'indique). Les PDF, images, fichiers audio et vidéo et le texte brut s'ouvrent dans le navigateur ; tout autre fichier (une page web, par exemple) est téléchargé, pour ne jamais pouvoir s'exécuter dans Songverse.
+- **Audio** - des enregistrements pour apprendre ou répéter (MP3, Opus, M4A, WAV, OGG… 50 Mo maximum chacun, sauf si votre administrateur a fixé une autre limite), et les pistes du chant (voir plus bas).
 - **Liens** - le chant sur Spotify, Apple Music, Deezer et YouTube.
 
 Les modifications des onglets **Infos** et **Éditeur** sont enregistrées ensemble par **Enregistrer le chant** ; les fichiers, l'audio et les liens sont enregistrés dès que vous les ajoutez. **Annuler les modifications** retire ce qui n'est pas enregistré. Le menu **⋯** permet d'**Exporter en ChordPro** ou de **Supprimer le chant**.
@@ -176,11 +176,15 @@ Un chant peut avoir plus d'un jeu de pistes : ses **Pistes d'origine**, et des m
 
 En mode **Session**, le lecteur de pistes joue un multipiste à la fois : quand un chant en a plusieurs, la liste à côté du temps passe de l'un à l'autre (**Pistes d'origine**, puis les autres par leur nom, ou **Multipiste 2**…). Songverse retient votre choix pour chaque chant sur l'appareil, et pour chaque page de chant d'une liste. En jeu synchronisé, chacun joue le multipiste du meneur, avec ses propres fichiers.
 
+<div data-audience="stems admin">
+
 ### Séparer un enregistrement en pistes
 
 Quand un admin a configuré la séparation en pistes et vous y a autorisé (vous ou votre équipe), **Séparer en pistes** sous un enregistrement de l'onglet **Audio** le sépare en ses pistes sur un serveur de séparation : **4 pistes : voix, batterie, basse, autre** (par défaut), **6 pistes : plus guitare, piano**, ou **2 pistes : voix et instrumental**. Ne séparez qu'un enregistrement que vous avez le droit d'utiliser ainsi.
 
 Les premières pistes arrivent en quelques minutes dans un nouveau multipiste, **Separated (Demucs)**, verrouillé, dans la tonalité et le tempo de l'enregistrement et avec ses sections, et avec la même visibilité que lui. La liste **Séparations en pistes** sous les fichiers dit où en est chacune : **En attente**, **Séparation…**, **Prêt - une version plus fine arrive** - une séparation plus lente et meilleure qui remplace les pistes sur place quand le serveur a le temps, souvent la nuit - puis **Prêt**. Une séparation échouée dit pourquoi, avec **Réessayer**. La page vérifie d'elle-même ; les pistes comptent dans votre espace de stockage.
+
+</div>
 
 ### Enregistrer une piste
 

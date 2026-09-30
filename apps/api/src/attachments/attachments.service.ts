@@ -101,7 +101,7 @@ export class AttachmentsService {
     const song = await this.songRights(viewer, songVersionId);
     const canEditSong = song.canEditSong;
     const audience = await this.audience(viewer, song, visibility, teamId);
-    await this.quota.assertCanStore(viewer.id, body.length);
+    await this.quota.assertCanStore(viewer.id, body.length, songVersionId);
     const { hash, sizeBytes } = await this.storage.put(body, mimeType);
     const row = await this.prisma.client.attachment.create({
       data: {

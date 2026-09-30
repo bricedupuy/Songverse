@@ -2,14 +2,14 @@
 // song editor opens for a suggestion, which the reviewer reads as a
 // before/after and accepts; the suggester sees what became of it.
 import { chromium } from "playwright";
-import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, finish, signIn, sql, giveRole, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
 const admin = await user("Sugg web admin");
 sql(`update "User" set "isGlobalAdmin"=true where id='${admin.id}'`);
 const reviewer = await user("Sugg web reviewer");
-sql(`update "User" set "isReviewer"=true where id='${reviewer.id}'`);
+giveRole(reviewer.id, "REVIEWER");
 const alice = await user("Sugg web alice");
 const title = `Catalogue ${stamp}`;
 const song = await api(admin, "POST", "/song-versions", { title, language: "en", artists: ["Band"], content: "{start_of_verse}\n[G]Old line\n{end_of_verse}\n" });

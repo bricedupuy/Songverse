@@ -23,9 +23,20 @@ const PAGES: [RegExp, string][] = [
   [/^\/tuner/, "metronome"],
 ];
 
-/** The docs page about where the user is (the docs' home otherwise), in their language. */
-export function docsUrl(pathname: string, language: string): string {
+/**
+ * What the docs show them (issue #160): the parts about what they can use -
+ * "admin", "reviewer", "stems" - or "member" for none. The docs keep it on
+ * the device; without it, they show a member's view.
+ */
+export function docsView(session: { isGlobalAdmin: boolean; isReviewer: boolean; canSeparateStems: boolean }): string {
+  if (session.isGlobalAdmin) return "admin,reviewer,stems";
+  const view = [session.isReviewer && "reviewer", session.canSeparateStems && "stems"].filter(Boolean);
+  return view.length ? view.join(",") : "member";
+}
+
+/** The docs page about where the user is (the docs' home otherwise), in their language, showing what `view` can use. */
+export function docsUrl(pathname: string, language: string, view?: string): string {
   const page = PAGES.find(([pattern]) => pattern.test(pathname))?.[1];
   const locale = language.startsWith("fr") ? "/fr" : "";
-  return `${DOCS_URL}${locale}/${page ? `${page}/` : ""}`;
+  return `${DOCS_URL}${locale}/${page ? `${page}/` : ""}${view ? `?view=${view}` : ""}`;
 }

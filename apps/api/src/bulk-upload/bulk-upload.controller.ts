@@ -1,5 +1,4 @@
-import { FilesInterceptor } from "@nestjs/platform-express";
-import { Body, Controller, Param, Post, UnauthorizedException, UseGuards, UseInterceptors, UploadedFiles } from "@nestjs/common";
+import { Body, Controller, Param, PayloadTooLargeException, Post, UnauthorizedException, UseGuards, UseInterceptors, UploadedFiles } from "@nestjs/common";
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard.js";
@@ -8,10 +7,10 @@ import { BulkUploadService } from "./bulk-upload.service.js";
 import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto.js";
 import { BulkUploadPreviewDto } from "./dto/bulk-upload-preview.dto.js";
 import { BulkUploadCommitResultDto, BulkUploadFileMatchDto } from "./dto/bulk-upload-response.dto.js";
-import { UPLOAD_OPTIONS } from "../common/uploads.js";
 import { RateLimit } from "../security/rate-limit.decorator.js";
+import { BYTES_PER_MB, getFileSizeLimits } from "../uploads/file-size-limits.js";
+import { SongFileInterceptor } from "../uploads/song-file.interceptor.js";
 
-const MAX_BULK_UPLOAD_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const MAX_BULK_UPLOAD_FILES_PER_REQUEST = 200;
 
 @ApiTags("bulk-upload")
@@ -32,18 +31,20 @@ export class BulkUploadController {
 
   @RateLimit("heavy")
   @Post()
-  @UseInterceptors(
-    FilesInterceptor("files", MAX_BULK_UPLOAD_FILES_PER_REQUEST, { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_BULK_UPLOAD_FILE_SIZE_BYTES } }),
-  )
+  @UseInterceptors(SongFileInterceptor("files", MAX_BULK_UPLOAD_FILES_PER_REQUEST))
   @ApiConsumes("multipart/form-data")
   @ApiCreatedResponse({ type: BulkUploadCommitResultDto })
-  commit(
+  async commit(
     @Param("songbookId") songbookId: string,
     @Body() dto: BulkUploadCommitDto,
     @UploadedFiles() files: Express.Multer.File[] | undefined,
     @CurrentUser() user: AuthenticatedUser | undefined,
-  ): ReturnType<BulkUploadService["commit"]> {
+  ): Promise<Awaited<ReturnType<BulkUploadService["commit"]>>> {
     if (!user) throw new UnauthorizedException();
+    // Each file within its type's limit (issue #163), set in Admin > Storage.
+    const limitMb = (await getFileSizeLimits()).limitsMb[dto.type];
+    const tooBig = (files ?? []).find((file) => file.size > limitMb * BYTES_PER_MB);
+    if (tooBig) throw new PayloadTooLargeException(`${tooBig.originalname}: ${dto.type === "PDF" ? "PDF" : "ChordPro"} files can be up to ${limitMb} MB`);
     return this.bulkUploadService.commit(user.id, songbookId, dto.type, files ?? []);
   }
 }

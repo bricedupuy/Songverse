@@ -24,6 +24,19 @@ what users see updates its page, in both languages, in the same change:
   `node e2e/docs/screenshots.mjs` (see `apps/docs/README.md`).
 The in-app Help link picks the page from the URL (`apps/web/src/lib/docs.ts`):
 add new areas of the app there.
+A part for reviewers, people with a role such as stem separation, or admins
+is wrapped in `<div data-audience="…">` so others don't see it (issue #160,
+see `apps/docs/README.md`).
+
+## Roles
+
+What someone may do beyond their own and their teams' songs - review,
+split stems, a storage tier, later plugins' permissions - comes from roles
+(issue #160, Admin > Roles), given to users and to teams; worked out by
+`apps/api/src/roles/capabilities.ts`, fresh on each request. A new right
+is a field on `Role`, read through `capabilitiesOf`, never a column on
+`User` or `Team`. A team's songs' files count against the team's storage
+pool (`StorageQuotaService.assertCanStore` with the song).
 
 ## Keep the Admin UI current
 

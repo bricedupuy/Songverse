@@ -43,14 +43,17 @@ const openSubmission = async (songTitle, submitter, tab = "open") => {
   await reviewerPage.waitForLoadState("networkidle");
 };
 
-await step("admins make someone a reviewer in Admin > Users", async () => {
+await step("admins give someone the Reviewer role in Admin > Users (issue #160)", async () => {
   page = await pageFor(admin);
   await page.goto(`${WEB}/admin/users`);
   await page.waitForLoadState("networkidle");
+  await page.getByPlaceholder("Search by name or email…").fill(reviewer.email);
   const row = page.getByRole("row").filter({ hasText: reviewer.email });
   await row.getByRole("button", { name: /Pub web reviewer/ }).click();
-  await page.getByRole("menuitem", { name: "Make reviewer" }).click();
-  await row.getByText("Reviewer", { exact: true }).waitFor();
+  await page.getByRole("menuitem", { name: "Roles…" }).click();
+  await page.getByTestId("roles-dialog-list").getByLabel(/Reviewer/).check();
+  await page.getByTestId("roles-dialog-save").click();
+  await row.getByTestId("user-roles").getByText("Reviewer", { exact: true }).waitFor();
 });
 
 await step("a user submits their song from its page", async () => {
@@ -176,7 +179,7 @@ await step("the page fits a phone", async () => {
 });
 
 await step("removing the role closes the queue", async () => {
-  const r = await call(admin, "PATCH", `/admin/users/${reviewer.id}`, { isReviewer: false });
+  const r = await call(admin, "PUT", `/admin/users/${reviewer.id}/roles`, { roleIds: [] });
   if (r.status !== 204) throw new Error(String(r.status));
   page = reviewerPage;
   await page.goto(`${WEB}/review`);

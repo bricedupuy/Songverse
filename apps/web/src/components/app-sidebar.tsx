@@ -3,6 +3,7 @@ import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
   ArrowLeft,
   AudioWaveform,
+  BadgeCheck,
   BookOpen,
   ChevronRight,
   ChevronsUpDown,
@@ -40,7 +41,7 @@ import { authClient } from "#/lib/auth-client";
 import type { AppSession } from "#/lib/server-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
-import { docsUrl } from "#/lib/docs";
+import { docsUrl, docsView } from "#/lib/docs";
 import { SOURCE_CODE_URL } from "@songverse/core";
 import { forgetOffline } from "#/lib/offline-db";
 import { setTheme, useMode } from "#/lib/mode";
@@ -135,6 +136,7 @@ export function AppSidebar({
           setlists={setlists}
           isGlobalAdmin={session.isGlobalAdmin}
           canReview={session.isGlobalAdmin || session.isReviewer}
+          docsView={docsView(session)}
         />
       )}
       <SidebarFooter>
@@ -190,7 +192,7 @@ export function AccountMenuContent({ session, side, align }: { session: AppSessi
             <HardDrive />
             {t("nav.offlineStorage")}
           </DropdownMenuLinkItem>
-        <DropdownMenuLinkItem render={<a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener" />}>
+        <DropdownMenuLinkItem render={<a href={docsUrl(pathname, i18n.language, docsView(session))} target="_blank" rel="noopener" />}>
             <HelpCircle />
             {t("nav.help")}
           </DropdownMenuLinkItem>
@@ -313,6 +315,7 @@ function MainNav({
   setlists,
   isGlobalAdmin,
   canReview,
+  docsView,
 }: {
   pathname: string;
   teams: TeamSummary[];
@@ -320,6 +323,8 @@ function MainNav({
   setlists: SetlistSummary[];
   isGlobalAdmin: boolean;
   canReview: boolean;
+  /** What the docs show them (issue #160). */
+  docsView: string;
 }) {
   const { t, i18n } = useTranslation();
   // Upcoming and undated sets come first (the API's order); past ones are
@@ -442,7 +447,7 @@ function MainNav({
       <SidebarGroup className="mt-auto">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip={t("nav.documentation")} render={<a href={docsUrl(pathname, i18n.language)} target="_blank" rel="noopener" data-testid="sidebar-docs" />}>
+            <SidebarMenuButton tooltip={t("nav.documentation")} render={<a href={docsUrl(pathname, i18n.language, docsView)} target="_blank" rel="noopener" data-testid="sidebar-docs" />}>
               <HelpCircle />
               <span>{t("nav.documentation")}</span>
             </SidebarMenuButton>
@@ -481,6 +486,8 @@ function AdminNav({ pathname }: { pathname: string }) {
   const { t } = useTranslation();
   const sections = [
     { to: "/admin/users" as const, label: t("nav.adminUsers"), icon: Users },
+    { to: "/admin/teams" as const, label: t("nav.adminTeams"), icon: UsersRound },
+    { to: "/admin/roles" as const, label: t("nav.adminRoles"), icon: BadgeCheck },
     { to: "/admin/auth" as const, label: t("nav.adminAuth"), icon: KeyRound },
     { to: "/admin/security" as const, label: t("nav.adminSecurity"), icon: ShieldCheck },
     { to: "/admin/storage" as const, label: t("nav.adminStorage"), icon: Database },

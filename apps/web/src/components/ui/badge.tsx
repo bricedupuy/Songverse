@@ -6,6 +6,7 @@ const VARIANTS = {
   muted: "bg-muted text-muted-foreground",
   destructive: "bg-destructive/10 text-destructive",
   warning: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+  outline: "border text-muted-foreground",
 } as const;
 
 function Badge({ className, variant = "default", ...props }: ComponentProps<"span"> & { variant?: keyof typeof VARIANTS }) {

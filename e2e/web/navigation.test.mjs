@@ -49,7 +49,7 @@ await step("no breadcrumb: the sidebar marks where you are", async () => {
   if ((await entry.getAttribute("aria-current")) !== "page") throw new Error("the set isn't marked");
 });
 
-await step("Help opens the docs page about where you are, in your language", async () => {
+await step("Help opens the docs page about where you are, in your language, showing what you can use (issue #160)", async () => {
   const help = async () => {
     await page.getByRole("button", { name: "Navigator" }).click();
     const href = await page.getByRole("menuitem", { name: /Help|Aide/ }).getAttribute("href");
@@ -58,11 +58,11 @@ await step("Help opens the docs page about where you are, in your language", asy
   };
   await page.goto(`${WEB}/sets`);
   await page.waitForLoadState("networkidle");
-  if ((await help()) !== "https://docs.songverse.one/sets/") throw new Error(`on /sets: ${await help()}`);
+  if ((await help()) !== "https://docs.songverse.one/sets/?view=member") throw new Error(`on /sets: ${await help()}`);
   sql(`update "User" set locale='fr' where id='${me.id}'`);
   await page.goto(`${WEB}/library`);
   await page.waitForLoadState("networkidle");
-  if ((await help()) !== "https://docs.songverse.one/fr/library/") throw new Error(`in French, on /library: ${await help()}`);
+  if ((await help()) !== "https://docs.songverse.one/fr/library/?view=member") throw new Error(`in French, on /library: ${await help()}`);
 });
 
 await browser.close();

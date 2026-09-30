@@ -1,8 +1,10 @@
 import { Injectable, PayloadTooLargeException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { capabilitiesOf, teamStorageLimitMb } from "../roles/capabilities.js";
 
-/** Used when neither the user nor Admin > Storage sets a limit. */
+/** Used when no role and no Admin > Storage setting gives a limit. */
 export const BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB = 50;
+export const BUILT_IN_DEFAULT_TEAM_STORAGE_LIMIT_MB = 50;
 
 const BYTES_PER_MB = 1024 * 1024;
 const SINGLETON_ID = "singleton";
@@ -14,13 +16,16 @@ export interface StorageUsage {
 }
 
 /**
- * Per-user storage limits. Usage is the sum of every attachment a user
- * uploaded (Attachment.uploadedByUserId), counted logically: two users
- * uploading the same file each pay for it, even though content-addressed
- * storage keeps one copy. Avatars don't count.
+ * Storage limits (issue #160). What's attached to a team's song counts
+ * against the team's pool, whoever uploaded it; the rest against whoever
+ * uploaded it. Counted logically: two uploads of the same file each count,
+ * even though content-addressed storage keeps one copy. Avatars don't count.
+ * The limits come from storage roles (the largest wins), else Admin >
+ * Storage's defaults.
  *
  * Global admins aren't limited - they bulk-upload whole published
- * catalogs, which would blow through any per-user cap.
+ * catalogs, which would blow through any cap - nor is what they upload to a
+ * team's songs.
  */
 @Injectable()
 export class StorageQuotaService {
@@ -28,56 +33,102 @@ export class StorageQuotaService {
 
   /** Resolved fresh on every call, like the rest of Admin > Storage. */
   async getDefaultLimitMb(): Promise<{ limitMb: number; isBuiltIn: boolean }> {
-    const settings = await this.prisma.client.storageSettings.findUnique({
-      where: { id: SINGLETON_ID },
-      select: { defaultUserStorageLimitMb: true },
-    });
-    const configured = settings?.defaultUserStorageLimitMb;
+    const configured = (await this.settings())?.defaultUserStorageLimitMb;
     return configured == null
       ? { limitMb: BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB, isBuiltIn: true }
       : { limitMb: configured, isBuiltIn: false };
   }
 
-  /** Null resets to the built-in default. */
-  async setDefaultLimitMb(limitMb: number | null): Promise<void> {
-    await this.prisma.client.storageSettings.upsert({
-      where: { id: SINGLETON_ID },
-      create: { id: SINGLETON_ID, defaultUserStorageLimitMb: limitMb },
-      update: { defaultUserStorageLimitMb: limitMb },
-    });
+  async getDefaultTeamLimitMb(): Promise<{ limitMb: number; isBuiltIn: boolean }> {
+    const configured = (await this.settings())?.defaultTeamStorageLimitMb;
+    return configured == null
+      ? { limitMb: BUILT_IN_DEFAULT_TEAM_STORAGE_LIMIT_MB, isBuiltIn: true }
+      : { limitMb: configured, isBuiltIn: false };
   }
 
+  /** Null resets to the built-in default; undefined leaves it. */
+  async setDefaultLimits(limits: { userMb?: number | null; teamMb?: number | null }): Promise<void> {
+    const data = {
+      ...(limits.userMb !== undefined && { defaultUserStorageLimitMb: limits.userMb }),
+      ...(limits.teamMb !== undefined && { defaultTeamStorageLimitMb: limits.teamMb }),
+    };
+    await this.prisma.client.storageSettings.upsert({ where: { id: SINGLETON_ID }, create: { id: SINGLETON_ID, ...data }, update: data });
+  }
+
+  /** What each user stores themselves: their uploads, except to teams' songs. */
   async usedBytesByUser(): Promise<Map<string, number>> {
     const rows = await this.prisma.client.attachment.groupBy({
       by: ["uploadedByUserId"],
-      where: { uploadedByUserId: { not: null } },
+      where: { uploadedByUserId: { not: null }, songVersion: { ownerTeamId: null } },
       _sum: { sizeBytes: true },
     });
     return new Map(rows.map((row) => [row.uploadedByUserId as string, row._sum.sizeBytes ?? 0]));
   }
 
-  limitBytesFor(user: { isGlobalAdmin: boolean; storageLimitMb: number | null }, defaultLimitMb: number): number | null {
-    if (user.isGlobalAdmin) return null;
-    return (user.storageLimitMb ?? defaultLimitMb) * BYTES_PER_MB;
+  /** What each team's pool holds: everything on its songs. */
+  async usedBytesByTeam(): Promise<Map<string, number>> {
+    const rows = await this.prisma.client.$queryRaw<{ teamId: string; bytes: bigint | null }[]>`
+      SELECT sv."ownerTeamId" AS "teamId", SUM(a."sizeBytes") AS bytes
+      FROM "Attachment" a JOIN "SongVersion" sv ON sv.id = a."songVersionId"
+      WHERE sv."ownerTeamId" IS NOT NULL
+      GROUP BY sv."ownerTeamId"`;
+    return new Map(rows.map((row) => [row.teamId, Number(row.bytes ?? 0)]));
+  }
+
+  /** A user's own limit: their largest storage role's, else the default; none for global admins. */
+  async userLimitBytes(userId: string, isGlobalAdmin: boolean): Promise<number | null> {
+    if (isGlobalAdmin) return null;
+    const [{ storageLimitMb }, { limitMb }] = await Promise.all([capabilitiesOf(this.prisma.client, userId), this.getDefaultLimitMb()]);
+    return (storageLimitMb ?? limitMb) * BYTES_PER_MB;
+  }
+
+  /** A team's pool: its largest storage role's, else the teams' default. */
+  async teamLimitBytes(teamId: string): Promise<number> {
+    const [own, { limitMb }] = await Promise.all([teamStorageLimitMb(this.prisma.client, teamId), this.getDefaultTeamLimitMb()]);
+    return (own ?? limitMb) * BYTES_PER_MB;
   }
 
   async getUsage(userId: string): Promise<StorageUsage> {
-    const [user, aggregate, { limitMb }] = await Promise.all([
-      this.prisma.client.user.findUniqueOrThrow({
-        where: { id: userId },
-        select: { isGlobalAdmin: true, storageLimitMb: true },
-      }),
+    const [user, aggregate] = await Promise.all([
+      this.prisma.client.user.findUniqueOrThrow({ where: { id: userId }, select: { isGlobalAdmin: true } }),
       this.prisma.client.attachment.aggregate({
-        where: { uploadedByUserId: userId },
+        where: { uploadedByUserId: userId, songVersion: { ownerTeamId: null } },
         _sum: { sizeBytes: true },
       }),
-      this.getDefaultLimitMb(),
     ]);
-    return { usedBytes: aggregate._sum.sizeBytes ?? 0, limitBytes: this.limitBytesFor(user, limitMb) };
+    return { usedBytes: aggregate._sum.sizeBytes ?? 0, limitBytes: await this.userLimitBytes(userId, user.isGlobalAdmin) };
   }
 
-  /** Throws 413 if storing `incomingBytes` more would take the user over their limit. */
-  async assertCanStore(userId: string, incomingBytes: number): Promise<void> {
+  async getTeamUsage(teamId: string): Promise<StorageUsage> {
+    const aggregate = await this.prisma.client.attachment.aggregate({
+      where: { songVersion: { ownerTeamId: teamId } },
+      _sum: { sizeBytes: true },
+    });
+    return { usedBytes: aggregate._sum.sizeBytes ?? 0, limitBytes: await this.teamLimitBytes(teamId) };
+  }
+
+  /**
+   * Throws 413 if storing `incomingBytes` more would go over the limit: the
+   * song's team's pool when it's a team's song, else the uploader's own.
+   */
+  async assertCanStore(userId: string, incomingBytes: number, songVersionId?: string): Promise<void> {
+    const song = songVersionId
+      ? await this.prisma.client.songVersion.findUnique({ where: { id: songVersionId }, select: { ownerTeamId: true } })
+      : null;
+    if (song?.ownerTeamId) {
+      const uploader = await this.prisma.client.user.findUnique({ where: { id: userId }, select: { isGlobalAdmin: true } });
+      if (uploader?.isGlobalAdmin) return;
+      const { usedBytes, limitBytes } = await this.getTeamUsage(song.ownerTeamId);
+      if (usedBytes + incomingBytes > (limitBytes ?? Infinity)) {
+        throw new PayloadTooLargeException({
+          code: "TEAM_STORAGE_LIMIT_EXCEEDED",
+          message: `This upload would exceed the team's storage limit (${formatMb(usedBytes)} of ${formatMb(limitBytes ?? 0)} used).`,
+          usedBytes,
+          limitBytes,
+        });
+      }
+      return;
+    }
     const { usedBytes, limitBytes } = await this.getUsage(userId);
     if (limitBytes !== null && usedBytes + incomingBytes > limitBytes) {
       throw new PayloadTooLargeException({
@@ -87,6 +138,13 @@ export class StorageQuotaService {
         limitBytes,
       });
     }
+  }
+
+  private settings() {
+    return this.prisma.client.storageSettings.findUnique({
+      where: { id: SINGLETON_ID },
+      select: { defaultUserStorageLimitMb: true, defaultTeamStorageLimitMb: true },
+    });
   }
 }
 

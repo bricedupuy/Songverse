@@ -1,13 +1,12 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, NotFoundException, Param, Post, Put, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Param, Post, Put, Req, UnauthorizedException, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiOkResponse, ApiTags } from "@nestjs/swagger";
-import { SaveStemSeparationSettingsSchema, StartStemSeparationSchema, StemSeparationGrantSchema } from "@songverse/core";
+import { SaveStemSeparationSettingsSchema, StartStemSeparationSchema } from "@songverse/core";
 import type { Request } from "express";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { Public } from "../common/decorators/public.decorator.js";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { zodDto } from "../common/zod-validation.js";
-import { PrismaService } from "../prisma/prisma.service.js";
 import { RateLimit } from "../security/rate-limit.decorator.js";
 import { testDemucs } from "./demucs-client.js";
 import { StemSeparationService } from "./stem-separation.service.js";
@@ -15,7 +14,6 @@ import { clearStemSeparationSettings, getEffectiveStemSeparationSettings, getSte
 
 class StartStemSeparationDto extends zodDto(StartStemSeparationSchema) {}
 class SaveStemSeparationSettingsDto extends zodDto(SaveStemSeparationSettingsSchema) {}
-class StemSeparationGrantDto extends zodDto(StemSeparationGrantSchema) {}
 
 /** Where the Demucs API's webhooks come: this API's own address (AUTH_URL); null without one (then the Worker only polls). */
 function callbackUrl(): string | null {
@@ -63,14 +61,12 @@ export class StemSeparationController {
   }
 }
 
-/** Admin > Stem separation (issue #63): the Demucs API's settings, a test, and who may use it. */
+/** Admin > Stem separation (issue #63): the Demucs API's settings and a test. Who may use it is a role (issue #160). */
 @ApiTags("admin")
 @ApiBearerAuth()
 @Controller("admin/stem-separation")
 @UseGuards(GlobalAdminGuard)
 export class AdminStemSeparationController {
-  constructor(private readonly prisma: PrismaService) {}
-
   @Get()
   get(): ReturnType<typeof getStemSeparationSummary> {
     return getStemSeparationSummary();
@@ -96,27 +92,6 @@ export class AdminStemSeparationController {
       return { ok: true as const, ...(await testDemucs(await getEffectiveStemSeparationSettings())) };
     } catch (error) {
       return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
-    }
-  }
-
-  /** Who may use it: the users granted it, and every team (granted or not, to choose from). */
-  @Get("grants")
-  async grants() {
-    const [users, teams] = await Promise.all([
-      this.prisma.client.user.findMany({ where: { canSeparateStems: true, deletedAt: null }, select: { id: true, displayName: true, email: true }, orderBy: { displayName: "asc" } }),
-      this.prisma.client.team.findMany({ select: { id: true, name: true, canSeparateStems: true }, orderBy: { name: "asc" } }),
-    ]);
-    return { users, teams };
-  }
-
-  @Put("grants")
-  @HttpCode(HttpStatus.NO_CONTENT)
-  async grant(@Body() dto: StemSeparationGrantDto): Promise<void> {
-    if (dto.email) {
-      const updated = await this.prisma.client.user.updateMany({ where: { email: { equals: dto.email, mode: "insensitive" }, deletedAt: null }, data: { canSeparateStems: dto.enabled } });
-      if (updated.count === 0) throw new NotFoundException("No account with that email address");
-    } else if (dto.teamId) {
-      await this.prisma.client.team.update({ where: { id: dto.teamId }, data: { canSeparateStems: dto.enabled } });
     }
   }
 }

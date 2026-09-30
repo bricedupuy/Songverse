@@ -115,3 +115,29 @@ export type BulkUploadTypeValue = (typeof BULK_UPLOAD_TYPES)[number];
 export const BulkUploadCommitSchema = z.strictObject({ type: z.enum(BULK_UPLOAD_TYPES) });
 
 export const BulkUploadPreviewSchema = z.strictObject({ filenames: z.array(z.string()).min(1) });
+
+/**
+ * The largest song file of each type (issue #163), in MB: set in Admin >
+ * Storage, else these. Uploads are held in the API's memory until they're
+ * stored, hence a ceiling.
+ */
+export const BUILT_IN_FILE_SIZE_LIMITS_MB: Record<AttachmentTypeValue, number> = {
+  PDF: 25,
+  CHORDPRO: 25,
+  MUSICXML: 25,
+  ABC_NOTATION: 25,
+  TEXT: 25,
+  IMAGE: 25,
+  AUDIO: 50,
+  OTHER: 25,
+};
+export const MAX_FILE_SIZE_LIMIT_MB = 500;
+
+/** PUT /admin/storage/file-size-limits: a type left out keeps its limit; null goes back to the built-in one. */
+export const SaveFileSizeLimitsSchema = z.strictObject({
+  limitsMb: z.partialRecord(
+    z.enum(ATTACHMENT_TYPES),
+    z.number().int().min(1, "a file size limit must be at least 1 MB").max(MAX_FILE_SIZE_LIMIT_MB, `a file size limit can't be more than ${MAX_FILE_SIZE_LIMIT_MB} MB`).nullable(),
+  ),
+});
+export type SaveFileSizeLimitsRequest = z.input<typeof SaveFileSizeLimitsSchema>;

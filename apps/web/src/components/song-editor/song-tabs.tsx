@@ -461,6 +461,18 @@ export function AttachmentsTab({
     return () => clearInterval(timer);
   }, [processing]);
 
+  // The largest file of each type (issue #163), from Admin > Storage: checked before sending one.
+  const [limitsMb, setLimitsMb] = useState<Record<string, number> | null>(null);
+  useEffect(() => {
+    apiClient
+      .getUploadLimits()
+      .then((limits) => setLimitsMb(limits.limitsMb))
+      .catch(() => {
+        // Offline: the API says so if a file's too big.
+      });
+  }, []);
+  const filesLimitMb = limitsMb ? Math.max(...Object.entries(limitsMb).filter(([fileType]) => fileType !== "AUDIO").map(([, mb]) => mb)) : null;
+
   // Splitting a recording into stems on the Demucs server (issue #63), for who's allowed to.
   const separation = useStemSeparations(songVersionId, kind === "audio");
   const separations = separation.state?.separations ?? [];
@@ -546,11 +558,17 @@ export function AttachmentsTab({
         setError(t("songEditor.notAudio", { name: file.name }));
         continue;
       }
+      const sentAs = fileType === "AUDIO" && kind === "files" ? "OTHER" : fileType;
+      const limitMb = limitsMb?.[sentAs];
+      if (limitMb && file.size > limitMb * 1024 * 1024) {
+        setError(t("songEditor.fileTooLarge", { name: file.name, type: t(`songEditor.fileTypes.${sentAs}`), mb: limitMb }));
+        continue;
+      }
       setUploading(file.name);
       try {
         // "Song - Vocals.mp3" is the vocals stem (issue #64); the part can be changed below the file.
         const stemPart = kind === "audio" ? stemPartFromFilename(file.name) : null;
-        await apiClient.uploadAttachment(songVersionId, fileType === "AUDIO" && kind === "files" ? "OTHER" : fileType, file, stemPart, audience);
+        await apiClient.uploadAttachment(songVersionId, sentAs, file, stemPart, audience);
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
       }
@@ -862,7 +880,9 @@ export function AttachmentsTab({
                 {t("songEditor.browse")}
               </button>
             </p>
-            <p className="text-xs text-muted-foreground">{t(kind === "audio" ? "songEditor.audioLimit" : "songEditor.filesLimit")}</p>
+            <p className="text-xs text-muted-foreground">{kind === "audio"
+                ? t("songEditor.audioLimit", { mb: limitsMb?.AUDIO ?? 50 })
+                : t("songEditor.filesLimit", { mb: filesLimitMb ?? 25 })}</p>
             {!canEdit ? <p className="text-xs text-muted-foreground">{t("fileVisibility.ownHint")}</p> : null}
             <input
               ref={inputRef}

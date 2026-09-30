@@ -60,6 +60,10 @@ const claimant = await signUpVerified("claimant", `UI Claimant ${stamp % 100000}
 const songTitle = `UI Transfer Song ${stamp}`;
 await createSong(owner.email, songTitle);
 
+// A storage tier (issue #160): a role with a limit, given in the user's Roles dialog.
+const tierName = `Storage 5 MB ${stamp}`;
+sql(`insert into "Role" (id, name, "storageLimitMb", "updatedAt") values ('role_ui_${stamp}', '${tierName}', 5, now())`);
+
 const adminPage = await (await browser.newContext({ viewport: { width: 1400, height: 900 } })).newPage();
 current = adminPage;
 const rowFor = (user) => adminPage.getByRole("row").filter({ hasText: user.email });
@@ -76,7 +80,8 @@ await step("admin sees the users table with status and storage", async () => {
   await rowFor(owner).getByText("Verified").filter({ visible: true }).waitFor();
   await rowFor(owner).getByText("0 B / 50.0 MB").waitFor();
   await rowFor(admin).getByText("Unlimited").waitFor();
-  await adminPage.screenshot({ path: `${SP}/ui-admin-users.png`, fullPage: true });
+  // The viewport only: a test database's users table can be thousands of rows long.
+  await adminPage.screenshot({ path: `${SP}/ui-admin-users.png` });
 });
 
 await step("search filters by email", async () => {
@@ -85,12 +90,12 @@ await step("search filters by email", async () => {
   await adminPage.getByPlaceholder("Search by name or email…").fill("");
 });
 
-await step("admin changes a user's storage limit", async () => {
-  await openActions(owner, "Change storage limit");
-  await adminPage.getByLabel("Limit (MB)").fill("5");
-  await adminPage.getByRole("button", { name: "Save" }).click();
+await step("admin gives a user a storage tier", async () => {
+  await openActions(owner, "Roles…");
+  await adminPage.getByTestId("roles-dialog-list").getByLabel(new RegExp(tierName)).check();
+  await adminPage.getByTestId("roles-dialog-save").click();
   await rowFor(owner).getByText("0 B / 5.0 MB").waitFor();
-  await rowFor(owner).getByText("custom limit").waitFor();
+  await rowFor(owner).getByTestId("user-roles").getByText(tierName).waitFor();
 });
 
 await step("admin bans a user with a reason", async () => {
@@ -170,12 +175,12 @@ await step("admin sets and resets the default storage limit", async () => {
   await adminPage.goto(`${WEB}/admin/storage`);
   await adminPage.waitForLoadState("networkidle");
   await adminPage.getByLabel("Default limit per user (MB)").fill("60");
-  const card = adminPage.locator('[data-slot="card"]').filter({ hasText: "User storage limits" });
+  const card = adminPage.locator('[data-slot="card"]').filter({ hasText: "Storage limits" });
   await card.getByRole("button", { name: "Save" }).click();
-  await card.getByText("Set here").waitFor();
+  await card.getByRole("button", { name: /Reset to built-in default \(50 MB\)/ }).waitFor();
   await adminPage.screenshot({ path: `${SP}/ui-admin-storage-limits.png`, fullPage: true });
-  await card.getByRole("button", { name: /Reset to built-in default/ }).click();
-  await card.getByText("Built-in default", { exact: true }).waitFor();
+  await card.getByRole("button", { name: /Reset to built-in default \(50 MB\)/ }).click();
+  await card.getByText("Built-in default", { exact: true }).first().waitFor();
 });
 
 const userPage = await (await browser.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
@@ -229,4 +234,5 @@ await step("email change sends an approval to the current address", async () => 
 });
 
 await browser.close();
+sql(`delete from "Role" where id='role_ui_${stamp}'`);
 finish();

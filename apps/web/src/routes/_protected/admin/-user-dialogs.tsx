@@ -7,7 +7,6 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { Textarea } from "#/components/ui/textarea";
 import { apiClient } from "#/lib/api-client";
-import { formatBytes } from "#/lib/format-bytes";
 
 const DEFAULT_RETENTION_DAYS = 30;
 const MAX_RETENTION_DAYS = 365;
@@ -46,53 +45,6 @@ function ModalShell({ title, description, onClose, children }: { title: string; 
         {children}
       </DialogContent>
     </Dialog>
-  );
-}
-
-export function StorageLimitDialog({ user, defaultLimitMb, onClose, onDone }: DialogProps & { defaultLimitMb: number; onDone: () => Promise<void> }) {
-  const { t } = useTranslation();
-  const [value, setValue] = useState(user.storageLimitMb?.toString() ?? "");
-  const { pending, error, submit } = useSubmit();
-
-  return (
-    <ModalShell
-      title={t("admin.storageLimitDialogTitle", { name: user.displayName })}
-      description={t("admin.storageLimitDialogDescription", { mb: defaultLimitMb, used: formatBytes(user.usedBytes) })}
-      onClose={onClose}
-    >
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void submit(async () => {
-            await apiClient.adminUpdateUser(user.id, { storageLimitMb: value.trim() === "" ? null : Number(value) });
-            await onDone();
-          });
-        }}
-      >
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="user-storage-limit">{t("admin.storageLimitLabel")}</Label>
-          <Input
-            id="user-storage-limit"
-            type="number"
-            min={0}
-            step={1}
-            value={value}
-            placeholder={String(defaultLimitMb)}
-            onChange={(event) => setValue(event.target.value)}
-          />
-        </div>
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            {t("admin.cancel")}
-          </Button>
-          <Button type="submit" disabled={pending}>
-            {pending ? t("admin.saving") : t("admin.save")}
-          </Button>
-        </DialogFooter>
-      </form>
-    </ModalShell>
   );
 }
 

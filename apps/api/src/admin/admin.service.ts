@@ -12,7 +12,7 @@ import {
   type SaveAuthConfigInput,
 } from "../auth/auth-settings.js";
 import { PrismaService } from "../prisma/prisma.service.js";
-import { BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB, StorageQuotaService } from "../storage/storage-quota.service.js";
+import { BUILT_IN_DEFAULT_TEAM_STORAGE_LIMIT_MB, BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB, StorageQuotaService } from "../storage/storage-quota.service.js";
 import { StorageService, type SaveStorageConfigInput } from "../storage/storage.service.js";
 
 // packages/db is always a sibling two levels up from wherever the API
@@ -64,12 +64,19 @@ export class AdminService {
   }
 
   async getStorageLimits() {
-    const { limitMb, isBuiltIn } = await this.quota.getDefaultLimitMb();
-    return { defaultLimitMb: limitMb, isBuiltIn, builtInDefaultMb: BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB };
+    const [user, team] = await Promise.all([this.quota.getDefaultLimitMb(), this.quota.getDefaultTeamLimitMb()]);
+    return {
+      defaultLimitMb: user.limitMb,
+      isBuiltIn: user.isBuiltIn,
+      builtInDefaultMb: BUILT_IN_DEFAULT_USER_STORAGE_LIMIT_MB,
+      defaultTeamLimitMb: team.limitMb,
+      teamIsBuiltIn: team.isBuiltIn,
+      builtInTeamDefaultMb: BUILT_IN_DEFAULT_TEAM_STORAGE_LIMIT_MB,
+    };
   }
 
-  saveStorageLimits(defaultLimitMb: number | null): Promise<void> {
-    return this.quota.setDefaultLimitMb(defaultLimitMb);
+  saveStorageLimits(limits: { defaultLimitMb?: number | null; defaultTeamLimitMb?: number | null }): Promise<void> {
+    return this.quota.setDefaultLimits({ userMb: limits.defaultLimitMb, teamMb: limits.defaultTeamLimitMb });
   }
 
   getStorageConfig(): ReturnType<StorageService["getConfigSummary"]> {

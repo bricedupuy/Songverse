@@ -9,3 +9,32 @@
   --sl-color-accent: #e5e5e5;
   --sl-color-accent-high: #fafafa;
 }
+
+/*
+ * Parts for some readers only (issue #160): a block, a sidebar link or a
+ * contents entry marked data-audience="admin reviewer" shows when the reader
+ * can use one of them (flags set on <html> by src/scripts/audience-head.js),
+ * or when they chose to see everything.
+ */
+[data-audience] {
+  display: none !important;
+}
+html[data-can-all] [data-audience],
+html[data-can-admin] [data-audience~="admin"],
+html[data-can-reviewer] [data-audience~="reviewer"],
+html[data-can-stems] [data-audience~="stems"] {
+  display: revert !important;
+}
+.sv-audience {
+  font-size: var(--sl-text-sm);
+  color: var(--sl-color-gray-3);
+}
+.sv-audience button {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--sl-color-text-accent);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}

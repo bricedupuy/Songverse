@@ -7,6 +7,7 @@ import { AccessPolicyService, type Viewer } from "../access/access-policy.servic
 import { AttachmentsService } from "../attachments/attachments.service.js";
 import { STEM_SEPARATION_QUEUE } from "../jobs/jobs.constants.js";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { capabilitiesOf, monthlyLimitOf } from "../roles/capabilities.js";
 import type { SubmitSeparationJob } from "./stem-separation.processor.js";
 import { callbackSecret, getEffectiveStemSeparationSettings } from "./stem-separation-settings.js";
 
@@ -18,8 +19,8 @@ export type SeparationRefusal = "not-configured" | "not-granted";
 
 /**
  * Splitting a song's recordings into stems (issue #63), from the API: who
- * may (global admins; a user an admin granted it to, on songs they can
- * edit; anyone in a granted team, on its songs), starting one - the Worker
+ * may (global admins; someone with a role that allows it - theirs or their
+ * team's, issue #160 - on songs they can edit or their team's), starting one - the Worker
  * sends it - listing them, trying again, and the Demucs API's webhooks.
  */
 @Injectable()
@@ -38,12 +39,10 @@ export class StemSeparationService {
     if (viewer.isGlobalAdmin) return null;
     const song = await this.prisma.client.songVersion.findUnique({ where: { id: songVersionId }, select: { id: true, ownerScope: true, ownerUserId: true, ownerTeamId: true } });
     if (!song) throw new NotFoundException("Song version not found");
-    if (song.ownerScope === "TEAM" && song.ownerTeamId) {
-      const team = await this.prisma.client.team.findUnique({ where: { id: song.ownerTeamId }, select: { canSeparateStems: true } });
-      if (team?.canSeparateStems && (await this.access.teamRole(viewer.id, song.ownerTeamId))) return null;
-    }
-    const user = await this.prisma.client.user.findUnique({ where: { id: viewer.id }, select: { canSeparateStems: true } });
-    if (user?.canSeparateStems && (await this.access.canEditContent(viewer, song))) return null;
+    const { canSeparateStems } = await capabilitiesOf(this.prisma.client, viewer.id);
+    if (!canSeparateStems) return "not-granted";
+    if (song.ownerScope === "TEAM" && song.ownerTeamId && (await this.access.teamRole(viewer.id, song.ownerTeamId))) return null;
+    if (await this.access.canEditContent(viewer, song)) return null;
     return "not-granted";
   }
 
@@ -78,13 +77,15 @@ export class StemSeparationService {
   async start(viewer: Viewer, songVersionId: string, attachmentId: string, parts: StemSeparationParts, callbackUrl: string | null) {
     const refusal = await this.refusal(viewer, songVersionId);
     if (refusal === "not-configured") throw new BadRequestException("Stem separation isn't set up yet: an admin sets it up in Admin > Stem separation");
-    if (refusal) throw new ForbiddenException("Splitting recordings into stems hasn't been granted to you here: an admin grants it");
+    if (refusal) throw new ForbiddenException("Splitting recordings into stems needs a role that allows it: an admin gives it");
     const source = await this.attachments.find(viewer, songVersionId, attachmentId);
     if (source.type !== "AUDIO") throw new BadRequestException("Only a recording can be split into stems");
     const settings = await getEffectiveStemSeparationSettings();
-    if (settings.monthlyLimit !== null && !viewer.isGlobalAdmin) {
+    // The largest their roles allow, a role without its own counting as Admin > Stem separation's.
+    const limit = viewer.isGlobalAdmin ? null : monthlyLimitOf(await capabilitiesOf(this.prisma.client, viewer.id), settings.monthlyLimit);
+    if (limit !== null) {
       const used = await this.prisma.client.stemSeparation.count({ where: { requestedByUserId: viewer.id, status: { not: "FAILED" }, createdAt: { gte: new Date(Date.now() - MONTH_MS) } } });
-      if (used >= settings.monthlyLimit) throw new HttpException({ statusCode: 429, message: [`You've reached the limit of ${settings.monthlyLimit} separations in 30 days: try again later`] }, HttpStatus.TOO_MANY_REQUESTS);
+      if (used >= limit) throw new HttpException({ statusCode: 429, message: [`You've reached the limit of ${limit} separations in 30 days: try again later`] }, HttpStatus.TOO_MANY_REQUESTS);
     }
     const running = await this.prisma.client.stemSeparation.count({ where: { sourceAttachmentId: attachmentId, status: { in: ["QUEUED", "SUBMITTED"] } } });
     if (running) throw new BadRequestException("This recording is already being split");

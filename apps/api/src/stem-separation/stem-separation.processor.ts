@@ -170,9 +170,10 @@ export class StemSeparationProcessor extends WorkerHost {
     const bytes = stems.reduce((sum, stem) => sum + stem.body.length, 0);
     if (separation.requestedByUserId) {
       try {
-        await this.quota.assertCanStore(separation.requestedByUserId, bytes);
+        // The song's team's pool for a team's song (issue #160), else the requester's own.
+        await this.quota.assertCanStore(separation.requestedByUserId, bytes, separation.songVersionId);
       } catch {
-        return this.fail(separation.id, "The stems would go over the storage limit of whoever asked for them");
+        return this.fail(separation.id, "The stems would go over the storage limit");
       }
     }
     const multitrackId = `sep-${separation.id}`;

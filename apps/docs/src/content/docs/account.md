@@ -39,4 +39,4 @@ You can also switch these from any chart in a set. Hiding chords and simpler cho
 
 ## Storage
 
-Files you upload to songs (PDFs, audio, ChordPro files) count toward your storage limit. The **Storage** card shows how much you use. Ask an admin if you need more.
+Files you upload to your own songs (PDFs, audio, ChordPro files) count toward your storage limit; what you add to a team's songs counts toward the team's pool instead. The **Storage** card shows how much you use. Ask an admin if you need more: they give storage tiers as roles.

@@ -1,4 +1,5 @@
 // @ts-check
+import { readFileSync } from "node:fs";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import starlightLinksValidator from "starlight-links-validator";
@@ -20,6 +21,12 @@ export default defineConfig({
       logo: { light: "./src/assets/logo-light.svg", dark: "./src/assets/logo-dark.svg", alt: "Songverse" },
       favicon: "/favicon.svg",
       customCss: ["./src/styles/theme.css"],
+      // The parts for some readers only (issue #160): what the reader can use,
+      // known before the page is drawn, then the contents list and the switch.
+      head: [
+        { tag: "script", content: readFileSync(new URL("./src/scripts/audience-head.js", import.meta.url), "utf8") },
+        { tag: "script", attrs: { src: "/audience.js", defer: true } },
+      ],
       defaultLocale: "root",
       locales: {
         root: { label: "English", lang: "en" },
@@ -56,7 +63,8 @@ export default defineConfig({
             { slug: "offline" },
           ],
         },
-        { slug: "admin" },
+        // For reviewers and admins (issue #160): hidden for others, still reachable by link.
+        { slug: "admin", attrs: { "data-audience": "admin reviewer" } },
       ],
     }),
   ],

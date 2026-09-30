@@ -1,6 +1,6 @@
-import type { StorageLimits } from "@songverse/core";
+import { ATTACHMENT_TYPES, MAX_FILE_SIZE_LIMIT_MB, type FileSizeLimits, type SaveFileSizeLimitsRequest, type StorageLimits } from "@songverse/core";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { formatBytes } from "#/lib/format-bytes";
@@ -12,12 +12,13 @@ import { ConfirmButton } from "#/components/confirm-button";
 
 export const Route = createFileRoute("/_protected/admin/storage")({
   loader: async () => {
-    const [stats, config, limits] = await Promise.all([
+    const [stats, config, limits, fileSizes] = await Promise.all([
       apiClient.adminStorageStats(),
       apiClient.adminGetStorageConfig(),
       apiClient.adminGetStorageLimits(),
+      apiClient.adminGetFileSizeLimits(),
     ]);
-    return { stats, config, limits };
+    return { stats, config, limits, fileSizes };
   },
   component: AdminStoragePage,
 });
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/_protected/admin/storage")({
 function AdminStoragePage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { stats, config, limits } = Route.useLoaderData();
+  const { stats, config, limits, fileSizes } = Route.useLoaderData();
 
   const [accountId, setAccountId] = useState(config.accountId ?? "");
   const [accessKeyId, setAccessKeyId] = useState("");
@@ -185,6 +186,7 @@ function AdminStoragePage() {
       </Card>
 
       <StorageLimitsCard limits={limits} />
+      <FileSizeLimitsCard limits={fileSizes} />
 
       <Card>
         <CardHeader>
@@ -209,21 +211,27 @@ function AdminStoragePage() {
   );
 }
 
-/** Kept apart from the R2 card: saving or reverting one never touches the other. */
+/**
+ * Kept apart from the R2 card: saving or reverting one never touches the
+ * other. The defaults apply to whoever no storage role gives a limit (Admin >
+ * Roles, issue #160): a user's own files, and a team's pool.
+ */
 function StorageLimitsCard({ limits }: { limits: StorageLimits }) {
   const { t } = useTranslation();
   const router = useRouter();
-  const [value, setValue] = useState(String(limits.defaultLimitMb));
+  const [user, setUser] = useState(String(limits.defaultLimitMb));
+  const [team, setTeam] = useState(String(limits.defaultTeamLimitMb));
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function save(defaultLimitMb: number | null) {
+  async function save(change: { defaultLimitMb?: number | null; defaultTeamLimitMb?: number | null }) {
     setPending(true);
     setError(null);
     try {
-      await apiClient.adminSaveStorageLimits(defaultLimitMb);
+      await apiClient.adminSaveStorageLimits(change);
       await router.invalidate();
-      if (defaultLimitMb === null) setValue(String(limits.builtInDefaultMb));
+      if (change.defaultLimitMb === null) setUser(String(limits.builtInDefaultMb));
+      if (change.defaultTeamLimitMb === null) setTeam(String(limits.builtInTeamDefaultMb));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -231,8 +239,23 @@ function StorageLimitsCard({ limits }: { limits: StorageLimits }) {
     }
   }
 
-  const parsed = Number(value);
-  const valid = value.trim() !== "" && Number.isInteger(parsed) && parsed >= 0;
+  const valid = (value: string) => value.trim() !== "" && Number.isInteger(Number(value)) && Number(value) >= 0;
+
+  const field = (id: string, label: string, value: string, onChange: (value: string) => void, isBuiltIn: boolean, builtInMb: number, reset: () => void) => (
+    <div className="flex flex-col gap-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input id={id} type="number" min={0} step={1} value={value} onChange={(event) => onChange(event.target.value)} className="max-w-40" />
+        {isBuiltIn ? (
+          <span className="text-xs text-muted-foreground">{t("admin.storageLimitsSourceBuiltIn")}</span>
+        ) : (
+          <Button variant="outline" size="sm" onClick={reset} disabled={pending}>
+            {t("admin.resetToBuiltIn", { mb: builtInMb })}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <Card>
@@ -241,34 +264,97 @@ function StorageLimitsCard({ limits }: { limits: StorageLimits }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">{t("admin.storageLimitsDescription")}</p>
-        <p className="text-xs">
-          <span className="font-medium">{t("admin.storageConfigSource")}: </span>
-          <span className="text-muted-foreground">
-            {limits.isBuiltIn ? t("admin.storageLimitsSourceBuiltIn") : t("admin.storageLimitsSourceDatabase")}
-          </span>
-        </p>
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="default-storage-limit">{t("admin.storageDefaultLimitLabel")}</Label>
-          <Input
-            id="default-storage-limit"
-            type="number"
-            min={0}
-            step={1}
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            className="max-w-40"
-          />
-        </div>
+        {field("default-storage-limit", t("admin.storageDefaultLimitLabel"), user, setUser, limits.isBuiltIn, limits.builtInDefaultMb, () => void save({ defaultLimitMb: null }))}
+        {field("default-team-storage-limit", t("admin.storageDefaultTeamLimitLabel"), team, setTeam, limits.teamIsBuiltIn, limits.builtInTeamDefaultMb, () => void save({ defaultTeamLimitMb: null }))}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        <div className="flex items-center justify-between">
-          <Button onClick={() => void save(parsed)} disabled={pending || !valid}>
+        <div>
+          <Button
+            // Only what changed: the other keeps coming from where it does (the built-in default, say).
+            onClick={() =>
+              void save({
+                ...(Number(user) !== limits.defaultLimitMb && { defaultLimitMb: Number(user) }),
+                ...(Number(team) !== limits.defaultTeamLimitMb && { defaultTeamLimitMb: Number(team) }),
+              })
+            }
+            disabled={pending || !valid(user) || !valid(team)}
+          >
             {pending ? t("admin.saving") : t("admin.save")}
           </Button>
-          {limits.isBuiltIn ? null : (
-            <Button variant="outline" size="sm" onClick={() => void save(null)} disabled={pending}>
-              {t("admin.resetToBuiltIn", { mb: limits.builtInDefaultMb })}
-            </Button>
-          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * The largest song file of each type (issue #163): saved ones over the
+ * built-in ones; the API checks them on every upload, and the app before
+ * sending a file.
+ */
+function FileSizeLimitsCard({ limits }: { limits: FileSizeLimits }) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const initial = () => Object.fromEntries(ATTACHMENT_TYPES.map((type) => [type, String(limits.limitsMb[type])]));
+  const [values, setValues] = useState<Record<string, string>>(initial);
+  useEffect(() => setValues(initial()), [limits]);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(limitsMb: SaveFileSizeLimitsRequest["limitsMb"]) {
+    setPending(true);
+    setError(null);
+    try {
+      await apiClient.adminSaveFileSizeLimits({ limitsMb });
+      await router.invalidate();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const valid = (value: string) => Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= MAX_FILE_SIZE_LIMIT_MB;
+  // Only what changed: the rest keeps its limit, saved or built in.
+  const changed = Object.fromEntries(ATTACHMENT_TYPES.filter((type) => Number(values[type]) !== limits.limitsMb[type]).map((type) => [type, Number(values[type])]));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-sm">{t("admin.fileSizeLimitsTitle")}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">{t("admin.fileSizeLimitsDescription")}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" data-testid="file-size-limits">
+          {ATTACHMENT_TYPES.map((type) => (
+            <div key={type} className="flex flex-col gap-1.5">
+              <Label htmlFor={`file-size-${type}`}>{t(`songEditor.fileTypes.${type}`)} (MB)</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  id={`file-size-${type}`}
+                  type="number"
+                  min={1}
+                  max={MAX_FILE_SIZE_LIMIT_MB}
+                  step={1}
+                  value={values[type]}
+                  onChange={(event) => setValues({ ...values, [type]: event.target.value })}
+                  className="max-w-28"
+                />
+                {limits.custom.includes(type) ? (
+                  <Button variant="outline" size="sm" disabled={pending} onClick={() => void save({ [type]: null })}>
+                    {t("admin.fileSizeLimitReset")}
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{t("admin.fileSizeLimitBuiltIn", { mb: limits.builtInMb[type] })}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <div>
+          <Button onClick={() => void save(changed)} disabled={pending || Object.keys(changed).length === 0 || !ATTACHMENT_TYPES.every((type) => valid(values[type] ?? ""))} data-testid="file-size-save">
+            {pending ? t("admin.saving") : t("admin.save")}
+          </Button>
         </div>
       </CardContent>
     </Card>

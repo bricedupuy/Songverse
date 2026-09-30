@@ -39,4 +39,4 @@ Vous pouvez aussi les changer depuis n'importe quelle grille d'une liste de chan
 
 ## Stockage
 
-Les fichiers que vous ajoutez aux chants (PDF, audio, fichiers ChordPro) comptent dans votre limite de stockage. La carte **Stockage** montre ce que vous utilisez. Demandez à un administrateur s'il vous en faut plus.
+Les fichiers que vous ajoutez à vos propres chants (PDF, audio, fichiers ChordPro) comptent dans votre limite de stockage ; ce que vous ajoutez aux chants d'une équipe compte plutôt dans l'espace de l'équipe. La carte **Stockage** montre ce que vous utilisez. Demandez à un administrateur s'il vous en faut plus : il donne des paliers de stockage sous forme de rôles.

@@ -4,6 +4,7 @@ import { PrismaService } from "../../prisma/prisma.service.js";
 import { JwtVerifierService } from "../../auth/jwt-verifier.service.js";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator.js";
 import type { AuthenticatedRequest } from "../types/authenticated-request.js";
+import { capabilitiesOf } from "../../roles/capabilities.js";
 
 /**
  * Verifies the BetterAuth-issued Bearer JWT on every protected endpoint and
@@ -38,7 +39,7 @@ export class JwtAuthGuard implements CanActivate {
 
     const user = await this.prisma.client.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, isGlobalAdmin: true, isReviewer: true, bannedAt: true, deletedAt: true },
+      select: { id: true, email: true, isGlobalAdmin: true, bannedAt: true, deletedAt: true },
     });
     // Checked here as well as at sign-in: a JWT issued before a ban or
     // deletion would otherwise keep working until it expires.
@@ -49,7 +50,9 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException("Account banned");
     }
 
-    request.user = { id: user.id, email: user.email, isGlobalAdmin: user.isGlobalAdmin, isReviewer: user.isReviewer };
+    // What their roles allow (issue #160), as of this request.
+    const capabilities = await capabilitiesOf(this.prisma.client, user.id);
+    request.user = { id: user.id, email: user.email, isGlobalAdmin: user.isGlobalAdmin, isReviewer: capabilities.canReview };
     return true;
   }
 

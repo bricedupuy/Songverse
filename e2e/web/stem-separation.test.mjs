@@ -1,6 +1,6 @@
 // Stem separation in the web app (issue #63), against a fake Demucs API
 // (e2e/lib/fake-demucs.mjs): Admin > Stem separation set up and its
-// connection tested; a user allowed by email; on a song's Audio tab,
+// connection tested; a user given the Stem separation role; on a song's Audio tab,
 // "Separate into stems" with 6 parts, the quick stems arriving as a
 // multitrack, then the finer ones in their place.
 import { chromium } from "playwright";
@@ -47,10 +47,15 @@ try {
     await page.getByTestId("stem-test-result").getByText("htdemucs_6s").waitFor();
   });
 
-  await step("a user allowed by email, listed", async () => {
-    await page.getByLabel("Email address").fill(singer.email);
-    await page.getByTestId("stem-grant-add").click();
-    await page.getByTestId("stem-grant-users").getByText(singer.email).waitFor();
+  await step("Admin > Users: the Stem separation role given to them (issue #160)", async () => {
+    await page.goto(`${WEB}/admin/users`);
+    await page.getByPlaceholder("Search by name or email…").fill(singer.email);
+    const row = page.getByRole("row").filter({ hasText: singer.email });
+    await row.getByRole("button", { name: /Stems page singer/ }).click();
+    await page.getByRole("menuitem", { name: "Roles…" }).click();
+    await page.getByTestId("roles-dialog-list").getByLabel(/Stem separation/).check();
+    await page.getByTestId("roles-dialog-save").click();
+    await row.getByTestId("user-roles").getByText("Stem separation").waitFor();
     await page.context().clearCookies();
   });
 

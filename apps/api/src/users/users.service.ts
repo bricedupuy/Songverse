@@ -6,6 +6,7 @@ import { ImageService } from "../images/image.service.js";
 import { StorageQuotaService } from "../storage/storage-quota.service.js";
 import { StorageService } from "../storage/storage.service.js";
 import { detectAvatarImageType } from "./avatar-image.js";
+import { capabilitiesOf } from "../roles/capabilities.js";
 import type { UpdateUserDto } from "./dto/update-user.dto.js";
 
 const SELECT = {
@@ -20,7 +21,6 @@ const SELECT = {
   liveView: true,
   voicingPreference: true,
   isGlobalAdmin: true,
-  isReviewer: true,
   instruments: true,
   techRoles: true,
 } as const;
@@ -43,7 +43,20 @@ export class UsersService {
   async findMe(userId: string) {
     const user = await this.prisma.client.user.findUnique({ where: { id: userId }, select: SELECT });
     if (!user) throw new NotFoundException("User not found");
-    return toProfile(user);
+    return this.withRoles(toProfile(user));
+  }
+
+  /** What their roles allow them (issue #160), and which roles they have - their own and their teams'. */
+  private async withRoles<T extends { id: string }>(user: T) {
+    const capabilities = await capabilitiesOf(this.prisma.client, user.id);
+    const roles = await this.prisma.client.role.findMany({ where: { id: { in: capabilities.roleIds } }, select: { name: true }, orderBy: { name: "asc" } });
+    return {
+      ...user,
+      isReviewer: capabilities.canReview,
+      canSeparateStems: capabilities.canSeparateStems,
+      roles: roles.map((role) => role.name),
+      permissions: capabilities.permissions,
+    };
   }
 
   async updateMe(userId: string, dto: UpdateUserDto) {
@@ -60,7 +73,7 @@ export class UsersService {
       },
       select: SELECT,
     });
-    return toProfile(user);
+    return this.withRoles(toProfile(user));
   }
 
   getStorageUsage(userId: string) {

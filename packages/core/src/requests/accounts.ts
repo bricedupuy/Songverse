@@ -20,10 +20,8 @@ export const DEFAULT_TRANSFER_RETENTION_DAYS = 30;
 
 /** Admin > Users: each field is optional; omitted fields are left unchanged. */
 export const UpdateUserByAdminSchema = z.strictObject({
-  storageLimitMb: z.number().int().min(0).max(1_000_000).nullable().optional().describe("Null uses the default"),
   banned: optional(z.boolean()),
   banReason: optional(z.string().max(500)),
-  isReviewer: optional(z.boolean()),
 });
 
 export const DeleteUserSchema = z.strictObject({
@@ -48,9 +46,12 @@ export const SaveSecuritySettingsSchema = z.strictObject({
 });
 export type SaveSecuritySettingsRequest = z.input<typeof SaveSecuritySettingsSchema>;
 
+/** PUT /admin/storage/limits: a field left out keeps its value; null goes back to the built-in default. */
 export const SaveStorageLimitsSchema = z.strictObject({
-  defaultLimitMb: z.number().int().min(0).max(1_000_000).nullable(),
+  defaultLimitMb: z.number().int().min(0).max(1_000_000).nullable().optional().describe("A user's, when no role sets one (MB)"),
+  defaultTeamLimitMb: z.number().int().min(0).max(1_000_000).nullable().optional().describe("A team's pool, when no role sets one (MB)"),
 });
+export type SaveStorageLimitsRequest = z.input<typeof SaveStorageLimitsSchema>;
 
 /**
  * Every field is optional and independently omittable, so an admin can

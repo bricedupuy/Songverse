@@ -2,12 +2,12 @@
 // suggests a change made as the song editor would save it; a reviewer
 // accepts it (saved as an edit credited to who suggested it, on top of
 // what changed since) or declines it; the same part changed since stops it.
-import { check, sql, stamp, user, call, api, finish } from "../lib/harness.mjs";
+import { check, sql, giveRole, stamp, user, call, api, finish } from "../lib/harness.mjs";
 
 const admin = await user("Sugg admin");
 sql(`update "User" set "isGlobalAdmin"=true where id='${admin.id}'`);
 const reviewer = await user("Sugg reviewer");
-sql(`update "User" set "isReviewer"=true where id='${reviewer.id}'`);
+giveRole(reviewer.id, "REVIEWER");
 const alice = await user("Sugg alice");
 const bob = await user("Sugg bob");
 

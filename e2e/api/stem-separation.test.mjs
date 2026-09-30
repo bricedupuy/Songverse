@@ -54,10 +54,12 @@ try {
   check("not granted: not offered", r.body.available === false && r.body.refusal === "not-granted", JSON.stringify(r.body));
   r = await call(singer, "POST", `/song-versions/${song.id}/attachments/${recording.id}/separate`, { parts: "4" });
   check("nor can it be started", r.status === 403, String(r.status));
-  r = await call(admin, "PUT", "/admin/stem-separation/grants", { email: singer.email, enabled: true });
-  check("granted to a user by email", r.status === 204, String(r.status));
-  r = await call(admin, "GET", "/admin/stem-separation/grants");
-  check("listed as granted", r.body.users.some((u) => u.id === singer.id), JSON.stringify(r.body.users));
+  // Given by a role (issue #160): the built-in Stem separation one.
+  const stemsRole = (await api(admin, "GET", "/admin/roles")).find((role) => role.builtIn === "STEM_SEPARATION");
+  r = await call(admin, "PUT", `/admin/users/${singer.id}/roles`, { roleIds: [stemsRole.id] });
+  check("the Stem separation role given to a user", r.status === 204, String(r.status));
+  r = await call(singer, "GET", "/users/me");
+  check("their profile says they can", r.body.canSeparateStems === true && r.body.roles.includes("Stem separation"), JSON.stringify(r.body.roles));
 
   // --- A recording, split: its fast stems as a multitrack
   r = await call(singer, "POST", `/song-versions/${song.id}/attachments/${recording.id}/separate`, { parts: "4" });
@@ -111,7 +113,7 @@ try {
   const teamRecording = await upload(admin, teamSong.id, "Band.wav", toneWav(200, 2), { visibility: "SONG" });
   r = await call(member, "GET", `/song-versions/${teamSong.id}/stem-separations`);
   check("a team not granted: its members can't", r.body.available === false, JSON.stringify(r.body));
-  await call(admin, "PUT", "/admin/stem-separation/grants", { teamId: team.id, enabled: true });
+  await call(admin, "PUT", `/admin/teams/${team.id}/roles`, { roleIds: [stemsRole.id] });
   r = await call(member, "POST", `/song-versions/${teamSong.id}/attachments/${teamRecording.id}/separate`, {});
   check("granted to the team: a member splits its song's recording (4 parts by default)", r.status === 201 && r.body.parts === "4", JSON.stringify(r.body));
   r = await call(outsider, "GET", `/song-versions/${teamSong.id}/stem-separations`);

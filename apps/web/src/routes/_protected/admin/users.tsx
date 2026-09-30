@@ -5,26 +5,27 @@ import { useTranslation } from "react-i18next";
 import { Card } from "#/components/ui/card";
 import { DataTable } from "#/components/ui/data-table";
 import { apiClient } from "#/lib/api-client";
-import { BanDialog, DeleteNowDialog, DeleteUserDialog, StorageLimitDialog, TransferLinkDialog } from "./-user-dialogs";
+import { RolesDialog } from "./-roles-dialog";
+import { BanDialog, DeleteNowDialog, DeleteUserDialog, TransferLinkDialog } from "./-user-dialogs";
 import { useUsersColumns, type UserAction } from "./-users-columns";
 
 export const Route = createFileRoute("/_protected/admin/users")({
   loader: async () => {
-    const [users, limits] = await Promise.all([apiClient.adminListUsers(), apiClient.adminGetStorageLimits()]);
-    return { users, defaultLimitMb: limits.defaultLimitMb };
+    const [users, roles] = await Promise.all([apiClient.adminListUsers(), apiClient.adminListRoles()]);
+    return { users, roles };
   },
   component: AdminUsersPage,
 });
 
 type OpenDialog =
-  | { kind: "storage" | "ban" | "delete" | "deleteNow"; user: AdminUserSummary }
+  | { kind: "roles" | "ban" | "delete" | "deleteNow"; user: AdminUserSummary }
   | { kind: "link"; name: string; link: TransferLink };
 
 function AdminUsersPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = Route.useRouteContext();
-  const { users, defaultLimitMb } = Route.useLoaderData();
+  const { users, roles } = Route.useLoaderData();
   const [dialog, setDialog] = useState<OpenDialog | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -40,9 +41,9 @@ function AdminUsersPage() {
   const onAction = useCallback(
     (action: UserAction, user: AdminUserSummary) => {
       setActionError(null);
-      if (action === "unban" || action === "reviewer") {
+      if (action === "unban") {
         void apiClient
-          .adminUpdateUser(user.id, action === "unban" ? { banned: false } : { isReviewer: !user.isReviewer })
+          .adminUpdateUser(user.id, { banned: false })
           .then(refresh)
           .catch((err: unknown) => setActionError(err instanceof Error ? err.message : String(err)));
         return;
@@ -74,8 +75,19 @@ function AdminUsersPage() {
         <DataTable columns={columns} data={users} filterPlaceholder={t("admin.usersFilterPlaceholder")} />
       </Card>
 
-      {dialog?.kind === "storage" ? (
-        <StorageLimitDialog user={dialog.user} defaultLimitMb={defaultLimitMb} onClose={() => setDialog(null)} onDone={closeAndRefresh} />
+      {dialog?.kind === "roles" ? (
+        <RolesDialog
+          title={t("admin.userRolesTitle", { name: dialog.user.displayName })}
+          description={t("admin.userRolesDescription")}
+          roles={roles}
+          selected={dialog.user.roles.map((role) => role.id)}
+          inherited={dialog.user.teamRoles}
+          onClose={() => setDialog(null)}
+          onSave={async (roleIds) => {
+            await apiClient.adminSetUserRoles(dialog.user.id, { roleIds });
+            await closeAndRefresh();
+          }}
+        />
       ) : null}
       {dialog?.kind === "ban" ? <BanDialog user={dialog.user} onClose={() => setDialog(null)} onDone={closeAndRefresh} /> : null}
       {dialog?.kind === "delete" ? (

@@ -1,5 +1,5 @@
 import type { SaveStemSeparationSettingsRequest, StemSeparationTest } from "@songverse/core";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmButton } from "#/components/confirm-button";
@@ -10,22 +10,19 @@ import { Label } from "#/components/ui/label";
 import { apiClient } from "#/lib/api-client";
 
 export const Route = createFileRoute("/_protected/admin/stem-separation")({
-  loader: async () => {
-    const [summary, grants] = await Promise.all([apiClient.adminGetStemSeparation(), apiClient.adminGetStemSeparationGrants()]);
-    return { summary, grants };
-  },
+  loader: async () => ({ summary: await apiClient.adminGetStemSeparation() }),
   component: AdminStemSeparationPage,
 });
 
 /**
  * Admin > Stem separation (issue #63): the Demucs server recordings are
  * split on - its address, key and models, a monthly limit - and who may
- * use it: people by email, and teams.
+ * use it: whoever has a role that allows it (Admin > Roles, issue #160).
  */
 function AdminStemSeparationPage() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { summary, grants } = Route.useLoaderData();
+  const { summary } = Route.useLoaderData();
   const initial = () => ({
     apiUrl: summary.apiUrl ?? "",
     apiKey: "",
@@ -41,8 +38,6 @@ function AdminStemSeparationPage() {
   const [testing, setTesting] = useState(false);
   const [test, setTest] = useState<StemSeparationTest | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [granting, setGranting] = useState(false);
 
   async function run(action: () => Promise<unknown>, setBusy: (busy: boolean) => void) {
     setBusy(true);
@@ -82,10 +77,6 @@ function AdminStemSeparationPage() {
     } finally {
       setTesting(false);
     }
-  }
-
-  async function grantEmail() {
-    if (await run(() => apiClient.adminGrantStemSeparation({ email: email.trim(), enabled: true }), setGranting)) setEmail("");
   }
 
   return (
@@ -186,59 +177,13 @@ function AdminStemSeparationPage() {
         <CardHeader>
           <CardTitle className="text-sm">{t("admin.stemGrants")}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <p className="text-xs text-muted-foreground">{t("admin.stemGrantsHint")}</p>
-          <form
-            className="flex flex-wrap items-end gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void grantEmail();
-            }}
-          >
-            <div className="flex min-w-60 flex-1 flex-col gap-1.5">
-              <Label htmlFor="stem-grant-email">{t("admin.stemGrantEmail")}</Label>
-              <Input id="stem-grant-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
-            </div>
-            <Button type="submit" disabled={granting || !email.trim()} data-testid="stem-grant-add">
-              {t("admin.stemGrantAdd")}
-            </Button>
-          </form>
-          {grants.users.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("admin.stemGrantNoUsers")}</p>
-          ) : (
-            <ul className="flex flex-col divide-y" data-testid="stem-grant-users">
-              {grants.users.map((user) => (
-                <li key={user.id} className="flex items-center gap-3 py-2">
-                  <span className="min-w-0 flex-1 truncate text-sm">
-                    {user.displayName} <span className="text-muted-foreground">{user.email}</span>
-                  </span>
-                  <Button type="button" variant="ghost" size="sm" disabled={granting} onClick={() => void run(() => apiClient.adminGrantStemSeparation({ email: user.email, enabled: false }), setGranting)}>
-                    {t("admin.stemGrantRemove")}
-                  </Button>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">{t("admin.stemGrantTeams")}</span>
-            {grants.teams.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("admin.stemGrantNoTeams")}</p>
-            ) : (
-              grants.teams.map((team) => (
-                <label key={team.id} className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="size-4"
-                    checked={team.canSeparateStems}
-                    disabled={granting}
-                    onChange={(event) => void run(() => apiClient.adminGrantStemSeparation({ teamId: team.id, enabled: event.target.checked }), setGranting)}
-                    data-testid={`stem-grant-team-${team.id}`}
-                  />
-                  <span className="text-sm">{team.name}</span>
-                </label>
-              ))
-            )}
-          </div>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            {t("admin.stemGrantsByRole")}{" "}
+            <Link to="/admin/roles" className="underline">
+              {t("nav.adminRoles")}
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>

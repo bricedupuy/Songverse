@@ -32,11 +32,3 @@ export const SaveStemSeparationSettingsSchema = z.strictObject({
   monthlyLimit: z.number().int().min(1).max(10_000).nullable().optional(),
 });
 export type SaveStemSeparationSettingsRequest = z.input<typeof SaveStemSeparationSettingsSchema>;
-
-/** PUT /admin/stem-separation/grants: lets a user (by email) or a team split recordings into stems, or no longer. */
-export const StemSeparationGrantSchema = z.strictObject({
-  email: optional(z.email({ message: "email must be an account's email address" })),
-  teamId: optional(z.string().min(1).max(40)),
-  enabled: z.boolean(),
-});
-export type StemSeparationGrantRequest = z.input<typeof StemSeparationGrantSchema>;

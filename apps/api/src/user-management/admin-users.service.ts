@@ -5,12 +5,11 @@ import { ContentTransfersService } from "./content-transfers.service.js";
 import { UserDeletionService } from "./user-deletion.service.js";
 
 export interface UpdateUserInput {
-  /** Null clears the override (back to the default limit). */
-  storageLimitMb?: number | null;
   banned?: boolean;
   banReason?: string;
-  isReviewer?: boolean;
 }
+
+const BYTES_PER_MB = 1024 * 1024;
 
 export type DeleteContentAction = "delete" | "transfer";
 
@@ -24,7 +23,7 @@ export class AdminUsersService {
   ) {}
 
   async list() {
-    const [users, usedBytes, { limitMb: defaultLimitMb }] = await Promise.all([
+    const [users, usedBytes, { limitMb: defaultLimitMb }, assignments, memberships] = await Promise.all([
       this.prisma.client.user.findMany({
         orderBy: { createdAt: "desc" },
         select: {
@@ -34,21 +33,42 @@ export class AdminUsersService {
           avatarUrl: true,
           emailVerified: true,
           isGlobalAdmin: true,
-          isReviewer: true,
           createdAt: true,
           bannedAt: true,
           banReason: true,
           deletedAt: true,
-          storageLimitMb: true,
           contentTransfer: { select: { fromEmail: true, expiresAt: true } },
           _count: { select: { teamMemberships: true, ownedVersions: true } },
         },
       }),
       this.quota.usedBytesByUser(),
       this.quota.getDefaultLimitMb(),
+      // Every role given (issue #160), to users and to teams, and who's on which team: worked out here in one go.
+      this.prisma.client.roleAssignment.findMany({
+        select: { userId: true, teamId: true, team: { select: { name: true } }, role: { select: { id: true, name: true, canReview: true, storageLimitMb: true } } },
+        orderBy: { role: { name: "asc" } },
+      }),
+      this.prisma.client.teamMembership.findMany({ select: { userId: true, teamId: true } }),
     ]);
+    type Role = (typeof assignments)[number]["role"];
+    const ownRoles = new Map<string, Role[]>();
+    const teamRoles = new Map<string, { role: Role; teamName: string }[]>();
+    for (const { userId, teamId, team, role } of assignments) {
+      if (userId) ownRoles.set(userId, [...(ownRoles.get(userId) ?? []), role]);
+      if (teamId) teamRoles.set(teamId, [...(teamRoles.get(teamId) ?? []), { role, teamName: team?.name ?? "" }]);
+    }
+    const viaTeams = new Map<string, { role: Role; teamName: string }[]>();
+    for (const { userId, teamId } of memberships) {
+      const roles = teamRoles.get(teamId);
+      if (roles) viaTeams.set(userId, [...(viaTeams.get(userId) ?? []), ...roles]);
+    }
 
-    return users.map((user) => ({
+    return users.map((user) => {
+      const own = ownRoles.get(user.id) ?? [];
+      const inherited = viaTeams.get(user.id) ?? [];
+      const all = [...own, ...inherited.map(({ role }) => role)];
+      const tiers = all.map((role) => role.storageLimitMb).filter((mb): mb is number => mb !== null);
+      return {
       id: user.id,
       // A deleted account's email was released; show the one it had.
       email: user.contentTransfer?.fromEmail ?? user.email,
@@ -56,18 +76,20 @@ export class AdminUsersService {
       avatarUrl: user.avatarUrl,
       emailVerified: user.emailVerified,
       isGlobalAdmin: user.isGlobalAdmin,
-      isReviewer: user.isReviewer,
+      isReviewer: all.some((role) => role.canReview),
+      roles: own.map(({ id, name }) => ({ id, name })),
+      teamRoles: inherited.map(({ role, teamName }) => ({ id: role.id, name: role.name, teamName })),
       createdAt: user.createdAt,
       bannedAt: user.bannedAt,
       banReason: user.banReason,
       deletedAt: user.deletedAt,
       transferExpiresAt: user.contentTransfer?.expiresAt ?? null,
-      storageLimitMb: user.storageLimitMb,
       usedBytes: usedBytes.get(user.id) ?? 0,
-      limitBytes: this.quota.limitBytesFor(user, defaultLimitMb),
+      limitBytes: user.isGlobalAdmin ? null : (tiers.length ? Math.max(...tiers) : defaultLimitMb) * BYTES_PER_MB,
       teamCount: user._count.teamMemberships,
       songCount: user._count.ownedVersions,
-    }));
+      };
+    });
   }
 
   async update(adminId: string, userId: string, input: UpdateUserInput): Promise<void> {
@@ -80,10 +102,8 @@ export class AdminUsersService {
       await tx.user.update({
         where: { id: user.id },
         data: {
-          ...(input.storageLimitMb !== undefined && { storageLimitMb: input.storageLimitMb }),
           ...(input.banned === true && { bannedAt: new Date(), banReason: input.banReason?.trim() || null }),
           ...(input.banned === false && { bannedAt: null, banReason: null }),
-          ...(input.isReviewer !== undefined && { isReviewer: input.isReviewer }),
         },
       });
       if (input.banned === true) {

@@ -13,7 +13,10 @@ export class UserResponseDto {
   @ApiProperty({ enum: LIVE_VIEWS }) liveView!: (typeof LIVE_VIEWS)[number];
   @ApiProperty({ enum: VOICING_PREFERENCES }) voicingPreference!: (typeof VOICING_PREFERENCES)[number];
   @ApiProperty() isGlobalAdmin!: boolean;
-  @ApiProperty() isReviewer!: boolean;
+  @ApiProperty({ description: "From their roles, or their teams' (issue #160)" }) isReviewer!: boolean;
+  @ApiProperty({ description: "From their roles, or their teams'" }) canSeparateStems!: boolean;
+  @ApiProperty({ type: [String], description: "Their roles' names, their own and their teams'" }) roles!: string[];
+  @ApiProperty({ type: [String], description: "What their roles allow plugins (issue #157)" }) permissions!: string[];
   @ApiProperty({ enum: INSTRUMENTS, isArray: true }) instruments!: (typeof INSTRUMENTS)[number][];
   @ApiProperty({ enum: TECH_ROLES, isArray: true }) techRoles!: (typeof TECH_ROLES)[number][];
 }

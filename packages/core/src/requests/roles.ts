@@ -1,0 +1,46 @@
+import "../zod-config.js";
+import { z } from "zod";
+import { optional } from "./fields.js";
+
+/**
+ * Roles (issue #160): what someone may do beyond their own and their teams'
+ * songs, given to users and to teams in Admin.
+ */
+const roleFields = {
+  name: z.string().trim().min(1, "name must not be empty").max(60),
+  description: z.string().trim().max(300),
+  canReview: z.boolean(),
+  canSeparateStems: z.boolean(),
+  stemSeparationMonthlyLimit: z.number().int().min(1).max(10_000).nullable().describe("Null uses Admin > Stem separation's"),
+  storageLimitMb: z.number().int().min(0).max(1_000_000).nullable().describe("A storage tier (MB); null gives none"),
+};
+
+/** POST /admin/roles */
+export const CreateRoleSchema = z.strictObject({
+  name: roleFields.name,
+  description: optional(roleFields.description),
+  canReview: optional(roleFields.canReview),
+  canSeparateStems: optional(roleFields.canSeparateStems),
+  stemSeparationMonthlyLimit: roleFields.stemSeparationMonthlyLimit.optional(),
+  storageLimitMb: roleFields.storageLimitMb.optional(),
+});
+export type CreateRoleRequest = z.input<typeof CreateRoleSchema>;
+export type CreateRoleInput = z.output<typeof CreateRoleSchema>;
+
+/** PATCH /admin/roles/:id: a field left out keeps its value. */
+export const UpdateRoleSchema = z.strictObject({
+  name: optional(roleFields.name),
+  description: optional(roleFields.description),
+  canReview: optional(roleFields.canReview),
+  canSeparateStems: optional(roleFields.canSeparateStems),
+  stemSeparationMonthlyLimit: roleFields.stemSeparationMonthlyLimit.optional(),
+  storageLimitMb: roleFields.storageLimitMb.optional(),
+});
+export type UpdateRoleRequest = z.input<typeof UpdateRoleSchema>;
+export type UpdateRoleInput = z.output<typeof UpdateRoleSchema>;
+
+/** PUT /admin/users/:id/roles and /admin/teams/:id/roles: the roles they have from now on. */
+export const AssignRolesSchema = z.strictObject({
+  roleIds: z.array(z.string().min(1).max(40)).max(100),
+});
+export type AssignRolesRequest = z.input<typeof AssignRolesSchema>;

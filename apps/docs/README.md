@@ -40,3 +40,25 @@ from a page:
 ![A set](../../assets/screenshots/en/set.jpg)          <!-- in src/content/docs/ -->
 ![Une liste](../../../assets/screenshots/fr/set.jpg)   <!-- in src/content/docs/fr/ -->
 ```
+
+## Parts for some readers
+
+A part only reviewers, people who can split stems, or admins use is marked
+for them (issue #160) - in both languages, with blank lines inside so the
+Markdown still renders:
+
+```md
+<div data-audience="stems admin">
+
+### Separating a recording into stems
+...
+
+</div>
+```
+
+A whole page is marked on its sidebar entry in `astro.config.mjs`
+(`attrs: { "data-audience": "admin reviewer" }`). The app's Help link says what
+the reader can use (`?view=admin,reviewer,stems`, or `member`), kept on their
+device; without it the docs show a member's view, and a line at the top of the
+page switches to everything. It only tidies the view: every page is still
+public.

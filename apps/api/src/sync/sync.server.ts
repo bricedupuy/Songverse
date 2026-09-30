@@ -9,6 +9,7 @@ import type { AuthenticatedUser } from "../common/types/authenticated-request.js
 import { JwtVerifierService } from "../auth/jwt-verifier.service.js";
 import { redis } from "../jobs/redis.js";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { capabilitiesOf } from "../roles/capabilities.js";
 import { SetlistAccessService } from "../setlists/setlist-access.service.js";
 
 /** A session outlasts its leader's last change by this long, then goes. */
@@ -165,11 +166,12 @@ export class SyncServer implements OnModuleDestroy {
       const user = payload.sub
         ? await this.prisma.client.user.findUnique({
             where: { id: payload.sub },
-            select: { id: true, email: true, isGlobalAdmin: true, isReviewer: true, displayName: true, bannedAt: true, deletedAt: true },
+            select: { id: true, email: true, isGlobalAdmin: true, displayName: true, bannedAt: true, deletedAt: true },
           })
         : null;
       if (!user || user.deletedAt || user.bannedAt) throw new Error("No such user");
-      connection.user = { id: user.id, email: user.email, isGlobalAdmin: user.isGlobalAdmin, isReviewer: user.isReviewer, name: user.displayName };
+      const { canReview } = await capabilitiesOf(this.prisma.client, user.id);
+      connection.user = { id: user.id, email: user.email, isGlobalAdmin: user.isGlobalAdmin, isReviewer: canReview, name: user.displayName };
       this.send(connection, { type: "ready", userId: user.id });
     } catch {
       this.send(connection, { type: "error", code: "unauthorized", message: "Invalid or expired token" });

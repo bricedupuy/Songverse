@@ -73,8 +73,8 @@ A song has tabs:
 - **Song info** - its name and artists, and under **More details**: composers, lyricists and other credits, album, year, key, tempo, time signature, suggested capo, duration, copyright, CCLI and ISRC numbers, a reference (e.g. the scripture it draws on), notes and tags. It also lists the songbooks it's in.
 - **Editor** - the chart itself. See [The song editor](/song-editor/).
 - **Versions** - how you and your teams play it. See [Versions](/versions/).
-- **Files** - sheet music, the original chart file, images (up to 25 MB each). PDFs, images, audio, video and plain text open in the browser; anything else (a web page, say) is downloaded, so it can never run inside Songverse.
-- **Audio** - recordings to learn or rehearse with (MP3, Opus, M4A, WAV, OGG… up to 50 MB each), and the song's stems (see below).
+- **Files** - sheet music, the original chart file, images (up to 25 MB each unless your admin set other limits; the tab says). PDFs, images, audio, video and plain text open in the browser; anything else (a web page, say) is downloaded, so it can never run inside Songverse.
+- **Audio** - recordings to learn or rehearse with (MP3, Opus, M4A, WAV, OGG… up to 50 MB each unless your admin set another limit), and the song's stems (see below).
 - **Links** - the song on Spotify, Apple Music, Deezer and YouTube.
 
 Edits on **Song info** and **Editor** are saved together by **Save song**; files, audio and links are saved as you add them. **Discard changes** takes back what you haven't saved. The **⋯** menu can **Export as ChordPro** or **Delete song**.
@@ -176,11 +176,15 @@ A song can have more than one set of stems: its **Original stems**, and multitra
 
 In **Practice**, the stem player plays one multitrack at a time: when a song has more than one, the list beside the time switches between them (**Original stems**, then the others by name, or **Multitrack 2**...). Songverse remembers your choice for each song on the device, and for each set's song page. Playing in sync, everyone plays the leader's multitrack, with their own files of it.
 
+<div data-audience="stems admin">
+
 ### Separating a recording into stems
 
 When an admin has set up stem separation and allowed you (or your team), **Separate into stems** under a recording on the **Audio** tab splits it into its parts on a separation server: **4 parts: vocals, drums, bass, other** (the default), **6 parts: and guitar, piano**, or **2 parts: vocals and instrumental**. Only separate a recording you have the rights to use this way.
 
 The first stems arrive within a few minutes as a new multitrack, **Separated (Demucs)**, locked, in the recording's key and tempo and with its sections, and with the same visibility as the recording. The **Stem separations** list under the files says where each one is: **Waiting to start**, **Separating…**, **Ready - a finer version is on its way** - a slower, better separation that replaces the stems in place when the server has time, often overnight - then **Ready**. A failed one says why, with **Try again**. The page keeps checking by itself; the stems count towards your storage.
+
+</div>
 
 ### Recording a part
 

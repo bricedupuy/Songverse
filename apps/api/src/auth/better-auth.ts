@@ -2,10 +2,12 @@ import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { jwt } from "better-auth/plugins/jwt";
+import { customSession } from "better-auth/plugins/custom-session";
 import { passkey } from "@better-auth/passkey";
 import { prisma } from "@songverse/db";
 import { getEffectiveAuthSettings, type EffectiveAuthSettings } from "./auth-settings.js";
 import { passkeyRpId, sharedCookieDomain } from "./auth-domains.js";
+import { capabilitiesOf } from "../roles/capabilities.js";
 import {
   sendChangeEmailConfirmation,
   sendNewEmailVerification,
@@ -127,7 +129,6 @@ function buildAuth(settings: EffectiveAuthSettings) {
       },
       additionalFields: {
         isGlobalAdmin: { type: "boolean", input: false, defaultValue: false },
-        isReviewer: { type: "boolean", input: false, defaultValue: false },
         locale: { type: "string", input: false, defaultValue: "en" },
       },
     },
@@ -178,6 +179,16 @@ function buildAuth(settings: EffectiveAuthSettings) {
           // token claims (see JwtAuthGuard).
           definePayload: ({ user }) => ({ email: user.email }),
         },
+      }),
+      // What their roles allow them (issue #160), with the session: the web
+      // app shows what they can use, and the docs what's relevant to them,
+      // without asking again. Worked out fresh each time, never stored.
+      customSession(async ({ user, session }) => {
+        const capabilities = await capabilitiesOf(prisma, user.id);
+        return {
+          user: { ...user, isReviewer: capabilities.canReview, canSeparateStems: capabilities.canSeparateStems, permissions: capabilities.permissions },
+          session,
+        };
       }),
       passkey({
         // Tied to the web app's origin, not this API's - see the comment

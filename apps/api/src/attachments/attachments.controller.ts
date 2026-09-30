@@ -1,4 +1,4 @@
-import { FileInterceptor } from "@nestjs/platform-express";
+import type { AttachmentTypeValue } from "@songverse/core";
 import {
   BadRequestException,
   Body,
@@ -32,12 +32,22 @@ import { sniffAudioType } from "./sniff-audio.js";
 import { FileLinksService } from "../files/file-links.service.js";
 import { sendFile } from "../files/send-file.js";
 import { StorageService } from "../storage/storage.service.js";
-import { UPLOAD_OPTIONS } from "../common/uploads.js";
 import { RateLimit } from "../security/rate-limit.decorator.js";
 
-const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
-/** Recordings run bigger than sheets and charts. */
-const MAX_AUDIO_SIZE_BYTES = 50 * 1024 * 1024;
+import { BYTES_PER_MB, getFileSizeLimits } from "../uploads/file-size-limits.js";
+import { SongFileInterceptor } from "../uploads/song-file.interceptor.js";
+
+/** How a type is called in a message. */
+const FILE_TYPE_NAMES: Record<AttachmentTypeValue, string> = {
+  PDF: "PDF",
+  CHORDPRO: "ChordPro",
+  MUSICXML: "MusicXML",
+  ABC_NOTATION: "ABC notation",
+  TEXT: "Text",
+  IMAGE: "Image",
+  AUDIO: "Audio",
+  OTHER: "Other",
+};
 
 @ApiTags("attachments")
 @ApiBearerAuth()
@@ -64,7 +74,7 @@ export class AttachmentsController {
   /** Anyone who can see the song adds their own files; who else sees each is up to them (issue #72). */
   @RateLimit("heavy")
   @Post()
-  @UseInterceptors(FileInterceptor("file", { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_AUDIO_SIZE_BYTES } }))
+  @UseInterceptors(SongFileInterceptor("file"))
   @ApiConsumes("multipart/form-data")
   @ApiCreatedResponse({ type: AttachmentResponseDto })
   async upload(
@@ -76,6 +86,9 @@ export class AttachmentsController {
     if (!user) throw new UnauthorizedException();
     if (!file) throw new BadRequestException("A file is required");
     await this.access.assertCanSeeSong(user, songVersionId);
+    // Its type's limit (issue #163), set in Admin > Storage.
+    const limitMb = (await getFileSizeLimits()).limitsMb[dto.type];
+    if (file.size > limitMb * BYTES_PER_MB) throw new PayloadTooLargeException(`${FILE_TYPE_NAMES[dto.type]} files can be up to ${limitMb} MB`);
     let mimeType = file.mimetype;
     if (dto.type === "AUDIO") {
       // Browsers give some audio files (.opus, say) no type or a generic one: then the bytes decide.
@@ -83,8 +96,6 @@ export class AttachmentsController {
       if (!mimeType.startsWith("audio/")) throw new UnsupportedMediaTypeException("That isn't an audio file");
       // A WAV with nothing after its header (a take where nothing was captured) can't be played anywhere.
       if (file.buffer.length <= 44 && file.buffer.toString("ascii", 0, 4) === "RIFF") throw new BadRequestException("The recording is empty");
-    } else if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
-      throw new PayloadTooLargeException("Files can be up to 25 MB (audio up to 50 MB)");
     }
     return this.attachmentsService.upload(
       user,

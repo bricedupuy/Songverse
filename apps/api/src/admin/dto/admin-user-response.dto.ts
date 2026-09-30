@@ -7,15 +7,15 @@ export class AdminUserResponseDto {
   @ApiProperty({ nullable: true, type: String }) avatarUrl!: string | null;
   @ApiProperty() emailVerified!: boolean;
   @ApiProperty() isGlobalAdmin!: boolean;
-  @ApiProperty() isReviewer!: boolean;
+  @ApiProperty({ description: "From their roles, or their teams'" }) isReviewer!: boolean;
+  @ApiProperty({ description: "Their own roles (issue #160)" }) roles!: { id: string; name: string }[];
+  @ApiProperty({ description: "The roles their teams give them" }) teamRoles!: { id: string; name: string; teamName: string }[];
   @ApiProperty() createdAt!: Date;
   @ApiProperty({ nullable: true, type: Date }) bannedAt!: Date | null;
   @ApiProperty({ nullable: true, type: String }) banReason!: string | null;
   @ApiProperty({ nullable: true, type: Date, description: "Set while the account awaits a content transfer" })
   deletedAt!: Date | null;
   @ApiProperty({ nullable: true, type: Date }) transferExpiresAt!: Date | null;
-  @ApiProperty({ nullable: true, type: Number, description: "Per-user override; null uses the default" })
-  storageLimitMb!: number | null;
   @ApiProperty() usedBytes!: number;
   @ApiProperty({ nullable: true, type: Number, description: "Null means unlimited (global admins)" })
   limitBytes!: number | null;

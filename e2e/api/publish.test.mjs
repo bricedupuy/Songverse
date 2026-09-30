@@ -25,9 +25,11 @@ const song = await api(alice, "POST", "/song-versions", {
 // --- the reviewer role
 let r = await call(reviewer, "GET", "/submissions");
 check("the queue is for reviewers only", r.status === 403, String(r.status));
-r = await call(admin, "PATCH", `/admin/users/${reviewer.id}`, { isReviewer: true });
-check("an admin makes someone a reviewer", r.status === 204, String(r.status));
-check("the admin user list shows it", (await api(admin, "GET", "/admin/users")).find((u) => u.id === reviewer.id)?.isReviewer === true);
+const reviewerRole = (await api(admin, "GET", "/admin/roles")).find((role) => role.builtIn === "REVIEWER");
+r = await call(admin, "PUT", `/admin/users/${reviewer.id}/roles`, { roleIds: [reviewerRole.id] });
+check("an admin gives someone the Reviewer role", r.status === 204, String(r.status));
+const reviewerRow = (await api(admin, "GET", "/admin/users")).find((u) => u.id === reviewer.id);
+check("the admin user list shows it", reviewerRow?.isReviewer === true && reviewerRow.roles.some((role) => role.id === reviewerRole.id), JSON.stringify(reviewerRow?.roles));
 check("/users/me says so", (await api(reviewer, "GET", "/users/me")).isReviewer === true);
 
 // --- submitting
@@ -169,7 +171,7 @@ check("publish directly", r.status === 201 && r.body.state === "APPROVED" && r.b
 check("visible to everyone", (await call(bob, "GET", `/song-versions/${r.body.publishedVersionId}`)).status === 200);
 
 // --- the reviewer role can be taken away
-await call(admin, "PATCH", `/admin/users/${reviewer.id}`, { isReviewer: false });
+await call(admin, "PUT", `/admin/users/${reviewer.id}/roles`, { roleIds: [] });
 r = await call(reviewer, "GET", "/submissions");
 check("removing the role closes the queue", r.status === 403, String(r.status));
 

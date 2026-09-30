@@ -64,8 +64,10 @@ const song = await (await call(ownerS.bearer, "POST", "/song-versions", { artist
 check("owner creates a song", !!song.id, song.id ?? JSON.stringify(song));
 
 // --- storage limit
-let res = await call(adminS.bearer, "PATCH", `/admin/users/${owner.id}`, { storageLimitMb: 1 });
-check("admin sets 1 MB limit", res.status === 204, String(res.status));
+// A storage tier (issue #160): a role with a limit.
+const tier = await (await call(adminS.bearer, "POST", "/admin/roles", { name: `Storage 1 MB ${stamp}`, storageLimitMb: 1 })).json();
+let res = await call(adminS.bearer, "PUT", `/admin/users/${owner.id}/roles`, { roleIds: [tier.id] });
+check("admin gives a 1 MB storage tier", res.status === 204, String(res.status));
 res = await upload(ownerS.bearer, song.id, 600 * 1024);
 check("600 KB upload fits", res.status === 201, String(res.status));
 res = await upload(ownerS.bearer, song.id, 600 * 1024 + 1);
@@ -82,7 +84,7 @@ res = await call(adminS.bearer, "PUT", "/admin/storage/limits", { defaultLimitMb
 const limits = await (await call(adminS.bearer, "GET", "/admin/storage/limits")).json();
 check("default limit saved", res.status === 204 && limits.defaultLimitMb === 75 && limits.isBuiltIn === false, JSON.stringify(limits));
 await call(adminS.bearer, "PUT", "/admin/storage/limits", { defaultLimitMb: null });
-await call(adminS.bearer, "PATCH", `/admin/users/${owner.id}`, { storageLimitMb: null });
+await call(adminS.bearer, "DELETE", `/admin/roles/${tier.id}`);
 
 // --- ban
 res = await call(adminS.bearer, "PATCH", `/admin/users/${owner.id}`, { banned: true, banReason: "spam" });

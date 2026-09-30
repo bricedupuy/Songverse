@@ -29,6 +29,10 @@ const suite = path.basename(process.argv[1] ?? "e2e").replace(/\.test\.mjs$/, ""
 /** Runs SQL against the test database and returns the text output. */
 export const sql = (q) => execSync(`psql ${DB} -tAc ${JSON.stringify(q)}`).toString().trim();
 
+/** Gives a user a built-in role (issue #160): "REVIEWER" or "STEM_SEPARATION". */
+export const giveRole = (userId, builtIn) =>
+  sql(`insert into "RoleAssignment" (id, "roleId", "userId") select 'ra_' || md5(random()::text), id, '${userId}' from "Role" where "builtIn" = '${builtIn}' on conflict do nothing`);
+
 export function check(name, ok, detail = "") {
   results.push(ok);
   console.log(`${ok ? "OK  " : "FAIL"} ${name}${detail ? ` -> ${detail}` : ""}`);

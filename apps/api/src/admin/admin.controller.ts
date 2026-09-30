@@ -99,7 +99,7 @@ export class AdminController {
   @Put("storage/limits")
   @HttpCode(HttpStatus.NO_CONTENT)
   saveStorageLimits(@Body() dto: SaveStorageLimitsDto): Promise<void> {
-    return this.adminService.saveStorageLimits(dto.defaultLimitMb);
+    return this.adminService.saveStorageLimits(dto);
   }
 
   @Get("storage/config")

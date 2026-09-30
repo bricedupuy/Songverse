@@ -16,8 +16,10 @@ import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
 import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
-import type { SaveSecuritySettingsRequest } from "../requests/accounts.js";
-import type { SaveStemSeparationSettingsRequest, StemSeparationGrantRequest, StemSeparationParts } from "../requests/stem-separation.js";
+import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest } from "../requests/accounts.js";
+import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
+import type { AssignRolesRequest, CreateRoleRequest, UpdateRoleRequest } from "../requests/roles.js";
+import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
 import type {
   CreateCatalogSchema,
   CreateInviteLinkSchema,
@@ -57,15 +59,18 @@ export interface AdminUserSummary {
   avatarUrl: string | null;
   emailVerified: boolean;
   isGlobalAdmin: boolean;
+  /** From their roles, or their teams'. */
   isReviewer: boolean;
+  /** Their own roles (issue #160). */
+  roles: { id: string; name: string }[];
+  /** The roles their teams give them. */
+  teamRoles: { id: string; name: string; teamName: string }[];
   createdAt: string;
   bannedAt: string | null;
   banReason: string | null;
   /** Set while the account awaits a content transfer. */
   deletedAt: string | null;
   transferExpiresAt: string | null;
-  /** Per-user override; null uses the default limit. */
-  storageLimitMb: number | null;
   usedBytes: number;
   /** Null means unlimited (global admins). */
   limitBytes: number | null;
@@ -95,6 +100,10 @@ export interface StorageLimits {
   defaultLimitMb: number;
   isBuiltIn: boolean;
   builtInDefaultMb: number;
+  /** A team's pool when no role sets one (issue #160). */
+  defaultTeamLimitMb: number;
+  teamIsBuiltIn: boolean;
+  builtInTeamDefaultMb: number;
 }
 
 export interface StorageUsage {
@@ -350,7 +359,12 @@ export interface UserProfile {
   avatarUrl: string | null;
   locale: string;
   isGlobalAdmin: boolean;
+  /** From their roles, or their teams' (issue #160). */
   isReviewer: boolean;
+  canSeparateStems: boolean;
+  /** Their roles' names, their own and their teams'. */
+  roles: string[];
+  permissions: string[];
   instruments: InstrumentValue[];
   techRoles: TechRoleValue[];
   /** With a capo: chords as they sound, or the shapes a guitarist plays. */
@@ -401,9 +415,45 @@ export type StemSeparationTest =
   | { ok: true; health: Record<string, unknown>; models: { models: string[]; default: string; hq_default: string; devices: string[]; default_device: string } }
   | { ok: false; error: string };
 
-export interface StemSeparationGrants {
-  users: { id: string; displayName: string; email: string }[];
-  teams: { id: string; name: string; canSeparateStems: boolean }[];
+
+/** Admin > Storage > File size limits (issue #163): each type's, in MB. */
+export interface FileSizeLimits {
+  limitsMb: Record<AttachmentTypeValue, number>;
+  builtInMb: Record<AttachmentTypeValue, number>;
+  /** The types whose limit is saved rather than built in. */
+  custom: AttachmentTypeValue[];
+}
+
+/** Admin > Roles (issue #160): what a role allows, and how many have it. */
+export interface AdminRole {
+  id: string;
+  name: string;
+  description: string;
+  /** "REVIEWER" | "STEM_SEPARATION": can't be deleted. */
+  builtIn: string | null;
+  canReview: boolean;
+  canSeparateStems: boolean;
+  /** Null: Admin > Stem separation's. */
+  stemSeparationMonthlyLimit: number | null;
+  /** A storage tier (MB). */
+  storageLimitMb: number | null;
+  permissions: string[];
+  userCount: number;
+  teamCount: number;
+}
+
+/** Admin > Teams (issue #160). */
+export interface AdminTeamSummary {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+  memberCount: number;
+  songCount: number;
+  roles: { id: string; name: string }[];
+  /** Its pool: what's on its songs, and its limit. */
+  usedBytes: number;
+  limitBytes: number;
 }
 
 /** Admin > Security (issue #113): each setting's value, and whether it comes from the database, its env var or the default. */
@@ -1726,8 +1776,13 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     adminRegenerateTransferLink: (userId: string) =>
       request<TransferLink>(`/admin/users/${userId}/transfer-link`, { method: "POST" }),
     adminGetStorageLimits: () => request<StorageLimits>("/admin/storage/limits"),
-    adminSaveStorageLimits: (defaultLimitMb: number | null) =>
-      request<void>("/admin/storage/limits", { method: "PUT", body: JSON.stringify({ defaultLimitMb }) }),
+    /** The largest song file of each type, in MB (issue #163). */
+    getUploadLimits: () => request<{ limitsMb: Record<AttachmentTypeValue, number> }>("/uploads/limits"),
+    adminGetFileSizeLimits: () => request<FileSizeLimits>("/admin/storage/file-size-limits"),
+    adminSaveFileSizeLimits: (data: SaveFileSizeLimitsRequest) =>
+      request<void>("/admin/storage/file-size-limits", { method: "PUT", body: JSON.stringify(data) }),
+    adminSaveStorageLimits: (limits: SaveStorageLimitsRequest) =>
+      request<void>("/admin/storage/limits", { method: "PUT", body: JSON.stringify(limits) }),
     adminStorageStats: () => request<AdminStorageStats>("/admin/storage"),
     adminGetStorageConfig: () => request<StorageConfigSummary>("/admin/storage/config"),
     adminSaveStorageConfig: (data: SaveStorageConfigInput) =>
@@ -1748,8 +1803,13 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     adminSaveStemSeparation: (data: SaveStemSeparationSettingsRequest) => request<void>("/admin/stem-separation", { method: "PUT", body: JSON.stringify(data) }),
     adminClearStemSeparation: () => request<void>("/admin/stem-separation", { method: "DELETE" }),
     adminTestStemSeparation: () => request<StemSeparationTest>("/admin/stem-separation/test", { method: "POST" }),
-    adminGetStemSeparationGrants: () => request<StemSeparationGrants>("/admin/stem-separation/grants"),
-    adminGrantStemSeparation: (data: StemSeparationGrantRequest) => request<void>("/admin/stem-separation/grants", { method: "PUT", body: JSON.stringify(data) }),
+    adminListRoles: () => request<AdminRole[]>("/admin/roles"),
+    adminCreateRole: (data: CreateRoleRequest) => request<{ id: string }>("/admin/roles", { method: "POST", body: JSON.stringify(data) }),
+    adminUpdateRole: (roleId: string, data: UpdateRoleRequest) => request<void>(`/admin/roles/${roleId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    adminDeleteRole: (roleId: string) => request<void>(`/admin/roles/${roleId}`, { method: "DELETE" }),
+    adminSetUserRoles: (userId: string, data: AssignRolesRequest) => request<void>(`/admin/users/${userId}/roles`, { method: "PUT", body: JSON.stringify(data) }),
+    adminListTeams: () => request<AdminTeamSummary[]>("/admin/teams"),
+    adminSetTeamRoles: (teamId: string, data: AssignRolesRequest) => request<void>(`/admin/teams/${teamId}/roles`, { method: "PUT", body: JSON.stringify(data) }),
     adminGetSecuritySettings: () => request<SecuritySettingsSummary>("/admin/security"),
     adminSaveSecuritySettings: (data: SaveSecuritySettingsRequest) => request<void>("/admin/security", { method: "PUT", body: JSON.stringify(data) }),
     adminClearSecuritySettings: () => request<void>("/admin/security", { method: "DELETE" }),

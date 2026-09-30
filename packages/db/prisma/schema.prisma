@@ -244,9 +244,6 @@ model User {
   // rather than renaming these columns.
   emailVerified Boolean  @default(false)
   isGlobalAdmin Boolean  @default(false)
-  // Can review songs submitted to the global catalogue (global admins
-  // always can). Set in Admin > Users.
-  isReviewer    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -258,11 +255,6 @@ model User {
   // transfer link (see ContentTransfer): the row stays, unusable, until the
   // content is claimed or the link expires, then it's removed for real.
   deletedAt        DateTime?
-  // Per-user override of StorageSettings.defaultUserStorageLimitMb; null
-  // means "use the default".
-  storageLimitMb   Int?
-  // May split a song's recordings into stems with the Demucs API (issue #63), granted in Admin > Stem separation.
-  canSeparateStems Boolean @default(false)
   // Storage key of an avatar uploaded through the account page. Null when
   // there's none, or when avatarUrl points elsewhere (e.g. Google's).
   avatarStorageKey String?
@@ -301,6 +293,7 @@ model User {
   midiConfigs         UserArrangementMidi[]
   ownedTags           Tag[]
   stemSeparations     StemSeparation[]
+  roleAssignments     RoleAssignment[]
   ownedSongbooks      Songbook[]             @relation("SongbookOwnerUser")
   importJobs          ImportJob[]
   uploadedAttachments Attachment[]           @relation("AttachmentUploader")
@@ -431,8 +424,6 @@ model Team {
 
   // Relations
   memberships         TeamMembership[]
-  // Its members may split its songs' recordings into stems (issue #63).
-  canSeparateStems    Boolean                @default(false)
   inviteLinks         TeamInviteLink[]
   ownedVersions       SongVersion[]          @relation("VersionOwnerTeam")
   ownedArrangements   Arrangement[]          @relation("ArrangementOwnerTeam")
@@ -445,6 +436,8 @@ model Team {
   ownershipRequests   SongOwnershipRequest[]
   visibleAttachments  Attachment[]           @relation("AttachmentVisibleToTeam")
   contributedVersions SongVersion[]          @relation("VersionContributedByTeam")
+  // What its members may do (issue #160), and its storage pool's limit.
+  roleAssignments     RoleAssignment[]
 
   @@index([slug])
 }
@@ -1731,9 +1724,13 @@ model StorageSettings {
   r2SecretAccessKeyEnc      String?
   r2Bucket                  String?
   r2Endpoint                String?
-  // Storage limit for users without their own override (User.storageLimitMb).
-  // Null means the built-in default (see storage-quota.service.ts).
+  // Storage limit for a user, and for a team's pool, that no role sets
+  // (issue #160). Null means the built-in default (see storage-quota.service.ts).
   defaultUserStorageLimitMb Int?
+  defaultTeamStorageLimitMb Int?
+  // The largest song file of each type, in MB ({ "PDF": 10, "AUDIO": 200 }),
+  // over the built-in ones (issue #163).
+  fileSizeLimitsMb          Json?
   updatedAt                 DateTime @updatedAt
 }
 
@@ -2049,4 +2046,49 @@ model SongView {
   @@id([userId, songVersionId])
   @@index([userId, viewedAt])
   @@index([songVersionId, viewedAt])
+}
+
+// What someone may do beyond using their own and their teams' songs (issue
+// #160): review submissions to the global catalogue, split recordings into
+// stems, how much they may store - and, later, a plugin's permissions. Given
+// to users and to teams (a team's roles apply to each member, and its storage
+// limit to its pool); someone can do what any of their roles allows, and the
+// largest limit wins. Global admins can do everything, whatever their roles.
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String   @default("")
+  // The two that came with Songverse ("REVIEWER", "STEM_SEPARATION"): kept,
+  // so they can be edited but not deleted.
+  builtIn     String?  @unique
+  canReview        Boolean @default(false)
+  canSeparateStems Boolean @default(false)
+  // Separations a month for who has this role; null uses Admin > Stem separation's.
+  stemSeparationMonthlyLimit Int?
+  // A storage tier: the limit it gives a user, or a team's pool.
+  storageLimitMb   Int?
+  // Granted by plugins later (issue #157).
+  permissions String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  assignments RoleAssignment[]
+}
+
+// A role given to a user or to a team (exactly one of the two).
+model RoleAssignment {
+  id        String   @id @default(cuid())
+  roleId    String
+  userId    String?
+  teamId    String?
+  createdAt DateTime @default(now())
+
+  role Role  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team? @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, userId])
+  @@unique([roleId, teamId])
+  @@index([userId])
+  @@index([teamId])
 }
