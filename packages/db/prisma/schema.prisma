@@ -1731,6 +1731,23 @@ model StorageSettings {
   updatedAt                 DateTime @updatedAt
 }
 
+// How the API protects itself (issue #113), edited in Admin > Security: its
+// rate limits and who may read its docs. A null field falls back to its env
+// var, then to the default (apps/api/src/security/security-settings.ts).
+model SecuritySettings {
+  id                          String   @id @default("singleton")
+  rateLimitEnabled            Boolean?
+  // Requests a minute: per signed-in user; per address before sign-in; on the expensive routes.
+  rateLimitPerMinute          Int?
+  rateLimitAnonymousPerMinute Int?
+  rateLimitHeavyPerMinute     Int?
+  // Proxies in front of the API whose X-Forwarded-For is trusted for a client's address.
+  trustedProxies              Int?
+  // /api/docs for everyone, rather than global admins only.
+  apiDocsPublic               Boolean?
+  updatedAt                   DateTime @updatedAt
+}
+
 // Content of a deleted user, held for a limited time behind a one-time
 // link. Whoever opens the link while signed in (before expiresAt) becomes
 // the owner of everything the deleted user personally owned; unclaimed

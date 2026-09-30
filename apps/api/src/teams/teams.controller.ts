@@ -23,6 +23,7 @@ import { TeamMemberResponseDto } from "./dto/team-member-response.dto.js";
 import { TeamResponseDto } from "./dto/team-response.dto.js";
 import { UpdateMemberRoleDto } from "./dto/update-member-role.dto.js";
 import { TeamsService } from "./teams.service.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 @ApiTags("teams")
 @ApiBearerAuth()
@@ -47,6 +48,7 @@ export class TeamsController {
     return this.teamsService.create(user.id, dto);
   }
 
+  @RateLimit("heavy")
   @Post("join/:token")
   @ApiCreatedResponse({ type: TeamResponseDto })
   joinByToken(

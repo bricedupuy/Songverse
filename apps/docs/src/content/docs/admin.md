@@ -34,6 +34,10 @@ Everyone with an account, with their status, songs and storage. For each user yo
 
 How Songverse sends email (verification, password reset) through Resend, and whether **Google sign-in** is offered. Settings saved here take effect immediately; **Revert to environment variables** goes back to the server's configuration.
 
+### Security
+
+How the API protects itself. **Limit requests** caps how many requests it takes a minute: per signed-in user, per address before signing in, and a tighter number for the expensive ones (uploads, artwork and artist lookups, joining by link). Over a limit, the request is refused until the minute is out and the app says "Too many requests, try again in a moment". **Proxies in front of the API** says how many proxies (a load balancer, Traefik…) sit before it, so it counts each visitor by their own address rather than the proxy's. **API documentation** decides who can read `/api/docs`: anyone, or only global admins. Each setting shows where it comes from - saved here, an environment variable, or the default - and **Revert to environment variables** goes back to the server's configuration.
+
 ### Storage
 
 Where uploaded files are kept (object storage such as Cloudflare R2, or local disk for development), how much is used, and the **default storage limit** per user. Global admins have no limit.

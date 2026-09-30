@@ -28,6 +28,7 @@ import { SongVersionEditorGuard } from "../common/guards/song-version-editor.gua
 import { ArtworkService } from "./artwork.service.js";
 import { isValidSongImageSignature } from "./song-image-url.js";
 import { UPLOAD_OPTIONS } from "../common/uploads.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Pictures only: no SVG, which is a document rather than an image.
@@ -46,6 +47,7 @@ export class ArtworkController {
 
   /** The image, at a signed address handed out with the song (see song-image-url.ts); `w` snaps to a set of widths. */
   @Public()
+  @RateLimit("none")
   @Get("song-versions/:songVersionId/image/:key")
   @ApiExcludeEndpoint()
   async image(
@@ -70,12 +72,14 @@ export class ArtworkController {
   }
 
   /** Apple Music's matches for the song, to choose its artwork from. */
+  @RateLimit("heavy")
   @Get("song-versions/:songVersionId/artwork/candidates")
   @UseGuards(SongVersionEditorGuard)
   candidates(@Param("songVersionId") songVersionId: string) {
     return this.artwork.candidatesFor(songVersionId);
   }
 
+  @RateLimit("heavy")
   @Put("song-versions/:songVersionId/artwork")
   @UseGuards(SongVersionEditorGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -84,6 +88,7 @@ export class ArtworkController {
   }
 
   /** An image of the editor's own (issue #88): made a square WebP like the rest. */
+  @RateLimit("heavy")
   @Post("song-versions/:songVersionId/artwork/upload")
   @UseGuards(SongVersionEditorGuard)
   @UseInterceptors(FileInterceptor("file", { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_UPLOAD_BYTES } }))

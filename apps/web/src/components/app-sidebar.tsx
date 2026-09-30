@@ -481,6 +481,7 @@ function AdminNav({ pathname }: { pathname: string }) {
   const sections = [
     { to: "/admin/users" as const, label: t("nav.adminUsers"), icon: Users },
     { to: "/admin/auth" as const, label: t("nav.adminAuth"), icon: KeyRound },
+    { to: "/admin/security" as const, label: t("nav.adminSecurity"), icon: ShieldCheck },
     { to: "/admin/storage" as const, label: t("nav.adminStorage"), icon: Database },
     { to: "/admin/catalogs" as const, label: t("nav.adminCatalogs"), icon: FileStack },
     { to: "/admin/metadata" as const, label: t("nav.adminMetadata"), icon: LayoutDashboard },

@@ -45,3 +45,11 @@ export function createI18n(locale: LocaleValue): i18n {
   });
   return instance;
 }
+
+/** A message by its path ("common.loading") in the page's language, outside React (the API client's, issue #113); on the server, undefined. */
+export function pageMessage(path: string): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  let value: unknown = loaded.get(supportedLocale(document.documentElement.lang)) ?? loaded.get(DEFAULT_LOCALE);
+  for (const part of path.split(".")) value = (value as Record<string, unknown> | undefined)?.[part];
+  return typeof value === "string" ? value : undefined;
+}

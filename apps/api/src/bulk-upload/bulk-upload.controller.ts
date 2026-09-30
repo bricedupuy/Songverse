@@ -9,6 +9,7 @@ import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto.js";
 import { BulkUploadPreviewDto } from "./dto/bulk-upload-preview.dto.js";
 import { BulkUploadCommitResultDto, BulkUploadFileMatchDto } from "./dto/bulk-upload-response.dto.js";
 import { UPLOAD_OPTIONS } from "../common/uploads.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 const MAX_BULK_UPLOAD_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const MAX_BULK_UPLOAD_FILES_PER_REQUEST = 200;
@@ -29,6 +30,7 @@ export class BulkUploadController {
     return this.bulkUploadService.preview(songbookId, dto.filenames);
   }
 
+  @RateLimit("heavy")
   @Post()
   @UseInterceptors(
     FilesInterceptor("files", MAX_BULK_UPLOAD_FILES_PER_REQUEST, { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_BULK_UPLOAD_FILE_SIZE_BYTES } }),

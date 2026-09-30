@@ -13,6 +13,8 @@ import { DeleteUserDto, TransferLinkResponseDto, UpdateUserByAdminDto } from "./
 import { SaveAuthConfigDto } from "./dto/save-auth-config.dto.js";
 import { SaveStorageConfigDto } from "./dto/save-storage-config.dto.js";
 import { SaveStorageLimitsDto, StorageLimitsResponseDto } from "./dto/storage-limits.dto.js";
+import { SaveSecuritySettingsDto } from "./dto/security-settings.dto.js";
+import { clearSecuritySettings, getSecuritySettingsSummary, saveSecuritySettings } from "../security/security-settings.js";
 
 /**
  * Operational tools for global admins - today, the migrate/seed steps
@@ -116,6 +118,26 @@ export class AdminController {
   @HttpCode(HttpStatus.NO_CONTENT)
   clearStorageConfig(): Promise<void> {
     return this.adminService.clearStorageConfig();
+  }
+
+  // --- how the API protects itself (issue #113): rate limits, who reads its docs
+
+  @Get("security")
+  @ApiOkResponse({ description: "Each setting's value, and whether it comes from the database, its env var or the default." })
+  getSecuritySettings(): ReturnType<typeof getSecuritySettingsSummary> {
+    return getSecuritySettingsSummary();
+  }
+
+  @Put("security")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  saveSecuritySettings(@Body() dto: SaveSecuritySettingsDto): Promise<void> {
+    return saveSecuritySettings(dto);
+  }
+
+  @Delete("security")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  clearSecuritySettings(): Promise<void> {
+    return clearSecuritySettings();
   }
 
   @Get("auth")

@@ -33,6 +33,7 @@ import { FileLinksService } from "../files/file-links.service.js";
 import { sendFile } from "../files/send-file.js";
 import { StorageService } from "../storage/storage.service.js";
 import { UPLOAD_OPTIONS } from "../common/uploads.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
 /** Recordings run bigger than sheets and charts. */
@@ -61,6 +62,7 @@ export class AttachmentsController {
   }
 
   /** Anyone who can see the song adds their own files; who else sees each is up to them (issue #72). */
+  @RateLimit("heavy")
   @Post()
   @UseInterceptors(FileInterceptor("file", { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_AUDIO_SIZE_BYTES } }))
   @ApiConsumes("multipart/form-data")

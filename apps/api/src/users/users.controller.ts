@@ -25,6 +25,7 @@ import { UpdateUserDto } from "./dto/update-user.dto.js";
 import { UserResponseDto } from "./dto/user-response.dto.js";
 import { UsersService } from "./users.service.js";
 import { UPLOAD_OPTIONS } from "../common/uploads.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 // The web app uploads an already-cropped image well under this; the server
 // normalizes whatever it gets anyway (see ImageService.normalizeAvatar).
@@ -75,6 +76,7 @@ export class UsersController {
   }
 
   @Public()
+  @RateLimit("none")
   @Get(":userId/avatar/:key")
   @ApiExcludeEndpoint()
   async avatar(

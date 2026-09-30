@@ -5,6 +5,7 @@ import { Public } from "../common/decorators/public.decorator.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { SetlistSharingService } from "./setlist-sharing.service.js";
 import { requireUser } from "./setlists.controller.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 /** A set's share link, as opened by the person it was sent to. */
 @ApiTags("setlists")
@@ -20,6 +21,7 @@ export class SetInvitesController {
   }
 
   @ApiBearerAuth()
+  @RateLimit("heavy")
   @Post(":token/join")
   join(@CurrentUser() user: AuthenticatedUser | undefined, @Param("token") token: string) {
     return this.sharing.join(requireUser(user), token);

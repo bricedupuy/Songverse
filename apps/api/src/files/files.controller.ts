@@ -6,6 +6,7 @@ import { PrismaService } from "../prisma/prisma.service.js";
 import { StorageService } from "../storage/storage.service.js";
 import { FileLinksService } from "./file-links.service.js";
 import { sendFile } from "./send-file.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 /** A file by a signed link (issue #33): see POST /song-versions/:id/attachments/:id/link. */
 @ApiTags("attachments")
@@ -18,6 +19,7 @@ export class FilesController {
   ) {}
 
   @Public()
+  @RateLimit("none")
   @Get(":attachmentId")
   @ApiOkResponse({ description: "The file's bytes, or the byte range asked for (206). No Bearer token: the link is the permission." })
   async file(

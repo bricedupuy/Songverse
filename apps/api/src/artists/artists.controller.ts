@@ -30,6 +30,7 @@ import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { ArtistsService } from "./artists.service.js";
 import { UPLOAD_OPTIONS } from "../common/uploads.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 // Pictures only: no SVG, which is a document rather than an image.
@@ -62,6 +63,7 @@ export class ArtistsController {
   }
 
   /** Anyone who can see a song by them may have them looked up once; asking again is for admins. */
+  @RateLimit("heavy")
   @Post("artists/lookup")
   lookUp(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: LookUpArtistDto) {
     if (!user) throw new UnauthorizedException();
@@ -69,6 +71,7 @@ export class ArtistsController {
     return this.artists.lookUp(user, dto.name, !!dto.force);
   }
 
+  @RateLimit("heavy")
   @Post("artists/picture")
   @UseGuards(GlobalAdminGuard)
   @UseInterceptors(FileInterceptor("file", { ...UPLOAD_OPTIONS, limits: { fileSize: MAX_UPLOAD_BYTES } }))
@@ -96,6 +99,7 @@ export class ArtistsController {
 
   /** The picture, at a signed address handed out with the artist (see song-image-url.ts). */
   @Public()
+  @RateLimit("none")
   @Get("artists/:artistId/image/:key")
   @ApiExcludeEndpoint()
   async image(

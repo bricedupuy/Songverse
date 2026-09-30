@@ -32,6 +32,20 @@ export const DeleteUserSchema = z.strictObject({
   ),
 });
 
+/**
+ * PUT /admin/security (issue #113): each field left out keeps its value;
+ * null clears it (back to its env var, else the default).
+ */
+export const SaveSecuritySettingsSchema = z.strictObject({
+  rateLimitEnabled: z.boolean().nullable().optional(),
+  rateLimitPerMinute: z.number().int().min(10).max(100_000).nullable().optional(),
+  rateLimitAnonymousPerMinute: z.number().int().min(10).max(100_000).nullable().optional(),
+  rateLimitHeavyPerMinute: z.number().int().min(1).max(10_000).nullable().optional(),
+  trustedProxies: z.number().int().min(0).max(10).nullable().optional(),
+  apiDocsPublic: z.boolean().nullable().optional(),
+});
+export type SaveSecuritySettingsRequest = z.input<typeof SaveSecuritySettingsSchema>;
+
 export const SaveStorageLimitsSchema = z.strictObject({
   defaultLimitMb: z.number().int().min(0).max(1_000_000).nullable(),
 });

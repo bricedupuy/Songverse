@@ -10,6 +10,7 @@ import { AttachmentsModule } from "./attachments/attachments.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { BulkUploadModule } from "./bulk-upload/bulk-upload.module.js";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard.js";
+import { RateLimitGuard } from "./security/rate-limit.guard.js";
 import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 import { SongbookCatalogModule } from "./songbook-catalog/songbook-catalog.module.js";
@@ -69,6 +70,8 @@ import { LookupsModule } from "./lookups/lookups.module.js";
   providers: [
     // JwtAuthGuard runs on every route by default; opt out with @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    // Then the rate limits (issue #113): after it, so a signed-in user is counted as themselves.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
   ],
 })
 export class AppModule {}

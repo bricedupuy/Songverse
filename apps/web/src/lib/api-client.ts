@@ -1,5 +1,6 @@
 import { markAppDataStale } from "#/lib/app-data-version";
 import { createApiClient } from "@songverse/core";
+import { pageMessage } from "./i18n";
 import { getApiUrl } from "./public-env";
 import { getApiToken } from "./server-auth";
 
@@ -62,4 +63,6 @@ export const apiClient = createApiClient({
     cached = null;
   },
   onChange: markAppDataStale,
+  // One request too many (issue #113): said plainly, in the reader's language.
+  rateLimitedMessage: () => pageMessage("common.tooManyRequests"),
 });

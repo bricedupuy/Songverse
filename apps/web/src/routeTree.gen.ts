@@ -27,6 +27,7 @@ import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/adm
 import { Route as ProtectedAdminAuthRouteImport } from './routes/_protected/admin/auth'
 import { Route as ProtectedAdminCatalogsRouteImport } from './routes/_protected/admin/catalogs'
 import { Route as ProtectedAdminMetadataRouteImport } from './routes/_protected/admin/metadata'
+import { Route as ProtectedAdminSecurityRouteImport } from './routes/_protected/admin/security'
 import { Route as ProtectedAdminStorageRouteImport } from './routes/_protected/admin/storage'
 import { Route as ProtectedAdminUsersRouteImport } from './routes/_protected/admin/users'
 import { Route as ProtectedLibraryIndexRouteImport } from './routes/_protected/library/index'
@@ -142,6 +143,11 @@ const ProtectedAdminCatalogsRoute = ProtectedAdminCatalogsRouteImport.update({
 const ProtectedAdminMetadataRoute = ProtectedAdminMetadataRouteImport.update({
   id: '/metadata',
   path: '/metadata',
+  getParentRoute: () => ProtectedAdminRoute,
+} as any)
+const ProtectedAdminSecurityRoute = ProtectedAdminSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
   getParentRoute: () => ProtectedAdminRoute,
 } as any)
 const ProtectedAdminStorageRoute = ProtectedAdminStorageRouteImport.update({
@@ -309,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/admin/metadata': typeof ProtectedAdminMetadataRoute
+  '/admin/security': typeof ProtectedAdminSecurityRoute
   '/admin/storage': typeof ProtectedAdminStorageRoute
   '/admin/users': typeof ProtectedAdminUsersRoute
   '/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
@@ -353,6 +360,7 @@ export interface FileRoutesByTo {
   '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/admin/metadata': typeof ProtectedAdminMetadataRoute
+  '/admin/security': typeof ProtectedAdminSecurityRoute
   '/admin/storage': typeof ProtectedAdminStorageRoute
   '/admin/users': typeof ProtectedAdminUsersRoute
   '/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
@@ -401,6 +409,7 @@ export interface FileRoutesById {
   '/_protected/admin/auth': typeof ProtectedAdminAuthRoute
   '/_protected/admin/catalogs': typeof ProtectedAdminCatalogsRoute
   '/_protected/admin/metadata': typeof ProtectedAdminMetadataRoute
+  '/_protected/admin/security': typeof ProtectedAdminSecurityRoute
   '/_protected/admin/storage': typeof ProtectedAdminStorageRoute
   '/_protected/admin/users': typeof ProtectedAdminUsersRoute
   '/_protected/library/$songVersionId': typeof ProtectedLibrarySongVersionIdRoute
@@ -449,6 +458,7 @@ export interface FileRouteTypes {
     | '/admin/auth'
     | '/admin/catalogs'
     | '/admin/metadata'
+    | '/admin/security'
     | '/admin/storage'
     | '/admin/users'
     | '/library/$songVersionId'
@@ -493,6 +503,7 @@ export interface FileRouteTypes {
     | '/admin/auth'
     | '/admin/catalogs'
     | '/admin/metadata'
+    | '/admin/security'
     | '/admin/storage'
     | '/admin/users'
     | '/library/$songVersionId'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/_protected/admin/auth'
     | '/_protected/admin/catalogs'
     | '/_protected/admin/metadata'
+    | '/_protected/admin/security'
     | '/_protected/admin/storage'
     | '/_protected/admin/users'
     | '/_protected/library/$songVersionId'
@@ -705,6 +717,13 @@ declare module '@tanstack/react-router' {
       path: '/metadata'
       fullPath: '/admin/metadata'
       preLoaderRoute: typeof ProtectedAdminMetadataRouteImport
+      parentRoute: typeof ProtectedAdminRoute
+    }
+    '/_protected/admin/security': {
+      id: '/_protected/admin/security'
+      path: '/security'
+      fullPath: '/admin/security'
+      preLoaderRoute: typeof ProtectedAdminSecurityRouteImport
       parentRoute: typeof ProtectedAdminRoute
     }
     '/_protected/admin/storage': {
@@ -903,6 +922,7 @@ interface ProtectedAdminRouteChildren {
   ProtectedAdminAuthRoute: typeof ProtectedAdminAuthRoute
   ProtectedAdminCatalogsRoute: typeof ProtectedAdminCatalogsRoute
   ProtectedAdminMetadataRoute: typeof ProtectedAdminMetadataRoute
+  ProtectedAdminSecurityRoute: typeof ProtectedAdminSecurityRoute
   ProtectedAdminStorageRoute: typeof ProtectedAdminStorageRoute
   ProtectedAdminUsersRoute: typeof ProtectedAdminUsersRoute
   ProtectedAdminIndexRoute: typeof ProtectedAdminIndexRoute
@@ -912,6 +932,7 @@ const ProtectedAdminRouteChildren: ProtectedAdminRouteChildren = {
   ProtectedAdminAuthRoute: ProtectedAdminAuthRoute,
   ProtectedAdminCatalogsRoute: ProtectedAdminCatalogsRoute,
   ProtectedAdminMetadataRoute: ProtectedAdminMetadataRoute,
+  ProtectedAdminSecurityRoute: ProtectedAdminSecurityRoute,
   ProtectedAdminStorageRoute: ProtectedAdminStorageRoute,
   ProtectedAdminUsersRoute: ProtectedAdminUsersRoute,
   ProtectedAdminIndexRoute: ProtectedAdminIndexRoute,

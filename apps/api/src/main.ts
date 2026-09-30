@@ -8,9 +8,10 @@ import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { toNodeHandler } from "better-auth/node";
 import { openApiDoc, ZodValidationPipe } from "./common/zod-validation.js";
 import compression from "compression";
-import type { Express } from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 import { AppModule } from "./app.module.js";
 import { getAuth } from "./auth/better-auth.js";
+import { apiDocsAllowed } from "./security/security-settings.js";
 
 async function bootstrap() {
   const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
@@ -84,6 +85,13 @@ async function bootstrap() {
     .setOpenAPIVersion("3.1.0")
     .addBearerAuth()
     .build();
+  // The API's docs (issue #113): for everyone out of production, else for global admins
+  // only (their session cookie, which the API's domain shares) - unless Admin > Security says everyone.
+  expressApp.use(["/api/docs", "/api/docs-json", "/api/docs-yaml"], (req: Request, res: Response, next: NextFunction) => {
+    void apiDocsAllowed(req.headers)
+      .then((allowed) => (allowed ? next() : res.status(404).json({ statusCode: 404, message: ["Not Found"] })))
+      .catch(next);
+  });
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("api/docs", app, openApiDoc(document));
 

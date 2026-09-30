@@ -30,6 +30,7 @@ import { SongVersionResponseDto, SongVersionSongbookMembershipDto } from "./dto/
 import { UpdateSongVersionDto } from "./dto/update-song-version.dto.js";
 import { SongHistoryService } from "./song-history.service.js";
 import { SongVersionsService } from "./song-versions.service.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 
 const STREAMING_TYPES = new Set(["SPOTIFY", "APPLE_MUSIC", "DEEZER", "YOUTUBE"]);
 
@@ -220,6 +221,7 @@ export class SongVersionsController {
   }
 
   /** Links the song info chosen in Auto detect (issue #22). */
+  @RateLimit("heavy")
   @Post(":songVersionId/metadata-link")
   @UseGuards(SongVersionOwnerGuard)
   linkMetadata(@Param("songVersionId") songVersionId: string, @Body() dto: LinkMetadataDto) {

@@ -15,6 +15,7 @@ import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
 import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
+import type { SaveSecuritySettingsRequest } from "../requests/accounts.js";
 import type {
   CreateCatalogSchema,
   CreateInviteLinkSchema,
@@ -36,6 +37,8 @@ export interface ApiClientOptions {
   onUnauthorized?: () => void;
   /** Called after any request that changes something succeeds, e.g. so cached reads are refetched. */
   onChange?: () => void;
+  /** The message for a request refused as one too many (429, issue #113), in the reader's language. */
+  rateLimitedMessage?: () => string | undefined;
 }
 
 export interface AdminCommandResult {
@@ -357,6 +360,25 @@ export interface UserProfile {
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
+
+/** Admin > Security (issue #113): each setting's value, and whether it comes from the database, its env var or the default. */
+export interface SecuritySettingsSummary {
+  source: "database" | "env" | "none";
+  settings: {
+    rateLimitEnabled: SecuritySetting<boolean>;
+    rateLimitPerMinute: SecuritySetting<number>;
+    rateLimitAnonymousPerMinute: SecuritySetting<number>;
+    rateLimitHeavyPerMinute: SecuritySetting<number>;
+    trustedProxies: SecuritySetting<number>;
+    apiDocsPublic: SecuritySetting<boolean>;
+  };
+}
+export interface SecuritySetting<T> {
+  value: T;
+  source: "database" | "env" | "default";
+  /** Its environment variable. */
+  env: string;
+}
 
 export interface AdminStorageStats {
   driver: "s3" | "local";
@@ -1101,9 +1123,11 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     body: string,
+    /** Said instead of the server's message (a 429's, in the reader's language). */
+    message?: string,
   ) {
     const parsed = parseErrorBody(body);
-    super(parsed.message ?? body);
+    super(message ?? parsed.message ?? body);
     this.name = "ApiError";
     this.code = parsed.code;
   }
@@ -1128,10 +1152,10 @@ function parseErrorBody(body: string): { message?: string; code?: string } {
  * share only the packages/core layer"). Each app supplies its own
  * `getToken`; this client only knows how to attach it and parse JSON.
  */
-export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }: ApiClientOptions) {
+export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, rateLimitedMessage }: ApiClientOptions) {
   async function failed(response: Response): Promise<ApiError> {
     if (response.status === 401) onUnauthorized?.();
-    return new ApiError(response.status, await response.text());
+    return new ApiError(response.status, await response.text(), response.status === 429 ? rateLimitedMessage?.() : undefined);
   }
 
   async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -1657,6 +1681,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       request<void>("/admin/auth", { method: "PUT", body: JSON.stringify(data) }),
     adminClearAuthEmailConfig: () => request<void>("/admin/auth/email", { method: "DELETE" }),
     adminClearAuthGoogleConfig: () => request<void>("/admin/auth/google", { method: "DELETE" }),
+    adminGetSecuritySettings: () => request<SecuritySettingsSummary>("/admin/security"),
+    adminSaveSecuritySettings: (data: SaveSecuritySettingsRequest) => request<void>("/admin/security", { method: "PUT", body: JSON.stringify(data) }),
+    adminClearSecuritySettings: () => request<void>("/admin/security", { method: "DELETE" }),
   };
 }
 

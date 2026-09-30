@@ -84,7 +84,7 @@ export async function user(name) {
   });
   const cookie = res.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
   const bearer = (await (await fetch(`${API}/api/auth/token`, { headers: { cookie, Origin: ORIGIN } })).json()).token;
-  return { email, bearer, id: sql(`select id from "User" where email='${email}'`) };
+  return { email, bearer, cookie, id: sql(`select id from "User" where email='${email}'`) };
 }
 
 /** An API call as `who`; returns the status and parsed body. */

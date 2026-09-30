@@ -199,6 +199,7 @@ function SectionPanel({
         links={[
           { to: "/admin/users", label: t("nav.adminUsers"), icon: <Users /> },
           { to: "/admin/auth", label: t("nav.adminAuth"), icon: <KeyRound /> },
+          { to: "/admin/security", label: t("nav.adminSecurity"), icon: <ShieldCheck /> },
           { to: "/admin/storage", label: t("nav.adminStorage"), icon: <Database /> },
           { to: "/admin/catalogs", label: t("nav.adminCatalogs"), icon: <FileStack /> },
           { to: "/admin/metadata", label: t("nav.adminMetadata"), icon: <LayoutDashboard /> },
@@ -649,7 +650,7 @@ function PeoplePanel({ title }: { title: string }) {
   );
 }
 
-function LinksPanel({ title, pathname, links }: { title: string; pathname: string; links: { to: "/review" | "/library" | "/admin/users" | "/admin/auth" | "/admin/storage" | "/admin/catalogs" | "/admin/metadata"; label: string; icon: ReactNode }[] }) {
+function LinksPanel({ title, pathname, links }: { title: string; pathname: string; links: { to: "/review" | "/library" | "/admin/users" | "/admin/auth" | "/admin/security" | "/admin/storage" | "/admin/catalogs" | "/admin/metadata"; label: string; icon: ReactNode }[] }) {
   return (
     <>
       <PanelHeader title={title} />
