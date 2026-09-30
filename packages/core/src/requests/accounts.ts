@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import { z } from "zod";
 import { CAPO_DISPLAY_MODES, CHORD_NOTATIONS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
 import { optional, requiredText } from "./fields.js";
@@ -43,6 +44,7 @@ export const SaveSecuritySettingsSchema = z.strictObject({
   rateLimitHeavyPerMinute: z.number().int().min(1).max(10_000).nullable().optional(),
   trustedProxies: z.number().int().min(0).max(10).nullable().optional(),
   apiDocsPublic: z.boolean().nullable().optional(),
+  contentSecurityPolicy: z.enum(["ENFORCE", "REPORT_ONLY", "OFF"]).nullable().optional(),
 });
 export type SaveSecuritySettingsRequest = z.input<typeof SaveSecuritySettingsSchema>;
 

@@ -7,6 +7,7 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
+import { NativeSelect } from "#/components/ui/native-select";
 import { apiClient } from "#/lib/api-client";
 
 export const Route = createFileRoute("/_protected/admin/security")({
@@ -31,8 +32,9 @@ function AdminSecurityPage() {
   const initial = () => ({
     rateLimitEnabled: settings.rateLimitEnabled.value,
     apiDocsPublic: settings.apiDocsPublic.value,
+    contentSecurityPolicy: settings.contentSecurityPolicy.value,
     ...Object.fromEntries(NUMBERS.map((key) => [key, String(settings[key].value)])),
-  }) as { rateLimitEnabled: boolean; apiDocsPublic: boolean } & Record<NumberKey, string>;
+  }) as { rateLimitEnabled: boolean; apiDocsPublic: boolean; contentSecurityPolicy: "ENFORCE" | "REPORT_ONLY" | "OFF" } & Record<NumberKey, string>;
   const [form, setForm] = useState(initial);
   useEffect(() => setForm(initial()), [summary]);
   const [saving, setSaving] = useState(false);
@@ -50,6 +52,7 @@ function AdminSecurityPage() {
       const change: SaveSecuritySettingsRequest = {};
       if (form.rateLimitEnabled !== settings.rateLimitEnabled.value) change.rateLimitEnabled = form.rateLimitEnabled;
       if (form.apiDocsPublic !== settings.apiDocsPublic.value) change.apiDocsPublic = form.apiDocsPublic;
+      if (form.contentSecurityPolicy !== settings.contentSecurityPolicy.value) change.contentSecurityPolicy = form.contentSecurityPolicy;
       for (const key of NUMBERS) if (Number(form[key]) !== settings[key].value) change[key] = Number(form[key]);
       await apiClient.adminSaveSecuritySettings(change);
       await router.invalidate();
@@ -120,6 +123,28 @@ function AdminSecurityPage() {
           <CardTitle className="text-sm">{t("admin.securityApiDocs")}</CardTitle>
         </CardHeader>
         <CardContent>{toggle("apiDocsPublic", t("admin.securityApiDocsPublic"), t("admin.securityApiDocsPublicHint"))}</CardContent>
+      </Card>
+
+      {/* The web app's Content-Security-Policy (issue #114). */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">{t("admin.securityCsp")}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1.5">
+          <Label htmlFor="security-csp">{t("admin.securityCspMode")}</Label>
+          <NativeSelect
+            id="security-csp"
+            value={form.contentSecurityPolicy}
+            onChange={(event) => setForm({ ...form, contentSecurityPolicy: event.target.value as typeof form.contentSecurityPolicy })}
+            className="w-full max-w-xs"
+          >
+            <option value="ENFORCE">{t("admin.securityCspEnforce")}</option>
+            <option value="REPORT_ONLY">{t("admin.securityCspReportOnly")}</option>
+            <option value="OFF">{t("admin.securityCspOff")}</option>
+          </NativeSelect>
+          <span className="text-xs text-muted-foreground">{t("admin.securityCspHint")}</span>
+          <span className="text-xs text-muted-foreground">{sourceOf(settings.contentSecurityPolicy)}</span>
+        </CardContent>
       </Card>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

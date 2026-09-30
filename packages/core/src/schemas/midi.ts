@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import { z } from "zod";
 import { MIDI_EVENT_TYPES } from "../constants/index.js";
 

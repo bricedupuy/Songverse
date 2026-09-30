@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import { z } from "zod";
 import { SONGBOOK_KINDS } from "../constants/index.js";
 import { ISO_639_1_CODES } from "../languages/index.js";

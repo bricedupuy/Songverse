@@ -1,3 +1,5 @@
+// First: before any schema is defined (issue #114).
+import "./zod-config.js";
 export * from "./constants/index.js";
 export * from "./ids/index.js";
 export * from "./slug/index.js";

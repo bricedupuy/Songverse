@@ -211,6 +211,8 @@ await step("a catalogue's printed volumes; a songbook imported before offers the
   await volumes.getByText(`BB${tag}1`).waitFor();
   await page.goto(`${WEB}/songbooks/${earlier.id}`);
   await page.waitForLoadState("networkidle");
+  // Under the songbook's details (issue #148).
+  await page.getByTestId("songbook-details-toggle").click();
   await page.getByRole("button", { name: "Use the catalogue's volumes" }).click();
   await page.getByRole("button", { name: "Use the catalogue's volumes" }).waitFor({ state: "detached" });
   await page.getByTestId("sections-editor").getByText(`BB${tag}1`).waitFor();

@@ -8,7 +8,7 @@
 // caches Vite's content-hashed /assets/* files forever (safe, since a new
 // build gets new hashes) and defers everything else to the built SSR
 // handler.
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import { Readable } from "node:stream";
 import { brotliCompressSync, constants as zlib, createBrotliCompress, createGzip, gzipSync } from "node:zlib";
@@ -115,15 +115,95 @@ const serviceWorker = await readFile(join(clientDir, "sw.js"), "utf8")
   .then((source) => source.replace('"__SONGVERSE_BUILD__"', JSON.stringify(build)).replace('["__SONGVERSE_PRECACHE__"]', JSON.stringify(precache)))
   .catch(() => null);
 
-function offlineResponse(pathname) {
+async function offlineResponse(pathname) {
   // Never cached by the browser itself: the service worker decides when a new one applies.
   const headers = { "Cache-Control": "no-cache" };
-  if (pathname === "/_shell" && shell) return new Response(shell, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+  if (pathname === "/_shell" && shell) {
+    const shellHeaders = new Headers({ ...headers, "Content-Type": "text/html; charset=utf-8" });
+    await withPolicy(shellHeaders, inlineScriptHashes(shell));
+    return new Response(shell, { headers: shellHeaders });
+  }
   if (pathname === "/sw.js" && serviceWorker) return new Response(serviceWorker, { headers: { ...headers, "Content-Type": "text/javascript" } });
   return null;
 }
 
 const { default: appHandler } = await import("./dist/server/server.js");
+
+// The Content-Security-Policy (issue #114): the one header that stops an
+// injected script from running, should one ever get past React's escaping.
+// Scripts only from here, or inline with this response's nonce - the
+// server-rendered pages' own (hydration, the public env, the mode and the
+// service worker's), which get it here - or, for the offline shell the
+// service worker keeps (no server to give it a nonce), by their hashes;
+// blob: for the audio worklets, and WebAssembly (the stretch nodes). Admin
+// > Security says whether it's enforced, only reported, or off.
+const apiUrl = process.env.API_URL ?? "http://localhost:3001";
+const apiOrigin = (() => {
+  try {
+    return new URL(apiUrl).origin;
+  } catch {
+    return apiUrl;
+  }
+})();
+const apiSocket = apiOrigin.replace(/^http/, "ws");
+
+function contentSecurityPolicy(scripts) {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'report-sample' ${scripts} blob: 'wasm-unsafe-eval' https://www.youtube.com https://s.ytimg.com`,
+    "style-src 'self' 'unsafe-inline'",
+    // Images from anywhere: artwork candidates come straight from the providers, and an image can't run a script.
+    `img-src 'self' data: blob: https: ${apiOrigin}`,
+    `media-src 'self' blob: ${apiOrigin}`,
+    // blob: - a file kept on the device, read back (offline).
+    `connect-src 'self' blob: ${apiOrigin} ${apiSocket}`,
+    "font-src 'self' data:",
+    "worker-src 'self' blob:",
+    "frame-src https://www.youtube-nocookie.com https://www.youtube.com",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    `form-action 'self' ${apiOrigin}`,
+    "frame-ancestors 'self'",
+    "report-uri /csp-report",
+  ].join("; ");
+}
+
+// Enforced, only reported, or off: Admin > Security's, asked of the API a few seconds at a time
+// (every page would otherwise wait on it); enforced when it can't be asked.
+let policyMode = { mode: "ENFORCE", at: 0 };
+async function cspMode() {
+  if (Date.now() - policyMode.at < 15_000) return policyMode.mode;
+  try {
+    const response = await fetch(`${apiUrl}/security/web`, { signal: AbortSignal.timeout(2000) });
+    const { contentSecurityPolicy } = await response.json();
+    if (["ENFORCE", "REPORT_ONLY", "OFF"].includes(contentSecurityPolicy)) policyMode = { mode: contentSecurityPolicy, at: Date.now() };
+  } catch {
+    policyMode = { mode: policyMode.mode, at: Date.now() };
+  }
+  return policyMode.mode;
+}
+
+async function withPolicy(headers, scripts) {
+  const mode = await cspMode();
+  if (mode === "OFF") return;
+  headers.set(mode === "REPORT_ONLY" ? "Content-Security-Policy-Report-Only" : "Content-Security-Policy", contentSecurityPolicy(scripts));
+}
+
+/** The inline scripts in a page, each with the nonce, and the nonce's source for the policy. */
+function withNonce(html) {
+  const nonce = randomBytes(16).toString("base64");
+  return { html: html.replace(/<script(?=[\s>])/g, `<script nonce="${nonce}"`), scripts: `'nonce-${nonce}'` };
+}
+
+/** The offline shell's inline scripts, by their hashes: it's served as it was built, with no one to give it a nonce. */
+function inlineScriptHashes(html) {
+  // As the browser hashes it: its HTML parser reads a NUL as U+FFFD (TanStack's stream barrier carries one).
+  const hashes = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(
+    ([, body]) => `'sha256-${createHash("sha256").update(body.replaceAll("\0", "\uFFFD")).digest("base64")}'`,
+  );
+  return [...new Set(hashes)].join(" ");
+}
 
 // Security headers on every page and file (issue #112): not framed by
 // another site, no type sniffing, only the origin sent on as a referrer.
@@ -198,26 +278,33 @@ async function handle(request) {
   const redirect = redirectToWebUrl(request);
   if (redirect) return redirect;
 
+  // What the policy refused (issue #114), in the server's log: a few lines, never the whole report.
+  if (request.method === "POST" && new URL(request.url).pathname === "/csp-report") {
+    const report = await request.text().catch(() => "");
+    console.warn(`CSP: ${report.slice(0, 1500)}`);
+    return new Response(null, { status: 204 });
+  }
+
   if (request.method === "GET" || request.method === "HEAD") {
     const { pathname } = new URL(request.url);
-    const offline = offlineResponse(pathname);
+    const offline = await offlineResponse(pathname);
     if (offline) return offline;
     const staticResponse = await tryServeStatic(decodeURIComponent(pathname));
     if (staticResponse) return staticResponse;
   }
 
   const response = await appHandler.fetch(request);
-  if (!actualAppCssHref || !response.headers.get("content-type")?.includes("text/html")) {
+  if (!response.headers.get("content-type")?.includes("text/html")) {
     return response;
   }
 
+  // A page: its stylesheet's name put right, and its inline scripts given this response's nonce (issue #114).
   const body = await response.text();
-  const fixed = body.replace(staleAppCssPattern, actualAppCssHref);
-  if (fixed === body) return new Response(body, response);
-
+  const { html, scripts } = withNonce(actualAppCssHref ? body.replace(staleAppCssPattern, actualAppCssHref) : body);
   const headers = new Headers(response.headers);
-  headers.set("Content-Length", String(Buffer.byteLength(fixed)));
-  return new Response(fixed, { status: response.status, statusText: response.statusText, headers });
+  headers.set("Content-Length", String(Buffer.byteLength(html)));
+  await withPolicy(headers, scripts);
+  return new Response(html, { status: response.status, statusText: response.statusText, headers });
 }
 
 const port = Number(process.env.PORT ?? 3000);

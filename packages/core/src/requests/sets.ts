@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import { z } from "zod";
 import { optional, requiredText } from "./fields.js";
 

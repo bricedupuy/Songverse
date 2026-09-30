@@ -1745,6 +1745,8 @@ model SecuritySettings {
   trustedProxies              Int?
   // /api/docs for everyone, rather than global admins only.
   apiDocsPublic               Boolean?
+  // The web app's Content-Security-Policy (issue #114): ENFORCE, REPORT_ONLY or OFF.
+  contentSecurityPolicy       String?
   updatedAt                   DateTime @updatedAt
 }
 

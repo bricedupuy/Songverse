@@ -11,6 +11,7 @@ import { AuthModule } from "./auth/auth.module.js";
 import { BulkUploadModule } from "./bulk-upload/bulk-upload.module.js";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard.js";
 import { RateLimitGuard } from "./security/rate-limit.guard.js";
+import { SecurityController } from "./security/security.controller.js";
 import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 import { SongbookCatalogModule } from "./songbook-catalog/songbook-catalog.module.js";
@@ -66,7 +67,7 @@ import { LookupsModule } from "./lookups/lookups.module.js";
     SyncModule,
     LibraryHomeModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, SecurityController],
   providers: [
     // JwtAuthGuard runs on every route by default; opt out with @Public().
     { provide: APP_GUARD, useClass: JwtAuthGuard },

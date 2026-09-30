@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import type {
   CapoDisplayModeValue,
   ChordNotationValue,
@@ -371,6 +372,7 @@ export interface SecuritySettingsSummary {
     rateLimitHeavyPerMinute: SecuritySetting<number>;
     trustedProxies: SecuritySetting<number>;
     apiDocsPublic: SecuritySetting<boolean>;
+    contentSecurityPolicy: SecuritySetting<"ENFORCE" | "REPORT_ONLY" | "OFF">;
   };
 }
 export interface SecuritySetting<T> {

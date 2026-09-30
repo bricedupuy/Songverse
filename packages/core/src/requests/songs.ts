@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import { z } from "zod";
 import { ISO_639_1_CODES } from "../languages/index.js";
 import { SONG_DOCUMENT_LIMITS } from "../schemas/song-document-v2.js";

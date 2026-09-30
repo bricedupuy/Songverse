@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import { z } from "zod";
 import { SECTION_TYPES } from "../constants/index.js";
 import { TimeSignatureSchema } from "./shared.js";

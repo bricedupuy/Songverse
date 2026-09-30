@@ -6,7 +6,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "sideEffects": false,
+  "sideEffects": ["./dist/zod-config.js"],
   "exports": {
     ".": "./dist/index.js",
     "./i18n/locales/*": "./dist/i18n/locales/*.js"

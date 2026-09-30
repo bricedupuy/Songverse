@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import { z } from "zod";
 import { STEM_PARTS } from "../stems/index.js";
 import { clearableText, optional } from "./fields.js";

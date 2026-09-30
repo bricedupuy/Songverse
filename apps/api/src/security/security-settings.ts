@@ -17,6 +17,8 @@ export interface EffectiveSecuritySettings {
   trustedProxies: number;
   /** /api/docs for everyone, else global admins only. */
   apiDocsPublic: boolean;
+  /** The web app's Content-Security-Policy (issue #114): enforced, only reported, or off. */
+  contentSecurityPolicy: "ENFORCE" | "REPORT_ONLY" | "OFF";
 }
 
 type Key = keyof EffectiveSecuritySettings;
@@ -31,7 +33,13 @@ const FIELDS: { [K in Key]: { env: string; parse: (raw: string) => EffectiveSecu
   rateLimitHeavyPerMinute: { env: "RATE_LIMIT_HEAVY_PER_MINUTE", parse: int, fallback: () => 30 },
   trustedProxies: { env: "TRUSTED_PROXIES", parse: int, fallback: () => (production() ? 1 : 0) },
   apiDocsPublic: { env: "API_DOCS_PUBLIC", parse: bool, fallback: () => !production() },
+  contentSecurityPolicy: { env: "CONTENT_SECURITY_POLICY", parse: cspMode, fallback: () => "ENFORCE" },
 };
+
+function cspMode(raw: string): EffectiveSecuritySettings["contentSecurityPolicy"] | undefined {
+  const value = raw.toUpperCase().replace("-", "_");
+  return value === "ENFORCE" || value === "REPORT_ONLY" || value === "OFF" ? value : undefined;
+}
 
 function bool(raw: string): boolean | undefined {
   return raw === "true" || raw === "1" ? true : raw === "false" || raw === "0" ? false : undefined;
@@ -62,7 +70,7 @@ async function row() {
 export async function getEffectiveSecuritySettings(): Promise<EffectiveSecuritySettings> {
   const stored = await row();
   const out = {} as Record<Key, unknown>;
-  for (const key of Object.keys(FIELDS) as Key[]) out[key] = resolve(key, stored?.[key]).value;
+  for (const key of Object.keys(FIELDS) as Key[]) out[key] = resolve(key, (stored?.[key] ?? null) as EffectiveSecuritySettings[typeof key] | null).value;
   return out as unknown as EffectiveSecuritySettings;
 }
 
@@ -70,7 +78,7 @@ export async function getEffectiveSecuritySettings(): Promise<EffectiveSecurityS
 export async function getSecuritySettingsSummary() {
   const stored = await row();
   const settings = {} as Record<Key, { value: unknown; source: SecuritySettingSource; env: string }>;
-  for (const key of Object.keys(FIELDS) as Key[]) settings[key] = { ...resolve(key, stored?.[key]), env: FIELDS[key].env };
+  for (const key of Object.keys(FIELDS) as Key[]) settings[key] = { ...resolve(key, (stored?.[key] ?? null) as EffectiveSecuritySettings[typeof key] | null), env: FIELDS[key].env };
   const sources = Object.values(settings).map((setting) => setting.source);
   return {
     source: stored && sources.includes("database") ? "database" : sources.includes("env") ? "env" : "none",

@@ -1,3 +1,4 @@
+import "../zod-config.js";
 import { z } from "zod";
 import {
   ACCIDENTALS,
