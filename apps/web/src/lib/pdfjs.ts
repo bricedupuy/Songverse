@@ -1,34 +1,17 @@
+import { installMapPolyfills } from "./map-polyfills";
+
+let workerPort: Worker | null = null;
+
 /**
- * pdf.js, loaded when needed (it's big), with its worker - after the
- * newest JavaScript it relies on and not every browser has yet:
- * Map/WeakMap's getOrInsert and getOrInsertComputed (issue #152; Safari and
- * Chromium before 2026 lack them, and drawing a page needs them).
+ * pdf.js, loaded when needed (it's big), with its worker - both after the
+ * newest JavaScript it relies on (lib/map-polyfills.ts): the page's here,
+ * the worker's in lib/pdf-worker.ts, which pdf.js's streamed reading of a
+ * PDF by ranges needs (issue #156). One worker for every PDF opened.
  */
 export async function loadPdfjs() {
-  for (const Kind of [Map, WeakMap] as unknown as { prototype: Record<string, unknown> & { has(key: unknown): boolean; get(key: unknown): unknown; set(key: unknown, value: unknown): unknown } }[]) {
-    const proto = Kind.prototype;
-    if (typeof proto.getOrInsertComputed !== "function") {
-      Object.defineProperty(proto, "getOrInsertComputed", {
-        configurable: true,
-        writable: true,
-        value(this: typeof proto, key: unknown, compute: (key: unknown) => unknown) {
-          if (!this.has(key)) this.set(key, compute(key));
-          return this.get(key);
-        },
-      });
-    }
-    if (typeof proto.getOrInsert !== "function") {
-      Object.defineProperty(proto, "getOrInsert", {
-        configurable: true,
-        writable: true,
-        value(this: typeof proto, key: unknown, value: unknown) {
-          if (!this.has(key)) this.set(key, value);
-          return this.get(key);
-        },
-      });
-    }
-  }
-  const [pdfjs, { default: workerUrl }] = await Promise.all([import("pdfjs-dist"), import("pdfjs-dist/build/pdf.worker.min.mjs?url")]);
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  installMapPolyfills();
+  const pdfjs = await import("pdfjs-dist");
+  workerPort ??= new Worker(new URL("./pdf-worker.ts", import.meta.url), { type: "module" });
+  pdfjs.GlobalWorkerOptions.workerPort = workerPort;
   return pdfjs;
 }

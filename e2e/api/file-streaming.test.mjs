@@ -93,6 +93,26 @@ check(
 r = await call(me, "POST", `/song-versions/${song.id}/attachments/${page.id}/link`);
 check("and gets no link that opens without signing in", r.status === 400, String(r.status));
 
+// A PDF has one (issue #156), for pdf.js to read by ranges: opened in a tab, it's a download, never shown there.
+const sheet = await (async () => {
+  const form = new FormData();
+  form.append("type", "PDF");
+  form.append("file", new Blob([Buffer.from("%PDF-1.4\n" + "x".repeat(4000))], { type: "application/pdf" }), "Sheet.pdf");
+  return (await fetch(`${API}/song-versions/${song.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form })).json();
+})();
+r = await call(me, "POST", `/song-versions/${song.id}/attachments/${sheet.id}/link`);
+check("a PDF gets a link", r.status === 200 && typeof r.body.path === "string", `${r.status}`);
+res = await fetch(`${API}${r.body.path}`, { headers: { Range: "bytes=0-99", Origin: WEB } });
+check(
+  "read by ranges from the web app, the headers pdf.js needs readable, and a download if opened",
+  res.status === 206 &&
+    res.headers.get("content-range") === `bytes 0-99/${sheet.sizeBytes}` &&
+    /Content-Range/.test(res.headers.get("access-control-expose-headers") ?? "") &&
+    res.headers.get("content-disposition")?.startsWith("attachment") &&
+    res.headers.get("content-security-policy") === "sandbox",
+  `${res.status} ${res.headers.get("content-disposition")} ${res.headers.get("access-control-expose-headers")}`,
+);
+
 // --- compression (issue #120): text compressed, files left as they are
 const raw = (url, headers) => new Promise((resolve, reject) => {
   // node:http, which (unlike fetch) doesn't decompress: what goes over the wire.

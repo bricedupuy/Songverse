@@ -37,6 +37,8 @@ export async function sendFile(
     "Content-Disposition": `${safe ? disposition : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.filename)}`,
     "Content-Security-Policy": "sandbox",
     "Accept-Ranges": "bytes",
+    // Readable across origins (the web app's): pdf.js reads them to fetch a PDF by ranges, its first page first (issue #156).
+    "Access-Control-Expose-Headers": "Accept-Ranges, Content-Range, Content-Length, Content-Encoding",
     ETag: etag,
     "Cache-Control": "private, max-age=31536000, immutable",
     "X-Content-Type-Options": "nosniff",

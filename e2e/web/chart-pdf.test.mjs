@@ -139,6 +139,43 @@ await step("on a phone, the PDF's pages go edge to edge, in Practice and in Live
   await page.setViewportSize({ width: 1280, height: 900 });
 });
 
+await step("a long PDF streams (issue #156): fetched by byte ranges, its first page shown before the rest is drawn", async () => {
+  // Twenty pages, each with a block of text that doesn't compress: large enough for pdf.js to read it by ranges.
+  const long = await PDFDocument.create();
+  const mono = await long.embedFont(StandardFonts.Courier);
+  let seed = 7;
+  const noise = () => Array.from({ length: 90 }, () => String.fromCharCode(33 + ((seed = (seed * 16807) % 2147483647) % 90))).join("");
+  for (let n = 1; n <= 20; n++) {
+    const sheet = long.addPage([595, 842]);
+    sheet.drawText(`Long page ${n}`, { x: 60, y: 780, size: 36, font: mono, color: rgb(0, 0, 0) });
+    for (let line = 0; line < 230; line++) sheet.drawText(noise(), { x: 20, y: 740 - line * 3.5, size: 3, font: mono, color: rgb(0.3, 0.3, 0.3) });
+  }
+  const bytes = await long.save({ useObjectStreams: false });
+  if (bytes.length < 500 * 1024) throw new Error(`only ${bytes.length} bytes`);
+  const book = await api(me, "POST", "/song-versions", { title: `Long score ${stamp}`, language: "en", artists: ["Someone"], content: "[G]Long\n", contentFormat: "CHORDPRO" });
+  const form = new FormData();
+  form.append("type", "PDF");
+  form.append("file", new Blob([bytes], { type: "application/pdf" }), "Long.pdf");
+  await fetch(`${API}/song-versions/${book.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form });
+  const ranges = [];
+  page.on("response", (response) => {
+    if (response.url().includes("/files/")) ranges.push({ status: response.status(), range: response.request().headers().range ?? null });
+  });
+  await page.goto(`${WEB}/library/${book.id}`);
+  await page.getByTestId("chart-view-pdf").click();
+  await page.locator('[data-testid="pdf-view"][data-state="ready"]').waitFor({ timeout: 20000 });
+  const pages = page.getByTestId("pdf-page");
+  if ((await pages.count()) !== 20) throw new Error(`${await pages.count()} places for 20 pages`);
+  if ((await pages.first().getAttribute("data-state")) !== "drawn") throw new Error("the first page not drawn");
+  const drawn = await page.locator('[data-testid="pdf-page"][data-state="drawn"]').count();
+  if (drawn > 6) throw new Error(`${drawn} pages drawn before they're near`);
+  if (!ranges.some((r) => r.status === 206 && r.range)) throw new Error(`no byte ranges: ${JSON.stringify(ranges)}`);
+  // Scrolled to the end, the last page is drawn when it's reached.
+  await pages.last().scrollIntoViewIfNeeded();
+  await page.locator('[data-testid="pdf-page"][data-page="20"][data-state="drawn"]').waitFor({ timeout: 20000 });
+  await api(me, "PUT", "/chart-preferences", { songVersionId: book.id, preferences: { view: "CHART" } });
+});
+
 await step("no page errors", async () => {
   if (errors.length) throw new Error(errors.join(" | "));
 });

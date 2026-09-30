@@ -31,6 +31,7 @@ export class FilesController {
     const attachment = await this.prisma.client.attachment.findUnique({ where: { id: attachmentId } });
     // Deleted since the link was given.
     if (!attachment) throw new ForbiddenException("This link has expired or isn't valid");
-    await sendFile(this.storage, attachment, req, res, "inline");
+    // Audio plays in the page; anything else (a PDF, for pdf.js - issue #156) opened in a tab is a download.
+    await sendFile(this.storage, attachment, req, res, attachment.type === "AUDIO" ? "inline" : "attachment");
   }
 }

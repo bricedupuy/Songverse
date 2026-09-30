@@ -313,7 +313,7 @@ export function LiveView({ song }: { song: LiveSong }) {
             </div>
           ) : null}
           {pdf && song.reading ? (
-            <PdfPages key={pdf.id} load={() => song.reading!.load(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
+            <PdfPages key={pdf.id} source={() => song.reading!.source(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
           ) : chart ? (
             <SongChart chart={chart} emptyText={t("sets.noChart")} />
           ) : (

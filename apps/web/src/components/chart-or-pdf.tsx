@@ -45,7 +45,8 @@ export interface ReadingView {
   /** The PDF shown; null: the chart. */
   shown: Attachment | null;
   choose: (view: LiveViewValue, pdfId?: string) => void;
-  load: (file: Attachment) => Promise<Blob>;
+  /** Where to read a PDF from: its signed address online (streamed by ranges), its bytes offline. */
+  source: (file: Attachment) => Promise<PdfSource>;
 }
 
 /**
@@ -105,7 +106,16 @@ export function useReadingView(songVersionId: string, attachments: Attachment[] 
       // Offline, it holds for this page.
       store.save(change).catch(() => {});
     },
-    load: (file) => fileLoader(songVersionId, offline)(file),
+    source: async (file) => {
+      if (!offline) {
+        try {
+          return { url: (await apiClient.getAttachmentLink(songVersionId, file.id)).url };
+        } catch {
+          // No link: the whole file, downloaded, below.
+        }
+      }
+      return { data: new Uint8Array(await (await fileLoader(songVersionId, offline)(file)).arrayBuffer()) };
+    },
   };
 }
 
@@ -177,17 +187,29 @@ export function ChartOrPdf({
     <div className="flex flex-col gap-3">
       <ViewSwitch reading={reading} />
       {/* On a phone, out to the screen's edges (the page's gutter, --gutter). */}
-      {shown ? <PdfPages key={shown.id} load={() => reading.load(shown)} name={shown.filename} className="max-sm:-mx-(--gutter)" /> : children}
+      {shown ? <PdfPages key={shown.id} source={() => reading.source(shown)} name={shown.filename} className="max-sm:-mx-(--gutter)" /> : children}
     </div>
   );
 }
 
-/** A PDF's pages, drawn with pdf.js as wide as there's room (sharp on a high-density screen). */
-export function PdfPages({ load, name, className }: { load: () => Promise<Blob>; name: string; className?: string }) {
+/** Where pdf.js reads a PDF from: a signed address it fetches by byte ranges (streamed), or bytes already here (offline). */
+export type PdfSource = { url: string } | { data: Uint8Array };
+
+type PdfDocument = Awaited<ReturnType<Awaited<ReturnType<typeof loadPdfjs>>["getDocument"]>["promise"]>;
+
+/**
+ * A PDF's pages, drawn with pdf.js as wide as there's room (sharp on a
+ * high-density screen), streamed (issue #156): pdf.js reads the file by
+ * byte ranges, so the first page shows before the rest has arrived (the
+ * rest follows in the background). Every page gets its place at once, the
+ * first page's size, and is drawn as it comes near the screen.
+ */
+export function PdfPages({ source, name, className }: { source: () => Promise<PdfSource>; name: string; className?: string }) {
   const { t } = useTranslation();
   const box = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   const [width, setWidth] = useState(0);
+  const [pdf, setPdf] = useState<PdfDocument | null>(null);
 
   useEffect(() => {
     const el = box.current;
@@ -197,37 +219,17 @@ export function PdfPages({ load, name, className }: { load: () => Promise<Blob>;
     return () => observer.disconnect();
   }, []);
 
+  // Opened once: by its address when there's one (ranges, the first page first), else from its bytes.
   useEffect(() => {
-    const el = box.current;
-    if (!el || width === 0) return;
     let cancelled = false;
     let destroy: (() => void) | null = null;
     (async () => {
       try {
-        const pdfjs = await loadPdfjs();
-        const task = pdfjs.getDocument({ data: new Uint8Array(await (await load()).arrayBuffer()) });
+        const [pdfjs, from] = await Promise.all([loadPdfjs(), source()]);
+        const task = pdfjs.getDocument("url" in from ? { url: from.url, rangeChunkSize: 128 * 1024 } : { data: from.data });
         destroy = () => void task.destroy();
-        const pdf = await task.promise;
-        if (cancelled) return;
-        const canvases: HTMLCanvasElement[] = [];
-        for (let number = 1; number <= pdf.numPages; number++) {
-          const page = await pdf.getPage(number);
-          const scale = width / page.getViewport({ scale: 1 }).width;
-          const viewport = page.getViewport({ scale: scale * (window.devicePixelRatio || 1) });
-          const canvas = document.createElement("canvas");
-          canvas.width = Math.floor(viewport.width);
-          canvas.height = Math.floor(viewport.height);
-          // On a phone, edge to edge: every pixel of its width for the page.
-          canvas.className = "w-full bg-white sm:rounded-md sm:border sm:shadow-sm";
-          canvas.setAttribute("aria-label", t("chartView.page", { page: number, pages: pdf.numPages }));
-          canvas.setAttribute("role", "img");
-          canvas.dataset.testid = "pdf-page";
-          await page.render({ canvas, canvasContext: canvas.getContext("2d")!, viewport }).promise;
-          if (cancelled) return;
-          canvases.push(canvas);
-        }
-        el.replaceChildren(...canvases);
-        setState("ready");
+        const opened = await task.promise;
+        if (!cancelled) setPdf(opened);
       } catch {
         if (!cancelled) setState("failed");
       }
@@ -236,8 +238,71 @@ export function PdfPages({ load, name, className }: { load: () => Promise<Blob>;
       cancelled = true;
       destroy?.();
     };
-    // Drawn again when the room changes; `load` is the same file for this component (keyed by it).
-  }, [width]);
+    // `source` is the same file for this component (keyed by it).
+  }, []);
+
+  // Laid out again when the room changes: a place per page, each drawn once it's near.
+  useEffect(() => {
+    const el = box.current;
+    if (!el || !pdf || width === 0) return;
+    let cancelled = false;
+    let observer: IntersectionObserver | null = null;
+    const ratio = window.devicePixelRatio || 1;
+    const drawn = new Set<number>();
+    const draw = async (canvas: HTMLCanvasElement, number: number) => {
+      if (drawn.has(number)) return;
+      drawn.add(number);
+      const page = await pdf.getPage(number);
+      if (cancelled) return;
+      const viewport = page.getViewport({ scale: (width / page.getViewport({ scale: 1 }).width) * ratio });
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      await page.render({ canvas, canvasContext: canvas.getContext("2d")!, viewport }).promise;
+      if (!cancelled) canvas.dataset.state = "drawn";
+    };
+    (async () => {
+      try {
+        const first = await pdf.getPage(1);
+        if (cancelled) return;
+        const size = first.getViewport({ scale: (width / first.getViewport({ scale: 1 }).width) * ratio });
+        const canvases = Array.from({ length: pdf.numPages }, (_, index) => {
+          const canvas = document.createElement("canvas");
+          // Its place, the first page's size, until it's drawn at its own.
+          canvas.width = Math.floor(size.width);
+          canvas.height = Math.floor(size.height);
+          // On a phone, edge to edge: every pixel of its width for the page.
+          canvas.className = "w-full bg-white sm:rounded-md sm:border sm:shadow-sm";
+          canvas.setAttribute("aria-label", t("chartView.page", { page: index + 1, pages: pdf.numPages }));
+          canvas.setAttribute("role", "img");
+          canvas.dataset.testid = "pdf-page";
+          canvas.dataset.page = String(index + 1);
+          return canvas;
+        });
+        el.replaceChildren(...canvases);
+        await draw(canvases[0]!, 1);
+        if (cancelled) return;
+        setState("ready");
+        // The rest as they come within a screen's height of being seen.
+        observer = new IntersectionObserver(
+          (entries) => {
+            for (const entry of entries) {
+              if (!entry.isIntersecting) continue;
+              const canvas = entry.target as HTMLCanvasElement;
+              void draw(canvas, Number(canvas.dataset.page)).catch(() => {});
+            }
+          },
+          { rootMargin: "100% 0px" },
+        );
+        for (const canvas of canvases.slice(1)) observer.observe(canvas);
+      } catch {
+        if (!cancelled) setState("failed");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      observer?.disconnect();
+    };
+  }, [pdf, width]);
 
   return (
     <div className={cn("flex flex-col gap-2", className)} data-testid="pdf-view" data-state={state}>

@@ -169,9 +169,11 @@ export class AttachmentsController {
 
   /**
    * A short-lived link to the file (GET /files/:id), for what can't send a
-   * Bearer token - an <audio src> streaming and seeking (issue #33). For
-   * audio only: a link is shown in the browser, and anything else is
-   * downloaded with the Bearer token (issue #112).
+   * Bearer token - an <audio src> streaming and seeking (issue #33), and
+   * pdf.js reading a PDF by byte ranges, its first page first (issue #156).
+   * For audio and PDFs only (issue #112): anything else is downloaded with
+   * the Bearer token. A PDF's link, opened in a tab, downloads it rather
+   * than showing it there.
    */
   @Post(":attachmentId/link")
   @HttpCode(HttpStatus.OK)
@@ -184,7 +186,8 @@ export class AttachmentsController {
     if (!user) throw new UnauthorizedException();
     await this.access.assertCanSeeSong(user, songVersionId);
     const attachment = await this.attachmentsService.find(user, songVersionId, attachmentId);
-    if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files have links");
+    const pdf = attachment.mimeType === "application/pdf";
+    if (attachment.type !== "AUDIO" && !pdf) throw new BadRequestException("Only audio files and PDFs have links");
     return this.links.create(attachment.id);
   }
 
