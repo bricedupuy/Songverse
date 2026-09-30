@@ -73,15 +73,18 @@ export function useReadingView(songVersionId: string, attachments: Attachment[] 
   const offline = !attachments && !!listed?.offline;
 
   const [choice, setChoice] = useState<ViewChoice | null>(store.initial ?? null);
+  // Chosen here before the saved choice arrived: that one's older.
+  const chosen = useRef(false);
   const initialKey = JSON.stringify([store.initial?.view, store.initial?.pdfId]);
   useEffect(() => {
     setChoice(store.initial ?? null);
+    chosen.current = false;
     if (!store.load || !songVersionId) return;
     let cancelled = false;
     store
       .load()
       .then((saved) => {
-        if (!cancelled && saved) setChoice({ view: saved.view, pdfId: saved.pdfId });
+        if (!cancelled && saved && !chosen.current) setChoice({ view: saved.view, pdfId: saved.pdfId });
       })
       .catch(() => {});
     return () => {
@@ -96,6 +99,7 @@ export function useReadingView(songVersionId: string, attachments: Attachment[] 
     pdfs,
     shown,
     choose: (next, pdfId) => {
+      chosen.current = true;
       const change: ViewChoice = next === "PDF" ? { view: next, ...(pdfId ? { pdfId } : {}) } : { view: next };
       setChoice((before) => ({ ...before, ...change }));
       // Offline, it holds for this page.
@@ -172,13 +176,14 @@ export function ChartOrPdf({
   return (
     <div className="flex flex-col gap-3">
       <ViewSwitch reading={reading} />
-      {shown ? <PdfPages key={shown.id} load={() => reading.load(shown)} name={shown.filename} /> : children}
+      {/* On a phone, out to the screen's edges (the page's gutter, --gutter). */}
+      {shown ? <PdfPages key={shown.id} load={() => reading.load(shown)} name={shown.filename} className="max-sm:-mx-(--gutter)" /> : children}
     </div>
   );
 }
 
 /** A PDF's pages, drawn with pdf.js as wide as there's room (sharp on a high-density screen). */
-export function PdfPages({ load, name }: { load: () => Promise<Blob>; name: string }) {
+export function PdfPages({ load, name, className }: { load: () => Promise<Blob>; name: string; className?: string }) {
   const { t } = useTranslation();
   const box = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
@@ -212,7 +217,8 @@ export function PdfPages({ load, name }: { load: () => Promise<Blob>; name: stri
           const canvas = document.createElement("canvas");
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
-          canvas.className = "w-full rounded-md border bg-white shadow-sm";
+          // On a phone, edge to edge: every pixel of its width for the page.
+          canvas.className = "w-full bg-white sm:rounded-md sm:border sm:shadow-sm";
           canvas.setAttribute("aria-label", t("chartView.page", { page: number, pages: pdf.numPages }));
           canvas.setAttribute("role", "img");
           canvas.dataset.testid = "pdf-page";
@@ -234,7 +240,7 @@ export function PdfPages({ load, name }: { load: () => Promise<Blob>; name: stri
   }, [width]);
 
   return (
-    <div className="flex flex-col gap-2" data-testid="pdf-view" data-state={state}>
+    <div className={cn("flex flex-col gap-2", className)} data-testid="pdf-view" data-state={state}>
       {state === "loading" ? (
         <Card>
           <CardContent className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
@@ -244,7 +250,7 @@ export function PdfPages({ load, name }: { load: () => Promise<Blob>; name: stri
         </Card>
       ) : null}
       {state === "failed" ? <p className="text-sm text-destructive">{t("chartView.failed", { name })}</p> : null}
-      <div ref={box} className="flex flex-col gap-3" />
+      <div ref={box} className="flex flex-col gap-1 sm:gap-3" />
     </div>
   );
 }

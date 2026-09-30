@@ -116,6 +116,29 @@ await step("the player's default (their settings): PDF for a song they haven't c
   await api(me, "PATCH", "/users/me", { liveView: "CHART" });
 });
 
+await step("on a phone, the PDF's pages go edge to edge, in Practice and in Live", async () => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${WEB}/sets/${set.id}/songs/${item.id}`);
+  await page.getByTestId("chart-view-pdf").click();
+  await page.locator('[data-testid="pdf-view"][data-state="ready"]').waitFor({ timeout: 20000 });
+  const edges = async () => {
+    const box = await page.getByTestId("pdf-page").first().boundingBox();
+    return { left: box.x, right: 390 - (box.x + box.width) };
+  };
+  let at = await edges();
+  if (Math.abs(at.left) > 1 || Math.abs(at.right) > 1) throw new Error(`Practice: ${JSON.stringify(at)}`);
+  await page.goto(`${WEB}/sets/${set.id}/live/${item.id}`);
+  await page.locator('[data-testid="pdf-view"][data-state="ready"]').waitFor({ timeout: 20000 });
+  at = await edges();
+  if (Math.abs(at.left) > 1 || Math.abs(at.right) > 1) throw new Error(`Live: ${JSON.stringify(at)}`);
+  // Nothing above it but the header: the song's title is the PDF's own.
+  if (await page.getByTestId("live-song-top").isVisible()) throw new Error("the song's title over its PDF");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) throw new Error(`${overflow}px sideways scroll`);
+  await page.getByTestId("chart-view-chart").click();
+  await page.setViewportSize({ width: 1280, height: 900 });
+});
+
 await step("no page errors", async () => {
   if (errors.length) throw new Error(errors.join(" | "));
 });

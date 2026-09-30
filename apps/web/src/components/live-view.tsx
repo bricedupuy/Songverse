@@ -287,8 +287,10 @@ export function LiveView({ song }: { song: LiveSong }) {
 
       <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-[40vh]" style={{ zoom: textSize }}>
-          <div className="flex items-start justify-between gap-4" data-testid="live-song-top">
+        {/* A PDF isn't zoomed: its pages fit the width (on a phone, edge to edge). */}
+        <div className={cn("mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-[40vh]", pdf && "max-sm:pt-0")} style={pdf ? undefined : { zoom: textSize }}>
+          {/* With a PDF on a phone, the PDF's own title does: the whole screen for its pages. */}
+          <div className={cn("flex items-start justify-between gap-4", pdf && "max-sm:hidden")} data-testid="live-song-top">
             <div className="min-w-0">
               <h1 className="text-2xl leading-tight font-bold sm:text-3xl">{song.title}</h1>
               {song.artist ? <p className="text-base text-muted-foreground sm:text-lg">{song.artist}</p> : null}
@@ -311,7 +313,7 @@ export function LiveView({ song }: { song: LiveSong }) {
             </div>
           ) : null}
           {pdf && song.reading ? (
-            <PdfPages key={pdf.id} load={() => song.reading!.load(pdf)} name={pdf.filename} />
+            <PdfPages key={pdf.id} load={() => song.reading!.load(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
           ) : chart ? (
             <SongChart chart={chart} emptyText={t("sets.noChart")} />
           ) : (
@@ -351,10 +353,10 @@ export function LiveView({ song }: { song: LiveSong }) {
         </div>
 
         <div className="hidden items-center gap-1 sm:flex">
-          <IconButton label={t("live.smaller")} onClick={() => changeTextSize(-1)} disabled={textSize === TEXT_SIZES[0]}>
+          <IconButton label={t("live.smaller")} onClick={() => changeTextSize(-1)} disabled={!!pdf || textSize === TEXT_SIZES[0]}>
             <AArrowDown />
           </IconButton>
-          <IconButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={textSize === TEXT_SIZES.at(-1)}>
+          <IconButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={!!pdf || textSize === TEXT_SIZES.at(-1)}>
             <AArrowUp />
           </IconButton>
         </div>
