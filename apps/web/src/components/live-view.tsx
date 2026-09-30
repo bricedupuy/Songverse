@@ -38,12 +38,17 @@ export interface LiveSong {
   notes: { label?: string; text: string }[];
   /** The × at the top left: back to the set, or wherever the song was pulled up from. */
   exit: { label: string; go: () => void };
+  /** Played through (issue #153): its chart scrolled to 95% - or, when it fits the screen, moved on from to the next song. */
+  onPlayed?: () => void;
   /** Going through a set; both null for a song on its own. */
   previous: (() => void) | null;
   next: (() => void) | null;
   /** "Next: …" or "End of the set"; null for a song on its own. */
   nextLabel: string | null;
 }
+
+/** How far down a chart is scrolled for its song to count as played (issue #153). */
+const PLAYED_AT = 0.95;
 
 /** Semitones as the smaller move: +1, -2, never +11. */
 function shiftOf(steps: number): number {
@@ -134,7 +139,39 @@ export function LiveView({ song }: { song: LiveSong }) {
     return () => cancelAnimationFrame(frame);
   }, [song.id]);
 
-  const { previous, next } = song;
+  // Played through (issue #153): scrolled to 95% of the way down, once it's been seen higher up
+  // (the router's scroll restoration can put the last song's position back for a moment).
+  // (A new function on each render: kept in a ref, so the count starts again only with another song.)
+  const onPlayed = useRef(song.onPlayed);
+  onPlayed.current = song.onPlayed;
+  const played = useRef(false);
+  useEffect(() => {
+    played.current = false;
+    const element = scroller.current;
+    if (!element) return;
+    let seenHigher = false;
+    const check = () => {
+      const distance = element.scrollHeight - element.clientHeight;
+      if (distance <= 8 || played.current) return;
+      const through = element.scrollTop / distance;
+      if (through < PLAYED_AT) seenHigher = true;
+      else if (seenHigher) {
+        played.current = true;
+        onPlayed.current?.();
+      }
+    };
+    element.addEventListener("scroll", check, { passive: true });
+    return () => element.removeEventListener("scroll", check);
+  }, [song.id]);
+  // A chart that fits the screen has no end to scroll to: played once it's moved on from.
+  const next = song.next
+    ? () => {
+        const element = scroller.current;
+        if (element && element.scrollHeight - element.clientHeight <= 8 && !played.current) onPlayed.current?.();
+        song.next?.();
+      }
+    : null;
+  const { previous } = song;
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;

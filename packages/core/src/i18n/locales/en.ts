@@ -839,7 +839,7 @@ const en = {
     songs: "Songs",
     fromTheTop: "Start from the top",
     played: "Played",
-    lastPlayed: "Last played: Live picks up here",
+    lastPlayed: "Where Live picks up",
     emptySet: "No songs in this set yet.",
     addSongs: "Add songs",
     searchPlaceholder: "Search songs by title…",

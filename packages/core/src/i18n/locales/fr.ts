@@ -843,7 +843,7 @@ const fr: typeof en = {
     songs: "Chants",
     fromTheTop: "Reprendre au début",
     played: "Joué",
-    lastPlayed: "Dernier joué : le Live reprend ici",
+    lastPlayed: "Là où le Live reprend",
     emptySet: "Aucun chant dans cette liste pour l'instant.",
     addSongs: "Ajouter des chants",
     searchPlaceholder: "Rechercher un chant par titre…",

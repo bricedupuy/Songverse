@@ -1,13 +1,14 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Where a set got to in Live (issue #153), on the device: the songs opened
- * there (played) and the last one, so coming back picks up where it left
- * off. Forgotten after a while - the next service starts from the top.
+ * Where a set got to in Live (issue #153), on the device: the last song
+ * opened there, so coming back picks up where it left off, and the songs
+ * played - scrolled to their end. Forgotten after a while - the next service starts from the top.
  */
 export interface SetProgress {
   /** The last song (set item) opened in Live. */
   current: string;
+  /** The songs played through: their chart scrolled to the end (or, one that fits the screen, moved on from). */
   played: string[];
   /** When it last changed (ms). */
   at: number;
@@ -54,11 +55,17 @@ export function setProgressOf(setId: string): SetProgress | null {
   return read(setId);
 }
 
-/** A song of the set opened in Live: played, and where the set is now. */
+/** A song of the set opened in Live: where the set is now. */
+export function markCurrent(setId: string, itemId: string) {
+  const before = read(setId);
+  write(setId, { current: itemId, played: before?.played ?? [], at: Date.now() });
+}
+
+/** A song of the set played through in Live. */
 export function markPlayed(setId: string, itemId: string) {
   const before = read(setId);
-  const played = before?.played.includes(itemId) ? before.played : [...(before?.played ?? []), itemId];
-  write(setId, { current: itemId, played, at: Date.now() });
+  if (before?.played.includes(itemId)) return;
+  write(setId, { current: before?.current ?? itemId, played: [...(before?.played ?? []), itemId], at: Date.now() });
 }
 
 /** From the top: nothing played. */

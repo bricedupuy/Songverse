@@ -60,7 +60,7 @@ With a keyboard or a page-turner pedal: **Space** starts and pauses autoscroll, 
 
 On a phone or tablet, swipe left for the next song and right for the previous one.
 
-In Live, picking a set - from the list of sets, the sidebar or the home page - opens it straight into Live, at its first song. Each song opened in Live is marked played on this device, and coming back to the set picks up at the last one played rather than the first. The set's page (in Edit or Practice) shows the played songs with a tick, the last one highlighted, and its button reads **Resume Live**. **Start from the top** forgets where you got to; Songverse also forgets it by itself after 12 hours, so the next service starts from the first song.
+In Live, picking a set - from the list of sets, the sidebar or the home page - opens it straight into Live, at its first song. Coming back to the set picks up at the last song you opened in Live, on this device, rather than the first. A song counts as played once its chart has been scrolled 95% of the way down (by hand or with autoscroll); a song short enough to fit on the screen counts once you move on to the next one. The set's page (in Edit or Practice) shows the played songs with a tick and highlights the number of the song Live will pick up at, and its button reads **Resume Live**. **Start from the top** forgets where you got to; Songverse also forgets it by itself after 12 hours, so the next service starts from the first song.
 
 ### A song that isn't in the set
 

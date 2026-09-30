@@ -171,6 +171,7 @@ await step("the right arrow goes to the next song; the last says the set ends", 
   await page.getByTestId("live-next").getByText("End of the set").waitFor();
   await page.keyboard.press("ArrowLeft");
   await page.waitForURL(`**/live/${firstItem.id}`);
+  await page.getByRole("heading", { name: `Opener ${stamp}` }).waitFor();
 });
 
 await step("leaving Live for Practice goes back to the song's page, in Practice's look", async () => {
@@ -184,19 +185,39 @@ await step("leaving Live for Practice goes back to the song's page, in Practice'
   if ((await html()).mode !== "practice") throw new Error("not Practice after reloading");
 });
 
-await step("the songs played in Live are ticked on the set's page; Live resumes at the last one (issue #153)", async () => {
+await step("a song counts as played once its chart is scrolled to the end, not just opened (issue #153)", async () => {
+  const number = (index) => page.getByTestId("set-song-number").nth(index);
+  // Both opened above: the first autoscrolled to its end, the second (short enough to fit) left backwards - not played; the first where Live is.
   await page.goto(`${WEB}/sets/${set.id}`);
   await page.waitForLoadState("networkidle");
+  await page.locator('[data-testid="set-song-number"][data-current]').waitFor();
+  if ((await number(0).getAttribute("data-current")) !== "true" || (await number(1).getAttribute("data-played")) !== null) throw new Error(`played by opening: ${await page.evaluate((id) => localStorage.getItem(`songverse.sets.progress.${id}`), set.id)} (${firstItem.id}, ${secondItem.id})`);
+  // Afresh, for the first.
+  await page.evaluate((id) => localStorage.removeItem(`songverse.sets.progress.${id}`), set.id);
+  await page.goto(`${WEB}/sets/${set.id}/live/${firstItem.id}`);
+  await page.getByTestId("live-view").waitFor();
+  await page.locator('[data-chord="G"]').first().waitFor();
+  const scrollTo = (share) => page.getByTestId("live-scroll").evaluate((el, s) => el.scrollTo({ top: (el.scrollHeight - el.clientHeight) * s }), share);
+  const played = () => page.evaluate((id) => JSON.parse(localStorage.getItem(`songverse.sets.progress.${id}`) ?? "{}").played ?? [], set.id);
+  await scrollTo(0.9);
+  await page.waitForTimeout(300);
+  if ((await played()).length) throw new Error("played at 90%");
+  await scrollTo(1);
+  await page.waitForFunction((id) => (JSON.parse(localStorage.getItem(`songverse.sets.progress.${id}`) ?? "{}").played ?? []).length === 1, set.id);
+  // On to the second: where Live is now, not played yet.
+  await page.getByTestId("live-next").click();
+  await page.waitForURL(`**/live/${secondItem.id}`);
+  await page.getByRole("heading", { name: `Closer ${stamp}` }).waitFor();
+});
+
+await step("the songs played are ticked on the set's page; Live resumes where it was", async () => {
   const number = (index) => page.getByTestId("set-song-number").nth(index);
-  // Both played; the first (back to it with the left arrow) the last one.
-  await page.locator('[data-testid="set-song-number"][data-played="current"]').waitFor();
-  if ((await number(0).getAttribute("data-played")) !== "current" || (await number(1).getAttribute("data-played")) !== "played") throw new Error("not ticked");
-  // Played up to the second: Live picks up there.
-  await page.evaluate(([id, item]) => {
-    const key = `songverse.sets.progress.${id}`;
-    localStorage.setItem(key, JSON.stringify({ ...JSON.parse(localStorage.getItem(key)), current: item }));
-  }, [set.id, secondItem.id]);
-  await page.reload();
+  await modeSwitch().getByRole("radio", { name: "Practice" }).click();
+  await page.goto(`${WEB}/sets/${set.id}`);
+  await page.waitForLoadState("networkidle");
+  await page.locator('[data-testid="set-song-number"][data-played]').waitFor();
+  if ((await number(0).getAttribute("data-played")) !== "true" || (await number(1).getAttribute("data-played")) !== null) throw new Error("not ticked as played");
+  if ((await number(1).getAttribute("data-current")) !== "true") throw new Error(`not where Live is: ${await page.evaluate((id) => localStorage.getItem(`songverse.sets.progress.${id}`), set.id)} (${firstItem.id}, ${secondItem.id})`);
   await page.getByTestId("set-live").getByText("Resume Live").waitFor();
   if ((await page.getByTestId("set-live").getAttribute("href")) !== `/sets/${set.id}/live/${secondItem.id}`) throw new Error(await page.getByTestId("set-live").getAttribute("href"));
   // From the top: nothing played, Live from the first song.
@@ -212,6 +233,7 @@ await step("in Live, picking a set opens it straight into Live, at the song last
   await page.getByTestId("live-view").waitFor();
   await page.getByTestId("live-next").click();
   await page.waitForURL(`**/live/${secondItem.id}`);
+  await page.getByRole("heading", { name: `Closer ${stamp}` }).waitFor();
   await page.getByRole("button", { name: "Back to sets" }).click();
   await page.waitForURL(`${WEB}/sets`);
   await page.getByRole("main").getByText(`Gig ${stamp}`, { exact: true }).click();

@@ -69,7 +69,8 @@ export function SetSongList({ setlistId, items, progress, canEdit, ownership, on
               item={item}
               ownership={ownership}
               index={index}
-              played={progress?.played.includes(item.id) ? (progress.current === item.id ? "current" : "played") : null}
+              played={!!progress?.played.includes(item.id)}
+              current={progress?.current === item.id}
               canEdit={canEdit}
               onChange={(change) => onChangeItem(item.id, change)}
               onRemove={() => onRemoveItem(item.id)}
@@ -93,6 +94,7 @@ function SongRow({
   ownership,
   index,
   played,
+  current,
   canEdit,
   onChange,
   onRemove,
@@ -101,7 +103,8 @@ function SongRow({
   item: SetlistItem;
   ownership: OwnershipActions;
   index: number;
-  played: "played" | "current" | null;
+  played: boolean;
+  current: boolean;
   canEdit: boolean;
   onChange: (change: { songVersionId?: string; transposeSteps?: number; arrangementId?: string | null }) => void;
   onRemove: () => void;
@@ -153,14 +156,15 @@ function SongRow({
           <GripVertical className="size-4" />
         </button>
       ) : null}
-      {/* Played in Live (issue #153): a tick; the last one played, where Live picks up, highlighted. */}
+      {/* Played through in Live (issue #153): a tick; the last song opened there, where Live picks up, highlighted. */}
       <span
-        className={`flex w-10 items-center justify-end gap-0.5 text-sm tabular-nums ${played === "current" ? "font-semibold text-primary" : "text-muted-foreground"}`}
+        className={`flex w-10 items-center justify-end gap-0.5 text-sm tabular-nums ${current ? "font-semibold text-primary" : "text-muted-foreground"}`}
         data-testid="set-song-number"
-        data-played={played ?? undefined}
-        title={played === "current" ? t("sets.lastPlayed") : played ? t("sets.played") : undefined}
+        data-played={played || undefined}
+        data-current={current || undefined}
+        title={[played ? t("sets.played") : null, current ? t("sets.lastPlayed") : null].filter(Boolean).join(" · ") || undefined}
       >
-        {played ? <Check className="size-3.5 shrink-0" aria-label={played === "current" ? t("sets.lastPlayed") : t("sets.played")} /> : null}
+        {played ? <Check className="size-3.5 shrink-0" aria-label={t("sets.played")} /> : null}
         {index + 1}.
       </span>
       {/* Wide enough to read; the controls wrap below it on a narrow screen. */}

@@ -60,7 +60,7 @@ Au clavier ou avec un pédalier tourne-page : **Espace** lance et met en pause l
 
 Sur un téléphone ou une tablette, balayez vers la gauche pour le chant suivant et vers la droite pour le précédent.
 
-En Live, choisir une liste - dans les listes, la barre latérale ou l'accueil - l'ouvre directement en Live, sur son premier chant. Chaque chant ouvert en Live est marqué joué sur cet appareil, et revenir à la liste reprend au dernier joué plutôt qu'au premier. La page de la liste (en Édition ou en Session) montre les chants joués d'une coche, le dernier en évidence, et son bouton devient **Reprendre le Live**. **Reprendre au début** oublie où vous en étiez ; Songverse l'oublie aussi de lui-même au bout de 12 heures, pour que le service suivant reparte du premier chant.
+En Live, choisir une liste - dans les listes, la barre latérale ou l'accueil - l'ouvre directement en Live, sur son premier chant. Revenir à la liste reprend au dernier chant ouvert en Live sur cet appareil, plutôt qu'au premier. Un chant compte comme joué une fois sa grille défilée aux 95 % (à la main ou avec le défilement) ; un chant assez court pour tenir à l'écran compte quand vous passez au suivant. La page de la liste (en Édition ou en Session) montre les chants joués d'une coche et met en évidence le numéro du chant où le Live reprendra, et son bouton devient **Reprendre le Live**. **Reprendre au début** oublie où vous en étiez ; Songverse l'oublie aussi de lui-même au bout de 12 heures, pour que le service suivant reparte du premier chant.
 
 ### Un chant qui n'est pas dans la liste
 
