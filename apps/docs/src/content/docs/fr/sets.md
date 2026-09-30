@@ -45,7 +45,7 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 
 ![Un chant d'une liste en mode Live](../../../assets/screenshots/fr/live.jpg)
 
-- L'en-tête montre le nom de la liste ; **×** y revient.
+- L'en-tête montre le nom de la liste ; **×** (**Retour aux listes**) revient à la liste des listes.
 - Dessous, la structure du chant : ses parties dans l'ordre où on les chante, en petits cercles - **S1** **R** **S2** **R** **P** **R** (strophe, refrain, pont…) - colorés par genre : intros et outros, strophes et pré-refrains, refrains, ponts et vamps, et instrumentaux, interludes et breaks ont chacun leur couleur. La partie en cours est entourée et celles déjà chantées sont pleines, au fil du défilement ; touchez-en une pour y aller.
 - Le chant commence par son titre et son artiste, son numéro de recueil (**JEM 855 · JEM3**), son capo et son tempo, et défile avec les accords et les paroles.
 - Sa tonalité est en haut à droite : **G**, avec un petit **+2** quand la liste le joue plus haut ou plus bas qu'écrit. Touchez-la pour transposer au dernier moment, avec **−** et **+** : seulement sur votre écran, pour ce chant, jusqu'à ce que vous le quittiez. **Revenir à la tonalité de la liste** l'annule.
@@ -59,6 +59,8 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 Au clavier ou avec un pédalier tourne-page : **Espace** lance et met en pause le défilement, **↑** **↓** (ou Page précédente et Page suivante) font défiler, **←** **→** passent au chant précédent ou suivant.
 
 Sur un téléphone ou une tablette, balayez vers la gauche pour le chant suivant et vers la droite pour le précédent.
+
+En Live, choisir une liste - dans les listes, la barre latérale ou l'accueil - l'ouvre directement en Live, sur son premier chant. Chaque chant ouvert en Live est marqué joué sur cet appareil, et revenir à la liste reprend au dernier joué plutôt qu'au premier. La page de la liste (en Édition ou en Session) montre les chants joués d'une coche, le dernier en évidence, et son bouton devient **Reprendre le Live**. **Reprendre au début** oublie où vous en étiez ; Songverse l'oublie aussi de lui-même au bout de 12 heures, pour que le service suivant reparte du premier chant.
 
 ### Un chant qui n'est pas dans la liste
 

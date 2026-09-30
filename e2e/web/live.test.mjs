@@ -184,14 +184,46 @@ await step("leaving Live for Practice goes back to the song's page, in Practice'
   if ((await html()).mode !== "practice") throw new Error("not Practice after reloading");
 });
 
-await step("in Live, a set's songs open full screen", async () => {
+await step("the songs played in Live are ticked on the set's page; Live resumes at the last one (issue #153)", async () => {
   await page.goto(`${WEB}/sets/${set.id}`);
   await page.waitForLoadState("networkidle");
+  const number = (index) => page.getByTestId("set-song-number").nth(index);
+  // Both played; the first (back to it with the left arrow) the last one.
+  await page.locator('[data-testid="set-song-number"][data-played="current"]').waitFor();
+  if ((await number(0).getAttribute("data-played")) !== "current" || (await number(1).getAttribute("data-played")) !== "played") throw new Error("not ticked");
+  // Played up to the second: Live picks up there.
+  await page.evaluate(([id, item]) => {
+    const key = `songverse.sets.progress.${id}`;
+    localStorage.setItem(key, JSON.stringify({ ...JSON.parse(localStorage.getItem(key)), current: item }));
+  }, [set.id, secondItem.id]);
+  await page.reload();
+  await page.getByTestId("set-live").getByText("Resume Live").waitFor();
+  if ((await page.getByTestId("set-live").getAttribute("href")) !== `/sets/${set.id}/live/${secondItem.id}`) throw new Error(await page.getByTestId("set-live").getAttribute("href"));
+  // From the top: nothing played, Live from the first song.
+  await page.getByTestId("set-progress-clear").click();
+  await page.getByTestId("set-live").getByText("Live", { exact: true }).waitFor();
+  if (await page.locator("[data-played]").count()) throw new Error("still ticked");
+  if ((await page.getByTestId("set-live").getAttribute("href")) !== `/sets/${set.id}/live/${firstItem.id}`) throw new Error("not from the top");
+});
+
+await step("in Live, picking a set opens it straight into Live, at the song last played; its × goes back to the sets", async () => {
   await modeSwitch().getByRole("radio", { name: "Live" }).click();
-  if (!(await html()).dark) throw new Error("the set page isn't dark in Live");
-  await page.getByTestId("set-song-row").getByRole("link", { name: `Closer ${stamp}` }).click();
-  await page.waitForURL(`**/live/${secondItem.id}`);
+  await page.waitForURL(`**/sets/${set.id}/live/${firstItem.id}`);
   await page.getByTestId("live-view").waitFor();
+  await page.getByTestId("live-next").click();
+  await page.waitForURL(`**/live/${secondItem.id}`);
+  await page.getByRole("button", { name: "Back to sets" }).click();
+  await page.waitForURL(`${WEB}/sets`);
+  await page.getByRole("main").getByText(`Gig ${stamp}`, { exact: true }).click();
+  await page.waitForURL(`**/sets/${set.id}/live/${secondItem.id}`);
+  await page.getByRole("heading", { name: `Closer ${stamp}` }).waitFor();
+  // Progress from another day: forgotten, the first song again.
+  await page.evaluate((id) => {
+    const key = `songverse.sets.progress.${id}`;
+    localStorage.setItem(key, JSON.stringify({ ...JSON.parse(localStorage.getItem(key)), at: Date.now() - 13 * 3600 * 1000 }));
+  }, set.id);
+  await page.goto(`${WEB}/sets/${set.id}`);
+  await page.waitForURL(`**/sets/${set.id}/live/${firstItem.id}`);
 });
 
 await step("on a phone: no sideways scroll, the switch still in the header", async () => {
@@ -223,7 +255,8 @@ await step("on a dark device, Edit starts dark; the saved mode comes back, an un
   if (state.mode !== "live") throw new Error(JSON.stringify(state));
   await checked("Live");
   await page.evaluate(() => localStorage.setItem("songverse.mode", "perform"));
-  await page.reload();
+  // (A set opens Live in Live: its page again.)
+  await page.goto(`${WEB}/sets/${set.id}`);
   await page.waitForLoadState("networkidle");
   state = await html();
   if (state.mode !== "edit") throw new Error(JSON.stringify(state));

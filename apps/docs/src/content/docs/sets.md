@@ -45,7 +45,7 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 
 ![A song of a set in Live mode](../../assets/screenshots/en/live.jpg)
 
-- The header shows the set's name; **×** goes back to the set.
+- The header shows the set's name; **×** (**Back to sets**) goes back to the list of sets.
 - Under it, the song's structure: its parts in the order they're sung, as small circles - **V1** **C** **V2** **C** **B** **C** (verse, chorus, bridge...) - coloured by kind: intros and outros, verses and pre-choruses, choruses, bridges and vamps, and instrumentals, interludes and breakdowns each have their own colour. The part being sung is ringed and the ones sung are filled, as the song scrolls; tap one to go there.
 - The song starts with its title and artist, its songbook number (**JEM 855 · JEM3**), capo and tempo, and scrolls with the chords and words.
 - Its key is at the top right: **G**, with a small **+2** when the set plays it higher or lower than written. Tap it to transpose at the last moment, with **−** and **+**: only on your screen, for this song, until you leave it. **Back to the set's key** undoes it.
@@ -59,6 +59,8 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 With a keyboard or a page-turner pedal: **Space** starts and pauses autoscroll, **↑** **↓** (or Page Up and Page Down) scroll, **←** **→** go to the previous or next song.
 
 On a phone or tablet, swipe left for the next song and right for the previous one.
+
+In Live, picking a set - from the list of sets, the sidebar or the home page - opens it straight into Live, at its first song. Each song opened in Live is marked played on this device, and coming back to the set picks up at the last one played rather than the first. The set's page (in Edit or Practice) shows the played songs with a tick, the last one highlighted, and its button reads **Resume Live**. **Start from the top** forgets where you got to; Songverse also forgets it by itself after 12 hours, so the next service starts from the first song.
 
 ### A song that isn't in the set
 

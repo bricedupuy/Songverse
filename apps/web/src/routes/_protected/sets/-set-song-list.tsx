@@ -11,13 +11,14 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from "@dnd-kit/utilities";
 import { TRANSPOSE_STEP_OPTIONS, transposeKey, type SetlistItem, type SetlistSongRef } from "@songverse/core";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { GripVertical, Pencil, X } from "lucide-react";
+import { Check, GripVertical, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
 import { useMode } from "#/lib/mode";
+import type { SetProgress } from "#/lib/set-progress";
 import { transposeLabel } from "#/lib/setlists";
 import { NativeSelect } from "#/components/ui/native-select";
 
@@ -34,6 +35,8 @@ export interface OwnershipActions {
 interface SetSongListProps {
   setlistId: string;
   items: SetlistItem[];
+  /** Where it got to in Live (issue #153): the songs played marked. */
+  progress?: SetProgress | null;
   canEdit: boolean;
   ownership: OwnershipActions;
   onReorder: (items: SetlistItem[]) => void;
@@ -41,7 +44,7 @@ interface SetSongListProps {
   onRemoveItem: (itemId: string) => void;
 }
 
-export function SetSongList({ setlistId, items, canEdit, ownership, onReorder, onChangeItem, onRemoveItem }: SetSongListProps) {
+export function SetSongList({ setlistId, items, progress, canEdit, ownership, onReorder, onChangeItem, onRemoveItem }: SetSongListProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -66,6 +69,7 @@ export function SetSongList({ setlistId, items, canEdit, ownership, onReorder, o
               item={item}
               ownership={ownership}
               index={index}
+              played={progress?.played.includes(item.id) ? (progress.current === item.id ? "current" : "played") : null}
               canEdit={canEdit}
               onChange={(change) => onChangeItem(item.id, change)}
               onRemove={() => onRemoveItem(item.id)}
@@ -88,6 +92,7 @@ function SongRow({
   item,
   ownership,
   index,
+  played,
   canEdit,
   onChange,
   onRemove,
@@ -96,6 +101,7 @@ function SongRow({
   item: SetlistItem;
   ownership: OwnershipActions;
   index: number;
+  played: "played" | "current" | null;
   canEdit: boolean;
   onChange: (change: { songVersionId?: string; transposeSteps?: number; arrangementId?: string | null }) => void;
   onRemove: () => void;
@@ -147,7 +153,16 @@ function SongRow({
           <GripVertical className="size-4" />
         </button>
       ) : null}
-      <span className="w-6 text-right text-sm tabular-nums text-muted-foreground">{index + 1}.</span>
+      {/* Played in Live (issue #153): a tick; the last one played, where Live picks up, highlighted. */}
+      <span
+        className={`flex w-10 items-center justify-end gap-0.5 text-sm tabular-nums ${played === "current" ? "font-semibold text-primary" : "text-muted-foreground"}`}
+        data-testid="set-song-number"
+        data-played={played ?? undefined}
+        title={played === "current" ? t("sets.lastPlayed") : played ? t("sets.played") : undefined}
+      >
+        {played ? <Check className="size-3.5 shrink-0" aria-label={played === "current" ? t("sets.lastPlayed") : t("sets.played")} /> : null}
+        {index + 1}.
+      </span>
       {/* Wide enough to read; the controls wrap below it on a narrow screen. */}
       <div className="flex min-w-40 flex-1 flex-col gap-1">
         {song ? (

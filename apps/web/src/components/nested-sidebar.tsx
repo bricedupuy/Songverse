@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BookOpen,
   ChevronLeft,
+  Check,
   ClipboardCheck,
   Contact,
   Metronome,
@@ -32,6 +33,8 @@ import { apiClient } from "#/lib/api-client";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { docsUrl } from "#/lib/docs";
 import { initials } from "#/lib/initials";
+import { useMode } from "#/lib/mode";
+import { useSetProgress } from "#/lib/set-progress";
 import type { AppSession } from "#/lib/server-auth";
 import { deviceStorage } from "#/lib/offline-data";
 import { setlistTitle, setOwnerLabel, transposeLabel } from "#/lib/setlists";
@@ -264,7 +267,7 @@ function NewLink({ to, label }: { to: "/sets/new" | "/songbooks/new" | "/teams/n
 }
 
 /** One entry of the panel's list: a title, and a line under it. */
-function PanelEntry({ active, title, detail, children }: { active: boolean; title: string; detail?: string | null; children: (className: string, content: ReactNode) => ReactNode }) {
+function PanelEntry({ active, title, detail, played, children }: { active: boolean; title: string; detail?: string | null; played?: string | null; children: (className: string, content: ReactNode) => ReactNode }) {
   return (
     <li>
       {children(
@@ -273,7 +276,11 @@ function PanelEntry({ active, title, detail, children }: { active: boolean; titl
           active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
         ),
         <>
-          <span className="truncate">{title}</span>
+          <span className="flex items-center gap-1">
+            <span className="truncate">{title}</span>
+            {/* Played in Live (issue #153). */}
+            {played ? <Check className="size-3.5 shrink-0 text-muted-foreground" aria-label={played} data-testid="sidebar-played" /> : null}
+          </span>
           {detail ? <span className="truncate text-xs font-normal text-muted-foreground">{detail}</span> : null}
         </>,
       )}
@@ -418,6 +425,8 @@ function SetsPanel({ title, pathname, setlists }: { title: string; pathname: str
 /** One set's songs, in order (issue #80): its overview, then each song, the one you're on marked. */
 function SetSongsPanel({ setId, pathname, sets, onBack }: { setId: string; pathname: string; sets: string; onBack: () => void }) {
   const { t, i18n } = useTranslation();
+  const { mode } = useMode();
+  const progress = useSetProgress(setId);
   const [set, setSet] = useState<SetlistDetail | null>(null);
   const [failed, setFailed] = useState(false);
   // Fetched again when the set's page reloads its own (a song added, moved, removed…).
@@ -468,12 +477,14 @@ function SetSongsPanel({ setId, pathname, sets, onBack }: { setId: string; pathn
             return (
               <PanelEntry
                 key={item.id}
-                active={pathname === `/sets/${set.id}/songs/${item.id}`}
+                active={pathname === `/sets/${set.id}/songs/${item.id}` || pathname === `/sets/${set.id}/live/${item.id}`}
                 title={`${index + 1}. ${song?.title ?? t("sets.hiddenSong")}`}
+                played={progress?.played.includes(item.id) ? t("sets.played") : null}
                 detail={song ? [item.arrangement?.name, transposeLabel(baseKey, item.transposeSteps, t)].filter(Boolean).join(" · ") : null}
               >
                 {(className, content) => (
-                  <Link to="/sets/$setlistId/songs/$itemId" params={{ setlistId: set.id, itemId: item.id }} className={className}>
+                  // In Live, its Live view (issue #153).
+                  <Link to={mode === "live" ? "/sets/$setlistId/live/$itemId" : "/sets/$setlistId/songs/$itemId"} params={{ setlistId: set.id, itemId: item.id }} className={className}>
                     {content}
                   </Link>
                 )}

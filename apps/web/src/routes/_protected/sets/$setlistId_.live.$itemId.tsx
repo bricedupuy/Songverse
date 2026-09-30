@@ -8,6 +8,7 @@ import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
 import { deviceStorage, useKeepSet } from "#/lib/offline-data";
 import { setMode } from "#/lib/mode";
+import { markPlayed } from "#/lib/set-progress";
 import { setlistTitle } from "#/lib/setlists";
 import { useSongView } from "#/lib/song-views";
 import { useSyncSong } from "#/lib/sync-client";
@@ -55,6 +56,8 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
   const navigate = useNavigate();
   const { set, item, song } = view;
   useSongView(song?.id);
+  // Played, and where the set is now: coming back to it picks up here (issue #153).
+  useEffect(() => markPlayed(set.id, item.id), [set.id, item.id]);
   // Sync play (issue #13): the leader's song, followed.
   useSyncSong(set.id, item.id, (itemId) => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }));
   const goTo = (itemId: string | null) =>
@@ -74,7 +77,8 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
     // A copy kept before #59 has none.
     references: view.songbookReferences ?? [],
     notes: [...(item.notes ? [{ text: item.notes }] : []), ...(view.myNote ? [{ label: t("sets.myNotes"), text: view.myNote }] : [])],
-    exit: { label: t("live.backToSet"), go: () => void navigate({ to: "/sets/$setlistId", params: { setlistId: set.id } }) },
+    // In Live a set's page opens Live (issue #153): back to the sets.
+    exit: { label: t("sets.backToSets"), go: () => void navigate({ to: "/sets" }) },
     previous: goTo(view.previousItemId),
     next: goTo(view.nextItemId),
     nextLabel: view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet"),

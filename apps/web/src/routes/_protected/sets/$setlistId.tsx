@@ -1,6 +1,6 @@
 import { ApiError, keptSetDetail, onlineOrKept, type SetlistDetail, type SetlistItem, type TeamSummary } from "@songverse/core";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { Mic } from "lucide-react";
+import { Mic, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "#/components/ui/badge";
@@ -12,7 +12,8 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { apiClient } from "#/lib/api-client";
 import { deviceStorage, useKeepSet } from "#/lib/offline-data";
-import { setMode } from "#/lib/mode";
+import { setMode, useMode } from "#/lib/mode";
+import { clearSetProgress, resumeItemOf, setProgressOf, useSetProgress } from "#/lib/set-progress";
 import { formatSetDate, setOwnerLabel, setlistTitle } from "#/lib/setlists";
 import { AddSongs } from "./-add-songs";
 import { SetSongList } from "./-set-song-list";
@@ -50,8 +51,21 @@ function SetRoute() {
       </div>
     );
   }
-  // Offline it's read-only: nothing could be saved.
-  return <SetPage loaded={offline ? { ...loaded, canEdit: false } : loaded} />;
+  return <SetOrLive loaded={offline ? { ...loaded, canEdit: false } : loaded} />;
+}
+
+/** In Live, a set opens straight into Live (issue #153): at the song last played there, else its first. */
+function SetOrLive({ loaded }: { loaded: SetlistDetail }) {
+  const { mode } = useMode();
+  const navigate = useNavigate();
+  const live = mode === "live" && loaded.items.length > 0;
+  useEffect(() => {
+    // Read here, from the device: straight after hydration the hook's value may not have caught up yet.
+    const itemId = resumeItemOf(setProgressOf(loaded.id), loaded.items.map((item) => item.id));
+    if (live && itemId) void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: loaded.id, itemId }, replace: true });
+  }, [live, loaded, navigate]);
+  if (live) return null;
+  return <SetPage loaded={loaded} />;
 }
 
 function SetPage({ loaded }: { loaded: SetlistDetail }) {
@@ -60,6 +74,10 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
   const { session, teams } = Route.useRouteContext();
   const [set, setSet] = useState<SetlistDetail>(loaded);
   const [error, setError] = useState<string | null>(null);
+  // Where it got to in Live (issue #153): Live picks up there.
+  const progress = useSetProgress(set.id);
+  const resumeAt = resumeItemOf(progress, set.items.map((item) => item.id));
+  const resuming = !!progress && resumeAt !== set.items[0]?.id;
 
   // Re-sync after navigating to another set or a router.invalidate().
   useEffect(() => setSet(loaded), [loaded]);
@@ -116,11 +134,17 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
           <OfflinePinButton kind="SET" targetId={set.id} />
           {/* Sync play (issue #13). */}
           <SyncControl setId={set.id} />
-          {set.items.length > 0 ? (
-            <Button onClick={() => setMode("live")} render={<Link to="/sets/$setlistId/live/$itemId" params={{ setlistId: set.id, itemId: set.items[0]!.id }} />}>
-                <Mic />
-                {t("live.start")}
-              </Button>
+          {progress ? (
+            <Button variant="outline" onClick={() => clearSetProgress(set.id)} data-testid="set-progress-clear">
+              <RotateCcw />
+              {t("sets.fromTheTop")}
+            </Button>
+          ) : null}
+          {resumeAt ? (
+            <Button onClick={() => setMode("live")} render={<Link to="/sets/$setlistId/live/$itemId" params={{ setlistId: set.id, itemId: resumeAt }} />} data-testid="set-live">
+              <Mic />
+              {resuming ? t("live.resume") : t("live.start")}
+            </Button>
           ) : null}
           {set.isGuest ? <LeaveSetButton setlistId={set.id} /> : null}
         </div>
@@ -145,6 +169,7 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
             <SetSongList
               setlistId={set.id}
               items={set.items}
+              progress={progress}
               canEdit={set.canEdit}
               ownership={ownership}
               onReorder={reorder}
