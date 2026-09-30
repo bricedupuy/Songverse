@@ -2,7 +2,7 @@ import { resolveTranslation, type LocaleValue, type SongVersionSummary } from "@
 import { SongCover } from "#/components/library-home";
 import type { Column, ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Button } from "#/components/ui/button";
@@ -166,23 +166,50 @@ export function readColumnPrefs(raw: string | null): ColumnPrefs {
   }
 }
 
-/** The Songs list's columns as chosen on this device (issue #150): which show, in what order. */
+const listeners = new Set<() => void>();
+let cachedRaw: string | null | undefined;
+let cachedPrefs: ColumnPrefs = DEFAULT_PREFS;
+
+/** What's kept on this device, read afresh when it changes (the same object otherwise, as useSyncExternalStore needs). */
+function storedPrefs(): ColumnPrefs {
+  let raw: string | null;
+  try {
+    raw = localStorage.getItem(COLUMNS_KEY);
+  } catch {
+    // Storage blocked: what was chosen on this page, else the defaults.
+    return cachedPrefs;
+  }
+  if (raw !== cachedRaw) {
+    cachedRaw = raw;
+    cachedPrefs = readColumnPrefs(raw);
+  }
+  return cachedPrefs;
+}
+
+/**
+ * The Songs list's columns as chosen on this device (issue #150): which
+ * show, in what order. Read while rendering on the client (the defaults on
+ * the server), not in an effect after it - so the choice is there from the
+ * first render, whatever else the page does meanwhile.
+ */
 export function useColumnPrefs(): [ColumnPrefs, (next: ColumnPrefs) => void] {
-  const [prefs, setPrefs] = useState<ColumnPrefs>(DEFAULT_PREFS);
-  useEffect(() => {
-    try {
-      setPrefs(readColumnPrefs(localStorage.getItem(COLUMNS_KEY)));
-    } catch {
-      // Storage blocked: the defaults.
-    }
-  }, []);
+  const prefs = useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    storedPrefs,
+    () => DEFAULT_PREFS,
+  );
   const save = (next: ColumnPrefs) => {
-    setPrefs(next);
     try {
       localStorage.setItem(COLUMNS_KEY, JSON.stringify(next));
     } catch {
       // Kept for this page only.
+      cachedRaw = JSON.stringify(next);
+      cachedPrefs = next;
     }
+    for (const listener of listeners) listener();
   };
   return [prefs, save];
 }
