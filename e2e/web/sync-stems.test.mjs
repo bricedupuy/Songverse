@@ -161,6 +161,29 @@ await step("the leader transposes (issue #129): the follower's stems transposed 
   check("transposed, the same instant (ms apart)", Math.abs(mine - theirs) < 5, `${Math.abs(mine - theirs).toFixed(2)} ms`);
 });
 
+await step("the leader slows to 80% (issue #139): the follower's at 80% too, still together; the click at the slowed beat", async () => {
+  page = leader;
+  const since = Date.now();
+  for (let i = 0; i < 4; i++) await player(leader).getByTestId("stem-speed-down").click();
+  await player(leader).locator('[data-testid="stem-speed"][data-speed="0.8"]').waitFor();
+  page = follower;
+  await player(follower).locator('[data-testid="stem-speed"][data-speed="0.8"]').waitFor({ timeout: 10000 });
+  if (!(await player(follower).getByTestId("stem-speed-down").isDisabled())) throw new Error("the follower's speed isn't the leader's");
+  await leader.waitForTimeout(1500);
+  const [mine, theirs] = await Promise.all([zero(follower, since), zero(leader, since)]);
+  check("slowed, the same instant (ms apart)", Math.abs(mine - theirs) < 5, `${Math.abs(mine - theirs).toFixed(2)} ms`);
+  page = leader;
+  const after = Date.now();
+  await leader.waitForFunction((s) => (window.songverseMetronome?.clicks ?? []).filter((c) => c.heardAt > s).length >= 4, after, { timeout: 15000 });
+  const [clicks, start] = await leader.evaluate(() => [window.songverseMetronome.clicks, window.songverseStems.starts.at(-1)]);
+  // Beat n now falls every 0.5 / 0.8 s of real time after the first beat's.
+  const worst = Math.max(...clicks.filter((c) => c.heardAt > after).map((c) => {
+    const n = c.bar * 4 + c.beat;
+    return Math.abs(c.heardAt - (start.zeroAt + ((0.5 + n * 0.5) / 0.8) * 1000));
+  }));
+  check("the click on the slowed beat (ms off, at most)", worst < 2, `${worst.toFixed(2)} ms`);
+});
+
 await step("the leader turns the click off and ends the session: the follower's stems stop", async () => {
   page = leader;
   await leader.getByTestId("stem-click").click();

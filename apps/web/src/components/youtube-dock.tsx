@@ -4,9 +4,11 @@ import { Loader2, Pause, Play, TvMinimalPlay } from "lucide-react";
 import { useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
+import { SpeedControl } from "#/components/speed-control";
 import { StemDockSlot } from "#/components/stem-dock";
 import { Button } from "#/components/ui/button";
 import { setMode } from "#/lib/mode";
+import { chooseStemSpeed, useChosenSpeed } from "#/lib/stem-engine";
 import { cn } from "#/lib/utils";
 import {
   dockYouTube,
@@ -14,6 +16,7 @@ import {
   playYouTube,
   seekYouTube,
   setYouTubeHost,
+  setYouTubeSpeed,
   showYouTube,
   undockYouTube,
   useYouTube,
@@ -38,6 +41,12 @@ export function YouTubeDock({ video }: { video: YouTubeVideo }) {
   const playing = current && yt.playing;
   const position = current ? yt.position : 0;
   const duration = current ? yt.duration : 0;
+
+  // Slower or faster (issue #139), remembered for the song as the stems' speed is.
+  const speed = useChosenSpeed(video.songVersionId);
+  useEffect(() => {
+    if (current) setYouTubeSpeed(speed);
+  }, [current, speed]);
 
   useEffect(() => {
     showYouTube(video);
@@ -107,6 +116,7 @@ export function YouTubeDock({ video }: { video: YouTubeVideo }) {
             <span className="text-xs tabular-nums text-muted-foreground" data-testid="youtube-time">
               {formatDuration(position)} / {formatDuration(duration)}
             </span>
+            <SpeedControl speed={speed} onChange={(next) => chooseStemSpeed(video.songVersionId, next)} testId="youtube-speed" />
           </div>
         </div>
       </div>

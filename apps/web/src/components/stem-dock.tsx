@@ -31,6 +31,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { cueAt, sortedCues, type CuePoint, multitracksOf, semitonesBetween, transposeKey, transposesPart } from "@songverse/core";
 import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
+import { SpeedControl, speedPercent } from "#/components/speed-control";
 import { StemRecordPanel } from "#/components/stem-record-panel";
 import { CueEditor, SectionLane, sectionsGradient, useCueNames } from "#/components/stem-cues";
 import { StemTrackActions } from "#/components/stem-track-actions";
@@ -41,10 +42,13 @@ import { setRecordingClick, useRecordingClick } from "#/lib/recording-click";
 import { unlockSyncAudio } from "#/lib/sync-client";
 import {
   chooseMultitrack,
+  chooseStemSpeed,
   chooseStemTranspose,
   dockStems,
   isTransposed,
+  setStemsSpeed,
   setStemsTranspose,
+  useChosenSpeed,
   useChosenTranspose,
   isAudible,
   pauseStems,
@@ -139,7 +143,9 @@ export function StemDock({ song: page }: { song: StemSong }) {
   const steps = chosenTranspose?.steps ?? defaultSteps;
   // Which parts are moved, when not as their part says (issue #135).
   const transposeParts = chosenTranspose?.parts ?? NO_PARTS;
-  const song: StemSong = { ...page, transpose: steps, transposeParts };
+  // Slower or faster, in its key (issue #139): as chosen for the song (in this set).
+  const chosenSpeed = useChosenSpeed(transposeStore);
+  const song: StemSong = { ...page, transpose: steps, transposeParts, speed: chosenSpeed };
   const nameOf = useTrackName();
   const key = stemKey(song);
   const active = engine.key === key;
@@ -199,6 +205,12 @@ export function StemDock({ song: page }: { song: StemSong }) {
     else next[track.id] = on;
     changeTranspose(steps, next);
   };
+  // The speed chosen, heard now; following, the leader's is (issue #139).
+  useEffect(() => {
+    if (active && !following) void setStemsSpeed(chosenSpeed);
+  }, [active, following, chosenSpeed]);
+  const heardSpeed = following && active ? engine.speed : chosenSpeed;
+  const changeSpeed = (next: number) => chooseStemSpeed(transposeStore, next);
   // Parts recorded while transposed (issue #135) are moved even at 0: their toggles show then too.
   const moving = heardSteps !== 0 || tracks.some((track) => track.offset !== 0);
   const transposeControl = (
@@ -318,6 +330,8 @@ export function StemDock({ song: page }: { song: StemSong }) {
       size="icon"
       className="shrink-0"
       aria-pressed={recordPanel}
+      // Recorded at the stems' own speed (issue #139): a take sung to them slowed wouldn't fit them at 100%.
+      disabled={!recordPanel && heardSpeed !== 1}
       onClick={() => {
         if (whole) return setRecorderOpen(true);
         if (!expanded) expand(true);
@@ -328,12 +342,15 @@ export function StemDock({ song: page }: { song: StemSong }) {
         }
       }}
       aria-label={t("recorder.recordPart")}
-      title={t("recorder.recordPart")}
+      title={heardSpeed !== 1 && !recordPanel ? t("stems.recordAtSpeed") : t("recorder.recordPart")}
       data-testid="stem-record"
     >
       <Mic />
     </Button>
   ) : null;
+  // The leader's while following; not changed while recording (a take sung to slowed stems wouldn't fit them at 100%).
+  const speedLocked = !!following || recordPanel;
+  const speedControl = <SpeedControl speed={heardSpeed} onChange={changeSpeed} disabled={speedLocked} />;
   const recorder =
     recorderOpen && song.record ? (
       <RecorderDialog
@@ -459,7 +476,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
       </p>
     ) : active && engine.transposeFailed ? (
       <p className="text-xs text-destructive" role="alert">
-        {t("stems.transposeFailed")}
+        {chosenSpeed !== 1 ? t("stems.speedFailed") : t("stems.transposeFailed")}
       </p>
     ) : active && engine.status === "error" ? (
       <p className="text-xs text-destructive" role="alert">
@@ -516,6 +533,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
             <div className="col-span-4 row-start-2 flex flex-wrap items-center gap-1 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:gap-2" data-testid="stem-controls">
               {picker}
               {transposeControl}
+              {speedControl}
               {resetMix}
             </div>
             <div className="flex shrink-0 items-center [&>button]:size-8 sm:[&>button]:size-9" data-testid="stem-tools">
@@ -685,6 +703,11 @@ export function StemDock({ song: page }: { song: StemSong }) {
           {heardSteps !== 0 ? (
             <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums text-primary" title={t("stems.transposeTitle")} data-testid="stem-transpose-badge">
               {signed(heardSteps)}
+            </span>
+          ) : null}
+          {heardSpeed !== 1 ? (
+            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums text-primary" title={t("stems.speedTitle")} data-testid="stem-speed-badge">
+              {speedPercent(heardSpeed)}
             </span>
           ) : null}
           {clickButton}

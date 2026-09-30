@@ -1,7 +1,7 @@
 import { metronomeForSong } from "@songverse/core";
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { getMetronomeState, playMetronomeOn, stopMetronome, useMetronome } from "#/lib/metronome-engine";
-import { useStems } from "#/lib/stem-engine";
+import { isAudible, useStems } from "#/lib/stem-engine";
 
 /**
  * The metronome with the recording (issue #100): while it's on, the
@@ -33,23 +33,36 @@ export function useRecordingClick(): boolean {
 
 /** In the app, once: keeps the metronome on the stems' beat while it's on. */
 export function useRecordingClickBridge() {
-  const enabled = useRecordingClick();
+  const asked = useRecordingClick();
   const stems = useStems();
+  // Slowed or sped up (issue #139), the click stem is silent: the metronome plays its beat instead, while it's heard.
+  const standsIn = stems.speed !== 1 && stems.tracks.some((track) => track.part === "CLICK" && isAudible(stems, track.id));
+  const enabled = asked || standsIn;
+  const was = useRef(false);
   const metronome = useMetronome();
   const beat = stems.beat;
-  const anchorKey = JSON.stringify([enabled, stems.playing, stems.anchor, beat, stems.following, metronome.following]);
+  const speed = stems.speed;
+  const anchorKey = JSON.stringify([enabled, asked, stems.playing, stems.anchor, beat, speed, stems.following, metronome.following]);
   useEffect(() => {
-    if (!enabled || metronome.following || stems.following) return;
+    const before = was.current;
+    was.current = enabled;
+    if (!enabled) {
+      // Standing in for the click stem no more.
+      if (before && !asked && getMetronomeState().playing && !getMetronomeState().following) stopMetronome();
+      return;
+    }
+    if (metronome.following || stems.following) return;
     if (!stems.playing || !stems.anchor || !beat) {
       if (getMetronomeState().playing) stopMetronome();
       return;
     }
-    const settings = metronomeForSong(getMetronomeState().settings, { tempo: beat.tempo, timeSignature: beat.timeSignature });
+    // Slower or faster (issue #139): the beat at the speed the stems play.
+    const settings = metronomeForSong(getMetronomeState().settings, { tempo: beat.tempo * speed, timeSignature: beat.timeSignature });
     playMetronomeOn({
       settings,
       playing: true,
       // The song's bar 1 on the recording's first beat; the count-in before it.
-      anchorEpoch: stems.anchor.epoch + (beat.firstBeat - stems.anchor.position) * 1000,
+      anchorEpoch: stems.anchor.epoch + ((beat.firstBeat - stems.anchor.position) / speed) * 1000,
       anchorPosition: settings.countIn * settings.numerator,
     });
   }, [anchorKey]);

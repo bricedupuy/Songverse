@@ -30,6 +30,8 @@ export interface SyncStems {
   transpose?: number;
   /** By file, which parts are transposed when not as their part says (issue #135). */
   transposeParts?: Record<string, boolean>;
+  /** Played this much slower or faster, in its key (issue #139); 1 or left out, as recorded. `position` is in the recording's time. */
+  speed?: number;
   title: string;
   playing: boolean;
   /** Seconds into the recording. */

@@ -56,9 +56,10 @@ export const DEFAULT_METRONOME: MetronomeSettings = {
   volume: 0.8,
 };
 
-export function clampTempo(tempo: number): number {
+/** A tempo in range, in whole beats per minute - or, `fine`, to the hundredth: stems slowed to 85% of 97 BPM beat at 82.45 (issue #139). */
+export function clampTempo(tempo: number, fine = false): number {
   if (!Number.isFinite(tempo)) return DEFAULT_METRONOME.tempo;
-  return Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, Math.round(tempo)));
+  return Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, fine ? Math.round(tempo * 100) / 100 : Math.round(tempo)));
 }
 
 /** A bar's usual pattern: its first beat accented. */
@@ -75,7 +76,7 @@ export function normalizeMetronome(input: Partial<MetronomeSettings> | null | un
   const beats =
     Array.isArray(value.beats) && value.beats.length === numerator && value.beats.every((beat) => levels.includes(beat)) ? [...value.beats] : defaultBeats(numerator);
   return {
-    tempo: clampTempo(value.tempo ?? DEFAULT_METRONOME.tempo),
+    tempo: clampTempo(value.tempo ?? DEFAULT_METRONOME.tempo, true),
     numerator,
     denominator,
     beats,

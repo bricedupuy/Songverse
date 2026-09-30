@@ -1,4 +1,4 @@
-import { multitracksOf, STEM_PARTS, TIME_SIGNATURE_PATTERN, transposesPart, type Attachment, type CueSection, type StemPart } from "@songverse/core";
+import { multitracksOf, speedCorrection, STEM_PARTS, stemSpeed, TIME_SIGNATURE_PATTERN, transposesPart, type Attachment, type CueSection, type StemPart } from "@songverse/core";
 import { useSyncExternalStore } from "react";
 import { deviceNow, OutputClock } from "#/lib/output-clock";
 
@@ -38,6 +38,8 @@ export interface StemSong {
   /** Transposed by this many semitones as it plays (issue #129); `transposeParts` says, by file, which parts are (#135) - else all but the drums and cues. */
   transpose?: number;
   transposeParts?: Record<string, boolean>;
+  /** Played this much slower or faster, in its key (issue #139); 1 as recorded. */
+  speed?: number;
   /** The song's own key: what the stems are in when they don't say (for the key they're transposed to). */
   songKey?: string | null;
   /** The key the page plays the song in (a set's): with nothing chosen, the stems are transposed to it. */
@@ -126,6 +128,12 @@ export interface StemState {
   transposeParts: Record<string, boolean>;
   /** Transposing couldn't start here (no AudioWorklet, say): it plays as recorded. */
   transposeFailed: boolean;
+  /**
+   * Played this much slower or faster (issue #139), in its key: 1 as
+   * recorded. Positions and durations stay the recording's time; the audio
+   * clock runs `speed` times slower or faster through it.
+   */
+  speed: number;
   /** The recording's beat: its tempo, time signature and where its first beat falls (s), for the metronome with it; null without a tempo. */
   beat: { tempo: number; timeSignature: { numerator: number; denominator: number } | null; firstBeat: number } | null;
 }
@@ -154,6 +162,7 @@ const EMPTY: StemState = {
   transpose: 0,
   transposeParts: {},
   transposeFailed: false,
+  speed: 1,
   beat: null,
 };
 
@@ -303,6 +312,51 @@ export function useChosenTranspose(key: string): StemTranspose | undefined {
   );
 }
 
+// --- how fast each song's stems play (issue #139), remembered on the device like the transposition
+
+const SPEED_KEY = "songverse.stems.speed.";
+const speeds = new Map<string, number>();
+const speedListeners = new Set<() => void>();
+
+function speedOf(key: string): number {
+  const known = speeds.get(key);
+  if (known !== undefined) return known;
+  let saved = 1;
+  try {
+    const raw = localStorage.getItem(SPEED_KEY + key);
+    if (raw) saved = stemSpeed(Number(raw));
+  } catch {
+    // Storage blocked.
+  }
+  speeds.set(key, saved);
+  return saved;
+}
+
+/** Plays the song's stems (`key`: the song, or the song in a set) this much slower or faster from now on; 1 as recorded. */
+export function chooseStemSpeed(key: string, rate: number) {
+  const speed = stemSpeed(rate);
+  speeds.set(key, speed);
+  try {
+    if (speed === 1) localStorage.removeItem(SPEED_KEY + key);
+    else localStorage.setItem(SPEED_KEY + key, String(speed));
+  } catch {
+    // Remembered until the page reloads.
+  }
+  for (const listener of speedListeners) listener();
+}
+
+/** The speed chosen for the song: 1 when none was. */
+export function useChosenSpeed(key: string): number {
+  return useSyncExternalStore(
+    (listener) => {
+      speedListeners.add(listener);
+      return () => speedListeners.delete(listener);
+    },
+    () => speedOf(key),
+    () => 1,
+  );
+}
+
 // --- which multitrack each song plays (issue #123), remembered on the device
 
 const CHOICE_KEY = "songverse.stems.multitrack.";
@@ -380,7 +434,9 @@ export function isAudible(current: Pick<StemState, "muted" | "soloed">, id: stri
 function applyGains(immediately = false) {
   if (!context) return;
   for (const [id, gain] of gains) {
-    const value = isAudible(state, id) ? volumeGain(state.volumes[id] ?? 1) : 0;
+    // The click and cues smear when stretched (issue #139): silent while slowed or sped up, the app's metronome playing the beat instead.
+    const clickSlowed = state.speed !== 1 && tracksInfo.get(id)?.part === "CLICK";
+    const value = isAudible(state, id) && !clickSlowed ? volumeGain(state.volumes[id] ?? 1) : 0;
     if (immediately) gain.gain.setValueAtTime(value, context.currentTime);
     else gain.gain.setTargetAtTime(value, context.currentTime, 0.01);
   }
@@ -422,8 +478,9 @@ function stopTimer() {
   timer = null;
 }
 
+/** Where it is in the recording (s): the audio clock since its 0:00, at the speed it plays. */
 function now(): number {
-  return context ? Math.min(state.duration, Math.max(0, context.currentTime - startedAt)) : offset;
+  return context ? Math.min(state.duration, Math.max(0, (context.currentTime - startedAt) * state.speed)) : offset;
 }
 
 function startAt(from: number, at?: number, anchor?: { epoch: number; position: number }) {
@@ -437,14 +494,16 @@ function startAt(from: number, at?: number, anchor?: { epoch: number; position: 
     if (!gain || from >= buffer.duration) continue;
     const source = context.createBufferSource();
     source.buffer = buffer;
+    // Slower or faster (issue #139): resampled, its pitch put back by the stretch nodes.
+    source.playbackRate.value = state.speed;
     source.connect(gain);
     // Early by the transposing's latency: heard at `when`.
     source.start(when - latency, from);
     sources.push(source);
   }
-  startedAt = when - from;
+  startedAt = when - from / state.speed;
   const heard = { epoch: clock ? clock.epochOf(when) : Number.NaN, position: from };
-  probe()?.push({ zeroAt: heard.epoch - from * 1000, at: deviceNow() });
+  probe()?.push({ zeroAt: heard.epoch - (from / state.speed) * 1000, at: deviceNow() });
   set({ anchor: anchor ?? heard });
   // A timer rather than animation frames, which stop in a background tab.
   timer = setInterval(() => {
@@ -533,7 +592,7 @@ function updateMediaSession() {
   }
   if (media.metadata?.title !== state.title) media.metadata = new MediaMetadata({ title: state.title, artist: "Songverse" });
   try {
-    if (state.duration) media.setPositionState({ duration: state.duration, position: Math.min(state.position, state.duration), playbackRate: 1 });
+    if (state.duration) media.setPositionState({ duration: state.duration, position: Math.min(state.position, state.duration), playbackRate: state.speed });
   } catch {
     // Not supported here.
   }
@@ -626,6 +685,7 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
     transpose: song.transpose ?? 0,
     transposeParts: song.transposeParts ?? {},
     transposeFailed: false,
+    speed: stemSpeed(song.speed ?? 1),
     key,
     songVersionId: song.songVersionId,
     multitrackId: song.multitrackId ?? song.stems[0]?.multitrackId ?? null,
@@ -694,12 +754,13 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
 
 // --- transposing (issue #129)
 
-/** How far a part is moved: the transposition less what it was recorded above its multitrack, if it's transposed at all. */
+/** How far a part is moved (semitones): the pitch its speed moved it by put back, and the transposition less what it was recorded above its multitrack, if it's transposed at all. */
 function shiftOf(id: string): number {
   const info = tracksInfo.get(id);
   if (!info) return 0;
   const moved = state.transposeParts[id] ?? transposesPart(info.part);
-  return moved ? state.transpose - info.offset : 0;
+  // Slower or faster (issue #139), every part is put back in its key, the drums too.
+  return Math.round(((moved ? state.transpose - info.offset : 0) + speedCorrection(state.speed)) * 1000) / 1000;
 }
 
 /**
@@ -751,6 +812,11 @@ async function route() {
   }
   if (mine !== generation) return;
   if (state.transposeFailed) for (const entry of pool) entry.shift = null;
+  // Without the stretch nodes a slowed part would be out of key: as recorded instead.
+  if (state.transposeFailed && state.speed !== 1) {
+    set({ speed: 1 });
+    applyGains(true);
+  }
   // A node not in use is stopped: running, it costs as much as moving a part
   // (measured: 2 idle nodes, 8.6 s of work for 120 s of audio; stopped, 0.7).
   for (const entry of pool) {
@@ -822,11 +888,11 @@ function replay() {
   if (!context || !state.playing) return;
   const ahead = 0.05 + latency;
   if (state.following && clock && state.anchor) {
-    const zero = clock.timeOf(state.anchor.epoch) - state.anchor.position;
+    const zero = clock.timeOf(state.anchor.epoch) - state.anchor.position / state.speed;
     const when = context.currentTime + ahead;
-    return startAt(when - zero, when, state.anchor);
+    return startAt((when - zero) * state.speed, when, state.anchor);
   }
-  startAt(now() + ahead, context.currentTime + ahead);
+  startAt(now() + ahead * state.speed, context.currentTime + ahead);
 }
 
 /**
@@ -851,6 +917,33 @@ function sameParts(a: Record<string, boolean>, b: Record<string, boolean>): bool
 /** Whether a part is moved when transposing (issue #135): as chosen for it, else as its part says. */
 export function isTransposed(current: Pick<StemState, "transposeParts">, track: Pick<StemTrack, "id" | "part">): boolean {
   return current.transposeParts[track.id] ?? transposesPart(track.part);
+}
+
+/**
+ * Plays the stems slower or faster, in their key (issue #139): `rate` 1 as
+ * recorded. Each part is resampled (its source's playbackRate) and put
+ * back in its key by the stretch nodes, with the transposition - one node
+ * per amount, as for transposing. Taken up at the next load when nothing's
+ * loaded. Playing, it stops for as long as that takes and carries on where
+ * it was.
+ */
+export async function setStemsSpeed(rate: number) {
+  const speed = stemSpeed(rate);
+  if (state.speed === speed) return;
+  if (!context || state.status !== "ready") return set({ speed });
+  const wasPlaying = state.playing;
+  if (wasPlaying) {
+    offset = now();
+    stopSources();
+    stopTimer();
+  }
+  set({ speed, transposeFailed: false });
+  applyGains(true);
+  await route();
+  updateMediaSession();
+  if (!wasPlaying || !state.playing || !context) return;
+  if (state.following) return replay();
+  startAt(offset);
 }
 
 /**
@@ -1057,11 +1150,12 @@ export async function followStems(song: StemSong | null, timeline: StemTimeline 
   }
   void context.resume();
   if (context.state !== "running") set({ audioBlocked: true });
-  const zero = clock.timeOf(now.epoch) - now.position;
+  // The audio clock's time of the recording's 0:00, at the speed it plays (issue #139).
+  const zero = clock.timeOf(now.epoch) - now.position / state.speed;
   // Already playing it there, within a few milliseconds: left as it is.
   if (state.playing && Math.abs(zero - startedAt) < REPLACE_BEYOND) return;
-  const when = Math.max(context.currentTime + 0.1 + latency, zero + now.position);
-  const from = when - zero;
+  const when = Math.max(context.currentTime + 0.1 + latency, zero + now.position / state.speed);
+  const from = (when - zero) * state.speed;
   if (from >= state.duration) return pause();
   applyGains(true);
   startAt(from, when, { epoch: now.epoch, position: now.position });
@@ -1089,11 +1183,11 @@ export function unfollowStems() {
  */
 export function realignStems() {
   if (!context || !clock || !state.playing || !state.anchor) return;
-  const zero = clock.timeOf(state.anchor.epoch) - state.anchor.position;
+  const zero = clock.timeOf(state.anchor.epoch) - state.anchor.position / state.speed;
   if (Math.abs(zero - startedAt) < REPLACE_BEYOND) return;
   noteStemsCorrection(zero - startedAt);
   const when = context.currentTime + 0.05 + latency;
-  startAt(when - zero, when, state.anchor);
+  startAt((when - zero) * state.speed, when, state.anchor);
 }
 
 const stemsCorrections: { ms: number; at: number }[] = [];
@@ -1212,7 +1306,7 @@ export async function setStemsTake(take: { samples: Float32Array; part: StemPart
   await route();
   applyGains(true);
   // Playing: heard from where it is, the take with it.
-  if (state.playing) startAt(now() + 0.05 + latency, context.currentTime + 0.05 + latency);
+  if (state.playing) startAt(now() + (0.05 + latency) * state.speed, context.currentTime + 0.05 + latency);
 }
 
 /**

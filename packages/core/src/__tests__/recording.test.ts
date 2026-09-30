@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { harmonyLetter, hasSound, partKind, stemPartFromFilename, transposesPart, type StemPart } from "../index.js";
+import { harmonyLetter, hasSound, partKind, speedCorrection, stemPartFromFilename, stemSpeed, transposesPart, type StemPart } from "../index.js";
 import { alignTake, clapDelayFrom, clickTimes, encodeWav, mergeTake, multitracksOf, punchInAt, recordingPlan, roundTripFrom, spliceTake } from "../index.js";
 
 describe("multitracks (issue #123)", () => {
@@ -153,5 +153,16 @@ describe("sections merged into one take (issue #141)", () => {
     const both = mergeTake(first, Float32Array.from({ length: 10 }, () => 0.75), 6, 1);
     // Crossfaded over a sample into what was there (silence), either end.
     expect([...both]).toEqual([0.25, 0.25, 0.25, 0.25, 0, 0, 0.375, 0.75, 0.75, 0.375]);
+  });
+});
+
+describe("the stems' speed (issue #139)", () => {
+  it("kept to 50-150%, by 5%", () => {
+    expect([0.8, 0.83, 0.2, 3, Number.NaN, "1", 1.249].map(stemSpeed)).toEqual([0.8, 0.85, 0.5, 1.5, 1, 1, 1.25]);
+  });
+  it("the pitch played at a speed brought back: an octave up at half speed", () => {
+    expect(speedCorrection(1)).toBe(0);
+    expect(speedCorrection(0.5)).toBe(12);
+    expect(speedCorrection(0.8)).toBeCloseTo(3.863, 3);
   });
 });

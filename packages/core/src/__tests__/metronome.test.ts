@@ -52,6 +52,8 @@ describe("the metronome's timeline (issue #2)", () => {
     });
     expect(normalizeMetronome(null)).toEqual(DEFAULT_METRONOME);
     expect(normalizeMetronome({ countInOnly: true }).countInOnly).toBe(false);
+    // A slowed recording's beat kept to the hundredth (issue #139).
+    expect(normalizeMetronome({ tempo: 97 * 0.85 }).tempo).toBe(82.45);
   });
 
   it("a song's tempo and time signature, the player's pattern kept for a bar of the same length", () => {

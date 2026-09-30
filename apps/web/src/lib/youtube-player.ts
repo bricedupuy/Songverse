@@ -24,6 +24,8 @@ export interface YouTubeState {
   playing: boolean;
   position: number;
   duration: number;
+  /** Its speed (issue #139): YouTube keeps the pitch. */
+  speed: number;
   /** The song whose dock is on screen, and where the video goes in it. */
   docked: { songVersionId: string; anchor: HTMLElement } | null;
 }
@@ -35,6 +37,8 @@ interface YTPlayer {
   seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
   getDuration(): number;
+  setPlaybackRate(rate: number): void;
+  getPlaybackRate(): number;
   cueVideoById(videoId: string): void;
   loadVideoById(videoId: string): void;
   destroy(): void;
@@ -48,7 +52,7 @@ interface YTNamespace {
       height: string;
       host?: string;
       playerVars?: Record<string, number | string>;
-      events: { onReady?: () => void; onStateChange?: (event: { data: number }) => void; onError?: () => void };
+      events: { onReady?: () => void; onStateChange?: (event: { data: number }) => void; onPlaybackRateChange?: (event: { data: number }) => void; onError?: () => void };
     },
   ) => YTPlayer;
 }
@@ -61,7 +65,9 @@ declare global {
 
 const PLAYING = 1;
 
-const EMPTY: YouTubeState = { video: null, status: "idle", playing: false, position: 0, duration: 0, docked: null };
+const EMPTY: YouTubeState = { video: null, status: "idle", playing: false, position: 0, duration: 0, speed: 1, docked: null };
+// The speed asked for, set again on each video (YouTube starts each at 100%).
+let wanted = 1;
 
 let state: YouTubeState = EMPTY;
 const listeners = new Set<() => void>();
@@ -144,6 +150,7 @@ async function ensurePlayer(video: YouTubeVideo, autoplay: boolean) {
       onReady: () => {
         ready = true;
         set({ status: "ready", duration: player?.getDuration() || 0 });
+        applySpeed();
         if (autoplay) player?.playVideo();
       },
       onStateChange: ({ data }) => {
@@ -156,10 +163,29 @@ async function ensurePlayer(video: YouTubeVideo, autoplay: boolean) {
           stopPolling();
         }
         set({ playing, position: player?.getCurrentTime() || 0, duration: player?.getDuration() || state.duration });
+        if (playing && player && player.getPlaybackRate() !== wanted) applySpeed();
       },
+      onPlaybackRateChange: ({ data }) => set({ speed: data }),
       onError: () => set({ status: "error", playing: false }),
     },
   });
+}
+
+function applySpeed() {
+  if (!player || !ready) return;
+  try {
+    player.setPlaybackRate(wanted);
+    set({ speed: player.getPlaybackRate() || wanted });
+  } catch {
+    // Not this video.
+  }
+}
+
+/** Plays the video slower or faster (issue #139), from now on; YouTube keeps its pitch. */
+export function setYouTubeSpeed(rate: number) {
+  wanted = rate;
+  set({ speed: rate });
+  applySpeed();
 }
 
 /** Where the player lives (YouTubeHost's element), or gone. */

@@ -28,6 +28,23 @@ export type StemPart = (typeof STEM_PARTS)[number];
  */
 export const UNPITCHED_PARTS: readonly StemPart[] = ["DRUMS", "CLICK"];
 
+/** How much slower or faster the stems can play (issue #139), in their key: 50-150%, by 5%. */
+export const STEM_SPEED_MIN = 0.5;
+export const STEM_SPEED_MAX = 1.5;
+export const STEM_SPEED_STEP = 0.05;
+
+/** A speed the player takes: within the range, on a 5% step; anything else is 100%. */
+export function stemSpeed(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 1;
+  const stepped = Math.round(value / STEM_SPEED_STEP) * STEM_SPEED_STEP;
+  return Math.round(Math.min(STEM_SPEED_MAX, Math.max(STEM_SPEED_MIN, stepped)) * 100) / 100;
+}
+
+/** The semitones that bring a part played at `rate` back to its key: its resampling moves it by 12·log2(rate). */
+export function speedCorrection(rate: number): number {
+  return rate === 1 ? 0 : Math.round(-12 * Math.log2(rate) * 1000) / 1000;
+}
+
 /** Whether transposing moves this part: every part but the drums and cues - or every part at all, with `all`. */
 export function transposesPart(part: StemPart | null, all = false): boolean {
   return all || part === null || !UNPITCHED_PARTS.includes(part);

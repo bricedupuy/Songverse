@@ -1,5 +1,5 @@
 import { Injectable, Logger, type OnModuleDestroy } from "@nestjs/common";
-import { SYNC_PATH, type SyncClientMessage, type SyncMember, type SyncMetronome, type SyncServerMessage, type SyncSession, type SyncStems } from "@songverse/core";
+import { STEM_SPEED_MAX, STEM_SPEED_MIN, SYNC_PATH, type SyncClientMessage, type SyncMember, type SyncMetronome, type SyncServerMessage, type SyncSession, type SyncStems } from "@songverse/core";
 import type { Redis } from "ioredis";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, Server } from "node:http";
@@ -330,6 +330,7 @@ function validStems(value: SyncStems): boolean {
         value.transposeParts !== null &&
         Object.keys(value.transposeParts).length <= 64 &&
         Object.entries(value.transposeParts).every(([id, on]) => id.length <= 64 && typeof on === "boolean"))) &&
+    (value.speed === undefined || (typeof value.speed === "number" && value.speed >= STEM_SPEED_MIN && value.speed <= STEM_SPEED_MAX)) &&
     typeof value.playing === "boolean" &&
     Number.isFinite(value.position) &&
     value.position >= 0 &&
