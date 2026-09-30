@@ -12,6 +12,7 @@ import { BulkUploadModule } from "./bulk-upload/bulk-upload.module.js";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard.js";
 import { RateLimitGuard } from "./security/rate-limit.guard.js";
 import { SecurityController } from "./security/security.controller.js";
+import { StemSeparationModule } from "./stem-separation/stem-separation.module.js";
 import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
 import { SongbookCatalogModule } from "./songbook-catalog/songbook-catalog.module.js";
@@ -66,6 +67,7 @@ import { LookupsModule } from "./lookups/lookups.module.js";
     PeopleModule,
     SyncModule,
     LibraryHomeModule,
+    StemSeparationModule,
   ],
   controllers: [AppController, SecurityController],
   providers: [

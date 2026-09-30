@@ -175,6 +175,21 @@ export async function processTake(audio: Buffer, dir: string, options: TakeProce
   return readFile(output);
 }
 
+/**
+ * A separated stem (issue #63) made Opus, as it is: nothing trimmed or
+ * filtered - its start is where the recording's is, like every other part
+ * of its multitrack - stereo at 160 kbps (mono at 96).
+ */
+export async function encodeStem(audio: Buffer, dir: string): Promise<Buffer> {
+  const { writeFile, readFile } = await import("node:fs/promises");
+  const input = `${dir}/stem-in`;
+  const output = `${dir}/stem.opus`;
+  await writeFile(input, audio);
+  const channels = wavSampleRate(audio) ? Math.max(1, Math.min(2, audio.readUInt16LE(22))) : 2;
+  await runFfmpeg(["-y", "-i", input, "-ar", "48000", "-ac", String(channels), "-c:a", "libopus", "-b:a", channels === 1 ? "96k" : "160k", "-f", "ogg", output]);
+  return readFile(output);
+}
+
 /** How long an audio file lasts (s), as ffmpeg reads it through. */
 export async function audioSeconds(file: string): Promise<number> {
   // An Ogg file with no audio in it can't even be opened: none.

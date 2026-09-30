@@ -42,6 +42,12 @@ How the API protects itself. **Limit requests** caps how many requests it takes 
 
 Where uploaded files are kept (object storage such as Cloudflare R2, or local disk for development), how much is used, and the **default storage limit** per user. Global admins have no limit.
 
+### Stem separation
+
+The server recordings are split into stems on (a Demucs API, see [Separating a recording into stems](/library/#separating-a-recording-into-stems)): its **API address** and **API key** (leave the key blank to keep the current one), the **Quick pass model** (htdemucs; asking for 6 parts uses htdemucs_6s), **Then a finer pass** and its model (htdemucs_ft), which replaces the quick stems when the server has time, and the **Separations per person in 30 days** (empty: no limit). **Test connection** checks the address and key and lists the server's models. The server must be able to reach the API back to say when stems are ready; otherwise Songverse checks every 2 minutes.
+
+**Who can use it**: a person allowed by email address can split the recordings of the songs they can edit; a team ticked here lets every member split the team's songs' recordings. Global admins always can. **Revert to environment variables** goes back to the server's configuration.
+
 ### Catalogs
 
 Manages the published songbook catalogs (see [Songbooks](/songbooks/#from-a-published-songbooks-catalog)): add one, edit its entries in a table, import or export them as CSV or JSON.

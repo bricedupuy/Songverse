@@ -11,6 +11,8 @@ export const JOB_WORKER_OPTIONS = { autorun: false } as const;
 export const LOOKUPS_QUEUE = "lookups";
 /** Recorded takes turned into Opus (issue #127). */
 export const RECORDINGS_QUEUE = "recordings";
+/** Recordings split into stems at our Demucs API (issue #63). */
+export const STEM_SEPARATION_QUEUE = "stem-separation";
 
 /**
  * A short hash of this process's SETTINGS_ENCRYPTION_KEY, or null without

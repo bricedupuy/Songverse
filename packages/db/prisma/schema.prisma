@@ -261,6 +261,8 @@ model User {
   // Per-user override of StorageSettings.defaultUserStorageLimitMb; null
   // means "use the default".
   storageLimitMb   Int?
+  // May split a song's recordings into stems with the Demucs API (issue #63), granted in Admin > Stem separation.
+  canSeparateStems Boolean @default(false)
   // Storage key of an avatar uploaded through the account page. Null when
   // there's none, or when avatarUrl points elsewhere (e.g. Google's).
   avatarStorageKey String?
@@ -298,6 +300,7 @@ model User {
   inkAnnotations      InkAnnotation[]
   midiConfigs         UserArrangementMidi[]
   ownedTags           Tag[]
+  stemSeparations     StemSeparation[]
   ownedSongbooks      Songbook[]             @relation("SongbookOwnerUser")
   importJobs          ImportJob[]
   uploadedAttachments Attachment[]           @relation("AttachmentUploader")
@@ -428,6 +431,8 @@ model Team {
 
   // Relations
   memberships         TeamMembership[]
+  // Its members may split its songs' recordings into stems (issue #63).
+  canSeparateStems    Boolean                @default(false)
   inviteLinks         TeamInviteLink[]
   ownedVersions       SongVersion[]          @relation("VersionOwnerTeam")
   ownedArrangements   Arrangement[]          @relation("ArrangementOwnerTeam")
@@ -710,6 +715,7 @@ model SongVersion {
   // Related records
   contributors      VersionContributor[]
   attachments       Attachment[]
+  stemSeparations   StemSeparation[]
   arrangements      Arrangement[]
   chartPreferences  ChartPreference[]
   songbookEntries   SongbookEntry[]
@@ -1779,6 +1785,58 @@ model ContentTransfer {
 // (or a field is null), auth-settings.ts falls back to the matching env
 // var. resendApiKeyEnc/googleClientSecretEnc are never stored or returned
 // in plaintext - see packages/core/src/secret-crypto.
+// Splitting recordings into stems (issue #63): our Demucs API's address and
+// key (encrypted with SETTINGS_ENCRYPTION_KEY), the secret its webhooks are
+// signed with (generated, encrypted), the models, whether the HQ pass runs,
+// and an optional monthly limit per user. A null field falls back to its env
+// var, then the default (apps/api/src/stem-separation/stem-separation-settings.ts).
+model StemSeparationSettings {
+  id                String   @id @default("singleton")
+  apiUrl            String?
+  apiKeyEnc         String?
+  callbackSecretEnc String?
+  fastModel         String?
+  hqModel           String?
+  hqEnabled         Boolean?
+  monthlyLimit      Int?
+  updatedAt         DateTime @updatedAt
+}
+
+enum StemSeparationStatus {
+  QUEUED // waiting for the Worker to send it
+  SUBMITTED // at the Demucs API, its fast pass to come
+  FAST_READY // the fast stems in; the HQ pass to come
+  COMPLETED
+  FAILED
+}
+
+// A recording split into stems (issue #63): the job at the Demucs API, and
+// the multitrack its stems became - the fast pass's, replaced in place by
+// the HQ pass's.
+model StemSeparation {
+  id                 String               @id @default(cuid())
+  songVersionId      String
+  // The recording it came from (no foreign key: the stems stay if it goes).
+  sourceAttachmentId String
+  requestedByUserId  String?
+  // "4" (htdemucs), "6" (htdemucs_6s) or "2" (vocals and the rest).
+  parts              String
+  status             StemSeparationStatus @default(QUEUED)
+  jobId              String?              @unique
+  multitrackId       String?
+  hqRequested        Boolean              @default(false)
+  hqDone             Boolean              @default(false)
+  error              String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+  requestedBy User?       @relation(fields: [requestedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([songVersionId])
+  @@index([requestedByUserId, createdAt])
+}
+
 model AuthSettings {
   id                    String   @id @default("singleton")
   resendApiKeyEnc       String?

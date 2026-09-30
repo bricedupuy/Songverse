@@ -10,6 +10,7 @@ import {
   type AttachmentType,
   type MusicBrainzWorkMatch,
   type SongVersionDetail,
+  type StemSeparationParts,
   type StorageUsage,
   type StreamingLinkType,
   type TeamSummary,
@@ -38,6 +39,7 @@ import { useMultitrackName } from "#/lib/multitrack-name";
 import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
 import { PartPicker, usePartLabel } from "#/components/part-picker";
 import { CleanUp } from "./clean-up";
+import { SeparateButton, SeparationList, useStemSeparations } from "./stem-separation";
 
 const NEW_MULTITRACK = "__new";
 
@@ -459,6 +461,30 @@ export function AttachmentsTab({
     return () => clearInterval(timer);
   }, [processing]);
 
+  // Splitting a recording into stems on the Demucs server (issue #63), for who's allowed to.
+  const separation = useStemSeparations(songVersionId, kind === "audio");
+  const separations = separation.state?.separations ?? [];
+
+  async function separate(file: Attachment, parts: StemSeparationParts) {
+    setError(null);
+    try {
+      await apiClient.separateStems(songVersionId, file.id, parts);
+      separation.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function retrySeparation(id: string) {
+    setError(null);
+    try {
+      await apiClient.retryStemSeparation(id);
+      separation.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   /** Cleans up a file afterwards (issue #132): the Worker does it; the list is looked at again until it's done. */
   async function cleanUp(file: Attachment, steps: ("voice" | "level" | "noise")[]) {
     setBusyId(file.id);
@@ -763,11 +789,19 @@ export function AttachmentsTab({
                   {kind === "audio" && attachment.canChange && !attachment.locked ? (
                     <CleanUp file={attachment} busy={busyId !== null} onCleanUp={(steps) => void cleanUp(attachment, steps)} />
                   ) : null}
+                  {kind === "audio" &&
+                  separation.state?.available &&
+                  attachment.type === "AUDIO" &&
+                  !attachment.stemPart &&
+                  !separations.some((item) => item.sourceAttachmentId === attachment.id && (item.status === "QUEUED" || item.status === "SUBMITTED")) ? (
+                    <SeparateButton file={attachment} busy={busyId !== null} onStart={(parts) => separate(attachment, parts)} />
+                  ) : null}
                 </li>
               ))}
             </ul>
             </>
           )}
+          <SeparationList separations={separations} attachments={attachments} busy={busyId !== null} onRetry={(id) => void retrySeparation(id)} />
           {kind === "audio" ? <p className="text-xs text-muted-foreground">{t("stems.detectHint")}</p> : null}
           {/* The first layer of a song, or another version of it: a new multitrack, with the metronome only (#123). */}
           {kind === "audio" ? (

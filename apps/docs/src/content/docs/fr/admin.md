@@ -42,6 +42,12 @@ Comment l'API se protège. **Limiter les requêtes** plafonne le nombre de requ�
 
 Où sont gardés les fichiers envoyés (un stockage objet comme Cloudflare R2, ou le disque local pour le développement), l'espace utilisé, et la **limite de stockage par défaut** par utilisateur. Les administrateurs globaux n'ont pas de limite.
 
+### Séparation en pistes
+
+Le serveur sur lequel les enregistrements sont séparés en pistes (une API Demucs, voir [Séparer un enregistrement en pistes](/fr/library/#séparer-un-enregistrement-en-pistes)) : son **Adresse de l'API** et sa **Clé d'API** (laisser la clé vide pour garder l'actuelle), le **Modèle de la passe rapide** (htdemucs ; demander 6 pistes utilise htdemucs_6s), **Puis une passe plus fine** et son modèle (htdemucs_ft), qui remplace les pistes rapides quand le serveur a le temps, et les **Séparations par personne sur 30 jours** (vide : pas de limite). **Tester la connexion** vérifie l'adresse et la clé et liste les modèles du serveur. Le serveur doit pouvoir joindre l'API en retour pour dire quand les pistes sont prêtes ; sinon Songverse vérifie toutes les 2 minutes.
+
+**Qui peut l'utiliser** : une personne autorisée par son adresse e-mail peut séparer les enregistrements des chants qu'elle peut modifier ; une équipe cochée ici permet à tous ses membres de séparer les enregistrements des chants de l'équipe. Les administrateurs globaux le peuvent toujours. **Revenir aux variables d'environnement** retourne à la configuration du serveur.
+
 ### Catalogues
 
 Gère les catalogues de recueils publiés (voir [Recueils](/fr/songbooks/#à-partir-du-catalogue-dun-recueil-publié)) : en ajouter, modifier leurs entrées dans un tableau, les importer ou les exporter en CSV ou JSON.

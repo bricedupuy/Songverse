@@ -176,6 +176,12 @@ Un chant peut avoir plus d'un jeu de pistes : ses **Pistes d'origine**, et des m
 
 En mode **Session**, le lecteur de pistes joue un multipiste à la fois : quand un chant en a plusieurs, la liste à côté du temps passe de l'un à l'autre (**Pistes d'origine**, puis les autres par leur nom, ou **Multipiste 2**…). Songverse retient votre choix pour chaque chant sur l'appareil, et pour chaque page de chant d'une liste. En jeu synchronisé, chacun joue le multipiste du meneur, avec ses propres fichiers.
 
+### Séparer un enregistrement en pistes
+
+Quand un admin a configuré la séparation en pistes et vous y a autorisé (vous ou votre équipe), **Séparer en pistes** sous un enregistrement de l'onglet **Audio** le sépare en ses pistes sur un serveur de séparation : **4 pistes : voix, batterie, basse, autre** (par défaut), **6 pistes : plus guitare, piano**, ou **2 pistes : voix et instrumental**. Ne séparez qu'un enregistrement que vous avez le droit d'utiliser ainsi.
+
+Les premières pistes arrivent en quelques minutes dans un nouveau multipiste, **Separated (Demucs)**, verrouillé, dans la tonalité et le tempo de l'enregistrement et avec ses sections, et avec la même visibilité que lui. La liste **Séparations en pistes** sous les fichiers dit où en est chacune : **En attente**, **Séparation…**, **Prêt - une version plus fine arrive** - une séparation plus lente et meilleure qui remplace les pistes sur place quand le serveur a le temps, souvent la nuit - puis **Prêt**. Une séparation échouée dit pourquoi, avec **Réessayer**. La page vérifie d'elle-même ; les pistes comptent dans votre espace de stockage.
+
 ### Enregistrer une piste
 
 Vous pouvez enregistrer une piste directement dans Songverse, sur un ordinateur, un téléphone ou une tablette avec un micro :

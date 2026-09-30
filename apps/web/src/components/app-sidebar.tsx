@@ -2,6 +2,7 @@ import type { SetlistSummary, SongbookSummary, TeamSummary } from "@songverse/co
 import { Link, useRouterState, type LinkProps } from "@tanstack/react-router";
 import {
   ArrowLeft,
+  AudioWaveform,
   BookOpen,
   ChevronRight,
   ChevronsUpDown,
@@ -483,6 +484,7 @@ function AdminNav({ pathname }: { pathname: string }) {
     { to: "/admin/auth" as const, label: t("nav.adminAuth"), icon: KeyRound },
     { to: "/admin/security" as const, label: t("nav.adminSecurity"), icon: ShieldCheck },
     { to: "/admin/storage" as const, label: t("nav.adminStorage"), icon: Database },
+    { to: "/admin/stem-separation" as const, label: t("nav.adminStemSeparation"), icon: AudioWaveform },
     { to: "/admin/catalogs" as const, label: t("nav.adminCatalogs"), icon: FileStack },
     { to: "/admin/metadata" as const, label: t("nav.adminMetadata"), icon: LayoutDashboard },
   ];

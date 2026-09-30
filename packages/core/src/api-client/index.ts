@@ -17,6 +17,7 @@ import type { StemPart } from "../stems/index.js";
 import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
 import type { SaveSecuritySettingsRequest } from "../requests/accounts.js";
+import type { SaveStemSeparationSettingsRequest, StemSeparationGrantRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type {
   CreateCatalogSchema,
   CreateInviteLinkSchema,
@@ -361,6 +362,49 @@ export interface UserProfile {
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
+
+/** A recording split into stems (issue #63), as the song's Audio tab shows it. */
+export interface StemSeparation {
+  id: string;
+  sourceAttachmentId: string;
+  parts: StemSeparationParts;
+  status: "QUEUED" | "SUBMITTED" | "FAST_READY" | "COMPLETED" | "FAILED";
+  hqRequested: boolean;
+  hqDone: boolean;
+  multitrackId: string | null;
+  error: string | null;
+  requestedBy: string | null;
+  createdAt: string;
+}
+
+export interface StemSeparations {
+  /** Whether the viewer may split this song's recordings; `refusal` says why not. */
+  available: boolean;
+  refusal: "not-configured" | "not-granted" | null;
+  separations: StemSeparation[];
+}
+
+/** Admin > Stem separation (issue #63). */
+export interface StemSeparationSummary {
+  source: "database" | "env" | "none";
+  apiUrl: string | null;
+  hasDatabaseKey: boolean;
+  hasKey: boolean;
+  fastModel: string;
+  hqModel: string;
+  hqEnabled: boolean;
+  monthlyLimit: number | null;
+  signedCallbacks: boolean;
+}
+
+export type StemSeparationTest =
+  | { ok: true; health: Record<string, unknown>; models: { models: string[]; default: string; hq_default: string; devices: string[]; default_device: string } }
+  | { ok: false; error: string };
+
+export interface StemSeparationGrants {
+  users: { id: string; displayName: string; email: string }[];
+  teams: { id: string; name: string; canSeparateStems: boolean }[];
+}
 
 /** Admin > Security (issue #113): each setting's value, and whether it comes from the database, its env var or the default. */
 export interface SecuritySettingsSummary {
@@ -1696,6 +1740,16 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       request<void>("/admin/auth", { method: "PUT", body: JSON.stringify(data) }),
     adminClearAuthEmailConfig: () => request<void>("/admin/auth/email", { method: "DELETE" }),
     adminClearAuthGoogleConfig: () => request<void>("/admin/auth/google", { method: "DELETE" }),
+    listStemSeparations: (songVersionId: string) => request<StemSeparations>(`/song-versions/${songVersionId}/stem-separations`),
+    separateStems: (songVersionId: string, attachmentId: string, parts: StemSeparationParts) =>
+      request<StemSeparation>(`/song-versions/${songVersionId}/attachments/${attachmentId}/separate`, { method: "POST", body: JSON.stringify({ parts }) }),
+    retryStemSeparation: (separationId: string) => request<void>(`/stem-separations/${separationId}/retry`, { method: "POST" }),
+    adminGetStemSeparation: () => request<StemSeparationSummary>("/admin/stem-separation"),
+    adminSaveStemSeparation: (data: SaveStemSeparationSettingsRequest) => request<void>("/admin/stem-separation", { method: "PUT", body: JSON.stringify(data) }),
+    adminClearStemSeparation: () => request<void>("/admin/stem-separation", { method: "DELETE" }),
+    adminTestStemSeparation: () => request<StemSeparationTest>("/admin/stem-separation/test", { method: "POST" }),
+    adminGetStemSeparationGrants: () => request<StemSeparationGrants>("/admin/stem-separation/grants"),
+    adminGrantStemSeparation: (data: StemSeparationGrantRequest) => request<void>("/admin/stem-separation/grants", { method: "PUT", body: JSON.stringify(data) }),
     adminGetSecuritySettings: () => request<SecuritySettingsSummary>("/admin/security"),
     adminSaveSecuritySettings: (data: SaveSecuritySettingsRequest) => request<void>("/admin/security", { method: "PUT", body: JSON.stringify(data) }),
     adminClearSecuritySettings: () => request<void>("/admin/security", { method: "DELETE" }),

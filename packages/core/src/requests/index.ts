@@ -9,3 +9,4 @@ export * from "./providers.js";
 export * from "./files.js";
 export * from "./accounts.js";
 export * from "./library.js";
+export * from "./stem-separation.js";

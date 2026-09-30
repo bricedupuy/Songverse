@@ -176,6 +176,12 @@ A song can have more than one set of stems: its **Original stems**, and multitra
 
 In **Practice**, the stem player plays one multitrack at a time: when a song has more than one, the list beside the time switches between them (**Original stems**, then the others by name, or **Multitrack 2**...). Songverse remembers your choice for each song on the device, and for each set's song page. Playing in sync, everyone plays the leader's multitrack, with their own files of it.
 
+### Separating a recording into stems
+
+When an admin has set up stem separation and allowed you (or your team), **Separate into stems** under a recording on the **Audio** tab splits it into its parts on a separation server: **4 parts: vocals, drums, bass, other** (the default), **6 parts: and guitar, piano**, or **2 parts: vocals and instrumental**. Only separate a recording you have the rights to use this way.
+
+The first stems arrive within a few minutes as a new multitrack, **Separated (Demucs)**, locked, in the recording's key and tempo and with its sections, and with the same visibility as the recording. The **Stem separations** list under the files says where each one is: **Waiting to start**, **Separating…**, **Ready - a finer version is on its way** - a slower, better separation that replaces the stems in place when the server has time, often overnight - then **Ready**. A failed one says why, with **Try again**. The page keeps checking by itself; the stems count towards your storage.
+
 ### Recording a part
 
 You can record a part straight into Songverse, on a computer, phone or tablet with a microphone:

@@ -15,7 +15,8 @@ import { apiDocsAllowed } from "./security/security-settings.js";
 
 async function bootstrap() {
   const webUrl = process.env.WEB_URL ?? "http://localhost:3000";
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: a webhook's signature is checked against the bytes it came as (the Demucs API's, issue #63).
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   // Above Express's 100kb default: a songbook catalogue file is imported as
   // JSON text (see ImportCatalogEntriesDto's own 10 MB cap).
   app.useBodyParser("json", { limit: "12mb" });

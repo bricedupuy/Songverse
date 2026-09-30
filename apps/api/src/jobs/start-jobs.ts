@@ -5,13 +5,14 @@ import { hostname } from "node:os";
 import { BulkUploadProcessor } from "../bulk-upload/bulk-upload.processor.js";
 import { BackfillsProcessor, LookupsProcessor } from "../lookups/lookups.processor.js";
 import { RecordingsProcessor } from "../recordings/recordings.processor.js";
+import { StemSeparationProcessor } from "../stem-separation/stem-separation.processor.js";
 import { ffmpegVersion } from "../recordings/ffmpeg.js";
 import { TransferExpiryProcessor } from "../user-management/transfer-expiry.processor.js";
 import { HEARTBEAT_KEY, settingsKeyCheck } from "./jobs.constants.js";
 import { redis } from "./redis.js";
 
 /** Every job processor: a new one needs adding here, or no process runs its jobs. */
-const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor, BackfillsProcessor, RecordingsProcessor];
+const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor, BackfillsProcessor, RecordingsProcessor, StemSeparationProcessor];
 
 const logger = new Logger("Jobs");
 

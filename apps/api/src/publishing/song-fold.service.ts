@@ -177,6 +177,8 @@ export class SongFoldService implements OnApplicationBootstrap {
       await tx.attachment.update({ where: { id: file.id }, data: { cuePoints: mapped.length ? mapped : Prisma.DbNull } });
     }
     await tx.attachment.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
+    // Its stem separations follow the files they made (issue #63): an HQ pass still to come lands in the song they're in now.
+    await tx.stemSeparation.updateMany({ where: { songVersionId: songId }, data: { songVersionId: targetId } });
 
     // Its image (#85), when the catalogue song has none: the same bytes stay stored either way.
     await tx.$executeRaw`

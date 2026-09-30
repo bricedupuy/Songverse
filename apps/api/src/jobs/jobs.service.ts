@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 import type { Job, Queue } from "bullmq";
 import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types.js";
 import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor.js";
-import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, RECORDINGS_QUEUE, settingsKeyCheck } from "./jobs.constants.js";
+import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, RECORDINGS_QUEUE, settingsKeyCheck, STEM_SEPARATION_QUEUE } from "./jobs.constants.js";
 import { redis } from "./redis.js";
 
 interface Beat {
@@ -54,10 +54,11 @@ export class JobsService {
     @InjectQueue(BULK_UPLOAD_QUEUE) private readonly bulkUpload: Queue,
     @InjectQueue(USER_MAINTENANCE_QUEUE) private readonly maintenance: Queue,
     @InjectQueue(RECORDINGS_QUEUE) private readonly recordings: Queue,
+    @InjectQueue(STEM_SEPARATION_QUEUE) private readonly stemSeparation: Queue,
   ) {}
 
   private get queues(): Queue[] {
-    return [this.lookups, this.backfills, this.bulkUpload, this.maintenance, this.recordings];
+    return [this.lookups, this.backfills, this.bulkUpload, this.maintenance, this.recordings, this.stemSeparation];
   }
 
   async status(): Promise<JobsStatus> {
