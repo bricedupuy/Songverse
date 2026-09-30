@@ -1,4 +1,5 @@
 import type { PdfTextItem } from "@songverse/core";
+import { loadPdfjs } from "#/lib/pdfjs";
 
 /**
  * A PDF's text with where each piece is on its page (issue #124), read in
@@ -7,8 +8,7 @@ import type { PdfTextItem } from "@songverse/core";
  * the page, as `chordProFromPdfText` expects. A scanned PDF has none.
  */
 export async function pdfTextItems(file: Blob): Promise<PdfTextItem[]> {
-  const [pdfjs, { default: workerUrl }] = await Promise.all([import("pdfjs-dist"), import("pdfjs-dist/build/pdf.worker.min.mjs?url")]);
-  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+  const pdfjs = await loadPdfjs();
   const task = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
   try {
     const pdf = await task.promise;

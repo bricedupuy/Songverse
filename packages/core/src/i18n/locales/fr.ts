@@ -217,6 +217,15 @@ const fr: typeof en = {
     playing: "Métronome à {{tempo}} BPM",
     settings: "Réglages du métronome",
   },
+  chartView: {
+    label: "Afficher la grille ou un PDF",
+    chart: "Grille",
+    pdf: "PDF",
+    which: "Quel PDF",
+    page: "Page {{page}} sur {{pages}}",
+    loading: "Ouverture de {{name}}…",
+    failed: "{{name}} ne peut pas être ouvert ici.",
+  },
   tuner: {
     comingSoon: "Bientôt",
     description: "Un accordeur pour votre instrument et votre voix, avec le micro de votre appareil, sera ici, à côté du métronome.",

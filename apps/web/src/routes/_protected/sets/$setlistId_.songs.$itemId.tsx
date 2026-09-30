@@ -9,6 +9,7 @@ import { SyncControl } from "#/components/sync-control";
 import { StemDock } from "#/components/stem-dock";
 import { YouTubeDock } from "#/components/youtube-dock";
 import { fileLoader, songFiles } from "#/lib/song-files";
+import { ChartOrPdf } from "#/components/chart-or-pdf";
 import { stemFilesOf, useChosenMultitrack } from "#/lib/stem-engine";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -135,11 +136,14 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
       ) : null}
 
       {song ? (
-        <Card>
-          <CardContent>
-            <PlayerChart view={view} />
-          </CardContent>
-        </Card>
+        // The chart, or the song's PDF (issue #152).
+        <ChartOrPdf songVersionId={song.id}>
+          <Card>
+            <CardContent>
+              <PlayerChart view={view} />
+            </CardContent>
+          </Card>
+        </ChartOrPdf>
       ) : null}
 
       {item.notes ? (

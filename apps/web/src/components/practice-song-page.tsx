@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MetronomeSongButton } from "#/components/metronome";
 import { SongChart } from "#/components/song-chart";
+import { ChartOrPdf } from "#/components/chart-or-pdf";
 import { StemDock } from "#/components/stem-dock";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
@@ -57,8 +58,10 @@ export function PracticeSongPage({
 
   return (
     <div className="flex flex-col gap-6" data-testid="practice-song">
-      <div className="flex items-start gap-4">
-        <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+        {/* Its album art (issues #146, #152): small, beside the title, as in Edit. */}
+        {version.imageUrl ? <img src={`${version.imageUrl}&w=128`} alt="" className="size-14 shrink-0 rounded-md object-cover shadow-sm sm:size-16" data-testid="song-art" /> : null}
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold">
             <span className="min-w-0 break-words">{version.title}</span>
@@ -71,6 +74,7 @@ export function PracticeSongPage({
           </p>
           {details.length > 0 ? <p className="text-sm font-medium text-muted-foreground">{details.join(" · ")}</p> : null}
         </div>
+        </div>
         <div className="flex items-center gap-2">
           <MetronomeSongButton songId={version.id} tempo={chart.tempo} timeSignature={chart.timeSignature} variant="button" />
           <Button variant="outline" onClick={() => setMode("edit")}>
@@ -82,16 +86,16 @@ export function PracticeSongPage({
               {t("live.start")}
             </Button>
         </div>
-        </div>
-        {/* Its album art (issue #146), when it has some. */}
-        {version.imageUrl ? <img src={`${version.imageUrl}&w=256`} alt="" className="size-24 shrink-0 rounded-lg object-cover shadow-sm sm:size-32" data-testid="song-art" /> : null}
       </div>
 
-      <Card>
-        <CardContent>
-          <SongChart chart={chart} emptyText={t("sets.noChart")} />
-        </CardContent>
-      </Card>
+      {/* The chart, or its PDF (issue #152). */}
+      <ChartOrPdf songVersionId={version.id} attachments={attachments}>
+        <Card>
+          <CardContent>
+            <SongChart chart={chart} emptyText={t("sets.noChart")} />
+          </CardContent>
+        </Card>
+      </ChartOrPdf>
 
       {/* Its stems or recording, else its YouTube video, docked at the bottom (issues #64, #66). */}
       {playable.stems.length > 0 ? (

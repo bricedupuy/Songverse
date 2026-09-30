@@ -217,6 +217,15 @@ const en = {
     playing: "Metronome at {{tempo}} BPM",
     settings: "Metronome settings",
   },
+  chartView: {
+    label: "Show the chart or a PDF",
+    chart: "Chart",
+    pdf: "PDF",
+    which: "Which PDF",
+    page: "Page {{page}} of {{pages}}",
+    loading: "Opening {{name}}…",
+    failed: "{{name}} couldn't be opened here.",
+  },
   tuner: {
     comingSoon: "Coming soon",
     description: "A tuner for your instrument and your voice, from your device's microphone, will be here, beside the metronome.",
