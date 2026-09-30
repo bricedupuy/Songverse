@@ -55,7 +55,10 @@ export class RateLimitGuard implements CanActivate {
       }
       if (count > limit) {
         const retryAfter = Math.max(1, Math.ceil(((window + 1) * WINDOW_MS - Date.now()) / 1000));
-        context.switchToHttp().getResponse<Response>().setHeader("Retry-After", String(retryAfter));
+        const res = context.switchToHttp().getResponse<Response>();
+        res.setHeader("Retry-After", String(retryAfter));
+        // Readable by the web app (another origin), which waits that long and tries again.
+        res.setHeader("Access-Control-Expose-Headers", "Retry-After");
         throw new HttpException(
           { statusCode: HttpStatus.TOO_MANY_REQUESTS, error: "Too Many Requests", message: [`Too many requests: try again in ${retryAfter} seconds`] },
           HttpStatus.TOO_MANY_REQUESTS,

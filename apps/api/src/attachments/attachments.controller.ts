@@ -154,7 +154,13 @@ export class AttachmentsController {
     return this.attachmentsService.process(user, songVersionId, attachmentId, dto.steps);
   }
 
-  /** Streamed, with byte ranges (issue #33). */
+  /**
+   * Streamed, with byte ranges (issue #33). Not rate limited (issue #113):
+   * a read of a file the user may already open, and a device keeping its
+   * sets offline downloads every file of every song at once - counted, the
+   * stem player's own downloads were refused behind them.
+   */
+  @RateLimit("none")
   @Get(":attachmentId/download")
   async download(
     @Param("songVersionId") songVersionId: string,
@@ -194,6 +200,7 @@ export class AttachmentsController {
   }
 
   /** Resized for display, e.g. thumbnails: `w` snaps up to a fixed set of widths (32-2048) and never enlarges. */
+  @RateLimit("none")
   @Get(":attachmentId/image")
   async image(
     @Param("songVersionId") songVersionId: string,

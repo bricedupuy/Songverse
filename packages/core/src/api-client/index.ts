@@ -1160,6 +1160,22 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     return new ApiError(response.status, await response.text(), response.status === 429 ? rateLimitedMessage?.() : undefined);
   }
 
+  /**
+   * A read the API refused as one too many (429, issue #113) is tried again
+   * once it says it may be (Retry-After), twice at most and never after
+   * waiting long: the stems or a page shouldn't fail on a burst the device
+   * made itself. Anything that changes something isn't retried.
+   */
+  async function fetchRetrying(url: string, init: RequestInit): Promise<Response> {
+    const method = (init.method ?? "GET").toUpperCase();
+    for (let attempt = 0; ; attempt++) {
+      const response = await fetch(url, init);
+      const wait = Number(response.headers.get("Retry-After"));
+      if (response.status !== 429 || (method !== "GET" && method !== "HEAD") || attempt >= 2 || !(wait > 0) || wait > 20) return response;
+      await new Promise((resolve) => setTimeout(resolve, wait * 1000));
+    }
+  }
+
   async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const token = await getToken();
     const headers = new Headers(init?.headers);
@@ -1170,7 +1186,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     if (init?.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
     if (token) headers.set("Authorization", `Bearer ${token}`);
 
-    const response = await fetch(`${baseUrl}${path}`, { ...init, headers });
+    const response = await fetchRetrying(`${baseUrl}${path}`, { ...init, headers });
     if (!response.ok) throw await failed(response);
     if (init?.method && init.method !== "GET" && init.method !== "HEAD") onChange?.();
     // NestJS sends an empty body (Content-Length: 0) for a handler that
@@ -1414,10 +1430,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       const token = await getToken();
       const headers = new Headers();
       if (token) headers.set("Authorization", `Bearer ${token}`);
-      const response = await fetch(
-        `${baseUrl}/song-versions/${songVersionId}/attachments/${attachmentId}/download`,
-        { headers },
-      );
+      const response = await fetchRetrying(`${baseUrl}/song-versions/${songVersionId}/attachments/${attachmentId}/download`, { headers });
       if (!response.ok) throw await failed(response);
       if (!onProgress || !response.body) return response.blob();
       const total = Number(response.headers.get("Content-Length")) || null;

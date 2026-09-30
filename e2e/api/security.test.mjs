@@ -28,17 +28,34 @@ try {
   let refused = null;
   for (let i = 0; i < 30 && !refused; i++) {
     const res = await fetch(`${API}/users/me`, { headers: { Authorization: `Bearer ${busy.bearer}` } });
-    if (res.status === 429) refused = { at: i + 1, retryAfter: Number(res.headers.get("retry-after")), body: await res.json() };
+    if (res.status === 429) refused = { at: i + 1, retryAfter: Number(res.headers.get("retry-after")), exposed: res.headers.get("access-control-expose-headers"), body: await res.json() };
   }
   check("over the limit: 429", refused?.at === 26, JSON.stringify(refused));
   check("with Retry-After, and a message", refused?.retryAfter > 0 && refused.retryAfter <= 60 && /Too many requests/.test(refused.body.message[0]), JSON.stringify(refused));
   r = await call(calm, "GET", "/users/me");
   check("another user isn't affected", r.status === 200, String(r.status));
 
+
   // The expensive routes: a tighter limit of their own.
   const joins = [];
   for (let i = 0; i < 4; i++) joins.push((await call(calm, "POST", `/teams/join/nothing-${i}`)).status);
   check("joins by link: the 4th of the minute refused", joins.slice(0, 3).every((status) => status !== 429) && joins[3] === 429, JSON.stringify(joins));
+  // A device keeping its sets offline downloads every file at once: downloads aren't counted,
+  // so the stem player's own still load while the limit's reached (they were refused, and its parts "couldn't be played").
+  const form = new FormData();
+  form.append("type", "AUDIO");
+  form.append("stemPart", "BASS");
+  form.append("file", new Blob([Buffer.alloc(2048, 1)], { type: "audio/wav" }), "Bass.wav");
+  // Uploaded by someone whose limits aren't used up yet (an upload is counted).
+  const shared = (await call(admin, "POST", "/song-versions", { title: `Shared ${Date.now()}`, language: "en", artists: ["Someone"] })).body;
+  const file = await (await fetch(`${API}/song-versions/${shared.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${admin.bearer}` }, body: form })).json();
+  const downloads = [];
+  for (let i = 0; i < 30; i++) downloads.push((await fetch(`${API}/song-versions/${shared.id}/attachments/${file.id}/download`, { headers: { Authorization: `Bearer ${admin.bearer}` } })).status);
+  check("downloads never refused, however many", downloads.every((status) => status === 200), JSON.stringify(downloads));
+  r = await call(admin, "GET", "/users/me");
+  check("nor counted", r.status === 200, String(r.status));
+  check("the refusal says when to try again, readably from the web app", refused?.retryAfter > 0 && /Retry-After/.test(refused.exposed ?? ""), JSON.stringify(refused));
+
 
   // Before signing in: per address.
   const anonymous = [];
