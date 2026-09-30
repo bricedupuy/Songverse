@@ -147,6 +147,16 @@ r = await call(admin, "GET", `/setlists/${teamSet.id}/items/${item.id}/song`);
 check("nobody else does", r.body.view.preferences.hiddenChordIds.length === 0);
 r = await call(member, "PUT", "/chart-preferences", { songVersionId: songId, arrangementId: mine.id, preferences: { hideBassNotes: true } });
 check("preferences are per arrangement", r.status === 200 && (await call(member, "GET", `/chart-preferences?songVersionId=${songId}&arrangementId=${mine.id}`)).body.hideBassNotes === true);
+// How the song reads (issue #155): kept beside the rest, each saved on its own without losing the other.
+await call(member, "PUT", `/setlists/${teamSet.id}/items/${item.id}/chart-preferences`, { preferences: { view: "PDF" } });
+r = await call(member, "PUT", `/setlists/${teamSet.id}/items/${item.id}/chart-preferences`, { preferences: { hideBassNotes: true } });
+check("the view chosen for a song is kept when the rest of the player's view is saved", r.body.view === "PDF" && r.body.simplifyChords === true && r.body.hideBassNotes === true, JSON.stringify(r.body));
+r = await call(member, "PUT", "/chart-preferences", { songVersionId: songId, preferences: { view: "POSTER" } });
+check("a view that doesn't exist is refused", r.status === 400, `${r.status}`);
+r = await call(member, "PATCH", "/users/me", { liveView: "PDF" });
+check("the player's default view, in their settings", r.status === 200 && r.body.liveView === "PDF", JSON.stringify(r.body.liveView));
+r = await call(member, "GET", `/setlists/${teamSet.id}/items/${item.id}/song`);
+check("and in a set song's view", r.body.view.liveView === "PDF", JSON.stringify(r.body.view));
 r = await call(member, "PUT", "/chart-preferences", { songVersionId: songId, preferences: { hiddenChordIds: "all" } });
 check("preferences that aren't preferences are refused", r.status === 400);
 r = await call(outsider, "PUT", "/chart-preferences", { songVersionId: songId, arrangementId: mine.id, preferences: {} });

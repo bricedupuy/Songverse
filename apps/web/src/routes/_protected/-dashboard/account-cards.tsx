@@ -2,6 +2,7 @@ import {
   SUPPORTED_LOCALES,
   type CapoDisplayModeValue,
   type ChordNotationValue,
+  type LiveViewValue,
   type LocaleValue,
   type StorageUsage,
   type UserProfile,
@@ -361,14 +362,14 @@ export function LanguageCard({ locale }: { locale: string }) {
   );
 }
 
-/** How every chart reads for this user: chord names, and chords with a capo. */
-export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode"> }) {
+/** How every chart reads for this user: chord names, chords with a capo, and how songs read in Live (issue #155). */
+export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView"> }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue }) {
+  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue }) {
     setSaving(true);
     setError(null);
     try {
@@ -413,6 +414,20 @@ export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chor
             <option value="SOUNDING">{t("dashboard.capoSounding")}</option>
             <option value="FINGERED">{t("dashboard.capoShapes")}</option>
           </NativeSelect>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="live-view">{t("dashboard.liveView")}</Label>
+          <NativeSelect
+            id="live-view"
+            value={profile.liveView}
+            disabled={saving}
+            onChange={(e) => void save({ liveView: e.target.value as LiveViewValue })}
+            className="w-full max-w-xs"
+          >
+            <option value="CHART">{t("dashboard.liveViewChart")}</option>
+            <option value="PDF">{t("dashboard.liveViewPdf")}</option>
+          </NativeSelect>
+          <p className="text-xs text-muted-foreground">{t("dashboard.liveViewHint")}</p>
         </div>
         {error ? (
           <p className="text-sm text-destructive" role="alert">

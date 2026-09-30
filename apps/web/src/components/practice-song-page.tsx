@@ -1,11 +1,11 @@
-import { cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type SongVersionDetail } from "@songverse/core";
+import { cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type LiveViewValue, type SongVersionDetail } from "@songverse/core";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MetronomeSongButton } from "#/components/metronome";
 import { SongChart } from "#/components/song-chart";
-import { ChartOrPdf } from "#/components/chart-or-pdf";
+import { ChartOrPdf, songViewStore } from "#/components/chart-or-pdf";
 import { StemDock } from "#/components/stem-dock";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
@@ -27,12 +27,15 @@ export function PracticeSongPage({
   references,
   notation,
   capoDisplay,
+  liveView,
 }: {
   version: SongVersionDetail;
   attachments: Attachment[];
   references: string[];
   notation: ChordNotationValue;
   capoDisplay: CapoDisplayModeValue;
+  /** How the player reads songs unless chosen for this one (issue #155). */
+  liveView: LiveViewValue;
 }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -89,7 +92,7 @@ export function PracticeSongPage({
       </div>
 
       {/* The chart, or its PDF (issue #152). */}
-      <ChartOrPdf songVersionId={version.id} attachments={attachments}>
+      <ChartOrPdf songVersionId={version.id} attachments={attachments} defaultView={liveView} store={songViewStore(version.id)}>
         <Card>
           <CardContent>
             <SongChart chart={chart} emptyText={t("sets.noChart")} />

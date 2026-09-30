@@ -55,7 +55,9 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
   function savePreferences(next: ChartPreferences) {
     setPreferences(next);
     setError(null);
-    apiClient.setSetlistChartPreferences(view.set.id, view.item.id, next).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
+    // Its own fields only: the view (issue #155) is the view switch's, saved beside them.
+    const mine = { hiddenChordIds: next.hiddenChordIds, simplifyChords: next.simplifyChords, hideBassNotes: next.hideBassNotes };
+    apiClient.setSetlistChartPreferences(view.set.id, view.item.id, mine).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }
 
   function saveSetting(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue }) {

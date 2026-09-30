@@ -2,6 +2,7 @@ import { chartSeconds, structureOf, type RenderedChart, type StructureGroup } fr
 import { AArrowDown, AArrowUp, ArrowLeft, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
+import { PdfPages, ViewSwitch, type ReadingView } from "#/components/chart-or-pdf";
 import { CommandSearch } from "#/components/command-search";
 import { MetronomeSongButton } from "#/components/metronome";
 import { ModeSwitch } from "#/components/mode-switch";
@@ -39,6 +40,8 @@ export interface LiveSong {
   notes: { label?: string; text: string }[];
   /** Back to wherever a song on its own was pulled up from (a set's song, say), beside the sidebar's button; a set's songs have the sidebar (issue #154). */
   exit?: { label: string; go: () => void };
+  /** Its chart or its PDF, as the player reads it (issue #155); null: the chart, no switch. */
+  reading?: ReadingView | null;
   /** Played through (issue #153): its chart scrolled to 95% - or, when it fits the screen, moved on from to the next song. */
   onPlayed?: () => void;
   /** Going through a set; both null for a song on its own. */
@@ -237,6 +240,7 @@ export function LiveView({ song }: { song: LiveSong }) {
     song.arrangementName,
   ].filter(Boolean);
   const inSet = song.nextLabel !== null;
+  const pdf = song.reading?.shown ?? null;
   const steps = useMemo(() => (chart ? structureOf(chart) : []), [chart]);
   const [current, pickPass] = useCurrentPass(scroller, steps, song.id);
 
@@ -263,6 +267,8 @@ export function LiveView({ song }: { song: LiveSong }) {
           {song.setName}
         </p>
         <OfflineBanner compact />
+        {/* Its chart or its PDF (issue #155), when it has one. */}
+        {song.reading ? <ViewSwitch reading={song.reading} compact /> : null}
         {/* The song's tempo and time signature, one press (issue #2); the rest on the Metronome page. */}
         {song.setId ? <SyncControl setId={song.setId} compact /> : null}
         <MetronomeSongButton songId={song.id} tempo={chart?.tempo} timeSignature={chart?.timeSignature} />
@@ -277,7 +283,7 @@ export function LiveView({ song }: { song: LiveSong }) {
         <ModeSwitch />
       </header>
 
-      {steps.length > 0 ? <StructureBar steps={steps} current={current} onPick={goToPass} /> : null}
+      {steps.length > 0 && !pdf ? <StructureBar steps={steps} current={current} onPick={goToPass} /> : null}
 
       <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
@@ -304,7 +310,13 @@ export function LiveView({ song }: { song: LiveSong }) {
               ))}
             </div>
           ) : null}
-          {chart ? <SongChart chart={chart} emptyText={t("sets.noChart")} /> : <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>}
+          {pdf && song.reading ? (
+            <PdfPages key={pdf.id} load={() => song.reading!.load(pdf)} name={pdf.filename} />
+          ) : chart ? (
+            <SongChart chart={chart} emptyText={t("sets.noChart")} />
+          ) : (
+            <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
+          )}
           {inSet ? <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">{song.nextLabel}</p> : null}
         </div>
       </main>

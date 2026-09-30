@@ -74,6 +74,10 @@ export type CapoDisplayModeValue = (typeof CAPO_DISPLAY_MODES)[number];
 export const CHORD_NOTATIONS = ["LETTERS", "SOLFEGE"] as const;
 export type ChordNotationValue = (typeof CHORD_NOTATIONS)[number];
 
+/** How a song reads in Live (issue #155): its chart (chords and lyrics), or its PDF. More to come: lyrics only (#106), drummer (#107). */
+export const LIVE_VIEWS = ["CHART", "PDF"] as const;
+export type LiveViewValue = (typeof LIVE_VIEWS)[number];
+
 export const MIDI_EVENT_TYPES = ["program_change", "control_change"] as const;
 export type MidiEventTypeValue = (typeof MIDI_EVENT_TYPES)[number];
 

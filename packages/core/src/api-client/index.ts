@@ -1,6 +1,7 @@
 import type {
   CapoDisplayModeValue,
   ChordNotationValue,
+  LiveViewValue,
   InstrumentValue,
   TechRoleValue,
 } from "../constants/index.js";
@@ -254,7 +255,7 @@ export interface OfflineSyncResponse {
   goneSongs: string[];
   pins: OfflinePin[];
   /** The user's chord settings, for songs shown on their own. */
-  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue };
+  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue; liveView?: LiveViewValue };
 }
 
 /**
@@ -271,6 +272,8 @@ export interface ChartViewSettings {
   preferences: ChartPreferences | null;
   chordNotation: ChordNotationValue;
   capoDisplayMode: CapoDisplayModeValue;
+  /** How songs read in Live unless chosen for this one (issue #155); left out by an older copy kept offline. */
+  liveView?: LiveViewValue;
 }
 
 /** An arrangement of a song, as listed (docs/arrangement-document-v2.md). */
@@ -349,6 +352,8 @@ export interface UserProfile {
   capoDisplayMode: CapoDisplayModeValue;
   /** Chord names in letters or solfège. */
   chordNotation: ChordNotationValue;
+  /** How songs read in Live unless chosen for a song (issue #155). */
+  liveView: LiveViewValue;
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -1162,6 +1167,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange }:
       techRoles?: TechRoleValue[];
       capoDisplayMode?: CapoDisplayModeValue;
       chordNotation?: ChordNotationValue;
+      liveView?: LiveViewValue;
     }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
     getMyStorage: () => request<StorageUsage>("/users/me/storage"),

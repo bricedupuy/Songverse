@@ -384,7 +384,7 @@ export class SetlistsService {
       this.sets.readableItems(set, next ? [item, next] : [item]),
       this.sets.visibilityFor(user),
       this.myNoteRow(user.id, itemId),
-      this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true } }),
+      this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true } }),
     ]);
     const song = item.songVersion;
     const shown = readable.has(item.id) || inViewersLibrary(song);
@@ -415,6 +415,7 @@ export class SetlistsService {
         preferences,
         chordNotation: viewer?.chordNotation ?? "LETTERS",
         capoDisplayMode: viewer?.capoDisplayMode ?? "SOUNDING",
+        liveView: viewer?.liveView ?? "CHART",
       },
       inLibrary: inViewersLibrary(song),
       sharedBy: shown && item.sharedBy ? { id: item.sharedBy.id, displayName: item.sharedBy.displayName } : null,

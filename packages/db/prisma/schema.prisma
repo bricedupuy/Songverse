@@ -71,6 +71,12 @@ enum ChordNotation {
   SOLFEGE
 }
 
+// How a song reads in Live (issue #155): see LIVE_VIEWS in packages/core.
+enum LiveView {
+  CHART
+  PDF
+}
+
 enum MidiEventType {
   PROGRAM_CHANGE
   CONTROL_CHANGE
@@ -270,6 +276,8 @@ model User {
   capoDisplayMode   CapoDisplayMode   @default(SOUNDING)
   // Chord names in letters (G) or solfège (Sol) on every chart.
   chordNotation     ChordNotation     @default(LETTERS)
+  // How songs read in Live unless chosen for a song (issue #155).
+  liveView          LiveView          @default(CHART)
   voicingPreference VoicingPreference @default(AUTO)
   pedalMappingJson  Json? // UserPedalMapping — null = use defaults
   midiOutputDevice  String? // Last selected MIDI output device name

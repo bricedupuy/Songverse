@@ -299,9 +299,14 @@ export class ArrangementsService {
     return parsed.success ? parsed.data : ChartPreferencesSchema.parse({ $schema: "chart-preferences/v1" });
   }
 
-  /** Saves the player's preferences for a chart they can see (checked by the caller). */
+  /**
+   * Saves the player's preferences for a chart they can see (checked by the
+   * caller), over what's saved: a field left out keeps its value - the Live
+   * view switch (issue #155) and My view save their own fields.
+   */
   async savePreferences(userId: string, songVersionId: string, arrangementId: string | null, input: unknown): Promise<ChartPreferences> {
-    const parsed = ChartPreferencesSchema.safeParse({ $schema: "chart-preferences/v1", ...(input as object) });
+    const saved = await this.preferences(userId, songVersionId, arrangementId);
+    const parsed = ChartPreferencesSchema.safeParse({ ...saved, ...(input as object), $schema: "chart-preferences/v1" });
     if (!parsed.success) {
       const issue = parsed.error.issues[0]!;
       throw new BadRequestException(`preferences.${issue.path.join(".")}: ${issue.message}`);

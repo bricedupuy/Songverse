@@ -1,7 +1,8 @@
-import { findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type SongDocumentV2 } from "@songverse/core";
+import { findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type LiveViewValue, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { songViewStore, useReadingView } from "#/components/chart-or-pdf";
 import { LiveView } from "#/components/live-view";
 import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
@@ -20,6 +21,8 @@ export interface LoneSong {
   capo: number | null;
   notation: ChordNotationValue;
   capoDisplay: CapoDisplayModeValue;
+  /** How the player reads songs unless chosen for this one (issue #155). */
+  liveView: LiveViewValue;
 }
 
 /**
@@ -55,6 +58,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           capo: version.capo,
           notation: me.chordNotation,
           capoDisplay: me.capoDisplayMode,
+          liveView: me.liveView,
         };
       },
       async () => {
@@ -74,6 +78,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           capo: song.capo,
           notation: viewer?.chordNotation ?? "LETTERS",
           capoDisplay: viewer?.capoDisplayMode ?? "SOUNDING",
+          liveView: viewer?.liveView ?? "CHART",
         };
       },
     ),
@@ -91,6 +96,8 @@ function SongLiveRoute() {
 function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined }) {
   const { t } = useTranslation();
   const router = useRouter();
+  // Its chart or its PDF, as this player reads it (issue #155).
+  const reading = useReadingView(song.id, undefined, song.liveView, songViewStore(song.id));
   return (
     <LiveView
       song={{
@@ -120,6 +127,7 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         previous: null,
         next: null,
         nextLabel: null,
+        reading,
       }}
     />
   );

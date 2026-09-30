@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { LiveView, type LiveSong } from "#/components/live-view";
+import { setSongViewStore, useReadingView } from "#/components/chart-or-pdf";
 import { renderPlayerChart } from "#/components/player-chart";
 import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
@@ -60,6 +61,8 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
   useEffect(() => markCurrent(set.id, item.id), [set.id, item.id]);
   // Sync play (issue #13): the leader's song, followed.
   useSyncSong(set.id, item.id, (itemId) => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }));
+  // Its chart or its PDF, as this player reads it (issue #155).
+  const reading = useReadingView(song?.id ?? "", undefined, view.view.liveView ?? "CHART", setSongViewStore(set.id, item.id, view.view.preferences));
   const goTo = (itemId: string | null) =>
     itemId ? () => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }) : null;
 
@@ -78,6 +81,7 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
     references: view.songbookReferences ?? [],
     notes: [...(item.notes ? [{ text: item.notes }] : []), ...(view.myNote ? [{ label: t("sets.myNotes"), text: view.myNote }] : [])],
     onPlayed: () => markPlayed(set.id, item.id),
+    reading: song ? reading : null,
     previous: goTo(view.previousItemId),
     next: goTo(view.nextItemId),
     nextLabel: view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet"),

@@ -11,7 +11,7 @@ import type {
   SongbookOfflineCopy,
   SongOfflineCopy,
 } from "../api-client/index.js";
-import type { CapoDisplayModeValue, ChordNotationValue } from "../constants/index.js";
+import type { CapoDisplayModeValue, ChordNotationValue, LiveViewValue } from "../constants/index.js";
 import type { SongDocumentV2 } from "../schemas/song-document-v2.js";
 import { foldForSearch } from "../search-text/index.js";
 import { entryCodeMatches, formatSongbookReference, songbookMatches, songbookReferences } from "../songbook-references/index.js";
@@ -185,6 +185,7 @@ export async function keptSongReferences(storage: OfflineStorage, songVersionId:
 export interface OfflineViewer {
   chordNotation: ChordNotationValue;
   capoDisplayMode: CapoDisplayModeValue;
+  liveView?: LiveViewValue;
 }
 
 export async function offlineViewer(storage: OfflineStorage): Promise<OfflineViewer | undefined> {

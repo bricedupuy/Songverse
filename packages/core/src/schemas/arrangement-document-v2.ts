@@ -172,5 +172,9 @@ export const ChartPreferencesSchema = z.object({
   simplifyChords: z.boolean().default(false),
   /** Drop slash-chord bass notes (D/F# -> D). */
   hideBassNotes: z.boolean().default(false),
+  /** How the song reads in Live and Practice (issue #155); left out, the player's default (User.liveView). */
+  view: z.enum(["CHART", "PDF"]).optional(),
+  /** Which of the song's PDFs, with the PDF view; left out, its first. */
+  pdfId: z.string().min(1).max(64).optional(),
 });
 export type ChartPreferences = z.infer<typeof ChartPreferencesSchema>;

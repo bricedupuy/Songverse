@@ -71,6 +71,7 @@ function SongVersionPage() {
         references={data.songbookMemberships.filter((membership) => membership.entryCode).map((membership) => membership.reference)}
         notation={data.me?.chordNotation ?? "LETTERS"}
         capoDisplay={data.me?.capoDisplayMode ?? "SOUNDING"}
+        liveView={data.me?.liveView ?? "CHART"}
         />
       </>
     );

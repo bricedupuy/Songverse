@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CAPO_DISPLAY_MODES, CHORD_NOTATIONS, INSTRUMENTS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
+import { CAPO_DISPLAY_MODES, CHORD_NOTATIONS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
 import { optional, requiredText } from "./fields.js";
 
 /** PATCH /users/me */
@@ -10,6 +10,7 @@ export const UpdateUserSchema = z.strictObject({
   techRoles: optional(z.array(z.enum(TECH_ROLES)).max(TECH_ROLES.length)),
   capoDisplayMode: optional(z.enum(CAPO_DISPLAY_MODES)),
   chordNotation: optional(z.enum(CHORD_NOTATIONS)),
+  liveView: optional(z.enum(LIVE_VIEWS)),
 });
 export type UpdateUserRequest = z.input<typeof UpdateUserSchema>;
 

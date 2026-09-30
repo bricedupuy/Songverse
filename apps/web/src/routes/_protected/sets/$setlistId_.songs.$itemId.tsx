@@ -9,7 +9,7 @@ import { SyncControl } from "#/components/sync-control";
 import { StemDock } from "#/components/stem-dock";
 import { YouTubeDock } from "#/components/youtube-dock";
 import { fileLoader, songFiles } from "#/lib/song-files";
-import { ChartOrPdf } from "#/components/chart-or-pdf";
+import { ChartOrPdf, setSongViewStore } from "#/components/chart-or-pdf";
 import { stemFilesOf, useChosenMultitrack } from "#/lib/stem-engine";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -137,7 +137,7 @@ function SetSongPage({ view }: { view: SetlistSongView }) {
 
       {song ? (
         // The chart, or the song's PDF (issue #152).
-        <ChartOrPdf songVersionId={song.id}>
+        <ChartOrPdf songVersionId={song.id} defaultView={view.view.liveView ?? "CHART"} store={setSongViewStore(set.id, item.id, view.view.preferences)}>
           <Card>
             <CardContent>
               <PlayerChart view={view} />
