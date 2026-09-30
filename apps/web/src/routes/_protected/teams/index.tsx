@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
+import { EntityAvatar } from "#/components/entity-avatar";
 
 export const Route = createFileRoute("/_protected/teams/")({
   component: TeamsIndex,
@@ -31,9 +32,12 @@ function TeamsIndex() {
                     params={{ teamId: team.id }}
                     className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 hover:text-primary"
                   >
-                    <div>
-                      <p className="font-medium">{team.name}</p>
-                      {team.description ? <p className="text-xs text-muted-foreground">{team.description}</p> : null}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <EntityAvatar name={team.name} color={team.color} avatarUrl={team.avatarUrl} size={36} />
+                      <div className="min-w-0">
+                        <p className="font-medium">{team.name}</p>
+                        {team.description ? <p className="text-xs text-muted-foreground">{team.description}</p> : null}
+                      </div>
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {team.currentUserRole === "ADMIN" ? t("teams.roleAdmin") : t("teams.roleMember")}

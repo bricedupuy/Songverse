@@ -418,7 +418,12 @@ model Team {
   name        String
   slug        String   @unique
   description String?
-  avatarUrl   String?
+  // Its picture (issue #161): served by the API at avatarUrl, the stored
+  // object at avatarStorageKey; and its colour, a key of ENTITY_COLORS in
+  // @songverse/core (null: one derived from the name).
+  avatarUrl        String?
+  avatarStorageKey String?
+  color            String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1025,6 +1030,11 @@ model Songbook {
   // NUMBERED songbooks require a unique per-songbook entryCode, matching a
   // printed edition's numbering.
   kind SongbookKind @default(NUMBERED)
+
+  // Its picture and colour (issue #161), as a team's.
+  avatarUrl        String?
+  avatarStorageKey String?
+  color            String?
 
   // For NUMBERED songbooks only: an ordered list of number ranges mapped to
   // a display label (e.g. [{label: "JEM1", start: 1, end: 371}, ...]), used

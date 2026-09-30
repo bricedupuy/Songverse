@@ -153,6 +153,8 @@ export class UserDeletionService {
     // A Work has no content of its own - drop the ones left with no versions.
     await tx.work.deleteMany({ where: { id: { in: workIds }, versions: { none: {} } } });
 
+    // Their songbooks' pictures go with them (issue #161).
+    const songbookPictures = await tx.songbook.findMany({ where: { ownerUserId: userId, avatarStorageKey: { not: null } }, select: { avatarStorageKey: true } });
     await tx.songbook.deleteMany({ where: { ownerUserId: userId } });
     await tx.tag.deleteMany({ where: { ownerUserId: userId } });
     await tx.setlist.deleteMany({ where: { ownerUserId: userId } });
@@ -161,6 +163,7 @@ export class UserDeletionService {
       ...[...attachments, ...privateFiles].map((attachment) => attachment.storageKey),
       // Their songs' images (issue #85).
       ...versions.flatMap((version) => (version.imageStorageKey ? [version.imageStorageKey] : [])),
+      ...songbookPictures.flatMap((songbook) => (songbook.avatarStorageKey ? [songbook.avatarStorageKey] : [])),
     ];
   }
 

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent } from "#/components/ui/card";
+import { EntityAvatar } from "#/components/entity-avatar";
 
 export const Route = createFileRoute("/_protected/songbooks/")({
   loader: () => apiClient.listSongbooks(),
@@ -36,14 +37,17 @@ function SongbooksIndex() {
                     params={{ songbookId: songbook.id }}
                     className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0 hover:text-primary"
                   >
-                    <div>
-                      <p className="font-medium">
-                        {songbook.name}
-                        {songbook.abbreviation ? ` (${songbook.abbreviation})` : ""}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {[songbook.publisher, songbook.year].filter(Boolean).join(" · ")}
-                      </p>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <EntityAvatar name={songbook.name} color={songbook.color} avatarUrl={songbook.avatarUrl} size={36} />
+                      <div className="min-w-0">
+                        <p className="font-medium">
+                          {songbook.name}
+                          {songbook.abbreviation ? ` (${songbook.abbreviation})` : ""}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {[songbook.publisher, songbook.year].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
                     </div>
                     <span className="text-xs whitespace-nowrap text-muted-foreground">
                       {songbook.ownerScope === "GLOBAL"

@@ -1,6 +1,6 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { SONGBOOK_KINDS } from "../constants/index.js";
+import { ENTITY_COLORS, SONGBOOK_KINDS } from "../constants/index.js";
 import { ISO_639_1_CODES } from "../languages/index.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import { optional, webAddress } from "./fields.js";
@@ -28,6 +28,7 @@ export const UpdateSongbookSchema = z.strictObject({
   publisher: optional(z.string().max(300)),
   year: optional(z.number().int()),
   sections: optional(sections).describe("NUMBERED songbooks only - ordered list of {label, start, end} number ranges"),
+  color: z.enum(ENTITY_COLORS).nullable().optional().describe("Its colour (issue #161); null: one derived from its name"),
 });
 export type UpdateSongbookRequest = z.input<typeof UpdateSongbookSchema>;
 

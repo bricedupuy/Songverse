@@ -34,6 +34,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "#/components/ui/tooltip
 import { apiClient } from "#/lib/api-client";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { docsUrl, docsView } from "#/lib/docs";
+import { EntityAvatar } from "#/components/entity-avatar";
 import { initials } from "#/lib/initials";
 import { useMode } from "#/lib/mode";
 import { useSetProgress } from "#/lib/set-progress";
@@ -273,22 +274,34 @@ function NewLink({ to, label }: { to: "/sets/new" | "/songbooks/new" | "/teams/n
 }
 
 /** One entry of the panel's list: a title, and a line under it. */
-function PanelEntry({ active, title, detail, played, children }: { active: boolean; title: string; detail?: string | null; played?: string | null; children: (className: string, content: ReactNode) => ReactNode }) {
+function PanelEntry({ active, title, detail, played, leading, children }: { active: boolean; title: string; detail?: string | null; played?: string | null; leading?: ReactNode; children: (className: string, content: ReactNode) => ReactNode }) {
+  const text = (
+    <>
+      <span className="flex items-center gap-1">
+        <span className="truncate">{title}</span>
+        {/* Played in Live (issue #153). */}
+        {played ? <Check className="size-3.5 shrink-0 text-muted-foreground" aria-label={played} data-testid="sidebar-played" /> : null}
+      </span>
+      {detail ? <span className="truncate text-xs font-normal text-muted-foreground">{detail}</span> : null}
+    </>
+  );
   return (
     <li>
       {children(
         cn(
-          "flex flex-col gap-0.5 border-b px-3 py-2.5 text-sm leading-tight outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:bg-sidebar-accent",
+          "flex gap-0.5 border-b px-3 py-2.5 text-sm leading-tight outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:bg-sidebar-accent",
+          leading ? "flex-row items-center gap-2.5" : "flex-col",
           active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
         ),
-        <>
-          <span className="flex items-center gap-1">
-            <span className="truncate">{title}</span>
-            {/* Played in Live (issue #153). */}
-            {played ? <Check className="size-3.5 shrink-0 text-muted-foreground" aria-label={played} data-testid="sidebar-played" /> : null}
-          </span>
-          {detail ? <span className="truncate text-xs font-normal text-muted-foreground">{detail}</span> : null}
-        </>,
+        // A team's or a songbook's avatar beside it (issue #161).
+        leading ? (
+          <>
+            {leading}
+            <span className="flex min-w-0 flex-col gap-0.5">{text}</span>
+          </>
+        ) : (
+          text
+        ),
       )}
     </li>
   );
@@ -517,7 +530,7 @@ function SongbooksPanel({ title, pathname, songbooks, fromSongbook }: { title: s
       <PanelHeader title={title} filter={filter} onFilter={setFilter} newItem={<NewLink to="/songbooks/new" label={t("nav.new")} />} />
       <PanelList empty={filter ? undefined : t("songbooks.noSongbooksYet")}>
         {shown.map((book) => (
-          <PanelEntry key={book.id} active={pathname === `/songbooks/${book.id}`} title={book.name} detail={[book.abbreviation, book.publisher].filter(Boolean).join(" · ")}>
+          <PanelEntry key={book.id} active={pathname === `/songbooks/${book.id}`} title={book.name} detail={[book.abbreviation, book.publisher].filter(Boolean).join(" · ")} leading={<EntityAvatar name={book.name} color={book.color} avatarUrl={book.avatarUrl} size={28} />}>
             {(className, content) => (
               <Link to="/songbooks/$songbookId" params={{ songbookId: book.id }} className={className}>
                 {content}
@@ -613,7 +626,7 @@ function TeamsPanel({ title, pathname, teams }: { title: string; pathname: strin
       <PanelHeader title={title} filter={filter} onFilter={setFilter} newItem={<NewLink to="/teams/new" label={t("nav.new")} />} />
       <PanelList empty={filter ? undefined : t("nav.noTeams")}>
         {shown.map((team) => (
-          <PanelEntry key={team.id} active={pathname === `/teams/${team.id}`} title={team.name} detail={team.description}>
+          <PanelEntry key={team.id} active={pathname === `/teams/${team.id}`} title={team.name} detail={team.description} leading={<EntityAvatar name={team.name} color={team.color} avatarUrl={team.avatarUrl} size={28} />}>
             {(className, content) => (
               <Link to="/teams/$teamId" params={{ teamId: team.id }} className={className}>
                 {content}

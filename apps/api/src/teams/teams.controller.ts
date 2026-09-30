@@ -22,6 +22,7 @@ import { InviteLinkResponseDto } from "./dto/invite-link-response.dto.js";
 import { TeamMemberResponseDto } from "./dto/team-member-response.dto.js";
 import { TeamResponseDto } from "./dto/team-response.dto.js";
 import { UpdateMemberRoleDto } from "./dto/update-member-role.dto.js";
+import { UpdateTeamDto } from "./dto/update-team.dto.js";
 import { TeamsService } from "./teams.service.js";
 import { RateLimit } from "../security/rate-limit.decorator.js";
 
@@ -68,6 +69,19 @@ export class TeamsController {
   ): ReturnType<TeamsService["findOne"]> {
     if (!user) throw new UnauthorizedException();
     return this.teamsService.findOne(user.id, teamId);
+  }
+
+  /** Its name, description and colour (issue #161); its picture is PUT /teams/:id/avatar. */
+  @Patch(":teamId")
+  @UseGuards(TeamAdminGuard)
+  @ApiOkResponse({ type: TeamResponseDto })
+  update(
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Param("teamId") teamId: string,
+    @Body() dto: UpdateTeamDto,
+  ): ReturnType<TeamsService["update"]> {
+    if (!user) throw new UnauthorizedException();
+    return this.teamsService.update(user.id, teamId, dto);
   }
 
   @Get(":teamId/members")

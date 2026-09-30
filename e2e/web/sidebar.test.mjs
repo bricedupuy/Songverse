@@ -147,11 +147,11 @@ await step("collapsed, remembered: the panel hides, and the full sidebar is icon
   await until("expanded");
 });
 
-await step("sub-items have icons; Tools has the metronome and the tuner; the documentation is docked at the bottom (issue #147)", async () => {
+await step("sub-items have icons (a team's or a songbook's avatar, issue #161); Tools has the metronome and the tuner; the documentation is docked at the bottom (issue #147)", async () => {
   await page.goto(`${WEB}/library`);
   await page.waitForLoadState("networkidle");
   const sidebar = page.locator('[data-slot="sidebar"]');
-  const subItems = await sidebar.locator('[data-slot="sidebar-menu-sub-button"]').evaluateAll((links) => links.map((link) => `${link.textContent.trim()}:${!!link.querySelector("svg")}`));
+  const subItems = await sidebar.locator('[data-slot="sidebar-menu-sub-button"]').evaluateAll((links) => links.map((link) => `${link.textContent.trim()}:${!!link.querySelector('svg, [data-testid="entity-avatar"]')}`));
   if (!subItems.length || subItems.some((item) => item.endsWith(":false") && !/^View all/.test(item))) throw new Error(subItems.join(" "));
   await sidebar.getByText("Tools", { exact: true }).waitFor();
   await sidebar.getByRole("link", { name: "Tuner" }).click();

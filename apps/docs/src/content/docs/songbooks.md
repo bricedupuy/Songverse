@@ -18,6 +18,10 @@ Give it a name, and optionally an abbreviation, language, publisher and year. Ch
 
 A songbook's page is about its entries: its name, with how many entries it has (and its publisher and year), then the entries. **Details** opens what describes it - its name, abbreviation, language, publisher and year, a numbered songbook's sections - and **Delete songbook**.
 
+### Colour and picture
+
+Whoever manages a songbook gives it a **Colour** and a picture under **Details**, in **Colour and picture**, as a team's (see [Colour and picture](/teams/#colour-and-picture)): shown beside its name in the sidebar and in lists.
+
 ## Songs in a songbook
 
 Under **Entries**, **Add a song** by searching for it and, in a numbered songbook, giving its number.

@@ -20,6 +20,10 @@ Next to each name, the team shows what they play or do (see [Roles](/account/#ro
 
 To invite people, create an **invite link**: choose the role they get when they join, when it expires and how many times it can be used, then **Copy link** and send it. Anyone who opens it and signs in joins the team. **Revoke** a link to stop it working.
 
+## Colour and picture
+
+A team's admins give it a **Colour** and a picture on its page, in **Colour and picture**: the picture (**Add a picture**, cropped square) or the team's initials on its colour show beside its name in the sidebar and in lists, for everyone who sees it. **From its name** picks a colour from the team's name.
+
 ## Leaving or deleting a team
 
 **Leave team** takes you out of it. If you're its only admin, promote another member first. An admin can **Delete team**.

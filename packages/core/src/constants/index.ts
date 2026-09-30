@@ -169,3 +169,18 @@ export const SEED_TUNING_PRESETS = [
  * the network is offered it). A modified copy points this at its own.
  */
 export const SOURCE_CODE_URL = "https://github.com/bricedupuy/Songverse";
+
+/**
+ * The colours a team or a songbook can be given (issue #161): a key each,
+ * drawn by the apps in shades that read on light and dark themes.
+ */
+export const ENTITY_COLORS = ["red", "orange", "amber", "lime", "green", "teal", "sky", "blue", "violet", "pink"] as const;
+export type EntityColor = (typeof ENTITY_COLORS)[number];
+
+/** Its colour: the one chosen, else one derived from its name - the same everywhere, on every device. */
+export function entityColor(color: string | null | undefined, name: string): EntityColor {
+  if (color && (ENTITY_COLORS as readonly string[]).includes(color)) return color as EntityColor;
+  let hash = 0;
+  for (const char of name) hash = (hash * 31 + (char.codePointAt(0) ?? 0)) >>> 0;
+  return ENTITY_COLORS[hash % ENTITY_COLORS.length]!;
+}

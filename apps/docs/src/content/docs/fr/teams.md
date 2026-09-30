@@ -20,6 +20,10 @@ Une **équipe** est un groupe qui partage chants, versions, listes de chants et 
 
 Pour inviter, créez un **lien d'invitation** : choisissez le rôle donné en rejoignant, quand il expire et combien de fois il peut servir, puis **Copier le lien** et envoyez-le. Toute personne qui l'ouvre et se connecte rejoint l'équipe. **Révoquer** un lien l'arrête.
 
+## Couleur et image
+
+Les administrateurs d'une équipe lui donnent une **Couleur** et une image sur sa page, dans **Couleur et image** : l'image (**Ajouter une image**, recadrée en carré) ou les initiales de l'équipe sur sa couleur s'affichent à côté de son nom dans la barre latérale et les listes, pour tous ceux qui la voient. **D'après son nom** choisit une couleur à partir du nom de l'équipe.
+
 ## Quitter ou supprimer une équipe
 
 **Quitter l'équipe** vous en retire. Si vous en êtes le seul administrateur, nommez d'abord un autre membre administrateur. Un administrateur peut **Supprimer l'équipe**.

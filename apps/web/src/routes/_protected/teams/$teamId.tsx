@@ -9,6 +9,8 @@ import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { initials } from "#/lib/initials";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
+import { AppearanceCard } from "#/components/appearance-card";
+import { EntityAvatar } from "#/components/entity-avatar";
 import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { NativeSelect } from "#/components/ui/native-select";
@@ -159,10 +161,13 @@ function TeamDetail() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">{team.name}</h1>
-          {team.description ? <p className="text-sm text-muted-foreground">{team.description}</p> : null}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <EntityAvatar name={team.name} color={team.color} avatarUrl={team.avatarUrl} size={48} />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold break-words">{team.name}</h1>
+            {team.description ? <p className="text-sm text-muted-foreground">{team.description}</p> : null}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {isAdmin ? (
@@ -285,6 +290,19 @@ function TeamDetail() {
           </ul>
         </CardContent>
       </Card>
+
+      {/* Its colour and picture (issue #161), for its admins. */}
+      {isAdmin ? (
+        <AppearanceCard
+          owner="teams"
+          id={team.id}
+          name={team.name}
+          color={team.color}
+          avatarUrl={team.avatarUrl}
+          onColor={(color) => apiClient.updateTeam(team.id, { color })}
+          onChanged={() => router.invalidate()}
+        />
+      ) : null}
 
       {isAdmin ? (
         <Card>

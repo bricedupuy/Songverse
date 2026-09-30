@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { LanguageSelect } from "#/components/language-select";
+import { AppearanceCard } from "#/components/appearance-card";
+import { EntityAvatar } from "#/components/entity-avatar";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -226,7 +228,10 @@ function SongbookDetail() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">{songbook.name}</h1>
+        <div className="flex min-w-0 items-center gap-3">
+          <EntityAvatar name={songbook.name} color={songbook.color} avatarUrl={songbook.avatarUrl} size={40} />
+          <h1 className="min-w-0 text-2xl font-semibold break-words">{songbook.name}</h1>
+        </div>
         <p className="text-sm text-muted-foreground">
           {[
             songbook.ownerScope === "GLOBAL"
@@ -321,6 +326,18 @@ function SongbookDetail() {
               ) : null}
             </CardContent>
           </Card>
+          {/* Its colour and picture (issue #161). */}
+          {canEdit ? (
+            <AppearanceCard
+              owner="songbooks"
+              id={songbook.id}
+              name={songbook.name}
+              color={songbook.color}
+              avatarUrl={songbook.avatarUrl}
+              onColor={(color) => apiClient.updateSongbook(songbook.id, { color })}
+              onChanged={() => router.invalidate()}
+            />
+          ) : null}
           {isNumbered ? (
             <SectionsEditor sections={sections} canEdit={canEdit} onSave={saveSections}>
               {canEdit && songbook.catalogSections?.length ? (

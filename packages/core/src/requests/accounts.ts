@@ -1,7 +1,7 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { CAPO_DISPLAY_MODES, CHORD_NOTATIONS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
-import { optional, requiredText } from "./fields.js";
+import { CAPO_DISPLAY_MODES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
+import { clearableText, optional, requiredText } from "./fields.js";
 
 /** PATCH /users/me */
 export const UpdateUserSchema = z.strictObject({
@@ -77,6 +77,14 @@ export const CreateTeamSchema = z.strictObject({
   slug: optional(z.string().regex(/^[a-z0-9-]+$/, "slug must be lowercase letters, numbers, and hyphens")),
   description: optional(z.string().max(500)),
 });
+
+/** PATCH /teams/:id (its admins): a field left out keeps its value. */
+export const UpdateTeamSchema = z.strictObject({
+  name: optional(z.string().trim().min(2).max(100)),
+  description: clearableText(500),
+  color: z.enum(ENTITY_COLORS).nullable().optional().describe("Its colour (issue #161); null: one derived from its name"),
+});
+export type UpdateTeamRequest = z.input<typeof UpdateTeamSchema>;
 
 export const UpdateMemberRoleSchema = z.strictObject({ role: z.enum(TEAM_ROLES) });
 

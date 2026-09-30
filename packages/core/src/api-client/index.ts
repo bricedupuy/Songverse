@@ -16,7 +16,7 @@ import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
 import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
-import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest } from "../requests/accounts.js";
+import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateRoleRequest, UpdateRoleRequest } from "../requests/roles.js";
 import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
@@ -447,6 +447,8 @@ export interface AdminTeamSummary {
   id: string;
   name: string;
   slug: string;
+  color: string | null;
+  avatarUrl: string | null;
   createdAt: string;
   memberCount: number;
   songCount: number;
@@ -521,6 +523,10 @@ export interface TeamSummary {
   slug: string;
   description: string | null;
   currentUserRole: TeamRole;
+  /** Its colour (issue #161); null: one derived from its name (entityColor). */
+  color: string | null;
+  /** Its picture, if it has one. */
+  avatarUrl: string | null;
 }
 
 export interface TeamMember {
@@ -571,6 +577,9 @@ export interface SongbookSummary {
   ownerUserId: string | null;
   ownerTeamId: string | null;
   sourceCatalogId?: string | null;
+  /** Its colour and picture (issue #161). */
+  color: string | null;
+  avatarUrl: string | null;
 }
 
 export interface PendingSongbookEntry {
@@ -1324,6 +1333,14 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       }),
     getTeam: (teamId: string) => request<TeamSummary>(`/teams/${teamId}`),
     deleteTeam: (teamId: string) => request<void>(`/teams/${teamId}`, { method: "DELETE" }),
+    updateTeam: (teamId: string, data: UpdateTeamRequest) => request<TeamSummary>(`/teams/${teamId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    /** A team's or a songbook's picture (issue #161), normalised by the API. */
+    uploadPicture: (owner: "teams" | "songbooks", id: string, file: Blob, filename = "picture") => {
+      const form = new FormData();
+      form.append("file", file, filename);
+      return request<{ avatarUrl: string }>(`/${owner}/${id}/avatar`, { method: "PUT", body: form });
+    },
+    removePicture: (owner: "teams" | "songbooks", id: string) => request<void>(`/${owner}/${id}/avatar`, { method: "DELETE" }),
     joinTeamByToken: (token: string) => request<TeamSummary>(`/teams/join/${token}`, { method: "POST" }),
     listTeamMembers: (teamId: string) => request<TeamMember[]>(`/teams/${teamId}/members`),
     updateTeamMemberRole: (teamId: string, memberUserId: string, role: TeamRole) =>

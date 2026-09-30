@@ -28,7 +28,6 @@ import {
   Contact,
   Metronome,
   Star,
-  Book,
   CalendarDays,
   ClipboardList,
   Gauge,
@@ -42,6 +41,7 @@ import type { AppSession } from "#/lib/server-auth";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { docsUrl, docsView } from "#/lib/docs";
+import { EntityAvatar } from "#/components/entity-avatar";
 import { SOURCE_CODE_URL } from "@songverse/core";
 import { forgetOffline } from "#/lib/offline-db";
 import { setTheme, useMode } from "#/lib/mode";
@@ -394,7 +394,7 @@ function MainNav({
             items={songbooks.map((songbook) => ({
               key: songbook.id,
               label: songbook.name,
-              icon: <Book />,
+              icon: <EntityAvatar name={songbook.name} color={songbook.color} avatarUrl={songbook.avatarUrl} size={16} />,
               isActive: pathname === `/songbooks/${songbook.id}`,
               link: { to: "/songbooks/$songbookId" as const, params: { songbookId: songbook.id } },
             }))}
@@ -408,7 +408,7 @@ function MainNav({
             items={teams.map((team) => ({
               key: team.id,
               label: team.name,
-              icon: <Users />,
+              icon: <EntityAvatar name={team.name} color={team.color} avatarUrl={team.avatarUrl} size={16} />,
               isActive: pathname === `/teams/${team.id}`,
               link: { to: "/teams/$teamId" as const, params: { teamId: team.id } },
             }))}

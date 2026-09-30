@@ -12,6 +12,7 @@ import {
 } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { StorageService } from "../storage/storage.service.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { SongVersionsService, type SongVersionOwner } from "../song-versions/song-versions.service.js";
@@ -57,6 +58,7 @@ export class SongbooksService {
     private readonly prisma: PrismaService,
     private readonly songVersionsService: SongVersionsService,
     private readonly access: AccessPolicyService,
+    private readonly storage: StorageService,
   ) {}
 
   /**
@@ -380,7 +382,8 @@ export class SongbooksService {
   }
 
   async remove(songbookId: string): Promise<void> {
-    await this.prisma.client.songbook.delete({ where: { id: songbookId } });
+    const { avatarStorageKey } = await this.prisma.client.songbook.delete({ where: { id: songbookId }, select: { avatarStorageKey: true } });
+    if (avatarStorageKey) await this.storage.deleteUnreferenced([avatarStorageKey]);
   }
 
   async addEntry(songbookId: string, dto: AddSongbookEntryDto) {

@@ -2,12 +2,17 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { orderInstruments, orderTechRoles, slugify, type TeamRoleValue } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { StorageService } from "../storage/storage.service.js";
 import type { CreateInviteLinkDto } from "./dto/create-invite-link.dto.js";
 import type { CreateTeamDto } from "./dto/create-team.dto.js";
+import type { UpdateTeamDto } from "./dto/update-team.dto.js";
 
 @Injectable()
 export class TeamsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   async findMyTeams(userId: string) {
     const memberships = await this.prisma.client.teamMembership.findMany({
@@ -20,6 +25,8 @@ export class TeamsService {
       slug: m.team.slug,
       description: m.team.description,
       currentUserRole: m.role,
+      color: m.team.color,
+      avatarUrl: m.team.avatarUrl,
     }));
   }
 
@@ -35,6 +42,8 @@ export class TeamsService {
       slug: membership.team.slug,
       description: membership.team.description,
       currentUserRole: membership.role,
+      color: membership.team.color,
+      avatarUrl: membership.team.avatarUrl,
     };
   }
 
@@ -63,7 +72,22 @@ export class TeamsService {
       slug: team.slug,
       description: team.description,
       currentUserRole: "ADMIN" as const,
+      color: team.color,
+      avatarUrl: team.avatarUrl,
     };
+  }
+
+  /** Its name, description and colour (issue #161), by its admins. */
+  async update(userId: string, teamId: string, dto: UpdateTeamDto) {
+    await this.prisma.client.team.update({
+      where: { id: teamId },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.color !== undefined && { color: dto.color }),
+      },
+    });
+    return this.findOne(userId, teamId);
   }
 
   async listMembers(teamId: string) {
@@ -147,12 +171,14 @@ export class TeamsService {
       );
     }
 
-    await this.prisma.client.team.delete({ where: { id: teamId } }).catch((error: unknown) => {
+    const { avatarStorageKey } = await this.prisma.client.team.delete({ where: { id: teamId }, select: { avatarStorageKey: true } }).catch((error: unknown) => {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
         throw new ConflictException("This team still has content referencing it - move or delete it first.");
       }
       throw error;
     });
+    // Its picture (issue #161), unless something else holds the same bytes.
+    if (avatarStorageKey) await this.storage.deleteUnreferenced([avatarStorageKey]);
   }
 
   private async assertNotLastAdmin(teamId: string, excludingUserId: string): Promise<void> {

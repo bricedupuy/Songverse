@@ -3,6 +3,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { EntityAvatar } from "#/components/entity-avatar";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card } from "#/components/ui/card";
@@ -39,17 +40,20 @@ function AdminTeamsPage() {
         cell: ({ row }) => {
           const team = row.original;
           return (
-            <div className="min-w-0">
-              <p className="font-medium">{team.name}</p>
-              {team.roles.length ? (
-                <p className="mt-1 flex flex-wrap gap-1" data-testid="team-roles">
-                  {team.roles.map((role) => (
-                    <Badge key={role.id} variant="muted">
-                      {role.name}
-                    </Badge>
-                  ))}
-                </p>
-              ) : null}
+            <div className="flex min-w-0 items-start gap-3">
+              <EntityAvatar name={team.name} color={team.color} avatarUrl={team.avatarUrl} size={32} />
+              <div className="min-w-0">
+                <p className="font-medium">{team.name}</p>
+                {team.roles.length ? (
+                  <p className="mt-1 flex flex-wrap gap-1" data-testid="team-roles">
+                    {team.roles.map((role) => (
+                      <Badge key={role.id} variant="muted">
+                        {role.name}
+                      </Badge>
+                    ))}
+                  </p>
+                ) : null}
+              </div>
             </div>
           );
         },
