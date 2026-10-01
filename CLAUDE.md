@@ -144,7 +144,10 @@ engine's anchor on the device's clock). The stems follow the same way
 `lib/output-clock.ts`, which pairs an AudioContext's clock with the
 device's; use it for anything else that must sound in time. A new thing to
 share goes in the session (`SyncSession`) the same way, as the leader's
-`update`.
+`update`. Screens (issue #186, `apps/api/src/screens/`) are read-only members
+of a set's session, signed in by their own token (`{type: "screen"}`); what
+they show is `SyncSession.presenting` - "this song, slide N" - and every
+client cuts a song into the same slides with `lyricSlides()` from core.
 
 ## Tests
 

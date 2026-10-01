@@ -9,6 +9,7 @@ import { flowToChordPro, lineToInlineText, readSongDocument, sectionsFromText, s
 import { beatAt, clicksBetween, normalizeMetronome, tapTempo } from "../metronome/index.js";
 import { clockOffset, deviceTime, metronomePositionAt, stemsPositionAt } from "../sync/index.js";
 import { cuesFromSections } from "../recording/cues.js";
+import { lyricSlides, normalizeScreenCode } from "../screens/index.js";
 import { CreateSongVersionSchema, UpdateSongVersionSchema } from "../requests/songs.js";
 import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
 import { UpdateUserSchema } from "../requests/accounts.js";
@@ -594,6 +595,34 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "steady at 120", args: [[0, 500, 1000, 1500, 2000]] },
           { name: "uneven", args: [[0, 480, 1010, 1490]] },
           { name: "one tap", args: [[0]] },
+        ],
+      },
+    },
+  },
+  {
+    area: "screens",
+    about:
+      "A set on a big screen (issue #186): the leader and each screen cut a song into the same slides, so only \"this song, slide N\" crosses the network; and the code a screen is paired by.",
+    functions: {
+      lyricSlides: {
+        about: "A chart's sung lines, `size` at a time, pass by pass: no notes, no line without words; a pass without words is one empty slide.",
+        params: ["song", "arrangement", "size"],
+        run: (song: unknown, arr: unknown, size: number) => lyricSlides(renderChart(read(song), arr ? arrangement(arr) : null), size),
+        cases: [
+          { name: "two lines at a time, as written", args: [SONG, null, 2] },
+          { name: "one at a time", args: [SONG, null, 1] },
+          { name: "an arrangement: changed words, an inserted line", args: [SONG, ARRANGEMENT, 2] },
+        ],
+      },
+      normalizeScreenCode: {
+        about: "A pairing code as typed, as it's kept: upper case, no spaces or dashes; null when it can't be one.",
+        params: ["input"],
+        run: (input: string) => normalizeScreenCode(input),
+        cases: [
+          { name: "as shown", args: ["K7Q-M3X"] },
+          { name: "typed in lower case with a space", args: ["k7q m3x"] },
+          { name: "a letter it never uses (O)", args: ["K7Q-O3X"] },
+          { name: "too short", args: ["K7QM"] },
         ],
       },
     },

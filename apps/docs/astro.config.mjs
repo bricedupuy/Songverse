@@ -56,6 +56,7 @@ export default defineConfig({
           translations: { fr: "Jouer ensemble" },
           items: [
             { slug: "sets" },
+            { slug: "screens" },
             { slug: "metronome" },
             { slug: "songbooks" },
             { slug: "teams" },

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ScreenRouteImport } from './routes/screen'
 import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
@@ -19,6 +20,7 @@ import { Route as ProtectedMetronomeRouteImport } from './routes/_protected/metr
 import { Route as ProtectedOfflineRouteImport } from './routes/_protected/offline'
 import { Route as ProtectedPeopleRouteImport } from './routes/_protected/people'
 import { Route as ProtectedReviewRouteImport } from './routes/_protected/review'
+import { Route as ProtectedScreensRouteImport } from './routes/_protected/screens'
 import { Route as ProtectedTunerRouteImport } from './routes/_protected/tuner'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as SetInviteTokenRouteImport } from './routes/set-invite.$token'
@@ -74,6 +76,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ScreenRoute = ScreenRouteImport.update({
+  id: '/screen',
+  path: '/screen',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProtectedAccountRoute = ProtectedAccountRouteImport.update({
   id: '/account',
   path: '/account',
@@ -107,6 +114,11 @@ const ProtectedPeopleRoute = ProtectedPeopleRouteImport.update({
 const ProtectedReviewRoute = ProtectedReviewRouteImport.update({
   id: '/review',
   path: '/review',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedScreensRoute = ProtectedScreensRouteImport.update({
+  id: '/screens',
+  path: '/screens',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedTunerRoute = ProtectedTunerRouteImport.update({
@@ -327,6 +339,7 @@ const ProtectedSetsSetlistIdSongsItemIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/screen': typeof ScreenRoute
   '/account': typeof ProtectedAccountRoute
   '/admin': typeof ProtectedAdminRouteWithChildren
   '/dashboard': typeof ProtectedDashboardRoute
@@ -334,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/offline': typeof ProtectedOfflineRoute
   '/people': typeof ProtectedPeopleRoute
   '/review': typeof ProtectedReviewRouteWithChildren
+  '/screens': typeof ProtectedScreensRoute
   '/tuner': typeof ProtectedTunerRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
@@ -378,11 +392,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/screen': typeof ScreenRoute
   '/account': typeof ProtectedAccountRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/metronome': typeof ProtectedMetronomeRoute
   '/offline': typeof ProtectedOfflineRoute
   '/people': typeof ProtectedPeopleRoute
+  '/screens': typeof ProtectedScreensRoute
   '/tuner': typeof ProtectedTunerRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
@@ -429,6 +445,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_protected': typeof ProtectedRouteWithChildren
   '/reset-password': typeof ResetPasswordRoute
+  '/screen': typeof ScreenRoute
   '/_protected/account': typeof ProtectedAccountRoute
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
   '/_protected/dashboard': typeof ProtectedDashboardRoute
@@ -436,6 +453,7 @@ export interface FileRoutesById {
   '/_protected/offline': typeof ProtectedOfflineRoute
   '/_protected/people': typeof ProtectedPeopleRoute
   '/_protected/review': typeof ProtectedReviewRouteWithChildren
+  '/_protected/screens': typeof ProtectedScreensRoute
   '/_protected/tuner': typeof ProtectedTunerRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
@@ -482,6 +500,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/reset-password'
+    | '/screen'
     | '/account'
     | '/admin'
     | '/dashboard'
@@ -489,6 +508,7 @@ export interface FileRouteTypes {
     | '/offline'
     | '/people'
     | '/review'
+    | '/screens'
     | '/tuner'
     | '/join/$token'
     | '/set-invite/$token'
@@ -533,11 +553,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/reset-password'
+    | '/screen'
     | '/account'
     | '/dashboard'
     | '/metronome'
     | '/offline'
     | '/people'
+    | '/screens'
     | '/tuner'
     | '/join/$token'
     | '/set-invite/$token'
@@ -583,6 +605,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_protected'
     | '/reset-password'
+    | '/screen'
     | '/_protected/account'
     | '/_protected/admin'
     | '/_protected/dashboard'
@@ -590,6 +613,7 @@ export interface FileRouteTypes {
     | '/_protected/offline'
     | '/_protected/people'
     | '/_protected/review'
+    | '/_protected/screens'
     | '/_protected/tuner'
     | '/join/$token'
     | '/set-invite/$token'
@@ -636,6 +660,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ProtectedRoute: typeof ProtectedRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ScreenRoute: typeof ScreenRoute
   JoinTokenRoute: typeof JoinTokenRoute
   SetInviteTokenRoute: typeof SetInviteTokenRoute
   TransferTokenRoute: typeof TransferTokenRoute
@@ -662,6 +687,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/screen': {
+      id: '/screen'
+      path: '/screen'
+      fullPath: '/screen'
+      preLoaderRoute: typeof ScreenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_protected/account': {
@@ -711,6 +743,13 @@ declare module '@tanstack/react-router' {
       path: '/review'
       fullPath: '/review'
       preLoaderRoute: typeof ProtectedReviewRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/screens': {
+      id: '/_protected/screens'
+      path: '/screens'
+      fullPath: '/screens'
+      preLoaderRoute: typeof ProtectedScreensRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/tuner': {
@@ -1053,6 +1092,7 @@ interface ProtectedRouteChildren {
   ProtectedOfflineRoute: typeof ProtectedOfflineRoute
   ProtectedPeopleRoute: typeof ProtectedPeopleRoute
   ProtectedReviewRoute: typeof ProtectedReviewRouteWithChildren
+  ProtectedScreensRoute: typeof ProtectedScreensRoute
   ProtectedTunerRoute: typeof ProtectedTunerRoute
   ProtectedLibrarySongVersionIdRoute: typeof ProtectedLibrarySongVersionIdRoute
   ProtectedLibraryArtistsRoute: typeof ProtectedLibraryArtistsRoute
@@ -1086,6 +1126,7 @@ const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedOfflineRoute: ProtectedOfflineRoute,
   ProtectedPeopleRoute: ProtectedPeopleRoute,
   ProtectedReviewRoute: ProtectedReviewRouteWithChildren,
+  ProtectedScreensRoute: ProtectedScreensRoute,
   ProtectedTunerRoute: ProtectedTunerRoute,
   ProtectedLibrarySongVersionIdRoute: ProtectedLibrarySongVersionIdRoute,
   ProtectedLibraryArtistsRoute: ProtectedLibraryArtistsRoute,
@@ -1123,6 +1164,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ProtectedRoute: ProtectedRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
+  ScreenRoute: ScreenRoute,
   JoinTokenRoute: JoinTokenRoute,
   SetInviteTokenRoute: SetInviteTokenRoute,
   TransferTokenRoute: TransferTokenRoute,

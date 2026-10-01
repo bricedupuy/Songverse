@@ -13,6 +13,7 @@ const PAGES: [RegExp, string][] = [
   [/^\/library\/[^/]+/, "song-editor"],
   [/^\/library/, "library"],
   [/^\/sets/, "sets"],
+  [/^\/screens/, "screens"],
   [/^\/songbook/, "songbooks"],
   [/^\/teams/, "teams"],
   [/^\/(admin|review)/, "admin"],

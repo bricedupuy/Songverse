@@ -19,6 +19,8 @@ import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamR
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
 import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
+import type { ConfirmScreenPairingRequest, UpdateScreenRequest } from "../requests/screens.js";
+import type { ScreenMode } from "../screens/index.js";
 import type {
   CreateCatalogSchema,
   CreateInviteLinkSchema,
@@ -445,6 +447,24 @@ export interface CustomInstrument {
 /** Admin > Instruments: who plays it. */
 export interface AdminCustomInstrument extends CustomInstrument {
   userCount: number;
+}
+
+/** A screen showing a set (issue #186). */
+export interface ScreenSummary {
+  id: string;
+  name: string;
+  mode: ScreenMode;
+  setlistId: string | null;
+  setlist: { id: string; name: string | null; eventDate: string | null } | null;
+  /** When it last loaded its set. */
+  lastSeenAt: string | null;
+  createdAt: string;
+}
+
+/** What a screen shows (GET /screens/current, with its own token): itself, and its set to keep - each song as the song view gives it - with the songs' credits. */
+export interface ScreenCurrent {
+  screen: ScreenSummary;
+  set: (SetlistOfflineCopy & { credits: Record<string, { writers: string[]; copyright: string | null; ccli: string | null }> }) | null;
 }
 
 /** Admin > Roles (issue #160): what a role allows, and how many have it. */
@@ -1900,6 +1920,14 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     /** The instruments an admin added (issue #166), for everyone's pickers and badges. */
     listCustomInstruments: () => request<CustomInstrument[]>("/instruments"),
     adminListInstruments: () => request<AdminCustomInstrument[]>("/admin/instruments"),
+    /** Screens (issue #186): a code a screen shows, before confirming it. */
+    checkScreenCode: (code: string) => request<{ code: string; expiresAt: string }>(`/screens/pairings/${encodeURIComponent(code)}`),
+    confirmScreenPairing: (code: string, data: ConfirmScreenPairingRequest) =>
+      request<ScreenSummary>(`/screens/pairings/${encodeURIComponent(code)}/confirm`, { method: "POST", body: JSON.stringify(data) }),
+    /** The screens showing a set (for who leads it), or the user's own. */
+    listScreens: (setlistId?: string) => request<ScreenSummary[]>(`/screens${setlistId ? `?setlistId=${encodeURIComponent(setlistId)}` : ""}`),
+    updateScreen: (screenId: string, data: UpdateScreenRequest) => request<ScreenSummary>(`/screens/${screenId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    deleteScreen: (screenId: string) => request<void>(`/screens/${screenId}`, { method: "DELETE" }),
     adminCreateInstrument: (data: CreateInstrumentRequest) => request<CustomInstrument>("/admin/instruments", { method: "POST", body: JSON.stringify(data) }),
     adminUpdateInstrument: (id: string, data: UpdateInstrumentRequest) => request<CustomInstrument>(`/admin/instruments/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     adminDeleteInstrument: (id: string) => request<void>(`/admin/instruments/${id}`, { method: "DELETE" }),

@@ -27,6 +27,7 @@ it shows in the diff for review. Never edit the JSON by hand.
 | `chart.json` | The chart a reader sees: arrangement, transposition, capo, preferences |
 | `arrangements.json` | Arrangements checked against a song, and moved to another song's IDs |
 | `timeline.json` | The metronome and sync play's timeline: clock offset, positions, clicks |
+| `screens.json` | A set on a big screen: songs cut into slides, pairing codes |
 | `requests.json` | What the API accepts, and the messages it refuses with |
 
 ## Format

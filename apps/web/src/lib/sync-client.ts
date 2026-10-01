@@ -6,6 +6,7 @@ import {
   type SyncClientMessage,
   type SyncMember,
   type SyncServerMessage,
+  type SyncPresenting,
   type SyncSession,
 } from "@songverse/core";
 import { useEffect, useRef, useSyncExternalStore } from "react";
@@ -396,6 +397,15 @@ export function endSync() {
   wantLead = false;
   keep();
   send({ type: "end" });
+}
+
+/**
+ * Leading: what the set's screens show (issue #186) - a slide of a song,
+ * black, or nothing (null: not presenting).
+ */
+export function publishPresenting(presenting: SyncPresenting | null) {
+  if (!state.leading) return;
+  send({ type: "update", presenting });
 }
 
 /** Leading: the set's song the leader has open, for the others to follow. */

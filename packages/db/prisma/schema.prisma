@@ -294,6 +294,8 @@ model User {
   ownedTags           Tag[]
   stemSeparations     StemSeparation[]
   roleAssignments     RoleAssignment[]
+  // The screens they paired (issue #186).
+  screens             Screen[]
   ownedSongbooks      Songbook[]             @relation("SongbookOwnerUser")
   importJobs          ImportJob[]
   uploadedAttachments Attachment[]           @relation("AttachmentUploader")
@@ -920,6 +922,8 @@ model Setlist {
   ownershipRequests SongOwnershipRequest[]
   // Multitracks recorded for this set (issue #127).
   multitrackFiles   Attachment[]           @relation("AttachmentMultitrackSetlist")
+  // The screens showing it (issue #186).
+  screens           Screen[]
 
   @@index([ownerUserId])
   @@index([ownerTeamId])
@@ -2150,4 +2154,33 @@ model CustomInstrument {
   translations Json? // per locale, e.g. {"fr": "Contrebasse"}
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+// A big screen showing a set (issue #186): a TV's browser, a laptop on
+// HDMI, the Google TV app (#187). Paired by a code someone who leads the set
+// confirms; then it signs in with its own token - kept only as a hash here -
+// which reads the set it's given and nothing else. Deleting it disconnects
+// the screen.
+model Screen {
+  id          String     @id @default(cuid())
+  name        String
+  mode        ScreenMode @default(LYRICS)
+  tokenHash   String     @unique
+  // Who paired it: it reads the set as they would, and only they change it.
+  ownerUserId String
+  setlistId   String?
+  lastSeenAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  owner   User     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  setlist Setlist? @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+
+  @@index([ownerUserId])
+  @@index([setlistId])
+}
+
+enum ScreenMode {
+  LYRICS
+  CHART
 }

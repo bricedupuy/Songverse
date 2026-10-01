@@ -8,6 +8,7 @@ import { MetronomeSongButton } from "#/components/metronome";
 import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
+import { PresentPanel } from "#/components/present-panel";
 import { SongChart } from "#/components/song-chart";
 import { SyncControl } from "#/components/sync-control";
 import { SidebarTrigger } from "#/components/ui/sidebar";
@@ -273,7 +274,7 @@ export function LiveView({ song }: { song: LiveSong }) {
         {/* Its chart or its PDF (issue #155), when it has one. */}
         {song.reading ? <ViewSwitch reading={song.reading} compact /> : null}
         {/* The song's tempo and time signature, one press (issue #2); the rest on the Metronome page. */}
-        {song.setId ? <SyncControl setId={song.setId} compact /> : null}
+        {song.setId ? <SyncControl setId={song.setId} itemId={song.id} compact /> : null}
         <MetronomeSongButton songId={song.id} tempo={chart?.tempo} timeSignature={chart?.timeSignature} />
         <CommandSearch />
         {fullScreen.available ? (
@@ -326,6 +327,9 @@ export function LiveView({ song }: { song: LiveSong }) {
           {inSet ? <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">{song.nextLabel}</p> : null}
         </div>
       </main>
+
+      {/* Presenting on the set's screens (issue #186), leading its session. */}
+      {song.setId ? <PresentPanel setId={song.setId} itemId={song.id} chart={chart} next={next} previous={previous} onSlidePass={goToPass} /> : null}
 
       <footer className="flex shrink-0 items-center gap-1 border-t bg-card px-2 py-2 sm:gap-2 sm:px-4">
         {inSet ? (

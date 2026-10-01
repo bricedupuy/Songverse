@@ -272,6 +272,42 @@ try {
     await syncItem(/^(Turn sync off|Désactiver la synchro)$/).click();
     // Live mode (it's remembered, so back to Edit for the rest).
     await shoot("live", `/sets/${set.id}/live/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
+    // Screens (issue #186): a big screen showing its code, paired from /screens, then the set presented from Live.
+    const tvContext = await browser.newContext({ viewport: { width: 1280, height: 720 }, locale: locale === "fr" ? "fr-FR" : "en-US" });
+    const tv = await tvContext.newPage();
+    const shootTv = async (name) => {
+      await tv.waitForTimeout(500);
+      await tv.screenshot({ path: path.join(dir, `${name}.jpg`), type: "jpeg", quality: 85 });
+      console.log(`  ${name}`);
+    };
+    await tv.goto(`${WEB}/screen`);
+    await tv.getByTestId("screen-pairing").waitFor();
+    await shootTv("screen-code");
+    const screenCode = (await tv.getByTestId("screen-code").innerText()).replace("-", "");
+    await shoot("screens-pair", `/screens?code=${screenCode}&setlistId=${set.id}`, () => page.getByTestId("screen-pair-form").waitFor());
+    await page.getByTestId("screen-pair-form").getByRole("button").click();
+    await page.getByTestId("screen-paired").waitFor();
+    await tv.locator('[data-testid="screen-display"][data-state="showing"]').waitFor({ timeout: 15000 });
+    await page.goto(`${WEB}/sets/${set.id}/live/${items[0].id}`);
+    await syncControl.first().click();
+    await syncItem(/^(Turn sync on|Activer la synchro)$/).click();
+    await page.locator('[data-testid="sync-control"][data-state-sync="on"]').first().waitFor();
+    await syncControl.first().click();
+    await syncItem(/^(Lead the set|Mener la liste)$/).click();
+    await page.locator('[data-testid="sync-control"][data-state-sync="leading"]').first().waitFor();
+    await syncControl.first().click();
+    await page.getByTestId("sync-present").click();
+    await page.getByTestId("present-panel").waitFor();
+    await page.getByTestId("present-next").click();
+    await tv.locator('[data-testid="screen-showing"][data-slide="1"]').getByTestId("screen-lyrics").waitFor({ timeout: 10000 });
+    await shoot("present-panel", null, null, { element: page.getByTestId("present-panel") });
+    await shootTv("screen-lyrics");
+    await syncControl.first().click();
+    await syncItem(/^(End the session|Terminer la session)$/).click();
+    await syncControl.first().click();
+    await syncItem(/^(Turn sync off|Désactiver la synchro)$/).click();
+    for (const screen of await api(me, "GET", "/screens")) await api(me, "DELETE", `/screens/${screen.id}`);
+    await tvContext.close();
     // Practice: the song's stems, docked at the bottom - minimised, then expanded - one muted.
     await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
     // Practice: a library song is its chart (issue #67).

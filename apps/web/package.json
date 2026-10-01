@@ -41,7 +41,8 @@
     "react-easy-crop": "^6.2.3",
     "react-i18next": "^17.0.14",
     "signalsmith-stretch": "^1.3.2",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "uqr": "0.1.2"
   },
   "devDependencies": {
     "@songverse/tsconfig": "workspace:*",

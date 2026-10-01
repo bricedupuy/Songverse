@@ -454,3 +454,21 @@ body.sv-dragging {
   padding-inline: var(--bleed);
   scroll-padding-inline: var(--bleed);
 }
+
+/* A screen's slide coming in (issue #186): a short crossfade, none when motion is reduced. */
+@keyframes screen-slide-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.screen-slide {
+  animation: screen-slide-in 0.35s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen-slide {
+    animation: none;
+  }
+}

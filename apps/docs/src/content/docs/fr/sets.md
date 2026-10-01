@@ -79,6 +79,7 @@ Avec **Synchro**, tous ceux d'une liste jouent ensemble : une personne mène, et
 - Quand le meneur lance les pistes ou l'enregistrement d'un chant (sur la page d'un chant de la liste, en mode Session), chacun joue le même chant au même instant : la pause et la tête de lecture suivent aussi, comme le multipiste et la transposition du meneur, et chacun garde ses propres parties coupées et en solo. Les fichiers de chacun se téléchargent dès que la page du meneur ouvre le chant ; un appareil pas encore prêt rejoint à la position en cours. En Live, où il n'y a pas de lecteur, le petit bouton en bas à droite montre le chant en lecture. **Clic avec l'enregistrement** rend le métronome de chacun calé sur l'enregistrement (voir [Pistes](/fr/library/#pistes)).
 - Quand le meneur passe à un autre chant de la liste, en Live ou sur sa page, l'écran de chacun suit. Vous pouvez regarder un autre chant entre-temps : au prochain changement du meneur, vous suivez à nouveau.
 - Si un appareil perd sa connexion, son métronome garde le tempo seul, et se recale à son retour. Si le meneur perd la sienne, la session continue, et il reprend la main à son retour.
+- Qui mène peut aussi présenter la liste sur grand écran, ses paroles pour l'assemblée ou sa grille pour le groupe : voir [Écrans](/fr/screens/).
 - **Terminer la session** arrête le métronome de chacun.
 - Quelqu'un qui ne peut plus ouvrir la liste (retiré de son équipe, par exemple) cesse de la suivre dans la demi-minute, et quelqu'un qui ne peut plus la modifier cesse de la mener.
 

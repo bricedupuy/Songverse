@@ -1,5 +1,5 @@
 import { Injectable, Logger, type OnModuleDestroy } from "@nestjs/common";
-import { STEM_SPEED_MAX, STEM_SPEED_MIN, SYNC_PATH, type SyncClientMessage, type SyncMember, type SyncMetronome, type SyncServerMessage, type SyncSession, type SyncStems } from "@songverse/core";
+import { STEM_SPEED_MAX, STEM_SPEED_MIN, SYNC_PATH, type SyncClientMessage, type SyncMember, type SyncMetronome, type SyncPresenting, type SyncScreenInfo, type SyncServerMessage, type SyncSession, type SyncStems } from "@songverse/core";
 import type { Redis } from "ioredis";
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage, Server } from "node:http";
@@ -10,6 +10,7 @@ import { JwtVerifierService } from "../auth/jwt-verifier.service.js";
 import { redis } from "../jobs/redis.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { capabilitiesOf } from "../roles/capabilities.js";
+import { SCREEN_CHANNEL, ScreensService } from "../screens/screens.service.js";
 import { SetlistAccessService } from "../setlists/setlist-access.service.js";
 
 /** A session outlasts its leader's last change by this long, then goes. */
@@ -46,9 +47,17 @@ interface Connection {
   lastMessageAt: number;
   socket: WebSocket;
   user: (AuthenticatedUser & { name: string }) | null;
+  /** A screen (issue #186), signed in by its own token: it follows its set, never leads. */
+  screen: SyncScreenInfo | null;
   setId: string | null;
   canLead: boolean;
   accessCheckedAt: number;
+  /**
+   * Its messages handled one after the other (pings aside): a leader's two
+   * quick updates - another song, then its slide - each read the session and
+   * write it back, so handled together the first could write over the second.
+   */
+  queue: Promise<void>;
 }
 
 /**
@@ -76,6 +85,7 @@ export class SyncServer implements OnModuleDestroy {
     private readonly jwt: JwtVerifierService,
     private readonly prisma: PrismaService,
     private readonly access: SetlistAccessService,
+    private readonly screens: ScreensService,
   ) {}
 
   /** Takes the WebSocket upgrades to /sync on the API's HTTP server (not in the Worker). */
@@ -87,8 +97,8 @@ export class SyncServer implements OnModuleDestroy {
       this.wss!.handleUpgrade(request, socket, head, (ws) => this.connected(ws));
     });
     this.subscriber = redis().duplicate();
-    this.subscriber.subscribe(CHANNEL).catch((err: unknown) => this.logger.error(`Can't listen for sync changes: ${String(err)}`));
-    this.subscriber.on("message", (_channel, setId: string) => void this.broadcastLocal(setId));
+    this.subscriber.subscribe(CHANNEL, SCREEN_CHANNEL).catch((err: unknown) => this.logger.error(`Can't listen for sync changes: ${String(err)}`));
+    this.subscriber.on("message", (channel, id: string) => void (channel === SCREEN_CHANNEL ? this.screenChanged(id) : this.broadcastLocal(id)));
     this.presenceTimer = setInterval(() => void this.refreshPresence(), PRESENCE_MS);
   }
 
@@ -100,11 +110,11 @@ export class SyncServer implements OnModuleDestroy {
   }
 
   private connected(socket: WebSocket) {
-    const connection: Connection = { id: randomUUID(), allowance: MESSAGE_BURST, lastMessageAt: Date.now(), socket, user: null, setId: null, canLead: false, accessCheckedAt: 0 };
+    const connection: Connection = { id: randomUUID(), allowance: MESSAGE_BURST, lastMessageAt: Date.now(), socket, user: null, screen: null, setId: null, canLead: false, accessCheckedAt: 0, queue: Promise.resolve() };
     this.connections.set(connection.id, connection);
     // A device that doesn't sign in soon is dropped.
     const signIn = setTimeout(() => {
-      if (!connection.user) socket.close(4001, "Sign in first");
+      if (!connection.user && !connection.screen) socket.close(4001, "Sign in first");
     }, 10_000);
     socket.on("message", (data) => {
       const now = Date.now();
@@ -117,10 +127,13 @@ export class SyncServer implements OnModuleDestroy {
       } catch {
         return this.send(connection, { type: "error", code: "bad-request", message: "Not JSON" });
       }
-      this.handle(connection, message).catch((err: unknown) => {
+      const failed = (err: unknown) => {
         this.logger.warn(`Sync message failed: ${err instanceof Error ? err.message : String(err)}`);
         this.send(connection, { type: "error", code: "bad-request", message: "Something went wrong" });
-      });
+      };
+      // The clock's pings at once, so they measure the network and not the queue.
+      if (message?.type === "ping") return void this.handle(connection, message).catch(failed);
+      connection.queue = connection.queue.then(() => this.handle(connection, message)).catch(failed);
     });
     socket.on("close", () => {
       clearTimeout(signIn);
@@ -143,6 +156,9 @@ export class SyncServer implements OnModuleDestroy {
       return;
     }
     if (message.type === "hello") return this.signIn(connection, message.token);
+    if (message.type === "screen") return this.signInScreen(connection, message.token);
+    // A screen only follows: it pings, and that's all.
+    if (connection.screen) return this.send(connection, { type: "error", code: "forbidden", message: "A screen only follows its set" });
     if (!connection.user) return this.send(connection, { type: "error", code: "unauthorized", message: "Sign in first" });
     switch (message.type) {
       case "join":
@@ -178,6 +194,51 @@ export class SyncServer implements OnModuleDestroy {
     }
   }
 
+  /** A screen signing in (issue #186): its token, then its set, joined at once. */
+  private async signInScreen(connection: Connection, token: string) {
+    const screen = await this.screens.byToken(String(token));
+    if (!screen) return this.send(connection, { type: "error", code: "disconnected", message: "This screen was disconnected" });
+    connection.screen = { id: screen.id, name: screen.name, mode: screen.mode, setId: screen.setlistId };
+    connection.accessCheckedAt = Date.now();
+    this.send(connection, { type: "screen", screen: connection.screen });
+    if (screen.setlistId) await this.joinAsScreen(connection, screen.setlistId);
+  }
+
+  private async joinAsScreen(connection: Connection, setId: string) {
+    if (connection.setId) await this.leaveSet(connection);
+    connection.setId = setId;
+    connection.canLead = false;
+    await this.present(connection);
+    await this.changed(setId);
+  }
+
+  /** A screen changed or was deleted (announced by ScreensService): its connections here are told, moved or dropped. */
+  private async screenChanged(screenId: string) {
+    const mine = [...this.connections.values()].filter((connection) => connection.screen?.id === screenId);
+    if (mine.length === 0) return;
+    const screen = await this.prisma.client.screen.findUnique({ where: { id: screenId }, select: { id: true, name: true, mode: true, setlistId: true } });
+    for (const connection of mine) await this.refreshScreen(connection, screen);
+  }
+
+  private async refreshScreen(connection: Connection, screen: { id: string; name: string; mode: "LYRICS" | "CHART"; setlistId: string | null } | null) {
+    if (!screen) {
+      await this.leaveSet(connection);
+      this.send(connection, { type: "error", code: "disconnected", message: "This screen was disconnected" });
+      connection.socket.close(4003, "Disconnected");
+      return;
+    }
+    const before = connection.screen;
+    connection.screen = { id: screen.id, name: screen.name, mode: screen.mode, setId: screen.setlistId };
+    this.send(connection, { type: "screen", screen: connection.screen });
+    if (screen.setlistId !== connection.setId) {
+      if (screen.setlistId) await this.joinAsScreen(connection, screen.setlistId);
+      else await this.leaveSet(connection);
+    } else if (before?.name !== screen.name && connection.setId) {
+      await this.present(connection);
+      await this.changed(connection.setId);
+    }
+  }
+
   private async join(connection: Connection, setId: string) {
     if (connection.setId) await this.leaveSet(connection);
     const set = typeof setId === "string" ? await this.prisma.client.setlist.findUnique({ where: { id: setId }, select: { id: true, ownerUserId: true, ownerTeamId: true } }) : null;
@@ -197,6 +258,13 @@ export class SyncServer implements OnModuleDestroy {
    */
   private async stillAllowed(connection: Connection): Promise<boolean> {
     const setId = connection.setId;
+    if (connection.screen) {
+      // A screen: still there, still on this set (its pairer could be changing it from elsewhere).
+      if (Date.now() - connection.accessCheckedAt < ACCESS_RECHECK_MS) return !!setId;
+      connection.accessCheckedAt = Date.now();
+      await this.refreshScreen(connection, await this.prisma.client.screen.findUnique({ where: { id: connection.screen.id }, select: { id: true, name: true, mode: true, setlistId: true } }));
+      return !!connection.setId;
+    }
     if (!setId || Date.now() - connection.accessCheckedAt < ACCESS_RECHECK_MS) return !!setId;
     connection.accessCheckedAt = Date.now();
     const [user, set] = await Promise.all([
@@ -234,6 +302,7 @@ export class SyncServer implements OnModuleDestroy {
       metronome: current?.metronome ?? null,
       stems: current?.stems ?? null,
       itemId: current?.itemId ?? null,
+      presenting: current?.presenting ?? null,
     };
     await this.write(setId, session);
   }
@@ -255,6 +324,10 @@ export class SyncServer implements OnModuleDestroy {
       next.stems = message.stems;
     }
     if (message.itemId !== undefined) next.itemId = typeof message.itemId === "string" ? message.itemId.slice(0, 64) : null;
+    if (message.presenting !== undefined) {
+      if (message.presenting !== null && !validPresenting(message.presenting)) return this.send(connection, { type: "error", code: "bad-request", message: "Invalid presenting" });
+      next.presenting = message.presenting;
+    }
     await this.write(setId, next);
   }
 
@@ -282,8 +355,10 @@ export class SyncServer implements OnModuleDestroy {
   }
 
   private async present(connection: Connection) {
-    if (!connection.setId || !connection.user) return;
-    const member = { id: connection.user.id, name: connection.user.name, at: Date.now() };
+    if (!connection.setId || (!connection.user && !connection.screen)) return;
+    const member = connection.screen
+      ? { id: connection.screen.id, name: connection.screen.name, screen: true, at: Date.now() }
+      : { id: connection.user!.id, name: connection.user!.name, at: Date.now() };
     await redis().hset(membersKey(connection.setId), `${this.instance}:${connection.id}`, JSON.stringify(member));
     await redis().expire(membersKey(connection.setId), SESSION_TTL_S);
   }
@@ -299,9 +374,9 @@ export class SyncServer implements OnModuleDestroy {
     const [stored, rawMembers] = await Promise.all([this.read(setId), redis().hgetall(membersKey(setId))]);
     const now = Date.now();
     const present = Object.entries(rawMembers)
-      .map(([conn, raw]) => ({ conn, ...(JSON.parse(raw) as { id: string; name: string; at: number }) }))
+      .map(([conn, raw]) => ({ conn, ...(JSON.parse(raw) as { id: string; name: string; at: number; screen?: boolean }) }))
       .filter((member) => now - member.at < PRESENCE_MS * 2);
-    const members: SyncMember[] = present.map((member) => ({ id: member.id, name: member.name, leading: member.conn === stored?.leader.conn }));
+    const members: SyncMember[] = present.map((member) => ({ id: member.id, name: member.name, leading: member.conn === stored?.leader.conn, ...(member.screen ? { screen: true } : {}) }));
     const session: SyncSession | null = stored
       ? { ...stored, leader: { id: stored.leader.id, name: stored.leader.name, online: present.some((member) => member.conn === stored.leader.conn) } }
       : null;
@@ -337,6 +412,18 @@ function validStems(value: SyncStems): boolean {
     Number.isFinite(value.position) &&
     value.position >= 0 &&
     Number.isFinite(value.anchorAt)
+  );
+}
+
+function validPresenting(value: SyncPresenting): boolean {
+  return (
+    typeof value === "object" &&
+    typeof value.itemId === "string" &&
+    value.itemId.length <= 64 &&
+    Number.isInteger(value.slide) &&
+    value.slide >= 0 &&
+    value.slide < 10_000 &&
+    typeof value.black === "boolean"
   );
 }
 

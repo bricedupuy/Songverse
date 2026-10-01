@@ -1,4 +1,5 @@
-import { RadioTower, Volume2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { MonitorUp, Presentation, RadioTower, Volume2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import {
@@ -11,15 +12,16 @@ import {
 } from "#/components/ui/dropdown-menu";
 import { useMetronome } from "#/lib/metronome-engine";
 import { useStems } from "#/lib/stem-engine";
-import { disableSync, enableSync, endSync, leadSync, unlockSyncAudio, useSync } from "#/lib/sync-client";
+import { disableSync, enableSync, endSync, leadSync, publishPresenting, unlockSyncAudio, useSync } from "#/lib/sync-client";
 import { cn } from "#/lib/utils";
 
 /**
  * Sync play (issue #13) for a set: on or off, who leads, and Lead or End
  * for those who can edit the set. On a set's page, its songs and Live.
  */
-export function SyncControl({ setId, compact = false, className }: { setId: string; compact?: boolean; className?: string }) {
+export function SyncControl({ setId, itemId, compact = false, className }: { setId: string; itemId?: string; compact?: boolean; className?: string }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const sync = useSync();
   const metronome = useMetronome();
   const on = sync.setId === setId && sync.status !== "off";
@@ -61,7 +63,7 @@ export function SyncControl({ setId, compact = false, className }: { setId: stri
           </span>
           {on && sync.members.length > 0 ? (
             <span className="text-xs font-normal text-muted-foreground" data-testid="sync-members">
-              {t("sync.inSync", { count: sync.members.length })} · {[...new Set(sync.members.map((member) => member.name))].slice(0, 6).join(", ")}
+              {t("sync.inSync", { count: sync.members.length })} · {[...new Set(sync.members.map((member) => (member.screen ? t("screens.memberName", { name: member.name }) : member.name)))].slice(0, 6).join(", ")}
             </span>
           ) : null}
         </DropdownMenuLabel>
@@ -86,6 +88,22 @@ export function SyncControl({ setId, compact = false, className }: { setId: stri
           <>
             {sync.canLead && !sync.leading && sync.status === "on" ? (
               <DropdownMenuItem onClick={leadSync}>{session ? t("sync.leadInstead") : t("sync.lead")}</DropdownMenuItem>
+            ) : null}
+            {/* Screens (issue #186): presenting the set on them, from Live, and adding one. */}
+            {sync.leading && itemId ? (
+              <DropdownMenuItem
+                onClick={() => publishPresenting(session?.presenting ? null : { itemId, slide: 0, black: false })}
+                data-testid="sync-present"
+              >
+                <Presentation />
+                {session?.presenting ? t("screens.stopPresenting") : t("screens.present")}
+              </DropdownMenuItem>
+            ) : null}
+            {sync.canLead ? (
+              <DropdownMenuItem onClick={() => void navigate({ to: "/screens", search: { setlistId: setId } })} data-testid="sync-screens">
+                <MonitorUp />
+                {t("screens.addScreen")}
+              </DropdownMenuItem>
             ) : null}
             {sync.canLead && session ? (
               <DropdownMenuItem variant="destructive" onClick={endSync} title={t("sync.endConfirm")}>

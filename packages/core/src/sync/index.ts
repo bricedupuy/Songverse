@@ -40,6 +40,26 @@ export interface SyncStems {
   anchorAt: number;
 }
 
+/**
+ * What the leader shows on the set's screens (issue #186): a slide of a song
+ * of the set, as lyricSlides() cuts it, or nothing (`black`).
+ */
+export interface SyncPresenting {
+  itemId: string;
+  slide: number;
+  /** The screens go black (between songs, or while someone speaks). */
+  black: boolean;
+}
+
+/** A screen as it's told what it is (issue #186). */
+export interface SyncScreenInfo {
+  id: string;
+  name: string;
+  mode: "LYRICS" | "CHART";
+  /** The set it shows; null until it's given one. */
+  setId: string | null;
+}
+
 export interface SyncSession {
   /** Goes up with each change. */
   rev: number;
@@ -49,26 +69,34 @@ export interface SyncSession {
   stems?: SyncStems | null;
   /** The set item the leader has open, for followers to follow; null when none. */
   itemId: string | null;
+  /** What the set's screens show (issue #186); null or left out when nobody's presenting. */
+  presenting?: SyncPresenting | null;
 }
 
 export interface SyncMember {
   id: string;
   name: string;
   leading: boolean;
+  /** A screen (issue #186), not a person: it only shows what's presented. */
+  screen?: boolean;
 }
 
 export type SyncClientMessage =
   | { type: "hello"; token: string }
+  /** A screen signs in with its screen token (issue #186), in place of hello; it joins its set by itself. */
+  | { type: "screen"; token: string }
   | { type: "ping"; id: number; sent: number }
   | { type: "join"; setId: string }
   | { type: "leave" }
   /** Starts a session, or takes over the lead of the one going on. */
   | { type: "lead" }
-  | { type: "update"; metronome?: SyncMetronome | null; stems?: SyncStems | null; itemId?: string | null }
+  | { type: "update"; metronome?: SyncMetronome | null; stems?: SyncStems | null; itemId?: string | null; presenting?: SyncPresenting | null }
   | { type: "end" };
 
 export type SyncServerMessage =
   | { type: "ready"; userId: string }
+  /** To a screen: what it is, again whenever that changes (renamed, another mode or set). Then it's gone: disconnected. */
+  | { type: "screen"; screen: SyncScreenInfo }
   | { type: "pong"; id: number; sent: number; at: number }
   | {
       type: "session";
@@ -80,7 +108,7 @@ export type SyncServerMessage =
       /** This user may lead (they can edit the set). */
       canLead: boolean;
     }
-  | { type: "error"; code: "unauthorized" | "not-found" | "forbidden" | "bad-request"; message: string };
+  | { type: "error"; code: "unauthorized" | "not-found" | "forbidden" | "bad-request" | "disconnected"; message: string };
 
 /** One ping's round trip: sent and received on the device's clock, `at` on the server's (all ms). */
 export interface ClockSample {

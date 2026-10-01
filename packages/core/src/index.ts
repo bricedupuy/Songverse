@@ -42,6 +42,7 @@ export * from "./song-history/index.js";
 export * from "./song-document/fold.js";
 export * from "./metronome/index.js";
 export * from "./sync/index.js";
+export * from "./screens/index.js";
 export * from "./file-types/index.js";
 export * from "./requests/index.js";
 export * from "./pdf-chart/index.js";
