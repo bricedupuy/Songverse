@@ -166,18 +166,15 @@ function Dashboard() {
           <h2 className="text-lg font-semibold">{t("dashboard.settings")}</h2>
           <p className="text-sm text-muted-foreground">{t("dashboard.settingsDescription")}</p>
         </div>
-        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-          <div className="flex flex-col gap-6">
-            <ProfileCard profile={profile} />
-            <RolesCard profile={profile} customInstruments={customInstruments} />
-          </div>
-          <div className="flex flex-col gap-6">
-            <EmailCard email={profile.email} />
-            <PasskeysCard />
-            <StorageCard storage={storage} />
-            <LanguageCard locale={profile.locale} />
-            <ChartDisplayCard profile={profile} />
-          </div>
+        {/* Flowed down two columns, three with room (issue #177), in reading order: a card never split. */}
+        <div className="gap-6 lg:columns-2 @7xl:columns-3 [&>*]:mb-6 [&>*]:break-inside-avoid">
+          <ProfileCard profile={profile} />
+          <RolesCard profile={profile} customInstruments={customInstruments} />
+          <EmailCard email={profile.email} />
+          <PasskeysCard />
+          <StorageCard storage={storage} />
+          <LanguageCard locale={profile.locale} />
+          <ChartDisplayCard profile={profile} />
         </div>
       </section>
     </div>

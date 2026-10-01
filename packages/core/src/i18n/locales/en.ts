@@ -62,6 +62,11 @@ const en = {
     },
   },
   chart: {
+    columns: "Columns",
+    columnsAuto: "Columns: as many as fit",
+    columnsAutoShort: "Auto",
+    columnsCount_one: "{{count}} column",
+    columnsCount_other: "Up to {{count}} columns",
     keyChange: "Key: {{key}}",
     differs: "Changed in this version",
     problems_one: "{{count}} change no longer matches the song",

@@ -62,6 +62,11 @@ const fr: typeof en = {
     },
   },
   chart: {
+    columns: "Colonnes",
+    columnsAuto: "Colonnes : autant que la place le permet",
+    columnsAutoShort: "Auto",
+    columnsCount_one: "{{count}} colonne",
+    columnsCount_other: "Jusqu'à {{count}} colonnes",
     keyChange: "Tonalité : {{key}}",
     differs: "Modifié dans cette version",
     problems_one: "{{count}} modification ne correspond plus au chant",

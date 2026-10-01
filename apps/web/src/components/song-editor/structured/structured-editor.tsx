@@ -137,7 +137,14 @@ export function StructuredEditor({
     <div className="flex flex-col gap-3">
       <Toolbar editor={editor} mode={mode} onModeChange={setMode} songKey={songKey} onSongKeyChange={onSongKeyChange} />
       {sections.length > 0 && mode !== "text" ? <SongOrder sections={sections} flow={flow} onChange={onFlowChange} songKey={songKey} /> : null}
-      <div className={cn("grid grid-cols-1 gap-4", mode === "visual" && "lg:grid-cols-[13rem_minmax(0,1fr)]")}>
+      {/* With room (issue #177), the chart as it will read beside the editor. */}
+      <div
+        className={cn(
+          "grid grid-cols-1 gap-4",
+          mode === "visual" && "lg:grid-cols-[13rem_minmax(0,1fr)] @7xl:grid-cols-[13rem_minmax(0,1fr)_minmax(0,1fr)]",
+          mode === "text" && "@7xl:grid-cols-2",
+        )}
+      >
         {mode === "visual" && editor ? <Palette editor={editor} songKey={songKey} sections={sections} /> : null}
         <div className={cn("relative min-w-0", mode !== "visual" && "hidden")} data-editor-container="">
           <EditorContent editor={editor} className="sv-editor" />
@@ -146,6 +153,12 @@ export function StructuredEditor({
         </div>
         {mode === "text" ? <TextMode sections={sections} onChange={(next) => onChangeRef.current(next)} /> : null}
         {mode === "preview" ? <SongChart chart={chartOfSections(sections, flow, songKey || null)} emptyText={t("songEditor.previewEmpty")} /> : null}
+        {mode !== "preview" ? (
+          <aside className="hidden min-w-0 flex-col gap-2 border-l pl-6 @7xl:flex" aria-label={t("structuredEditor.modes.preview")} data-testid="editor-side-preview">
+            <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("structuredEditor.modes.preview")}</p>
+            <SongChart chart={chartOfSections(sections, flow, songKey || null)} emptyText={t("songEditor.previewEmpty")} />
+          </aside>
+        ) : null}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
 import { AlertTriangle } from "lucide-react";
 import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
+import type { ChartColumns } from "#/lib/chart-columns";
 import { cn } from "#/lib/utils";
 
 // Section types with a heading of their own; "other" has none.
@@ -35,10 +36,13 @@ export function SongChart({
   chart,
   emptyText,
   onChordClick,
+  columns = "1",
 }: {
   chart: RenderedChart;
   emptyText?: string;
   onChordClick?: (chordId: string) => void;
+  /** Flowed into columns on a wide screen (issue #177): as many as fit, or up to 2 or 3; a section never split. */
+  columns?: ChartColumns;
 }) {
   const { t } = useTranslation();
   if (chart.passes.length === 0) {
@@ -47,8 +51,18 @@ export function SongChart({
   const labelFor = (pass: RenderedPass) =>
     pass.label ?? pass.section.label ?? (LABELLED_SECTIONS.has(pass.section.type) ? t(`chart.sections.${pass.section.type}`) : null);
 
+  const flowed = columns !== "1";
   return (
-    <div className="flex flex-col gap-5 font-mono text-sm leading-snug">
+    <div
+      className={cn(
+        "font-mono text-sm leading-snug",
+        flowed ? "gap-x-12 [column-rule:1px_solid_var(--color-border)] [&>[data-pass]]:mb-5 [&>[data-pass]]:break-inside-avoid" : "flex flex-col gap-5",
+      )}
+      // Auto: as many columns of at least 24rem as fit; 2 or 3: up to that many, never narrower than 18rem (a phone keeps one).
+      style={flowed ? { columns: columns === "auto" ? "24rem" : `${columns} 18rem` } : undefined}
+      data-columns={columns}
+      data-testid="song-chart"
+    >
       {chart.passes.map((pass) => {
         const heading = pass.section.showLabel === false ? null : labelFor(pass);
         return (

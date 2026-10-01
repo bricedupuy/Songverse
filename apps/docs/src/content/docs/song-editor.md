@@ -11,7 +11,7 @@ The editor has three modes, at the top left:
 
 - **Visual** - the chart with chords sitting over the words. This is where you'll spend most of your time.
 - **Text** - the same chart as ChordPro text, for quick bulk edits. Chords and lines you don't change stay as they were.
-- **Preview** - the chart as players will see it.
+- **Preview** - the chart as players will see it. On a wide screen it's also shown beside **Visual** and **Text**, updated as you type.
 
 ## Chords
 

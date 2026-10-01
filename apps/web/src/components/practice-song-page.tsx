@@ -4,6 +4,8 @@ import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MetronomeSongButton } from "#/components/metronome";
+import { ChartColumnsPicker } from "#/components/chart-columns-picker";
+import { useChartColumns } from "#/lib/chart-columns";
 import { SongChart } from "#/components/song-chart";
 import { ChartOrPdf, songViewStore } from "#/components/chart-or-pdf";
 import { StemDock } from "#/components/stem-dock";
@@ -39,6 +41,7 @@ export function PracticeSongPage({
 }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
+  const columns = useChartColumns();
   const chart = useMemo(
     () =>
       renderChart(version.documentJson, null, {
@@ -94,8 +97,9 @@ export function PracticeSongPage({
       {/* The chart, or its PDF (issue #152). */}
       <ChartOrPdf songVersionId={version.id} attachments={attachments} defaultView={liveView} store={songViewStore(version.id)}>
         <Card>
-          <CardContent>
-            <SongChart chart={chart} emptyText={t("sets.noChart")} />
+          <CardContent className="flex flex-col gap-3">
+            <ChartColumnsPicker className="self-end" />
+            <SongChart chart={chart} emptyText={t("sets.noChart")} columns={columns} />
           </CardContent>
         </Card>
       </ChartOrPdf>

@@ -1,0 +1,86 @@
+// The whole width of the screen (issue #177): the page column fills the main
+// area; a long chart flows into columns on a wide screen - Auto, or up to 2
+// or 3, remembered on the device - a section never split between two, one
+// column on a phone; Live the same; the editor's preview beside it.
+import { chromium } from "playwright";
+import { WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+
+let page;
+const step = stepper(() => page);
+const me = await user("Wide");
+const verse = (n) => `{start_of_verse: Verse ${n}}\n[G]Amazing grace how [C]sweet the sound\n[G]That saved a wretch like [D]me\n[G]I once was lost but [C]now am found\n[G]Was blind but [D]now I [G]see\n{end_of_verse}\n`;
+const song = await api(me, "POST", "/song-versions", { title: `Wide ${stamp}`, language: "en", artists: ["Band"], content: [1, 2, 3, 4, 5, 6].map(verse).join(""), contentFormat: "CHORDPRO" });
+
+/** Each pass's left edge and how many boxes it's drawn in (more than one: split between columns). */
+const passes = () =>
+  page.getByTestId("song-chart").first().evaluate((chart) =>
+    [...chart.querySelectorAll(":scope > [data-pass]")].map((pass) => ({ left: Math.round(pass.getBoundingClientRect().left), boxes: pass.getClientRects().length })),
+  );
+const columnsOf = async () => new Set((await passes()).map((pass) => pass.left)).size;
+
+const browser = await chromium.launch();
+try {
+  page = await browser.newPage({ viewport: { width: 2560, height: 1300 } });
+  await signIn(page, me);
+
+  await step("the page column fills the main area, but for its gutter", async () => {
+    await page.goto(`${WEB}/library/songs`);
+    await page.getByRole("heading", { name: "Songs" }).waitFor();
+    const gap = await page.evaluate(() => {
+      const main = document.querySelector('[data-slot="sidebar-inset"]').getBoundingClientRect();
+      const heading = document.querySelector("h1").getBoundingClientRect();
+      return main.right - main.left - 2 * (heading.left - main.left);
+    });
+    // Its content spans the main area less its two gutters: no column of 1280px in the middle.
+    if (gap < 1800) throw new Error(`the column is ${gap}px wide`);
+  });
+
+  await step("Practice: the chart in columns (Auto), no section split", async () => {
+    await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
+    await page.goto(`${WEB}/library/${song.id}`);
+    await page.getByTestId("song-chart").waitFor();
+    await page.locator('[data-testid="chart-columns-auto"][aria-pressed="true"]').waitFor();
+    const all = await passes();
+    if ((await columnsOf()) < 2) throw new Error(`one column: ${JSON.stringify(all)}`);
+    if (all.some((pass) => pass.boxes !== 1)) throw new Error(`a section split: ${JSON.stringify(all)}`);
+  });
+
+  await step("2 columns, remembered on the device; 1 puts it back in one", async () => {
+    await page.getByTestId("chart-columns-2").click();
+    await page.waitForFunction(() => document.querySelector('[data-testid="song-chart"]')?.dataset.columns === "2");
+    if ((await columnsOf()) !== 2) throw new Error(`${await columnsOf()} columns`);
+    await page.reload();
+    await page.locator('[data-testid="chart-columns-2"][aria-pressed="true"]').waitFor();
+    if ((await columnsOf()) !== 2) throw new Error("not remembered");
+    await page.getByTestId("chart-columns-1").click();
+    await page.waitForFunction(() => document.querySelector('[data-testid="song-chart"]')?.dataset.columns === "1");
+    if ((await columnsOf()) !== 1) throw new Error(`${await columnsOf()} columns`);
+    await page.getByTestId("chart-columns-auto").click();
+  });
+
+  await step("Live: in columns too, with the same choice", async () => {
+    await page.goto(`${WEB}/library/${song.id}/live`);
+    await page.getByTestId("song-chart").waitFor();
+    await page.locator('[data-testid="chart-columns-auto"][aria-pressed="true"]').waitFor();
+    if ((await columnsOf()) < 2) throw new Error("one column in Live");
+  });
+
+  await step("on a phone: one column, whatever's chosen", async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${WEB}/library/${song.id}`);
+    await page.getByTestId("song-chart").waitFor();
+    if ((await columnsOf()) !== 1) throw new Error(`${await columnsOf()} columns on a phone`);
+    await page.setViewportSize({ width: 2560, height: 1300 });
+  });
+
+  await step("the editor: its preview beside it with room, not on a laptop", async () => {
+    await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
+    await page.goto(`${WEB}/library/${song.id}?tab=editor`);
+    await page.getByTestId("editor-side-preview").getByText("Verse 6", { exact: true }).waitFor();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.getByTestId("editor-side-preview").waitFor({ state: "hidden" });
+  });
+} finally {
+  await browser.close();
+}
+finish();

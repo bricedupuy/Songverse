@@ -526,8 +526,9 @@ export function AttachmentsTab({
 
   // An audio file's or another file's row; a recording says who made it and when (issue #175).
   const fileRow = (attachment: Attachment, recorded = false) => (
-    <li key={attachment.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
-      <div className="flex flex-wrap items-center gap-3">
+    // With room (issue #177), an audio file's settings side by side under its name rather than stacked.
+    <li key={attachment.id} className={cn("flex flex-col gap-2 py-3 first:pt-0 last:pb-0", kind === "audio" && "@5xl:flex-row @5xl:flex-wrap @5xl:items-center @5xl:gap-x-6")}>
+      <div className="flex flex-wrap items-center gap-3 @5xl:basis-full">
         {kind === "audio" ? (
           <FileAudio className="size-5 shrink-0 text-muted-foreground" aria-hidden />
         ) : attachment.type === "IMAGE" || attachment.mimeType.startsWith("image/") ? (

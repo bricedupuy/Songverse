@@ -53,7 +53,7 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 - En bas : ce qui vient ensuite - **Ensuite : …** y mène - et la flèche du chant précédent.
 - Le **défilement** (le bouton lecture) fait défiler la grille au rythme du chant : sur sa durée quand elle est connue, sinon deux mesures par ligne à son tempo. La tortue et le lièvre le ralentissent ou l'accélèrent, un cran à la fois.
 - Le bouton du métronome, en haut, démarre le [métronome](/fr/metronome/) au tempo et à la mesure du chant, et clignote avec le temps ; appuyez à nouveau pour l'arrêter.
-- Les boutons **A** réduisent ou agrandissent le texte ; Songverse retient votre taille sur cet appareil.
+- Les boutons **A** réduisent ou agrandissent le texte ; Songverse retient votre taille sur cet appareil. À côté, les colonnes : **Auto** répartit un long chant sur autant de colonnes que l'écran en contient, comme un journal, sans jamais couper une section entre deux, pour qu'il tienne sans défiler ; **1**, **2** ou **3** fixent le maximum. Songverse retient votre choix sur cet appareil, pour la Session aussi.
 - Le bouton d'agrandissement passe en plein écran, sans les barres du navigateur.
 - L'écran reste allumé tant qu'un chant est ouvert.
 

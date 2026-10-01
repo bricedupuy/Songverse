@@ -158,6 +158,8 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
         <p className="text-sm text-muted-foreground">{t("sets.readOnly")}</p>
       ) : null}
 
+      {/* With room (issue #177): the set's songs, and beside them adding songs, sharing and its details. */}
+      <div className="grid grid-cols-1 items-start gap-6 @6xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">{t("sets.songs")}</CardTitle>
@@ -182,7 +184,7 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
       </Card>
 
       {set.canEdit ? (
-        <>
+        <div className="flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">{t("sets.addSongs")}</CardTitle>
@@ -201,8 +203,9 @@ function SetPage({ loaded }: { loaded: SetlistDetail }) {
               await router.invalidate();
             }}
           />
-        </>
+        </div>
       ) : null}
+      </div>
     </div>
   );
 }

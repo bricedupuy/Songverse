@@ -445,10 +445,11 @@ body.sv-dragging {
  * Out to the main area's edges, the content still lined up with the page's
  * column (issue #147): a carousel scrolls under the gutters rather than being
  * cut at the column, a sticky header's band spans the width. The column is
- * at most 80rem (max-w-7xl), centred in its @container, inside --gutter.
+ * the whole @container, inside --gutter (issue #177).
  */
 .bleed-x {
-  --bleed: calc(max(0px, (100cqw - 80rem) / 2) + var(--gutter, 1rem));
+  /* Out to the main area's edges: the page fills it but for its gutter (issue #177). */
+  --bleed: var(--gutter, 1rem);
   margin-inline: calc(-1 * var(--bleed));
   padding-inline: var(--bleed);
   scroll-padding-inline: var(--bleed);

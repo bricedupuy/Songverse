@@ -234,6 +234,7 @@ function TeamDetail() {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
+      <div className="grid grid-cols-1 items-start gap-6 @6xl:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">{t("teams.members")}</CardTitle>
@@ -293,6 +294,8 @@ function TeamDetail() {
           </ul>
         </CardContent>
       </Card>
+      {/* Beside its members (issue #177): its look and its invite links, for its admins. */}
+      <div className="flex flex-col gap-6">
 
       {/* Its colour and picture (issue #161), for its admins. */}
       {isAdmin ? (
@@ -393,6 +396,8 @@ function TeamDetail() {
           </CardContent>
         </Card>
       ) : null}
+      </div>
+      </div>
     </div>
   );
 }

@@ -11,7 +11,7 @@ L'éditeur a trois modes, en haut à gauche :
 
 - **Visuel** - la grille avec les accords au-dessus des mots. C'est là que vous passerez le plus de temps.
 - **Texte** - la même grille en texte ChordPro, pour des modifications rapides en bloc. Les accords et les lignes que vous ne changez pas restent tels quels.
-- **Aperçu** - la grille telle que les musiciens la verront.
+- **Aperçu** - la grille telle que les musiciens la verront. Sur un écran large, elle s'affiche aussi à côté de **Visuel** et **Texte**, mise à jour au fil de la saisie.
 
 ## Les accords
 

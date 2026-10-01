@@ -58,7 +58,7 @@ function MetronomePage() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6" data-testid="metronome-page">
+    <div className="flex w-full flex-col gap-6" data-testid="metronome-page">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">{t("metronome.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("metronome.description")}</p>
@@ -76,6 +76,8 @@ function MetronomePage() {
         </Button>
       ) : null}
 
+      {/* With room (issue #177): the beat and its settings side by side. */}
+      <div className="grid grid-cols-1 items-start gap-6 @5xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
       <Card>
         <CardContent className="flex flex-col items-center gap-6">
           <p className="h-5 text-sm font-medium text-muted-foreground" data-testid="metronome-bar" aria-live="off">
@@ -226,6 +228,7 @@ function MetronomePage() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

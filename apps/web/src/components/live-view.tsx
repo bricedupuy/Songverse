@@ -7,9 +7,11 @@ import { CommandSearch } from "#/components/command-search";
 import { MetronomeSongButton } from "#/components/metronome";
 import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
+import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { SongChart } from "#/components/song-chart";
 import { SyncControl } from "#/components/sync-control";
 import { SidebarTrigger } from "#/components/ui/sidebar";
+import { useChartColumns } from "#/lib/chart-columns";
 import { cn } from "#/lib/utils";
 
 const TEXT_SIZE_KEY = "songverse.liveTextSize";
@@ -242,7 +244,8 @@ export function LiveView({ song }: { song: LiveSong }) {
   const inSet = song.nextLabel !== null;
   const pdf = song.reading?.shown ?? null;
   const steps = useMemo(() => (chart ? structureOf(chart) : []), [chart]);
-  const [current, pickPass] = useCurrentPass(scroller, steps, song.id);
+  const columns = useChartColumns();
+  const [current, pickPass] = useCurrentPass(scroller, steps, song.id, columns !== "1");
 
   function goToPass(passId: string) {
     pickPass(passId);
@@ -288,7 +291,8 @@ export function LiveView({ song }: { song: LiveSong }) {
       <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
         {/* A PDF isn't zoomed: its pages fit the width (on a phone, edge to edge). */}
-        <div className={cn("mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-[40vh]", pdf && "max-sm:pt-0")} style={pdf ? undefined : { zoom: textSize }}>
+        {/* The whole screen's width (issue #177): a long song flows into columns rather than down. */}
+        <div className={cn("flex w-full flex-col gap-4 px-4 pt-6 pb-[40vh] sm:px-8", pdf && "max-sm:pt-0")} style={pdf ? undefined : { zoom: textSize }}>
           {/* With a PDF on a phone, the PDF's own title does: the whole screen for its pages. */}
           <div className={cn("flex items-start justify-between gap-4", pdf && "max-sm:hidden")} data-testid="live-song-top">
             <div className="min-w-0">
@@ -315,7 +319,7 @@ export function LiveView({ song }: { song: LiveSong }) {
           {pdf && song.reading ? (
             <PdfPages key={pdf.id} source={() => song.reading!.source(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
           ) : chart ? (
-            <SongChart chart={chart} emptyText={t("sets.noChart")} />
+            <SongChart chart={chart} emptyText={t("sets.noChart")} columns={columns} />
           ) : (
             <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
           )}
@@ -359,6 +363,7 @@ export function LiveView({ song }: { song: LiveSong }) {
           <IconButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={!!pdf || textSize === TEXT_SIZES.at(-1)}>
             <AArrowUp />
           </IconButton>
+          {pdf ? null : <ChartColumnsPicker className="ml-1" />}
         </div>
 
         <p className="hidden flex-1 text-center text-xs text-muted-foreground lg:block">{inSet ? t("live.keys") : t("live.keysAlone")}</p>
@@ -458,6 +463,8 @@ function useCurrentPass(
   scroller: RefObject<HTMLElement | null>,
   steps: { passId: string }[],
   songId: string,
+  /** The chart in columns (issue #177): how far it's scrolled doesn't say where the song is - the pass picked does. */
+  flowed = false,
 ): [string | null, (passId: string) => void] {
   const [current, setCurrent] = useState<string | null>(steps[0]?.passId ?? null);
   // A pass picked in the bar stays current while it's scrolled to: near the
@@ -466,6 +473,12 @@ function useCurrentPass(
   useEffect(() => {
     const element = scroller.current;
     if (!element) return;
+    // In columns: the song's first pass, until one's picked in the bar.
+    if (flowed) {
+      picked.current = null;
+      setCurrent(steps[0]?.passId ?? null);
+      return;
+    }
     let frame = 0;
     const measure = () => {
       frame = 0;
@@ -488,7 +501,7 @@ function useCurrentPass(
       element.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
     };
-  }, [scroller, steps, songId]);
+  }, [scroller, steps, songId, flowed]);
   const pick = (passId: string) => {
     picked.current = { passId, until: Date.now() + 1000 };
     setCurrent(passId);

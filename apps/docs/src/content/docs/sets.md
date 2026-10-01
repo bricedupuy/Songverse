@@ -53,7 +53,7 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 - The bottom shows what's next - **Next: …** takes you there - and the previous song's arrow.
 - **Autoscroll** (the play button) scrolls the chart at the song's pace: over its duration when it has one, or else two bars a line at its tempo. The tortoise and hare slow it down or speed it up, a step at a time.
 - The metronome button, at the top, starts the [metronome](/metronome/) at the song's tempo and time signature, and flashes with the beat; press it again to stop.
-- The **A** buttons make the text smaller or bigger; Songverse remembers your size on this device.
+- The **A** buttons make the text smaller or bigger; Songverse remembers your size on this device. Beside them, the columns: **Auto** flows a long song into as many columns as the screen fits, like a newspaper, a section never split between two, so it fits without scrolling; **1**, **2** or **3** set how many at most. Songverse remembers your choice on this device, for Practice too.
 - The expand button goes full screen, hiding the browser's own bars.
 - The screen stays on while a song is open.
 

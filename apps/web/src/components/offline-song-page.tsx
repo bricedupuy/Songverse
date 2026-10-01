@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useChartColumns } from "#/lib/chart-columns";
 import { SongChart } from "#/components/song-chart";
 import { StemDock } from "#/components/stem-dock";
 import { downloadBlob } from "#/lib/download";
@@ -40,6 +41,7 @@ export async function loadOfflineSong(songVersionId: string): Promise<OfflineSon
  */
 export function OfflineSongPage({ song }: { song: OfflineSong }) {
   const { t } = useTranslation();
+  const columns = useChartColumns();
   const { mode } = useMode();
   const [keptFiles, setKeptFiles] = useState<Set<string>>(new Set());
   const chart = useMemo(
@@ -105,7 +107,7 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
 
       <Card>
         <CardContent>
-          <SongChart chart={chart} />
+          <SongChart chart={chart} columns={columns} />
         </CardContent>
       </Card>
 

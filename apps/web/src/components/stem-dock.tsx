@@ -615,7 +615,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
         />
       )}
       {expanded ? (
-        <div className={cn("mx-auto flex w-full max-w-7xl flex-col gap-2 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", EDGES)}>
+        <div className={cn("mx-auto flex w-full flex-col gap-2 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]", EDGES)}>
           {/* On a phone, play, the time, the tools and minimize on one line (the time giving way); the multitrack and the transposition on the next (issue #140). */}
           <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 sm:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] sm:gap-x-3">
             <span className="flex items-center gap-1">
@@ -787,7 +787,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
           )}
         </div>
       ) : (
-        <div className={cn("mx-auto flex w-full max-w-7xl items-center gap-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
+        <div className={cn("mx-auto flex w-full items-center gap-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
           {play}
           {/* The transport (issue #162), where there's room. */}
           <span className="hidden sm:contents">{stopButton}</span>

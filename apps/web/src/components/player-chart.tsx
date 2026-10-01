@@ -2,6 +2,8 @@ import { renderChart, type ChartPreferences, type RenderedChart, type ChordNotat
 import { EyeOff } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { ChartColumnsPicker } from "#/components/chart-columns-picker";
+import { useChartColumns } from "#/lib/chart-columns";
 import { SongChart } from "#/components/song-chart";
 import { apiClient } from "#/lib/api-client";
 import { cn } from "#/lib/utils";
@@ -41,6 +43,7 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
   const [notation, setNotation] = useState<ChordNotationValue>(view.view.chordNotation);
   const [capoDisplay, setCapoDisplay] = useState<CapoDisplayModeValue>(view.view.capoDisplayMode);
   const [hiding, setHiding] = useState(false);
+  const columns = useChartColumns();
   const [error, setError] = useState<string | null>(null);
 
   // Another song of the set reuses this component.
@@ -94,10 +97,11 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
             {t("player.capoShapes", { capo: chart.capo })}
           </Toggle>
         ) : null}
+        <ChartColumnsPicker className="ml-auto" />
         {hiddenCount > 0 ? (
           <button
             type="button"
-            className="ml-auto text-xs text-primary hover:underline"
+            className="text-xs text-primary hover:underline"
             onClick={() => savePreferences({ ...preferences, hiddenChordIds: [] })}
           >
             {t("player.showHidden", { count: hiddenCount })}
@@ -119,6 +123,7 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
       ) : null}
       <SongChart
         chart={chart}
+        columns={columns}
         emptyText={t("sets.noChart")}
         onChordClick={hiding ? (id) => savePreferences({ ...preferences, hiddenChordIds: [...new Set([...preferences.hiddenChordIds, id])] }) : undefined}
       />

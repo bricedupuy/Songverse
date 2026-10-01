@@ -76,7 +76,7 @@ export function YouTubeDock({ video }: { video: YouTubeVideo }) {
         style={{ "--progress": duration ? `${(Math.min(position, duration) / duration) * 100}%` : "0%" } as CSSProperties}
         data-testid="youtube-playhead"
       />
-      <div className={cn("mx-auto flex w-full max-w-7xl items-center gap-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
+      <div className={cn("mx-auto flex w-full items-center gap-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
         {current ? (
           // The video goes here (YouTubeHost follows this box).
           <div ref={anchor} className="h-[200px] w-[200px] shrink-0 overflow-hidden rounded-md bg-black sm:w-[356px]" data-testid="youtube-anchor" />
