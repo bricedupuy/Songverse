@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { DISPLAY_MODES, CAPO_DISPLAY_MODES, CHORD_NOTATIONS, INSTRUMENTS, LIVE_VIEWS, VOICING_PREFERENCES, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
+import { DISPLAY_MODES, CAPO_DISPLAY_MODES, CHORD_NOTATIONS, LIVE_VIEWS, VOICING_PREFERENCES, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
 
 export class UserResponseDto {
   @ApiProperty() id!: string;
@@ -17,6 +17,6 @@ export class UserResponseDto {
   @ApiProperty({ description: "From their roles, or their teams'" }) canSeparateStems!: boolean;
   @ApiProperty({ type: [String], description: "Their roles' names, their own and their teams'" }) roles!: string[];
   @ApiProperty({ type: [String], description: "What their roles allow plugins (issue #157)" }) permissions!: string[];
-  @ApiProperty({ enum: INSTRUMENTS, isArray: true }) instruments!: (typeof INSTRUMENTS)[number][];
+  @ApiProperty({ type: [String], description: "Built-in instruments' keys (INSTRUMENTS), then the ids of those an admin added (issue #166)" }) instruments!: string[];
   @ApiProperty({ enum: TECH_ROLES, isArray: true }) techRoles!: (typeof TECH_ROLES)[number][];
 }

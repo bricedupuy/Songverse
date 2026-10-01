@@ -3,7 +3,6 @@ import type {
   CapoDisplayModeValue,
   ChordNotationValue,
   LiveViewValue,
-  InstrumentValue,
   TechRoleValue,
 } from "../constants/index.js";
 import type { ArrangementDocumentV2, ChartPreferences } from "../schemas/arrangement-document-v2.js";
@@ -18,7 +17,7 @@ import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
-import type { AssignRolesRequest, CreateRoleRequest, UpdateRoleRequest } from "../requests/roles.js";
+import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
 import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
 import type {
   CreateCatalogSchema,
@@ -365,7 +364,8 @@ export interface UserProfile {
   /** Their roles' names, their own and their teams'. */
   roles: string[];
   permissions: string[];
-  instruments: InstrumentValue[];
+  /** Built-in instruments' keys, then the ids of those an admin added (issue #166). */
+  instruments: string[];
   techRoles: TechRoleValue[];
   /** With a capo: chords as they sound, or the shapes a guitarist plays. */
   capoDisplayMode: CapoDisplayModeValue;
@@ -422,6 +422,20 @@ export interface FileSizeLimits {
   builtInMb: Record<AttachmentTypeValue, number>;
   /** The types whose limit is saved rather than built in. */
   custom: AttachmentTypeValue[];
+}
+
+/** An instrument an admin added to the list (issue #166): picked by its id. */
+export interface CustomInstrument {
+  id: string;
+  /** In English, and the fallback. */
+  label: string;
+  /** Per locale, e.g. {"fr": "Nyckelharpa"}. */
+  translations: Record<string, string> | null;
+}
+
+/** Admin > Instruments: who plays it. */
+export interface AdminCustomInstrument extends CustomInstrument {
+  userCount: number;
 }
 
 /** Admin > Roles (issue #160): what a role allows, and how many have it. */
@@ -536,7 +550,7 @@ export interface TeamMember {
   avatarUrl: string | null;
   role: TeamRole;
   joinedAt: string;
-  instruments: InstrumentValue[];
+  instruments: string[];
   techRoles: TechRoleValue[];
 }
 
@@ -1308,7 +1322,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     updateMe: (data: {
       locale?: string;
       displayName?: string;
-      instruments?: InstrumentValue[];
+      instruments?: string[];
       techRoles?: TechRoleValue[];
       capoDisplayMode?: CapoDisplayModeValue;
       chordNotation?: ChordNotationValue;
@@ -1821,6 +1835,12 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     adminClearStemSeparation: () => request<void>("/admin/stem-separation", { method: "DELETE" }),
     adminTestStemSeparation: () => request<StemSeparationTest>("/admin/stem-separation/test", { method: "POST" }),
     adminListRoles: () => request<AdminRole[]>("/admin/roles"),
+    /** The instruments an admin added (issue #166), for everyone's pickers and badges. */
+    listCustomInstruments: () => request<CustomInstrument[]>("/instruments"),
+    adminListInstruments: () => request<AdminCustomInstrument[]>("/admin/instruments"),
+    adminCreateInstrument: (data: CreateInstrumentRequest) => request<CustomInstrument>("/admin/instruments", { method: "POST", body: JSON.stringify(data) }),
+    adminUpdateInstrument: (id: string, data: UpdateInstrumentRequest) => request<CustomInstrument>(`/admin/instruments/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    adminDeleteInstrument: (id: string) => request<void>(`/admin/instruments/${id}`, { method: "DELETE" }),
     adminCreateRole: (data: CreateRoleRequest) => request<{ id: string }>("/admin/roles", { method: "POST", body: JSON.stringify(data) }),
     adminUpdateRole: (roleId: string, data: UpdateRoleRequest) => request<void>(`/admin/roles/${roleId}`, { method: "PATCH", body: JSON.stringify(data) }),
     adminDeleteRole: (roleId: string) => request<void>(`/admin/roles/${roleId}`, { method: "DELETE" }),

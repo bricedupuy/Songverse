@@ -1,12 +1,13 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { orderInstruments, orderTechRoles } from "@songverse/core";
+import { INSTRUMENTS, orderInstruments, orderTechRoles } from "@songverse/core";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { ImageService } from "../images/image.service.js";
 import { StorageQuotaService } from "../storage/storage-quota.service.js";
 import { StorageService } from "../storage/storage.service.js";
 import { detectAvatarImageType } from "./avatar-image.js";
 import { capabilitiesOf } from "../roles/capabilities.js";
+import { customInstrumentIds } from "../instruments/instruments.service.js";
 import type { UpdateUserDto } from "./dto/update-user.dto.js";
 
 const SELECT = {
@@ -26,8 +27,8 @@ const SELECT = {
 } as const;
 
 /** Stored roles no longer on the lists are dropped, the rest shown in list order. */
-function toProfile<T extends { instruments: string[]; techRoles: string[] }>(user: T): T {
-  return { ...user, instruments: orderInstruments(user.instruments), techRoles: orderTechRoles(user.techRoles) };
+function toProfile<T extends { instruments: string[]; techRoles: string[] }>(user: T, customInstruments: readonly string[]): T {
+  return { ...user, instruments: orderInstruments(user.instruments, customInstruments), techRoles: orderTechRoles(user.techRoles) };
 }
 
 @Injectable()
@@ -43,7 +44,7 @@ export class UsersService {
   async findMe(userId: string) {
     const user = await this.prisma.client.user.findUnique({ where: { id: userId }, select: SELECT });
     if (!user) throw new NotFoundException("User not found");
-    return this.withRoles(toProfile(user));
+    return this.withRoles(toProfile(user, await customInstrumentIds(this.prisma.client)));
   }
 
   /** What their roles allow them (issue #160), and which roles they have - their own and their teams'. */
@@ -60,6 +61,10 @@ export class UsersService {
   }
 
   async updateMe(userId: string, dto: UpdateUserDto) {
+    const custom = await customInstrumentIds(this.prisma.client);
+    // A built-in instrument or one an admin added (issue #166); anything else is refused, by name.
+    const unknown = dto.instruments?.filter((value) => !(INSTRUMENTS as readonly string[]).includes(value) && !custom.includes(value)) ?? [];
+    if (unknown.length > 0) throw new BadRequestException([`instruments must be on the list: ${unknown.join(", ")} isn't`]);
     const user = await this.prisma.client.user.update({
       where: { id: userId },
       data: {
@@ -68,12 +73,12 @@ export class UsersService {
         capoDisplayMode: dto.capoDisplayMode,
         chordNotation: dto.chordNotation,
         liveView: dto.liveView,
-        instruments: dto.instruments && orderInstruments(dto.instruments),
+        instruments: dto.instruments && orderInstruments(dto.instruments, custom),
         techRoles: dto.techRoles && orderTechRoles(dto.techRoles),
       },
       select: SELECT,
     });
-    return this.withRoles(toProfile(user));
+    return this.withRoles(toProfile(user, custom));
   }
 
   getStorageUsage(userId: string) {
@@ -96,7 +101,7 @@ export class UsersService {
     if (previous.avatarStorageKey && previous.avatarStorageKey !== hash) {
       await this.storage.deleteUnreferenced([previous.avatarStorageKey]);
     }
-    return toProfile(user);
+    return toProfile(user, await customInstrumentIds(this.prisma.client));
   }
 
   async removeAvatar(userId: string) {
@@ -107,7 +112,7 @@ export class UsersService {
       select: SELECT,
     });
     if (previous.avatarStorageKey) await this.storage.deleteUnreferenced([previous.avatarStorageKey]);
-    return toProfile(user);
+    return toProfile(user, await customInstrumentIds(this.prisma.client));
   }
 
   /**

@@ -25,7 +25,7 @@ Add one on each device you use. You can remove a passkey at any time.
 
 ## Roles
 
-Tell your teams what you play or do - **Instruments** (vocals, guitars, keys, drums…) and **Other roles** (technician, media operator, sound engineer). They're shown next to your name in team member lists.
+Tell your teams what you play or do - **Instruments** (vocals, guitars, keys, drums, harp, accordion, cajón… and any your admin added) and **Other roles** (technician, media operator, sound engineer). They're shown next to your name in team member lists.
 
 ## Chart display
 

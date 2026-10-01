@@ -13,6 +13,7 @@ import { JwtAuthGuard } from "./common/guards/jwt-auth.guard.js";
 import { RateLimitGuard } from "./security/rate-limit.guard.js";
 import { SecurityController } from "./security/security.controller.js";
 import { StemSeparationModule } from "./stem-separation/stem-separation.module.js";
+import { InstrumentsModule } from "./instruments/instruments.module.js";
 import { RolesModule } from "./roles/roles.module.js";
 import { UploadsModule } from "./uploads/uploads.module.js";
 import { MusicBrainzModule } from "./musicbrainz/musicbrainz.module.js";
@@ -71,6 +72,7 @@ import { LookupsModule } from "./lookups/lookups.module.js";
     LibraryHomeModule,
     StemSeparationModule,
     RolesModule,
+    InstrumentsModule,
     UploadsModule,
   ],
   controllers: [AppController, SecurityController],

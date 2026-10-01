@@ -15,21 +15,22 @@ import { RolesCard } from "./-dashboard/roles-card";
 
 export const Route = createFileRoute("/_protected/dashboard")({
   loader: async ({ context }) => {
-    const [recent, stats, profile, storage, ownershipRequests] = await Promise.all([
+    const [recent, stats, profile, storage, ownershipRequests, customInstruments] = await Promise.all([
       apiClient.listSongVersions({ pageSize: 5 }),
       apiClient.getSongStats(),
       apiClient.getMe(),
       apiClient.getMyStorage(),
       apiClient.listOwnershipRequests(),
+      apiClient.listCustomInstruments(),
     ]);
-    return { teams: context.teams, recentVersions: recent.items, stats, profile, storage, ownershipRequests };
+    return { teams: context.teams, recentVersions: recent.items, stats, profile, storage, ownershipRequests, customInstruments };
   },
   component: Dashboard,
 });
 
 function Dashboard() {
   const { t } = useTranslation();
-  const { teams, recentVersions, stats, profile, storage, ownershipRequests } = Route.useLoaderData();
+  const { teams, recentVersions, stats, profile, storage, ownershipRequests, customInstruments } = Route.useLoaderData();
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
@@ -43,7 +44,7 @@ function Dashboard() {
             <p className="text-sm text-muted-foreground">{profile.email}</p>
           </div>
           {profile.instruments.length + profile.techRoles.length > 0 ? (
-            <RoleBadges instruments={profile.instruments} techRoles={profile.techRoles} />
+            <RoleBadges instruments={profile.instruments} techRoles={profile.techRoles} customInstruments={customInstruments} />
           ) : (
             <a href="#roles" className="text-sm text-primary hover:underline">
               {t("dashboard.addYourRoles")}
@@ -168,7 +169,7 @@ function Dashboard() {
         <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-6">
             <ProfileCard profile={profile} />
-            <RolesCard profile={profile} />
+            <RolesCard profile={profile} customInstruments={customInstruments} />
           </div>
           <div className="flex flex-col gap-6">
             <EmailCard email={profile.email} />

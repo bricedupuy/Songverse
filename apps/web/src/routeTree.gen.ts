@@ -26,6 +26,7 @@ import { Route as TransferTokenRouteImport } from './routes/transfer.$token'
 import { Route as ProtectedAdminIndexRouteImport } from './routes/_protected/admin/index'
 import { Route as ProtectedAdminAuthRouteImport } from './routes/_protected/admin/auth'
 import { Route as ProtectedAdminCatalogsRouteImport } from './routes/_protected/admin/catalogs'
+import { Route as ProtectedAdminInstrumentsRouteImport } from './routes/_protected/admin/instruments'
 import { Route as ProtectedAdminMetadataRouteImport } from './routes/_protected/admin/metadata'
 import { Route as ProtectedAdminRolesRouteImport } from './routes/_protected/admin/roles'
 import { Route as ProtectedAdminSecurityRouteImport } from './routes/_protected/admin/security'
@@ -143,6 +144,12 @@ const ProtectedAdminCatalogsRoute = ProtectedAdminCatalogsRouteImport.update({
   path: '/catalogs',
   getParentRoute: () => ProtectedAdminRoute,
 } as any)
+const ProtectedAdminInstrumentsRoute =
+  ProtectedAdminInstrumentsRouteImport.update({
+    id: '/instruments',
+    path: '/instruments',
+    getParentRoute: () => ProtectedAdminRoute,
+  } as any)
 const ProtectedAdminMetadataRoute = ProtectedAdminMetadataRouteImport.update({
   id: '/metadata',
   path: '/metadata',
@@ -333,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/transfer/$token': typeof TransferTokenRoute
   '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
+  '/admin/instruments': typeof ProtectedAdminInstrumentsRoute
   '/admin/metadata': typeof ProtectedAdminMetadataRoute
   '/admin/roles': typeof ProtectedAdminRolesRoute
   '/admin/security': typeof ProtectedAdminSecurityRoute
@@ -381,6 +389,7 @@ export interface FileRoutesByTo {
   '/transfer/$token': typeof TransferTokenRoute
   '/admin/auth': typeof ProtectedAdminAuthRoute
   '/admin/catalogs': typeof ProtectedAdminCatalogsRoute
+  '/admin/instruments': typeof ProtectedAdminInstrumentsRoute
   '/admin/metadata': typeof ProtectedAdminMetadataRoute
   '/admin/roles': typeof ProtectedAdminRolesRoute
   '/admin/security': typeof ProtectedAdminSecurityRoute
@@ -433,6 +442,7 @@ export interface FileRoutesById {
   '/transfer/$token': typeof TransferTokenRoute
   '/_protected/admin/auth': typeof ProtectedAdminAuthRoute
   '/_protected/admin/catalogs': typeof ProtectedAdminCatalogsRoute
+  '/_protected/admin/instruments': typeof ProtectedAdminInstrumentsRoute
   '/_protected/admin/metadata': typeof ProtectedAdminMetadataRoute
   '/_protected/admin/roles': typeof ProtectedAdminRolesRoute
   '/_protected/admin/security': typeof ProtectedAdminSecurityRoute
@@ -485,6 +495,7 @@ export interface FileRouteTypes {
     | '/transfer/$token'
     | '/admin/auth'
     | '/admin/catalogs'
+    | '/admin/instruments'
     | '/admin/metadata'
     | '/admin/roles'
     | '/admin/security'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/transfer/$token'
     | '/admin/auth'
     | '/admin/catalogs'
+    | '/admin/instruments'
     | '/admin/metadata'
     | '/admin/roles'
     | '/admin/security'
@@ -584,6 +596,7 @@ export interface FileRouteTypes {
     | '/transfer/$token'
     | '/_protected/admin/auth'
     | '/_protected/admin/catalogs'
+    | '/_protected/admin/instruments'
     | '/_protected/admin/metadata'
     | '/_protected/admin/roles'
     | '/_protected/admin/security'
@@ -747,6 +760,13 @@ declare module '@tanstack/react-router' {
       path: '/catalogs'
       fullPath: '/admin/catalogs'
       preLoaderRoute: typeof ProtectedAdminCatalogsRouteImport
+      parentRoute: typeof ProtectedAdminRoute
+    }
+    '/_protected/admin/instruments': {
+      id: '/_protected/admin/instruments'
+      path: '/instruments'
+      fullPath: '/admin/instruments'
+      preLoaderRoute: typeof ProtectedAdminInstrumentsRouteImport
       parentRoute: typeof ProtectedAdminRoute
     }
     '/_protected/admin/metadata': {
@@ -979,6 +999,7 @@ declare module '@tanstack/react-router' {
 interface ProtectedAdminRouteChildren {
   ProtectedAdminAuthRoute: typeof ProtectedAdminAuthRoute
   ProtectedAdminCatalogsRoute: typeof ProtectedAdminCatalogsRoute
+  ProtectedAdminInstrumentsRoute: typeof ProtectedAdminInstrumentsRoute
   ProtectedAdminMetadataRoute: typeof ProtectedAdminMetadataRoute
   ProtectedAdminRolesRoute: typeof ProtectedAdminRolesRoute
   ProtectedAdminSecurityRoute: typeof ProtectedAdminSecurityRoute
@@ -992,6 +1013,7 @@ interface ProtectedAdminRouteChildren {
 const ProtectedAdminRouteChildren: ProtectedAdminRouteChildren = {
   ProtectedAdminAuthRoute: ProtectedAdminAuthRoute,
   ProtectedAdminCatalogsRoute: ProtectedAdminCatalogsRoute,
+  ProtectedAdminInstrumentsRoute: ProtectedAdminInstrumentsRoute,
   ProtectedAdminMetadataRoute: ProtectedAdminMetadataRoute,
   ProtectedAdminRolesRoute: ProtectedAdminRolesRoute,
   ProtectedAdminSecurityRoute: ProtectedAdminSecurityRoute,

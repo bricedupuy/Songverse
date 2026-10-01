@@ -1,4 +1,4 @@
-import { INSTRUMENTS, TECH_ROLES, type UserProfile } from "@songverse/core";
+import { INSTRUMENTS, TECH_ROLES, type CustomInstrument, type UserProfile } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
 import { Check } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
+import { useInstrumentLabel } from "#/lib/instruments";
 import { cn } from "#/lib/utils";
 
 function sameSet(a: readonly string[], b: readonly string[]): boolean {
@@ -60,8 +61,11 @@ function ChipGroup<T extends string>({
   );
 }
 
-export function RolesCard({ profile }: { profile: UserProfile }) {
+export function RolesCard({ profile, customInstruments }: { profile: UserProfile; customInstruments: readonly CustomInstrument[] }) {
   const { t } = useTranslation();
+  const instrumentLabel = useInstrumentLabel(customInstruments);
+  // The built-in ones, then those an admin added (issue #166).
+  const instrumentOptions = [...INSTRUMENTS, ...customInstruments.map((instrument) => instrument.id)];
   const router = useRouter();
   const [instruments, setInstruments] = useState(profile.instruments);
   const [techRoles, setTechRoles] = useState(profile.techRoles);
@@ -105,9 +109,9 @@ export function RolesCard({ profile }: { profile: UserProfile }) {
         >
           <ChipGroup
             label={t("roles.instrumentsLabel")}
-            options={INSTRUMENTS}
+            options={instrumentOptions}
             selected={instruments}
-            labelFor={(instrument) => t(`roles.instrument.${instrument}`)}
+            labelFor={instrumentLabel}
             onToggle={(instrument) => {
               setMessage(null);
               setInstruments((current) => toggled(current, instrument));

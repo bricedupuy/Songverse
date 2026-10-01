@@ -1,25 +1,30 @@
-import type { InstrumentValue, TechRoleValue } from "@songverse/core";
+import type { CustomInstrument, TechRoleValue } from "@songverse/core";
 import { useTranslation } from "react-i18next";
 import { Badge } from "#/components/ui/badge";
+import { useInstrumentLabel } from "#/lib/instruments";
 import { cn } from "#/lib/utils";
 
 /** A user's instruments and other roles (dashboard > Roles), instruments first. */
 export function RoleBadges({
   instruments,
   techRoles,
+  customInstruments,
   className,
 }: {
-  instruments: readonly InstrumentValue[];
+  instruments: readonly string[];
+  /** The instruments an admin added (issue #166), to name those among `instruments`. */
+  customInstruments?: readonly CustomInstrument[];
   techRoles: readonly TechRoleValue[];
   className?: string;
 }) {
   const { t } = useTranslation();
+  const instrumentLabel = useInstrumentLabel(customInstruments);
   if (instruments.length === 0 && techRoles.length === 0) return null;
   return (
     <ul className={cn("flex flex-wrap gap-1", className)} aria-label={t("roles.title")}>
       {instruments.map((instrument) => (
         <li key={instrument}>
-          <Badge>{t(`roles.instrument.${instrument}`)}</Badge>
+          <Badge>{instrumentLabel(instrument)}</Badge>
         </li>
       ))}
       {techRoles.map((role) => (

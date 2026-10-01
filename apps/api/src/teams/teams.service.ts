@@ -1,4 +1,5 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { customInstrumentIds } from "../instruments/instruments.service.js";
 import { orderInstruments, orderTechRoles, slugify, type TeamRoleValue } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -98,6 +99,7 @@ export class TeamsService {
       },
       orderBy: { joinedAt: "asc" },
     });
+    const custom = await customInstrumentIds(this.prisma.client);
     return memberships.map((m) => ({
       userId: m.user.id,
       displayName: m.user.displayName,
@@ -105,7 +107,7 @@ export class TeamsService {
       avatarUrl: m.user.avatarUrl,
       role: m.role,
       joinedAt: m.joinedAt,
-      instruments: orderInstruments(m.user.instruments),
+      instruments: orderInstruments(m.user.instruments, custom),
       techRoles: orderTechRoles(m.user.techRoles),
     }));
   }

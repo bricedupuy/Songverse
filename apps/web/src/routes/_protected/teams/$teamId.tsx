@@ -21,9 +21,12 @@ export const Route = createFileRoute("/_protected/teams/$teamId")({
     const team = await apiClient.getTeam(params.teamId).catch(() => null);
     if (!team) throw redirect({ to: "/dashboard" });
 
-    const members = await apiClient.listTeamMembers(params.teamId);
-    const inviteLinks = team.currentUserRole === "ADMIN" ? await apiClient.listTeamInviteLinks(params.teamId) : [];
-    return { session: context.session, team, members, inviteLinks };
+    const [members, inviteLinks, customInstruments] = await Promise.all([
+      apiClient.listTeamMembers(params.teamId),
+      team.currentUserRole === "ADMIN" ? apiClient.listTeamInviteLinks(params.teamId) : [],
+      apiClient.listCustomInstruments(),
+    ]);
+    return { session: context.session, team, members, inviteLinks, customInstruments };
   },
   component: TeamDetail,
 });
@@ -31,7 +34,7 @@ export const Route = createFileRoute("/_protected/teams/$teamId")({
 function TeamDetail() {
   const { t } = useTranslation();
   const router = useRouter();
-  const { session, team, members, inviteLinks } = Route.useLoaderData();
+  const { session, team, members, inviteLinks, customInstruments } = Route.useLoaderData();
   const isAdmin = team.currentUserRole === "ADMIN";
 
   const isSoleMember = members.length === 1;
@@ -254,7 +257,7 @@ function TeamDetail() {
                         </p>
                         <p className="text-xs text-muted-foreground">{member.email}</p>
                       </div>
-                      <RoleBadges instruments={member.instruments} techRoles={member.techRoles} />
+                      <RoleBadges instruments={member.instruments} techRoles={member.techRoles} customInstruments={customInstruments} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

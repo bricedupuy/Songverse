@@ -44,3 +44,23 @@ export const AssignRolesSchema = z.strictObject({
   roleIds: z.array(z.string().min(1).max(40)).max(100),
 });
 export type AssignRolesRequest = z.input<typeof AssignRolesSchema>;
+
+/** Admin > Instruments (issue #166): an instrument added to the list, its name in English and French. */
+const instrumentFields = {
+  label: z.string().trim().min(1, "label must not be empty").max(40),
+  labelFr: z.string().trim().max(40).describe("Empty: the English name"),
+};
+
+/** POST /admin/instruments */
+export const CreateInstrumentSchema = z.strictObject({
+  label: instrumentFields.label,
+  labelFr: optional(instrumentFields.labelFr),
+});
+export type CreateInstrumentRequest = z.input<typeof CreateInstrumentSchema>;
+
+/** PATCH /admin/instruments/:id: a field left out keeps its value. */
+export const UpdateInstrumentSchema = z.strictObject({
+  label: optional(instrumentFields.label),
+  labelFr: optional(instrumentFields.labelFr),
+});
+export type UpdateInstrumentRequest = z.input<typeof UpdateInstrumentSchema>;

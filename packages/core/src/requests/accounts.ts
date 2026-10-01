@@ -7,7 +7,8 @@ import { clearableText, optional, requiredText } from "./fields.js";
 export const UpdateUserSchema = z.strictObject({
   locale: optional(z.enum(SUPPORTED_LOCALES)),
   displayName: optional(requiredText(80)),
-  instruments: optional(z.array(z.enum(INSTRUMENTS)).max(INSTRUMENTS.length)),
+  // A built-in instrument's key, or the id of one an admin added (issue #166); the API keeps the known ones.
+  instruments: optional(z.array(z.string().trim().min(1).max(40)).max(INSTRUMENTS.length + 100)),
   techRoles: optional(z.array(z.enum(TECH_ROLES)).max(TECH_ROLES.length)),
   capoDisplayMode: optional(z.enum(CAPO_DISPLAY_MODES)),
   chordNotation: optional(z.enum(CHORD_NOTATIONS)),

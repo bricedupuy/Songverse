@@ -2102,3 +2102,14 @@ model RoleAssignment {
   @@index([userId])
   @@index([teamId])
 }
+
+// An instrument an admin added to the built-in list (INSTRUMENTS in
+// packages/core, issue #166). Someone picks it by its id, kept in
+// User.instruments with the built-in keys; removing it takes it off them.
+model CustomInstrument {
+  id           String   @id @default(cuid())
+  label        String // in English, and the fallback
+  translations Json? // per locale, e.g. {"fr": "Contrebasse"}
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

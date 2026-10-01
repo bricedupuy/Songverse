@@ -108,7 +108,8 @@ export type DisplayModeValue = (typeof DISPLAY_MODES)[number];
 // What a user can say they do on a team (dashboard > Roles), shown next to
 // their name in team member lists. Stored as these keys; labels come from
 // the "roles" i18n section. Append new entries rather than renaming: stored
-// values that drop off these lists are ignored on read.
+// values that drop off these lists are ignored on read. An admin adds others
+// (Admin > Instruments, issue #166): those are stored by their id.
 export const INSTRUMENTS = [
   "LEAD_VOCALS",
   "BACKING_VOCALS",
@@ -133,6 +134,13 @@ export const INSTRUMENTS = [
   "MANDOLIN",
   "BANJO",
   "HARMONICA",
+  // Issue #166.
+  "HARP",
+  "CELTIC_HARP",
+  "TUBA",
+  "DOUBLE_BASS",
+  "ACCORDION",
+  "CAJON",
 ] as const;
 export type InstrumentValue = (typeof INSTRUMENTS)[number];
 

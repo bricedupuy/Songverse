@@ -49,6 +49,10 @@ The one place that says what people may do beyond their own and their teams' son
 
 **Reviewer** and **Stem separation** are built in: they can be edited but not deleted. **New role** adds your own, such as "Storage 10 GB". Give roles to people in **Users** and to teams in **Teams**. Someone can do what any of their roles allows - their own and their teams' - and the largest limit wins; without a storage tier, the defaults in **Storage** apply. Global admins can do everything. Changes take effect straight away.
 
+### Instruments
+
+The instruments people can pick as what they play (see [Roles](/account/#roles)). Under **Added**, add one the list lacks with its **Name** and, if it differs, its name **In French** (**Add instrument**); **Rename** changes it, **Remove** takes it away, and off whoever had picked it. **On the list already** shows the built-in ones.
+
 ### Auth
 
 How Songverse sends email (verification, password reset) through Resend, and whether **Google sign-in** is offered. Settings saved here take effect immediately; **Revert to environment variables** goes back to the server's configuration.

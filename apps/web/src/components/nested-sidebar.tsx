@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   AudioWaveform,
   BadgeCheck,
+  Guitar,
   BookOpen,
   ChevronLeft,
   Check,
@@ -203,6 +204,7 @@ function SectionPanel({
           { to: "/admin/users", label: t("nav.adminUsers"), icon: <Users /> },
           { to: "/admin/teams", label: t("nav.adminTeams"), icon: <UsersRound /> },
           { to: "/admin/roles", label: t("nav.adminRoles"), icon: <BadgeCheck /> },
+          { to: "/admin/instruments", label: t("nav.adminInstruments"), icon: <Guitar /> },
           { to: "/admin/auth", label: t("nav.adminAuth"), icon: <KeyRound /> },
           { to: "/admin/security", label: t("nav.adminSecurity"), icon: <ShieldCheck /> },
           { to: "/admin/storage", label: t("nav.adminStorage"), icon: <Database /> },
@@ -668,7 +670,7 @@ function PeoplePanel({ title }: { title: string }) {
   );
 }
 
-function LinksPanel({ title, pathname, links }: { title: string; pathname: string; links: { to: "/review" | "/library" | "/admin/users" | "/admin/teams" | "/admin/roles" | "/admin/auth" | "/admin/security" | "/admin/storage" | "/admin/stem-separation" | "/admin/catalogs" | "/admin/metadata"; label: string; icon: ReactNode }[] }) {
+function LinksPanel({ title, pathname, links }: { title: string; pathname: string; links: { to: "/review" | "/library" | "/admin/users" | "/admin/teams" | "/admin/roles" | "/admin/instruments" | "/admin/auth" | "/admin/security" | "/admin/storage" | "/admin/stem-separation" | "/admin/catalogs" | "/admin/metadata"; label: string; icon: ReactNode }[] }) {
   return (
     <>
       <PanelHeader title={title} />

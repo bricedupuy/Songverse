@@ -25,7 +25,7 @@ Ajoutez-en une sur chaque appareil que vous utilisez. Vous pouvez supprimer une 
 
 ## Rôles
 
-Dites à vos équipes ce que vous jouez ou faites : des **Instruments** (chant, guitares, claviers, batterie…) et d'**Autres rôles** (technicien, opérateur média, ingénieur du son). Ils s'affichent à côté de votre nom dans les listes de membres des équipes.
+Dites à vos équipes ce que vous jouez ou faites : des **Instruments** (chant, guitares, claviers, batterie, harpe, accordéon, cajón… et ceux que votre administrateur a ajoutés) et d'**Autres rôles** (technicien, opérateur média, ingénieur du son). Ils s'affichent à côté de votre nom dans les listes de membres des équipes.
 
 ## Affichage des grilles
 
