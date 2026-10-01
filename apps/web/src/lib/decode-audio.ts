@@ -1,11 +1,13 @@
 /**
  * An audio file decoded for Web Audio (issue #185). The browser's own
- * decoder first; Safari before 18.4 (iOS, iPadOS, macOS) can't read Ogg,
- * and everything Songverse records, separates or re-encodes is Opus in Ogg,
- * so then ogg-opus-decoder (WebAssembly) decodes it in workers, loaded only
- * on a device that needs it.
+ * decoder, always; but Safari before 18.4 (iOS, iPadOS, macOS - and every
+ * iOS browser, all WebKit) can't read Ogg, and everything Songverse records,
+ * separates or re-encodes is Opus in Ogg. It does read Opus in WebM, so
+ * there the same packets are rewrapped as WebM (oggOpusToWebm, no decoding)
+ * and given to it again. Only on WebKit: any other browser refusing a file
+ * has the error as it is.
  */
-import type { OggOpusDecoderWebWorker } from "ogg-opus-decoder";
+import { oggOpusToWebm } from "@songverse/core";
 
 /** Ogg Opus: an Ogg page whose first packet is Opus's header. */
 export function isOggOpus(bytes: Uint8Array): boolean {
@@ -14,106 +16,49 @@ export function isOggOpus(bytes: Uint8Array): boolean {
   return head.includes("OpusHead");
 }
 
+/** "webm": rewrapped in any browser (the e2e suite, in Chromium). */
 const FORCE_KEY = "songverse.audio.decoder";
-/**
- * Off for now (issue #185): on an iPadOS 17 iPad, decoding a whole
- * multitrack this way crashed the tab once the stems had downloaded - each
- * part held twice for a moment (the decoder's copy and the AudioBuffer),
- * across several workers, is more than Safari allows a tab. Only when asked
- * (FORCE_KEY = "wasm", as the e2e suite does) until it decodes within that.
- */
-const FALLBACK_ENABLED = false;
 /** The browser refused Ogg Opus once: it will again, so don't ask it twice. */
 let nativeRefusesOgg = false;
 
 function forced(): boolean {
   try {
-    return localStorage.getItem(FORCE_KEY) === "wasm";
+    return localStorage.getItem(FORCE_KEY) === "webm";
   } catch {
     return false;
   }
 }
 
-/** Decodes `data`; Ogg Opus the browser can't read goes to the WebAssembly decoder. */
+/** Safari, or any iOS browser: WebKit, not Chrome's Blink (whose user agent says AppleWebKit too). */
+function webKit(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const agent = navigator.userAgent;
+  return /AppleWebKit\//.test(agent) && !/Chrome\/|Chromium\/|Edg\//.test(agent);
+}
+
+/** Decodes `data`; Ogg Opus that Safari can't read, rewrapped as WebM first. */
 export async function decodeAudio(context: BaseAudioContext, data: ArrayBuffer): Promise<AudioBuffer> {
   const bytes = new Uint8Array(data);
-  const ogg = isOggOpus(bytes);
-  if (!ogg || (!nativeRefusesOgg && !forced())) {
+  const rewrap = isOggOpus(bytes) && (forced() || webKit());
+  if (!rewrap || (!nativeRefusesOgg && !forced())) {
     try {
-      // decodeAudioData takes the buffer over: a copy, when the fallback may still need it.
-      return await context.decodeAudioData(ogg && (FALLBACK_ENABLED || forced()) ? data.slice(0) : data);
+      // decodeAudioData takes the buffer over: a copy, when it may still be rewrapped.
+      return await context.decodeAudioData(rewrap ? data.slice(0) : data);
     } catch (error) {
-      if (!ogg || (!FALLBACK_ENABLED && !forced())) throw error;
+      if (!rewrap) throw error;
       nativeRefusesOgg = true;
     }
   }
-  return decodeOggOpus(context, bytes);
+  const webm = oggOpusToWebm(bytes);
+  if (!webm) throw new Error("Not an Opus file this browser can read");
+  probe();
+  return context.decodeAudioData(webm.buffer as ArrayBuffer);
 }
 
-// --- the workers: one fewer than the device's cores (at least one), shared by every file, freed once idle.
-
-type Decoder = OggOpusDecoderWebWorker;
-let pool: Promise<Decoder>[] = [];
-const idle: Decoder[] = [];
-const waiting: ((decoder: Decoder) => void)[] = [];
-let freeTimer: ReturnType<typeof setTimeout> | null = null;
-const FREE_AFTER_MS = 60_000;
-
-function poolSize(): number {
-  const cores = typeof navigator !== "undefined" ? navigator.hardwareConcurrency || 2 : 2;
-  return Math.max(1, Math.min(4, cores - 1));
-}
-
-async function acquire(): Promise<Decoder> {
-  if (freeTimer) clearTimeout(freeTimer);
-  freeTimer = null;
-  const ready = idle.pop();
-  if (ready) return ready;
-  if (pool.length < poolSize()) {
-    const made = import("ogg-opus-decoder").then(async ({ OggOpusDecoderWebWorker }) => {
-      const decoder = new OggOpusDecoderWebWorker();
-      await decoder.ready;
-      return decoder;
-    });
-    pool.push(made);
-    return made;
-  }
-  return new Promise((resolve) => waiting.push(resolve));
-}
-
-function release(decoder: Decoder) {
-  const next = waiting.shift();
-  if (next) return next(decoder);
-  idle.push(decoder);
-  if (idle.length === pool.length) {
-    freeTimer = setTimeout(() => {
-      const all = pool;
-      pool = [];
-      idle.length = 0;
-      void Promise.all(all.map(async (made) => (await made).free()));
-    }, FREE_AFTER_MS);
-  }
-}
-
-async function decodeOggOpus(context: BaseAudioContext, bytes: Uint8Array): Promise<AudioBuffer> {
-  const decoder = await acquire();
-  try {
-    const { channelData, samplesDecoded, sampleRate } = await decoder.decodeFile(bytes);
-    await decoder.reset();
-    if (!samplesDecoded || channelData.length === 0) throw new Error("No sound in it");
-    const buffer = context.createBuffer(channelData.length, samplesDecoded, sampleRate);
-    channelData.forEach((channel, index) => buffer.copyToChannel(channel.subarray(0, samplesDecoded) as Float32Array<ArrayBuffer>, index));
-    probe();
-    return buffer;
-  } finally {
-    release(decoder);
-  }
-}
-
-/** For the end-to-end tests: how many files went through the WebAssembly decoder. */
+/** For the end-to-end tests: how many files were rewrapped. */
 function probe() {
   if (typeof window === "undefined") return;
-  const w = window as unknown as { songverseDecoder?: { fallback: number } };
-  w.songverseDecoder ??= { fallback: 0 };
-  w.songverseDecoder.fallback++;
+  const w = window as unknown as { songverseDecoder?: { rewrapped: number } };
+  w.songverseDecoder ??= { rewrapped: 0 };
+  w.songverseDecoder.rewrapped++;
 }

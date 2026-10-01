@@ -853,7 +853,7 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
         progress(stem.id, blob.size, blob.size, true);
         // A few hundred bytes: headers, no sound.
         empty = blob.size < 1024;
-        // Ogg Opus where the browser can't read it (Safari before 18.4): WebAssembly (issue #185).
+        // Ogg Opus where Safari can't read it (before 18.4): rewrapped as WebM (issue #185).
         buffer = await decodeAudio(ctx, await blob.arrayBuffer());
       } catch {
         // Shown on its row; the other parts still play.
