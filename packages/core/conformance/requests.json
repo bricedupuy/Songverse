@@ -1,0 +1,275 @@
+{
+  "$schema": "songverse-conformance/v1",
+  "area": "requests",
+  "about": "What the API takes (issue #118), checked as it checks them (checkRequest): the body it goes on with (defaults filled in, text trimmed), or the messages it answers 400 with. A client can check a form the same way before sending it.",
+  "functions": {
+    "CreateSongVersionSchema": {
+      "about": "POST /song-versions",
+      "params": [
+        "body"
+      ],
+      "cases": [
+        {
+          "name": "a title and language",
+          "args": [
+            {
+              "title": "  Amazing Grace ",
+              "language": "en",
+              "artists": [
+                "John Newton"
+              ]
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "title": "Amazing Grace",
+              "artists": [
+                "John Newton"
+              ],
+              "language": "en"
+            }
+          }
+        },
+        {
+          "name": "no title",
+          "args": [
+            {
+              "language": "en",
+              "artists": [
+                "X"
+              ]
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "title must be a string"
+            ]
+          }
+        },
+        {
+          "name": "fields it doesn't know",
+          "args": [
+            {
+              "title": "X",
+              "language": "en",
+              "artists": [
+                "X"
+              ],
+              "colour": "red",
+              "mood": "happy"
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "property colour should not exist",
+              "property mood should not exist"
+            ]
+          }
+        },
+        {
+          "name": "a year too early",
+          "args": [
+            {
+              "title": "X",
+              "language": "en",
+              "artists": [
+                "X"
+              ],
+              "year": 999
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "year must not be less than 1000"
+            ]
+          }
+        },
+        {
+          "name": "no artist",
+          "args": [
+            {
+              "title": "X",
+              "language": "en",
+              "artists": []
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "A song needs at least one artist"
+            ]
+          }
+        }
+      ]
+    },
+    "UpdateSongVersionSchema": {
+      "about": "PATCH /song-versions/:id: null or \"\" clears a field.",
+      "params": [
+        "body"
+      ],
+      "cases": [
+        {
+          "name": "clearing the album",
+          "args": [
+            {
+              "album": ""
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "album": null
+            }
+          }
+        },
+        {
+          "name": "a capo out of range",
+          "args": [
+            {
+              "capo": 14
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "capo must not be greater than 11"
+            ]
+          }
+        }
+      ]
+    },
+    "CreateSetlistSchema": {
+      "about": "POST /setlists",
+      "params": [
+        "body"
+      ],
+      "cases": [
+        {
+          "name": "a name",
+          "args": [
+            {
+              "name": "Sunday"
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "name": "Sunday"
+            }
+          }
+        },
+        {
+          "name": "no name: shown by its date",
+          "args": [
+            {
+              "eventDate": "2026-10-04"
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "eventDate": "2026-10-04"
+            }
+          }
+        },
+        {
+          "name": "a date that isn't one",
+          "args": [
+            {
+              "name": "Sunday",
+              "eventDate": "4/10/2026"
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "eventDate must be YYYY-MM-DD"
+            ]
+          }
+        }
+      ]
+    },
+    "AddSetlistItemSchema": {
+      "about": "POST /setlists/:id/items",
+      "params": [
+        "body"
+      ],
+      "cases": [
+        {
+          "name": "a song",
+          "args": [
+            {
+              "songVersionId": "song_1"
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "songVersionId": "song_1"
+            }
+          }
+        },
+        {
+          "name": "nothing",
+          "args": [
+            {}
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "songVersionId must be a string"
+            ]
+          }
+        }
+      ]
+    },
+    "UpdateUserSchema": {
+      "about": "PATCH /users/me",
+      "params": [
+        "body"
+      ],
+      "cases": [
+        {
+          "name": "a language and instruments",
+          "args": [
+            {
+              "locale": "fr",
+              "instruments": [
+                "DRUMS",
+                "HARP"
+              ]
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "locale": "fr",
+              "instruments": [
+                "DRUMS",
+                "HARP"
+              ]
+            }
+          }
+        },
+        {
+          "name": "a language that isn't offered",
+          "args": [
+            {
+              "locale": "de"
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "locale must be one of the following values: en, fr"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

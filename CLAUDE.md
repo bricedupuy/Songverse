@@ -153,6 +153,16 @@ rules in the root `vite.config.ts`), `pnpm type-check` and `pnpm test`, through
 `vp run`, which replays a package's result when nothing it reads changed. Unit
 tests import from `vite-plus/test`, not `vitest`.
 
+What `@songverse/core` does - the song format, chords, the chart, the
+timeline, what the API accepts - is also written down as shared test cases
+(`packages/core/conformance/`, issue #170) that the native apps (#165) will
+run too. A change to that behaviour fails core's tests until
+`pnpm --filter @songverse/core conformance` writes the answers again: review
+the diff, it's the behaviour every client must follow. Add a case to
+`src/conformance/suites.ts` for new behaviour every client needs. The API's
+request messages are worded in core (`requests/messages.ts`) for the same
+reason.
+
 ## Deleting users
 
 Admin > Users can delete an account, either with everything the user

@@ -116,3 +116,31 @@ export function sharedMetronomeSettings(settings: MetronomeSettings): SyncMetron
     countInOnly: settings.countInOnly,
   };
 }
+
+/**
+ * A time on the server's clock (ms) as this device's clock reads it,
+ * `offset` being the server's clock less the device's (clockOffset).
+ */
+export function deviceTime(serverTime: number, offset: number): number {
+  return serverTime - offset;
+}
+
+/**
+ * Where the leader's metronome is at `serverTime` (ms), in beats from its
+ * start (count-in included): it goes on from its anchor at the tempo while
+ * playing, and stays there while stopped.
+ */
+export function metronomePositionAt(metronome: Pick<SyncMetronome, "settings" | "playing" | "anchorAt" | "anchorPosition">, serverTime: number): number {
+  if (!metronome.playing) return metronome.anchorPosition;
+  return metronome.anchorPosition + ((serverTime - metronome.anchorAt) / 1000) * (metronome.settings.tempo / 60);
+}
+
+/**
+ * Seconds into the leader's recording at `serverTime` (ms): it goes on
+ * from its anchor at its speed (issue #139) while playing, in the
+ * recording's own time, and stays there while paused.
+ */
+export function stemsPositionAt(stems: Pick<SyncStems, "playing" | "position" | "anchorAt" | "speed">, serverTime: number): number {
+  if (!stems.playing) return stems.position;
+  return stems.position + ((serverTime - stems.anchorAt) / 1000) * (stems.speed ?? 1);
+}

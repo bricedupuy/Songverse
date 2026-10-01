@@ -1,0 +1,2678 @@
+{
+  "$schema": "songverse-conformance/v1",
+  "area": "chart",
+  "about": "A song played as its arrangement says, seen through a reader's choices: what every client shows. Transposition, capo shapes, solfège, simpler chords, the arrangement's changes; references the song no longer has are kept as problems, never dropped.",
+  "functions": {
+    "renderChart": {
+      "about": "The chart: each pass of the flow (or of the arrangement) with its lines and chord labels, its key and whether the arrangement changes it.",
+      "params": [
+        "song",
+        "arrangement",
+        "view"
+      ],
+      "cases": [
+        {
+          "name": "as written",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            null,
+            {}
+          ],
+          "expected": {
+            "key": "G",
+            "capo": null,
+            "tempo": 72,
+            "timeSignature": {
+              "numerator": 4,
+              "denominator": 4
+            },
+            "passes": [
+              {
+                "id": "fi_verse",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "G",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Amazing grace how sweet the sound",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "G",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v2",
+                        "at": 18,
+                        "label": "G7",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "C",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v2",
+                    "kind": "note",
+                    "text": "softly",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": []
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "D/F#",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "Em7",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "G",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "C",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Dsus4",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "Bm7b5",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus2",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": "Chorus 2",
+                "note": null,
+                "keyChange": "A",
+                "key": "A",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "D",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Esus4",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "C#m7b5",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              }
+            ]
+          }
+        },
+        {
+          "name": "a set's own transposition, in solfège",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            null,
+            {
+              "transposeSteps": 3,
+              "notation": "solfege"
+            }
+          ],
+          "expected": {
+            "key": "Bb",
+            "capo": null,
+            "tempo": 72,
+            "timeSignature": {
+              "numerator": 4,
+              "denominator": 4
+            },
+            "passes": [
+              {
+                "id": "fi_verse",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "Bb",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Amazing grace how sweet the sound",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "Sib",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v2",
+                        "at": 18,
+                        "label": "Sib7",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "Mib",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v2",
+                    "kind": "note",
+                    "text": "softly",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": []
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "Fa/La",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "Solm7",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "Bb",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "Mib",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Fasus4",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "Rém7b5",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus2",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": "Chorus 2",
+                "note": null,
+                "keyChange": "C",
+                "key": "C",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "Fa",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Solsus4",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "Mim7b5",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              }
+            ]
+          }
+        },
+        {
+          "name": "the song's capo suggestion, as shapes",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            null,
+            {
+              "suggestedCapo": 2,
+              "capoDisplay": "shapes"
+            }
+          ],
+          "expected": {
+            "key": "G",
+            "capo": 2,
+            "tempo": 72,
+            "timeSignature": {
+              "numerator": 4,
+              "denominator": 4
+            },
+            "passes": [
+              {
+                "id": "fi_verse",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "G",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Amazing grace how sweet the sound",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "F",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v2",
+                        "at": 18,
+                        "label": "F7",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "Bb",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v2",
+                    "kind": "note",
+                    "text": "softly",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": []
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "C/E",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "Dm7",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "G",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "Bb",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Csus4",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "Am7b5",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus2",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": "Chorus 2",
+                "note": null,
+                "keyChange": "A",
+                "key": "A",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "C",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Dsus4",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "Bm7b5",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              }
+            ]
+          }
+        },
+        {
+          "name": "simpler chords, no bass notes, a hidden chord",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            null,
+            {
+              "preferences": {
+                "simplifyChords": true,
+                "hideBassNotes": true,
+                "hiddenChordIds": [
+                  "chd_v2"
+                ]
+              }
+            }
+          ],
+          "expected": {
+            "key": "G",
+            "capo": null,
+            "tempo": 72,
+            "timeSignature": {
+              "numerator": 4,
+              "denominator": 4
+            },
+            "passes": [
+              {
+                "id": "fi_verse",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "G",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Amazing grace how sweet the sound",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "G",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "C",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v2",
+                    "kind": "note",
+                    "text": "softly",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": []
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "D",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "Em",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "G",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "C",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Dsus4",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "Bdim",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus2",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": "Chorus 2",
+                "note": null,
+                "keyChange": "A",
+                "key": "A",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "D",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Esus4",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "C#dim",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              }
+            ]
+          }
+        },
+        {
+          "name": "an arrangement",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            {
+              "$schema": "arrangement-document/v2",
+              "songVersionId": "song_1",
+              "songRevision": 3,
+              "defaults": {
+                "transposeSteps": -2,
+                "capo": 3
+              },
+              "items": [
+                {
+                  "id": "ai_1",
+                  "sectionId": "sec_verse",
+                  "overrides": [
+                    {
+                      "type": "chord",
+                      "chordId": "chd_v3",
+                      "raw": "Cadd9"
+                    },
+                    {
+                      "type": "hide_line",
+                      "lineId": "line_v2"
+                    }
+                  ]
+                },
+                {
+                  "id": "ai_2",
+                  "sectionId": "sec_chorus",
+                  "note": "all in",
+                  "overrides": [
+                    {
+                      "type": "hide_chord",
+                      "chordId": "chd_c3"
+                    }
+                  ]
+                },
+                {
+                  "id": "ai_3",
+                  "sectionId": "sec_verse",
+                  "label": "Verse 2",
+                  "overrides": [
+                    {
+                      "type": "lyric",
+                      "lineId": "line_v1",
+                      "text": "Twas grace that taught my heart to fear"
+                    },
+                    {
+                      "type": "insert_line",
+                      "afterLineId": "line_v3",
+                      "line": {
+                        "id": "ins_line_1",
+                        "kind": "lyric",
+                        "text": "Tag",
+                        "chords": [
+                          {
+                            "id": "ins_chd_1",
+                            "at": 0,
+                            "raw": "G"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "chord",
+                      "chordId": "chd_gone",
+                      "raw": "A"
+                    }
+                  ]
+                }
+              ]
+            },
+            {}
+          ],
+          "expected": {
+            "key": "F",
+            "capo": 3,
+            "tempo": 72,
+            "timeSignature": {
+              "numerator": 4,
+              "denominator": 4
+            },
+            "passes": [
+              {
+                "id": "ai_1",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "F",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Amazing grace how sweet the sound",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "F",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v2",
+                        "at": 18,
+                        "label": "F7",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "Bbadd9",
+                        "replaced": true
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "C/E",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "Dm7",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": true,
+                "problems": []
+              },
+              {
+                "id": "ai_2",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": "all in",
+                "keyChange": null,
+                "key": "F",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "Bb",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Csus4",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": true,
+                "problems": []
+              },
+              {
+                "id": "ai_3",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": "Verse 2",
+                "note": null,
+                "keyChange": null,
+                "key": "F",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Twas grace that taught my heart to fear",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": true,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "F",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v2",
+                        "at": 18,
+                        "label": "F7",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "Bb",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v2",
+                    "kind": "note",
+                    "text": "softly",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": []
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "C/E",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "Dm7",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "ins_line_1",
+                    "kind": "lyric",
+                    "text": "Tag",
+                    "note": null,
+                    "inserted": true,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "ins_chd_1",
+                        "at": 0,
+                        "label": "F",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": true,
+                "problems": [
+                  "chord chd_gone not found"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "an arrangement with its capo, as shapes",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            {
+              "$schema": "arrangement-document/v2",
+              "songVersionId": "song_1",
+              "songRevision": 3,
+              "defaults": {
+                "transposeSteps": -2,
+                "capo": 3
+              },
+              "items": [
+                {
+                  "id": "ai_1",
+                  "sectionId": "sec_verse",
+                  "overrides": [
+                    {
+                      "type": "chord",
+                      "chordId": "chd_v3",
+                      "raw": "Cadd9"
+                    },
+                    {
+                      "type": "hide_line",
+                      "lineId": "line_v2"
+                    }
+                  ]
+                },
+                {
+                  "id": "ai_2",
+                  "sectionId": "sec_chorus",
+                  "note": "all in",
+                  "overrides": [
+                    {
+                      "type": "hide_chord",
+                      "chordId": "chd_c3"
+                    }
+                  ]
+                },
+                {
+                  "id": "ai_3",
+                  "sectionId": "sec_verse",
+                  "label": "Verse 2",
+                  "overrides": [
+                    {
+                      "type": "lyric",
+                      "lineId": "line_v1",
+                      "text": "Twas grace that taught my heart to fear"
+                    },
+                    {
+                      "type": "insert_line",
+                      "afterLineId": "line_v3",
+                      "line": {
+                        "id": "ins_line_1",
+                        "kind": "lyric",
+                        "text": "Tag",
+                        "chords": [
+                          {
+                            "id": "ins_chd_1",
+                            "at": 0,
+                            "raw": "G"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "chord",
+                      "chordId": "chd_gone",
+                      "raw": "A"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "capoDisplay": "shapes"
+            }
+          ],
+          "expected": {
+            "key": "F",
+            "capo": 3,
+            "tempo": 72,
+            "timeSignature": {
+              "numerator": 4,
+              "denominator": 4
+            },
+            "passes": [
+              {
+                "id": "ai_1",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "F",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Amazing grace how sweet the sound",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "D",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v2",
+                        "at": 18,
+                        "label": "D7",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "Gadd9",
+                        "replaced": true
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "A/C#",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "Bm7",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": true,
+                "problems": []
+              },
+              {
+                "id": "ai_2",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": "all in",
+                "keyChange": null,
+                "key": "F",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "G",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "Asus4",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": true,
+                "problems": []
+              },
+              {
+                "id": "ai_3",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": "Verse 2",
+                "note": null,
+                "keyChange": null,
+                "key": "F",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Twas grace that taught my heart to fear",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": true,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "D",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v2",
+                        "at": 18,
+                        "label": "D7",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "G",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v2",
+                    "kind": "note",
+                    "text": "softly",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": []
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "A/C#",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "Bm7",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "ins_line_1",
+                    "kind": "lyric",
+                    "text": "Tag",
+                    "note": null,
+                    "inserted": true,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "ins_chd_1",
+                        "at": 0,
+                        "label": "D",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": true,
+                "problems": [
+                  "chord chd_gone not found"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "structureOf": {
+      "about": "The structure bar: each pass's type, its number among those of its type, and its group.",
+      "params": [
+        "song",
+        "arrangement"
+      ],
+      "cases": [
+        {
+          "name": "the song's flow",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            null
+          ],
+          "expected": [
+            {
+              "passId": "fi_verse",
+              "type": "verse",
+              "number": null,
+              "group": "verse"
+            },
+            {
+              "passId": "fi_chorus",
+              "type": "chorus",
+              "number": null,
+              "group": "chorus"
+            },
+            {
+              "passId": "fi_chorus2",
+              "type": "chorus",
+              "number": null,
+              "group": "chorus"
+            }
+          ]
+        },
+        {
+          "name": "an arrangement",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            {
+              "$schema": "arrangement-document/v2",
+              "songVersionId": "song_1",
+              "songRevision": 3,
+              "defaults": {
+                "transposeSteps": -2,
+                "capo": 3
+              },
+              "items": [
+                {
+                  "id": "ai_1",
+                  "sectionId": "sec_verse",
+                  "overrides": [
+                    {
+                      "type": "chord",
+                      "chordId": "chd_v3",
+                      "raw": "Cadd9"
+                    },
+                    {
+                      "type": "hide_line",
+                      "lineId": "line_v2"
+                    }
+                  ]
+                },
+                {
+                  "id": "ai_2",
+                  "sectionId": "sec_chorus",
+                  "note": "all in",
+                  "overrides": [
+                    {
+                      "type": "hide_chord",
+                      "chordId": "chd_c3"
+                    }
+                  ]
+                },
+                {
+                  "id": "ai_3",
+                  "sectionId": "sec_verse",
+                  "label": "Verse 2",
+                  "overrides": [
+                    {
+                      "type": "lyric",
+                      "lineId": "line_v1",
+                      "text": "Twas grace that taught my heart to fear"
+                    },
+                    {
+                      "type": "insert_line",
+                      "afterLineId": "line_v3",
+                      "line": {
+                        "id": "ins_line_1",
+                        "kind": "lyric",
+                        "text": "Tag",
+                        "chords": [
+                          {
+                            "id": "ins_chd_1",
+                            "at": 0,
+                            "raw": "G"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "chord",
+                      "chordId": "chd_gone",
+                      "raw": "A"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "expected": [
+            {
+              "passId": "ai_1",
+              "type": "verse",
+              "number": null,
+              "group": "verse"
+            },
+            {
+              "passId": "ai_2",
+              "type": "chorus",
+              "number": null,
+              "group": "chorus"
+            },
+            {
+              "passId": "ai_3",
+              "type": "verse",
+              "number": null,
+              "group": "verse"
+            }
+          ]
+        }
+      ]
+    },
+    "chartSeconds": {
+      "about": "How long the chart lasts, for autoscroll: the song's duration, or worked out from its tempo.",
+      "params": [
+        "song",
+        "durationSeconds"
+      ],
+      "cases": [
+        {
+          "name": "a duration given",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            200
+          ],
+          "expected": 200
+        },
+        {
+          "name": "none given",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            null
+          ],
+          "expected": 26.666666666666668
+        }
+      ]
+    }
+  }
+}

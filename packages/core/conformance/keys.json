@@ -1,0 +1,375 @@
+{
+  "$schema": "songverse-conformance/v1",
+  "area": "keys",
+  "about": "Keys as written (\"G\", \"Bb\", \"F#m\"): read, written, moved by semitones.",
+  "functions": {
+    "parseKey": {
+      "about": "A key as written: its semitone from C and whether it's minor; null when it isn't one.",
+      "params": [
+        "text"
+      ],
+      "cases": [
+        {
+          "name": "\"C\"",
+          "args": [
+            "C"
+          ],
+          "expected": {
+            "semitone": 0,
+            "minor": false
+          }
+        },
+        {
+          "name": "\"G\"",
+          "args": [
+            "G"
+          ],
+          "expected": {
+            "semitone": 7,
+            "minor": false
+          }
+        },
+        {
+          "name": "\"Bb\"",
+          "args": [
+            "Bb"
+          ],
+          "expected": {
+            "semitone": 10,
+            "minor": false
+          }
+        },
+        {
+          "name": "\"F#m\"",
+          "args": [
+            "F#m"
+          ],
+          "expected": {
+            "semitone": 6,
+            "minor": true
+          }
+        },
+        {
+          "name": "\"Ebm\"",
+          "args": [
+            "Ebm"
+          ],
+          "expected": {
+            "semitone": 3,
+            "minor": true
+          }
+        },
+        {
+          "name": "\"Cb\"",
+          "args": [
+            "Cb"
+          ],
+          "expected": {
+            "semitone": 11,
+            "minor": false
+          }
+        },
+        {
+          "name": "\"B#\"",
+          "args": [
+            "B#"
+          ],
+          "expected": {
+            "semitone": 0,
+            "minor": false
+          }
+        },
+        {
+          "name": "\"  a  \"",
+          "args": [
+            "  a  "
+          ],
+          "expected": {
+            "semitone": 9,
+            "minor": false
+          }
+        },
+        {
+          "name": "\"H\"",
+          "args": [
+            "H"
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"\"",
+          "args": [
+            ""
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"Gmaj\"",
+          "args": [
+            "Gmaj"
+          ],
+          "expected": {
+            "semitone": 7,
+            "minor": false
+          }
+        }
+      ]
+    },
+    "formatKey": {
+      "about": "A key from its semitone and mode, spelt as a key signature would.",
+      "params": [
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "major 0",
+          "args": [
+            {
+              "semitone": 0,
+              "minor": false
+            }
+          ],
+          "expected": "C"
+        },
+        {
+          "name": "major 1",
+          "args": [
+            {
+              "semitone": 1,
+              "minor": false
+            }
+          ],
+          "expected": "Db"
+        },
+        {
+          "name": "major 3",
+          "args": [
+            {
+              "semitone": 3,
+              "minor": false
+            }
+          ],
+          "expected": "Eb"
+        },
+        {
+          "name": "major 6",
+          "args": [
+            {
+              "semitone": 6,
+              "minor": false
+            }
+          ],
+          "expected": "F#"
+        },
+        {
+          "name": "major 8",
+          "args": [
+            {
+              "semitone": 8,
+              "minor": false
+            }
+          ],
+          "expected": "Ab"
+        },
+        {
+          "name": "major 10",
+          "args": [
+            {
+              "semitone": 10,
+              "minor": false
+            }
+          ],
+          "expected": "Bb"
+        },
+        {
+          "name": "major 11",
+          "args": [
+            {
+              "semitone": 11,
+              "minor": false
+            }
+          ],
+          "expected": "B"
+        },
+        {
+          "name": "minor 1",
+          "args": [
+            {
+              "semitone": 1,
+              "minor": true
+            }
+          ],
+          "expected": "C#m"
+        },
+        {
+          "name": "minor 3",
+          "args": [
+            {
+              "semitone": 3,
+              "minor": true
+            }
+          ],
+          "expected": "D#m"
+        },
+        {
+          "name": "minor 6",
+          "args": [
+            {
+              "semitone": 6,
+              "minor": true
+            }
+          ],
+          "expected": "F#m"
+        },
+        {
+          "name": "minor 10",
+          "args": [
+            {
+              "semitone": 10,
+              "minor": true
+            }
+          ],
+          "expected": "Bbm"
+        }
+      ]
+    },
+    "transposeKey": {
+      "about": "A key moved by semitones (negative goes down); null when it isn't a key.",
+      "params": [
+        "key",
+        "steps"
+      ],
+      "cases": [
+        {
+          "name": "G by 2",
+          "args": [
+            "G",
+            2
+          ],
+          "expected": "A"
+        },
+        {
+          "name": "G by -2",
+          "args": [
+            "G",
+            -2
+          ],
+          "expected": "F"
+        },
+        {
+          "name": "F by 1",
+          "args": [
+            "F",
+            1
+          ],
+          "expected": "F#"
+        },
+        {
+          "name": "Bb by 5",
+          "args": [
+            "Bb",
+            5
+          ],
+          "expected": "Eb"
+        },
+        {
+          "name": "Em by 3",
+          "args": [
+            "Em",
+            3
+          ],
+          "expected": "Gm"
+        },
+        {
+          "name": "C#m by -1",
+          "args": [
+            "C#m",
+            -1
+          ],
+          "expected": "Cm"
+        },
+        {
+          "name": "E by 12",
+          "args": [
+            "E",
+            12
+          ],
+          "expected": "E"
+        },
+        {
+          "name": "E by -13",
+          "args": [
+            "E",
+            -13
+          ],
+          "expected": "Eb"
+        },
+        {
+          "name": "nope by 1",
+          "args": [
+            "nope",
+            1
+          ],
+          "expected": null
+        }
+      ]
+    },
+    "semitonesBetween": {
+      "about": "The shortest way from one key to another, -5 to +6; null when either isn't a key.",
+      "params": [
+        "from",
+        "to"
+      ],
+      "cases": [
+        {
+          "name": "G to A",
+          "args": [
+            "G",
+            "A"
+          ],
+          "expected": 2
+        },
+        {
+          "name": "A to G",
+          "args": [
+            "A",
+            "G"
+          ],
+          "expected": -2
+        },
+        {
+          "name": "C to F#",
+          "args": [
+            "C",
+            "F#"
+          ],
+          "expected": 6
+        },
+        {
+          "name": "C to G",
+          "args": [
+            "C",
+            "G"
+          ],
+          "expected": -5
+        },
+        {
+          "name": "Em to Gm",
+          "args": [
+            "Em",
+            "Gm"
+          ],
+          "expected": 3
+        },
+        {
+          "name": "G to ?",
+          "args": [
+            "G",
+            "?"
+          ],
+          "expected": null
+        }
+      ]
+    }
+  }
+}

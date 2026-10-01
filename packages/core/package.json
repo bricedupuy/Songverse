@@ -6,7 +6,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "sideEffects": ["./dist/zod-config.js"],
+  "sideEffects": [
+    "./dist/zod-config.js"
+  ],
   "exports": {
     ".": "./dist/index.js",
     "./i18n/locales/*": "./dist/i18n/locales/*.js"
@@ -15,7 +17,8 @@
     "build": "tsc -p tsconfig.json",
     "lint": "vp lint src --deny-warnings",
     "type-check": "tsc --noEmit",
-    "test": "vp test"
+    "test": "vp test",
+    "conformance": "tsc -p tsconfig.json && node scripts/conformance.mjs"
   },
   "dependencies": {
     "zod": "^4.6.5",

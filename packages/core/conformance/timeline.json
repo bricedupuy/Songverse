@@ -1,0 +1,544 @@
+{
+  "$schema": "songverse-conformance/v1",
+  "area": "timeline",
+  "about": "The metronome and sync play's timeline (issue #13): only \"beat N at server time T\" crosses the network, and each device plays it on its own clock. Positions are in beats from the start, count-in included; times in ms.",
+  "functions": {
+    "clockOffset": {
+      "about": "The server's clock less the device's, from the ping with the shortest round trip; null with none usable.",
+      "params": [
+        "samples"
+      ],
+      "cases": [
+        {
+          "name": "the quickest of three",
+          "args": [
+            [
+              {
+                "sent": 1000,
+                "at": 5060,
+                "received": 1100
+              },
+              {
+                "sent": 2000,
+                "at": 6015,
+                "received": 2020
+              },
+              {
+                "sent": 3000,
+                "at": 7090,
+                "received": 3200
+              }
+            ]
+          ],
+          "expected": {
+            "offset": 4005,
+            "rtt": 20
+          }
+        },
+        {
+          "name": "a sample from the future is left out",
+          "args": [
+            [
+              {
+                "sent": 1000,
+                "at": 5000,
+                "received": 900
+              },
+              {
+                "sent": 2000,
+                "at": 6010,
+                "received": 2020
+              }
+            ]
+          ],
+          "expected": {
+            "offset": 4000,
+            "rtt": 20
+          }
+        },
+        {
+          "name": "none",
+          "args": [
+            []
+          ],
+          "expected": null
+        }
+      ]
+    },
+    "deviceTime": {
+      "about": "A server time on this device's clock.",
+      "params": [
+        "serverTime",
+        "offset"
+      ],
+      "cases": [
+        {
+          "name": "server ahead",
+          "args": [
+            10000,
+            4000
+          ],
+          "expected": 6000
+        },
+        {
+          "name": "server behind",
+          "args": [
+            10000,
+            -250.5
+          ],
+          "expected": 10250.5
+        }
+      ]
+    },
+    "metronomePositionAt": {
+      "about": "Where the leader's metronome is at a server time: on from its anchor at the tempo while playing.",
+      "params": [
+        "metronome",
+        "serverTime"
+      ],
+      "cases": [
+        {
+          "name": "120 bpm, 1.5 s on",
+          "args": [
+            {
+              "settings": {
+                "tempo": 120
+              },
+              "playing": true,
+              "anchorAt": 10000,
+              "anchorPosition": 4
+            },
+            11500
+          ],
+          "expected": 7
+        },
+        {
+          "name": "72 bpm, before its anchor",
+          "args": [
+            {
+              "settings": {
+                "tempo": 72
+              },
+              "playing": true,
+              "anchorAt": 10000,
+              "anchorPosition": 8
+            },
+            9000
+          ],
+          "expected": 6.8
+        },
+        {
+          "name": "stopped",
+          "args": [
+            {
+              "settings": {
+                "tempo": 120
+              },
+              "playing": false,
+              "anchorAt": 0,
+              "anchorPosition": 6
+            },
+            99999
+          ],
+          "expected": 6
+        }
+      ]
+    },
+    "stemsPositionAt": {
+      "about": "Seconds into the leader's recording at a server time: on from its anchor at its speed while playing, in the recording's own time.",
+      "params": [
+        "stems",
+        "serverTime"
+      ],
+      "cases": [
+        {
+          "name": "at full speed",
+          "args": [
+            {
+              "playing": true,
+              "position": 30,
+              "anchorAt": 10000
+            },
+            12500
+          ],
+          "expected": 32.5
+        },
+        {
+          "name": "at 80%",
+          "args": [
+            {
+              "playing": true,
+              "position": 30,
+              "anchorAt": 10000,
+              "speed": 0.8
+            },
+            12500
+          ],
+          "expected": 32
+        },
+        {
+          "name": "paused",
+          "args": [
+            {
+              "playing": false,
+              "position": 42.5,
+              "anchorAt": 0
+            },
+            12500
+          ],
+          "expected": 42.5
+        }
+      ]
+    },
+    "normalizeMetronome": {
+      "about": "Metronome settings made whole and within bounds: the tempo 20-300, a beat level per beat of the bar.",
+      "params": [
+        "input"
+      ],
+      "cases": [
+        {
+          "name": "nothing",
+          "args": [
+            null
+          ],
+          "expected": {
+            "tempo": 100,
+            "numerator": 4,
+            "denominator": 4,
+            "beats": [
+              "accent",
+              "normal",
+              "normal",
+              "normal"
+            ],
+            "subdivision": 1,
+            "countIn": 0,
+            "countInOnly": false,
+            "sound": "click",
+            "volume": 0.8
+          }
+        },
+        {
+          "name": "6/8",
+          "args": [
+            {
+              "tempo": 90,
+              "numerator": 6,
+              "denominator": 8
+            }
+          ],
+          "expected": {
+            "tempo": 90,
+            "numerator": 6,
+            "denominator": 8,
+            "beats": [
+              "accent",
+              "normal",
+              "normal",
+              "normal",
+              "normal",
+              "normal"
+            ],
+            "subdivision": 1,
+            "countIn": 0,
+            "countInOnly": false,
+            "sound": "click",
+            "volume": 0.8
+          }
+        },
+        {
+          "name": "too fast, beats missing",
+          "args": [
+            {
+              "tempo": 999,
+              "numerator": 3,
+              "beats": [
+                "accent"
+              ]
+            }
+          ],
+          "expected": {
+            "tempo": 300,
+            "numerator": 3,
+            "denominator": 4,
+            "beats": [
+              "accent",
+              "normal",
+              "normal"
+            ],
+            "subdivision": 1,
+            "countIn": 0,
+            "countInOnly": false,
+            "sound": "click",
+            "volume": 0.8
+          }
+        }
+      ]
+    },
+    "beatAt": {
+      "about": "The bar (negative in the count-in), beat and fraction at a position.",
+      "params": [
+        "settings",
+        "position"
+      ],
+      "cases": [
+        {
+          "name": "the start",
+          "args": [
+            {
+              "numerator": 4,
+              "countIn": 0
+            },
+            0
+          ],
+          "expected": {
+            "bar": 0,
+            "beat": 0,
+            "fraction": 0
+          }
+        },
+        {
+          "name": "bar 2, beat 3 and a half",
+          "args": [
+            {
+              "numerator": 4,
+              "countIn": 0
+            },
+            6.5
+          ],
+          "expected": {
+            "bar": 1,
+            "beat": 2,
+            "fraction": 0.5
+          }
+        },
+        {
+          "name": "in a bar of count-in",
+          "args": [
+            {
+              "numerator": 4,
+              "countIn": 1
+            },
+            2
+          ],
+          "expected": {
+            "bar": -1,
+            "beat": 2,
+            "fraction": 0
+          }
+        },
+        {
+          "name": "after the count-in",
+          "args": [
+            {
+              "numerator": 3,
+              "countIn": 2
+            },
+            7
+          ],
+          "expected": {
+            "bar": 0,
+            "beat": 1,
+            "fraction": 0
+          }
+        }
+      ]
+    },
+    "clicksBetween": {
+      "about": "The clicks from one position (included) to another (not): accents, muted beats, subdivisions, count-in.",
+      "params": [
+        "settings",
+        "from",
+        "to"
+      ],
+      "cases": [
+        {
+          "name": "a bar of 4/4",
+          "args": [
+            {
+              "tempo": 100,
+              "numerator": 4
+            },
+            0,
+            4
+          ],
+          "expected": [
+            {
+              "position": 0,
+              "tick": 0,
+              "bar": 0,
+              "beat": 0,
+              "sub": 0,
+              "level": "accent",
+              "note": 34,
+              "channel": 10,
+              "velocity": 120,
+              "countIn": false
+            },
+            {
+              "position": 1,
+              "tick": 480,
+              "bar": 0,
+              "beat": 1,
+              "sub": 0,
+              "level": "normal",
+              "note": 33,
+              "channel": 10,
+              "velocity": 90,
+              "countIn": false
+            },
+            {
+              "position": 2,
+              "tick": 960,
+              "bar": 0,
+              "beat": 2,
+              "sub": 0,
+              "level": "normal",
+              "note": 33,
+              "channel": 10,
+              "velocity": 90,
+              "countIn": false
+            },
+            {
+              "position": 3,
+              "tick": 1440,
+              "bar": 0,
+              "beat": 3,
+              "sub": 0,
+              "level": "normal",
+              "note": 33,
+              "channel": 10,
+              "velocity": 90,
+              "countIn": false
+            }
+          ]
+        },
+        {
+          "name": "eighths, a muted beat",
+          "args": [
+            {
+              "tempo": 100,
+              "numerator": 4,
+              "subdivision": 2,
+              "beats": [
+                "accent",
+                "mute",
+                "normal",
+                "normal"
+              ]
+            },
+            0,
+            2
+          ],
+          "expected": [
+            {
+              "position": 0,
+              "tick": 0,
+              "bar": 0,
+              "beat": 0,
+              "sub": 0,
+              "level": "accent",
+              "note": 34,
+              "channel": 10,
+              "velocity": 120,
+              "countIn": false
+            },
+            {
+              "position": 0.5,
+              "tick": 240,
+              "bar": 0,
+              "beat": 0,
+              "sub": 1,
+              "level": "sub",
+              "note": 33,
+              "channel": 10,
+              "velocity": 60,
+              "countIn": false
+            }
+          ]
+        },
+        {
+          "name": "a bar of count-in, count-in only",
+          "args": [
+            {
+              "tempo": 100,
+              "numerator": 2,
+              "countIn": 1,
+              "countInOnly": true
+            },
+            0,
+            4
+          ],
+          "expected": [
+            {
+              "position": 0,
+              "tick": 0,
+              "bar": -1,
+              "beat": 0,
+              "sub": 0,
+              "level": "accent",
+              "note": 34,
+              "channel": 10,
+              "velocity": 120,
+              "countIn": true
+            },
+            {
+              "position": 1,
+              "tick": 480,
+              "bar": -1,
+              "beat": 1,
+              "sub": 0,
+              "level": "normal",
+              "note": 33,
+              "channel": 10,
+              "velocity": 90,
+              "countIn": true
+            }
+          ]
+        }
+      ]
+    },
+    "tapTempo": {
+      "about": "The tempo from taps (ms); null with too few.",
+      "params": [
+        "taps"
+      ],
+      "cases": [
+        {
+          "name": "steady at 120",
+          "args": [
+            [
+              0,
+              500,
+              1000,
+              1500,
+              2000
+            ]
+          ],
+          "expected": 120
+        },
+        {
+          "name": "uneven",
+          "args": [
+            [
+              0,
+              480,
+              1010,
+              1490
+            ]
+          ],
+          "expected": 121
+        },
+        {
+          "name": "one tap",
+          "args": [
+            [
+              0
+            ]
+          ],
+          "expected": null
+        }
+      ]
+    }
+  }
+}

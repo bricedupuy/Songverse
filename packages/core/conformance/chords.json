@@ -1,0 +1,936 @@
+{
+  "$schema": "songverse-conformance/v1",
+  "area": "chords",
+  "about": "Chord symbols as written: read, transposed (sharps or flats from the key), simplified, named in letters or solfège.",
+  "functions": {
+    "parseChord": {
+      "about": "A chord symbol read: its root, quality, seventh, extensions, alterations and bass; \"N.C.\" is no chord; null when it isn't a chord.",
+      "params": [
+        "raw"
+      ],
+      "cases": [
+        {
+          "name": "\"G\"",
+          "args": [
+            "G"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "G",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Em7\"",
+          "args": [
+            "Em7"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "E",
+              "accidental": null
+            },
+            "quality": "minor",
+            "seventh": "minor",
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"D/F#\"",
+          "args": [
+            "D/F#"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "D",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": {
+              "letter": "F",
+              "accidental": "sharp"
+            },
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Cmaj7\"",
+          "args": [
+            "Cmaj7"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "C",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": "major",
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Bbm7b5\"",
+          "args": [
+            "Bbm7b5"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "B",
+              "accidental": "flat"
+            },
+            "quality": "half-diminished",
+            "seventh": "minor",
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"F#dim7\"",
+          "args": [
+            "F#dim7"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "F",
+              "accidental": "sharp"
+            },
+            "quality": "diminished",
+            "seventh": "diminished",
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Gsus4\"",
+          "args": [
+            "Gsus4"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "G",
+              "accidental": null
+            },
+            "quality": "sus4",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Asus2\"",
+          "args": [
+            "Asus2"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "A",
+              "accidental": null
+            },
+            "quality": "sus2",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"C5\"",
+          "args": [
+            "C5"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "C",
+              "accidental": null
+            },
+            "quality": "power",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Eaug\"",
+          "args": [
+            "Eaug"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "E",
+              "accidental": null
+            },
+            "quality": "augmented",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"C7#9\"",
+          "args": [
+            "C7#9"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "C",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": "minor",
+            "extensions": [],
+            "alterations": [
+              "#9"
+            ],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Cadd9\"",
+          "args": [
+            "Cadd9"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "C",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": null,
+            "extensions": [
+              "add9"
+            ],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"G6/B\"",
+          "args": [
+            "G6/B"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "G",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": null,
+            "extensions": [
+              "6"
+            ],
+            "alterations": [],
+            "bass": {
+              "letter": "B",
+              "accidental": null
+            },
+            "optional": false
+          }
+        },
+        {
+          "name": "\"(Am)\"",
+          "args": [
+            "(Am)"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "A",
+              "accidental": null
+            },
+            "quality": "minor",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": true
+          }
+        },
+        {
+          "name": "\"N.C.\"",
+          "args": [
+            "N.C."
+          ],
+          "expected": {
+            "kind": "no-chord",
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Hm\"",
+          "args": [
+            "Hm"
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"verse\"",
+          "args": [
+            "verse"
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"\"",
+          "args": [
+            ""
+          ],
+          "expected": null
+        }
+      ]
+    },
+    "transposeChord": {
+      "about": "A chord moved by semitones, spelt with sharps or flats as the target key uses; anything that isn't a chord is left as written.",
+      "params": [
+        "raw",
+        "steps",
+        "targetKey"
+      ],
+      "cases": [
+        {
+          "name": "G by 2 to A",
+          "args": [
+            "G",
+            2,
+            "A"
+          ],
+          "expected": "A"
+        },
+        {
+          "name": "D/F# by 2 to A",
+          "args": [
+            "D/F#",
+            2,
+            "A"
+          ],
+          "expected": "E/G#"
+        },
+        {
+          "name": "Em7 by 1 to F",
+          "args": [
+            "Em7",
+            1,
+            "F"
+          ],
+          "expected": "Fm7"
+        },
+        {
+          "name": "Bb by 1 to null",
+          "args": [
+            "Bb",
+            1,
+            null
+          ],
+          "expected": "B"
+        },
+        {
+          "name": "C by -1 to B",
+          "args": [
+            "C",
+            -1,
+            "B"
+          ],
+          "expected": "B"
+        },
+        {
+          "name": "C by 1 to Db",
+          "args": [
+            "C",
+            1,
+            "Db"
+          ],
+          "expected": "Db"
+        },
+        {
+          "name": "F#m7b5 by -2 to E",
+          "args": [
+            "F#m7b5",
+            -2,
+            "E"
+          ],
+          "expected": "Em7b5"
+        },
+        {
+          "name": "N.C. by 3 to C",
+          "args": [
+            "N.C.",
+            3,
+            "C"
+          ],
+          "expected": "N.C."
+        },
+        {
+          "name": "(Am) by 5 to D",
+          "args": [
+            "(Am)",
+            5,
+            "D"
+          ],
+          "expected": "(Dm)"
+        },
+        {
+          "name": "verse by 2 to A",
+          "args": [
+            "verse",
+            2,
+            "A"
+          ],
+          "expected": "verse"
+        },
+        {
+          "name": "G by 0 to G",
+          "args": [
+            "G",
+            0,
+            "G"
+          ],
+          "expected": "G"
+        },
+        {
+          "name": "G by 12 to G",
+          "args": [
+            "G",
+            12,
+            "G"
+          ],
+          "expected": "G"
+        }
+      ]
+    },
+    "keyUsesFlats": {
+      "about": "Whether chords in this key are spelt with flats.",
+      "params": [
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "F",
+          "args": [
+            "F"
+          ],
+          "expected": true
+        },
+        {
+          "name": "Bb",
+          "args": [
+            "Bb"
+          ],
+          "expected": true
+        },
+        {
+          "name": "Eb",
+          "args": [
+            "Eb"
+          ],
+          "expected": true
+        },
+        {
+          "name": "Dm",
+          "args": [
+            "Dm"
+          ],
+          "expected": true
+        },
+        {
+          "name": "Gm",
+          "args": [
+            "Gm"
+          ],
+          "expected": true
+        },
+        {
+          "name": "G",
+          "args": [
+            "G"
+          ],
+          "expected": false
+        },
+        {
+          "name": "D",
+          "args": [
+            "D"
+          ],
+          "expected": false
+        },
+        {
+          "name": "Em",
+          "args": [
+            "Em"
+          ],
+          "expected": false
+        },
+        {
+          "name": "C",
+          "args": [
+            "C"
+          ],
+          "expected": false
+        },
+        {
+          "name": "Am",
+          "args": [
+            "Am"
+          ],
+          "expected": false
+        },
+        {
+          "name": "null",
+          "args": [
+            null
+          ],
+          "expected": false
+        }
+      ]
+    },
+    "formatChord": {
+      "about": "A chord named in letters (\"english\", as written) or solfège (\"solfege\": Do, Ré, Mi…).",
+      "params": [
+        "raw",
+        "notation"
+      ],
+      "cases": [
+        {
+          "name": "G in solfège",
+          "args": [
+            "G",
+            "solfege"
+          ],
+          "expected": "Sol"
+        },
+        {
+          "name": "G in letters",
+          "args": [
+            "G",
+            "english"
+          ],
+          "expected": "G"
+        },
+        {
+          "name": "Em7 in solfège",
+          "args": [
+            "Em7",
+            "solfege"
+          ],
+          "expected": "Mim7"
+        },
+        {
+          "name": "Em7 in letters",
+          "args": [
+            "Em7",
+            "english"
+          ],
+          "expected": "Em7"
+        },
+        {
+          "name": "D/F# in solfège",
+          "args": [
+            "D/F#",
+            "solfege"
+          ],
+          "expected": "Ré/Fa#"
+        },
+        {
+          "name": "D/F# in letters",
+          "args": [
+            "D/F#",
+            "english"
+          ],
+          "expected": "D/F#"
+        },
+        {
+          "name": "Bbmaj7 in solfège",
+          "args": [
+            "Bbmaj7",
+            "solfege"
+          ],
+          "expected": "Sibmaj7"
+        },
+        {
+          "name": "Bbmaj7 in letters",
+          "args": [
+            "Bbmaj7",
+            "english"
+          ],
+          "expected": "Bbmaj7"
+        },
+        {
+          "name": "C#m in solfège",
+          "args": [
+            "C#m",
+            "solfege"
+          ],
+          "expected": "Do#m"
+        },
+        {
+          "name": "C#m in letters",
+          "args": [
+            "C#m",
+            "english"
+          ],
+          "expected": "C#m"
+        },
+        {
+          "name": "N.C. in solfège",
+          "args": [
+            "N.C.",
+            "solfege"
+          ],
+          "expected": "N.C."
+        },
+        {
+          "name": "N.C. in letters",
+          "args": [
+            "N.C.",
+            "english"
+          ],
+          "expected": "N.C."
+        }
+      ]
+    },
+    "simplifyChord": {
+      "about": "A chord made easier: only its triad (dropExtensions), without its bass note (dropBass).",
+      "params": [
+        "raw",
+        "options"
+      ],
+      "cases": [
+        {
+          "name": "Gmaj7 {\"dropExtensions\":true}",
+          "args": [
+            "Gmaj7",
+            {
+              "dropExtensions": true
+            }
+          ],
+          "expected": "G"
+        },
+        {
+          "name": "Em7 {\"dropExtensions\":true}",
+          "args": [
+            "Em7",
+            {
+              "dropExtensions": true
+            }
+          ],
+          "expected": "Em"
+        },
+        {
+          "name": "Bm7b5 {\"dropExtensions\":true}",
+          "args": [
+            "Bm7b5",
+            {
+              "dropExtensions": true
+            }
+          ],
+          "expected": "Bdim"
+        },
+        {
+          "name": "Csus4 {\"dropExtensions\":true}",
+          "args": [
+            "Csus4",
+            {
+              "dropExtensions": true
+            }
+          ],
+          "expected": "Csus4"
+        },
+        {
+          "name": "Cadd9 {\"dropExtensions\":true}",
+          "args": [
+            "Cadd9",
+            {
+              "dropExtensions": true
+            }
+          ],
+          "expected": "C"
+        },
+        {
+          "name": "D/F# {\"dropBass\":true}",
+          "args": [
+            "D/F#",
+            {
+              "dropBass": true
+            }
+          ],
+          "expected": "D"
+        },
+        {
+          "name": "Am7/G {\"dropExtensions\":true,\"dropBass\":true}",
+          "args": [
+            "Am7/G",
+            {
+              "dropExtensions": true,
+              "dropBass": true
+            }
+          ],
+          "expected": "Am"
+        },
+        {
+          "name": "G {}",
+          "args": [
+            "G",
+            {}
+          ],
+          "expected": "G"
+        }
+      ]
+    },
+    "sameChord": {
+      "about": "Whether two symbols are the same chord, however written.",
+      "params": [
+        "a",
+        "b"
+      ],
+      "cases": [
+        {
+          "name": "G and G",
+          "args": [
+            "G",
+            "G"
+          ],
+          "expected": true
+        },
+        {
+          "name": "Gmaj and G",
+          "args": [
+            "Gmaj",
+            "G"
+          ],
+          "expected": true
+        },
+        {
+          "name": "F# and Gb",
+          "args": [
+            "F#",
+            "Gb"
+          ],
+          "expected": true
+        },
+        {
+          "name": "Em7 and Emin7",
+          "args": [
+            "Em7",
+            "Emin7"
+          ],
+          "expected": true
+        },
+        {
+          "name": "G and G/B",
+          "args": [
+            "G",
+            "G/B"
+          ],
+          "expected": false
+        },
+        {
+          "name": "C and Cm",
+          "args": [
+            "C",
+            "Cm"
+          ],
+          "expected": false
+        }
+      ]
+    },
+    "diatonicChords": {
+      "about": "The chords of a key, I to vii, for the chord palette.",
+      "params": [
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "G",
+          "args": [
+            "G"
+          ],
+          "expected": [
+            {
+              "degree": "I",
+              "chord": "G"
+            },
+            {
+              "degree": "ii",
+              "chord": "Am"
+            },
+            {
+              "degree": "iii",
+              "chord": "Bm"
+            },
+            {
+              "degree": "IV",
+              "chord": "C"
+            },
+            {
+              "degree": "V",
+              "chord": "D"
+            },
+            {
+              "degree": "vi",
+              "chord": "Em"
+            },
+            {
+              "degree": "vii°",
+              "chord": "F#dim"
+            }
+          ]
+        },
+        {
+          "name": "F",
+          "args": [
+            "F"
+          ],
+          "expected": [
+            {
+              "degree": "I",
+              "chord": "F"
+            },
+            {
+              "degree": "ii",
+              "chord": "Gm"
+            },
+            {
+              "degree": "iii",
+              "chord": "Am"
+            },
+            {
+              "degree": "IV",
+              "chord": "Bb"
+            },
+            {
+              "degree": "V",
+              "chord": "C"
+            },
+            {
+              "degree": "vi",
+              "chord": "Dm"
+            },
+            {
+              "degree": "vii°",
+              "chord": "Edim"
+            }
+          ]
+        },
+        {
+          "name": "Em",
+          "args": [
+            "Em"
+          ],
+          "expected": [
+            {
+              "degree": "i",
+              "chord": "Em"
+            },
+            {
+              "degree": "ii°",
+              "chord": "F#dim"
+            },
+            {
+              "degree": "III",
+              "chord": "G"
+            },
+            {
+              "degree": "iv",
+              "chord": "Am"
+            },
+            {
+              "degree": "v",
+              "chord": "Bm"
+            },
+            {
+              "degree": "VI",
+              "chord": "C"
+            },
+            {
+              "degree": "VII",
+              "chord": "D"
+            }
+          ]
+        },
+        {
+          "name": "Bb",
+          "args": [
+            "Bb"
+          ],
+          "expected": [
+            {
+              "degree": "I",
+              "chord": "Bb"
+            },
+            {
+              "degree": "ii",
+              "chord": "Cm"
+            },
+            {
+              "degree": "iii",
+              "chord": "Dm"
+            },
+            {
+              "degree": "IV",
+              "chord": "Eb"
+            },
+            {
+              "degree": "V",
+              "chord": "F"
+            },
+            {
+              "degree": "vi",
+              "chord": "Gm"
+            },
+            {
+              "degree": "vii°",
+              "chord": "Adim"
+            }
+          ]
+        },
+        {
+          "name": "null",
+          "args": [
+            null
+          ],
+          "expected": []
+        }
+      ]
+    }
+  }
+}
