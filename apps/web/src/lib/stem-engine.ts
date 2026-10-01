@@ -1,3 +1,4 @@
+import { decodeAudio } from "#/lib/decode-audio";
 import { multitracksOf, speedCorrection, STEM_PARTS, stemSpeed, TIME_SIGNATURE_PATTERN, transposesPart, type Attachment, type CueSection, type StemPart } from "@songverse/core";
 import { useSyncExternalStore } from "react";
 import { deviceNow, OutputClock } from "#/lib/output-clock";
@@ -852,7 +853,8 @@ async function loadNow(song: StemSong, key: string): Promise<boolean> {
         progress(stem.id, blob.size, blob.size, true);
         // A few hundred bytes: headers, no sound.
         empty = blob.size < 1024;
-        buffer = await ctx.decodeAudioData(await blob.arrayBuffer());
+        // Ogg Opus where the browser can't read it (Safari before 18.4): WebAssembly (issue #185).
+        buffer = await decodeAudio(ctx, await blob.arrayBuffer());
       } catch {
         // Shown on its row; the other parts still play.
       }

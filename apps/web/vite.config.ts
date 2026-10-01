@@ -1,10 +1,15 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    // ogg-opus-decoder's optional speech enhancement (8 MB), never used (issue #185).
+    alias: { "@wasm-audio-decoders/opus-ml": fileURLToPath(new URL("./src/lib/vendor/opus-ml-stub.ts", import.meta.url)) },
+  },
   // `vite preview` (our production server — see Dockerfile.web) rejects
   // requests whose Host header it doesn't recognize, as a DNS-rebinding
   // defense meant for a developer's own machine. In production this

@@ -1,3 +1,4 @@
+import { decodeAudio } from "#/lib/decode-audio";
 import { alignTake, clapDelayFrom, clickTimes, roundTripFrom } from "@songverse/core";
 import { endStemsRecording } from "#/lib/stem-engine";
 
@@ -189,7 +190,7 @@ export class Recorder {
     this.backing = new Map();
     for (const { id, blob } of files) {
       try {
-        this.backing.set(id, await this.context.decodeAudioData(await blob.arrayBuffer()));
+        this.backing.set(id, await decodeAudio(this.context, await blob.arrayBuffer()));
       } catch {
         // Not playable here: recorded without it.
       }
