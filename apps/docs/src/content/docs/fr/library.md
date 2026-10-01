@@ -46,7 +46,7 @@ Un administrateur global peut **Ajouter une photo** (glissée et zoomée dans le
 
 ## Listes intelligentes
 
-**Chants** affiche d'abord 50 chants ; les suivants arrivent quand vous faites défiler jusqu'en bas (ou avec **Afficher plus**), et recharger ou revenir en arrière ramène tous ceux déjà affichés. **Colonnes** choisit les colonnes affichées - Artiste, Langue, Statut, Étiquettes, Mis à jour, Ajouté et CCLI - et leur ordre (le titre reste en premier), retenus sur cet appareil.
+**Chants** affiche d'abord 50 chants ; les suivants arrivent quand vous faites défiler jusqu'en bas (ou avec **Afficher plus**), et recharger ou revenir en arrière ramène tous ceux déjà affichés. **Colonnes** choisit les colonnes affichées - Artiste et Étiquettes au départ, avec le titre ; Langue, Statut, Mis à jour, Ajouté et CCLI aussi si vous le voulez - et leur ordre (le titre reste en premier), retenus sur cet appareil.
 
 Une recherche, des filtres et un tri que vous utilisez souvent peuvent devenir une liste intelligente : réglez-les dans **Chants**, puis **Enregistrer comme liste intelligente** et donnez-lui un nom. Elle apparaît en haut du panneau de la bibliothèque dans la barre latérale (sous **Bibliothèque** sur téléphone). Une liste intelligente garde les filtres, pas les chants : un nouveau chant qui correspond y apparaît tout seul.
 

@@ -43,26 +43,34 @@ await step("more songs as it scrolls, appended; the address follows, and a reloa
   void second;
 });
 
-await step("columns shown or hidden, and moved, remembered (issue #150)", async () => {
+await step("Title, Artist and Tags to start with (issue #168); columns shown or hidden, and moved, remembered (issue #150)", async () => {
   const headers = () => page.locator("thead th").allInnerTexts().then((texts) => texts.map((text) => text.trim()));
-  if ((await headers()).join("|") !== "Title|Artist|Language|Status|Tags|Updated") throw new Error((await headers()).join("|"));
+  const headersAre = (expected) =>
+    page.waitForFunction((want) => [...document.querySelectorAll("thead th")].map((th) => th.textContent.trim()).join("|") === want, expected, { timeout: 5000 }).catch(async () => {
+      throw new Error(`${(await headers()).join("|")}, not ${expected}`);
+    });
+  await headersAre("Title|Artist|Tags");
   await page.getByTestId("library-columns").click();
   const list = page.getByTestId("library-columns-list");
-  await list.locator('[data-column="language"]').getByRole("checkbox").uncheck();
+  await list.locator('[data-column="language"]').getByRole("checkbox").check();
+  await list.locator('[data-column="publicationState"]').getByRole("checkbox").check();
   await list.locator('[data-column="createdAt"]').getByRole("checkbox").check();
-  await list.getByRole("button", { name: "Move Updated earlier" }).click();
+  await list.locator('[data-column="tags"]').getByRole("checkbox").uncheck();
+  await list.getByRole("button", { name: "Move Status earlier" }).click();
   await page.keyboard.press("Escape");
-  if ((await headers()).join("|") !== "Title|Artist|Status|Updated|Tags|Added") throw new Error((await headers()).join("|"));
+  await headersAre("Title|Artist|Status|Language|Added");
   await page.reload();
   await page.waitForLoadState("networkidle");
-  await page.waitForFunction(() => [...document.querySelectorAll("thead th")].map((th) => th.textContent.trim()).join("|") === "Title|Artist|Status|Updated|Tags|Added", null, { timeout: 5000 }).catch(async () => {
-    throw new Error(`not remembered: ${(await headers()).join("|")}`);
-  });
-  // Back as they were, for the steps after.
+  await headersAre("Title|Artist|Status|Language|Added");
+  // Back as they were, then the Status column, for the steps after.
   await page.evaluate(() => localStorage.removeItem("songverse.library.columns"));
   await page.goto(`${WEB}/library/songs`);
   await page.waitForLoadState("networkidle");
-  await page.waitForFunction(() => [...document.querySelectorAll("thead th")].map((th) => th.textContent.trim()).join("|") === "Title|Artist|Language|Status|Tags|Updated");
+  await headersAre("Title|Artist|Tags");
+  await page.getByTestId("library-columns").click();
+  await list.locator('[data-column="publicationState"]').getByRole("checkbox").check();
+  await page.keyboard.press("Escape");
+  await headersAre("Title|Artist|Tags|Status");
 });
 
 await step("search finds songs beyond the first page, by title or artist", async () => {

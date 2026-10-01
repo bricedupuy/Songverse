@@ -141,9 +141,10 @@ function statusLabel(version: Pick<SongVersionSummary, "publicationState" | "own
 }
 
 /** The columns a user can choose (issue #150), in their default order; Title is always first. */
-export const LIBRARY_COLUMNS = ["artist", "language", "publicationState", "tags", "updatedAt", "createdAt", "ccli"] as const;
+export const LIBRARY_COLUMNS = ["artist", "tags", "language", "publicationState", "updatedAt", "createdAt", "ccli"] as const;
 export type LibraryColumn = (typeof LIBRARY_COLUMNS)[number];
-const HIDDEN_AT_FIRST: LibraryColumn[] = ["createdAt", "ccli"];
+// Title, Artist and Tags to start with (issue #168); the rest a pick away.
+const HIDDEN_AT_FIRST: LibraryColumn[] = ["language", "publicationState", "updatedAt", "createdAt", "ccli"];
 const COLUMNS_KEY = "songverse.library.columns";
 
 export interface ColumnPrefs {

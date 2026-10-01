@@ -175,6 +175,14 @@
   select {
     max-width: 100%;
   }
+  /* A select's open list is drawn by the browser: on Windows it stays light
+     whatever the page's color-scheme, under the dark theme's light text
+     (issue #167). Its options take the theme's colours instead. */
+  option,
+  optgroup {
+    background-color: var(--color-popover);
+    color: var(--color-popover-foreground);
+  }
 }
 
 /* The structured song editor (components/song-editor/structured): chords
