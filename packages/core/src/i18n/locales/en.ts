@@ -1459,6 +1459,7 @@ const en = {
     label: "The song's YouTube video",
     caption: "The song's video, to play along with: its parts can't be separated.",
     failed: "YouTube couldn't be reached.",
+    minimize: "Minimize the player: the video stops, as YouTube only plays a video that's shown",
   },
   practice: {
     edit: "Edit",

@@ -86,6 +86,10 @@ await step("no audio at all: the YouTube video, shown in the dock (no tracking c
   if (await stems().count()) throw new Error("a stem player without audio");
   await page.locator('[data-testid="fake-youtube"][data-video="dQw4w9WgXcQ"]').waitFor({ state: "attached" });
   if ((await page.getByTestId("fake-youtube").getAttribute("data-host")) !== "https://www.youtube-nocookie.com") throw new Error("not youtube-nocookie");
+  // Minimised to start with (issue #184): one row, the video not shown.
+  if ((await dock().getAttribute("data-view")) !== "compact" || (await dock().getByTestId("youtube-anchor").count())) throw new Error("not minimised");
+  if ((await view()) !== "hidden") throw new Error(`the video shown: ${await view()}`);
+  await dock().getByTestId("youtube-expand").click();
   await page.waitForFunction(() => document.querySelector('[data-testid="youtube-host"]')?.dataset.view === "docked");
   // Laid over the dock's box, at least 200x200 as YouTube requires.
   await page.waitForTimeout(100);
@@ -118,6 +122,26 @@ await step("elsewhere it plays on in a corner, with a way back", async () => {
   await page.locator('[data-testid="youtube-dock"][data-state="playing"]').waitFor();
 });
 
+await step("minimised (issue #184): the video pauses and goes; Play there brings it back, playing", async () => {
+  await dock().getByTestId("youtube-minimize").click();
+  await page.locator('[data-testid="youtube-dock"][data-view="compact"]').waitFor();
+  if ((await page.getByTestId("fake-youtube").getAttribute("data-state")) !== "2") throw new Error("still playing");
+  if ((await view()) !== "hidden") throw new Error(`the video shown: ${await view()}`);
+  await dock().getByRole("button", { name: "Play", exact: true }).click();
+  await page.locator('[data-testid="youtube-dock"][data-view="expanded"][data-state="playing"]').waitFor();
+  await page.waitForFunction(() => document.querySelector('[data-testid="youtube-host"]')?.dataset.view === "docked");
+});
+
+await step("on a phone, the video as wide as the screen, 200 px high: 16:9, not a square", async () => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(150);
+  const box = await host().boundingBox();
+  if (box.width < 340 || Math.abs(box.height - 200) > 1) throw new Error(JSON.stringify(box));
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) throw new Error(`${overflow}px sideways scroll`);
+  await page.setViewportSize({ width: 1280, height: 900 });
+});
+
 await step("one thing plays at a time: the stems stop YouTube", async () => {
   await sidebarGo(page, "Library");
   await page.getByRole("row").getByText(`Recorded ${stamp}`, { exact: true }).click(); // in the list, not the home's shelves
@@ -130,6 +154,7 @@ await step("one thing plays at a time: the stems stop YouTube", async () => {
   // …and YouTube stops them.
   await page.goto(`${WEB}/library/${video.id}`);
   await page.waitForLoadState("networkidle");
+  // Minimised: Play expands it and plays.
   await dock().getByRole("button", { name: "Play", exact: true }).click();
   await page.locator('[data-testid="youtube-dock"][data-state="playing"]').waitFor();
   await dock().getByRole("button", { name: "Pause", exact: true }).click();

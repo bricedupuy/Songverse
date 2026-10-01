@@ -1,10 +1,10 @@
 import { formatDuration } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
-import { Loader2, Pause, Play, TvMinimalPlay } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Pause, Play, TvMinimalPlay } from "lucide-react";
 import { useContext, useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { SpeedControl } from "#/components/speed-control";
+import { SpeedControl, speedPercent } from "#/components/speed-control";
 import { StemDockSlot } from "#/components/stem-dock";
 import { Button } from "#/components/ui/button";
 import { setMode } from "#/lib/mode";
@@ -30,7 +30,10 @@ const EDGES = "pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-ar
  * A song's YouTube video docked at the bottom of its page in Practice
  * (issue #66), for a song with no audio of its own: the video (YouTube
  * requires it shown, at least 200x200) and the controls. The player itself
- * is YouTubeHost's, laid over the space kept here.
+ * is YouTubeHost's, laid over the space kept here. It opens minimised (issue
+ * #184) - one row, no video - unless the video's playing already; as YouTube
+ * won't play a video that isn't shown, minimising pauses it, and Play there
+ * expands it.
  */
 export function YouTubeDock({ video }: { video: YouTubeVideo }) {
   const slot = useContext(StemDockSlot);
@@ -41,6 +44,25 @@ export function YouTubeDock({ video }: { video: YouTubeVideo }) {
   const playing = current && yt.playing;
   const position = current ? yt.position : 0;
   const duration = current ? yt.duration : 0;
+  const loading = current && yt.status === "loading";
+
+  const [expanded, setExpanded] = useState(() => playing);
+  // Played from elsewhere (the corner player's way back): shown.
+  useEffect(() => {
+    if (playing) setExpanded(true);
+  }, [playing]);
+  // Minimised once the pause has taken: playing without its box, the video would go to the corner.
+  const [minimizing, setMinimizing] = useState(false);
+  useEffect(() => {
+    if (!minimizing || playing) return;
+    setMinimizing(false);
+    setExpanded(false);
+  }, [minimizing, playing]);
+  function minimize() {
+    if (!playing) return setExpanded(false);
+    pauseYouTube();
+    setMinimizing(true);
+  }
 
   // Slower or faster (issue #139), remembered for the song as the stems' speed is.
   const speed = useChosenSpeed(video.songVersionId);
@@ -54,13 +76,42 @@ export function YouTubeDock({ video }: { video: YouTubeVideo }) {
   }, [video.videoId]);
 
   useEffect(() => {
-    if (!current || !anchor.current) return;
+    if (!current || !expanded || !anchor.current) return;
     dockYouTube(video.songVersionId, anchor.current);
     return () => undockYouTube(video.songVersionId);
-  }, [current, slot, video.songVersionId]);
+  }, [current, expanded, slot, video.songVersionId]);
+
+  const play = (
+    <Button
+      type="button"
+      size="icon"
+      className="size-10 shrink-0 rounded-full"
+      onClick={() => {
+        if (playing) return pauseYouTube();
+        // Within the press, as browsers want; shown, as YouTube wants.
+        setExpanded(true);
+        playYouTube(video);
+      }}
+      disabled={loading}
+      aria-label={playing ? t("stems.pause") : t("stems.play")}
+    >
+      {loading ? <Loader2 className="animate-spin" /> : playing ? <Pause /> : <Play />}
+    </Button>
+  );
+  const time = (
+    <span className="text-xs tabular-nums text-muted-foreground" data-testid="youtube-time">
+      {formatDuration(position)} / {formatDuration(duration)}
+    </span>
+  );
 
   const dock = (
-    <section className="relative border-t bg-background shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.3)]" aria-label={t("youtube.label")} data-testid="youtube-dock" data-state={playing ? "playing" : current ? yt.status : "idle"}>
+    <section
+      className="relative border-t bg-background shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.3)]"
+      aria-label={t("youtube.label")}
+      data-testid="youtube-dock"
+      data-state={playing ? "playing" : current ? yt.status : "idle"}
+      data-view={expanded ? "expanded" : "compact"}
+    >
       {/* The playhead, as the stem player's: the line along the top edge - click or drag it to go there (arrow keys too). */}
       <input
         type="range"
@@ -76,50 +127,62 @@ export function YouTubeDock({ video }: { video: YouTubeVideo }) {
         style={{ "--progress": duration ? `${(Math.min(position, duration) / duration) * 100}%` : "0%" } as CSSProperties}
         data-testid="youtube-playhead"
       />
-      <div className={cn("mx-auto flex w-full items-center gap-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
-        {current ? (
-          // The video goes here (YouTubeHost follows this box).
-          <div ref={anchor} className="h-[200px] w-[200px] shrink-0 overflow-hidden rounded-md bg-black sm:w-[356px]" data-testid="youtube-anchor" />
-        ) : (
-          <button
-            type="button"
-            className="relative h-[200px] w-[200px] shrink-0 overflow-hidden rounded-md bg-black sm:w-[356px]"
-            onClick={() => playYouTube(video)}
-            aria-label={t("stems.play")}
-          >
-            <img src={`https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`} alt="" className="size-full object-cover opacity-80" />
-            <Play className="absolute inset-0 m-auto size-10 text-white" aria-hidden />
-          </button>
-        )}
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <p className="flex items-center gap-2 text-sm font-medium">
-            <TvMinimalPlay className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            {t("youtube.title")}
-          </p>
-          <p className="hidden text-xs text-muted-foreground sm:block">{t("youtube.caption")}</p>
-          {current && yt.status === "error" ? (
-            <p className="text-xs text-destructive" role="alert">
-              {t("youtube.failed")}
-            </p>
-          ) : null}
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
+      {expanded ? (
+        // On a phone, the video as wide as the screen, the controls under it (issue #184): a 16:9 picture, not a strip in a square.
+        <div className={cn("mx-auto flex w-full flex-col gap-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:pb-2", EDGES)}>
+          {current ? (
+            // The video goes here (YouTubeHost follows this box): 200 px high, YouTube's least.
+            <div ref={anchor} className="h-[200px] w-full shrink-0 overflow-hidden rounded-md bg-black sm:w-[356px]" data-testid="youtube-anchor" />
+          ) : (
+            <button
               type="button"
-              size="icon"
-              className="size-10 shrink-0 rounded-full"
-              onClick={() => (playing ? pauseYouTube() : playYouTube(video))}
-              disabled={current && yt.status === "loading"}
-              aria-label={playing ? t("stems.pause") : t("stems.play")}
+              className="relative h-[200px] w-full shrink-0 overflow-hidden rounded-md bg-black sm:w-[356px]"
+              onClick={() => playYouTube(video)}
+              aria-label={t("stems.play")}
             >
-              {current && yt.status === "loading" ? <Loader2 className="animate-spin" /> : playing ? <Pause /> : <Play />}
-            </Button>
-            <span className="text-xs tabular-nums text-muted-foreground" data-testid="youtube-time">
-              {formatDuration(position)} / {formatDuration(duration)}
-            </span>
-            <SpeedControl speed={speed} onChange={(next) => chooseStemSpeed(video.songVersionId, next)} testId="youtube-speed" />
+              <img src={`https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`} alt="" className="size-full object-cover opacity-80" />
+              <Play className="absolute inset-0 m-auto size-10 text-white" aria-hidden />
+            </button>
+          )}
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            <p className="hidden items-center gap-2 text-sm font-medium sm:flex">
+              <TvMinimalPlay className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+              {t("youtube.title")}
+            </p>
+            <p className="hidden text-xs text-muted-foreground sm:block">{t("youtube.caption")}</p>
+            {current && yt.status === "error" ? (
+              <p className="text-xs text-destructive" role="alert">
+                {t("youtube.failed")}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap items-center gap-3">
+              {play}
+              {time}
+              <SpeedControl speed={speed} onChange={(next) => chooseStemSpeed(video.songVersionId, next)} testId="youtube-speed" />
+              <Button type="button" variant="ghost" size="icon" className="ml-auto shrink-0" onClick={minimize} aria-label={t("stems.minimize")} title={t("youtube.minimize")} data-testid="youtube-minimize">
+                <ChevronDown />
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className={cn("mx-auto flex w-full items-center gap-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-2", EDGES)}>
+          {play}
+          <span className="flex min-w-0 flex-1 items-center gap-2 px-1.5 text-sm">
+            <TvMinimalPlay className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="truncate">{t("youtube.title")}</span>
+          </span>
+          {duration ? time : null}
+          {speed !== 1 ? (
+            <span className="shrink-0 rounded-md bg-muted px-1.5 py-0.5 text-xs font-semibold tabular-nums text-primary" title={t("stems.speedTitle")} data-testid="youtube-speed-badge">
+              {speedPercent(speed)}
+            </span>
+          ) : null}
+          <Button type="button" variant="ghost" size="icon" className="shrink-0" onClick={() => setExpanded(true)} aria-label={t("stems.expand")} data-testid="youtube-expand">
+            <ChevronUp />
+          </Button>
+        </div>
+      )}
     </section>
   );
 

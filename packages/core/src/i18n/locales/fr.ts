@@ -1462,6 +1462,7 @@ const fr: typeof en = {
     label: "La vidéo YouTube du chant",
     caption: "La vidéo du chant, pour jouer avec : ses parties ne peuvent pas être séparées.",
     failed: "YouTube n'a pas pu être joint.",
+    minimize: "Réduire le lecteur : la vidéo s'arrête, YouTube ne jouant qu'une vidéo affichée",
   },
   practice: {
     edit: "Modifier",
