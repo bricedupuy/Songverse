@@ -15,6 +15,7 @@ export class UserResponseDto {
   @ApiProperty() isGlobalAdmin!: boolean;
   @ApiProperty({ description: "From their roles, or their teams' (issue #160)" }) isReviewer!: boolean;
   @ApiProperty({ description: "From their roles, or their teams'" }) canSeparateStems!: boolean;
+  @ApiProperty({ description: "May upload audio files: a role's, or a global admin's. Recording in Songverse needs no role." }) canUploadAudio!: boolean;
   @ApiProperty({ type: [String], description: "Their roles' names, their own and their teams'" }) roles!: string[];
   @ApiProperty({ type: [String], description: "What their roles allow plugins (issue #157)" }) permissions!: string[];
   @ApiProperty({ type: [String], description: "Built-in instruments' keys (INSTRUMENTS), then the ids of those an admin added (issue #166)" }) instruments!: string[];

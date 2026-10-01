@@ -1,4 +1,4 @@
-import { ATTACHMENT_TYPES, BUILT_IN_FILE_SIZE_LIMITS_MB, type AttachmentTypeValue } from "@songverse/core";
+import { ATTACHMENT_TYPES, BUILT_IN_FILE_SIZE_LIMITS_MB, MAX_FILE_SIZE_LIMIT_MB, type AttachmentTypeValue } from "@songverse/core";
 import { prisma, Prisma } from "@songverse/db";
 
 const SINGLETON_ID = "singleton";
@@ -32,6 +32,16 @@ export async function getFileSizeLimits(): Promise<FileSizeLimits> {
   return { limitsMb, builtInMb: BUILT_IN_FILE_SIZE_LIMITS_MB, custom };
 }
 
+/**
+ * The limits someone's uploads are held to: Admin > Storage's, except for a
+ * global admin (issue #183), held only to the server's own ceiling - an
+ * upload is in its memory until it's stored.
+ */
+export async function fileSizeLimitsFor(user: { isGlobalAdmin: boolean } | undefined): Promise<Record<AttachmentTypeValue, number>> {
+  if (user?.isGlobalAdmin) return Object.fromEntries(ATTACHMENT_TYPES.map((type) => [type, MAX_FILE_SIZE_LIMIT_MB])) as Record<AttachmentTypeValue, number>;
+  return (await getFileSizeLimits()).limitsMb;
+}
+
 /** A type left out keeps its limit; null goes back to the built-in one. */
 export async function saveFileSizeLimits(change: Partial<Record<AttachmentTypeValue, number | null>>): Promise<void> {
   const row = await prisma.storageSettings.findUnique({ where: { id: SINGLETON_ID }, select: { fileSizeLimitsMb: true } });
@@ -45,6 +55,6 @@ export async function saveFileSizeLimits(change: Partial<Record<AttachmentTypeVa
 }
 
 /** The largest limit of all: how much of an upload is taken in before its type is known. */
-export function largestBytes(limits: FileSizeLimits): number {
-  return Math.max(...Object.values(limits.limitsMb)) * BYTES_PER_MB;
+export function largestBytes(limitsMb: Record<AttachmentTypeValue, number>): number {
+  return Math.max(...Object.values(limitsMb)) * BYTES_PER_MB;
 }

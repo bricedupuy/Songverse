@@ -55,6 +55,8 @@ export class UsersService {
       ...user,
       isReviewer: capabilities.canReview,
       canSeparateStems: capabilities.canSeparateStems,
+      // Audio files (issue #183): a role's, or a global admin's.
+      canUploadAudio: capabilities.canUploadAudio || ("isGlobalAdmin" in user && user.isGlobalAdmin === true),
       roles: roles.map((role) => role.name),
       permissions: capabilities.permissions,
     };

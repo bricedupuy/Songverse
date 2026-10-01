@@ -29,7 +29,7 @@ const suite = path.basename(process.argv[1] ?? "e2e").replace(/\.test\.mjs$/, ""
 /** Runs SQL against the test database and returns the text output. */
 export const sql = (q) => execSync(`psql ${DB} -tAc ${JSON.stringify(q)}`).toString().trim();
 
-/** Gives a user a built-in role (issue #160): "REVIEWER" or "STEM_SEPARATION". */
+/** Gives a user a built-in role (issue #160): "REVIEWER", "STEM_SEPARATION" or "AUDIO_UPLOADS" (#183). */
 export const giveRole = (userId, builtIn) =>
   sql(`insert into "RoleAssignment" (id, "roleId", "userId") select 'ra_' || md5(random()::text), id, '${userId}' from "Role" where "builtIn" = '${builtIn}' on conflict do nothing`);
 
@@ -88,7 +88,10 @@ export async function user(name) {
   });
   const cookie = res.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
   const bearer = (await (await fetch(`${API}/api/auth/token`, { headers: { cookie, Origin: ORIGIN } })).json()).token;
-  return { email, bearer, cookie, id: sql(`select id from "User" where email='${email}'`) };
+  const id = sql(`select id from "User" where email='${email}'`);
+  // Uploading audio files is a role's (issue #183), which people who sign up don't get: the suites' users have it.
+  giveRole(id, "AUDIO_UPLOADS");
+  return { email, bearer, cookie, id };
 }
 
 /** An API call as `who`; returns the status and parsed body. */

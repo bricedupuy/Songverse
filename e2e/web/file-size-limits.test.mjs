@@ -8,7 +8,9 @@ let page;
 const step = stepper(() => page);
 const admin = await user("Sizes page admin");
 sql(`update "User" set "isGlobalAdmin"=true where id='${admin.id}'`);
-const song = await api(admin, "POST", "/song-versions", { title: `Sizes page ${stamp}`, language: "en", artists: ["Band"] });
+// Global admins aren't held to the limits (issue #183): the Files tab is a member's.
+const member = await user("Sizes page member");
+const song = await api(member, "POST", "/song-versions", { title: `Sizes page ${stamp}`, language: "en", artists: ["Band"] });
 
 const browser = await chromium.launch();
 try {
@@ -28,11 +30,17 @@ try {
   });
 
   await step("the Files tab says the limit, and refuses a PDF over it before sending it", async () => {
-    await page.goto(`${WEB}/library/${song.id}?tab=files`);
-    await page.getByText("Up to 30 MB each, depending on the type.").waitFor();
-    await page.locator('input[type="file"]').first().setInputFiles({ name: "Big.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(1.5 * 1024 * 1024, 1) });
-    await page.getByText("Big.pdf is too large: PDF files can be up to 1 MB.").waitFor();
-    if ((await api(admin, "GET", `/song-versions/${song.id}/attachments`)).length !== 0) throw new Error("sent anyway");
+    const theirs = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    try {
+      await signIn(theirs, member);
+      await theirs.goto(`${WEB}/library/${song.id}?tab=files`);
+      await theirs.getByText("Up to 30 MB each, depending on the type.").waitFor();
+      await theirs.locator('input[type="file"]').first().setInputFiles({ name: "Big.pdf", mimeType: "application/pdf", buffer: Buffer.alloc(1.5 * 1024 * 1024, 1) });
+      await theirs.getByText("Big.pdf is too large: PDF files can be up to 1 MB.").waitFor();
+      if ((await api(member, "GET", `/song-versions/${song.id}/attachments`)).length !== 0) throw new Error("sent anyway");
+    } finally {
+      await theirs.close();
+    }
   });
 
   await step("reset to the built-in limit", async () => {

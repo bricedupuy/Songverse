@@ -37,6 +37,11 @@ split stems, a storage tier, later plugins' permissions - comes from roles
 is a field on `Role`, read through `capabilitiesOf`, never a column on
 `User` or `Team`. A team's songs' files count against the team's storage
 pool (`StorageQuotaService.assertCanStore` with the song).
+Uploading audio files is a role's too (`canUploadAudio`, issue #183): people
+who sign up can't, except what they record in Songverse. The e2e harness's
+`user()` gives the built-in `AUDIO_UPLOADS` role; a suite that sets a user's
+roles (`PUT /admin/users/:id/roles`) replaces it, so keep
+`role_audio_uploads` in the list if they upload audio.
 
 ## Keep the Admin UI current
 

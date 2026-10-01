@@ -8,7 +8,7 @@ import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto.js";
 import { BulkUploadPreviewDto } from "./dto/bulk-upload-preview.dto.js";
 import { BulkUploadCommitResultDto, BulkUploadFileMatchDto } from "./dto/bulk-upload-response.dto.js";
 import { RateLimit } from "../security/rate-limit.decorator.js";
-import { BYTES_PER_MB, getFileSizeLimits } from "../uploads/file-size-limits.js";
+import { BYTES_PER_MB, fileSizeLimitsFor } from "../uploads/file-size-limits.js";
 import { SongFileInterceptor } from "../uploads/song-file.interceptor.js";
 
 const MAX_BULK_UPLOAD_FILES_PER_REQUEST = 200;
@@ -42,7 +42,7 @@ export class BulkUploadController {
   ): Promise<Awaited<ReturnType<BulkUploadService["commit"]>>> {
     if (!user) throw new UnauthorizedException();
     // Each file within its type's limit (issue #163), set in Admin > Storage.
-    const limitMb = (await getFileSizeLimits()).limitsMb[dto.type];
+    const limitMb = (await fileSizeLimitsFor(user))[dto.type];
     const tooBig = (files ?? []).find((file) => file.size > limitMb * BYTES_PER_MB);
     if (tooBig) throw new PayloadTooLargeException(`${tooBig.originalname}: ${dto.type === "PDF" ? "PDF" : "ChordPro"} files can be up to ${limitMb} MB`);
     return this.bulkUploadService.commit(user.id, songbookId, dto.type, files ?? []);

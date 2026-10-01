@@ -65,6 +65,8 @@ await step("Live: a library song opens full screen, like a set's; × goes back t
 });
 
 await step("Live in a set: swiping left goes to the next song, right to the previous one", async () => {
+  // In one column (issue #177: a wide screen flows the chart into several, too short to scroll).
+  await page.evaluate(() => localStorage.setItem("songverse.chart.columns", "1"));
   await page.goto(`${WEB}/sets/${set.id}/live/${items[0].id}`);
   await page.getByTestId("live-view").getByRole("heading", { name: `First ${stamp}` }).waitFor();
   const swipe = (from, to) =>
@@ -90,6 +92,7 @@ await step("Live in a set: swiping left goes to the next song, right to the prev
   if (!page.url().includes(items[1].id)) throw new Error("moved on a short swipe");
   await swipe(300, 900);
   await page.waitForURL(`**/sets/${set.id}/live/${items[0].id}`);
+  await page.evaluate(() => localStorage.removeItem("songverse.chart.columns"));
   await setMode("edit");
 });
 

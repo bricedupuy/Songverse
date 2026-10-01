@@ -10,6 +10,8 @@ const admin = await user("Roles admin");
 sql(`update "User" set "isGlobalAdmin"=true where id='${admin.id}'`);
 const member = await user("Roles member");
 const loner = await user("Roles loner");
+// Without the role the suites' users are given to upload audio (issue #183): only the roles given here.
+sql(`delete from "RoleAssignment" where "userId" in ('${member.id}', '${loner.id}')`);
 
 async function upload(who, songId, bytes) {
   const form = new FormData();

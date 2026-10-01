@@ -13,6 +13,8 @@ export interface AppSession {
   isReviewer: boolean;
   /** May split recordings into stems (global admins always can). */
   canSeparateStems: boolean;
+  /** May upload audio files (issue #183); recording in Songverse needs no role. Global admins always can. */
+  canUploadAudio: boolean;
   locale: LocaleValue;
 }
 
@@ -24,6 +26,7 @@ interface BetterAuthUser {
   isGlobalAdmin?: boolean;
   isReviewer?: boolean;
   canSeparateStems?: boolean;
+  canUploadAudio?: boolean;
   locale?: string;
 }
 
@@ -62,6 +65,7 @@ async function loadSession(): Promise<AppSession | null> {
     isGlobalAdmin: Boolean(data.user.isGlobalAdmin),
     isReviewer: Boolean(data.user.isReviewer),
     canSeparateStems: Boolean(data.user.canSeparateStems),
+    canUploadAudio: Boolean(data.user.canUploadAudio),
     locale: asLocale(data.user.locale ?? DEFAULT_LOCALE),
   };
 }

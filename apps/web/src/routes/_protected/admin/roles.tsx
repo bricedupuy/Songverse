@@ -131,6 +131,7 @@ function RoleEditor({ role, onClose, onSaved }: { role: AdminRole | null; onClos
   const [canReview, setCanReview] = useState(role?.canReview ?? false);
   const [canSeparateStems, setCanSeparateStems] = useState(role?.canSeparateStems ?? false);
   const [canKeepLossless, setCanKeepLossless] = useState(role?.canKeepLosslessAudio ?? false);
+  const [canUploadAudio, setCanUploadAudio] = useState(role?.canUploadAudio ?? false);
   const [monthlyLimit, setMonthlyLimit] = useState(role?.stemSeparationMonthlyLimit?.toString() ?? "");
   const [hasStorage, setHasStorage] = useState(role?.storageLimitMb != null);
   const [storageMb, setStorageMb] = useState(role?.storageLimitMb?.toString() ?? "");
@@ -146,6 +147,7 @@ function RoleEditor({ role, onClose, onSaved }: { role: AdminRole | null; onClos
       canReview,
       canSeparateStems,
       canKeepLosslessAudio: canKeepLossless,
+      canUploadAudio,
       stemSeparationMonthlyLimit: canSeparateStems && monthlyLimit.trim() ? Number(monthlyLimit) : null,
       storageLimitMb: hasStorage && storageMb.trim() ? Number(storageMb) : null,
     };
@@ -203,6 +205,7 @@ function RoleEditor({ role, onClose, onSaved }: { role: AdminRole | null; onClos
                 <span className="text-xs text-muted-foreground">{t("admin.roleStemsLimitHint")}</span>
               </div>
             ) : null}
+            {check(canUploadAudio, setCanUploadAudio, t("admin.roleAudioUploads"), t("admin.roleAudioUploadsHint"), "role-audio-uploads")}
             {check(canKeepLossless, setCanKeepLossless, t("admin.roleLossless"), t("admin.roleLosslessHint"), "role-lossless")}
             {check(hasStorage, setHasStorage, t("admin.roleStorageTier"), t("admin.roleStorageTierHint"), "role-storage")}
             {hasStorage ? (

@@ -530,10 +530,15 @@ export function AttachmentsTab({
 
   // The largest file of each type (issue #163), from Admin > Storage: checked before sending one.
   const [limitsMb, setLimitsMb] = useState<Record<string, number> | null>(null);
+  // Uploading audio files is a role's (issue #183); recording here isn't. Offered until the API says otherwise.
+  const [canUploadAudio, setCanUploadAudio] = useState(true);
   useEffect(() => {
     apiClient
       .getUploadLimits()
-      .then((limits) => setLimitsMb(limits.limitsMb))
+      .then((limits) => {
+        setLimitsMb(limits.limitsMb);
+        setCanUploadAudio(limits.canUploadAudio !== false);
+      })
       .catch(() => {
         // Offline: the API says so if a file's too big.
       });
@@ -977,7 +982,16 @@ export function AttachmentsTab({
         </CardContent>
       </Card>
 
-      {/* Anyone who sees the song adds files of their own to it (issue #72). */}
+      {/* Anyone who sees the song adds files of their own to it (issue #72) - audio files, with a role that allows it (#183). */}
+      {kind === "audio" && !canUploadAudio ? (
+        <Card>
+          <CardContent>
+            <p className="text-sm text-muted-foreground" data-testid="audio-uploads-off">
+              {t("songEditor.audioUploadsOff")}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
       <Card>
         <CardContent className="flex flex-col gap-3">
           <div
@@ -1063,6 +1077,7 @@ export function AttachmentsTab({
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

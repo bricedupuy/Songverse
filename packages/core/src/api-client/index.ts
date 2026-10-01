@@ -361,6 +361,8 @@ export interface UserProfile {
   /** From their roles, or their teams' (issue #160). */
   isReviewer: boolean;
   canSeparateStems: boolean;
+  /** May upload audio files (issue #183): a role's, or a global admin. */
+  canUploadAudio: boolean;
   /** Their roles' names, their own and their teams'. */
   roles: string[];
   permissions: string[];
@@ -456,6 +458,8 @@ export interface AdminRole {
   canSeparateStems: boolean;
   /** Lossless audio uploads keep their original, as FLAC (issue #182). */
   canKeepLosslessAudio: boolean;
+  /** Uploads audio files (issue #183); recording in Songverse needs no role. */
+  canUploadAudio: boolean;
   /** Null: Admin > Stem separation's. */
   stemSeparationMonthlyLimit: number | null;
   /** A storage tier (MB). */
@@ -1865,7 +1869,8 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       request<TransferLink>(`/admin/users/${userId}/transfer-link`, { method: "POST" }),
     adminGetStorageLimits: () => request<StorageLimits>("/admin/storage/limits"),
     /** The largest song file of each type, in MB (issue #163). */
-    getUploadLimits: () => request<{ limitsMb: Record<AttachmentTypeValue, number> }>("/uploads/limits"),
+    /** What the viewer may upload (issues #163, #183): each type's largest file, and whether audio files at all (recording in Songverse needs no role). */
+    getUploadLimits: () => request<{ limitsMb: Record<AttachmentTypeValue, number>; canUploadAudio: boolean }>("/uploads/limits"),
     adminGetFileSizeLimits: () => request<FileSizeLimits>("/admin/storage/file-size-limits"),
     adminSaveFileSizeLimits: (data: SaveFileSizeLimitsRequest) =>
       request<void>("/admin/storage/file-size-limits", { method: "PUT", body: JSON.stringify(data) }),

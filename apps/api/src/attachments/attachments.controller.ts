@@ -35,7 +35,7 @@ import { sendFile } from "../files/send-file.js";
 import { StorageService } from "../storage/storage.service.js";
 import { RateLimit } from "../security/rate-limit.decorator.js";
 
-import { BYTES_PER_MB, getFileSizeLimits } from "../uploads/file-size-limits.js";
+import { BYTES_PER_MB, fileSizeLimitsFor } from "../uploads/file-size-limits.js";
 import { SongFileInterceptor } from "../uploads/song-file.interceptor.js";
 
 /** How a type is called in a message. */
@@ -87,8 +87,8 @@ export class AttachmentsController {
     if (!user) throw new UnauthorizedException();
     if (!file) throw new BadRequestException("A file is required");
     await this.access.assertCanSeeSong(user, songVersionId);
-    // Its type's limit (issue #163), set in Admin > Storage.
-    const limitMb = (await getFileSizeLimits()).limitsMb[dto.type];
+    // Its type's limit (issue #163), set in Admin > Storage; a global admin's, the server's (#183).
+    const limitMb = (await fileSizeLimitsFor(user))[dto.type];
     if (file.size > limitMb * BYTES_PER_MB) throw new PayloadTooLargeException(`${FILE_TYPE_NAMES[dto.type]} files can be up to ${limitMb} MB`);
     let mimeType = file.mimetype;
     if (dto.type === "AUDIO") {

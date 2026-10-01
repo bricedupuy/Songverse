@@ -56,7 +56,7 @@ try {
   check("nor can it be started", r.status === 403, String(r.status));
   // Given by a role (issue #160): the built-in Stem separation one.
   const stemsRole = (await api(admin, "GET", "/admin/roles")).find((role) => role.builtIn === "STEM_SEPARATION");
-  r = await call(admin, "PUT", `/admin/users/${singer.id}/roles`, { roleIds: [stemsRole.id] });
+  r = await call(admin, "PUT", `/admin/users/${singer.id}/roles`, { roleIds: [stemsRole.id, "role_audio_uploads"] });
   check("the Stem separation role given to a user", r.status === 204, String(r.status));
   r = await call(singer, "GET", "/users/me");
   check("their profile says they can", r.body.canSeparateStems === true && r.body.roles.includes("Stem separation"), JSON.stringify(r.body.roles));

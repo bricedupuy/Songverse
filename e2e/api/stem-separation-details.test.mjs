@@ -35,7 +35,7 @@ const filesOf = async (songId, multitrackId) => (await api(singer, "GET", `/song
 try {
   await call(admin, "PUT", "/admin/stem-separation", { apiUrl: FAKE_DEMUCS_URL, apiKey: FAKE_DEMUCS_KEY });
   const stemsRole = (await api(admin, "GET", "/admin/roles")).find((role) => role.builtIn === "STEM_SEPARATION");
-  await call(admin, "PUT", `/admin/users/${singer.id}/roles`, { roleIds: [stemsRole.id] });
+  await call(admin, "PUT", `/admin/users/${singer.id}/roles`, { roleIds: [stemsRole.id, "role_audio_uploads"] });
   const song = await api(singer, "POST", "/song-versions", {
     title: `Details ${stamp}`,
     language: "en",

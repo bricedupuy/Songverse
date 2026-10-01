@@ -53,10 +53,11 @@ Le seul endroit qui dit ce que chacun peut faire au-delà de ses chants et de ce
 
 - **Relire les propositions** - la file du catalogue global (voir [Relecteurs](/fr/admin/#relecteurs)) ;
 - **Séparer des enregistrements en pistes**, avec ses propres **Séparations par personne sur 30 jours** ou, laissé vide, celle de **Séparation en pistes** ;
+- **Importer des fichiers audio** - des enregistrements et des pistes. Les personnes qui s'inscrivent ne l'ont pas, mais peuvent toujours enregistrer dans Songverse ; le rôle intégré **Audio uploads** le permet, et a été donné à tous ceux qui avaient un compte quand il est apparu ;
 - **Garder les originaux sans perte** - un WAV, FLAC ou AIFF importé garde son original, en FLAC (un WAV à sa fréquence d'échantillonnage et sa résolution), à côté de la copie Opus qui est jouée ; sans cela, seule la copie Opus est gardée (voir [Fichiers audio](/fr/library/#les-fichiers-audio-et-leurs-originaux)) ;
 - **Un palier de stockage** - combien une personne peut stocker, ou l'espace d'une équipe.
 
-**Reviewer** (relecteur) et **Stem separation** (séparation en pistes) sont intégrés, avec ces noms, que vous pouvez changer : ils se modifient mais ne se suppriment pas. **Nouveau rôle** ajoute les vôtres, comme « Stockage 10 Go ». Donnez les rôles aux personnes dans **Utilisateurs** et aux équipes dans **Équipes**. On peut faire ce que permet l'un de ses rôles - les siens et ceux de ses équipes - et la plus grande limite l'emporte ; sans palier de stockage, les valeurs par défaut de **Stockage** s'appliquent. Les administrateurs globaux peuvent tout faire. Les changements s'appliquent tout de suite.
+**Reviewer** (relecteur), **Stem separation** (séparation en pistes) et **Audio uploads** (import audio) sont intégrés, avec ces noms, que vous pouvez changer : ils se modifient mais ne se suppriment pas. **Nouveau rôle** ajoute les vôtres, comme « Stockage 10 Go ». Donnez les rôles aux personnes dans **Utilisateurs** et aux équipes dans **Équipes**. On peut faire ce que permet l'un de ses rôles - les siens et ceux de ses équipes - et la plus grande limite l'emporte ; sans palier de stockage, les valeurs par défaut de **Stockage** s'appliquent. Les administrateurs globaux peuvent tout faire. Les changements s'appliquent tout de suite.
 
 ### Instruments
 
@@ -64,7 +65,7 @@ Les instruments que chacun peut choisir comme ce qu'il joue (voir [Rôles](/fr/a
 
 ### Stockage
 
-Où sont gardés les fichiers envoyés (un stockage objet comme Cloudflare R2, ou le disque local pour le développement), l'espace utilisé, le plus gros fichier de chaque type (**Taille maximale des fichiers** : PDF, ChordPro, MusicXML, ABC, Texte, Image, Audio, Autre - 25 Mo, audio 50 Mo, sauf réglage ici, jusqu'à 500 Mo, car un envoi est gardé dans la mémoire du serveur jusqu'à son stockage ; **Rétablir** revient à la valeur par défaut), et les limites de stockage par défaut : **Limite par défaut par utilisateur (Mo)** et **Limite par défaut de l'espace d'une équipe (Mo)**, pour qui n'a pas de palier de stockage (voir [Rôles](/fr/admin/#rôles)). Ce qui est sur les chants d'une équipe compte dans l'espace de l'équipe ; le reste de ce qu'on envoie, dans sa propre limite. Les administrateurs globaux n'ont pas de limite.
+Où sont gardés les fichiers envoyés (un stockage objet comme Cloudflare R2, ou le disque local pour le développement), l'espace utilisé, le plus gros fichier de chaque type (**Taille maximale des fichiers** : PDF, ChordPro, MusicXML, ABC, Texte, Image, Audio, Autre - 25 Mo, audio 50 Mo, sauf réglage ici, jusqu'à 500 Mo, car un envoi est gardé dans la mémoire du serveur jusqu'à son stockage ; **Rétablir** revient à la valeur par défaut ; les administrateurs globaux n'y sont pas tenus, seulement aux 500 Mo), et les limites de stockage par défaut : **Limite par défaut par utilisateur (Mo)** et **Limite par défaut de l'espace d'une équipe (Mo)**, pour qui n'a pas de palier de stockage (voir [Rôles](/fr/admin/#rôles)). Ce qui est sur les chants d'une équipe compte dans l'espace de l'équipe ; le reste de ce qu'on envoie, dans sa propre limite. Les administrateurs globaux n'ont pas de limite.
 
 ### Séparation en pistes
 

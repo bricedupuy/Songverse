@@ -92,6 +92,10 @@ export class AttachmentsService {
     take: { process?: string; otherTake?: boolean; partName?: string } = {},
   ) {
     if (stemPart && type !== "AUDIO") throw new BadRequestException("Only audio files can be stems");
+    // Uploading audio files is a role's (issue #183); what's recorded in Songverse (a take it processes) isn't.
+    if (type === "AUDIO" && !take.process && !viewer.isGlobalAdmin && !(await capabilitiesOf(this.prisma.client, viewer.id)).canUploadAudio) {
+      throw new ForbiddenException("Uploading audio files needs a role that allows it: ask an admin. You can still record in Songverse");
+    }
     const details = recordingData(recording);
     if (type !== "AUDIO" && (Object.values(details).some((value) => value !== null) || take.otherTake || take.process)) {
       throw new BadRequestException("Only audio files can have a recording's key and tempo or be part of a multitrack");

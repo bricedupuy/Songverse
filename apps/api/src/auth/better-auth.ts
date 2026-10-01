@@ -186,7 +186,14 @@ function buildAuth(settings: EffectiveAuthSettings) {
       customSession(async ({ user, session }) => {
         const capabilities = await capabilitiesOf(prisma, user.id);
         return {
-          user: { ...user, isReviewer: capabilities.canReview, canSeparateStems: capabilities.canSeparateStems, permissions: capabilities.permissions },
+          user: {
+            ...user,
+            isReviewer: capabilities.canReview,
+            canSeparateStems: capabilities.canSeparateStems,
+            // Audio files (issue #183): a role's, or a global admin's.
+            canUploadAudio: capabilities.canUploadAudio || (user as { isGlobalAdmin?: boolean }).isGlobalAdmin === true,
+            permissions: capabilities.permissions,
+          },
           session,
         };
       }),

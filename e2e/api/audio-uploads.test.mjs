@@ -84,7 +84,8 @@ const role = await api(admin, "POST", "/admin/roles", { name: `Lossless ${stamp}
 try {
   const roles = await api(admin, "GET", "/admin/roles");
   check("Admin > Roles says what it allows", roles.find((r) => r.id === role.id)?.canKeepLosslessAudio === true);
-  await api(admin, "PUT", `/admin/users/${keeper.id}/roles`, { roleIds: [role.id] });
+  // Beside the role to upload audio files at all (issue #183).
+  await api(admin, "PUT", `/admin/users/${keeper.id}/roles`, { roleIds: [role.id, "role_audio_uploads"] });
 
   const s = await song(keeper, "Kept");
   const master = wav({ rate: 48000, bits: 24 });

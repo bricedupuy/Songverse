@@ -2,7 +2,8 @@ import { BadRequestException, type CallHandler, type ExecutionContext, Injectabl
 import multer from "multer";
 import type { Observable } from "rxjs";
 import { UPLOAD_OPTIONS } from "../common/uploads.js";
-import { getFileSizeLimits, largestBytes } from "./file-size-limits.js";
+import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
+import { fileSizeLimitsFor, largestBytes } from "./file-size-limits.js";
 
 /**
  * Takes in a song file, or several (`maxCount`), up to the largest limit set
@@ -16,7 +17,8 @@ export function SongFileInterceptor(field: string, maxCount?: number): Type<Nest
   class Interceptor implements NestInterceptor {
     async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
       const http = context.switchToHttp();
-      const limit = largestBytes(await getFileSizeLimits());
+      // The signed-in user is known by now (the guards run first): a global admin's limit is the server's (issue #183).
+      const limit = largestBytes(await fileSizeLimitsFor((http.getRequest() as { user?: AuthenticatedUser }).user));
       const upload = multer({ ...UPLOAD_OPTIONS, limits: { fileSize: limit } });
       const handler = maxCount === undefined ? upload.single(field) : upload.array(field, maxCount);
       await new Promise<void>((resolve, reject) =>

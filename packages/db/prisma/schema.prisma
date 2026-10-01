@@ -2099,8 +2099,8 @@ model Role {
   id          String   @id @default(cuid())
   name        String   @unique
   description String   @default("")
-  // The two that came with Songverse ("REVIEWER", "STEM_SEPARATION"): kept,
-  // so they can be edited but not deleted.
+  // The ones that came with Songverse ("REVIEWER", "STEM_SEPARATION",
+  // "AUDIO_UPLOADS"): kept, so they can be edited but not deleted.
   builtIn     String?  @unique
   canReview        Boolean @default(false)
   canSeparateStems Boolean @default(false)
@@ -2108,6 +2108,9 @@ model Role {
   // beside the Opus copy that's played (issue #182); without it, only the
   // Opus copy is kept.
   canKeepLosslessAudio Boolean @default(false)
+  // Uploading audio files (issue #183). Without it, someone can still record
+  // in Songverse (a take it processes) and have stems separated.
+  canUploadAudio Boolean @default(false)
   // Separations a month for who has this role; null uses Admin > Stem separation's.
   stemSeparationMonthlyLimit Int?
   // A storage tier: the limit it gives a user, or a team's pool.
