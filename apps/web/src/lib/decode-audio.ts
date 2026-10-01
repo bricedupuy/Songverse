@@ -15,6 +15,14 @@ export function isOggOpus(bytes: Uint8Array): boolean {
 }
 
 const FORCE_KEY = "songverse.audio.decoder";
+/**
+ * Off for now (issue #185): on an iPadOS 17 iPad, decoding a whole
+ * multitrack this way crashed the tab once the stems had downloaded - each
+ * part held twice for a moment (the decoder's copy and the AudioBuffer),
+ * across several workers, is more than Safari allows a tab. Only when asked
+ * (FORCE_KEY = "wasm", as the e2e suite does) until it decodes within that.
+ */
+const FALLBACK_ENABLED = false;
 /** The browser refused Ogg Opus once: it will again, so don't ask it twice. */
 let nativeRefusesOgg = false;
 
@@ -32,10 +40,10 @@ export async function decodeAudio(context: BaseAudioContext, data: ArrayBuffer):
   const ogg = isOggOpus(bytes);
   if (!ogg || (!nativeRefusesOgg && !forced())) {
     try {
-      // decodeAudioData takes the buffer over: a copy, while the fallback may still need it.
-      return await context.decodeAudioData(ogg ? data.slice(0) : data);
+      // decodeAudioData takes the buffer over: a copy, when the fallback may still need it.
+      return await context.decodeAudioData(ogg && (FALLBACK_ENABLED || forced()) ? data.slice(0) : data);
     } catch (error) {
-      if (!ogg) throw error;
+      if (!ogg || (!FALLBACK_ENABLED && !forced())) throw error;
       nativeRefusesOgg = true;
     }
   }
