@@ -82,6 +82,25 @@ await step("a song opened is recently viewed; starred, it's a favorite", async (
   await card("favorites", `Zephyr hymn ${stamp}`).waitFor();
 });
 
+await step("a song opened from further along Recently viewed: back on the home, the shelf starts lined up with its heading", async () => {
+  const fillers = (await api(me, "GET", `/song-versions?q=${encodeURIComponent(`Filler`)}&pageSize=50`)).items.filter((song) => song.title.endsWith(String(stamp)));
+  for (const song of fillers.slice(0, 8)) {
+    await page.goto(`${WEB}/library/${song.id}`);
+    await page.waitForLoadState("networkidle");
+  }
+  await page.goto(`${WEB}/library`);
+  await page.waitForLoadState("networkidle");
+  const row = shelf("recent").getByTestId("shelf-row");
+  await row.getByTestId("song-card").nth(3).click();
+  await page.waitForLoadState("networkidle");
+  await page.goBack();
+  await page.waitForLoadState("networkidle");
+  await page.waitForTimeout(500);
+  // It moved to the front: the row starts again, its new first card where the heading is - not out in the margin.
+  const offset = await row.evaluate((el) => ({ scrolled: el.scrollLeft, first: el.firstElementChild.getBoundingClientRect().left - el.closest("section").querySelector("h2").getBoundingClientRect().left }));
+  if (offset.scrolled !== 0 || Math.abs(offset.first) > 1) throw new Error(JSON.stringify(offset));
+});
+
 await step("See all favorites: Songs, filtered to them, with no shelves", async () => {
   await shelf("favorites").getByRole("link", { name: "See all" }).click();
   await page.waitForURL(/\/library\/songs\?favorites=true/);

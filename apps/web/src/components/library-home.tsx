@@ -1,7 +1,7 @@
 import type { LibraryHome, SongVersionSummary } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Music2 } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
@@ -110,6 +110,12 @@ function useScrollEnds() {
 function Shelf({ id, title, songs, more, from }: { id: string; title: string; songs: CardSong[]; more?: ReactNode; from?: string }) {
   const { t } = useTranslation();
   const { ref, ends, scroll } = useScrollEnds();
+  // Its songs in another order (a song just opened leads Recently viewed): back to the start. Otherwise the browser
+  // keeps the card that was first in place (scroll snapping), pushing the new first one out past the column's edge.
+  const order = songs.map((song) => song.id).join();
+  useLayoutEffect(() => {
+    if (ref.current) ref.current.scrollLeft = 0;
+  }, [order]);
   return (
     <section className="flex flex-col gap-3" aria-labelledby={`shelf-${id}`} data-testid={`shelf-${id}`}>
       <div className="flex items-center justify-between gap-2">
