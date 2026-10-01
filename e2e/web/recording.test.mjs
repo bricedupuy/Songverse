@@ -260,9 +260,15 @@ await step("in Practice, the player offers the multitracks and plays the one cho
   await page.reload();
   await page.getByTestId("stem-multitrack").waitFor();
   if ((await page.getByTestId("stem-multitrack").inputValue()) !== first.multitrackId) throw new Error(await page.getByTestId("stem-multitrack").inputValue());
+  await player.getByRole("button", { name: "Expand the player" }).click();
 });
 
 const panel = () => page.getByTestId("stem-record-panel");
+/** The player expanded: it opens minimised (issue #182). */
+async function expandPlayer() {
+  await page.getByTestId("stem-player").getByRole("button", { name: "Expand the player" }).click();
+  await page.locator('[data-testid="stem-player"][data-view="expanded"]').waitFor();
+}
 /** Records in the player (issue #134): from where the playhead says, for about `seconds` past the count-in. */
 async function recordInPlayer(seconds) {
   await page.locator('[data-testid="stem-record-panel"][data-phase="ready"]').waitFor({ timeout: 15000 });
@@ -348,6 +354,7 @@ await step("a voice of one's own naming, and a harmony someone else recorded: na
 
   await page.reload();
   const player = page.getByTestId("stem-player");
+  await expandPlayer();
   const row = (part) => player.locator(`[data-testid="stem-track"][data-part="${part}"]`);
   await row("HARMONY_ALTO").getByText("Harmony 2 (alto)").waitFor({ timeout: 15000 });
   await row("HARMONY_ALTO").getByText("Recorded by Alto singer").waitFor();
@@ -401,6 +408,7 @@ await step("a recording's actions (issue #142): its name opens them; merged with
   const player = page.getByTestId("stem-player");
   await page.reload();
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  await expandPlayer();
   const row = (part) => player.locator(`[data-testid="stem-track"][data-part="${part}"]`);
   // Someone else's (the alto's) has no actions; mine (the soprano's) does.
   if (await row("HARMONY_ALTO").getByTestId("stem-track-name").count()) throw new Error("actions on someone else's recording");
@@ -435,6 +443,7 @@ await step("a recording's actions (issue #142): its name opens them; merged with
   // Deleted, after asking.
   await page.reload();
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  await expandPlayer();
   await row("HARMONY_SOPRANO").getByTestId("stem-track-name").click();
   await row("HARMONY_SOPRANO").getByTestId("stem-track-delete").click();
   await row("HARMONY_SOPRANO").getByText(/can't be undone/).waitFor();
@@ -462,6 +471,7 @@ await step("on a set's song page: a new multitrack for that set, what the player
   await page.goto(`${WEB}/sets/${sunday.id}/songs/${sundayItem.id}`);
   const player = page.getByTestId("stem-player");
   await player.waitFor();
+  await expandPlayer();
   // A new multitrack: from the player's recorder, the dialog.
   await player.getByTestId("stem-record").click();
   await panel().getByTestId("stem-record-new").click();

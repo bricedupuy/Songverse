@@ -45,6 +45,7 @@ The one place that says what people may do beyond their own and their teams' son
 
 - **Review submissions** - the global catalogue's queue (see [Reviewers](/admin/#reviewers));
 - **Split recordings into stems**, with its own **Separations per person in 30 days** or, left empty, the one in **Stem separation**;
+- **Keep lossless originals** - a WAV, FLAC or AIFF they upload keeps its original, as FLAC (a WAV at its own sample rate and bit depth), beside the Opus copy that's played; without it, only the Opus copy is kept (see [Audio files](/library/#audio-files-and-their-originals));
 - **A storage tier** - how much a person may store, or a team's pool.
 
 **Reviewer** and **Stem separation** are built in: they can be edited but not deleted. **New role** adds your own, such as "Storage 10 GB". Give roles to people in **Users** and to teams in **Teams**. Someone can do what any of their roles allows - their own and their teams' - and the largest limit wins; without a storage tier, the defaults in **Storage** apply. Global admins can do everything. Changes take effect straight away.

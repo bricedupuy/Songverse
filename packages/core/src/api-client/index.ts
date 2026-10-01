@@ -454,6 +454,8 @@ export interface AdminRole {
   builtIn: string | null;
   canReview: boolean;
   canSeparateStems: boolean;
+  /** Lossless audio uploads keep their original, as FLAC (issue #182). */
+  canKeepLosslessAudio: boolean;
   /** Null: Admin > Stem separation's. */
   stemSeparationMonthlyLimit: number | null;
   /** A storage tier (MB). */
@@ -706,6 +708,8 @@ export interface Attachment {
   recordingFirstBeat: number | null;
   /** Played freely before its first beat (issue #178): the click waits for it, with a count-in, rather than clicking from 0:00. */
   recordingFreeIntro?: boolean;
+  /** A lossless upload's original (issue #182), kept as FLAC beside this Opus copy: downloadAttachmentOriginal. */
+  original?: { mimeType: string; sizeBytes: number | null } | null;
   /** Recorded this many semitones above its multitrack (issue #135), while the player was transposed; null: in its key. */
   pitchOffset: number | null;
   /** Its time signature ("4/4") when it isn't the song's (issue #123). */
@@ -1602,6 +1606,15 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
         onProgress(received, total);
       }
       return new Blob(chunks as BlobPart[], { type: response.headers.get("Content-Type") ?? undefined });
+    },
+    /** A lossless upload's original, as FLAC (issue #182), when one was kept (`original` on the file). */
+    downloadAttachmentOriginal: async (songVersionId: string, attachmentId: string): Promise<Blob> => {
+      const token = await getToken();
+      const headers = new Headers();
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+      const response = await fetchRetrying(`${baseUrl}/song-versions/${songVersionId}/attachments/${attachmentId}/original`, { headers });
+      if (!response.ok) throw await failed(response);
+      return response.blob();
     },
     /**
      * A short-lived link to the file (issue #33), for an <audio src> that

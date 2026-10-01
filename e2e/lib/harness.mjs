@@ -151,3 +151,18 @@ export function finish() {
 export async function showStatusColumn(p) {
   await p.evaluate(() => localStorage.setItem("songverse.library.columns", JSON.stringify({ columns: [{ id: "artist", shown: true }, { id: "publicationState", shown: true }] })));
 }
+
+/**
+ * Waits until none of the song's files is being processed (issue #182: an
+ * audio upload above 320 kbps - a 48 kHz WAV - is made Opus by the Worker,
+ * as a new file); returns its files then.
+ */
+export async function settledFiles(who, songVersionId, timeout = 30000) {
+  const until = Date.now() + timeout;
+  for (;;) {
+    const files = await api(who, "GET", `/song-versions/${songVersionId}/attachments`);
+    if (!files.some((file) => file.processing === "PENDING")) return files;
+    if (Date.now() > until) throw new Error(`still processing: ${files.filter((file) => file.processing === "PENDING").map((file) => file.filename).join(", ")}`);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+}

@@ -35,7 +35,28 @@ function takeWav() {
   return Buffer.concat([header, Buffer.from(samples.buffer)]);
 }
 
-async function upload(fields, who = me, bytes = takeWav(), name = "Takes - Guitar.wav", type = "audio/wav") {
+/**
+ * A file uploaded as it is (not a take): a second of quiet at 8 kHz, 128
+ * kbps - under 320 kbps, so the Worker leaves it as it is (issue #182).
+ */
+function quietWav() {
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + 16000, 4);
+  header.write("WAVEfmt ", 8);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(8000, 24);
+  header.writeUInt32LE(16000, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(16000, 40);
+  return Buffer.concat([header, Buffer.alloc(16000)]);
+}
+
+async function upload(fields, who = me, bytes = fields.process ? takeWav() : quietWav(), name = "Takes - Guitar.wav", type = "audio/wav") {
   const form = new FormData();
   form.append("type", "AUDIO");
   for (const [key, value] of Object.entries(fields)) form.append(key, String(value));
@@ -124,7 +145,7 @@ r = await upload({ stemPart: "BASS", process: "encode,louder" });
 check("steps it doesn't know are refused", r.status === 400, JSON.stringify(r.body));
 
 // --- other takes of a part
-r = await upload({ stemPart: "GUITAR", multitrackId: "mtrecordings01", otherTake: true }, me, takeWav(), "Takes - Guitar 2.wav");
+r = await upload({ stemPart: "GUITAR", multitrackId: "mtrecordings01", otherTake: true }, me, quietWav(), "Takes - Guitar 2.wav");
 check("a take kept aside: another take, not played", r.status === 201 && r.body.otherTake === true, JSON.stringify(r.body));
 const second = r.body;
 r = await call(me, "POST", `/song-versions/${song.id}/attachments/${second.id}/use-take`, { instead: guitar.id });
@@ -136,7 +157,7 @@ r = await call(other, "POST", `/song-versions/${song.id}/attachments/${guitar.id
 check("someone else can't", r.status === 403 || r.status === 404, String(r.status));
 
 // --- stems uploaded as they are: locked until their uploader unlocks them (issue #145)
-r = await upload({ stemPart: "DRUMS" }, me, takeWav(), "Takes - Drums.wav");
+r = await upload({ stemPart: "DRUMS" }, me, quietWav(), "Takes - Drums.wav");
 const drums = r.body;
 check("a stem uploaded as it is: locked", r.status === 201 && drums.locked === true, JSON.stringify(r.body?.locked));
 check("a recording (processed) or a take kept aside isn't", guitar.locked === false && second.locked === false, JSON.stringify([guitar.locked, second.locked]));
@@ -144,7 +165,7 @@ r = await call(me, "DELETE", `/song-versions/${song.id}/attachments/${drums.id}`
 check("locked: not deleted", r.status === 403 && /locked/.test(r.body?.message), JSON.stringify(r.body));
 r = await call(me, "POST", `/song-versions/${song.id}/attachments/${drums.id}/process`, { steps: ["level"] });
 check("nor cleaned up", r.status === 403, JSON.stringify(r.body));
-r = await upload({ stemPart: "DRUMS", otherTake: true }, me, takeWav(), "Takes - Drums 2.wav");
+r = await upload({ stemPart: "DRUMS", otherTake: true }, me, quietWav(), "Takes - Drums 2.wav");
 r = await call(me, "POST", `/song-versions/${song.id}/attachments/${r.body.id}/use-take`, { instead: drums.id });
 check("nor replaced by another take", r.status === 403, JSON.stringify(r.body));
 r = await call(me, "PATCH", `/song-versions/${song.id}/attachments/${drums.id}`, { otherTake: true });

@@ -5,6 +5,7 @@ const role = (overrides: Partial<Parameters<typeof combineRoles>[0][number]> = {
   id: Math.random().toString(36).slice(2),
   canReview: false,
   canSeparateStems: false,
+  canKeepLosslessAudio: false,
   stemSeparationMonthlyLimit: null,
   storageLimitMb: null,
   permissions: [],
@@ -16,6 +17,8 @@ describe("combineRoles", () => {
     const caps = combineRoles([role({ canReview: true }), role({ canSeparateStems: true })]);
     expect(caps.canReview).toBe(true);
     expect(caps.canSeparateStems).toBe(true);
+    expect(caps.canKeepLosslessAudio).toBe(false);
+    expect(combineRoles([role(), role({ canKeepLosslessAudio: true })]).canKeepLosslessAudio).toBe(true);
   });
 
   it("gives nothing without roles", () => {

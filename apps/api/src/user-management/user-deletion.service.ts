@@ -113,13 +113,13 @@ export class UserDeletionService {
 
     const attachments = await tx.attachment.findMany({
       where: { songVersionId: { in: versionIds } },
-      select: { storageKey: true },
+      select: { storageKey: true, originalStorageKey: true },
     });
     // Their private files on other people's songs (issue #72) would have no
     // one left to see them: they go too. Files they shared stay.
     const privateFiles = await tx.attachment.findMany({
       where: { uploadedByUserId: userId, visibility: "PRIVATE", songVersionId: { notIn: versionIds } },
-      select: { id: true, storageKey: true },
+      select: { id: true, storageKey: true, originalStorageKey: true },
     });
     await tx.attachment.deleteMany({ where: { id: { in: privateFiles.map((file) => file.id) } } });
 
@@ -160,7 +160,7 @@ export class UserDeletionService {
     await tx.setlist.deleteMany({ where: { ownerUserId: userId } });
 
     return [
-      ...[...attachments, ...privateFiles].map((attachment) => attachment.storageKey),
+      ...[...attachments, ...privateFiles].flatMap((attachment) => (attachment.originalStorageKey ? [attachment.storageKey, attachment.originalStorageKey] : [attachment.storageKey])),
       // Their songs' images (issue #85).
       ...versions.flatMap((version) => (version.imageStorageKey ? [version.imageStorageKey] : [])),
       ...songbookPictures.flatMap((songbook) => (songbook.avatarStorageKey ? [songbook.avatarStorageKey] : [])),

@@ -7,7 +7,7 @@
 // transposes to the key the set plays in.
 import { execFileSync } from "node:child_process";
 import { chromium } from "playwright";
-import { API, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { API, WEB, api, finish, settledFiles, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -48,6 +48,8 @@ for (const [name, bytes, part] of [
   form.append("file", new Blob([bytes], { type: "audio/wav" }), name);
   await fetch(`${API}/song-versions/${song.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form });
 }
+// Made Opus by the Worker, as a 48 kHz WAV is (issue #182).
+await settledFiles(me, song.id);
 
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -57,10 +59,17 @@ page.on("pageerror", (error) => errors.push(error.message));
 await page.addInitScript(() => {
   window.songverseStems = { starts: [], tap: true };
   localStorage.setItem("songverse.mode", "practice");
-  localStorage.setItem("songverse.stems.expanded", "true");
 });
 await signIn(page, me);
 const player = () => page.getByTestId("stem-player");
+
+/** The player expanded (issue #182: it opens minimised). */
+async function expandPlayer() {
+  await page.getByTestId("stem-player").waitFor();
+  const button = page.getByTestId("stem-player").getByRole("button", { name: "Expand the player" });
+  if (await button.isVisible()) await button.click();
+  await page.locator('[data-testid="stem-player"][data-view="expanded"]').waitFor();
+}
 
 /** Plays from the start and records the mix for 3.5 s: its samples (48 kHz, mono), decoded by ffmpeg. */
 async function recordMix() {
@@ -136,7 +145,7 @@ function clickAt(samples, near) {
 let plainMix;
 await step("as recorded: the A at 440 Hz, the click with it", async () => {
   await page.goto(`${WEB}/library/${song.id}`);
-  await player().waitFor();
+  await expandPlayer();
   const label = await player().getByTestId("stem-transpose-label").textContent();
   if (label !== "A") throw new Error(label);
   plainMix = await recordMix();
@@ -173,6 +182,7 @@ await step("each part moved or not, as chosen (issue #135): the A left alone at 
   await toggle("OTHER").click();
   if ((await toggle("OTHER").getAttribute("aria-pressed")) !== "false") throw new Error("the A still on");
   await page.reload();
+  await expandPlayer();
   await player().getByTestId("stem-transpose-label").getByText("B (+2)").waitFor();
   if ((await toggle("DRUMS").getAttribute("aria-pressed")) !== "true" || (await toggle("OTHER").getAttribute("aria-pressed")) !== "false") throw new Error("not remembered");
   const mix = await recordMix();
@@ -199,8 +209,9 @@ await step("a take sung while transposed +2 (issue #135): moved down to fit at 0
   form.append("file", new Blob([wav(4, (t) => (t >= 1 && t < 3 ? 0.5 * Math.sin(2 * Math.PI * 493.88 * t) : 0))], { type: "audio/wav" }), "Sung - Alto.wav");
   const file = await (await fetch(`${API}/song-versions/${sung.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form })).json();
   if (file.pitchOffset !== 2) throw new Error(JSON.stringify(file));
+  await settledFiles(me, sung.id);
   await page.goto(`${WEB}/library/${sung.id}`);
-  await player().waitFor();
+  await expandPlayer();
   await player().getByText("sung at +2").waitFor();
   let mix = await recordMix();
   let f = frequency(mix, measure(mix) + 0.3);
@@ -218,7 +229,7 @@ await step("on a set's song page played in C: transposed from A to C (+3) by def
   const [item] = (await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: song.id })).items;
   await api(me, "PATCH", `/setlists/${set.id}/items/${item.id}`, { transposeSteps: 3 });
   await page.goto(`${WEB}/sets/${set.id}/songs/${item.id}`);
-  await player().waitFor();
+  await expandPlayer();
   await player().getByTestId("stem-transpose-label").getByText("C (+3)").waitFor();
   const mix = await recordMix();
   const f = frequency(mix, measure(mix) + 0.3);

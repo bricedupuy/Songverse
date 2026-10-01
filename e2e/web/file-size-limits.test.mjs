@@ -38,8 +38,12 @@ try {
   await step("reset to the built-in limit", async () => {
     await page.goto(`${WEB}/admin/storage`);
     const card = page.getByTestId("file-size-limits");
-    await card.getByRole("button", { name: "Reset" }).first().click();
-    await card.getByRole("button", { name: "Reset" }).first().click();
+    // One at a time: the second once the first is saved.
+    const resets = card.getByRole("button", { name: "Reset" });
+    await resets.first().click();
+    await page.waitForFunction(() => [...document.querySelectorAll('[data-testid="file-size-limits"] button')].filter((button) => button.textContent.trim() === "Reset").length === 1);
+    await resets.first().click();
+    await page.waitForFunction(() => ![...document.querySelectorAll('[data-testid="file-size-limits"] button')].some((button) => button.textContent.trim() === "Reset"));
     await card.getByText("Built-in: 25 MB").first().waitFor();
     const saved = await api(admin, "GET", "/admin/storage/file-size-limits");
     if (saved.custom.length) throw new Error(JSON.stringify(saved.custom));

@@ -43,7 +43,6 @@ try {
   // In Practice, the player minimised.
   await page.evaluate(() => {
     localStorage.setItem("songverse.mode", "practice");
-    localStorage.setItem("songverse.stems.expanded", "false");
   });
   const player = () => page.getByTestId("stem-player");
   const position = async () => Number(await player().getByTestId("stem-playhead").inputValue());

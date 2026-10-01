@@ -6,7 +6,7 @@
 // metronome stands in for it) and recording waits for 100%.
 import { execFileSync } from "node:child_process";
 import { chromium } from "playwright";
-import { API, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { API, WEB, api, finish, settledFiles, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -50,6 +50,8 @@ for (const [name, bytes, part] of [
   form.append("file", new Blob([bytes], { type: "audio/wav" }), name);
   await fetch(`${API}/song-versions/${song.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: form });
 }
+// Made Opus by the Worker, as a 48 kHz WAV is (issue #182).
+await settledFiles(me, song.id);
 
 const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
 page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -58,10 +60,17 @@ page.on("pageerror", (error) => errors.push(error.message));
 await page.addInitScript(() => {
   window.songverseStems = { starts: [], tap: true };
   localStorage.setItem("songverse.mode", "practice");
-  localStorage.setItem("songverse.stems.expanded", "true");
 });
 await signIn(page, me);
 const player = () => page.getByTestId("stem-player");
+
+/** The player expanded (issue #182: it opens minimised). */
+async function expandPlayer() {
+  await page.getByTestId("stem-player").waitFor();
+  const button = page.getByTestId("stem-player").getByRole("button", { name: "Expand the player" });
+  if (await button.isVisible()) await button.click();
+  await page.locator('[data-testid="stem-player"][data-view="expanded"]').waitFor();
+}
 
 /** Plays from the start and records the mix for `seconds`: its samples (48 kHz, mono), and where the player says it got to. */
 async function recordMix(seconds) {
@@ -156,7 +165,7 @@ function level(samples, frequency, start, span) {
 let plain;
 await step("at 100%: the A at 440 Hz, the drums' clicks 1 s apart, the click stem heard", async () => {
   await page.goto(`${WEB}/library/${song.id}`);
-  await player().waitFor();
+  await expandPlayer();
   const label = await player().getByTestId("stem-speed-label").textContent();
   if (label !== "100%") throw new Error(label);
   plain = await recordMix(3.6);
@@ -203,6 +212,7 @@ await step("while slowed: recording waits for 100%; the compact player shows 80%
 
 await step("remembered for the song; the percentage back to 100%, and the stretch nodes stopped", async () => {
   await page.reload();
+  await expandPlayer();
   await player().locator('[data-testid="stem-speed"][data-speed="0.8"]').waitFor();
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
   await player().getByTestId("stem-speed-label").click();

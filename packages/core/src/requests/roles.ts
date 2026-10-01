@@ -11,6 +11,7 @@ const roleFields = {
   description: z.string().trim().max(300),
   canReview: z.boolean(),
   canSeparateStems: z.boolean(),
+  canKeepLosslessAudio: z.boolean().describe("Lossless audio uploads keep their original, as FLAC"),
   stemSeparationMonthlyLimit: z.number().int().min(1).max(10_000).nullable().describe("Null uses Admin > Stem separation's"),
   storageLimitMb: z.number().int().min(0).max(1_000_000).nullable().describe("A storage tier (MB); null gives none"),
 };
@@ -21,6 +22,7 @@ export const CreateRoleSchema = z.strictObject({
   description: optional(roleFields.description),
   canReview: optional(roleFields.canReview),
   canSeparateStems: optional(roleFields.canSeparateStems),
+  canKeepLosslessAudio: optional(roleFields.canKeepLosslessAudio),
   stemSeparationMonthlyLimit: roleFields.stemSeparationMonthlyLimit.optional(),
   storageLimitMb: roleFields.storageLimitMb.optional(),
 });
@@ -33,6 +35,7 @@ export const UpdateRoleSchema = z.strictObject({
   description: optional(roleFields.description),
   canReview: optional(roleFields.canReview),
   canSeparateStems: optional(roleFields.canSeparateStems),
+  canKeepLosslessAudio: optional(roleFields.canKeepLosslessAudio),
   stemSeparationMonthlyLimit: roleFields.stemSeparationMonthlyLimit.optional(),
   storageLimitMb: roleFields.storageLimitMb.optional(),
 });

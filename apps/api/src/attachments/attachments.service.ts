@@ -10,7 +10,9 @@ import { PrismaService } from "../prisma/prisma.service.js";
 import { StorageQuotaService } from "../storage/storage-quota.service.js";
 import { StorageService } from "../storage/storage.service.js";
 import { RECORDINGS_QUEUE } from "../jobs/jobs.constants.js";
-import type { ProcessTakeJob } from "../recordings/recordings.processor.js";
+import { capabilitiesOf } from "../roles/capabilities.js";
+import { MAX_UPLOAD_BITRATE } from "../recordings/ffmpeg.js";
+import type { ProcessTakeJob, ShrinkUploadJob } from "../recordings/recordings.processor.js";
 import type { AttachmentTypeValue } from "./dto/upload-attachment.dto.js";
 
 @Injectable()
@@ -21,7 +23,7 @@ export class AttachmentsService {
     private readonly quota: StorageQuotaService,
     private readonly images: ImageService,
     private readonly access: AccessPolicyService,
-    @InjectQueue(RECORDINGS_QUEUE) private readonly recordings: Queue<ProcessTakeJob>,
+    @InjectQueue(RECORDINGS_QUEUE) private readonly recordings: Queue<ProcessTakeJob | ShrinkUploadJob>,
   ) {}
 
   /**
@@ -103,6 +105,9 @@ export class AttachmentsService {
     const audience = await this.audience(viewer, song, visibility, teamId);
     await this.quota.assertCanStore(viewer.id, body.length, songVersionId);
     const { hash, sizeBytes } = await this.storage.put(body, mimeType);
+    // Made Opus by the Worker above 320 kbps (issue #182): a WAV says its rate in its header, so it's known now;
+    // a FLAC or AIFF always is, for music; anything else, the Worker finds out (null: maybe).
+    const shrinks = type !== "AUDIO" || take.process ? false : wavBitrate(body) !== null ? wavBitrate(body)! > MAX_UPLOAD_BITRATE : LOSSLESS_TYPES.has(mimeType) ? true : null;
     const row = await this.prisma.client.attachment.create({
       data: {
         songVersionId,
@@ -117,7 +122,8 @@ export class AttachmentsService {
         ...audience,
         otherTake: take.otherTake ?? false,
         partName: type === "AUDIO" ? take.partName || null : null,
-        processing: take.process ? "PENDING" : null,
+        // A WAV, FLAC or AIFF upload is made Opus (issue #182): it says so meanwhile.
+        processing: take.process || shrinks === true ? "PENDING" : null,
         // Recorded in Songverse's recorder (issue #175): a take it processes.
         origin: take.process ? "RECORDED" : "UPLOADED",
         // Audio uploaded as it is among the song's own files - its original stems, or its recording -
@@ -133,6 +139,12 @@ export class AttachmentsService {
         { attempts: 2, backoff: { type: "exponential", delay: 10000 }, removeOnComplete: { count: 200 }, removeOnFail: { count: 200 } },
       );
     }
+    // Above 320 kbps, an upload is made Opus by the Worker (issue #182); it checks.
+    if (shrinks !== false) {
+      // A lossless original kept beside it for who may (a role, issue #182).
+      const keepOriginal = viewer.isGlobalAdmin || (await capabilitiesOf(this.prisma.client, viewer.id)).canKeepLosslessAudio;
+      await this.recordings.add("shrink-upload", { attachmentId: row.id, filename, keepOriginal }, { attempts: 2, backoff: { type: "exponential", delay: 10000 }, removeOnComplete: { count: 200 }, removeOnFail: { count: 200 } });
+    }
     return present(row, viewer, canEditSong);
   }
 
@@ -145,8 +157,8 @@ export class AttachmentsService {
     const { attachment, canEditSong } = await this.findVisible(viewer, songVersionId, attachmentId);
     if (!present(attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can change this file");
     if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be processed");
-    if (attachment.processing === "PENDING") throw new BadRequestException("This file is already being processed");
     if (attachment.locked) throw new ForbiddenException("This file is locked: its uploader can unlock it on the Audio tab");
+    if (attachment.processing === "PENDING") throw new BadRequestException("This file is already being processed");
     const row = await this.prisma.client.attachment.update({ where: { id: attachment.id }, data: { processing: "PENDING" }, include: ATTACHMENT_INCLUDE });
     await this.recordings.add(
       "process-take",
@@ -255,7 +267,7 @@ export class AttachmentsService {
     if (!present(attachment, viewer, canEditSong).canChange) throw new ForbiddenException("Only its uploader or the song's editors can remove this file");
     if (attachment.locked) throw new ForbiddenException("This file is locked: its uploader can unlock it on the Audio tab");
     await this.prisma.client.attachment.delete({ where: { id: attachment.id } });
-    await this.storage.deleteUnreferenced([attachment.storageKey]);
+    await this.storage.deleteUnreferenced([attachment.storageKey, ...(attachment.originalStorageKey ? [attachment.originalStorageKey] : [])]);
   }
 
   private async canEditSong(viewer: Viewer, songVersionId: string): Promise<boolean> {
@@ -339,6 +351,13 @@ const DETECTED_FIELDS: Record<string, "recordingKey" | "recordingTempo" | "recor
 };
 
 const WAV_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave"]);
+/** A WAV file's bitrate (bits a second), from its header; null when it isn't a WAV file. */
+function wavBitrate(body: Buffer): number | null {
+  return body.length >= 44 && body.toString("latin1", 0, 4) === "RIFF" && body.toString("latin1", 8, 12) === "WAVE" ? body.readUInt32LE(28) * 8 : null;
+}
+
+/** Uncompressed or lossless: always above 320 kbps for music, so made Opus (issue #182). */
+const LOSSLESS_TYPES = new Set([...WAV_TYPES, "audio/flac", "audio/x-flac", "audio/aiff", "audio/x-aiff"]);
 
 function recordingData(change: RecordingChange): Omit<Prisma.AttachmentUncheckedCreateInput, "songVersionId" | "type" | "filename" | "mimeType" | "storageKey"> {
   const data: Record<string, unknown> = {};
@@ -361,8 +380,11 @@ function recordingData(change: RecordingChange): Omit<Prisma.AttachmentUnchecked
 function present(row: AttachmentRow, viewer: Viewer, canEditSong: boolean) {
   const mine = row.uploadedByUserId === viewer.id;
   const set = row.multitrackSetlist;
+  const { originalStorageKey, originalMimeType, originalSizeBytes, ...rest } = row;
   return {
-    ...row,
+    ...rest,
+    // A lossless upload's original kept beside it (issue #182): downloaded at /original.
+    original: originalStorageKey ? { mimeType: originalMimeType ?? "audio/flac", sizeBytes: originalSizeBytes } : null,
     // The set its multitrack was recorded for (issue #127), named as sets are: its date a calendar day.
     multitrackSetlist: set ? { id: set.id, name: set.name, eventDate: set.eventDate ? set.eventDate.toISOString().slice(0, 10) : null } : null,
     mine,

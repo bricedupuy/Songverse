@@ -1203,6 +1203,12 @@ model Attachment {
   // waits for the first beat, with a count-in before it, rather than
   // clicking from 0:00.
   recordingFreeIntro Boolean @default(false)
+  // A lossless upload's original (issue #182), as FLAC, kept beside the Opus
+  // copy in storageKey that's played: for downloading, and for separating
+  // stems from. Its uploader had a role that keeps them.
+  originalStorageKey String?
+  originalMimeType   String?
+  originalSizeBytes  Int?
   // Its time signature ("4/4", "6/8"), when it isn't the song's (issue #123).
   recordingTimeSignature String?
   // The multitrack it's part of (issue #123): files recorded together,
@@ -2098,6 +2104,10 @@ model Role {
   builtIn     String?  @unique
   canReview        Boolean @default(false)
   canSeparateStems Boolean @default(false)
+  // Lossless audio uploads (WAV, FLAC, AIFF) keep their original, as FLAC,
+  // beside the Opus copy that's played (issue #182); without it, only the
+  // Opus copy is kept.
+  canKeepLosslessAudio Boolean @default(false)
   // Separations a month for who has this role; null uses Admin > Stem separation's.
   stemSeparationMonthlyLimit Int?
   // A storage tier: the limit it gives a user, or a team's pool.

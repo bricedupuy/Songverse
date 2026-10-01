@@ -49,7 +49,7 @@ export class AdminService {
       this.storage.describe(),
       this.prisma.client.attachment.aggregate({
         _count: { _all: true },
-        _sum: { sizeBytes: true },
+        _sum: { sizeBytes: true, originalSizeBytes: true },
       }),
       this.prisma.client.attachment.groupBy({ by: ["type"], _count: { _all: true } }),
     ]);
@@ -58,7 +58,7 @@ export class AdminService {
       driver,
       source,
       attachmentCount: aggregate._count._all,
-      totalBytes: aggregate._sum.sizeBytes ?? 0,
+      totalBytes: (aggregate._sum.sizeBytes ?? 0) + (aggregate._sum.originalSizeBytes ?? 0),
       byType: Object.fromEntries(grouped.map((g) => [g.type, g._count._all])),
     };
   }

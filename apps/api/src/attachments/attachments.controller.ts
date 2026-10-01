@@ -7,6 +7,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   Patch,
   PayloadTooLargeException,
@@ -185,6 +186,34 @@ export class AttachmentsController {
     await this.access.assertCanSeeSong(user, songVersionId);
     const attachment = await this.attachmentsService.find(user, songVersionId, attachmentId);
     await sendFile(this.storage, attachment, req, res, "attachment");
+  }
+
+  /** A lossless upload's original, as FLAC (issue #182), kept beside the Opus copy that's played. */
+  @RateLimit("none")
+  @Get(":attachmentId/original")
+  async original(
+    @Param("songVersionId") songVersionId: string,
+    @Param("attachmentId") attachmentId: string,
+    @CurrentUser() user: AuthenticatedUser | undefined,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
+    if (!user) throw new UnauthorizedException();
+    await this.access.assertCanSeeSong(user, songVersionId);
+    const attachment = await this.attachmentsService.find(user, songVersionId, attachmentId);
+    if (!attachment.originalStorageKey) throw new NotFoundException("This file has no original kept");
+    await sendFile(
+      this.storage,
+      {
+        storageKey: attachment.originalStorageKey,
+        mimeType: attachment.originalMimeType ?? "audio/flac",
+        filename: attachment.filename.replace(/\.[a-z0-9]{1,5}$/i, "") + ".flac",
+        sizeBytes: attachment.originalSizeBytes,
+      },
+      req,
+      res,
+      "attachment",
+    );
   }
 
   /**

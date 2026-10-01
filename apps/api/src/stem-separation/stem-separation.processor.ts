@@ -90,7 +90,8 @@ export class StemSeparationProcessor extends WorkerHost {
       const parts = separation.parts;
       const fastModel = parts === "6" ? "htdemucs_6s" : settings.fastModel;
       const hqModel = separation.hqRequested ? settings.hqModel : null;
-      const submitted = await submitDemucsJob(settings, await this.storage.get(source.storageKey), source.filename, source.mimeType, {
+      // Its lossless original when one was kept (issue #182): separated from the best copy there is.
+      const submitted = await submitDemucsJob(settings, await this.storage.get(source.originalStorageKey ?? source.storageKey), source.originalStorageKey ? source.filename.replace(/\.[a-z0-9]{1,5}$/i, ".flac") : source.filename, source.originalStorageKey ? (source.originalMimeType ?? "audio/flac") : source.mimeType, {
         model: fastModel,
         twoStems: twoStemsOf(parts),
         hq: hqModel ? { model: hqModel } : undefined,

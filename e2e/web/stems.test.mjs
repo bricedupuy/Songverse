@@ -153,7 +153,6 @@ await step("a file the name doesn't tell is assigned by hand", async () => {
 });
 
 const chips = () => player().getByTestId("stem-chip");
-const chip = (part) => player().locator(`[data-testid="stem-chip"][data-part="${part}"]`);
 const floating = () => page.getByTestId("stem-return");
 const time = async () => (await player().getByTestId("stem-time").textContent()).trim();
 const seconds = (text) => {
@@ -209,27 +208,24 @@ await step("in Edit there's no player, just the way to Practice", async () => {
   await page.unroute("**/attachments/*/download", slow);
 });
 
-await step("docked at the bottom, one row: play and a round button per part, with its instrument", async () => {
+await step("docked at the bottom, minimised (issue #182): play, and what plays named - the stems, no part's controls", async () => {
   await page.evaluate(() => window.scrollTo(0, 0));
   const box = await player().boundingBox();
   if (Math.abs(box.y + box.height - 900) > 2) throw new Error(`not at the bottom: ${JSON.stringify(box)}`);
   if ((await player().getAttribute("data-view")) !== "compact") throw new Error("not compact");
   if (box.height > 64) throw new Error(`${box.height}px high`);
-  const parts = await chips().evaluateAll((els) => els.map((el) => `${el.dataset.part}:${el.getAttribute("title")}:${el.querySelector("svg")?.getAttribute("class")?.match(/lucide-([a-z-]+)/)?.[1]}`));
-  if (parts.join() !== "VOCALS:Lead vocal:mic-vocal,DRUMS:Drums:drum,BASS:Bass:clef-bass,KEYS:Piano and keys:piano") throw new Error(parts.join());
-  // Muted before anything has loaded.
-  await chip("BASS").click();
+  await player().getByTestId("stem-recording-name").getByText("Original stems").waitFor();
+  await player().getByTestId("stem-part-count").getByText("4 parts").waitFor();
+  if (await chips().count()) throw new Error("a part's button minimised");
+  // Only stems, no recording to play instead: nothing to switch to.
+  if (await player().getByTestId("stem-switch-multitrack").count()) throw new Error("a switch with nothing to switch to");
 });
 
-await step("Play plays every part together; a round button mutes its part", async () => {
+await step("Play plays every part together", async () => {
   await player().getByRole("button", { name: "Play", exact: true }).click();
   await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
   await page.waitForFunction(() => document.querySelector('[data-testid="stem-time"]')?.textContent?.startsWith("0:01"));
   if (!(await time()).endsWith("/ 0:20")) throw new Error(await time());
-  await player().locator('[data-testid="stem-chip"][data-part="BASS"][data-audible="false"]').waitFor({ timeout: 1000 });
-  await chip("BASS").click();
-  await chip("VOCALS").click();
-  await player().locator('[data-testid="stem-chip"][data-part="VOCALS"][aria-pressed="true"][data-audible="false"]').waitFor();
 });
 
 await step("expanded: a row per part with its waveform, mute and solo; the waveform seeks", async () => {
@@ -238,7 +234,8 @@ await step("expanded: a row per part with its waveform, mute and solo; the wavef
   await player().getByTestId("stem-waveform").nth(3).waitFor();
   await player().getByTestId("stem-recorded").getByText("Recorded in A · 80 BPM").waitFor();
   if (await player().getByText("can't be played").count()) throw new Error("a stem didn't decode");
-  // Still muted from the compact row.
+  // A round button mutes its part.
+  await track("VOCALS").getByTestId("stem-part").click();
   await track("VOCALS").and(page.locator('[data-audible="false"]')).waitFor();
   // Its round button toggles here too.
   await track("KEYS").getByTestId("stem-part").click();
@@ -291,40 +288,27 @@ await step("at the end it stops and goes back to the start", async () => {
   if ((await time()) !== "0:00 / 0:20") throw new Error(await time());
 });
 
-await step("a set's song has the player too, in Practice, as it was left (expanded)", async () => {
+await step("a set's song has the player too, in Practice, minimised as the page opens (issue #182)", async () => {
   await page.goto(`${WEB}/sets/${set.id}/songs/${item.id}`);
   await page.waitForLoadState("networkidle");
+  await page.locator('[data-testid="stem-player"][data-view="compact"]').waitFor();
+  await player().getByRole("button", { name: "Expand the player" }).click();
   await track("KEYS").waitFor();
   await player().getByRole("button", { name: "Play", exact: true }).click();
   await page.locator('[data-testid="stem-player"][data-state="playing"]').waitFor();
   await player().getByRole("button", { name: "Pause", exact: true }).click();
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor();
-  await player().getByRole("button", { name: "Minimize the player" }).click();
-  await chips().first().waitFor();
 });
 
-await step("one row: a soloed part's button takes it out of the solo, the others stay soloed", async () => {
-  await player().getByRole("button", { name: "Expand the player" }).click();
-  await track("DRUMS").getByRole("button", { name: "Solo Drums" }).last().click();
-  // The headphones; the round button says the same while a solo is on.
-  await track("BASS").getByRole("button", { name: "Solo Bass" }).last().click();
+await step("minimised, the mixer is off (issue #182): no part's controls, and expanded again, no faders", async () => {
+  await player().getByTestId("stem-mixer").click();
+  await track("KEYS").getByTestId("stem-volume").waitFor();
   await player().getByRole("button", { name: "Minimize the player" }).click();
-  // The ring has room: nothing around the buttons cuts it off.
-  const [row, drums] = await Promise.all([chips().first().locator("..").boundingBox(), chip("DRUMS").boundingBox()]);
-  if (drums.y - 4 < row.y || drums.y + drums.height + 4 > row.y + row.height) throw new Error(`the ring is cut: ${JSON.stringify({ row, drums })}`);
-  await player().getByRole("button", { name: "Stop soloing Drums" }).click();
-  const audible = async () => (await chips().evaluateAll((els) => els.map((el) => `${el.dataset.part}:${el.dataset.audible}`))).join();
-  if ((await audible()) !== "VOCALS:false,DRUMS:false,BASS:true,KEYS:false") throw new Error(await audible());
-  // A part outside the solo joins it.
-  await player().getByRole("button", { name: "Solo Lead vocal" }).click();
-  if ((await audible()) !== "VOCALS:true,DRUMS:false,BASS:true,KEYS:false") throw new Error(await audible());
-  await player().getByRole("button", { name: "Stop soloing Lead vocal" }).click();
-  await player().getByRole("button", { name: "Stop soloing Bass" }).click();
-  if ((await audible()) !== "VOCALS:true,DRUMS:true,BASS:true,KEYS:true") throw new Error(await audible());
-  // Back to muting.
-  await chip("DRUMS").and(page.getByRole("button", { name: "Mute Drums" })).click();
-  if ((await audible()) !== "VOCALS:true,DRUMS:false,BASS:true,KEYS:true") throw new Error(await audible());
-  await chip("DRUMS").click();
+  if ((await chips().count()) || (await player().getByTestId("stem-volume").count())) throw new Error("a part's controls minimised");
+  if ((await page.evaluate(() => localStorage.getItem("songverse.stems.mixer"))) !== "false") throw new Error("the mixer still on");
+  await player().getByRole("button", { name: "Expand the player" }).click();
+  await track("KEYS").waitFor();
+  if ((await player().getByTestId("stem-mixer").getAttribute("aria-pressed")) !== "false" || (await player().getByTestId("stem-volume").count())) throw new Error("the mixer back on");
 });
 
 await step("through an <audio> element (as on iPhone, to play on with the screen locked)", async () => {
@@ -347,7 +331,7 @@ await step("on a phone it fits", async () => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto(`${WEB}/library/${webSong.id}`);
   await page.waitForLoadState("networkidle");
-  await chips().nth(3).waitFor();
+  await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
   const box = await player().boundingBox();
   if (box.x < 0 || box.x + box.width > 360 || Math.abs(box.y + box.height - 740) > 2) throw new Error(JSON.stringify(box));
   // Clear of a phone's rounded corners.
@@ -386,6 +370,7 @@ await step("the mixer (issue #140): a fader over each waveform on a phone, the w
   const half = await height();
   if (!(half < full * 0.6 && half > full * 0.4)) throw new Error(`waveform ${full} high, at 50% ${half}`);
   await page.reload();
+  await player().getByRole("button", { name: "Expand the player" }).click();
   await player().getByTestId("stem-track").first().getByTestId("stem-volume").waitFor();
   if ((await player().getByTestId("stem-track").first().getByTestId("stem-volume").inputValue()) !== "50") throw new Error("not remembered");
   await player().getByTestId("stem-mixer-reset").click();
@@ -409,6 +394,7 @@ await step("the parts combined (issue #137): their buttons and one waveform, a f
   const after = (await player().boundingBox()).height;
   if (after > before * 0.7) throw new Error(`${after}px high, ${before}px apart`);
   await page.reload();
+  await player().getByRole("button", { name: "Expand the player" }).click();
   await player().getByTestId("stem-combined").waitFor();
   // Back apart, and compact.
   await player().getByTestId("stem-combine").click();
@@ -518,6 +504,7 @@ await step("placing the sections (issue #110): Mark at each as it plays, in the 
 await step("the sections on the player (issue #110): a strip to jump by, the one playing named, the playhead line in their colours", async () => {
   await page.reload();
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+  await player().getByRole("button", { name: "Expand the player" }).click();
   const lane = player().getByTestId("stem-sections");
   const labels = await lane.getByTestId("stem-section").allInnerTexts();
   if (labels.map((label) => label.trim()).join() !== "V,C,C") throw new Error(labels.join());

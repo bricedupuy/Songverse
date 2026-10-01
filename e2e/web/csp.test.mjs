@@ -94,12 +94,11 @@ await step("the song editor, with nothing refused", async () => {
 });
 
 await step("Practice: the stems play (worklets, WebAssembly), transposed; the PDF (pdf.js's worker)", async () => {
-  await page.evaluate(() => {
-    localStorage.setItem("songverse.mode", "practice");
-    localStorage.setItem("songverse.stems.expanded", "true");
-  });
+  await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
   await page.goto(`${WEB}/library/${song.id}`);
   const player = page.getByTestId("stem-player");
+  // It opens minimised (issue #182).
+  await player.getByRole("button", { name: "Expand the player" }).click();
   await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
   await player.getByRole("button", { name: "Up a semitone" }).click();
   await page.getByTestId("stem-play").click();

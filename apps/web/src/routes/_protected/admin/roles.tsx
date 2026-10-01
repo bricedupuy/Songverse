@@ -130,6 +130,7 @@ function RoleEditor({ role, onClose, onSaved }: { role: AdminRole | null; onClos
   const [description, setDescription] = useState(role?.description ?? "");
   const [canReview, setCanReview] = useState(role?.canReview ?? false);
   const [canSeparateStems, setCanSeparateStems] = useState(role?.canSeparateStems ?? false);
+  const [canKeepLossless, setCanKeepLossless] = useState(role?.canKeepLosslessAudio ?? false);
   const [monthlyLimit, setMonthlyLimit] = useState(role?.stemSeparationMonthlyLimit?.toString() ?? "");
   const [hasStorage, setHasStorage] = useState(role?.storageLimitMb != null);
   const [storageMb, setStorageMb] = useState(role?.storageLimitMb?.toString() ?? "");
@@ -144,6 +145,7 @@ function RoleEditor({ role, onClose, onSaved }: { role: AdminRole | null; onClos
       description: description.trim(),
       canReview,
       canSeparateStems,
+      canKeepLosslessAudio: canKeepLossless,
       stemSeparationMonthlyLimit: canSeparateStems && monthlyLimit.trim() ? Number(monthlyLimit) : null,
       storageLimitMb: hasStorage && storageMb.trim() ? Number(storageMb) : null,
     };
@@ -201,6 +203,7 @@ function RoleEditor({ role, onClose, onSaved }: { role: AdminRole | null; onClos
                 <span className="text-xs text-muted-foreground">{t("admin.roleStemsLimitHint")}</span>
               </div>
             ) : null}
+            {check(canKeepLossless, setCanKeepLossless, t("admin.roleLossless"), t("admin.roleLosslessHint"), "role-lossless")}
             {check(hasStorage, setHasStorage, t("admin.roleStorageTier"), t("admin.roleStorageTierHint"), "role-storage")}
             {hasStorage ? (
               <div className="ml-7 flex flex-col gap-1.5">

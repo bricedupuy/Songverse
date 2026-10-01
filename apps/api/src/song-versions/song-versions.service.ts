@@ -1262,7 +1262,7 @@ export class SongVersionsService {
   async remove(id: string): Promise<void> {
     const version = await this.prisma.client.songVersion.findUnique({
       where: { id },
-      select: { workId: true, imageStorageKey: true, attachments: { select: { storageKey: true } } },
+      select: { workId: true, imageStorageKey: true, attachments: { select: { storageKey: true, originalStorageKey: true } } },
     });
     if (!version) throw new NotFoundException("Song version not found");
 
@@ -1283,7 +1283,7 @@ export class SongVersionsService {
       }
     });
     // Its files and image, unless another song (or someone's avatar) has the same bytes.
-    const keys = [...version.attachments.map((attachment) => attachment.storageKey), version.imageStorageKey].filter((key): key is string => !!key);
+    const keys = [...version.attachments.flatMap((attachment) => [attachment.storageKey, attachment.originalStorageKey]), version.imageStorageKey].filter((key): key is string => !!key);
     await this.storage.deleteUnreferenced(keys);
   }
 

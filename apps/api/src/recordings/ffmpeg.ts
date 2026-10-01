@@ -190,6 +190,75 @@ export async function encodeStem(audio: Buffer, dir: string): Promise<Buffer> {
   return readFile(output);
 }
 
+/** Above this (bits a second, its size over its length), an uploaded audio file is made Opus (issue #182): a WAV, FLAC or AIFF. */
+export const MAX_UPLOAD_BITRATE = 320_000;
+
+/**
+ * An audio file's length (s), channels and codec ("pcm_s24le", "flac",
+ * "mp3"), read by ffprobe from its header - not decoded through. Null when
+ * it can't be read.
+ */
+export async function probeAudio(file: string): Promise<{ seconds: number; channels: number; codec: string } | null> {
+  const stdout = await new Promise<string | null>((resolve) => {
+    const child = spawn("ffprobe", ["-v", "error", "-select_streams", "a:0", "-show_entries", "format=duration:stream=channels,codec_name", "-of", "json", file], { stdio: ["ignore", "pipe", "ignore"] });
+    let out = "";
+    const timer = setTimeout(() => child.kill("SIGKILL"), 30_000);
+    child.stdout.on("data", (chunk: Buffer) => (out += chunk.toString()));
+    child.on("error", () => resolve(null));
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      resolve(code === 0 ? out : null);
+    });
+  });
+  if (!stdout) return null;
+  try {
+    const json = JSON.parse(stdout) as { format?: { duration?: string }; streams?: { channels?: number; codec_name?: string }[] };
+    let seconds = Number(json.format?.duration);
+    // A header that doesn't say (a FLAC written to a pipe): decoded through to find out.
+    if (!Number.isFinite(seconds) || seconds <= 0) seconds = await audioSeconds(file);
+    if (!(seconds > 0)) return null;
+    return { seconds, channels: json.streams?.[0]?.channels ?? 2, codec: json.streams?.[0]?.codec_name ?? "" };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * An uploaded file made Opus (issue #182), as it is: nothing trimmed or
+ * filtered, so it still lines up with its multitrack - stereo at 160 kbps
+ * (mono at 96), as a separated stem.
+ */
+export async function encodeUpload(audio: Buffer, dir: string, channels: number): Promise<Buffer> {
+  const { writeFile, readFile } = await import("node:fs/promises");
+  const input = `${dir}/upload-in`;
+  const output = `${dir}/upload.opus`;
+  await writeFile(input, audio);
+  const mono = channels === 1;
+  await runFfmpeg(["-y", "-i", input, "-vn", "-ar", "48000", "-ac", mono ? "1" : "2", "-c:a", "libopus", "-b:a", mono ? "96k" : "160k", "-f", "ogg", output]);
+  return readFile(output);
+}
+
+/** A codec that loses nothing (issue #182): its file is worth keeping as the original. */
+export function isLosslessCodec(codec: string): boolean {
+  return codec.startsWith("pcm_") || ["flac", "alac", "wavpack", "tta", "ape", "mlp", "truehd"].includes(codec);
+}
+
+/**
+ * A lossless file as FLAC (issue #182), the original kept beside its Opus
+ * copy: the same sample rate, channels and bit depth (FLAC holds integers:
+ * a floating-point WAV becomes 24-bit). A FLAC file is kept as it is.
+ */
+export async function losslessOriginal(audio: Buffer, dir: string, codec: string): Promise<Buffer> {
+  if (codec === "flac" && audio.subarray(0, 4).toString("latin1") === "fLaC") return audio;
+  const { writeFile, readFile } = await import("node:fs/promises");
+  const input = `${dir}/original-in`;
+  const output = `${dir}/original.flac`;
+  await writeFile(input, audio);
+  const float = /^pcm_f(32|64)/.test(codec);
+  await runFfmpeg(["-y", "-i", input, "-map", "0:a:0", "-c:a", "flac", "-compression_level", "8", ...(float ? ["-sample_fmt", "s32", "-bits_per_raw_sample", "24"] : []), "-f", "flac", output]);
+  return readFile(output);
+}
+
 /** How long an audio file lasts (s), as ffmpeg reads it through. */
 export async function audioSeconds(file: string): Promise<number> {
   // An Ogg file with no audio in it can't even be opened: none.

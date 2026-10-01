@@ -60,15 +60,16 @@ export class StorageQuotaService {
     const rows = await this.prisma.client.attachment.groupBy({
       by: ["uploadedByUserId"],
       where: { uploadedByUserId: { not: null }, songVersion: { ownerTeamId: null } },
-      _sum: { sizeBytes: true },
+      _sum: { sizeBytes: true, originalSizeBytes: true },
     });
-    return new Map(rows.map((row) => [row.uploadedByUserId as string, row._sum.sizeBytes ?? 0]));
+    // A lossless original kept beside its Opus copy (issue #182) counts too.
+    return new Map(rows.map((row) => [row.uploadedByUserId as string, (row._sum.sizeBytes ?? 0) + (row._sum.originalSizeBytes ?? 0)]));
   }
 
   /** What each team's pool holds: everything on its songs. */
   async usedBytesByTeam(): Promise<Map<string, number>> {
     const rows = await this.prisma.client.$queryRaw<{ teamId: string; bytes: bigint | null }[]>`
-      SELECT sv."ownerTeamId" AS "teamId", SUM(a."sizeBytes") AS bytes
+      SELECT sv."ownerTeamId" AS "teamId", SUM(COALESCE(a."sizeBytes", 0) + COALESCE(a."originalSizeBytes", 0)) AS bytes
       FROM "Attachment" a JOIN "SongVersion" sv ON sv.id = a."songVersionId"
       WHERE sv."ownerTeamId" IS NOT NULL
       GROUP BY sv."ownerTeamId"`;
@@ -93,18 +94,18 @@ export class StorageQuotaService {
       this.prisma.client.user.findUniqueOrThrow({ where: { id: userId }, select: { isGlobalAdmin: true } }),
       this.prisma.client.attachment.aggregate({
         where: { uploadedByUserId: userId, songVersion: { ownerTeamId: null } },
-        _sum: { sizeBytes: true },
+        _sum: { sizeBytes: true, originalSizeBytes: true },
       }),
     ]);
-    return { usedBytes: aggregate._sum.sizeBytes ?? 0, limitBytes: await this.userLimitBytes(userId, user.isGlobalAdmin) };
+    return { usedBytes: (aggregate._sum.sizeBytes ?? 0) + (aggregate._sum.originalSizeBytes ?? 0), limitBytes: await this.userLimitBytes(userId, user.isGlobalAdmin) };
   }
 
   async getTeamUsage(teamId: string): Promise<StorageUsage> {
     const aggregate = await this.prisma.client.attachment.aggregate({
       where: { songVersion: { ownerTeamId: teamId } },
-      _sum: { sizeBytes: true },
+      _sum: { sizeBytes: true, originalSizeBytes: true },
     });
-    return { usedBytes: aggregate._sum.sizeBytes ?? 0, limitBytes: await this.teamLimitBytes(teamId) };
+    return { usedBytes: (aggregate._sum.sizeBytes ?? 0) + (aggregate._sum.originalSizeBytes ?? 0), limitBytes: await this.teamLimitBytes(teamId) };
   }
 
   /**

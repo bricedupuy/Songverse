@@ -571,6 +571,22 @@ export function AttachmentsTab({
           >
             <Download />
           </Button>
+          {/* A lossless upload's original, kept as FLAC beside the Opus copy (issue #182). */}
+          {attachment.original ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => void download(attachment, true)}
+              disabled={busyId !== null}
+              aria-label={t("songEditor.downloadOriginal", { name: attachment.filename })}
+              title={t("songEditor.downloadOriginal", { name: attachment.filename }) + (attachment.original.sizeBytes ? ` (${formatBytes(attachment.original.sizeBytes)})` : "")}
+              data-testid="download-original"
+            >
+              <Download />
+              FLAC
+            </Button>
+          ) : null}
           {/* Locked (issue #145): kept as uploaded until its uploader unlocks it. */}
           {kind === "audio" && (attachment.locked || attachment.canChangeVisibility) ? (
             <Button
@@ -835,12 +851,12 @@ export function AttachmentsTab({
     await router.invalidate();
   }
 
-  async function download(attachment: Attachment) {
+  async function download(attachment: Attachment, original = false) {
     setBusyId(attachment.id);
     setError(null);
     try {
-      const blob = await apiClient.downloadAttachment(songVersionId, attachment.id);
-      downloadBlob(blob, attachment.filename);
+      const blob = original ? await apiClient.downloadAttachmentOriginal(songVersionId, attachment.id) : await apiClient.downloadAttachment(songVersionId, attachment.id);
+      downloadBlob(blob, original ? attachment.filename.replace(/\.[a-z0-9]{1,5}$/i, "") + ".flac" : attachment.filename);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

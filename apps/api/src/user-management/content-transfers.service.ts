@@ -77,7 +77,7 @@ export class ContentTransfersService {
       this.prisma.client.songbook.count({ where: owner }),
       this.prisma.client.tag.count({ where: owner }),
       this.prisma.client.setlist.count({ where: owner }),
-      this.prisma.client.attachment.aggregate({ where: { uploadedByUserId: transfer.fromUserId }, _sum: { sizeBytes: true } }),
+      this.prisma.client.attachment.aggregate({ where: { uploadedByUserId: transfer.fromUserId }, _sum: { sizeBytes: true, originalSizeBytes: true } }),
     ]);
     return {
       fromDisplayName: transfer.fromDisplayName,
@@ -87,7 +87,7 @@ export class ContentTransfersService {
       songbookCount,
       tagCount,
       setCount,
-      storageBytes: storage._sum.sizeBytes ?? 0,
+      storageBytes: (storage._sum.sizeBytes ?? 0) + (storage._sum.originalSizeBytes ?? 0),
     };
   }
 

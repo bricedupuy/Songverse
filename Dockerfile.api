@@ -44,7 +44,7 @@ RUN pnpm --filter @songverse/core build \
 
 FROM base AS runtime
 ENV NODE_ENV=production
-# ffmpeg: the Worker turns recorded takes into Opus with it (issue #127).
+# ffmpeg (and its ffprobe): the Worker turns recorded takes into Opus with it (issue #127), and uploads above 320 kbps (#182).
 # Only the runtime image needs it; without it, takes stay as recorded (WAV).
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 COPY --from=build /repo/node_modules /repo/node_modules

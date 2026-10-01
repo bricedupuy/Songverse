@@ -272,22 +272,23 @@ try {
     await syncItem(/^(Turn sync off|Désactiver la synchro)$/).click();
     // Live mode (it's remembered, so back to Edit for the rest).
     await shoot("live", `/sets/${set.id}/live/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
-    // Practice: the song's stems, docked at the bottom - one row, then expanded - one muted.
-    await page.evaluate(() => {
-      localStorage.setItem("songverse.mode", "practice");
-      localStorage.removeItem("songverse.stems.expanded");
-    });
+    // Practice: the song's stems, docked at the bottom - minimised, then expanded - one muted.
+    await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
     // Practice: a library song is its chart (issue #67).
     await shoot("practice-song", `/library/${grace.id}`, () => page.getByTestId("practice-song").locator("[data-chord]").first().waitFor());
     const dock = page.getByTestId("stem-player");
     await shoot("stems-compact", `/library/${grace.id}`, async () => {
-      await dock.getByTestId("stem-chip").nth(3).waitFor();
-      await dock.getByTestId("stem-chip").first().click();
+      await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });
+      await dock.getByTestId("stem-compact-waveform").getByTestId("stem-waveform").waitFor();
     }, { element: dock });
     await shoot("stems", null, async () => {
+      // The song's recording loads first (issue #182): its stems, a press away.
+      await dock.getByTestId("stem-switch-multitrack").click();
+      await page.locator('[data-testid="stem-player"][data-state="ready"]').getByTestId("stem-part-count").waitFor({ timeout: 20000 });
       await dock.getByRole("button", { name: /Expand|Agrandir/ }).click();
       await dock.getByRole("button", { name: /^(Play|Lecture)$/ }).click();
       await dock.getByTestId("stem-waveform").nth(3).waitFor();
+      await dock.getByTestId("stem-track").first().getByTestId("stem-part").click();
       await dock.getByRole("slider").fill("8");
       await dock.getByRole("button", { name: /^(Pause)$/ }).click();
     }, { element: dock });

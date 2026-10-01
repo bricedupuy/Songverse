@@ -33,6 +33,10 @@ export interface StemSong {
   multitrackId?: string | null;
   /** The song's multitracks, for the player to offer the others. */
   multitracks?: MultitrackChoice[];
+  /** Its whole recording (issue #182), offered with them; `multitrackId` is RECORDING_CHOICE while it's what plays. */
+  recording?: { name: string } | null;
+  /** Playing the whole recording: the multitrack to switch to (null: the original stems); undefined when there's none. */
+  upgrade?: string | null;
   /** Where the choice of multitrack is remembered: the song, or the song in a set (issue #127). */
   choiceKey?: string;
   /** Transposed by this many semitones as it plays (issue #129); `transposeParts` says, by file, which parts are (#135) - else all but the drums and cues. */
@@ -238,21 +242,34 @@ export function stemsOf(attachments: Attachment[]): (Attachment & { stemPart: St
     .sort((a, b) => STEM_PARTS.indexOf(a.stemPart) - STEM_PARTS.indexOf(b.stemPart) || a.filename.localeCompare(b.filename));
 }
 
+/** The choice of the song's whole recording (issue #182), rather than one of its multitracks: kept, and shared in Sync play, as a multitrack's id is. */
+export const RECORDING_CHOICE = "recording";
+
+/** A song's whole recording (issue #66): its latest audio file that's neither a stem nor part of a multitrack; null when it has none. */
+export function wholeRecordingOf(attachments: Attachment[]): Attachment | null {
+  const [latest] = attachments.filter((file) => file.type === "AUDIO" && file.stemPart === null && !file.multitrackId).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return latest ?? null;
+}
+
 /**
- * What the player plays for a song (issues #66, #123): the multitrack
- * asked for, or its first (its original stems when it has them), or when
- * it has none its latest whole recording, or nothing. `strict`: only the
- * multitrack asked for (Sync play follows the leader's, not another).
+ * What the player plays for a song (issues #66, #123, #182): the
+ * multitrack asked for (or its whole recording, RECORDING_CHOICE); with
+ * nothing asked for, its whole recording when it has one - one file, quick
+ * to load - else its first multitrack (its original stems when it has
+ * them); or nothing. `strict`: only what was asked for (Sync play follows
+ * the leader's, not another).
  */
 export function playableOf(attachments: Attachment[], multitrackId?: string | null, strict = false): StemFile[] {
   // One with only other takes has nothing to play.
   const multitracks = multitracksOf(attachments).filter((multitrack) => multitrack.files.length > 0);
+  const recording = wholeRecordingOf(attachments);
+  if (multitrackId === RECORDING_CHOICE && recording) return [recording];
+  if (multitrackId === undefined && recording) return [recording];
   const chosen = multitrackId === undefined ? undefined : multitracks.find((multitrack) => multitrack.id === multitrackId);
   if (chosen) return chosen.files;
   if (strict && multitrackId) return [];
   if (multitracks[0]) return multitracks[0].files;
-  const [latest] = attachments.filter((file) => file.type === "AUDIO").sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return latest ? [latest] : [];
+  return recording ? [recording] : [];
 }
 
 /** A song's files for the player: the chosen multitrack's (see chooseMultitrack), and the others to offer. */
@@ -261,13 +278,24 @@ export function stemFilesOf(
   multitrackId: string | null | undefined,
   /** On a set's song page (issue #127): with nothing chosen, the multitrack recorded for that set. */
   setlistId?: string,
-): Pick<StemSong, "stems" | "multitrackId" | "multitracks"> {
-  const forSet = multitrackId === undefined && setlistId ? multitracksOf(attachments).find((multitrack) => multitrack.setlistId === setlistId && multitrack.files.length > 0) : undefined;
-  const stems = playableOf(attachments, forSet ? forSet.id : multitrackId);
+): Pick<StemSong, "stems" | "multitrackId" | "multitracks" | "recording" | "upgrade"> {
   const multitracks = multitracksOf(attachments)
     .filter((multitrack) => multitrack.files.length > 0)
     .map((multitrack) => ({ id: multitrack.id, name: multitrack.name, parts: multitrack.files.length, setlistId: multitrack.setlistId }));
-  return { stems, multitrackId: stems[0]?.multitrackId ?? null, multitracks };
+  // On a set's page, the multitrack recorded for that set rather than the song's first.
+  const forSet = setlistId ? multitracks.find((multitrack) => multitrack.setlistId === setlistId) : undefined;
+  const recording = wholeRecordingOf(attachments);
+  // Nothing chosen and no whole recording: the set's multitrack, if it has one.
+  const stems = playableOf(attachments, multitrackId === undefined && !recording && forSet ? forSet.id : multitrackId);
+  const playingRecording = !!recording && stems.length === 1 && stems[0]?.id === recording.id;
+  return {
+    stems,
+    multitrackId: playingRecording ? RECORDING_CHOICE : (stems[0]?.multitrackId ?? null),
+    multitracks,
+    recording: recording ? { name: recording.filename } : null,
+    // Playing the recording (issue #182): the multitrack a press switches to - the set's, else the first.
+    upgrade: playingRecording && multitracks.length > 0 ? (forSet ?? multitracks[0]!).id : undefined,
+  };
 }
 
 // --- how far each song's stems are transposed (issue #129), remembered on the device

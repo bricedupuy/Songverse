@@ -9,6 +9,8 @@ import type { PrismaClient } from "@songverse/db";
 export interface Capabilities {
   canReview: boolean;
   canSeparateStems: boolean;
+  /** Lossless audio uploads keep their original, as FLAC (issue #182). */
+  canKeepLosslessAudio: boolean;
   /** Each separating role's monthly limit; null: the one set in Admin > Stem separation. See monthlyLimitOf. */
   stemSeparationMonthlyLimits: (number | null)[];
   /** Their own storage limit; null: the default one. */
@@ -23,6 +25,7 @@ type RoleRow = {
   id: string;
   canReview: boolean;
   canSeparateStems: boolean;
+  canKeepLosslessAudio: boolean;
   stemSeparationMonthlyLimit: number | null;
   storageLimitMb: number | null;
   permissions: string[];
@@ -32,6 +35,7 @@ const ROLE_FIELDS = {
   id: true,
   canReview: true,
   canSeparateStems: true,
+  canKeepLosslessAudio: true,
   stemSeparationMonthlyLimit: true,
   storageLimitMb: true,
   permissions: true,
@@ -48,6 +52,7 @@ export function combineRoles(roles: RoleRow[]): Capabilities {
   return {
     canReview: roles.some((role) => role.canReview),
     canSeparateStems: separating.length > 0,
+    canKeepLosslessAudio: roles.some((role) => role.canKeepLosslessAudio),
     stemSeparationMonthlyLimits: separating.map((role) => role.stemSeparationMonthlyLimit),
     storageLimitMb: largest(roles.map((role) => role.storageLimitMb)),
     permissions: [...new Set(roles.flatMap((role) => role.permissions))].sort(),

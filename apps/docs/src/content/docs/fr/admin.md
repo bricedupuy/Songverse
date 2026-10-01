@@ -53,6 +53,7 @@ Le seul endroit qui dit ce que chacun peut faire au-delà de ses chants et de ce
 
 - **Relire les propositions** - la file du catalogue global (voir [Relecteurs](/fr/admin/#relecteurs)) ;
 - **Séparer des enregistrements en pistes**, avec ses propres **Séparations par personne sur 30 jours** ou, laissé vide, celle de **Séparation en pistes** ;
+- **Garder les originaux sans perte** - un WAV, FLAC ou AIFF importé garde son original, en FLAC (un WAV à sa fréquence d'échantillonnage et sa résolution), à côté de la copie Opus qui est jouée ; sans cela, seule la copie Opus est gardée (voir [Fichiers audio](/fr/library/#les-fichiers-audio-et-leurs-originaux)) ;
 - **Un palier de stockage** - combien une personne peut stocker, ou l'espace d'une équipe.
 
 **Reviewer** (relecteur) et **Stem separation** (séparation en pistes) sont intégrés, avec ces noms, que vous pouvez changer : ils se modifient mais ne se suppriment pas. **Nouveau rôle** ajoute les vôtres, comme « Stockage 10 Go ». Donnez les rôles aux personnes dans **Utilisateurs** et aux équipes dans **Équipes**. On peut faire ce que permet l'un de ses rôles - les siens et ceux de ses équipes - et la plus grande limite l'emporte ; sans palier de stockage, les valeurs par défaut de **Stockage** s'appliquent. Les administrateurs globaux peuvent tout faire. Les changements s'appliquent tout de suite.

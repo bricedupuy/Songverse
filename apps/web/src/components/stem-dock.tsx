@@ -46,6 +46,7 @@ import { setRecordingClick, useRecordingClick } from "#/lib/recording-click";
 import { unlockSyncAudio } from "#/lib/sync-client";
 import {
   chooseMultitrack,
+  RECORDING_CHOICE,
   chooseStemSpeed,
   chooseStemTranspose,
   dockStems,
@@ -104,8 +105,6 @@ export function combinePeaks(tracks: (Pick<StemTrack, "peaks" | "length"> & { vo
 
 /** Where the dock goes: the bottom of the page's column, kept in view (see AppShell). */
 export const StemDockSlot = createContext<HTMLElement | null>(null);
-
-const EXPANDED_KEY = "songverse.stems.expanded";
 
 const PART_ICONS: Record<StemPart, LucideIcon> = {
   VOCALS: MicVocal,
@@ -169,21 +168,24 @@ export function StemDock({ song: page }: { song: StemSong }) {
   // What the stems were recorded in (#65), when it isn't the song's; they share it.
   const recording = song.stems[0];
   const recorded = [recording?.recordingKey, recording?.recordingTempo ? `${recording.recordingTempo} BPM` : null, recording?.recordingTimeSignature].filter(Boolean).join(" · ");
-  // The song's other multitracks (issue #123), to switch to; not while following the leader's.
+  // The song's other multitracks (issue #123), and its whole recording (#182), to switch to; not while following the leader's.
   const multitracks = song.multitracks ?? [];
   const multitrackName = useMultitrackName();
+  const offersRecording = !!song.recording && multitracks.length > 0;
+  const switchTo = (multitrackId: string | null) => {
+    if (playing) pauseStems();
+    chooseMultitrack(song.choiceKey ?? song.songVersionId, multitrackId);
+  };
   const picker =
-    multitracks.length > 1 && !following ? (
+    multitracks.length + (offersRecording ? 1 : 0) > 1 && !following ? (
       <select
         className="h-8 max-w-40 min-w-0 shrink rounded-md border bg-background px-2 text-sm"
         value={song.multitrackId ?? ""}
-        onChange={(event) => {
-          if (playing) pauseStems();
-          chooseMultitrack(song.choiceKey ?? song.songVersionId, event.target.value || null);
-        }}
+        onChange={(event) => switchTo(event.target.value || null)}
         aria-label={t("stems.multitrack")}
         data-testid="stem-multitrack"
       >
+        {offersRecording ? <option value={RECORDING_CHOICE}>{t("stems.recordingChoice")}</option> : null}
         {multitracks.map((multitrack, index) => (
           <option key={multitrack.id ?? ""} value={multitrack.id ?? ""}>
             {multitrackName(multitrack, index)}
@@ -191,6 +193,17 @@ export function StemDock({ song: page }: { song: StemSong }) {
         ))}
       </select>
     ) : null;
+  // Playing the whole recording (issue #182): the multitrack, a press away - only loaded then.
+  const upgradeButton =
+    song.multitrackId === RECORDING_CHOICE && song.upgrade !== undefined && !following ? (
+      <Button type="button" variant="outline" size="sm" className="h-8 shrink-0 gap-1.5 px-2 text-xs" onClick={() => switchTo(song.upgrade ?? null)} data-testid="stem-switch-multitrack">
+        <Layers className="size-3.5" />
+        {t("stems.switchToMultitrack")}
+      </Button>
+    ) : null;
+  // What plays, named: the recording's file, or the multitrack.
+  const playingName =
+    song.multitrackId === RECORDING_CHOICE || whole ? (tracks[0]?.filename ?? "") : multitrackName({ id: song.multitrackId ?? null, name: multitracks.find((multitrack) => multitrack.id === (song.multitrackId ?? null))?.name ?? null }, Math.max(0, multitracks.findIndex((multitrack) => multitrack.id === (song.multitrackId ?? null))));
   // A transposition chosen while it's loaded is heard now; following, the leader's is.
   const partsKey = JSON.stringify(transposeParts);
   useEffect(() => {
@@ -379,14 +392,6 @@ export function StemDock({ song: page }: { song: StemSong }) {
     ) : null;
 
   useEffect(() => {
-    try {
-      setExpanded(localStorage.getItem(EXPANDED_KEY) === "true");
-    } catch {
-      // Storage blocked: compact.
-    }
-  }, []);
-
-  useEffect(() => {
     dockStems(song.songVersionId);
     return () => undockStems(song.songVersionId);
   }, [song.songVersionId]);
@@ -397,13 +402,10 @@ export function StemDock({ song: page }: { song: StemSong }) {
     // Once per set of stems (`key`); `song` is a new object on every render.
   }, [key]);
 
+  // Minimised as a page opens (issue #182); minimised, no mixer: the parts' controls are for the expanded player.
   function expand(next: boolean) {
     setExpanded(next);
-    try {
-      localStorage.setItem(EXPANDED_KEY, String(next));
-    } catch {
-      // Remembered for this page only.
-    }
+    if (!next && mixer) showMixer(false);
   }
 
   const play = (
@@ -626,6 +628,7 @@ export function StemDock({ song: page }: { song: StemSong }) {
             {time}
             <div className="col-span-4 row-start-2 flex flex-wrap items-center gap-1 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:gap-2" data-testid="stem-controls">
               {sectionControls}
+              {upgradeButton}
               {picker}
               {transposeControl}
               {speedControl}
@@ -792,21 +795,20 @@ export function StemDock({ song: page }: { song: StemSong }) {
           {/* The transport (issue #162), where there's room. */}
           <span className="hidden sm:contents">{stopButton}</span>
           {sectionControls ? <span className="hidden md:contents">{sectionControls}</span> : null}
-          <div className={cn("flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1.5 py-1", compactPeaks && "lg:max-w-fit lg:flex-none")}>
-            {whole ? (
-              <span className="flex min-w-0 items-center gap-2 text-sm" data-testid="stem-recording-name">
-                <AudioLines className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                <span className="truncate">{tracks[0]?.filename}</span>
+          {/* What plays, by name (issue #182): no part's controls here - they're the expanded player's. */}
+          <span className={cn("flex min-w-0 flex-1 items-center gap-2 px-1.5 py-1 text-sm", compactPeaks && "sm:max-w-56 sm:flex-none")} data-testid="stem-recording-name">
+            {whole ? <AudioLines className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : <Layers className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
+            <span className="truncate">{playingName}</span>
+            {whole ? null : (
+              <span className="shrink-0 text-xs text-muted-foreground" data-testid="stem-part-count">
+                {t("stems.partCount", { count: tracks.length })}
               </span>
-            ) : (
-              tracks.map((track) => (
-                <PartButton key={track.id} track={track} name={nameOf(track)} on={isAudible(engine, track.id)} muted={engine.muted.has(track.id)} soloed={engine.soloed.has(track.id)} soloing={engine.soloed.size > 0} chip />
-              ))
             )}
-          </div>
-          {/* What's heard, as one waveform (issue #162): on a wide screen, in the room the parts leave. */}
+          </span>
+          {upgradeButton}
+          {/* What's heard, as one waveform (issue #162), where there's room. */}
           {compactPeaks ? (
-            <div className="hidden h-8 min-w-24 flex-1 items-center lg:flex" data-testid="stem-compact-waveform">
+            <div className="hidden h-8 min-w-24 flex-1 items-center sm:flex" data-testid="stem-compact-waveform">
               <Waveform peaks={compactPeaks} progress={duration ? position / duration : 0} span={1} dim={false} onSeek={ready ? (at) => seekStems(at * duration) : undefined} />
             </div>
           ) : null}
