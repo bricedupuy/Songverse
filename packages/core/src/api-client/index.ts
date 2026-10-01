@@ -385,7 +385,14 @@ export interface StemSeparation {
   status: "QUEUED" | "SUBMITTED" | "FAST_READY" | "COMPLETED" | "FAILED";
   hqRequested: boolean;
   hqDone: boolean;
+  /** The models it was sent with (issue #175): the quick pass's, and the finer pass's (null without one); null for one sent before they were kept. */
+  fastModel: string | null;
+  hqModel: string | null;
+  /** The recording's name, kept after it's deleted. */
+  sourceFilename: string | null;
   multitrackId: string | null;
+  /** The earlier separation's multitrack it replaces (issue #175), once its stems are in. */
+  replacesMultitrackId: string | null;
   error: string | null;
   requestedBy: string | null;
   createdAt: string;
@@ -721,6 +728,10 @@ export interface Attachment {
   cuePoints?: CuePoint[] | null;
   /** Kept as uploaded (issue #145): not deleted, replaced, merged or cleaned up until its uploader unlocks it. */
   locked?: boolean;
+  /** How it came in (issue #175): uploaded, separated from a recording, or recorded in Songverse's recorder. */
+  origin?: AttachmentOrigin;
+  /** Its recording details a separation's analysis found, not yet confirmed (issue #175). */
+  detected?: DetectedDetail[];
   /** The viewer may change its part, key and tempo, or remove it. */
   canChange: boolean;
   /** The viewer may change who sees it. */
@@ -729,6 +740,8 @@ export interface Attachment {
 }
 
 export type AttachmentVisibility = "PRIVATE" | "TEAM" | "SONG" | "SHARED";
+export type AttachmentOrigin = "UPLOADED" | "SEPARATED" | "RECORDED";
+export type DetectedDetail = "key" | "tempo" | "timeSignature" | "firstBeat" | "sections";
 
 /** Who sees a file: `teamId` for TEAM. */
 /** An audio file's recording details and multitrack (issues #65, #100, #123). */
@@ -1552,7 +1565,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     updateAttachment: (
       songVersionId: string,
       attachmentId: string,
-      change: { stemPart?: StemPart | null; visibility?: AttachmentVisibility; teamId?: string | null } & { [K in Exclude<keyof RecordingDetails, "process" | "otherTake">]?: RecordingDetails[K] | null } & { otherTake?: boolean; cuePoints?: CuePoint[] | null; locked?: boolean },
+      change: { stemPart?: StemPart | null; visibility?: AttachmentVisibility; teamId?: string | null } & { [K in Exclude<keyof RecordingDetails, "process" | "otherTake">]?: RecordingDetails[K] | null } & { otherTake?: boolean; cuePoints?: CuePoint[] | null; locked?: boolean; confirmDetected?: true },
     ) => request<Attachment>(`/song-versions/${songVersionId}/attachments/${attachmentId}`, { method: "PATCH", body: JSON.stringify(change) }),
     /** Cleans up an audio file afterwards (issue #132): RNNoise on a voice, its level, its noise - in the background, back as Opus. */
     processAttachment: (songVersionId: string, attachmentId: string, steps: ("voice" | "level" | "noise")[]) =>
@@ -1855,8 +1868,8 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     adminClearAuthEmailConfig: () => request<void>("/admin/auth/email", { method: "DELETE" }),
     adminClearAuthGoogleConfig: () => request<void>("/admin/auth/google", { method: "DELETE" }),
     listStemSeparations: (songVersionId: string) => request<StemSeparations>(`/song-versions/${songVersionId}/stem-separations`),
-    separateStems: (songVersionId: string, attachmentId: string, parts: StemSeparationParts) =>
-      request<StemSeparation>(`/song-versions/${songVersionId}/attachments/${attachmentId}/separate`, { method: "POST", body: JSON.stringify({ parts }) }),
+    separateStems: (songVersionId: string, attachmentId: string, parts: StemSeparationParts, replace = false) =>
+      request<StemSeparation>(`/song-versions/${songVersionId}/attachments/${attachmentId}/separate`, { method: "POST", body: JSON.stringify({ parts, ...(replace && { replace }) }) }),
     retryStemSeparation: (separationId: string) => request<void>(`/stem-separations/${separationId}/retry`, { method: "POST" }),
     adminGetStemSeparation: () => request<StemSeparationSummary>("/admin/stem-separation"),
     adminSaveStemSeparation: (data: SaveStemSeparationSettingsRequest) => request<void>("/admin/stem-separation", { method: "PUT", body: JSON.stringify(data) }),

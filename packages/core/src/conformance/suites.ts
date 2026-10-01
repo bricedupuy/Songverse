@@ -8,6 +8,7 @@ import { structureOf } from "../song-document/structure.js";
 import { flowToChordPro, lineToInlineText, readSongDocument, sectionsFromText, songDocumentFromSections, songDocumentFromText, songToChordPro } from "../song-document/text.js";
 import { beatAt, clicksBetween, normalizeMetronome, tapTempo } from "../metronome/index.js";
 import { clockOffset, deviceTime, metronomePositionAt, stemsPositionAt } from "../sync/index.js";
+import { cuesFromSections } from "../recording/cues.js";
 import { CreateSongVersionSchema, UpdateSongVersionSchema } from "../requests/songs.js";
 import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
 import { UpdateUserSchema } from "../requests/accounts.js";
@@ -569,6 +570,20 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "a bar of 4/4", args: [{ tempo: 100, numerator: 4 }, 0, 4] },
           { name: "eighths, a muted beat", args: [{ tempo: 100, numerator: 4, subdivision: 2, beats: ["accent", "mute", "normal", "normal"] }, 0, 2] },
           { name: "a bar of count-in, count-in only", args: [{ tempo: 100, numerator: 2, countIn: 1, countInOnly: true }, 0, 4] },
+        ],
+      },
+      cuesFromSections: {
+        about:
+          "A recording's sections as an analyser labels them (issue #175), placed on the song's: each label on the next pass of that kind in the flow; one sung more often than written on the last of its kind placed; two choruses in a row two cues; labels it can't place left out.",
+        params: ["found", "song"],
+        run: (found: Parameters<typeof cuesFromSections>[0], song: unknown) => cuesFromSections(found, read(song)),
+        cases: [
+          {
+            name: "verse, chorus, the chorus again",
+            args: [[{ start: 0, label: "start" }, { start: 1.234, label: "verse" }, { start: 20, label: "chorus" }, { start: 35, label: "chorus" }, { start: 50, label: "chorus" }, { start: 60, label: "end" }], SONG],
+          },
+          { name: "labels in capitals, out of order, an instrumental the song hasn't", args: [[{ start: 30, label: "Chorus" }, { start: 2, label: "VERSE" }, { start: 15, label: "inst" }], SONG] },
+          { name: "nothing it can place", args: [[{ start: 0, label: "start" }, { start: 5, label: "bridge" }], SONG] },
         ],
       },
       tapTempo: {

@@ -51,10 +51,22 @@ export function useStemSeparations(songVersionId: string, enabled: boolean) {
 }
 
 /** Splits a recording into stems: how many parts, a word on rights, then off to the server. */
-export function SeparateButton({ file, busy, onStart }: { file: Attachment; busy: boolean; onStart: (parts: StemSeparationParts) => Promise<void> }) {
+export function SeparateButton({
+  file,
+  busy,
+  canReplace,
+  onStart,
+}: {
+  file: Attachment;
+  busy: boolean;
+  /** The recording already has separated stems on the song: the new ones can replace them (issue #175). */
+  canReplace: boolean;
+  onStart: (parts: StemSeparationParts, replace: boolean) => Promise<void>;
+}) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [parts, setParts] = useState<StemSeparationParts>("4");
+  const [replace, setReplace] = useState(true);
   const [starting, setStarting] = useState(false);
   if (!open) {
     return (
@@ -77,7 +89,17 @@ export function SeparateButton({ file, busy, onStart }: { file: Attachment; busy
           </label>
         ))}
       </fieldset>
-      <span className="text-xs text-muted-foreground">{t("separation.hq")}</span>
+      {canReplace ? (
+        <label className="flex items-start gap-2 text-xs">
+          <input type="checkbox" className="mt-0.5" checked={replace} onChange={(event) => setReplace(event.target.checked)} data-testid="separate-replace" />
+          <span>
+            {t("separation.replace")}
+            <span className="block text-muted-foreground">{t("separation.replaceHint")}</span>
+          </span>
+        </label>
+      ) : null}
+      {/* No finer pass for 6 parts (issue #174). */}
+      <span className="text-xs text-muted-foreground">{t(parts === "6" ? "separation.noHq6" : "separation.hq")}</span>
       <span className="text-xs text-muted-foreground">{t("separation.rights")}</span>
       <span className="flex gap-2">
         <Button
@@ -87,7 +109,7 @@ export function SeparateButton({ file, busy, onStart }: { file: Attachment; busy
           onClick={async () => {
             setStarting(true);
             try {
-              await onStart(parts);
+              await onStart(parts, canReplace && replace);
               setOpen(false);
             } finally {
               setStarting(false);
@@ -115,12 +137,16 @@ export function SeparationList({ separations, attachments, busy, onRetry }: { se
       <ul className="flex flex-col gap-1">
         {separations.map((separation) => {
           const source = attachments.find((file) => file.id === separation.sourceAttachmentId);
+          const models = separationModels(separation);
           return (
             <li key={separation.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs" data-testid={`separation-${separation.status}`}>
-              <span className="min-w-0 flex-1 truncate">{t("separation.of", { name: source?.filename ?? "…", parts: separation.parts })}</span>
+              {/* Named after its recording, even once that's deleted (issue #175). */}
+              <span className="min-w-0 flex-1 truncate">{t("separation.of", { name: source?.filename ?? separation.sourceFilename ?? "…", parts: separation.parts })}</span>
               <span className={separation.status === "FAILED" ? "text-destructive" : "text-muted-foreground"}>
                 {t(`separation.status_${separation.status === "FAST_READY" && !(separation.hqRequested && !separation.hqDone) ? "COMPLETED" : separation.status}`)}
               </span>
+              {separation.hqDone ? <HighQuality /> : null}
+              {models ? <span className="basis-full text-muted-foreground" data-testid="separation-models">{t("separation.models", { models })}</span> : null}
               {separation.status === "FAILED" ? (
                 <>
                   {separation.error ? <span className="basis-full text-muted-foreground">{separation.error}</span> : null}
@@ -134,5 +160,21 @@ export function SeparationList({ separations, attachments, busy, onRetry }: { se
         })}
       </ul>
     </div>
+  );
+}
+
+/** The models a separation was sent with (issue #175): "htdemucs → htdemucs_ft"; null for one sent before they were kept. */
+export function separationModels(separation: Pick<StemSeparations["separations"][number], "fastModel" | "hqModel">): string | null {
+  if (!separation.fastModel) return null;
+  return separation.hqModel ? `${separation.fastModel} → ${separation.hqModel}` : separation.fastModel;
+}
+
+/** Its finer pass is in (issue #175). */
+export function HighQuality() {
+  const { t } = useTranslation();
+  return (
+    <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary" data-testid="high-quality">
+      {t("separation.highQuality")}
+    </span>
   );
 }

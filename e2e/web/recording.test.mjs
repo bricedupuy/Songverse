@@ -494,7 +494,7 @@ await step("a file moved into a new multitrack of its own: another version", asy
     await page.waitForTimeout(200);
   }
   if (!bass?.multitrackId || bass.multitrackId === first.multitrackId) throw new Error(JSON.stringify(bass));
-  await page.locator(`[data-testid="stems-recording"][data-multitrack="${bass.multitrackId}"]`).getByText("Multitrack 2").waitFor();
+  await page.locator(`[data-testid="stems-recording"][data-multitrack="${bass.multitrackId}"]`).locator("p", { hasText: "Multitrack 2" }).first().waitFor();
   // The set's, said so.
   await page.locator(`[data-testid="stems-recording"][data-multitrack="${sundayBand.multitrackId}"]`).getByText(`Recorded for Sunday ${stamp}`).waitFor();
 });

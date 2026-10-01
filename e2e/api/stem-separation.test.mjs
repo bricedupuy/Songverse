@@ -77,7 +77,7 @@ try {
     "a multitrack of 4 parts, Opus, locked, timed as the recording (its key and tempo)",
     files.length === 4 &&
       ["VOCALS", "DRUMS", "BASS", "OTHER"].every((part) => files.some((file) => file.stemPart === part)) &&
-      files.every((file) => file.multitrackName === "Separated (Demucs)" && file.mimeType === "audio/ogg" && file.locked && file.recordingTempo === 96 && file.recordingKey === "G"),
+      files.every((file) => file.multitrackName === "Separated (4 parts)" && file.origin === "SEPARATED" && file.mimeType === "audio/ogg" && file.locked && file.recordingTempo === 96 && file.recordingKey === "G"),
     JSON.stringify(files.map((file) => [file.stemPart, file.mimeType, file.locked, file.recordingTempo])),
   );
   const fastIds = files.map((file) => file.id).sort();
@@ -98,9 +98,10 @@ try {
 
   // --- 6 parts; the vocals and the rest
   r = await call(singer, "POST", `/song-versions/${song.id}/attachments/${recording.id}/separate`, { parts: "6" });
-  list = await waitFor(singer, song.id, (body) => body.separations[0]?.id === r.body.id && body.separations[0].status === "FAST_READY");
+  check("6 parts: no finer pass asked for (issue #174 - no 6-part model for it)", r.body.hqRequested === false, JSON.stringify(r.body));
+  list = await waitFor(singer, song.id, (body) => body.separations[0]?.id === r.body.id && body.separations[0].status === "COMPLETED");
   files = (await api(singer, "GET", `/song-versions/${song.id}/attachments`)).filter((file) => file.multitrackId === list.separations[0].multitrackId);
-  check("6 parts: guitar and piano too", demucs.received.at(-1).model === "htdemucs_6s" && files.length === 6 && files.some((file) => file.stemPart === "GUITAR") && files.some((file) => file.stemPart === "KEYS" && file.partName === "Piano"), JSON.stringify(files.map((file) => [file.stemPart, file.partName])));
+  check("6 parts: guitar and piano too, sent without a finer pass", demucs.received.at(-1).model === "htdemucs_6s" && !demucs.received.at(-1).hqEnabled && list.separations[0].fastModel === "htdemucs_6s" && list.separations[0].hqModel === null && files.length === 6 && files.some((file) => file.stemPart === "GUITAR") && files.some((file) => file.stemPart === "KEYS" && file.partName === "Piano"), JSON.stringify(files.map((file) => [file.stemPart, file.partName])));
   r = await call(singer, "POST", `/song-versions/${song.id}/attachments/${recording.id}/separate`, { parts: "2" });
   list = await waitFor(singer, song.id, (body) => body.separations[0]?.id === r.body.id && body.separations[0].status === "FAST_READY");
   files = (await api(singer, "GET", `/song-versions/${song.id}/attachments`)).filter((file) => file.multitrackId === list.separations[0].multitrackId);

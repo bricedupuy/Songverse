@@ -44,6 +44,8 @@ export async function startFakeDemucs() {
   const jobs = new Map();
   const received = [];
   const webhooks = [];
+  /** The analysis the server answers with (issue #175): a suite sets it; null for none. */
+  const analysis = { next: null };
   let next = 1;
 
   const stage = (job, quality) => {
@@ -59,6 +61,8 @@ export async function startFakeDemucs() {
     fast: { status: job.fast, model: job.model, device: "cpu", files: job.fast === "completed" ? stage(job, "fast") : [], r2: null },
     hq: { enabled: job.hqEnabled, status: job.hq, model: job.hqModel, device: "cpu", files: job.hq === "completed" ? stage(job, "hq") : [], r2: null },
     callback_configured: !!job.callbackUrl,
+    // What it found in the recording (issue #175), once the fast pass is done, when a suite gave one.
+    ...(job.fast === "completed" && analysis.next && { analysis: analysis.next }),
   });
   const notify = async (job, event) => {
     if (!job.callbackUrl) return;
@@ -125,6 +129,7 @@ export async function startFakeDemucs() {
   return {
     received,
     webhooks,
+    analysis,
     /** The HQ pass done, as the night would. */
     async completeHq(jobId, { fail = false } = {}) {
       const job = jobs.get(jobId);

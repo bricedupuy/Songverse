@@ -1185,6 +1185,10 @@ model Attachment {
   cuePoints        Json?
   /// Kept as uploaded (issue #145): not deleted, replaced by another take, merged or cleaned up until its uploader unlocks it.
   locked           Boolean  @default(false)
+  /// How it came in (issue #175): uploaded, separated from a recording, or recorded in Songverse's recorder - a multitrack's stems apart from the recordings people made into it.
+  origin           AttachmentOrigin @default(UPLOADED)
+  /// Its recording details found by the separation server's analysis (issue #175), not yet confirmed or changed: "key", "tempo", "timeSignature", "firstBeat", "sections".
+  detected         String[]         @default([])
   // Its own name for the part (issue #131): "Descant", "Acoustic guitar",
   // "Count-in" - shown instead of the part's.
   partName         String?
@@ -1233,6 +1237,12 @@ model Attachment {
 
   @@index([songVersionId])
   @@index([uploadedByUserId])
+}
+
+enum AttachmentOrigin {
+  UPLOADED
+  SEPARATED
+  RECORDED
 }
 
 enum TakeProcessing {
@@ -1833,6 +1843,14 @@ model StemSeparation {
   multitrackId       String?
   hqRequested        Boolean              @default(false)
   hqDone             Boolean              @default(false)
+  // The models it was sent with (issue #175): Admin's at the time, which can
+  // change later. No finer pass, no hqModel.
+  fastModel            String?
+  hqModel              String?
+  // The recording's name, kept for the list after it's deleted.
+  sourceFilename       String?
+  // The earlier separation's multitrack its stems replace (issue #175), once in.
+  replacesMultitrackId String?
   error              String?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt

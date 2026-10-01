@@ -35,12 +35,25 @@ export interface DemucsStage {
   files?: DemucsFile[];
 }
 
+/**
+ * What the server found in the recording (issue #175), if it analyses them:
+ * optional, each part too; a confidence from 0 to 1 where it gives one.
+ */
+export interface DemucsAnalysis {
+  tempo?: { bpm?: number; confidence?: number } | null;
+  first_beat?: number | null;
+  time_signature?: { numerator?: number; denominator?: number; confidence?: number } | null;
+  key?: { name?: string; confidence?: number } | null;
+  sections?: { start?: number; label?: string }[] | null;
+}
+
 export interface DemucsJob {
   id: string;
   status: "queued" | "fast_processing" | "hq_scheduled" | "hq_processing" | "completed" | "fast_completed" | "failed" | string;
   error?: string | null;
   fast?: DemucsStage;
   hq?: DemucsStage & { enabled?: boolean };
+  analysis?: DemucsAnalysis | null;
 }
 
 type Configured = Pick<EffectiveStemSeparationSettings, "apiUrl" | "apiKey">;

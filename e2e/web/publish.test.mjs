@@ -3,7 +3,7 @@
 // global admin publishes their own song directly, and Admin > Users grants
 // and removes the reviewer role.
 import { chromium } from "playwright";
-import { WEB, api, call, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, call, finish, signIn, sql, stamp, stepper, user, showStatusColumn } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -117,6 +117,7 @@ await step("the submitter's song is now in the catalogue, credited to them, and 
   await page.getByText("In the catalogue, from Pub web alice").waitFor();
   await page.getByText("only admins change it. You can suggest a change.").waitFor();
   if (await page.getByText("Global catalogue", { exact: true }).count()) throw new Error("the publish card on a catalogue song");
+  await showStatusColumn(page);
   await page.goto(`${WEB}/library?q=${encodeURIComponent(title)}`);
   await page.waitForLoadState("networkidle");
   const rows = page.getByRole("row").filter({ hasText: title });

@@ -11,6 +11,7 @@ import {
   type MusicBrainzWorkMatch,
   type LinkSearchServices,
   type SongVersionDetail,
+  type StemSeparation,
   type StemSeparationParts,
   type StorageUsage,
   type StreamingLinkType,
@@ -18,7 +19,7 @@ import {
 } from "@songverse/core";
 import { useRouter } from "@tanstack/react-router";
 import { Download, FileAudio, Lock, LockOpen, Mic, Play, Trash2, Upload } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AttachmentThumbnail } from "#/components/attachment-thumbnail";
 import { MusicBrainzMatchPanel } from "#/components/musicbrainz-match-panel";
@@ -40,7 +41,7 @@ import { useMultitrackName } from "#/lib/multitrack-name";
 import { NEW_TARGET, RecorderDialog } from "#/components/recorder-dialog";
 import { PartPicker, usePartLabel } from "#/components/part-picker";
 import { CleanUp } from "./clean-up";
-import { SeparateButton, SeparationList, useStemSeparations } from "./stem-separation";
+import { HighQuality, SeparateButton, SeparationList, separationModels, useStemSeparations } from "./stem-separation";
 
 const NEW_MULTITRACK = "__new";
 
@@ -324,17 +325,23 @@ function MultitrackBox({
   index,
   songKey,
   songTempo,
+  separation,
   busy,
   onChange,
   onRecord,
+  children,
 }: {
   multitrack: Multitrack<Attachment>;
   index: number;
   songKey: string;
   songTempo: string;
+  /** The separation it came from (issue #175), if it did. */
+  separation?: StemSeparation;
   busy: boolean;
   onChange: (files: Attachment[], change: Parameters<typeof apiClient.updateAttachment>[2]) => void;
   onRecord: () => void;
+  /** Its files: its stems, then the recordings made into it. */
+  children?: ReactNode;
 }) {
   const { t, i18n } = useTranslation();
   const nameOf = useMultitrackName();
@@ -374,6 +381,13 @@ function MultitrackBox({
           ) : null}
         </p>
       ) : null}
+      {/* Separated (issues #63, #175): with which models, and whether its finer version is in. */}
+      {separation ? (
+        <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" data-testid="multitrack-separation">
+          {separationModels(separation) ? t("separation.models", { models: separationModels(separation) }) : null}
+          {separation.hqDone ? <HighQuality /> : separation.hqRequested && separation.status === "FAST_READY" ? <span>{t("separation.finerComing")}</span> : null}
+        </p>
+      ) : null}
       <p className="text-xs text-muted-foreground">{t("stems.recordingHint")}</p>
       {changeable.length > 0 ? (
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -404,7 +418,39 @@ function MultitrackBox({
         busy={busy}
         onChange={(change) => onChange(changeable, change)}
       />
+      <DetectedNotice files={multitrack.files} canEdit={changeable.length > 0} busy={busy} onConfirm={() => onChange(changeable.filter((file) => file.detected?.length), { confirmDetected: true })} />
+      {children}
     </div>
+  );
+}
+
+/**
+ * What the separation server's analysis found and nobody has confirmed yet
+ * (issue #175): said, with "Looks right"; changing one confirms it.
+ */
+function DetectedNotice({ files, canEdit, busy, onConfirm }: { files: Attachment[]; canEdit: boolean; busy: boolean; onConfirm: () => void }) {
+  const { t } = useTranslation();
+  const holder = files.find((file) => file.detected?.length);
+  if (!holder) return null;
+  const detected = holder.detected ?? [];
+  const details = [
+    detected.includes("key") ? holder.recordingKey : null,
+    detected.includes("tempo") && holder.recordingTempo ? `${holder.recordingTempo} BPM` : null,
+    detected.includes("timeSignature") ? holder.recordingTimeSignature : null,
+    detected.includes("firstBeat") && holder.recordingFirstBeat != null ? t("stems.firstBeatAt", { seconds: holder.recordingFirstBeat }) : null,
+    detected.includes("sections") ? t("stems.detectedSections") : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  return (
+    <p className="flex flex-wrap items-center gap-2 rounded-md bg-muted px-2 py-1.5 text-xs" data-testid="detected">
+      <span className="min-w-0 flex-1">{t("stems.detected", { details })}</span>
+      {canEdit ? (
+        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={onConfirm} data-testid="confirm-detected">
+          {t("stems.confirmDetected")}
+        </Button>
+      ) : null}
+    </p>
   );
 }
 
@@ -434,7 +480,7 @@ export function AttachmentsTab({
   songTimeSignature?: string;
   songTitle?: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const router = useRouter();
   const { mode } = useMode();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -478,10 +524,197 @@ export function AttachmentsTab({
   const separation = useStemSeparations(songVersionId, kind === "audio");
   const separations = separation.state?.separations ?? [];
 
-  async function separate(file: Attachment, parts: StemSeparationParts) {
+  // An audio file's or another file's row; a recording says who made it and when (issue #175).
+  const fileRow = (attachment: Attachment, recorded = false) => (
+    <li key={attachment.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
+      <div className="flex flex-wrap items-center gap-3">
+        {kind === "audio" ? (
+          <FileAudio className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+        ) : attachment.type === "IMAGE" || attachment.mimeType.startsWith("image/") ? (
+          <AttachmentThumbnail songVersionId={songVersionId} attachmentId={attachment.id} alt={attachment.filename} />
+        ) : (
+          <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{t(`songEditor.fileTypes.${attachment.type}`)}</span>
+        )}
+        <span className="min-w-0 flex-1 truncate text-sm">{attachment.filename}</span>
+        {attachment.sizeBytes !== null ? (
+          <span className="text-xs text-muted-foreground">{formatBytes(attachment.sizeBytes)}</span>
+        ) : null}
+        <span className="flex gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => void download(attachment)}
+            disabled={busyId !== null}
+            aria-label={t("songEditor.downloadName", { name: attachment.filename })}
+          >
+            <Download />
+          </Button>
+          {/* Locked (issue #145): kept as uploaded until its uploader unlocks it. */}
+          {kind === "audio" && (attachment.locked || attachment.canChangeVisibility) ? (
+            <Button
+              type="button"
+              variant={attachment.locked ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => void update([attachment], { locked: !attachment.locked })}
+              disabled={busyId !== null || !attachment.canChangeVisibility}
+              aria-pressed={!!attachment.locked}
+              aria-label={t(attachment.locked ? "stems.unlockName" : "stems.lockName", { name: attachment.filename })}
+              title={attachment.locked ? (attachment.canChangeVisibility ? t("stems.lockedHint") : t("stems.lockedByUploader")) : t("stems.unlockedHint")}
+              data-testid="file-lock"
+            >
+              {attachment.locked ? <Lock /> : <LockOpen />}
+            </Button>
+          ) : null}
+          {attachment.canChange ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => void remove(attachment)}
+              disabled={busyId !== null || !!attachment.locked}
+              title={attachment.locked ? t("stems.unlockToDelete") : undefined}
+              aria-label={t("songEditor.removeName", { name: attachment.filename })}
+              data-testid="file-remove"
+            >
+              <Trash2 />
+            </Button>
+          ) : null}
+        </span>
+      </div>
+      {/* Recorded in Songverse (issue #175): who, and when. */}
+    {recorded ? (
+      <span className="text-xs text-muted-foreground" data-testid="recorded-by">
+        {attachment.uploadedBy
+          ? t("stems.recordedByOn", { name: attachment.uploadedBy.displayName, date: new Date(attachment.createdAt).toLocaleDateString(i18n.language) })
+          : t("stems.recordedOn", { date: new Date(attachment.createdAt).toLocaleDateString(i18n.language) })}
+      </span>
+    ) : null}
+    {/* A recorded take (issue #127): being processed, or not played (another take of its part). */}
+      {kind === "audio" && (attachment.otherTake || attachment.processing) ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="take-state">
+          {attachment.processing === "PENDING" ? <span className="text-muted-foreground">{t("recorder.processing")}</span> : null}
+          {attachment.processing === "FAILED" ? <span className="text-destructive">{t("recorder.processingFailed")}</span> : null}
+          {attachment.otherTake ? (
+            <>
+              <span className="rounded-md bg-muted px-2 py-1 font-medium">{t("recorder.otherTake")}</span>
+              {attachment.canChange ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => void useTake(attachment)} disabled={busyId !== null} data-testid="use-take">
+                  {t("recorder.useThisTake")}
+                </Button>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" data-testid="file-visibility">
+        {attachment.canChangeVisibility ? (
+          <label className="flex items-center gap-2">
+            {t("fileVisibility.label")}
+            <AudienceSelect
+              value={{ visibility: attachment.visibility, teamId: attachment.visibleToTeamId }}
+              teams={teams}
+              canShowToSong={canEdit}
+              canShowToShared={canShare}
+              disabled={busyId !== null}
+              label={t("fileVisibility.labelFor", { name: attachment.filename })}
+              onChange={(next) => void update([attachment], { visibility: next.visibility, teamId: next.teamId ?? null })}
+            />
+          </label>
+        ) : (
+          <span>{audienceText(attachment, t)}</span>
+        )}
+      </div>
+      {kind === "audio" && attachment.canChange ? (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          {t("stems.part")}
+          {/* A voice, an instrument or the cues, then which (issue #131). */}
+          <PartPicker
+            compact
+            allowNone
+            value={{ stemPart: attachment.stemPart, partName: attachment.partName }}
+            disabled={busyId !== null}
+            label={t("stems.partOf", { name: attachment.filename })}
+            onChange={(next) => void update([attachment], next)}
+          />
+        </div>
+      ) : kind === "audio" && attachment.stemPart ? (
+        <span className="self-start rounded-md bg-muted px-2 py-1 text-xs font-medium" data-testid="part-label">
+          {partLabel(attachment)}
+        </span>
+      ) : null}
+      {/* Which multitrack it's part of (issue #123): the files of another version go in one of their own. */}
+      {kind === "audio" && attachment.canChange && attachment.stemPart ? (
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          {t("stems.multitrack")}
+          <NativeSelect
+            compact
+            value={attachment.multitrackId ?? ""}
+            disabled={busyId !== null}
+            aria-label={t("stems.multitrackOf", { name: attachment.filename })}
+            onChange={(event) => {
+              const value = event.target.value;
+              const target = multitracks.find((multitrack) => (multitrack.id ?? "") === value);
+              const first = target?.files.find((file) => file.id !== attachment.id);
+              // Into another multitrack: with its key, tempo and beat; into a new one, keeping its own.
+              void update([attachment], {
+                multitrackId: value === NEW_MULTITRACK ? newMultitrackId() : value || null,
+                multitrackName: value === NEW_MULTITRACK ? null : (first?.multitrackName ?? null),
+                ...(first
+                  ? {
+                      recordingKey: first.recordingKey,
+                      recordingTempo: first.recordingTempo,
+                      recordingTimeSignature: first.recordingTimeSignature,
+                      recordingFirstBeat: first.recordingFirstBeat,
+                    }
+                  : {}),
+              });
+            }}
+          >
+            {multitracks.map((multitrack, index) => (
+              <option key={multitrack.id ?? ""} value={multitrack.id ?? ""}>
+                {nameOf(multitrack, index)}
+              </option>
+            ))}
+            {multitracks.some((multitrack) => multitrack.id === null) ? null : <option value="">{t("stems.originalStems")}</option>}
+            <option value={NEW_MULTITRACK}>{t("stems.newMultitrack")}</option>
+          </NativeSelect>
+        </label>
+      ) : null}
+      {/* A recording on its own has its own key and tempo; the stems share theirs (above the list). */}
+      {kind === "audio" && !attachment.stemPart ? (
+        <RecordingFields
+          files={[attachment]}
+          label={attachment.filename}
+          songKey={songKey}
+          songTempo={songTempo}
+          canEdit={attachment.canChange}
+          busy={busyId !== null}
+          onChange={(change) => void update([attachment], change)}
+        />
+      ) : null}
+      {kind === "audio" ? <AudioPlayer songVersionId={songVersionId} attachment={attachment} /> : null}
+      {/* Cleaned up afterwards (issue #132). */}
+      {kind === "audio" && attachment.canChange && !attachment.locked ? (
+        <CleanUp file={attachment} busy={busyId !== null} onCleanUp={(steps) => void cleanUp(attachment, steps)} />
+      ) : null}
+      {kind === "audio" &&
+      separation.state?.available &&
+      attachment.type === "AUDIO" &&
+      !attachment.stemPart &&
+      !separations.some((item) => item.sourceAttachmentId === attachment.id && (item.status === "QUEUED" || item.status === "SUBMITTED")) ? (
+        <SeparateButton file={attachment} busy={busyId !== null} canReplace={canReplace(attachment)} onStart={(parts, replace) => separate(attachment, parts, replace)} />
+      ) : null}
+    </li>
+  );
+  // Separated before, its stems still here: a new separation can replace them (issue #175).
+  const canReplace = (file: Attachment) =>
+    separations.some((item) => item.sourceAttachmentId === file.id && item.multitrackId && attachments.some((other) => other.multitrackId === item.multitrackId && other.origin === "SEPARATED"));
+
+  async function separate(file: Attachment, parts: StemSeparationParts, replace: boolean) {
     setError(null);
     try {
-      await apiClient.separateStems(songVersionId, file.id, parts);
+      await apiClient.separateStems(songVersionId, file.id, parts, replace);
       separation.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -536,6 +769,9 @@ export function AttachmentsTab({
     }
   }
   const shown = attachments.filter((a) => (kind === "audio" ? a.type === "AUDIO" : a.type !== "AUDIO"));
+  // Audio not part of any multitrack: recordings of the whole song.
+  const inMultitrack = new Set(multitracks.flatMap((multitrack) => [...multitrack.files, ...multitrack.otherTakes].map((file) => file.id)));
+  const loose = shown.filter((file) => !inMultitrack.has(file.id));
 
   useEffect(() => {
     apiClient
@@ -630,194 +866,43 @@ export function AttachmentsTab({
             <p className="text-sm text-muted-foreground">{t(kind === "audio" ? "songEditor.noAudio" : "songEditor.noFiles")}</p>
           ) : (
             <>
-            {multitracks.map((multitrack, index) => (
-              <MultitrackBox
-                key={multitrack.id ?? ""}
-                multitrack={multitrack}
-                index={index}
-                songKey={songKey}
-                songTempo={songTempo}
-                busy={busyId !== null}
-                onChange={(files, change) => void update(files, change)}
-                onRecord={() => setRecording({ target: multitrack.id ?? "" })}
-              />
-            ))}
-            <ul className="flex flex-col divide-y" data-testid={`${kind}-list`}>
-              {shown.map((attachment) => (
-                <li key={attachment.id} className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0">
-                  <div className="flex flex-wrap items-center gap-3">
-                    {kind === "audio" ? (
-                      <FileAudio className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-                    ) : attachment.type === "IMAGE" || attachment.mimeType.startsWith("image/") ? (
-                      <AttachmentThumbnail songVersionId={songVersionId} attachmentId={attachment.id} alt={attachment.filename} />
-                    ) : (
-                      <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{t(`songEditor.fileTypes.${attachment.type}`)}</span>
-                    )}
-                    <span className="min-w-0 flex-1 truncate text-sm">{attachment.filename}</span>
-                    {attachment.sizeBytes !== null ? (
-                      <span className="text-xs text-muted-foreground">{formatBytes(attachment.sizeBytes)}</span>
-                    ) : null}
-                    <span className="flex gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => void download(attachment)}
-                        disabled={busyId !== null}
-                        aria-label={t("songEditor.downloadName", { name: attachment.filename })}
-                      >
-                        <Download />
-                      </Button>
-                      {/* Locked (issue #145): kept as uploaded until its uploader unlocks it. */}
-                      {kind === "audio" && (attachment.locked || attachment.canChangeVisibility) ? (
-                        <Button
-                          type="button"
-                          variant={attachment.locked ? "secondary" : "ghost"}
-                          size="sm"
-                          onClick={() => void update([attachment], { locked: !attachment.locked })}
-                          disabled={busyId !== null || !attachment.canChangeVisibility}
-                          aria-pressed={!!attachment.locked}
-                          aria-label={t(attachment.locked ? "stems.unlockName" : "stems.lockName", { name: attachment.filename })}
-                          title={attachment.locked ? (attachment.canChangeVisibility ? t("stems.lockedHint") : t("stems.lockedByUploader")) : t("stems.unlockedHint")}
-                          data-testid="file-lock"
-                        >
-                          {attachment.locked ? <Lock /> : <LockOpen />}
-                        </Button>
-                      ) : null}
-                      {attachment.canChange ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => void remove(attachment)}
-                          disabled={busyId !== null || !!attachment.locked}
-                          title={attachment.locked ? t("stems.unlockToDelete") : undefined}
-                          aria-label={t("songEditor.removeName", { name: attachment.filename })}
-                          data-testid="file-remove"
-                        >
-                          <Trash2 />
-                        </Button>
-                      ) : null}
-                    </span>
-                  </div>
-                  {/* A recorded take (issue #127): being processed, or not played (another take of its part). */}
-                  {kind === "audio" && (attachment.otherTake || attachment.processing) ? (
-                    <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="take-state">
-                      {attachment.processing === "PENDING" ? <span className="text-muted-foreground">{t("recorder.processing")}</span> : null}
-                      {attachment.processing === "FAILED" ? <span className="text-destructive">{t("recorder.processingFailed")}</span> : null}
-                      {attachment.otherTake ? (
-                        <>
-                          <span className="rounded-md bg-muted px-2 py-1 font-medium">{t("recorder.otherTake")}</span>
-                          {attachment.canChange ? (
-                            <Button type="button" variant="outline" size="sm" onClick={() => void useTake(attachment)} disabled={busyId !== null} data-testid="use-take">
-                              {t("recorder.useThisTake")}
-                            </Button>
-                          ) : null}
-                        </>
-                      ) : null}
-                    </div>
-                  ) : null}
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" data-testid="file-visibility">
-                    {attachment.canChangeVisibility ? (
-                      <label className="flex items-center gap-2">
-                        {t("fileVisibility.label")}
-                        <AudienceSelect
-                          value={{ visibility: attachment.visibility, teamId: attachment.visibleToTeamId }}
-                          teams={teams}
-                          canShowToSong={canEdit}
-                          canShowToShared={canShare}
-                          disabled={busyId !== null}
-                          label={t("fileVisibility.labelFor", { name: attachment.filename })}
-                          onChange={(next) => void update([attachment], { visibility: next.visibility, teamId: next.teamId ?? null })}
-                        />
-                      </label>
-                    ) : (
-                      <span>{audienceText(attachment, t)}</span>
-                    )}
-                  </div>
-                  {kind === "audio" && attachment.canChange ? (
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {t("stems.part")}
-                      {/* A voice, an instrument or the cues, then which (issue #131). */}
-                      <PartPicker
-                        compact
-                        allowNone
-                        value={{ stemPart: attachment.stemPart, partName: attachment.partName }}
-                        disabled={busyId !== null}
-                        label={t("stems.partOf", { name: attachment.filename })}
-                        onChange={(next) => void update([attachment], next)}
-                      />
-                    </div>
-                  ) : kind === "audio" && attachment.stemPart ? (
-                    <span className="self-start rounded-md bg-muted px-2 py-1 text-xs font-medium" data-testid="part-label">
-                      {partLabel(attachment)}
-                    </span>
-                  ) : null}
-                  {/* Which multitrack it's part of (issue #123): the files of another version go in one of their own. */}
-                  {kind === "audio" && attachment.canChange && attachment.stemPart ? (
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {t("stems.multitrack")}
-                      <NativeSelect
-                        compact
-                        value={attachment.multitrackId ?? ""}
-                        disabled={busyId !== null}
-                        aria-label={t("stems.multitrackOf", { name: attachment.filename })}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          const target = multitracks.find((multitrack) => (multitrack.id ?? "") === value);
-                          const first = target?.files.find((file) => file.id !== attachment.id);
-                          // Into another multitrack: with its key, tempo and beat; into a new one, keeping its own.
-                          void update([attachment], {
-                            multitrackId: value === NEW_MULTITRACK ? newMultitrackId() : value || null,
-                            multitrackName: value === NEW_MULTITRACK ? null : (first?.multitrackName ?? null),
-                            ...(first
-                              ? {
-                                  recordingKey: first.recordingKey,
-                                  recordingTempo: first.recordingTempo,
-                                  recordingTimeSignature: first.recordingTimeSignature,
-                                  recordingFirstBeat: first.recordingFirstBeat,
-                                }
-                              : {}),
-                          });
-                        }}
-                      >
-                        {multitracks.map((multitrack, index) => (
-                          <option key={multitrack.id ?? ""} value={multitrack.id ?? ""}>
-                            {nameOf(multitrack, index)}
-                          </option>
-                        ))}
-                        {multitracks.some((multitrack) => multitrack.id === null) ? null : <option value="">{t("stems.originalStems")}</option>}
-                        <option value={NEW_MULTITRACK}>{t("stems.newMultitrack")}</option>
-                      </NativeSelect>
-                    </label>
-                  ) : null}
-                  {/* A recording on its own has its own key and tempo; the stems share theirs (above the list). */}
-                  {kind === "audio" && !attachment.stemPart ? (
-                    <RecordingFields
-                      files={[attachment]}
-                      label={attachment.filename}
+            {kind === "audio" ? (
+              // Each multitrack's files in its box (issue #175): its stems, then the recordings people made into it.
+              <div className="flex flex-col gap-4" data-testid="audio-list">
+                {multitracks.map((multitrack, index) => {
+                  const files = [...multitrack.files, ...multitrack.otherTakes];
+                  const own = files.filter((file) => file.origin !== "RECORDED");
+                  const recorded = files.filter((file) => file.origin === "RECORDED");
+                  return (
+                    <MultitrackBox
+                      key={multitrack.id ?? ""}
+                      multitrack={multitrack}
+                      index={index}
                       songKey={songKey}
                       songTempo={songTempo}
-                      canEdit={attachment.canChange}
+                      separation={multitrack.id ? separations.find((item) => item.multitrackId === multitrack.id) : undefined}
                       busy={busyId !== null}
-                      onChange={(change) => void update([attachment], change)}
-                    />
-                  ) : null}
-                  {kind === "audio" ? <AudioPlayer songVersionId={songVersionId} attachment={attachment} /> : null}
-                  {/* Cleaned up afterwards (issue #132). */}
-                  {kind === "audio" && attachment.canChange && !attachment.locked ? (
-                    <CleanUp file={attachment} busy={busyId !== null} onCleanUp={(steps) => void cleanUp(attachment, steps)} />
-                  ) : null}
-                  {kind === "audio" &&
-                  separation.state?.available &&
-                  attachment.type === "AUDIO" &&
-                  !attachment.stemPart &&
-                  !separations.some((item) => item.sourceAttachmentId === attachment.id && (item.status === "QUEUED" || item.status === "SUBMITTED")) ? (
-                    <SeparateButton file={attachment} busy={busyId !== null} onStart={(parts) => separate(attachment, parts)} />
-                  ) : null}
-                </li>
-              ))}
-            </ul>
+                      onChange={(changed, change) => void update(changed, change)}
+                      onRecord={() => setRecording({ target: multitrack.id ?? "" })}
+                    >
+                      {own.length > 0 ? <ul className="flex flex-col divide-y border-t pt-2">{own.map((file) => fileRow(file))}</ul> : null}
+                      {recorded.length > 0 ? (
+                        <div className="flex flex-col gap-1 border-t pt-2" data-testid="multitrack-recordings">
+                          <p className="text-xs font-medium text-muted-foreground">{t("stems.recordings")}</p>
+                          <ul className="flex flex-col divide-y">{recorded.map((file) => fileRow(file, true))}</ul>
+                        </div>
+                      ) : null}
+                    </MultitrackBox>
+                  );
+                })}
+                {/* Recordings on their own (a full mix): not part of a multitrack. */}
+                {loose.length > 0 ? <ul className="flex flex-col divide-y">{loose.map((file) => fileRow(file, file.origin === "RECORDED"))}</ul> : null}
+              </div>
+            ) : (
+              <ul className="flex flex-col divide-y" data-testid={`${kind}-list`}>
+                {shown.map((attachment) => fileRow(attachment))}
+              </ul>
+            )}
             </>
           )}
           <SeparationList separations={separations} attachments={attachments} busy={busyId !== null} onRetry={(id) => void retrySeparation(id)} />

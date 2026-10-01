@@ -118,6 +118,8 @@ export class AttachmentsService {
         otherTake: take.otherTake ?? false,
         partName: type === "AUDIO" ? take.partName || null : null,
         processing: take.process ? "PENDING" : null,
+        // Recorded in Songverse's recorder (issue #175): a take it processes.
+        origin: take.process ? "RECORDED" : "UPLOADED",
         // Audio uploaded as it is among the song's own files - its original stems, or its recording -
         // kept so until unlocked (issue #145); a recording, or a file added to a multitrack, isn't.
         locked: type === "AUDIO" && !take.process && !take.otherTake && !details.multitrackId,
@@ -204,6 +206,11 @@ export class AttachmentsService {
       if (attachment.type !== "AUDIO") throw new BadRequestException("Only audio files can be takes");
       if (change.otherTake && attachment.locked && !attachment.otherTake) throw new ForbiddenException("This file is locked: its uploader can unlock it on the Audio tab");
       data.otherTake = change.otherTake;
+    }
+    // What a separation's analysis found (issue #175): confirmed as it is, or by changing it.
+    if (attachment.detected.length > 0) {
+      const confirmed = change.confirmDetected ? attachment.detected : attachment.detected.filter((detail) => DETECTED_FIELDS[detail] && change[DETECTED_FIELDS[detail]] !== undefined);
+      if (confirmed.length > 0) data.detected = attachment.detected.filter((detail) => !confirmed.includes(detail));
     }
     // Locked or not (issue #145): its uploader's to decide, as who sees it is.
     if (change.locked !== undefined) {
@@ -320,6 +327,15 @@ export interface RecordingChange {
   multitrackSetlistId?: string | null;
   cuePoints?: { at: number; sectionId: string }[] | null;
 }
+
+/** Which change confirms each detail a separation's analysis found (issue #175). */
+const DETECTED_FIELDS: Record<string, "recordingKey" | "recordingTempo" | "recordingTimeSignature" | "recordingFirstBeat" | "cuePoints"> = {
+  key: "recordingKey",
+  tempo: "recordingTempo",
+  timeSignature: "recordingTimeSignature",
+  firstBeat: "recordingFirstBeat",
+  sections: "cuePoints",
+};
 
 const WAV_TYPES = new Set(["audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave"]);
 

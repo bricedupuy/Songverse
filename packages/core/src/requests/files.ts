@@ -88,6 +88,8 @@ export const UpdateAttachmentSchema = z.strictObject({
   otherTake: z.boolean().optional(),
   /** Kept as uploaded (issue #145): not deleted, replaced, merged or cleaned up; for its uploader to change. */
   locked: z.boolean().optional(),
+  /** The details a separation's analysis found (issue #175), confirmed as they are. Changing one confirms it too. */
+  confirmDetected: z.literal(true).optional(),
   /** Where each section starts in the recording (issue #110); null or [] for none. */
   cuePoints: z
     .array(z.strictObject({ at: z.number().min(0).max(3600), sectionId: z.string().min(1).max(64) }))

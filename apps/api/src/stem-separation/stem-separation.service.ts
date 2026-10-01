@@ -65,7 +65,11 @@ export class StemSeparationService {
         status: row.status,
         hqRequested: row.hqRequested,
         hqDone: row.hqDone,
+        fastModel: row.fastModel,
+        hqModel: row.hqModel,
+        sourceFilename: row.sourceFilename,
         multitrackId: row.multitrackId,
+        replacesMultitrackId: row.replacesMultitrackId,
         error: row.error,
         requestedBy: row.requestedBy?.displayName ?? null,
         createdAt: row.createdAt.toISOString(),
@@ -74,7 +78,7 @@ export class StemSeparationService {
   }
 
   /** Starts one: checked here, sent by the Worker. `callbackUrl`, where the Demucs API's webhooks come (this API). */
-  async start(viewer: Viewer, songVersionId: string, attachmentId: string, parts: StemSeparationParts, callbackUrl: string | null) {
+  async start(viewer: Viewer, songVersionId: string, attachmentId: string, parts: StemSeparationParts, callbackUrl: string | null, replace = false) {
     const refusal = await this.refusal(viewer, songVersionId);
     if (refusal === "not-configured") throw new BadRequestException("Stem separation isn't set up yet: an admin sets it up in Admin > Stem separation");
     if (refusal) throw new ForbiddenException("Splitting recordings into stems needs a role that allows it: an admin gives it");
@@ -91,8 +95,29 @@ export class StemSeparationService {
     if (running) throw new BadRequestException("This recording is already being split");
     // Made now, while there's a key to keep it with: the Worker signs nothing, it only passes it on.
     await callbackSecret();
+    // Replacing (issue #175): the stems of this recording's latest separation still on the song.
+    let replacesMultitrackId: string | null = null;
+    if (replace) {
+      const earlier = await this.prisma.client.stemSeparation.findMany({ where: { songVersionId, sourceAttachmentId: attachmentId, multitrackId: { not: null } }, orderBy: { createdAt: "desc" }, select: { multitrackId: true } });
+      for (const { multitrackId } of earlier) {
+        if (await this.prisma.client.attachment.count({ where: { songVersionId, multitrackId, origin: "SEPARATED" } })) {
+          replacesMultitrackId = multitrackId;
+          break;
+        }
+      }
+    }
     const separation = await this.prisma.client.stemSeparation.create({
-      data: { songVersionId, sourceAttachmentId: attachmentId, requestedByUserId: viewer.id, parts, hqRequested: settings.hqEnabled },
+      data: {
+        songVersionId,
+        sourceAttachmentId: attachmentId,
+        sourceFilename: source.filename,
+        requestedByUserId: viewer.id,
+        parts,
+        // No finer pass for 6 parts (issue #174): there's no fine-tuned 6-part model, and a 4-part one would
+        // put the guitar and piano back in "other", to be heard twice.
+        hqRequested: settings.hqEnabled && parts !== "6",
+        replacesMultitrackId,
+      },
     });
     await this.queue.add("submit", { separationId: separation.id, callbackUrl, filename: source.filename } satisfies SubmitSeparationJob, JOB_OPTIONS);
     return (await this.list(viewer, songVersionId)).separations.find((row) => row.id === separation.id)!;

@@ -76,3 +76,59 @@ export function snapToBeat(at: number, beat: { tempo: number; firstBeat: number 
   const length = 60 / beat.tempo;
   return Math.max(0, beat.firstBeat + Math.round((at - beat.firstBeat) / length) * length);
 }
+
+/** A section of a recording as an analyser labels it (issue #175): where it starts, and what kind it seems. */
+export interface AnalysedSection {
+  start: number;
+  label: string;
+}
+
+/** The kinds of the song's sections an analyser's label can be ("inst" and "solo" as All-In-One says). */
+const LABEL_TYPES: Record<string, readonly SectionType[]> = {
+  intro: ["intro"],
+  verse: ["verse", "pre-chorus"],
+  "pre-chorus": ["pre-chorus", "verse"],
+  prechorus: ["pre-chorus", "verse"],
+  chorus: ["chorus", "post-chorus"],
+  bridge: ["bridge", "vamp"],
+  inst: ["instrumental", "interlude", "breakdown"],
+  instrumental: ["instrumental", "interlude", "breakdown"],
+  solo: ["instrumental", "interlude"],
+  break: ["breakdown", "interlude", "instrumental"],
+  interlude: ["interlude", "instrumental"],
+  outro: ["outro", "tag"],
+  tag: ["tag", "outro"],
+};
+
+/**
+ * Cue points from an analyser's sections (issue #175): each label matched,
+ * in order, to the next pass of the song's flow of that kind - so "verse,
+ * chorus, verse, chorus" lands on verse 1, the chorus, verse 2, the chorus.
+ * A label the flow has no more of (a chorus sung once more than written)
+ * takes the last section of that kind already placed, else the first in the
+ * song - two choruses in a row are two cues. Labels it can't place
+ * ("start", "end", one the song has no section of) are left out.
+ */
+export function cuesFromSections(found: AnalysedSection[], doc: Pick<SongDocumentV2, "sections" | "flow">): CuePoint[] {
+  const typeOf = new Map(doc.sections.map((section) => [section.id, section.type as SectionType]));
+  const flow = (doc.flow.length > 0 ? doc.flow.map((pass) => pass.sectionId) : doc.sections.map((section) => section.id)).filter((id) => typeOf.has(id));
+  const cues: CuePoint[] = [];
+  let next = 0;
+  const lastOfType = new Map<SectionType, string>();
+  for (const segment of [...found].sort((a, b) => a.start - b.start)) {
+    const types = LABEL_TYPES[segment.label.trim().toLowerCase()];
+    if (!types || !Number.isFinite(segment.start) || segment.start < 0) continue;
+    let sectionId: string | undefined;
+    const ahead = flow.findIndex((id, index) => index >= next && types.includes(typeOf.get(id)!));
+    if (ahead >= 0) {
+      sectionId = flow[ahead];
+      next = ahead + 1;
+    } else {
+      sectionId = types.map((type) => lastOfType.get(type)).find(Boolean) ?? doc.sections.find((section) => types.includes(section.type as SectionType))?.id;
+    }
+    if (!sectionId) continue;
+    lastOfType.set(typeOf.get(sectionId)!, sectionId);
+    cues.push({ at: Math.round(segment.start * 100) / 100, sectionId });
+  }
+  return cues;
+}

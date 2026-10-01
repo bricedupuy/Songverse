@@ -146,3 +146,8 @@ export function finish() {
   console.log(`\n${passed}/${results.length} passed`);
   if (passed !== results.length) process.exitCode = 1;
 }
+
+/** The Songs list's Status column, hidden at first (issue #168), shown as a user would choose it - before going to the list. */
+export async function showStatusColumn(p) {
+  await p.evaluate(() => localStorage.setItem("songverse.library.columns", JSON.stringify({ columns: [{ id: "artist", shown: true }, { id: "publicationState", shown: true }] })));
+}

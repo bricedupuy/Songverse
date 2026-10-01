@@ -10,7 +10,11 @@ import { PrismaService } from "../prisma/prisma.service.js";
 import { encodeStem, FfmpegMissingError } from "../recordings/ffmpeg.js";
 import { StorageQuotaService } from "../storage/storage-quota.service.js";
 import { StorageService } from "../storage/storage.service.js";
-import { DemucsError, downloadDemucsFile, getDemucsJob, submitDemucsJob, type DemucsFile, type DemucsJob } from "./demucs-client.js";
+import { readSongDocument, type CuePoint } from "@songverse/core";
+import en from "@songverse/core/i18n/locales/en";
+import fr from "@songverse/core/i18n/locales/fr";
+import { detailsWithAnalysis } from "./analysis.js";
+import { DemucsError, downloadDemucsFile, getDemucsJob, submitDemucsJob, type DemucsAnalysis, type DemucsFile, type DemucsJob } from "./demucs-client.js";
 import { getEffectiveStemSeparationSettings } from "./stem-separation-settings.js";
 import { partOfStem, twoStemsOf } from "./stem-parts.js";
 
@@ -27,8 +31,23 @@ export interface SyncSeparationJob {
 
 const POLL_SCHEDULER_ID = "poll-stem-separations";
 const POLL_EVERY_MS = 2 * 60 * 1000;
-/** What the stems of a separation become: one multitrack, named so. */
+/** What the stems of a separation were named before they said their parts (issue #175). */
 export const SEPARATED_MULTITRACK_NAME = "Separated (Demucs)";
+const NAMES = { en: en.separation.multitrackName, fr: fr.separation.multitrackName };
+
+/** A separation's multitrack, named by its parts in the language of whoever asked for it: "Separated (6 parts)". */
+export function separatedName(parts: string, locale: string | null | undefined): string {
+  return (NAMES[locale as keyof typeof NAMES] ?? NAMES.en).replace("{{parts}}", parts);
+}
+
+/** Whether a multitrack still has the name its separation gave it, in any language - not one someone chose. */
+export function isSeparatedName(name: string): boolean {
+  if (name === SEPARATED_MULTITRACK_NAME) return true;
+  return Object.values(NAMES).some((pattern) => {
+    const [before, after] = pattern.split("{{parts}}") as [string, string];
+    return name.length > before.length + after.length && name.startsWith(before) && name.endsWith(after) && /^\d+$/.test(name.slice(before.length, name.length - after.length));
+  });
+}
 
 /**
  * Stem separation in the Worker (issue #63). `submit` sends the recording
@@ -69,10 +88,12 @@ export class StemSeparationProcessor extends WorkerHost {
     const settings = await getEffectiveStemSeparationSettings();
     try {
       const parts = separation.parts;
+      const fastModel = parts === "6" ? "htdemucs_6s" : settings.fastModel;
+      const hqModel = separation.hqRequested ? settings.hqModel : null;
       const submitted = await submitDemucsJob(settings, await this.storage.get(source.storageKey), source.filename, source.mimeType, {
-        model: parts === "6" ? "htdemucs_6s" : settings.fastModel,
+        model: fastModel,
         twoStems: twoStemsOf(parts),
-        hq: separation.hqRequested ? { model: settings.hqModel } : undefined,
+        hq: hqModel ? { model: hqModel } : undefined,
         callbackUrl: job.data.callbackUrl ?? undefined,
         callbackSecret: settings.callbackSecret ?? undefined,
       });
@@ -82,7 +103,8 @@ export class StemSeparationProcessor extends WorkerHost {
           where: { jobId: submitted.id, id: { not: separation.id } },
           data: { jobId: null, status: "FAILED", error: "The separation server forgot this job" },
         }),
-        this.prisma.client.stemSeparation.update({ where: { id: separation.id }, data: { status: "SUBMITTED", jobId: submitted.id, error: null } }),
+        // The models it's sent with (issue #175): Admin's can change later.
+        this.prisma.client.stemSeparation.update({ where: { id: separation.id }, data: { status: "SUBMITTED", jobId: submitted.id, error: null, fastModel, hqModel, sourceFilename: source.filename } }),
       ]);
       this.logger.log(`Sent ${source.filename} to the Demucs API: job ${submitted.id}`);
       return { jobId: submitted.id };
@@ -118,7 +140,7 @@ export class StemSeparationProcessor extends WorkerHost {
     }
     if (separation.status === "SUBMITTED") {
       if (job.fast?.status === "completed" && job.fast.files?.length) {
-        await this.importFast(separation.id, job.fast.files);
+        await this.importFast(separation.id, job.fast.files, job.analysis);
       } else if (job.status === "failed" || job.fast?.status === "failed") {
         return this.fail(separation.id, job.error ? `Demucs: ${job.error}` : "The separation failed at the Demucs API");
       } else {
@@ -162,9 +184,19 @@ export class StemSeparationProcessor extends WorkerHost {
     }
   }
 
-  /** The fast pass's stems: a new multitrack beside the recording, timed as it is. */
-  private async importFast(separationId: string, files: DemucsFile[]) {
-    const separation = await this.prisma.client.stemSeparation.findUniqueOrThrow({ where: { id: separationId } });
+  /**
+   * The fast pass's stems: a new multitrack beside the recording, timed as
+   * it is - or, where the recording has no key, tempo, time signature, first
+   * beat or sections, as the server's analysis found them (issue #175),
+   * marked detected. Replacing an earlier separation's stems, it takes over
+   * that multitrack's sections, who sees it, its set and a name someone gave
+   * it; the recordings people made into it move over, its stems go.
+   */
+  private async importFast(separationId: string, files: DemucsFile[], analysis: DemucsAnalysis | null | undefined) {
+    const separation = await this.prisma.client.stemSeparation.findUniqueOrThrow({
+      where: { id: separationId },
+      include: { requestedBy: { select: { locale: true } }, songVersion: { select: { documentJson: true } } },
+    });
     const source = await this.prisma.client.attachment.findUnique({ where: { id: separation.sourceAttachmentId } });
     const stems = await this.fetchStems(files, separation.parts);
     const bytes = stems.reduce((sum, stem) => sum + stem.body.length, 0);
@@ -176,8 +208,37 @@ export class StemSeparationProcessor extends WorkerHost {
         return this.fail(separation.id, "The stems would go over the storage limit");
       }
     }
+    // The earlier separation's multitrack, if this one replaces it and it's still there.
+    const earlier = separation.replacesMultitrackId
+      ? await this.prisma.client.attachment.findMany({ where: { songVersionId: separation.songVersionId, multitrackId: separation.replacesMultitrackId } })
+      : [];
+    const earlierStems = earlier.filter((file) => file.origin === "SEPARATED");
+    const earlierFirst = earlierStems[0] ?? earlier[0];
     const multitrackId = `sep-${separation.id}`;
-    const base = (source?.filename ?? "Recording").replace(/\.[a-z0-9]{1,5}$/i, "");
+    const name = separatedName(separation.parts, separation.requestedBy?.locale);
+    const keptName = earlierFirst?.multitrackName && !isSeparatedName(earlierFirst.multitrackName) ? earlierFirst.multitrackName : null;
+    const base = (source?.filename ?? separation.sourceFilename ?? "Recording").replace(/\.[a-z0-9]{1,5}$/i, "");
+    let song = null;
+    try {
+      song = readSongDocument(separation.songVersion.documentJson);
+    } catch {
+      // A song without a chart: no sections to place.
+    }
+    const earlierCues = (earlierFirst?.cuePoints as CuePoint[] | null) ?? null;
+    const details = detailsWithAnalysis(
+      {
+        recordingKey: source?.recordingKey ?? null,
+        recordingTempo: source?.recordingTempo ?? null,
+        recordingTimeSignature: source?.recordingTimeSignature ?? null,
+        recordingFirstBeat: source?.recordingFirstBeat ?? null,
+        // The recording's sections, else those placed on the stems this replaces.
+        cuePoints: (source?.cuePoints as CuePoint[] | null) ?? earlierCues,
+      },
+      analysis,
+      song,
+    );
+    // Seen by whoever sees the recording it came from (or the stems it replaces); the requester's alone if both are gone.
+    const audience = source ?? earlierFirst;
     const stored = [];
     for (const stem of stems) stored.push({ ...stem, ...(await this.storage.put(stem.body, stem.mimeType)) });
     await this.prisma.client.$transaction([
@@ -193,29 +254,38 @@ export class StemSeparationProcessor extends WorkerHost {
             stemPart: stem.part.stemPart,
             partName: stem.part.partName,
             uploadedByUserId: separation.requestedByUserId,
-            // Seen by whoever sees the recording it came from; the requester's alone if it's gone.
-            visibility: source?.visibility ?? "PRIVATE",
-            visibleToTeamId: source?.visibleToTeamId ?? null,
+            visibility: audience?.visibility ?? "PRIVATE",
+            visibleToTeamId: audience?.visibleToTeamId ?? null,
             multitrackId,
-            multitrackName: SEPARATED_MULTITRACK_NAME,
+            multitrackName: keptName ?? name,
+            multitrackSetlistId: earlierFirst?.multitrackSetlistId ?? null,
             // The same audio: its key, tempo, time signature, first beat and sections.
-            recordingKey: source?.recordingKey ?? null,
-            recordingTempo: source?.recordingTempo ?? null,
-            recordingTimeSignature: source?.recordingTimeSignature ?? null,
-            recordingFirstBeat: source?.recordingFirstBeat ?? null,
-            cuePoints: source?.cuePoints ?? Prisma.DbNull,
+            recordingKey: details.recordingKey,
+            recordingTempo: details.recordingTempo,
+            recordingTimeSignature: details.recordingTimeSignature,
+            recordingFirstBeat: details.recordingFirstBeat,
+            cuePoints: details.cuePoints?.length ? (details.cuePoints as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
+            detected: details.detected,
+            origin: "SEPARATED",
             // Kept as made (issue #145), until unlocked.
             locked: true,
           },
         }),
       ),
+      // The recordings made into the stems this replaces, moved over to these.
+      this.prisma.client.attachment.updateMany({
+        where: { id: { in: earlier.filter((file) => file.origin !== "SEPARATED").map((file) => file.id) } },
+        data: { multitrackId, multitrackName: keptName ?? name },
+      }),
+      this.prisma.client.attachment.deleteMany({ where: { id: { in: earlierStems.map((file) => file.id) } } }),
       this.prisma.client.stemSeparation.update({
         where: { id: separation.id },
         data: { multitrackId, status: separation.hqRequested ? "FAST_READY" : "COMPLETED", error: null },
       }),
     ]);
-    this.logger.log(`Separated ${base}: ${stems.length} stems (${bytes} bytes)`);
-    return { imported: stems.length };
+    if (earlierStems.length) await this.storage.deleteUnreferenced(earlierStems.map((file) => file.storageKey));
+    this.logger.log(`Separated ${base}: ${stems.length} stems (${bytes} bytes)${earlierStems.length ? `, replacing ${earlierStems.length}` : ""}`);
+    return { imported: stems.length, replaced: earlierStems.length };
   }
 
   /**
@@ -225,7 +295,8 @@ export class StemSeparationProcessor extends WorkerHost {
    */
   private async importHq(separationId: string, files: DemucsFile[]) {
     const separation = await this.prisma.client.stemSeparation.findUniqueOrThrow({ where: { id: separationId } });
-    const current = await this.prisma.client.attachment.findMany({ where: { songVersionId: separation.songVersionId, multitrackId: separation.multitrackId ?? "-" } });
+    // Only its own stems (issue #174): never a recording someone made into this multitrack.
+    const current = await this.prisma.client.attachment.findMany({ where: { songVersionId: separation.songVersionId, multitrackId: separation.multitrackId ?? "-", origin: "SEPARATED" } });
     const stems = await this.fetchStems(files, separation.parts);
     const replaced: string[] = [];
     for (const stem of stems) {

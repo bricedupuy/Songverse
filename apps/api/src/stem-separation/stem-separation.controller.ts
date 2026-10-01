@@ -39,7 +39,7 @@ export class StemSeparationController {
   @Post("song-versions/:songVersionId/attachments/:attachmentId/separate")
   start(@Param("songVersionId") songVersionId: string, @Param("attachmentId") attachmentId: string, @Body() dto: StartStemSeparationDto, @CurrentUser() user: AuthenticatedUser | undefined) {
     if (!user) throw new UnauthorizedException();
-    return this.separations.start(user, songVersionId, attachmentId, dto.parts, callbackUrl());
+    return this.separations.start(user, songVersionId, attachmentId, dto.parts, callbackUrl(), dto.replace ?? false);
   }
 
   @RateLimit("heavy")

@@ -3,7 +3,7 @@
 // can do; a file for the people it's shared with (#79); taking it out of
 // their library.
 import { chromium } from "playwright";
-import { WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, finish, signIn, stamp, stepper, user, showStatusColumn } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -58,6 +58,7 @@ await step("Alice shares her song with Bob, to edit", async () => {
 
 await step("Bob finds it in his library, shared by Alice, and edits it", async () => {
   page = bobPage;
+  await showStatusColumn(page);
   await page.goto(`${WEB}/library?q=${encodeURIComponent(title)}`);
   await page.getByRole("row").filter({ hasText: title }).getByText("Shared by Alice").waitFor();
   await page.goto(`${WEB}/library/${song.id}`);

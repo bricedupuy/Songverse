@@ -13,6 +13,8 @@ export type StemSeparationParts = (typeof STEM_SEPARATION_PARTS)[number];
 /** POST /song-versions/:id/attachments/:attachmentId/separate */
 export const StartStemSeparationSchema = z.strictObject({
   parts: z.enum(STEM_SEPARATION_PARTS).default("4"),
+  /** Replace the stems of this recording's latest separation once the new ones are in (issue #175): its sections and who sees it carry over, recordings made into it move. */
+  replace: optional(z.boolean()),
 });
 export type StartStemSeparationRequest = z.input<typeof StartStemSeparationSchema>;
 
