@@ -116,6 +116,8 @@ await step("phone: link to the page you're on still closes it", async () => {
 await step("phone: on a song opened from Songs, the sheet opens on those songs; one tap opens the next", async () => {
   await page.goto(`${WEB}/library/songs?q=${tag}`);
   await page.getByTestId("library-range").waitFor();
+  // Rendered on the server first: its sidebar button works once the page has loaded.
+  await page.waitForLoadState("networkidle");
   // The list page: the full sidebar.
   await openSidebar();
   await sheet().getByRole("link", { name: "Library", exact: true }).waitFor();
