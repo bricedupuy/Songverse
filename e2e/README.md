@@ -14,14 +14,15 @@ seed`) - some suites use the built-in global tags.
    going to a file - with no email provider configured the API prints the
    emails it would send, and the suites read verification links from there.
    Point the API's song artwork and song info at the suites' stand-ins for
-   Apple Music (and its API), MusicBrainz, Deezer, Spotify, Wikidata and Wikipedia (`lib/fake-providers.mjs`, which the
+   Apple Music (and its API), MusicBrainz, Deezer, Spotify, YouTube, Wikidata and Wikipedia (`lib/fake-providers.mjs`, which the
    suites that need them start on port 3999):
 
    ```sh
    export ITUNES_SEARCH_URL=http://localhost:3999 MUSICBRAINZ_API_URL=http://localhost:3999/mb/ws/2/ \
      DEEZER_API_URL=http://localhost:3999/deezer APPLE_MUSIC_API_URL=http://localhost:3999/applemusic \
      WIKIDATA_API_URL=http://localhost:3999/wikidata/w/api.php WIKIPEDIA_URL='http://localhost:3999/wikipedia/{lang}' \
-     SPOTIFY_API_URL=http://localhost:3999/spotify SPOTIFY_ACCOUNTS_URL=http://localhost:3999/spotify-accounts
+     SPOTIFY_API_URL=http://localhost:3999/spotify SPOTIFY_ACCOUNTS_URL=http://localhost:3999/spotify-accounts \
+     YOUTUBE_API_URL=http://localhost:3999/youtube
    # As in production (#92): the API only adds background jobs, the Worker runs them.
    JOBS_IN_API=false pnpm --filter @songverse/api dev > /tmp/api-dev.log 2>&1 &
    pnpm --filter @songverse/api build && (cd apps/api && node dist/worker.js > /tmp/worker.log 2>&1 &)

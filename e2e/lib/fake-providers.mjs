@@ -160,6 +160,10 @@ const spotifyTracks = (title, artist) => [
   { id: "sp2track0000000000002", name: title, artists: [{ name: artist }], album: { name: "Spotify Singles", release_date: "2021", images: spotifyImages(1) }, external_ids: {}, external_urls: { spotify: "https://open.spotify.com/track/sp2track0000000000002" } },
 ];
 
+// --- YouTube (issue #169)
+/** The key the YouTube stand-in accepts, and how many searches it got: a suite sets it. */
+export const youtubeKey = { key: null, searches: 0 };
+
 // --- artists
 const artistNames = new Map();
 const qids = new Map();
@@ -227,6 +231,20 @@ export function startFakeProviders() {
       const track = /^\/spotify\/v1\/tracks\/(\w+)$/.exec(path);
       const found = track && lastSpotify.get(track[1]);
       return found ? json(res, found) : json(res, { error: { status: 404, message: "Non existing id" } }, 404);
+    }
+    if (path === "/youtube/search") {
+      const key = url.searchParams.get("key");
+      if (!youtubeKey.key || key !== youtubeKey.key) return json(res, { error: { code: 400, message: "API key not valid. Please pass a valid API key.", errors: [{ reason: "badRequest" }] } }, 400);
+      youtubeKey.searches++;
+      const q = url.searchParams.get("q") ?? "";
+      if (/quotagone/i.test(q)) return json(res, { error: { code: 403, message: "quota", errors: [{ reason: "quotaExceeded" }] } }, 403);
+      const items = /nomatch/i.test(q)
+        ? []
+        : [1, 2].map((n) => ({
+            id: { kind: "youtube#video", videoId: `ytvideo000${n}` },
+            snippet: { title: `${q} (Official Video &amp; Lyrics) ${n}`, channelTitle: `Channel ${n}`, thumbnails: { medium: { url: `${URL_}/art/${n}/320x180.png` } } },
+          }));
+      return json(res, { items });
     }
     if (path === "/deezer/search/artist") {
       const q = url.searchParams.get("q") ?? "";

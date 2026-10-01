@@ -9,7 +9,10 @@ import {
   type MetadataMatch,
   type MetadataProviderKey,
   type MetadataSource,
+  type LinkCandidate,
+  type LinkSearchServices,
   type ProviderMatch,
+  type StreamingLinkType,
 } from "@songverse/core";
 import { Prisma } from "@songverse/db";
 import { decryptSecret, encryptSecret } from "@songverse/secret-crypto";
@@ -20,6 +23,7 @@ import { deezerArtistPicture } from "../artists/artist-sources.js";
 import { appleMusicArtistPicture, appleMusicSearch, appleMusicSong, musicKitKeyProblem, type AppleMusicAuth, type MusicKitCredentials } from "./apple-music-api.js";
 import { deezerSearch, deezerTrack } from "./deezer.provider.js";
 import { spotifyArtistPicture, spotifySearch, spotifyTrack, type SpotifyCredentials } from "./spotify-api.js";
+import { youtubeSearch } from "./youtube-api.js";
 
 /** How long a search waits on a provider (MusicBrainz's queue included) before going on without it. */
 const SEARCH_WAIT_MS = 15000;
@@ -77,6 +81,8 @@ export interface EffectiveMetadataSettings {
   };
   /** The contact MusicBrainz is told in the User-Agent. */
   musicbrainz: { contact: string; source: "database" | "env" | "default" };
+  /** The YouTube Data API's key (issue #169): never the key, only whether the database has one. */
+  youtube: { source: "database" | "env" | "none"; hasDatabaseKey: boolean };
 }
 
 export interface SaveSpotifyInput {
@@ -181,7 +187,11 @@ export class MetadataService {
     };
     const describe = (entries: { key: MetadataProviderKey; capabilities: ProviderCapabilities }[]) =>
       complete(entries).map(({ key, capabilities }) => ({ key, name: METADATA_PROVIDER_NAMES[key], capabilities, supports: [...PROVIDER_CAPABILITIES[key]], ready: ready(key) }));
-    const extra = { appleMusic, spotify, musicbrainz };
+    const youtube = {
+      source: row?.youtubeApiKeyEnc ? ("database" as const) : process.env.YOUTUBE_API_KEY ? ("env" as const) : ("none" as const),
+      hasDatabaseKey: !!row?.youtubeApiKeyEnc,
+    };
+    const extra = { appleMusic, spotify, musicbrainz, youtube };
     if (row && Array.isArray(row.providers)) {
       const listed = (row.providers as { key?: unknown }[]).filter((p) => isProvider(p?.key)) as ({ key: MetadataProviderKey } & Record<string, unknown>)[];
       return { providers: describe(listed.map((p) => ({ key: p.key, capabilities: capabilitiesOf(p.key, p, true) }))), source: "database", ...extra };
@@ -265,6 +275,85 @@ export class MetadataService {
       return { ok: true, message: `Spotify answered (${found.length} songs for "Amazing Grace").` };
     } catch (err) {
       return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /** Saves the YouTube Data API's key (issue #169), encrypted; empty clears it. */
+  async saveYouTube(apiKey: string): Promise<EffectiveMetadataSettings> {
+    const clean = apiKey.trim();
+    if (clean && !/^[\w-]{20,100}$/.test(clean)) throw new BadRequestException("A YouTube API key is letters, digits, - and _ (39 of them)");
+    const data = { youtubeApiKeyEnc: clean ? encryptSecret(clean, process.env.SETTINGS_ENCRYPTION_KEY) : null };
+    await this.prisma.client.metadataSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", ...data }, update: data });
+    return this.settings();
+  }
+
+  /** Back to YOUTUBE_API_KEY (without it, no YouTube search). */
+  async resetYouTube(): Promise<EffectiveMetadataSettings> {
+    await this.prisma.client.metadataSettings.updateMany({ where: { id: "singleton" }, data: { youtubeApiKeyEnc: null } });
+    return this.settings();
+  }
+
+  async testYouTube(): Promise<{ ok: boolean; message: string }> {
+    const apiKey = await this.youtubeApiKey();
+    if (!apiKey) return { ok: false, message: "No YouTube API key is set: song links can't be searched on YouTube." };
+    try {
+      const found = await youtubeSearch("Amazing Grace", null, apiKey, 1);
+      return { ok: true, message: `YouTube answered (${found.length ? "a video" : "no video"} for "Amazing Grace").` };
+    } catch (err) {
+      return { ok: false, message: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /** The YouTube Data API's key: the database's, else YOUTUBE_API_KEY, else none. */
+  async youtubeApiKey(): Promise<string | null> {
+    const row = await this.prisma.client.metadataSettings.findUnique({ where: { id: "singleton" }, select: { youtubeApiKeyEnc: true } });
+    if (row?.youtubeApiKeyEnc) {
+      try {
+        return decryptSecret(row.youtubeApiKeyEnc, process.env.SETTINGS_ENCRYPTION_KEY);
+      } catch (err) {
+        this.logger.warn(`The saved YouTube API key can't be decrypted (was SETTINGS_ENCRYPTION_KEY changed?): ${err instanceof Error ? err.message : String(err)}`);
+        return null;
+      }
+    }
+    return process.env.YOUTUBE_API_KEY || null;
+  }
+
+  /**
+   * Which services a song's links can be searched at (issue #169): Apple
+   * Music and Deezer always (no key needed), Spotify with its app, YouTube
+   * with its key - whatever Auto detect is set to ask.
+   */
+  async linkSearchServices(): Promise<LinkSearchServices> {
+    const [spotify, youtube] = await Promise.all([this.spotifyCredentials(), this.youtubeApiKey()]);
+    return { SPOTIFY: !!spotify, APPLE_MUSIC: true, DEEZER: true, YOUTUBE: !!youtube };
+  }
+
+  /** A song looked up at one service (issue #169), for its link: a few results, the service's own order. */
+  async linkSearch(type: StreamingLinkType, title: string, artist?: string | null): Promise<LinkCandidate[]> {
+    const candidate = (match: ProviderMatch): LinkCandidate => ({ title: match.title, artist: match.artist, album: match.album, thumbnailUrl: match.thumbnailUrl, url: match.source.url });
+    const search = async (): Promise<LinkCandidate[]> => {
+      switch (type) {
+        case "SPOTIFY": {
+          if (!(await this.spotifyCredentials())) throw new ServiceUnavailableException("Spotify isn't set up: an admin adds its app in Admin > Metadata");
+          return (await this.searchOne("spotify", title, artist)).map(candidate);
+        }
+        case "APPLE_MUSIC":
+          return (await this.searchOne("apple_music", title, artist)).map(candidate);
+        case "DEEZER":
+          return (await this.searchOne("deezer", title, artist)).map(candidate);
+        case "YOUTUBE": {
+          const apiKey = await this.youtubeApiKey();
+          if (!apiKey) throw new ServiceUnavailableException("YouTube isn't set up: an admin adds its API key in Admin > Metadata");
+          return youtubeSearch(title, artist, apiKey);
+        }
+      }
+    };
+    try {
+      return (await withTimeout(search(), type)).slice(0, 8);
+    } catch (err) {
+      if (err instanceof ServiceUnavailableException) throw err;
+      this.logger.warn(`${type} link search failed: ${err instanceof Error ? err.message : String(err)}`);
+      throw new ServiceUnavailableException(err instanceof Error && /quota|refused/i.test(err.message) ? err.message : "That service isn't answering - try again in a moment");
     }
   }
 

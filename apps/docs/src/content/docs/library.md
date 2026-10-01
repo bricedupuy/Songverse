@@ -75,7 +75,7 @@ A song has tabs:
 - **Versions** - how you and your teams play it. See [Versions](/versions/).
 - **Files** - sheet music, the original chart file, images (up to 25 MB each unless your admin set other limits; the tab says). PDFs, images, audio, video and plain text open in the browser; anything else (a web page, say) is downloaded, so it can never run inside Songverse.
 - **Audio** - recordings to learn or rehearse with (MP3, Opus, M4A, WAV, OGG… up to 50 MB each unless your admin set another limit), and the song's stems (see below).
-- **Links** - the song on Spotify, Apple Music, Deezer and YouTube.
+- **Links** - the song on Spotify, Apple Music, Deezer and YouTube. Paste a link, or find it: the magnifying glass beside a service (**Search Spotify**…) looks the song up there by its title and first artist and lists a few results, with their artwork, artist and album (a video's channel, on YouTube); pick one and it's saved as the link. Apple Music and Deezer can always be searched; Spotify and YouTube once your admin has set them up.
 
 Edits on **Song info** and **Editor** are saved together by **Save song**; files, audio and links are saved as you add them. **Discard changes** takes back what you haven't saved. The **⋯** menu can **Export as ChordPro** or **Delete song**.
 

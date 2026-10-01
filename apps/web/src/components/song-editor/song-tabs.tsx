@@ -9,6 +9,7 @@ import {
   type AttachmentAudience,
   type AttachmentType,
   type MusicBrainzWorkMatch,
+  type LinkSearchServices,
   type SongVersionDetail,
   type StemSeparationParts,
   type StorageUsage,
@@ -960,6 +961,20 @@ export function LinksTab({
 }) {
   const { t } = useTranslation();
   const router = useRouter();
+  // Which services the links can be searched at (issue #169), by the song's title and first artist.
+  const [searchable, setSearchable] = useState<LinkSearchServices | null>(null);
+  useEffect(() => {
+    if (!version.canManage) return;
+    let live = true;
+    apiClient.linkSearchServices().then(
+      (services) => live && setSearchable(services),
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [version.canManage]);
+  const artist = version.contributors.find((contributor) => contributor.roles.includes("PERFORMER") && contributor.source)?.source ?? undefined;
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Card>
@@ -998,6 +1013,7 @@ export function LinksTab({
                   await apiClient.removeStreamingLink(version.id, type);
                   await router.invalidate();
                 }}
+                onSearch={searchable?.[type] ? () => apiClient.searchLinks(type, version.title, artist) : undefined}
               />
             );
           })}

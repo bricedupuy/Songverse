@@ -921,7 +921,23 @@ export interface MetadataSettings {
   /** Spotify's developer app (issue #89): never the secret, only whether the database has one. */
   spotify: { source: "database" | "env" | "none"; clientId: string | null; hasDatabaseSecret: boolean; market: string; marketSource: "database" | "env" | "default" };
   musicbrainz: { contact: string; source: "database" | "env" | "default" };
+  /** The YouTube Data API's key (issue #169), for the song links' YouTube search: never the key, only whether the database has one. */
+  youtube: { source: "database" | "env" | "none"; hasDatabaseKey: boolean };
 }
+
+/** A song's link to choose from, found at one service by its title and artist (issue #169). */
+export interface LinkCandidate {
+  title: string;
+  /** The artist, or a YouTube video's channel. */
+  artist: string | null;
+  album: string | null;
+  thumbnailUrl: string | null;
+  /** The link itself, as the service gives it. */
+  url: string;
+}
+
+/** Which services a song's links can be searched at (issue #169): Spotify needs its app, YouTube its key. */
+export type LinkSearchServices = Record<StreamingLinkType, boolean>;
 
 /** Background jobs (issue #92), for Admin > Metadata. */
 export interface JobsHeartbeat {
@@ -1736,6 +1752,14 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       if (artist) params.set("artist", artist);
       return request<MetadataSearchResult>(`/metadata/search?${params}`);
     },
+    /** Which services a song's links can be searched at (issue #169). */
+    linkSearchServices: () => request<LinkSearchServices>("/metadata/links"),
+    /** A song looked up at one service, for its link (issue #169). */
+    searchLinks: (type: StreamingLinkType, title: string, artist?: string) => {
+      const params = new URLSearchParams({ title });
+      if (artist) params.set("artist", artist);
+      return request<LinkCandidate[]>(`/metadata/links/${type}/search?${params}`);
+    },
     searchMusicBrainzWorks: (title: string) =>
       request<MusicBrainzWorkMatch[]>(`/musicbrainz/works/search?${new URLSearchParams({ title })}`),
 
@@ -1761,6 +1785,10 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       request<MetadataSettings>("/admin/metadata/spotify", { method: "PUT", body: JSON.stringify(app) }),
     resetSpotifyApp: () => request<MetadataSettings>("/admin/metadata/spotify", { method: "DELETE" }),
     testSpotifyApp: () => request<{ ok: boolean; message: string }>("/admin/metadata/spotify/test", { method: "POST" }),
+    /** The YouTube Data API's key (issue #169); empty clears it. */
+    saveYouTubeKey: (apiKey: string) => request<MetadataSettings>("/admin/metadata/youtube", { method: "PUT", body: JSON.stringify({ apiKey }) }),
+    resetYouTubeKey: () => request<MetadataSettings>("/admin/metadata/youtube", { method: "DELETE" }),
+    testYouTubeKey: () => request<{ ok: boolean; message: string }>("/admin/metadata/youtube/test", { method: "POST" }),
     /** MusicBrainz's contact, in its User-Agent; empty goes back to MUSICBRAINZ_CONTACT. */
     saveMusicBrainzContact: (contact: string) => request<MetadataSettings>("/admin/metadata/musicbrainz", { method: "PUT", body: JSON.stringify({ contact }) }),
 

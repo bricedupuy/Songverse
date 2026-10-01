@@ -28,6 +28,14 @@ export const SpotifyAppSchema = z.strictObject({
   market: optional(z.string().max(2)),
 });
 
+/** A song link's service, searched for it (issue #169). */
+export const LinkSearchTypeSchema = z.enum(["SPOTIFY", "APPLE_MUSIC", "DEEZER", "YOUTUBE"]);
+
+/** The YouTube Data API's key (issue #169), for the song links' YouTube search; empty clears it. */
+export const YouTubeKeySchema = z.strictObject({
+  apiKey: z.string().trim().max(100),
+});
+
 export const MusicBrainzContactSchema = z.strictObject({
   contact: z.string().max(200),
 });

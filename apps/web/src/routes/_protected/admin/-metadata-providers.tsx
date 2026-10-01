@@ -420,3 +420,75 @@ function SpotifySettings({ settings, onSaved }: { settings: MetadataSettings; on
     </div>
   );
 }
+
+/**
+ * The YouTube Data API's key (issue #169): not a metadata provider, but what
+ * lets a song's YouTube link be searched for on its Links tab.
+ */
+export function YouTubeCard() {
+  const { t } = useTranslation();
+  const [settings, setSettings] = useState<MetadataSettings | null>(null);
+  const [apiKey, setApiKey] = useState("");
+  const { busy, message, run } = useAction();
+
+  useEffect(() => {
+    apiClient.getMetadataSettings().then(setSettings, () => undefined);
+  }, []);
+  if (!settings) return null;
+  const youtube = settings.youtube;
+  const apply = (next: MetadataSettings) => {
+    setSettings(next);
+    setApiKey("");
+  };
+
+  return (
+    <Card data-testid="youtube-settings">
+      <CardHeader>
+        <CardTitle className="text-sm">{t("metadataProviders.youtubeTitle")}</CardTitle>
+        <CardDescription>{t("metadataProviders.youtubeDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">{t(`metadataProviders.youtube_${youtube.source}`)}</p>
+        <Field id="youtube-api-key" label={t("metadataProviders.apiKey")} hint={t("metadataProviders.apiKeyHint")}>
+          <Input
+            id="youtube-api-key"
+            type="password"
+            value={apiKey}
+            autoComplete="off"
+            placeholder={youtube.hasDatabaseKey ? t("metadataProviders.privateKeyKeep") : ""}
+            onChange={(event) => setApiKey(event.target.value.trim())}
+          />
+        </Field>
+        <Actions
+          busy={busy}
+          onSave={() =>
+            void run(async () => {
+              if (apiKey) apply(await apiClient.saveYouTubeKey(apiKey));
+              return t("metadataProviders.saved");
+            })
+          }
+          onTest={
+            youtube.source === "none"
+              ? undefined
+              : () =>
+                  void run(async () => {
+                    const result = await apiClient.testYouTubeKey();
+                    if (!result.ok) throw new Error(result.message);
+                    return result.message;
+                  })
+          }
+          onRevert={
+            youtube.hasDatabaseKey
+              ? () =>
+                  run(async () => {
+                    apply(await apiClient.resetYouTubeKey());
+                    return t("metadataProviders.saved");
+                  })
+              : undefined
+          }
+        />
+        <Said message={message} />
+      </CardContent>
+    </Card>
+  );
+}

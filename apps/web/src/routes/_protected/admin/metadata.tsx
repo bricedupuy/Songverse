@@ -7,7 +7,7 @@ import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { ConfirmButton } from "#/components/confirm-button";
 import { BackgroundJobsCard } from "./-background-jobs";
-import { MetadataProvidersCard } from "./-metadata-providers";
+import { MetadataProvidersCard, YouTubeCard } from "./-metadata-providers";
 
 export const Route = createFileRoute("/_protected/admin/metadata")({
   component: AdminMetadataPage,
@@ -101,6 +101,7 @@ function AdminMetadataPage() {
 
       <BackgroundJobsCard />
       <MetadataProvidersCard />
+      <YouTubeCard />
       <ArtworkSettingsCard />
       <ArtistSettingsCard />
     </div>

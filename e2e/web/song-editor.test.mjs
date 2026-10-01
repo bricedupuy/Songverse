@@ -232,7 +232,7 @@ await step("files tab lists the kept source file, not the audio", async () => {
 
 await step("links tab has streaming links and the MusicBrainz work", async () => {
   await page.getByRole("tab", { name: "Links" }).click();
-  await page.getByLabel("Spotify").waitFor();
+  await page.getByLabel("Spotify", { exact: true }).waitFor();
   await page.getByText("MusicBrainz work").waitFor();
 });
 

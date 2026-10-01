@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, Post, Put, Query, UseGuards } from "@nestjs/common";
-import { AppleMusicKeySchema, MetadataSearchQuerySchema, MetadataSettingsSchema, MusicBrainzContactSchema, SpotifyAppSchema } from "@songverse/core";
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from "@nestjs/common";
+import { AppleMusicKeySchema, LinkSearchTypeSchema, MetadataSearchQuerySchema, MetadataSettingsSchema, MusicBrainzContactSchema, SpotifyAppSchema, YouTubeKeySchema } from "@songverse/core";
 import { zodDto } from "../common/zod-validation.js";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { GlobalAdminGuard } from "../common/guards/global-admin.guard.js";
+import { RateLimit } from "../security/rate-limit.decorator.js";
 import { MetadataService } from "./metadata.service.js";
 
 export class MetadataSearchQueryDto extends zodDto(MetadataSearchQuerySchema) {}
@@ -14,6 +15,8 @@ export class MusicBrainzContactDto extends zodDto(MusicBrainzContactSchema) {}
 export class MetadataSettingsDto extends zodDto(MetadataSettingsSchema) {}
 
 export class AppleMusicKeyDto extends zodDto(AppleMusicKeySchema) {}
+
+export class YouTubeKeyDto extends zodDto(YouTubeKeySchema) {}
 
 /**
  * Metadata providers (issue #22): Auto detect's search - read only, like
@@ -29,6 +32,22 @@ export class MetadataController {
   @Get("metadata/search")
   search(@Query() query: MetadataSearchQueryDto) {
     return this.metadata.search(query.title, query.artist);
+  }
+
+  /** Which services a song's links can be searched at (issue #169). */
+  @Get("metadata/links")
+  linkSearchServices() {
+    return this.metadata.linkSearchServices();
+  }
+
+  /** A song looked up at one service, for its link (issue #169): read only, like the search above. */
+  @Get("metadata/links/:type/search")
+  // An outside lookup - YouTube's spends its key's daily quota.
+  @RateLimit("heavy")
+  searchLinks(@Param("type") type: string, @Query() query: MetadataSearchQueryDto) {
+    const parsed = LinkSearchTypeSchema.safeParse(type);
+    if (!parsed.success) throw new BadRequestException(["type must be one of SPOTIFY, APPLE_MUSIC, DEEZER, YOUTUBE"]);
+    return this.metadata.linkSearch(parsed.data, query.title, query.artist);
   }
 
   @Get("admin/metadata")
@@ -85,6 +104,25 @@ export class MetadataController {
   @UseGuards(GlobalAdminGuard)
   testSpotify() {
     return this.metadata.testSpotify();
+  }
+
+  /** The YouTube Data API's key (issue #169), for the song links' YouTube search. */
+  @Put("admin/metadata/youtube")
+  @UseGuards(GlobalAdminGuard)
+  saveYouTube(@Body() dto: YouTubeKeyDto) {
+    return this.metadata.saveYouTube(dto.apiKey);
+  }
+
+  @Delete("admin/metadata/youtube")
+  @UseGuards(GlobalAdminGuard)
+  resetYouTube() {
+    return this.metadata.resetYouTube();
+  }
+
+  @Post("admin/metadata/youtube/test")
+  @UseGuards(GlobalAdminGuard)
+  testYouTube() {
+    return this.metadata.testYouTube();
   }
 
   /** MusicBrainz's contact, in the User-Agent (issue #89); empty goes back to MUSICBRAINZ_CONTACT. */

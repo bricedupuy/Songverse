@@ -1891,6 +1891,9 @@ model MetadataSettings {
   spotifyClientId         String?
   spotifyClientSecretEnc  String?
   spotifyMarket           String?
+  // The YouTube Data API's key (issue #169, encrypted), for the song links'
+  // YouTube search. None: YOUTUBE_API_KEY; without one, no YouTube search.
+  youtubeApiKeyEnc        String?
   updatedAt               DateTime @updatedAt
 }
 

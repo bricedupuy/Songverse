@@ -50,8 +50,8 @@ await step("chosen: the album and year filled in, and linked once saved", async 
 
 await step("its Deezer track on Links", async () => {
   await page.getByRole("tab", { name: "Links" }).click();
-  await page.getByLabel("Deezer").waitFor();
-  const value = await page.getByLabel("Deezer").inputValue();
+  await page.getByLabel("Deezer", { exact: true }).waitFor();
+  const value = await page.getByLabel("Deezer", { exact: true }).inputValue();
   if (!value.includes("deezer.com/track/5001")) throw new Error(`Deezer link: ${value}`);
 });
 

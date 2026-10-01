@@ -75,7 +75,7 @@ Un chant a des onglets :
 - **Versions** - la façon dont vous et vos équipes le jouez et le chantez. Voir [Versions](/fr/versions/).
 - **Fichiers** - partitions, fichier d'origine de la grille, images (25 Mo maximum chacun, sauf si votre administrateur a fixé d'autres limites ; l'onglet l'indique). Les PDF, images, fichiers audio et vidéo et le texte brut s'ouvrent dans le navigateur ; tout autre fichier (une page web, par exemple) est téléchargé, pour ne jamais pouvoir s'exécuter dans Songverse.
 - **Audio** - des enregistrements pour apprendre ou répéter (MP3, Opus, M4A, WAV, OGG… 50 Mo maximum chacun, sauf si votre administrateur a fixé une autre limite), et les pistes du chant (voir plus bas).
-- **Liens** - le chant sur Spotify, Apple Music, Deezer et YouTube.
+- **Liens** - le chant sur Spotify, Apple Music, Deezer et YouTube. Collez un lien, ou trouvez-le : la loupe à côté d'un service (**Chercher sur Spotify**…) y cherche le chant par son titre et son premier artiste et liste quelques résultats, avec leur pochette, leur artiste et leur album (la chaîne d'une vidéo, sur YouTube) ; choisissez-en un et il est enregistré comme lien. Apple Music et Deezer peuvent toujours être cherchés ; Spotify et YouTube une fois que votre administrateur les a configurés.
 
 Les modifications des onglets **Infos** et **Éditeur** sont enregistrées ensemble par **Enregistrer le chant** ; les fichiers, l'audio et les liens sont enregistrés dès que vous les ajoutez. **Annuler les modifications** retire ce qui n'est pas enregistré. Le menu **⋯** permet d'**Exporter en ChordPro** ou de **Supprimer le chant**.
 
