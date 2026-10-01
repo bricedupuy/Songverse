@@ -54,6 +54,8 @@ export const UploadAttachmentSchema = z.strictObject({
   recordingTempo: formField(formNumber("recordingTempo", 20, 400)),
   recordingTimeSignature: formField(timeSignature),
   recordingFirstBeat: formField(formNumber("recordingFirstBeat", 0, 600)),
+  /** Played freely before its first beat (issue #178): no click until then. */
+  recordingFreeIntro: formField(z.enum(["true", "false"]).transform((value) => value === "true")),
   /** Recorded this many semitones above its multitrack (issue #135): while the player was transposed. */
   pitchOffset: formField(formNumber("pitchOffset", -12, 12).pipe(z.number().int())),
   multitrackSetlistId: formField(z.string().max(40)),
@@ -76,6 +78,8 @@ export const UpdateAttachmentSchema = z.strictObject({
   recordingKey: z.string().max(12).nullable().optional(),
   recordingTempo: z.number().min(20).max(400).nullable().optional(),
   recordingFirstBeat: z.number().min(0).max(600).nullable().optional(),
+  /** Played freely before its first beat (issue #178): the click waits for it, rather than clicking from 0:00. */
+  recordingFreeIntro: z.boolean().optional(),
   recordingTimeSignature: timeSignature.nullable().optional(),
   /** Recorded this many semitones above its multitrack (issue #135); null for none. */
   pitchOffset: z.number().int().min(-12).max(12).nullable().optional(),

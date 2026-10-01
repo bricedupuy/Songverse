@@ -1199,6 +1199,10 @@ model Attachment {
   // Where its first beat falls, in seconds from its start (issue #100):
   // what places the metronome against it. Null means at 0:00.
   recordingFirstBeat Float?
+  // Its beginning is played freely, off the grid (issue #178): the click
+  // waits for the first beat, with a count-in before it, rather than
+  // clicking from 0:00.
+  recordingFreeIntro Boolean @default(false)
   // Its time signature ("4/4", "6/8"), when it isn't the song's (issue #123).
   recordingTimeSignature String?
   // The multitrack it's part of (issue #123): files recorded together,

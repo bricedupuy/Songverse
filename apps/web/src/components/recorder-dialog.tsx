@@ -297,6 +297,7 @@ export function RecorderDialog({
             ...(first?.recordingTempo != null ? { recordingTempo: first.recordingTempo } : {}),
             ...(first?.recordingTimeSignature ? { recordingTimeSignature: first.recordingTimeSignature } : {}),
             ...(first?.recordingFirstBeat != null ? { recordingFirstBeat: first.recordingFirstBeat } : {}),
+            ...(first?.recordingFreeIntro ? { recordingFreeIntro: true } : {}),
             ...(multitrack.setlistId ? { multitrackSetlistId: multitrack.setlistId } : {}),
           }
         : {

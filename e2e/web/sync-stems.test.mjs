@@ -3,7 +3,9 @@
 // from the same instant (the recording's 0:00 placed at the same time on
 // each device's clock); pause and seek follow; the follower's play button
 // is the leader's. The metronome with the recording: its bar 1 on the
-// recording's first beat, at its tempo - the same on the follower's.
+// recording's first beat, at its tempo - the same on the follower's - and
+// clicking from 0:00 on that beat, unless the recording's intro is free
+// (issue #178).
 import { chromium } from "playwright";
 import { API, WEB, api, check, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
 
@@ -131,9 +133,9 @@ await step("the metronome with the recording: bar 1 on its first beat, at its te
   await leader.waitForFunction((s) => (window.songverseMetronome?.clicks ?? []).filter((c) => c.heardAt > s).length >= 4, since, { timeout: 15000 });
   const [clicks, start] = await leader.evaluate(() => [window.songverseMetronome.clicks, window.songverseStems.starts.at(-1)]);
   const recent = clicks.filter((c) => c.heardAt > since);
-  // Beat n of the song (after any count-in) falls at the first beat plus n half-seconds of the recording.
+  // Beat n of the song falls at the first beat plus n half-seconds of the recording; the bar before it (issue #178) clicks from 0:00.
   const worst = Math.max(...recent.map((c) => {
-    const n = c.bar * 4 + c.beat;
+    const n = c.position - 4;
     return Math.abs(c.heardAt - (start.zeroAt + (0.5 + n * 0.5) * 1000));
   }));
   check("the click on the recording's beat (ms off, at most)", worst < 2, `${worst.toFixed(2)} ms`);
@@ -178,7 +180,7 @@ await step("the leader slows to 80% (issue #139): the follower's at 80% too, sti
   const [clicks, start] = await leader.evaluate(() => [window.songverseMetronome.clicks, window.songverseStems.starts.at(-1)]);
   // Beat n now falls every 0.5 / 0.8 s of real time after the first beat's.
   const worst = Math.max(...clicks.filter((c) => c.heardAt > after).map((c) => {
-    const n = c.bar * 4 + c.beat;
+    const n = c.position - 4;
     return Math.abs(c.heardAt - (start.zeroAt + ((0.5 + n * 0.5) / 0.8) * 1000));
   }));
   check("the click on the slowed beat (ms off, at most)", worst < 2, `${worst.toFixed(2)} ms`);
@@ -191,6 +193,36 @@ await step("the leader turns the click off and ends the session: the follower's 
   page = follower;
   await playerIn(follower, "ready").waitFor({ timeout: 10000 });
   if (await follower.getByTestId("stem-play").isDisabled()) throw new Error("still the leader's");
+});
+
+/** Plays the leader's stems from 0:00 with the click on; the clicks before the first beat (0.5 s in), and the start. */
+async function fromTheStart() {
+  page = leader;
+  await leader.reload();
+  await playerIn(leader, "ready").waitFor({ timeout: 15000 });
+  await leader.getByTestId("stem-click").click();
+  const since = Date.now();
+  await leader.getByTestId("stem-play").click();
+  await playerIn(leader, "playing").waitFor({ timeout: 15000 });
+  await leader.waitForFunction((s) => (window.songverseMetronome?.clicks ?? []).filter((c) => c.heardAt > s).length >= 4, since, { timeout: 15000 });
+  const [clicks, start] = await leader.evaluate(() => [window.songverseMetronome.clicks, window.songverseStems.starts.at(-1)]);
+  await leader.getByTestId("stem-play").click();
+  return { start, early: clicks.filter((c) => c.heardAt > since && c.heardAt < start.zeroAt + 500 - 50) };
+}
+
+await step("the click from 0:00 (issue #178): the bar before the first beat on the same beat", async () => {
+  const { start, early } = await fromTheStart();
+  if (early.length === 0) throw new Error("no click before the first beat");
+  const off = Math.max(...early.map((c) => Math.abs(c.heardAt - (start.zeroAt + (0.5 + (c.position - 4) * 0.5) * 1000))));
+  check("before the first beat, on its beat (ms off, at most)", off < 2, `${off.toFixed(2)} ms`);
+});
+
+await step("a free intro: nothing before the first beat (no count-in set)", async () => {
+  for (const file of await api(leaderUser, "GET", `/song-versions/${song.id}/attachments`)) {
+    await api(leaderUser, "PATCH", `/song-versions/${song.id}/attachments/${file.id}`, { recordingFreeIntro: true });
+  }
+  const { early } = await fromTheStart();
+  if (early.length > 0) throw new Error(`${early.length} clicks before the first beat`);
 });
 
 await browser.close();

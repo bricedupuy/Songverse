@@ -183,6 +183,16 @@ await step("the stems share one recording's key and tempo", async () => {
     await page.waitForTimeout(200);
   }
   if (!files.every((a) => a.recordingFirstBeat === 1.25)) throw new Error(JSON.stringify(files.map((a) => a.recordingFirstBeat)));
+  // Played freely before it (issue #178): the click waits for it. Ticked, then not.
+  for (const free of [true, false]) {
+    await box.getByLabel("Free intro before the first beat of the stems").setChecked(free);
+    for (let i = 0; i < 25; i++) {
+      files = (await api(me, "GET", `/song-versions/${webSong.id}/attachments`)).filter((a) => a.stemPart);
+      if (files.every((a) => a.recordingFreeIntro === free)) break;
+      await page.waitForTimeout(200);
+    }
+    if (!files.every((a) => a.recordingFreeIntro === free)) throw new Error(JSON.stringify(files.map((a) => a.recordingFreeIntro)));
+  }
 });
 
 await step("in Edit there's no player, just the way to Practice", async () => {

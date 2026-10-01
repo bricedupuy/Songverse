@@ -250,6 +250,7 @@ export function StemRecordPanel({
         ...(first?.recordingTempo != null ? { recordingTempo: first.recordingTempo } : {}),
         ...(first?.recordingTimeSignature ? { recordingTimeSignature: first.recordingTimeSignature } : {}),
         ...(first?.recordingFirstBeat != null ? { recordingFirstBeat: first.recordingFirstBeat } : {}),
+        ...(first?.recordingFreeIntro ? { recordingFreeIntro: true } : {}),
         ...(first?.multitrackSetlistId ? { multitrackSetlistId: first.multitrackSetlistId } : {}),
         // Sung while the player was transposed (issue #135): that far above the multitrack.
         ...(engine.transpose ? { pitchOffset: engine.transpose } : {}),

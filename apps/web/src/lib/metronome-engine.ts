@@ -60,6 +60,21 @@ function load() {
   }
 }
 
+/**
+ * This device's own settings, as kept: not those of a timeline it plays
+ * (a leader's, or the recording's beat with its count-in, issue #178).
+ */
+export function ownMetronomeSettings(): MetronomeSettings {
+  load();
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return normalizeMetronome(JSON.parse(stored) as Partial<MetronomeSettings>);
+  } catch {
+    // Storage blocked or unreadable.
+  }
+  return state.settings;
+}
+
 function save(settings: MetronomeSettings) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -262,20 +277,16 @@ function halt() {
 export function updateMetronome(change: Partial<MetronomeSettings>) {
   load();
   const previous = state.settings;
+  // Playing a timeline it was given (the recording's beat, a leader's it took over): only the change is this device's own.
+  const given = adopted !== null;
   // The leader's own change: what was picked up from the session is theirs now.
   if (!state.following) adopted = placing = null;
   // Following Sync play's leader: only this device's sound and volume are its own.
   if (state.following) change = { ...(change.sound !== undefined && { sound: change.sound }), ...(change.volume !== undefined && { volume: change.volume }) };
   const next = normalizeMetronome({ ...previous, ...change });
-  if (state.following) {
-    // Kept as this device's own, the leader's settings aside.
-    try {
-      const own = normalizeMetronome(JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") as Partial<MetronomeSettings>);
-      save({ ...own, sound: next.sound, volume: next.volume });
-    } catch {
-      // Storage blocked.
-    }
-  } else save(next);
+  // Kept as this device's own, the leader's or the recording's settings aside.
+  if (state.following || given) save(normalizeMetronome({ ...ownMetronomeSettings(), ...change }));
+  else save(next);
   if (!state.playing || !context) return emit({ settings: next, songId: null });
   output!.gain.value = next.volume;
   const timing = (["tempo", "numerator", "denominator", "beats", "subdivision", "countIn", "countInOnly", "sound"] as const).some(

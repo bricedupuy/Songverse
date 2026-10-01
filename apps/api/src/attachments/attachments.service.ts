@@ -320,6 +320,7 @@ export interface RecordingChange {
   recordingKey?: string | null;
   recordingTempo?: number | null;
   recordingFirstBeat?: number | null;
+  recordingFreeIntro?: boolean;
   recordingTimeSignature?: string | null;
   pitchOffset?: number | null;
   multitrackId?: string | null;
@@ -351,7 +352,7 @@ function recordingData(change: RecordingChange): Omit<Prisma.AttachmentUnchecked
   if (change.cuePoints !== undefined) {
     (data as Record<string, unknown>).cuePoints = change.cuePoints?.length ? [...change.cuePoints].sort((a, b) => a.at - b.at) : Prisma.DbNull;
   }
-  for (const field of ["recordingTempo", "recordingFirstBeat", "recordingTimeSignature", "pitchOffset", "multitrackId", "multitrackName", "multitrackSetlistId"] as const) {
+  for (const field of ["recordingTempo", "recordingFirstBeat", "recordingFreeIntro", "recordingTimeSignature", "pitchOffset", "multitrackId", "multitrackName", "multitrackSetlistId"] as const) {
     if (change[field] !== undefined) (data as Record<string, unknown>)[field] = change[field];
   }
   return data as Omit<Prisma.AttachmentUncheckedCreateInput, "songVersionId" | "type" | "filename" | "mimeType" | "storageKey">;

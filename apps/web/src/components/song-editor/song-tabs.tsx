@@ -199,10 +199,14 @@ function RecordingFields({
   songTempo: string;
   canEdit: boolean;
   busy: boolean;
-  onChange: (change: { recordingKey?: string | null; recordingTempo?: number | null; recordingFirstBeat?: number | null; recordingTimeSignature?: string | null }) => void;
+  onChange: (change: { recordingKey?: string | null; recordingTempo?: number | null; recordingFirstBeat?: number | null; recordingFreeIntro?: boolean; recordingTimeSignature?: string | null }) => void;
 }) {
   const { t } = useTranslation();
   const first = files[0];
+  // Played freely before its first beat (issue #178): the click waits for it.
+  const freeIntro = files.some((file) => file.recordingFreeIntro);
+  const [free, setFree] = useState(freeIntro);
+  useEffect(() => setFree(freeIntro), [freeIntro]);
   const saved = first?.recordingTempo != null ? String(first.recordingTempo) : "";
   const [tempo, setTempo] = useState(saved);
   useEffect(() => setTempo(saved), [saved]);
@@ -220,6 +224,7 @@ function RecordingFields({
       first?.recordingTempo ? `${first.recordingTempo} BPM` : null,
       first?.recordingTimeSignature,
       first?.recordingFirstBeat ? t("stems.firstBeatAt", { seconds: first.recordingFirstBeat }) : null,
+      freeIntro ? t("stems.freeIntro") : null,
     ]
       .filter(Boolean)
       .join(" · ");
@@ -310,6 +315,21 @@ function RecordingFields({
             </option>
           ))}
         </NativeSelect>
+      </label>
+      <label className="flex items-center gap-2" title={t("stems.freeIntroHint")}>
+        <input
+          type="checkbox"
+          className="accent-primary"
+          checked={free}
+          disabled={busy}
+          aria-label={label ? t("stems.recordingFreeIntro", { name: label }) : t("stems.stemsFreeIntro")}
+          data-testid="recording-free-intro"
+          onChange={(event) => {
+            setFree(event.target.checked);
+            onChange({ recordingFreeIntro: event.target.checked });
+          }}
+        />
+        {t("stems.freeIntro")}
       </label>
     </div>
   );

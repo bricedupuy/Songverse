@@ -264,6 +264,7 @@ export class StemSeparationProcessor extends WorkerHost {
             recordingTempo: details.recordingTempo,
             recordingTimeSignature: details.recordingTimeSignature,
             recordingFirstBeat: details.recordingFirstBeat,
+            recordingFreeIntro: source?.recordingFreeIntro ?? false,
             cuePoints: details.cuePoints?.length ? (details.cuePoints as unknown as Prisma.InputJsonValue) : Prisma.DbNull,
             detected: details.detected,
             origin: "SEPARATED",

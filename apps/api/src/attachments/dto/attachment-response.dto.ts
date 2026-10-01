@@ -16,6 +16,7 @@ export class AttachmentResponseDto {
   @ApiProperty({ nullable: true }) recordingKey!: string | null;
   @ApiProperty({ nullable: true }) recordingTempo!: number | null;
   @ApiProperty({ nullable: true }) recordingFirstBeat!: number | null;
+  @ApiProperty({ description: "Played freely before its first beat: the click waits for it, with a count-in, rather than clicking from 0:00." }) recordingFreeIntro!: boolean;
   @ApiProperty({ nullable: true, description: "Recorded this many semitones above its multitrack, while the player was transposed." }) pitchOffset!: number | null;
   @ApiProperty({ nullable: true, description: '"4/4", "6/8"…' }) recordingTimeSignature!: string | null;
   @ApiProperty({ nullable: true, description: "The multitrack it's part of (files recorded together); null for the song's original stems." }) multitrackId!: string | null;

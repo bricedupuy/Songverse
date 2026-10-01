@@ -79,6 +79,7 @@ export function StemTrackActions({
         ...(file.recordingTempo != null ? { recordingTempo: file.recordingTempo } : {}),
         ...(file.recordingTimeSignature ? { recordingTimeSignature: file.recordingTimeSignature } : {}),
         ...(file.recordingFirstBeat != null ? { recordingFirstBeat: file.recordingFirstBeat } : {}),
+        ...(file.recordingFreeIntro ? { recordingFreeIntro: true } : {}),
         ...(file.multitrackSetlistId ? { multitrackSetlistId: file.multitrackSetlistId } : {}),
         ...(file.pitchOffset ? { pitchOffset: file.pitchOffset } : {}),
         ...(file.partName ? { partName: file.partName } : {}),

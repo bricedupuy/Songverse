@@ -112,6 +112,7 @@ export class AttachmentsController {
         recordingTempo: dto.recordingTempo,
         recordingTimeSignature: dto.recordingTimeSignature,
         recordingFirstBeat: dto.recordingFirstBeat,
+        recordingFreeIntro: dto.recordingFreeIntro,
         pitchOffset: dto.pitchOffset,
         multitrackId: dto.multitrackId,
         multitrackName: dto.multitrackName,

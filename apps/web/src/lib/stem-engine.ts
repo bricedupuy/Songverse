@@ -134,8 +134,12 @@ export interface StemState {
    * clock runs `speed` times slower or faster through it.
    */
   speed: number;
-  /** The recording's beat: its tempo, time signature and where its first beat falls (s), for the metronome with it; null without a tempo. */
-  beat: { tempo: number; timeSignature: { numerator: number; denominator: number } | null; firstBeat: number } | null;
+  /**
+   * The recording's beat: its tempo, time signature and where its first
+   * beat falls (s), for the metronome with it; `freeIntro` when what comes
+   * before is played freely (issue #178). Null without a tempo.
+   */
+  beat: { tempo: number; timeSignature: { numerator: number; denominator: number } | null; firstBeat: number; freeIntro: boolean } | null;
   /** Played over and over (issue #162): from `start` to `end` (s, the recording's time); null: through to the end. */
   loop: { start: number; end: number } | null;
 }
@@ -1180,7 +1184,12 @@ export function beatOf(song: Pick<StemSong, "stems" | "tempo" | "timeSignature">
   const first = song.stems[0];
   const tempo = first?.recordingTempo ?? song.tempo ?? null;
   if (!tempo) return null;
-  return { tempo, timeSignature: timeSignatureOf(first?.recordingTimeSignature) ?? song.timeSignature ?? null, firstBeat: first?.recordingFirstBeat ?? 0 };
+  return {
+    tempo,
+    timeSignature: timeSignatureOf(first?.recordingTimeSignature) ?? song.timeSignature ?? null,
+    firstBeat: first?.recordingFirstBeat ?? 0,
+    freeIntro: song.stems.some((stem) => stem.recordingFreeIntro),
+  };
 }
 
 /** "6/8" as numbers; null when there's none or it doesn't read. */

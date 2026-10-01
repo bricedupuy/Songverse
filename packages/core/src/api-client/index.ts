@@ -704,6 +704,8 @@ export interface Attachment {
   recordingTempo: number | null;
   /** Where its first beat falls, in seconds (issue #100); null for 0:00. */
   recordingFirstBeat: number | null;
+  /** Played freely before its first beat (issue #178): the click waits for it, with a count-in, rather than clicking from 0:00. */
+  recordingFreeIntro?: boolean;
   /** Recorded this many semitones above its multitrack (issue #135), while the player was transposed; null: in its key. */
   pitchOffset: number | null;
   /** Its time signature ("4/4") when it isn't the song's (issue #123). */
@@ -750,6 +752,7 @@ export interface RecordingDetails {
   recordingTempo?: number;
   recordingTimeSignature?: string;
   recordingFirstBeat?: number;
+  recordingFreeIntro?: boolean;
   pitchOffset?: number;
   multitrackId?: string;
   multitrackName?: string;
