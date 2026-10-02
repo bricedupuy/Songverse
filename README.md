@@ -142,6 +142,18 @@ result when nothing it reads has changed; `pnpm exec vp cache clean` starts
 over. The lint rules are in the root `vite.config.ts`. `pnpm e2e` runs the end-to-end suites (API and browser) against
 the running app - see [e2e/README.md](e2e/README.md). See [Deploy.md](Deploy.md) for production setup.
 
+## How it's built
+
+Songverse is written with a lot of AI assistance: the maintainer sets the
+direction, writes the specs and issues, and reviews, edits and decides what
+is merged, with an AI coding assistant doing much of the typing. We say so
+plainly because you should know. What keeps it trustworthy is the same as
+for any project: every behaviour is covered by end-to-end and unit tests,
+the shared rules are written down in the repository, and changes are
+reviewed by a person before they reach `main`. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for what we ask of contributions, with or
+without AI.
+
 ## Licence
 
 Songverse is free software: you can use it, study it, share it and change
