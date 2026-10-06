@@ -29,6 +29,7 @@ const transposeSteps = z.number().int().min(-11).max(11);
 export const AddSetlistItemSchema = z.strictObject({
   songVersionId: z.string(),
   transposeSteps: optional(transposeSteps).describe("Semitones relative to the song's own key"),
+  afterItemId: optional(z.string().min(1).max(40)).describe("Played right after this song of the set (issue #199); at the end when left out"),
 });
 
 export const UpdateSetlistItemSchema = z.strictObject({

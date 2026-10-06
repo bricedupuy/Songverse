@@ -1,7 +1,7 @@
 import { foldForSearch, formatSongbookReference, onlineOrKept, searchKeptEntries, searchKeptSongs, songbookReferences, type SongbookEntryHit } from "@songverse/core";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { useNavigate, useRouteContext, useRouter } from "@tanstack/react-router";
-import { BookOpen, Hash, ListMusic, Music, Search, Users, type LucideIcon } from "lucide-react";
+import { useNavigate, useRouteContext, useRouter, useRouterState } from "@tanstack/react-router";
+import { BookOpen, Hash, ListEnd, ListMusic, ListPlus, Music, Search, Users, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
@@ -30,6 +30,8 @@ interface Result {
   label: string;
   detail: string | null;
   open: () => void;
+  /** A song, in Live in a set they can change (issue #199): added after the song playing, or at the end. */
+  add?: (where: "next" | "end") => void;
 }
 const ICONS: Record<Kind, LucideIcon> = { entries: Hash, songs: Music, sets: ListMusic, songbooks: BookOpen, teams: Users };
 
@@ -38,7 +40,8 @@ const ICONS: Record<Kind, LucideIcon> = { entries: Hash, songs: Music, sets: Lis
  * Search across songs, sets, songbooks and teams (issue #48), in the header
  * of every mode: a search box on a wide screen, a magnifying glass on a
  * phone, and Ctrl K / ⌘ K anywhere. In Live, a song opens full screen, to
- * pull up one the leader calls that isn't in the set.
+ * pull up one the leader calls that isn't in the set - or, in a set they can
+ * change, is added to it: next, or at the end (issue #199).
  */
 export function CommandSearch() {
   const { t } = useTranslation();
@@ -87,6 +90,12 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   const router = useRouter();
   const { mode } = useMode();
   const { setlists, songbooks, teams } = useRouteContext({ from: "/_protected" });
+  // Live, in a set they can change: its songs can be added to it from here (issue #199).
+  const inSet = useRouterState({ select: (s) => /^\/sets\/([^/]+)\/live\/([^/]+)/.exec(s.location.pathname) });
+  const liveSet = mode === "live" && inSet ? setlists.find((set) => set.id === inSet[1] && set.canEdit) : undefined;
+  const playingItemId = inSet?.[2] ?? null;
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [songs, setSongs] = useState<FoundSong[]>([]);
   const [entries, setEntries] = useState<SongbookEntryHit[]>([]);
@@ -155,6 +164,22 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
       return navigate({ to: "/library/$songVersionId/live", params: { songVersionId: id }, search: from ? { back: from } : {} });
     };
     const matches = (...texts: (string | null | undefined)[]) => texts.some((text) => text && foldForSearch(text).includes(q));
+    // Added to the set: the set's pages and Live's "Next" reload; the song playing stays.
+    const addToSet = (songVersionId: string) =>
+      liveSet
+        ? (where: "next" | "end") => {
+            setAdding(true);
+            setAddError(null);
+            apiClient
+              .addSetlistItem(liveSet.id, { songVersionId, ...(where === "next" && playingItemId && { afterItemId: playingItemId }) })
+              .then(async () => {
+                onDone();
+                await router.invalidate();
+              })
+              .catch((error: unknown) => setAddError(error instanceof Error ? error.message : String(error)))
+              .finally(() => setAdding(false));
+          }
+        : undefined;
     const byKind: Result[] = [
       ...entries.map((entry) => ({
         kind: "entries" as const,
@@ -162,6 +187,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         label: `${formatSongbookReference(entry)} — ${entry.title}`,
         detail: entry.abbreviation ? entry.songbookName : null,
         open: go(() => void openSong(entry.songVersionId)),
+        add: addToSet(entry.songVersionId),
       })),
       ...songs.map((song) => ({
         kind: "songs" as const,
@@ -169,6 +195,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         label: song.versionName ? `${song.title} — ${song.versionName}` : song.title,
         detail: song.artists,
         open: go(() => void openSong(song.id)),
+        add: addToSet(song.id),
       })),
       ...sortSets(setlists, q)
         .filter((set) => !q || matches(setlistTitle(set, t, i18n.language), set.name, set.teamName))
@@ -206,7 +233,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         : []),
     ];
     return byKind;
-  }, [entries, songs, setlists, songbooks, teams, q, mode, t, i18n.language, navigate, router, onDone]);
+  }, [entries, songs, setlists, songbooks, teams, q, mode, t, i18n.language, navigate, router, onDone, liveSet, playingItemId]);
 
   // The first result is picked as the results change.
   useEffect(() => setActive(0), [results]);
@@ -217,6 +244,8 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   function onKeyDown(event: ReactKeyboardEvent) {
     if (event.key === "ArrowDown") setActive((a) => Math.min(results.length - 1, a + 1));
     else if (event.key === "ArrowUp") setActive((a) => Math.max(0, a - 1));
+    // In a set: Shift+Enter plays it next (issue #199).
+    else if (event.key === "Enter" && event.shiftKey && results[active]?.add) results[active].add!("next");
     else if (event.key === "Enter") results[active]?.open();
     else return;
     event.preventDefault();
@@ -265,6 +294,37 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
                   <Icon className="size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate text-sm">{result.label}</span>
                   {result.detail ? <span className="max-w-[45%] shrink-0 truncate text-xs text-muted-foreground">{result.detail}</span> : null}
+                  {result.add ? (
+                    <span className="flex shrink-0 gap-1">
+                      <button
+                        type="button"
+                        disabled={adding}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          result.add!("next");
+                        }}
+                        className="flex h-7 items-center gap-1 rounded-md border bg-background px-2 text-xs text-foreground hover:bg-accent disabled:opacity-50 [&_svg]:size-3.5"
+                        data-testid="search-play-next"
+                      >
+                        <ListPlus />
+                        <span className="hidden sm:inline">{t("search.playNext")}</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={adding}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          result.add!("end");
+                        }}
+                        aria-label={t("search.addToEnd")}
+                        title={t("search.addToEnd")}
+                        className="flex h-7 items-center rounded-md border bg-background px-2 text-foreground hover:bg-accent disabled:opacity-50 [&_svg]:size-3.5"
+                        data-testid="search-add-end"
+                      >
+                        <ListEnd />
+                      </button>
+                    </span>
+                  ) : null}
                 </div>
               );
             })}
@@ -275,7 +335,12 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         ) : null}
         {searching && songs.length === 0 ? <p className="px-2 py-2 text-xs text-muted-foreground">{t("search.searching")}</p> : null}
       </div>
-      {mode === "live" ? <p className="border-t px-3 py-2 text-xs text-muted-foreground">{t("search.liveHint")}</p> : null}
+      {addError ? (
+        <p className="border-t px-3 py-2 text-xs text-destructive" role="alert">
+          {addError}
+        </p>
+      ) : null}
+      {mode === "live" ? <p className="border-t px-3 py-2 text-xs text-muted-foreground">{liveSet ? t("search.liveSetHint") : t("search.liveHint")}</p> : null}
     </>
   );
 }

@@ -135,7 +135,8 @@ await step("in Live, a song that isn't in the set opens full screen, and × come
   await page.getByTestId("live-view").waitFor();
   await page.waitForLoadState("networkidle");
   await trigger().click();
-  await dialog().getByText("In Live, a song opens full screen.").waitFor();
+  // Their own set: Enter opens a song without adding it; Play next would add it (issue #199).
+  await dialog().getByText(/Enter opens a song full screen without adding it/).waitFor();
   // "Hymn 7!": by its number.
   await field().fill(`${abbr} 7`);
   await group("In songbooks").getByRole("option", { name: new RegExp(`Called ${tag}`) }).click();

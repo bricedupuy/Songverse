@@ -45,7 +45,7 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 
 ![A song of a set in Live mode](../../assets/screenshots/en/live.jpg)
 
-- The sidebar stays beside the song on a tablet or computer, with the set's songs listed (the played ones ticked): tap one to go to it. The button at the top left hides it or shows it again; on a phone, where there's no room beside the song, it opens the sidebar over it. The header also shows the set's name.
+- The sidebar stays beside the song on a tablet or computer, with the set's songs listed: tap one to go to it. The song playing is marked **Now**, with a bar down its side; the ones played are ticked and quieter, but stay in their place, and **Start from the top** above the list clears them. If you can change the set, each song has a handle (⋮⋮) on its right: drag it up or down to move the song (or focus it, press Space, the arrow keys, then Space again). The new order is saved straight away, and **Next** follows it. The button at the top left hides the sidebar or shows it again; on a phone, where there's no room beside the song, it opens the sidebar over it. The header also shows the set's name.
 - Under it, the song's structure: its parts in the order they're sung, as small circles - **V1** **C** **V2** **C** **B** **C** (verse, chorus, bridge...) - coloured by kind: intros and outros, verses and pre-choruses, choruses, bridges and vamps, and instrumentals, interludes and breakdowns each have their own colour. The part being sung is ringed and the ones sung are filled, as the song scrolls; tap one to go there.
 - When the song has a PDF, **Chart** / **PDF** at the top reads it as its chart or as the PDF's pages. Your choice is kept for the song on your account, the same on every device and in Practice, so pick it while practising and the stage shows it; songs you haven't chosen for follow your **Songs read as** setting (see [Chart display](/account/#chart-display)). With a PDF, autoscroll still scrolls it, and the structure bar is hidden; on a phone its pages fill the screen from edge to edge, under the header, the PDF's own title in place of the song's.
 - The song starts with its title and artist, its songbook number (**JEM 855 · JEM3**), capo and tempo, and scrolls with the chords and words.
@@ -65,7 +65,7 @@ In Live, picking a set - from the list of sets, the sidebar or the home page - o
 
 ### A song that isn't in the set
 
-When the leader calls a song that wasn't planned, use the search (the magnifying glass at the top): by its title, or by its number when it's called that way ("Hymn 42!": **HY 42**). In Live, a song you pick opens the same way, with autoscroll and your text size. **Back** (the arrow beside the sidebar button) returns to the set's song you were on.
+When the leader calls a song that wasn't planned, use the search (the magnifying glass at the top): by its title, or by its number when it's called that way ("Hymn 42!": **HY 42**). In Live, a song you pick opens the same way, with autoscroll and your text size. **Back** (the arrow beside the sidebar button) returns to the set's song you were on. If you can change the set, each song found also offers **Play next** (or **Shift Enter**), which adds it to the set right after the song playing, and the button beside it, **Add at the end of the set**; the song playing stays on screen, and **Next** then leads to the song added.
 
 ## Playing in sync
 

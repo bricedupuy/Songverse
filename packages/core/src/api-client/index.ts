@@ -1695,7 +1695,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     deleteSetlist: (setlistId: string) => request<void>(`/setlists/${setlistId}`, { method: "DELETE" }),
     searchSetlistSongs: (setlistId: string, query: string) =>
       request<SetlistSongRef[]>(`/setlists/${setlistId}/song-candidates?q=${encodeURIComponent(query)}`),
-    addSetlistItem: (setlistId: string, data: { songVersionId: string; transposeSteps?: number }) =>
+    addSetlistItem: (setlistId: string, data: { songVersionId: string; transposeSteps?: number; afterItemId?: string }) =>
       request<SetlistDetail>(`/setlists/${setlistId}/items`, { method: "POST", body: JSON.stringify(data) }),
     updateSetlistItem: (
       setlistId: string,

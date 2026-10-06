@@ -273,7 +273,14 @@ export class SetlistsService {
     const set = await this.sets.findEditable(user, setlistId);
     await this.assertAddable(set, dto.songVersionId);
     await this.prisma.client.$transaction(async (tx) => {
-      const position = await tx.setlistItem.count({ where: { setlistId } });
+      let position = await tx.setlistItem.count({ where: { setlistId } });
+      // Right after a song of the set (issue #199, "Play next" in Live): the ones after it move down one.
+      if (dto.afterItemId) {
+        const after = await tx.setlistItem.findFirst({ where: { id: dto.afterItemId, setlistId }, select: { position: true } });
+        if (!after) throw new NotFoundException("That song isn't in this set any more.");
+        position = after.position + 1;
+        await tx.setlistItem.updateMany({ where: { setlistId, position: { gte: position } }, data: { position: { increment: 1 } } });
+      }
       // A team set plays the team's usual arrangement of the song, if it has one.
       const arrangementId = set.ownerTeamId ? await this.arrangements.teamDefaultId(set.ownerTeamId, dto.songVersionId) : null;
       await tx.setlistItem.create({

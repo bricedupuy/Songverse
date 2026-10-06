@@ -1,5 +1,8 @@
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { keptSetDetail, keptSongbook, onlineOrKept, transposeKey, type ListSongVersionsQuery, type PeopleOverview, type SetlistDetail, type SetlistSummary, type SongbookDetail, type SongbookSummary, type SongVersionSummary, type TeamSummary } from "@songverse/core";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   ArrowLeft,
   AudioWaveform,
@@ -15,6 +18,7 @@ import {
   HelpCircle,
   Database,
   FileStack,
+  GripVertical,
   KeyRound,
   LayoutDashboard,
   ListMusic,
@@ -24,7 +28,7 @@ import {
   Users,
   UsersRound,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AccountMenuContent } from "#/components/app-sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
@@ -38,7 +42,7 @@ import { docsUrl, docsView } from "#/lib/docs";
 import { EntityAvatar } from "#/components/entity-avatar";
 import { initials } from "#/lib/initials";
 import { useMode } from "#/lib/mode";
-import { useSetProgress } from "#/lib/set-progress";
+import { clearSetProgress, useSetProgress } from "#/lib/set-progress";
 import type { AppSession } from "#/lib/server-auth";
 import { deviceStorage } from "#/lib/offline-data";
 import { setlistTitle, setOwnerLabel, transposeLabel } from "#/lib/setlists";
@@ -276,10 +280,35 @@ function NewLink({ to, label }: { to: "/sets/new" | "/songbooks/new" | "/teams/n
 }
 
 /** One entry of the panel's list: a title, and a line under it. */
-function PanelEntry({ active, title, detail, played, leading, children }: { active: boolean; title: string; detail?: string | null; played?: string | null; leading?: ReactNode; children: (className: string, content: ReactNode) => ReactNode }) {
+function PanelEntry({
+  active,
+  title,
+  detail,
+  played,
+  leading,
+  now,
+  sortable,
+  children,
+}: {
+  active: boolean;
+  title: string;
+  detail?: string | null;
+  played?: string | null;
+  leading?: ReactNode;
+  /** The song playing in Live (issue #199): marked, beyond the page you're on. */
+  now?: string | null;
+  /** Dragged to another place (issue #199): the list item's ref and style, and the handle. */
+  sortable?: { ref: (node: HTMLElement | null) => void; style: CSSProperties; handle: ReactNode; dragging: boolean };
+  children: (className: string, content: ReactNode) => ReactNode;
+}) {
   const text = (
     <>
       <span className="flex items-center gap-1">
+        {now ? (
+          <span className="shrink-0 rounded-sm bg-primary px-1 text-[0.65rem] font-semibold tracking-wide text-primary-foreground uppercase" data-testid="sidebar-now">
+            {now}
+          </span>
+        ) : null}
         <span className="truncate">{title}</span>
         {/* Played in Live (issue #153). */}
         {played ? <Check className="size-3.5 shrink-0 text-muted-foreground" aria-label={played} data-testid="sidebar-played" /> : null}
@@ -287,13 +316,17 @@ function PanelEntry({ active, title, detail, played, leading, children }: { acti
       {detail ? <span className="truncate text-xs font-normal text-muted-foreground">{detail}</span> : null}
     </>
   );
-  return (
-    <li>
-      {children(
+  const link = (
+      children(
         cn(
           "flex gap-0.5 border-b px-3 py-2.5 text-sm leading-tight outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:bg-sidebar-accent",
           leading ? "flex-row items-center gap-2.5" : "flex-col",
           active && "bg-sidebar-accent font-medium text-sidebar-accent-foreground",
+          // Played (issue #199): still there, in its place, but quieter.
+          played && !active && "text-muted-foreground",
+          // The song playing: a bar down its side.
+          now && "border-l-4 border-l-primary pl-2",
+          sortable && "min-w-0 flex-1",
         ),
         // A team's or a songbook's avatar beside it (issue #161).
         leading ? (
@@ -304,7 +337,13 @@ function PanelEntry({ active, title, detail, played, leading, children }: { acti
         ) : (
           text
         ),
-      )}
+      )
+  );
+  if (!sortable) return <li>{link}</li>;
+  return (
+    <li ref={sortable.ref} style={sortable.style} className={cn("flex items-stretch bg-sidebar", sortable.dragging && "relative z-10 shadow-md")} data-testid="sidebar-set-song">
+      {link}
+      {sortable.handle}
     </li>
   );
 }
@@ -447,8 +486,29 @@ function SetsPanel({ title, pathname, setlists }: { title: string; pathname: str
 function SetSongsPanel({ setId, pathname, sets, onBack }: { setId: string; pathname: string; sets: string; onBack: () => void }) {
   const { t, i18n } = useTranslation();
   const { mode } = useMode();
+  const router = useRouter();
   const progress = useSetProgress(setId);
   const [set, setSet] = useState<SetlistDetail | null>(null);
+  const [reorderError, setReorderError] = useState<string | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  // The song playing in Live: the one open there.
+  const playing = mode === "live" ? /^\/sets\/[^/]+\/live\/([^/]+)/.exec(pathname)?.[1] ?? null : null;
+
+  // Moved by its handle (issue #199): shown at once, saved, and Live's previous and next follow.
+  async function onDragEnd({ active, over }: DragEndEvent) {
+    if (!set || !over || active.id === over.id) return;
+    const before = set;
+    const items = arrayMove(set.items, set.items.findIndex((item) => item.id === active.id), set.items.findIndex((item) => item.id === over.id));
+    setSet({ ...set, items });
+    setReorderError(null);
+    try {
+      await apiClient.reorderSetlistItems(set.id, items.map((item) => item.id));
+      await router.invalidate();
+    } catch (error) {
+      setSet(before);
+      setReorderError(error instanceof Error ? error.message : String(error));
+    }
+  }
   const [failed, setFailed] = useState(false);
   // Fetched again when the set's page reloads its own (a song added, moved, removed…).
   const reloaded = useRouterState({ select: (s) => s.matches.find((match) => match.routeId.includes("$setlistId"))?.updatedAt });
@@ -488,33 +548,85 @@ function SetSongsPanel({ setId, pathname, sets, onBack }: { setId: string; pathn
           </Link>
         ) : null}
       </div>
+      {/* Played marks cleared, for the next service or rehearsal (issue #199). */}
+      {progress?.played.length ? (
+        <div className="flex items-center justify-between border-b px-3 py-1.5 text-xs text-muted-foreground">
+          <span>{t("sets.playedCount", { count: progress.played.filter((id) => set?.items.some((item) => item.id === id) ?? true).length })}</span>
+          <button type="button" className="rounded-md px-1.5 py-0.5 hover:bg-sidebar-accent hover:text-foreground" onClick={() => clearSetProgress(setId)} data-testid="sidebar-reset-played">
+            {t("sets.fromTheTop")}
+          </button>
+        </div>
+      ) : null}
+      {reorderError ? (
+        <p className="border-b px-3 py-1.5 text-xs text-destructive" role="alert">
+          {reorderError}
+        </p>
+      ) : null}
       {failed ? (
         <p className="p-3 text-sm text-muted-foreground">{t("nav.listUnavailable")}</p>
       ) : set ? (
-        <PanelList empty={t("sets.emptySet")}>
-          {set.items.map((item, index) => {
-            const song = item.song;
-            const baseKey = song?.key && item.arrangement ? (transposeKey(song.key, item.arrangement.transposeSteps) ?? song.key) : (song?.key ?? null);
-            return (
-              <PanelEntry
-                key={item.id}
-                active={pathname === `/sets/${set.id}/songs/${item.id}` || pathname === `/sets/${set.id}/live/${item.id}`}
-                title={`${index + 1}. ${song?.title ?? t("sets.hiddenSong")}`}
-                played={progress?.played.includes(item.id) ? t("sets.played") : null}
-                detail={song ? [item.arrangement?.name, transposeLabel(baseKey, item.transposeSteps, t)].filter(Boolean).join(" · ") : null}
-              >
-                {(className, content) => (
-                  // In Live, its Live view (issue #153).
-                  <Link to={mode === "live" ? "/sets/$setlistId/live/$itemId" : "/sets/$setlistId/songs/$itemId"} params={{ setlistId: set.id, itemId: item.id }} className={className}>
-                    {content}
-                  </Link>
-                )}
-              </PanelEntry>
-            );
-          })}
-        </PanelList>
+        // A fixed id keeps dnd-kit's generated accessibility ids identical between server render and hydration.
+        <DndContext id="sidebar-set-songs" sensors={sensors} collisionDetection={closestCenter} onDragEnd={(event) => void onDragEnd(event)}>
+          <SortableContext items={set.items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+            <PanelList empty={t("sets.emptySet")}>
+              {set.items.map((item, index) => (
+                <SetSongEntry key={item.id} set={set} item={item} index={index} pathname={pathname} played={!!progress?.played.includes(item.id)} now={playing === item.id} />
+              ))}
+            </PanelList>
+          </SortableContext>
+        </DndContext>
       ) : null}
     </>
+  );
+}
+
+/** A song of the set in the sidebar: in Live, the one playing marked, the ones played quieter; moved by its handle by who can change the set. */
+function SetSongEntry({ set, item, index, pathname, played, now }: { set: SetlistDetail; item: SetlistDetail["items"][number]; index: number; pathname: string; played: boolean; now: boolean }) {
+  const { t } = useTranslation();
+  const { mode } = useMode();
+  // Moved here in Live (issue #199); elsewhere the set's page has its own list to reorder.
+  const movable = set.canEdit && mode === "live";
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: item.id, disabled: !movable });
+  const song = item.song;
+  const title = song?.title ?? t("sets.hiddenSong");
+  const baseKey = song?.key && item.arrangement ? (transposeKey(song.key, item.arrangement.transposeSteps) ?? song.key) : (song?.key ?? null);
+  return (
+    <PanelEntry
+      active={pathname === `/sets/${set.id}/songs/${item.id}` || pathname === `/sets/${set.id}/live/${item.id}`}
+      title={`${index + 1}. ${title}`}
+      played={played ? t("sets.played") : null}
+      now={now ? t("sets.now") : null}
+      detail={song ? [item.arrangement?.name, transposeLabel(baseKey, item.transposeSteps, t)].filter(Boolean).join(" · ") : null}
+      sortable={
+        movable
+          ? {
+              ref: setNodeRef,
+              style: { transform: CSS.Transform.toString(transform), transition },
+              dragging: isDragging,
+              handle: (
+                <button
+                  type="button"
+                  ref={setActivatorNodeRef}
+                  {...attributes}
+                  {...listeners}
+                  className="flex w-7 shrink-0 cursor-grab touch-none items-center justify-center border-b text-muted-foreground hover:bg-sidebar-accent hover:text-foreground active:cursor-grabbing"
+                  aria-label={t("sets.dragToReorder", { title })}
+                  data-testid="sidebar-drag-handle"
+                >
+                  <GripVertical className="size-4" />
+                </button>
+              ),
+            }
+          : undefined
+      }
+    >
+      {(className, content) => (
+        // In Live, its Live view (issue #153).
+        <Link to={mode === "live" ? "/sets/$setlistId/live/$itemId" : "/sets/$setlistId/songs/$itemId"} params={{ setlistId: set.id, itemId: item.id }} className={className} aria-current={now ? "step" : undefined}>
+          {content}
+        </Link>
+      )}
+    </PanelEntry>
   );
 }
 

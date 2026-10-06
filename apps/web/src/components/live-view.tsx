@@ -171,10 +171,13 @@ export function LiveView({ song }: { song: LiveSong }) {
     return () => element.removeEventListener("scroll", check);
   }, [song.id]);
   // A chart that fits the screen has no end to scroll to: played once it's moved on from.
+  // (Its room below - the 40vh that lets the last line come up - isn't the song's: issue #199.)
   const next = song.next
     ? () => {
         const element = scroller.current;
-        if (element && element.scrollHeight - element.clientHeight <= 8 && !played.current) onPlayed.current?.();
+        const content = element?.firstElementChild as HTMLElement | null | undefined;
+        const room = content ? parseFloat(getComputedStyle(content).paddingBottom) * (Number(content.style.zoom) || 1) : 0;
+        if (element && element.scrollHeight - element.clientHeight - room <= 8 && !played.current) onPlayed.current?.();
         song.next?.();
       }
     : null;
@@ -186,6 +189,8 @@ export function LiveView({ song }: { song: LiveSong }) {
       if (document.querySelector("[role=dialog]")) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, [contenteditable=true]")) return;
+      // A song of the set's being moved by its handle, with the keyboard (issue #199).
+      if (target?.closest("[aria-roledescription=sortable]")) return;
       const element = scroller.current;
       const page = (element?.clientHeight ?? 0) * 0.8;
       switch (event.key) {
