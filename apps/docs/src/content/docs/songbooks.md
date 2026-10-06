@@ -42,4 +42,4 @@ Starting a songbook from a catalog gives you every entry at once. Entries whose 
 
 ## Bulk upload
 
-To fill a numbered songbook quickly, **Bulk upload** many ChordPro or PDF files at once. Each file is matched to a song by the number in its name (`0245.cho` or `JEM_0245.pdf` matches number 245). Check the matches, then **Confirm upload**.
+To fill a numbered songbook quickly, **Bulk upload** many ChordPro or PDF files at once. Each file is matched to a song by the number in its name (`0245.cho` or `JEM_0245.pdf` matches number 245). Check the matches, then **Confirm upload**. Two files with the same number are both marked as a conflict, each naming the other ("Same number as …"), and neither is uploaded. Only files of the kind chosen are matched (a PDF beside a ChordPro file isn't a conflict). System files, like macOS's `._0245.cho` copies or `.DS_Store`, are left out and only counted.

@@ -24,9 +24,9 @@ export class BulkUploadService {
     @InjectQueue(BULK_UPLOAD_QUEUE) private readonly queue: Queue<BulkUploadJobData>,
   ) {}
 
-  async preview(songbookId: string, filenames: string[]): Promise<BulkUploadFileMatch[]> {
+  async preview(songbookId: string, filenames: string[], type?: BulkUploadTypeValue): Promise<BulkUploadFileMatch[]> {
     const entryCodes = await this.entryCodesForNumberedSongbook(songbookId);
-    return matchFilenamesToEntryCodes(filenames, entryCodes);
+    return matchFilenamesToEntryCodes(filenames, entryCodes, type);
   }
 
   /**
@@ -47,6 +47,7 @@ export class BulkUploadService {
     const matches = matchFilenamesToEntryCodes(
       files.map((file) => file.originalname),
       entryCodes,
+      type,
     );
     const matchByFilename = new Map(matches.map((match) => [match.filename, match]));
 

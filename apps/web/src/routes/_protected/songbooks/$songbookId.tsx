@@ -1,4 +1,4 @@
-import { isNetworkError, keptSongbook, onlineOrKept, type BulkUploadContentType, type BulkUploadFileMatch, type LanguageCode, type SongbookSection, type SongVersionSummary } from "@songverse/core";
+import { BULK_UPLOAD_EXTENSIONS, isNetworkError, keptSongbook, onlineOrKept, type BulkUploadContentType, type BulkUploadFileMatch, type LanguageCode, type SongbookSection, type SongVersionSummary } from "@songverse/core";
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
 import { ChevronDown, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -178,7 +178,7 @@ function SongbookDetail() {
     }
   }
 
-  async function selectBulkUploadFiles(files: File[]) {
+  async function selectBulkUploadFiles(files: File[], type = bulkUploadType) {
     setBulkUploadFiles(files);
     setBulkUploadResult(null);
     setBulkUploadError(null);
@@ -189,6 +189,7 @@ function SongbookDetail() {
       const matches = await apiClient.previewBulkUpload(
         songbook.id,
         files.map((file) => file.name),
+        type,
       );
       setBulkUploadPreview(matches);
     } catch (err) {
@@ -524,7 +525,12 @@ function SongbookDetail() {
                 <NativeSelect
                   id="bulk-upload-type"
                   value={bulkUploadType}
-                  onChange={(e) => setBulkUploadType(e.target.value as BulkUploadContentType)}
+                  onChange={(e) => {
+                    const type = e.target.value as BulkUploadContentType;
+                    setBulkUploadType(type);
+                    // Files already chosen: matched again for this kind (issue #201).
+                    if (bulkUploadFiles.length) void selectBulkUploadFiles(bulkUploadFiles, type);
+                  }}
                 >
                   <option value="CHORDPRO">{t("songbooks.bulkUploadTypeChordpro")}</option>
                   <option value="PDF">{t("songbooks.bulkUploadTypePdf")}</option>
@@ -536,6 +542,8 @@ function SongbookDetail() {
                   id="bulk-upload-files"
                   type="file"
                   multiple
+                  // The chosen kind's files, in the picker (issue #201).
+                  accept={BULK_UPLOAD_EXTENSIONS[bulkUploadType].join(",")}
                   disabled={previewingBulkUpload || committingBulkUpload}
                   onChange={(e) => {
                     const files = Array.from(e.target.files ?? []);
@@ -553,10 +561,24 @@ function SongbookDetail() {
 
             {bulkUploadPreview && bulkUploadPreview.length > 0 ? (
               <div className="flex flex-col gap-2 border-t pt-4">
+                {/* System files ("._jem001.chordpro", ".DS_Store"): left out, only counted (issue #201). */}
+                {bulkUploadPreview.some((match) => match.ignoredBecause === "hidden") ? (
+                  <p className="text-xs text-muted-foreground" data-testid="bulk-upload-hidden">
+                    {t("songbooks.bulkUploadHiddenLeftOut", { count: bulkUploadPreview.filter((match) => match.ignoredBecause === "hidden").length })}
+                  </p>
+                ) : null}
                 <ul className="flex max-h-64 flex-col divide-y overflow-auto">
-                  {bulkUploadPreview.map((match) => (
-                    <li key={match.filename} className="flex items-center justify-between gap-4 py-2 text-sm">
-                      <span className="truncate">{match.filename}</span>
+                  {bulkUploadPreview.filter((match) => match.ignoredBecause !== "hidden").map((match, index) => (
+                    <li key={`${match.filename}-${index}`} className="flex items-center justify-between gap-4 py-2 text-sm" data-testid="bulk-upload-row" data-status={match.status}>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate">{match.filename}</span>
+                        {/* Which file it clashes with. */}
+                        {match.conflictsWith?.length ? (
+                          <span className="truncate text-xs text-muted-foreground" data-testid="bulk-upload-conflicts-with">
+                            {t("songbooks.bulkUploadConflictsWith", { files: match.conflictsWith.join(", ") })}
+                          </span>
+                        ) : null}
+                      </span>
                       <span className="flex items-center gap-2 whitespace-nowrap">
                         {match.entryCode ? (
                           <span className="rounded-md bg-muted px-2 py-1 text-center text-xs font-medium">
@@ -574,7 +596,9 @@ function SongbookDetail() {
                             ? t("songbooks.bulkUploadStatusMatched")
                             : match.status === "DUPLICATE"
                               ? t("songbooks.bulkUploadStatusDuplicate")
-                              : t("songbooks.bulkUploadStatusUnmatched")}
+                              : match.status === "IGNORED"
+                                ? t("songbooks.bulkUploadStatusWrongType")
+                                : t("songbooks.bulkUploadStatusUnmatched")}
                         </span>
                       </span>
                     </li>

@@ -26,7 +26,7 @@ export class BulkUploadController {
     @Param("songbookId") songbookId: string,
     @Body() dto: BulkUploadPreviewDto,
   ): ReturnType<BulkUploadService["preview"]> {
-    return this.bulkUploadService.preview(songbookId, dto.filenames);
+    return this.bulkUploadService.preview(songbookId, dto.filenames, dto.type);
   }
 
   @RateLimit("heavy")

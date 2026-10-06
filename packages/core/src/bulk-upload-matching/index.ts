@@ -7,12 +7,32 @@
  * filename ("0245.cho", "JEM_0245.pdf" -> "245").
  */
 
-export type BulkUploadMatchStatus = "MATCHED" | "UNMATCHED" | "DUPLICATE";
+export type BulkUploadMatchStatus = "MATCHED" | "UNMATCHED" | "DUPLICATE" | "IGNORED";
 
 export interface BulkUploadFileMatch {
   filename: string;
   entryCode: string | null;
   status: BulkUploadMatchStatus;
+  /** DUPLICATE: the other files that claimed the same entry (issue #201). */
+  conflictsWith?: string[];
+  /** IGNORED: a system file ("._jem001.chordpro", ".DS_Store"), or not the kind being uploaded. */
+  ignoredBecause?: "hidden" | "type";
+}
+
+/** The kinds of file a bulk upload takes, by extension (issue #201): another kind is left out rather than matched. */
+export const BULK_UPLOAD_EXTENSIONS = {
+  CHORDPRO: [".chordpro", ".cho", ".crd", ".pro", ".chopro", ".txt"],
+  PDF: [".pdf"],
+} as const;
+
+/**
+ * Files no one means to upload: macOS's "._name" copies (written beside
+ * every file on a USB stick, a network drive or in a zip) and other dot
+ * files, Windows' Thumbs.db and desktop.ini.
+ */
+export function isSystemFile(filename: string): boolean {
+  const base = filename.split(/[\\/]/).pop() ?? filename;
+  return base.startsWith(".") || /^(thumbs\.db|desktop\.ini)$/i.test(base);
 }
 
 /** The first run of digits in the filename, ignoring the extension. */
@@ -40,21 +60,28 @@ function codesMatch(extractedToken: string, entryCode: string): boolean {
  * file that claims it - callers must resolve the conflict by hand rather
  * than guessing, per the "review step is mandatory" rule in §7.
  */
-export function matchFilenamesToEntryCodes(filenames: string[], entryCodes: string[]): BulkUploadFileMatch[] {
+export function matchFilenamesToEntryCodes(filenames: string[], entryCodes: string[], type?: keyof typeof BULK_UPLOAD_EXTENSIONS): BulkUploadFileMatch[] {
+  const extensions: readonly string[] | null = type ? BULK_UPLOAD_EXTENSIONS[type] : null;
   const perFile = filenames.map((filename) => {
+    // Left out before matching (issue #201), so they never make a conflict.
+    if (isSystemFile(filename)) return { filename, entryCode: null, ignoredBecause: "hidden" as const };
+    if (extensions && !extensions.some((extension) => filename.toLowerCase().endsWith(extension))) return { filename, entryCode: null, ignoredBecause: "type" as const };
     const token = extractNumericToken(filename);
     const entryCode = token ? (entryCodes.find((code) => codesMatch(token, code)) ?? null) : null;
-    return { filename, entryCode };
+    return { filename, entryCode, ignoredBecause: undefined };
   });
 
-  const claimCounts = new Map<string, number>();
-  for (const { entryCode } of perFile) {
-    if (entryCode) claimCounts.set(entryCode, (claimCounts.get(entryCode) ?? 0) + 1);
+  const claims = new Map<string, string[]>();
+  for (const { filename, entryCode } of perFile) {
+    if (entryCode) claims.set(entryCode, [...(claims.get(entryCode) ?? []), filename]);
   }
 
-  return perFile.map(({ filename, entryCode }) => ({
-    filename,
-    entryCode,
-    status: !entryCode ? "UNMATCHED" : (claimCounts.get(entryCode) ?? 0) > 1 ? "DUPLICATE" : "MATCHED",
-  }));
+  return perFile.map(({ filename, entryCode, ignoredBecause }): BulkUploadFileMatch => {
+    if (ignoredBecause) return { filename, entryCode: null, status: "IGNORED", ignoredBecause };
+    if (!entryCode) return { filename, entryCode, status: "UNMATCHED" };
+    const others = (claims.get(entryCode) ?? []).filter((other) => other !== filename);
+    return others.length > 0 || (claims.get(entryCode)?.length ?? 0) > 1
+      ? { filename, entryCode, status: "DUPLICATE", conflictsWith: others.length ? others : [filename] }
+      : { filename, entryCode, status: "MATCHED" };
+  });
 }

@@ -21,6 +21,12 @@ check("the song has its artwork first", hasImage);
 
 const preview = await api(me, "POST", `/songbooks/${songbook.id}/bulk-upload/preview`, { filenames: ["7.cho", "99.cho"] });
 check("matched by number", preview.find((m) => m.filename === "7.cho")?.status === "MATCHED" && preview.find((m) => m.filename === "99.cho")?.status !== "MATCHED", JSON.stringify(preview));
+// Issue #201: a conflict names the other file; macOS's "._" copies and files of another kind are left out.
+const clash = await api(me, "POST", `/songbooks/${songbook.id}/bulk-upload/preview`, { filenames: ["7.cho", "007 copy.cho", "._7.cho", "7.pdf"], type: "CHORDPRO" });
+const row = (name) => clash.find((m) => m.filename === name);
+check("a conflict says which file it's with", row("7.cho")?.status === "DUPLICATE" && JSON.stringify(row("7.cho")?.conflictsWith) === JSON.stringify(["007 copy.cho"]), JSON.stringify(clash));
+check("a system file is left out", row("._7.cho")?.status === "IGNORED" && row("._7.cho")?.ignoredBecause === "hidden", JSON.stringify(row("._7.cho")));
+check("so is a PDF when uploading ChordPro", row("7.pdf")?.status === "IGNORED" && row("7.pdf")?.ignoredBecause === "type", JSON.stringify(row("7.pdf")));
 
 const form = new FormData();
 form.append("type", "CHORDPRO");

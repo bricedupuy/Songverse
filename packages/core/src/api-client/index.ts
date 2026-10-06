@@ -1492,10 +1492,10 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
         method: "POST",
         body: JSON.stringify({ songVersionId, entryCode }),
       }),
-    previewBulkUpload: (songbookId: string, filenames: string[]) =>
+    previewBulkUpload: (songbookId: string, filenames: string[], type?: BulkUploadContentType) =>
       request<BulkUploadFileMatch[]>(`/songbooks/${songbookId}/bulk-upload/preview`, {
         method: "POST",
-        body: JSON.stringify({ filenames }),
+        body: JSON.stringify({ filenames, ...(type && { type }) }),
       }),
     commitBulkUpload: (songbookId: string, type: BulkUploadContentType, files: File[]) => {
       const form = new FormData();

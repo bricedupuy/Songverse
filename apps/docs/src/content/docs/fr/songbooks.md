@@ -42,4 +42,4 @@ Commencer un recueil à partir d'un catalogue vous donne toutes ses entrées d'u
 
 ## Import en masse
 
-Pour remplir vite un recueil numéroté, l'**Import en masse** ajoute de nombreux fichiers ChordPro ou PDF d'un coup. Chaque fichier est associé à un chant par le numéro dans son nom (`0245.cho` ou `JEM_0245.pdf` correspond au numéro 245). Vérifiez les correspondances, puis **Confirmer l'import**.
+Pour remplir vite un recueil numéroté, l'**Import en masse** ajoute de nombreux fichiers ChordPro ou PDF d'un coup. Chaque fichier est associé à un chant par le numéro dans son nom (`0245.cho` ou `JEM_0245.pdf` correspond au numéro 245). Vérifiez les correspondances, puis **Confirmer l'import**. Deux fichiers avec le même numéro sont tous deux marqués en conflit, chacun nommant l'autre (« Même numéro que … »), et aucun n'est importé. Seuls les fichiers du type choisi sont associés (un PDF à côté d'un fichier ChordPro n'est pas un conflit). Les fichiers système, comme les copies `._0245.cho` de macOS ou `.DS_Store`, sont ignorés et seulement comptés.

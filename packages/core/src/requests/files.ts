@@ -120,7 +120,10 @@ export type BulkUploadTypeValue = (typeof BULK_UPLOAD_TYPES)[number];
 
 export const BulkUploadCommitSchema = z.strictObject({ type: z.enum(BULK_UPLOAD_TYPES) });
 
-export const BulkUploadPreviewSchema = z.strictObject({ filenames: z.array(z.string()).min(1) });
+export const BulkUploadPreviewSchema = z.strictObject({
+  filenames: z.array(z.string()).min(1),
+  type: z.enum(BULK_UPLOAD_TYPES).optional().describe("The kind being uploaded: files of another kind are left out (issue #201)"),
+});
 
 /**
  * The largest song file of each type (issue #163), in MB: set in Admin >
