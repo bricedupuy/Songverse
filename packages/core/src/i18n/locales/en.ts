@@ -848,6 +848,8 @@ const en = {
     bulkUploadHiddenLeftOut_other: "{{count}} system files (like ._song.chordpro or .DS_Store) left out.",
     bulkUploadConfirm: "Confirm upload",
     bulkUploadUploading: "Uploading…",
+    bulkUploadUploadingOf: "Uploading {{done}} of {{of}}…",
+    bulkUploadPartly: "{{queued}} file(s) were queued before this went wrong: {{message}}",
     bulkUploadResult: "{{queued}} file(s) queued for processing.",
     bulkUploadSkipped: "Skipped (not matched): {{files}}",
   },

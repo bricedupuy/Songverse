@@ -19,6 +19,9 @@ export interface BulkUploadFileMatch {
   ignoredBecause?: "hidden" | "type";
 }
 
+/** The most files one bulk upload request takes (held in the API's memory until stored); the web app sends more in batches (issue #202). */
+export const BULK_UPLOAD_MAX_FILES_PER_REQUEST = 200;
+
 /** The kinds of file a bulk upload takes, by extension (issue #201): another kind is left out rather than matched. */
 export const BULK_UPLOAD_EXTENSIONS = {
   CHORDPRO: [".chordpro", ".cho", ".crd", ".pro", ".chopro", ".txt"],

@@ -1,5 +1,6 @@
 import { Body, Controller, Param, PayloadTooLargeException, Post, UnauthorizedException, UseGuards, UseInterceptors, UploadedFiles } from "@nestjs/common";
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { BULK_UPLOAD_MAX_FILES_PER_REQUEST } from "@songverse/core";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
@@ -11,7 +12,6 @@ import { RateLimit } from "../security/rate-limit.decorator.js";
 import { BYTES_PER_MB, fileSizeLimitsFor } from "../uploads/file-size-limits.js";
 import { SongFileInterceptor } from "../uploads/song-file.interceptor.js";
 
-const MAX_BULK_UPLOAD_FILES_PER_REQUEST = 200;
 
 @ApiTags("bulk-upload")
 @ApiBearerAuth()
@@ -31,7 +31,7 @@ export class BulkUploadController {
 
   @RateLimit("heavy")
   @Post()
-  @UseInterceptors(SongFileInterceptor("files", MAX_BULK_UPLOAD_FILES_PER_REQUEST))
+  @UseInterceptors(SongFileInterceptor("files", BULK_UPLOAD_MAX_FILES_PER_REQUEST))
   @ApiConsumes("multipart/form-data")
   @ApiCreatedResponse({ type: BulkUploadCommitResultDto })
   async commit(

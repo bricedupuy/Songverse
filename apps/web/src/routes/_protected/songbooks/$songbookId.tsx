@@ -17,6 +17,10 @@ import { OfflinePinButton } from "#/components/offline-pin-button";
 import { SectionsEditor } from "#/components/sections-editor";
 import { deviceStorage } from "#/lib/offline-data";
 
+/** A bulk upload's files go in batches of at most this many files and bytes (issue #202): within the API's limit per request, and its memory. */
+const BULK_UPLOAD_BATCH_FILES = 100;
+const BULK_UPLOAD_BATCH_BYTES = 50 * 1024 * 1024;
+
 export const Route = createFileRoute("/_protected/songbooks/$songbookId")({
   // Offline, the copy kept with "Keep a local copy" (issue #52), read-only.
   loader: async ({ context, params }) => {
@@ -80,6 +84,7 @@ function SongbookDetail() {
   const [committingBulkUpload, setCommittingBulkUpload] = useState(false);
   const [bulkUploadResult, setBulkUploadResult] = useState<{ queued: number; skipped: string[] } | null>(null);
   const [bulkUploadError, setBulkUploadError] = useState<string | null>(null);
+  const [bulkUploadProgress, setBulkUploadProgress] = useState<{ done: number; of: number } | null>(null);
 
   // Songs matching what's typed, searched on the server (the whole
   // library, not just what's loaded), minus those already in the book.
@@ -209,15 +214,33 @@ function SongbookDetail() {
 
     setCommittingBulkUpload(true);
     setBulkUploadError(null);
+    // In batches (issue #202): the API takes so many files, and so many MB, per request.
+    const batches: File[][] = [];
+    for (const file of filesToUpload) {
+      const last = batches.at(-1);
+      if (!last || last.length >= BULK_UPLOAD_BATCH_FILES || last.reduce((total, one) => total + one.size, 0) + file.size > BULK_UPLOAD_BATCH_BYTES) batches.push([file]);
+      else last.push(file);
+    }
+    const total = { queued: 0, skipped: [] as string[] };
+    setBulkUploadProgress({ done: 0, of: filesToUpload.length });
     try {
-      const result = await apiClient.commitBulkUpload(songbook.id, bulkUploadType, filesToUpload);
-      setBulkUploadResult(result);
+      for (const batch of batches) {
+        const result = await apiClient.commitBulkUpload(songbook.id, bulkUploadType, batch);
+        total.queued += result.queued;
+        total.skipped.push(...result.skipped);
+        setBulkUploadProgress((progress) => progress && { ...progress, done: progress.done + batch.length });
+      }
+      setBulkUploadResult(total);
       setBulkUploadFiles([]);
       setBulkUploadPreview(null);
     } catch (err) {
-      setBulkUploadError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      // What was already sent stays queued: said, so it isn't sent twice.
+      setBulkUploadError(total.queued ? t("songbooks.bulkUploadPartly", { queued: total.queued, message }) : message);
+      if (total.queued) setBulkUploadResult(total);
     } finally {
       setCommittingBulkUpload(false);
+      setBulkUploadProgress(null);
     }
   }
 
@@ -609,7 +632,7 @@ function SongbookDetail() {
                   disabled={committingBulkUpload || !bulkUploadPreview.some((match) => match.status === "MATCHED")}
                   className="self-start"
                 >
-                  {committingBulkUpload ? t("songbooks.bulkUploadUploading") : t("songbooks.bulkUploadConfirm")}
+                  {committingBulkUpload ? (bulkUploadProgress && bulkUploadProgress.of > BULK_UPLOAD_BATCH_FILES ? t("songbooks.bulkUploadUploadingOf", { done: bulkUploadProgress.done, of: bulkUploadProgress.of }) : t("songbooks.bulkUploadUploading")) : t("songbooks.bulkUploadConfirm")}
                 </Button>
               </div>
             ) : null}

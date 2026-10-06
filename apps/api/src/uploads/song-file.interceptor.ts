@@ -22,7 +22,7 @@ export function SongFileInterceptor(field: string, maxCount?: number): Type<Nest
       const upload = multer({ ...UPLOAD_OPTIONS, limits: { fileSize: limit } });
       const handler = maxCount === undefined ? upload.single(field) : upload.array(field, maxCount);
       await new Promise<void>((resolve, reject) =>
-        handler(http.getRequest(), http.getResponse(), (error: unknown) => (error ? reject(asHttpError(error, limit)) : resolve())),
+        handler(http.getRequest(), http.getResponse(), (error: unknown) => (error ? reject(asHttpError(error, limit, field, maxCount)) : resolve())),
       );
       return next.handle();
     }
@@ -30,9 +30,11 @@ export function SongFileInterceptor(field: string, maxCount?: number): Type<Nest
   return mixin(Interceptor);
 }
 
-function asHttpError(error: unknown, limit: number) {
+function asHttpError(error: unknown, limit: number, field: string, maxCount?: number) {
   if (error instanceof multer.MulterError) {
     if (error.code === "LIMIT_FILE_SIZE") return new PayloadTooLargeException(`Files can be up to ${Math.round(limit / (1024 * 1024))} MB`);
+    // One file too many comes as "Unexpected file field" (issue #202): said as what it is.
+    if (error.code === "LIMIT_UNEXPECTED_FILE" && error.field === field && maxCount !== undefined) return new BadRequestException(`At most ${maxCount} files at once`);
     return new BadRequestException(error.message);
   }
   return error;

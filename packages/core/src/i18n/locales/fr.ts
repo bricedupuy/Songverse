@@ -850,6 +850,8 @@ const fr: typeof en = {
     bulkUploadHiddenLeftOut_one: "{{count}} fichier système (comme ._chant.chordpro ou .DS_Store) ignoré.",
     bulkUploadHiddenLeftOut_other: "{{count}} fichiers système (comme ._chant.chordpro ou .DS_Store) ignorés.",
     bulkUploadConfirm: "Confirmer l'import",
+    bulkUploadUploadingOf: "Envoi de {{done}} sur {{of}}…",
+    bulkUploadPartly: "{{queued}} fichier(s) avaient été mis en file avant l'erreur : {{message}}",
     bulkUploadUploading: "Import en cours…",
     bulkUploadResult: "{{queued}} fichier(s) mis en file d'attente pour traitement.",
     bulkUploadSkipped: "Ignorés (non associés) : {{files}}",
