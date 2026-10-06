@@ -1,7 +1,9 @@
-import { useState } from "react";
+import type { SignupPassRequest } from "@songverse/core";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { KeyRound } from "lucide-react";
 import { authClient } from "#/lib/auth-client";
+import { getApiUrl } from "#/lib/public-env";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
 import { Input } from "#/components/ui/input";
@@ -15,6 +17,12 @@ interface AuthCardProps {
   redirectTo?: string;
   /** Whether Google sign-in is configured (Admin > Auth, or env vars) - resolved by the root route, see __root.tsx. */
   hasGoogleAuth: boolean;
+  /** Only invited people can create an account (issue #198). */
+  signupInviteOnly?: boolean;
+  /** The invitation this page came with (an invitation's link, a team's invite link, a set's share link): it lets them sign up. */
+  invitePass?: SignupPassRequest;
+  /** Filled in, and the sign-up tab open: an invitation's page. */
+  email?: string;
 }
 
 // BetterAuth builds verification/reset-password/OAuth callback links
@@ -36,6 +44,7 @@ const KNOWN_ERRORS = [
   "USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL",
   "PASSWORD_TOO_SHORT",
   "INVALID_TOKEN",
+  "SIGNUP_INVITE_ONLY",
 ] as const;
 
 export function useAuthErrorText() {
@@ -46,11 +55,30 @@ export function useAuthErrorText() {
   };
 }
 
-export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardProps) {
+export function AuthCard({ redirectTo = "/library", hasGoogleAuth, signupInviteOnly = false, invitePass, email: invitedEmail }: AuthCardProps) {
   const { t } = useTranslation();
   const errorText = useAuthErrorText();
   const [view, setView] = useState<View>("auth");
   const [error, setError] = useState<string | null>(null);
+  // Invited (issue #198): the API keeps the invitation in a cookie, for the account made next - by email or Google.
+  const [invited, setInvited] = useState(false);
+  useEffect(() => {
+    if (!invitePass) return;
+    void fetch(`${getApiUrl().replace(/\/$/, "")}/auth/invite-pass`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(invitePass),
+    })
+      .then((response) => setInvited(response.ok))
+      .catch(() => setInvited(false));
+  }, [invitePass?.kind, invitePass?.token]);
+  const canSignUp = !signupInviteOnly || invited || !!invitedEmail;
+  // Back from Google without an account made: by invitation only, most likely.
+  useEffect(() => {
+    const failed = new URLSearchParams(window.location.search).get("error");
+    if (failed) setError(signupInviteOnly ? t("auth.errors.SIGNUP_INVITE_ONLY") : t("auth.somethingWentWrong"));
+  }, []);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
@@ -128,7 +156,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
 
   async function signInWithGoogle() {
     resetMessages();
-    await authClient.signIn.social({ provider: "google", callbackURL: toAbsoluteUrl(redirectTo) });
+    await authClient.signIn.social({ provider: "google", callbackURL: toAbsoluteUrl(redirectTo), errorCallbackURL: toAbsoluteUrl(window.location.pathname) });
   }
 
   async function signInWithPasskey() {
@@ -206,7 +234,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
         <CardDescription>{t("auth.welcomeDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Tabs defaultValue="signin" onValueChange={resetMessages}>
+        <Tabs defaultValue={invitedEmail ? "signup" : "signin"} onValueChange={resetMessages}>
           <TabsList className="w-full">
             <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
             <TabsTrigger value="signup">{t("auth.signUp")}</TabsTrigger>
@@ -254,6 +282,11 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
           </TabsContent>
 
           <TabsContent value="signup" className="mt-4">
+            {!canSignUp ? (
+              <p className="text-sm text-muted-foreground" data-testid="signup-invite-only">
+                {t("auth.inviteOnly")}
+              </p>
+            ) : (
             <form
               className="flex flex-col gap-4"
               onSubmit={(event) => {
@@ -267,7 +300,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="signup-email">{t("auth.email")}</Label>
-                <Input id="signup-email" name="email" type="email" required autoComplete="email" />
+                <Input id="signup-email" name="email" type="email" required autoComplete="email" defaultValue={invitedEmail} />
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="signup-password">{t("auth.password")}</Label>
@@ -285,6 +318,7 @@ export function AuthCard({ redirectTo = "/library", hasGoogleAuth }: AuthCardPro
                 {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
               </Button>
             </form>
+            )}
           </TabsContent>
         </Tabs>
 

@@ -19,6 +19,8 @@ export interface EffectiveSecuritySettings {
   apiDocsPublic: boolean;
   /** The web app's Content-Security-Policy (issue #114): enforced, only reported, or off. */
   contentSecurityPolicy: "ENFORCE" | "REPORT_ONLY" | "OFF";
+  /** Only invited people can create an account (issue #198). */
+  signupInviteOnly: boolean;
 }
 
 type Key = keyof EffectiveSecuritySettings;
@@ -34,6 +36,7 @@ const FIELDS: { [K in Key]: { env: string; parse: (raw: string) => EffectiveSecu
   trustedProxies: { env: "TRUSTED_PROXIES", parse: int, fallback: () => (production() ? 1 : 0) },
   apiDocsPublic: { env: "API_DOCS_PUBLIC", parse: bool, fallback: () => !production() },
   contentSecurityPolicy: { env: "CONTENT_SECURITY_POLICY", parse: cspMode, fallback: () => "ENFORCE" },
+  signupInviteOnly: { env: "SIGNUP_INVITE_ONLY", parse: bool, fallback: () => false },
 };
 
 function cspMode(raw: string): EffectiveSecuritySettings["contentSecurityPolicy"] | undefined {

@@ -13,8 +13,8 @@ export const Route = createFileRoute("/join/$token")({
   beforeLoad: async ({ params }) => {
     const session = await getSession();
     if (!session) {
-      const [{ hasGoogleAuth }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
-      return { error: null, hasGoogleAuth, locale: await loadLocale(locale) };
+      const [{ hasGoogleAuth, signupInviteOnly }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
+      return { error: null, hasGoogleAuth, signupInviteOnly, locale: await loadLocale(locale) };
     }
 
     let team: Awaited<ReturnType<typeof apiClient.joinTeamByToken>> | null = null;
@@ -30,7 +30,7 @@ export const Route = createFileRoute("/join/$token")({
     }
     // Already signed in at this point, so <AuthCard> never renders below -
     // no need to resolve the real value.
-    return { error: joinError, hasGoogleAuth: false, locale: await loadLocale(session.locale) };
+    return { error: joinError, hasGoogleAuth: false, signupInviteOnly: false, locale: await loadLocale(session.locale) };
   },
   component: JoinTeamPage,
 });
@@ -47,7 +47,7 @@ function JoinTeamPage() {
 function JoinTeamContent() {
   const { t } = useTranslation();
   const { token } = Route.useParams();
-  const { error, hasGoogleAuth } = Route.useRouteContext();
+  const { error, hasGoogleAuth, signupInviteOnly } = Route.useRouteContext();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
@@ -68,7 +68,8 @@ function JoinTeamContent() {
       ) : (
         <>
           <p className="max-w-sm text-center text-sm text-muted-foreground">{t("auth.joinTeamPrompt")}</p>
-          <AuthCard redirectTo={`/join/${token}`} hasGoogleAuth={hasGoogleAuth} />
+          {/* The team's invite link lets them sign up, also by invitation only (issue #198). */}
+          <AuthCard redirectTo={`/join/${token}`} hasGoogleAuth={hasGoogleAuth} signupInviteOnly={signupInviteOnly} invitePass={{ kind: "team", token }} />
         </>
       )}
     </main>

@@ -44,6 +44,7 @@ export const SaveSecuritySettingsSchema = z.strictObject({
   trustedProxies: z.number().int().min(0).max(10).nullable().optional(),
   apiDocsPublic: z.boolean().nullable().optional(),
   contentSecurityPolicy: z.enum(["ENFORCE", "REPORT_ONLY", "OFF"]).nullable().optional(),
+  signupInviteOnly: z.boolean().nullable().optional(),
 });
 export type SaveSecuritySettingsRequest = z.input<typeof SaveSecuritySettingsSchema>;
 

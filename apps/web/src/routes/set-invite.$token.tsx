@@ -23,8 +23,8 @@ export const Route = createFileRoute("/set-invite/$token")({
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
     }
-    const hasGoogleAuth = session ? false : (await apiClient.getAuthPublicConfig()).hasGoogleAuth;
-    return { locale: await loadLocale(session?.locale ?? (await getVisitorLocale())), signedIn: !!session, preview, error, hasGoogleAuth };
+    const { hasGoogleAuth, signupInviteOnly } = session ? { hasGoogleAuth: false, signupInviteOnly: false } : await apiClient.getAuthPublicConfig();
+    return { locale: await loadLocale(session?.locale ?? (await getVisitorLocale())), signedIn: !!session, preview, error, hasGoogleAuth, signupInviteOnly };
   },
   component: SetInvitePage,
 });
@@ -42,7 +42,7 @@ function SetInvitePage() {
 function SetInviteContent() {
   const { t } = useTranslation();
   const { token } = Route.useParams();
-  const { signedIn, preview, error, hasGoogleAuth } = Route.useRouteContext();
+  const { signedIn, preview, error, hasGoogleAuth, signupInviteOnly } = Route.useRouteContext();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
@@ -68,7 +68,8 @@ function SetInviteContent() {
           {!signedIn ? (
             <>
               <p className="max-w-sm text-center text-sm text-muted-foreground">{t("sets.joinSignInPrompt")}</p>
-              <AuthCard redirectTo={`/set-invite/${token}`} hasGoogleAuth={hasGoogleAuth} />
+              {/* The set's share link lets them sign up, also by invitation only (issue #198). */}
+              <AuthCard redirectTo={`/set-invite/${token}`} hasGoogleAuth={hasGoogleAuth} signupInviteOnly={signupInviteOnly} invitePass={{ kind: "set", token }} />
             </>
           ) : null}
         </>

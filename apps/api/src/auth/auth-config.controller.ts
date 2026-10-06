@@ -2,6 +2,7 @@ import { Controller, Get } from "@nestjs/common";
 import { ApiExcludeEndpoint } from "@nestjs/swagger";
 import { Public } from "../common/decorators/public.decorator.js";
 import { getEffectiveAuthSettings } from "./auth-settings.js";
+import { getEffectiveSecuritySettings } from "../security/security-settings.js";
 
 /**
  * The one piece of auth config unauthenticated pages need to know: whether
@@ -16,7 +17,8 @@ export class AuthConfigController {
   @Get("public-config")
   @ApiExcludeEndpoint()
   async publicConfig() {
-    const settings = await getEffectiveAuthSettings();
-    return { hasGoogleAuth: Boolean(settings.googleClientId && settings.googleClientSecret) };
+    const [settings, security] = await Promise.all([getEffectiveAuthSettings(), getEffectiveSecuritySettings()]);
+    // Whether to offer sign-up to anyone, or only with an invitation (issue #198).
+    return { hasGoogleAuth: Boolean(settings.googleClientId && settings.googleClientSecret), signupInviteOnly: security.signupInviteOnly };
   }
 }

@@ -17,14 +17,14 @@ export const Route = createFileRoute("/")({
     if (session) {
       throw redirect({ to: "/library" });
     }
-    const [{ hasGoogleAuth }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
-    return { hasGoogleAuth, locale: await loadLocale(locale) };
+    const [{ hasGoogleAuth, signupInviteOnly }, locale] = await Promise.all([apiClient.getAuthPublicConfig(), getVisitorLocale()]);
+    return { hasGoogleAuth, signupInviteOnly, locale: await loadLocale(locale) };
   },
   component: Home,
 });
 
 function Home() {
-  const { hasGoogleAuth, locale } = Route.useRouteContext();
+  const { hasGoogleAuth, signupInviteOnly, locale } = Route.useRouteContext();
   // Signed out: nothing of the last user's stays on the device (issue #49).
   useEffect(() => void forgetOffline(), []);
   return (
@@ -34,7 +34,7 @@ function Home() {
           <Music2 className="size-6" />
           Songverse
         </div>
-        <AuthCard hasGoogleAuth={hasGoogleAuth} />
+        <AuthCard hasGoogleAuth={hasGoogleAuth} signupInviteOnly={signupInviteOnly} />
         <SourceCodeLink />
       </main>
     </LocaleProvider>

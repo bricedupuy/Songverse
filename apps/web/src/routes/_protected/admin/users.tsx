@@ -5,14 +5,20 @@ import { useTranslation } from "react-i18next";
 import { Card } from "#/components/ui/card";
 import { DataTable } from "#/components/ui/data-table";
 import { apiClient } from "#/lib/api-client";
+import { InvitationsCard } from "./-invitations-card";
 import { RolesDialog } from "./-roles-dialog";
 import { BanDialog, DeleteNowDialog, DeleteUserDialog, TransferLinkDialog } from "./-user-dialogs";
 import { useUsersColumns, type UserAction } from "./-users-columns";
 
 export const Route = createFileRoute("/_protected/admin/users")({
   loader: async () => {
-    const [users, roles] = await Promise.all([apiClient.adminListUsers(), apiClient.adminListRoles()]);
-    return { users, roles };
+    const [users, roles, security, invitations] = await Promise.all([
+      apiClient.adminListUsers(),
+      apiClient.adminListRoles(),
+      apiClient.adminGetSecuritySettings(),
+      apiClient.adminListSignupInvitations(),
+    ]);
+    return { users, roles, inviteOnly: security.settings.signupInviteOnly, invitations };
   },
   component: AdminUsersPage,
 });
@@ -25,7 +31,7 @@ function AdminUsersPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { session } = Route.useRouteContext();
-  const { users, roles } = Route.useLoaderData();
+  const { users, roles, inviteOnly, invitations } = Route.useLoaderData();
   const [dialog, setDialog] = useState<OpenDialog | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -74,6 +80,9 @@ function AdminUsersPage() {
       <Card className="p-0">
         <DataTable columns={columns} data={users} filterPlaceholder={t("admin.usersFilterPlaceholder")} />
       </Card>
+
+      {/* Who can sign up (issue #198). */}
+      <InvitationsCard inviteOnly={inviteOnly} invitations={invitations} />
 
       {dialog?.kind === "roles" ? (
         <RolesDialog

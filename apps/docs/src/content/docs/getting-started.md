@@ -11,6 +11,8 @@ description: Create your account, sign in, and find your way around Songverse.
 
 If your Songverse offers it, you can also use **Continue with Google** instead of a password.
 
+Some servers only let invited people sign up: **Sign up** then says so. Open the invitation link you were sent (it fills in your email), or a team's invite link or a set's share link someone gave you, and create your account from there.
+
 ## Signing in
 
 - With your **email and password**. Forgot it? **Forgot password?** sends you a link to set a new one.

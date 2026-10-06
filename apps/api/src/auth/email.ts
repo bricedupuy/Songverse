@@ -74,6 +74,21 @@ export async function sendChangeEmailConfirmation(to: string, newEmail: string, 
   });
 }
 
+/** An invitation to create an account (issue #198), for when sign-up is by invitation only. */
+export async function sendSignupInvitation(to: string, url: string, inviterName: string | null): Promise<void> {
+  const who = inviterName ? `${inviterName} invited you` : "You're invited";
+  await sendEmail({
+    to,
+    subject: `${who} to Songverse`,
+    text: `${who} to create an account on Songverse, for your band's or church's songs, sets and rehearsals:\n\n${url}\n\nThe invitation is for this email address and works for two weeks. If you weren't expecting it, you can ignore this email.`,
+    html: `
+      <p>${escapeHtml(who)} to create an account on Songverse, for your band's or church's songs, sets and rehearsals.</p>
+      <p><a href="${url}">Create your account</a></p>
+      <p style="color:#666;font-size:13px">The invitation is for this email address and works for two weeks. If you weren't expecting it, you can ignore this email.</p>
+    `,
+  });
+}
+
 function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 }

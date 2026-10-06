@@ -35,6 +35,10 @@ Everyone with an account, with their status, roles (their teams' in outline), so
 - **Ban** them (they're signed out and can't sign in until unbanned; their content stays);
 - **Delete user**, choosing what happens to what they personally own: delete it now, or keep it for a **transfer link**. Whoever opens that link while signed in, before it expires, becomes its owner.
 
+Below the list, **Sign-up and invitations** says who can create an account. With **Only invited people can sign up** ticked, someone signing up is refused unless they were invited here, or came through a team's invite link or a set's share link; existing accounts aren't affected. It shows where the setting comes from - saved here, the `SIGNUP_INVITE_ONLY` environment variable, or the default (anyone can sign up) - and **Use the environment variable** goes back to the server's configuration. The bootstrap admins (`BOOTSTRAP_ADMIN_EMAILS`) can always sign up.
+
+To invite someone, enter their email under **Email to invite** and choose **Invite**: with **Email them the link** ticked they're sent a link, and the link is also shown, to send another way. It opens a page with their email filled in, and works for two weeks, for that email. The invitations are listed as **Waiting**, **Signed up** or **Expired**: **Copy link** copies a waiting one's link, **Send again** sends a new link for another two weeks, and **Remove** cancels it.
+
 ### Teams
 
 Every team, with its roles, members, songs and **storage pool**: what's on a team's songs counts there, whoever uploaded it, not against the uploader. **Roles…** gives the team roles: each one applies to every member, and a storage tier sets the team's pool.

@@ -296,6 +296,8 @@ model User {
   roleAssignments     RoleAssignment[]
   // The screens they paired (issue #186).
   screens             Screen[]
+  // The people they invited to sign up (issue #198).
+  signupInvitations   SignupInvitation[]
   ownedSongbooks      Songbook[]             @relation("SongbookOwnerUser")
   importJobs          ImportJob[]
   uploadedAttachments Attachment[]           @relation("AttachmentUploader")
@@ -1784,6 +1786,8 @@ model SecuritySettings {
   apiDocsPublic               Boolean?
   // The web app's Content-Security-Policy (issue #114): ENFORCE, REPORT_ONLY or OFF.
   contentSecurityPolicy       String?
+  // Only invited people can create an account (issue #198).
+  signupInviteOnly            Boolean?
   updatedAt                   DateTime @updatedAt
 }
 
@@ -2183,4 +2187,21 @@ model Screen {
 enum ScreenMode {
   LYRICS
   CHART
+}
+
+// Someone invited to create an account (issue #198), for when sign-up is
+// by invitation only: an account with this email can then be made. The
+// token only opens the invitation's page (the email filled in).
+model SignupInvitation {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  token       String    @unique
+  invitedById String?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+
+  invitedBy User? @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([invitedById])
 }

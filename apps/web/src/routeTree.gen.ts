@@ -22,6 +22,7 @@ import { Route as ProtectedPeopleRouteImport } from './routes/_protected/people'
 import { Route as ProtectedReviewRouteImport } from './routes/_protected/review'
 import { Route as ProtectedScreensRouteImport } from './routes/_protected/screens'
 import { Route as ProtectedTunerRouteImport } from './routes/_protected/tuner'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as JoinTokenRouteImport } from './routes/join.$token'
 import { Route as SetInviteTokenRouteImport } from './routes/set-invite.$token'
 import { Route as TransferTokenRouteImport } from './routes/transfer.$token'
@@ -125,6 +126,11 @@ const ProtectedTunerRoute = ProtectedTunerRouteImport.update({
   id: '/tuner',
   path: '/tuner',
   getParentRoute: () => ProtectedRoute,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const JoinTokenRoute = JoinTokenRouteImport.update({
   id: '/join/$token',
@@ -349,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/review': typeof ProtectedReviewRouteWithChildren
   '/screens': typeof ProtectedScreensRoute
   '/tuner': typeof ProtectedTunerRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -400,6 +407,7 @@ export interface FileRoutesByTo {
   '/people': typeof ProtectedPeopleRoute
   '/screens': typeof ProtectedScreensRoute
   '/tuner': typeof ProtectedTunerRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -455,6 +463,7 @@ export interface FileRoutesById {
   '/_protected/review': typeof ProtectedReviewRouteWithChildren
   '/_protected/screens': typeof ProtectedScreensRoute
   '/_protected/tuner': typeof ProtectedTunerRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/join/$token': typeof JoinTokenRoute
   '/set-invite/$token': typeof SetInviteTokenRoute
   '/transfer/$token': typeof TransferTokenRoute
@@ -510,6 +519,7 @@ export interface FileRouteTypes {
     | '/review'
     | '/screens'
     | '/tuner'
+    | '/invite/$token'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -561,6 +571,7 @@ export interface FileRouteTypes {
     | '/people'
     | '/screens'
     | '/tuner'
+    | '/invite/$token'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -615,6 +626,7 @@ export interface FileRouteTypes {
     | '/_protected/review'
     | '/_protected/screens'
     | '/_protected/tuner'
+    | '/invite/$token'
     | '/join/$token'
     | '/set-invite/$token'
     | '/transfer/$token'
@@ -661,6 +673,7 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   ResetPasswordRoute: typeof ResetPasswordRoute
   ScreenRoute: typeof ScreenRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   JoinTokenRoute: typeof JoinTokenRoute
   SetInviteTokenRoute: typeof SetInviteTokenRoute
   TransferTokenRoute: typeof TransferTokenRoute
@@ -758,6 +771,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/tuner'
       preLoaderRoute: typeof ProtectedTunerRouteImport
       parentRoute: typeof ProtectedRoute
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/join/$token': {
       id: '/join/$token'
@@ -1165,6 +1185,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   ResetPasswordRoute: ResetPasswordRoute,
   ScreenRoute: ScreenRoute,
+  InviteTokenRoute: InviteTokenRoute,
   JoinTokenRoute: JoinTokenRoute,
   SetInviteTokenRoute: SetInviteTokenRoute,
   TransferTokenRoute: TransferTokenRoute,

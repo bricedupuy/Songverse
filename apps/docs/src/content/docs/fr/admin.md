@@ -35,6 +35,10 @@ Tous les comptes, avec leur statut, leurs rôles (ceux de leurs équipes en cont
 - **Bannir** (la personne est déconnectée et ne peut plus se connecter jusqu'à la levée du bannissement ; son contenu reste) ;
 - **Supprimer l'utilisateur**, en choisissant ce que devient ce qui lui appartient : le supprimer tout de suite, ou le garder pour un **lien de transfert**. Qui ouvre ce lien en étant connecté, avant qu'il n'expire, en devient propriétaire.
 
+Sous la liste, **Inscription et invitations** indique qui peut créer un compte. Avec **Seules les personnes invitées peuvent s'inscrire** coché, une inscription est refusée, sauf pour une personne invitée ici ou arrivée par le lien d'invitation d'une équipe ou le lien de partage d'une liste de chants ; les comptes existants ne sont pas concernés. Le réglage indique d'où il vient - enregistré ici, la variable d'environnement `SIGNUP_INVITE_ONLY` ou la valeur par défaut (tout le monde peut s'inscrire) - et **Utiliser la variable d'environnement** retourne à la configuration du serveur. Les administrateurs initiaux (`BOOTSTRAP_ADMIN_EMAILS`) peuvent toujours s'inscrire.
+
+Pour inviter quelqu'un, saisissez son adresse dans **E-mail à inviter** et choisissez **Inviter** : avec **Lui envoyer le lien par e-mail** coché, le lien lui est envoyé, et il est aussi affiché, pour l'envoyer autrement. Il ouvre une page où son adresse est déjà remplie, et fonctionne deux semaines, pour cette adresse. Les invitations sont listées **En attente**, **Inscrit** ou **Expirée** : **Copier le lien** copie le lien d'une invitation en attente, **Renvoyer** envoie un nouveau lien pour deux semaines de plus, et **Retirer** l'annule.
+
 ### Authentification
 
 Comment Songverse envoie ses e-mails (vérification, réinitialisation du mot de passe) via Resend, et si la **connexion avec Google** est proposée. Les réglages enregistrés ici prennent effet tout de suite ; **Revenir aux variables d'environnement** retourne à la configuration du serveur.

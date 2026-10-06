@@ -12,4 +12,5 @@ export * from "./library.js";
 export * from "./stem-separation.js";
 export * from "./roles.js";
 export * from "./screens.js";
+export * from "./invitations.js";
 export * from "./messages.js";

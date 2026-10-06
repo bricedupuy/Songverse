@@ -8,6 +8,7 @@ import { prisma } from "@songverse/db";
 import { getEffectiveAuthSettings, type EffectiveAuthSettings } from "./auth-settings.js";
 import { passkeyRpId, sharedCookieDomain } from "./auth-domains.js";
 import { capabilitiesOf } from "../roles/capabilities.js";
+import { markInvitationAccepted, passFromCookies, signupAllowed } from "../invitations/signup-gate.js";
 import {
   sendChangeEmailConfirmation,
   sendNewEmailVerification,
@@ -160,13 +161,28 @@ function buildAuth(settings: EffectiveAuthSettings) {
       },
       user: {
         create: {
+          // Sign-up by invitation only (issue #198): every way of making an
+          // account (email, Google) creates the user here. The bootstrap
+          // admins can always sign up, so a fresh server can't lock itself out.
+          before: async (user, ctx) => {
+            const pass = passFromCookies(cookiesOf(ctx));
+            if (await signupAllowed(user.email, pass, (email) => bootstrapAdminEmails.has(email.toLowerCase()))) return;
+            // Not FORBIDDEN: BetterAuth answers a 403 here with its generic
+            // "check your email" (meant for an existing address), so the
+            // person would wait for an email that never comes.
+            throw APIError.from("UNPROCESSABLE_ENTITY", {
+              message: "Sign-up is by invitation only. Ask an admin of this server, or someone in your team, for an invitation.",
+              code: "SIGNUP_INVITE_ONLY",
+            });
+          },
           // isGlobalAdmin isn't settable through BetterAuth's own create/
           // update input (input: false above) - this writes it directly
           // via Prisma after the row exists, the one legitimate way in.
-          after: async (user) => {
+          after: async (user, ctx) => {
             if (bootstrapAdminEmails.has(user.email.toLowerCase())) {
               await prisma.user.update({ where: { id: user.id }, data: { isGlobalAdmin: true } });
             }
+            await markInvitationAccepted(user.email, passFromCookies(cookiesOf(ctx)));
           },
         },
       },
@@ -207,6 +223,11 @@ function buildAuth(settings: EffectiveAuthSettings) {
       }),
     ],
   });
+}
+
+/** The cookies of the request a hook runs in (none outside a request). */
+function cookiesOf(ctx: { headers?: Headers; request?: Request } | null | undefined): string | null {
+  return ctx?.headers?.get("cookie") ?? ctx?.request?.headers.get("cookie") ?? null;
 }
 
 type Auth = ReturnType<typeof buildAuth>;

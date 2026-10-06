@@ -11,6 +11,8 @@ description: Créez votre compte, connectez-vous et repérez-vous dans Songverse
 
 Si votre Songverse le propose, vous pouvez aussi utiliser **Continuer avec Google** au lieu d'un mot de passe.
 
+Certains serveurs n'acceptent que les personnes invitées : **S'inscrire** l'indique alors. Ouvrez le lien d'invitation reçu (il remplit votre adresse e-mail), ou le lien d'invitation d'une équipe ou le lien de partage d'une liste de chants qu'on vous a donné, et créez votre compte depuis là.
+
 ## Se connecter
 
 - Avec votre **adresse e-mail et votre mot de passe**. Oublié ? **Mot de passe oublié ?** vous envoie un lien pour en choisir un nouveau.

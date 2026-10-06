@@ -16,6 +16,7 @@ import type { StemPart } from "../stems/index.js";
 import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
+import type { CreateSignupInvitationRequest } from "../requests/invitations.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
 import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
@@ -516,6 +517,7 @@ export interface SecuritySettingsSummary {
     trustedProxies: SecuritySetting<number>;
     apiDocsPublic: SecuritySetting<boolean>;
     contentSecurityPolicy: SecuritySetting<"ENFORCE" | "REPORT_ONLY" | "OFF">;
+    signupInviteOnly: SecuritySetting<boolean>;
   };
 }
 export interface SecuritySetting<T> {
@@ -560,6 +562,26 @@ export type SaveAuthConfigInput = z.input<typeof SaveAuthConfigSchema>;
 
 export interface AuthPublicConfig {
   hasGoogleAuth: boolean;
+  /** Only invited people can create an account (issue #198). */
+  signupInviteOnly: boolean;
+}
+
+/** An invitation to create an account (issue #198), as Admin > Users lists it. */
+export interface SignupInvitationSummary {
+  id: string;
+  email: string;
+  createdAt: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  invitedBy: { id: string; displayName: string } | null;
+  /** The web app's page for it, to copy and send by other means. */
+  link: string;
+}
+
+/** What an invitation's page shows before signing up. */
+export interface SignupInvitationPreview {
+  email: string;
+  status: "pending" | "expired" | "accepted";
 }
 
 export type TeamRole = "MEMBER" | "ADMIN";
@@ -1903,6 +1925,11 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     adminClearStorageConfig: () => request<void>("/admin/storage/config", { method: "DELETE" }),
 
     getAuthPublicConfig: () => request<AuthPublicConfig>("/auth/public-config"),
+    /** Sign-up by invitation (issue #198). */
+    getSignupInvitation: (token: string) => request<SignupInvitationPreview>(`/auth/invitations/${encodeURIComponent(token)}`),
+    adminListSignupInvitations: () => request<SignupInvitationSummary[]>("/admin/invitations"),
+    adminCreateSignupInvitation: (data: CreateSignupInvitationRequest) => request<SignupInvitationSummary>("/admin/invitations", { method: "POST", body: JSON.stringify(data) }),
+    adminDeleteSignupInvitation: (id: string) => request<void>(`/admin/invitations/${id}`, { method: "DELETE" }),
     adminGetAuthConfig: () => request<AuthConfigSummary>("/admin/auth"),
     adminSaveAuthConfig: (data: SaveAuthConfigInput) =>
       request<void>("/admin/auth", { method: "PUT", body: JSON.stringify(data) }),
