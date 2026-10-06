@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { computeSectionLabel, formatSongbookReference, readSongDocument, type SongbookSection } from "@songverse/core";
+import { computeSectionLabel, formatSongbookReference, readSongDocument, transposeKey, type SetTransitionValue, type SongbookSection } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -30,6 +30,10 @@ export interface SongRef {
   teamName: string | null;
   /** Its artists' names, in order. */
   artists: string[];
+  /** From the song's chart (issue #199: what a set's songs show on their right). */
+  tempo: number | null;
+  timeSignature: { numerator: number; denominator: number } | null;
+  durationSeconds: number | null;
 }
 
 const ITEM_INCLUDE = {
@@ -170,6 +174,9 @@ export class SetlistsService {
           position: item.position,
           transposeSteps: item.transposeSteps,
           notes: item.notes,
+          // What happens after it (issue #199).
+          transition: item.transition,
+          transitionNote: item.transitionNote,
           // Null when this viewer can't read the song (shown as a placeholder).
           song: shown ? toSongRef(song) : null,
           // Whether it's also in the viewer's own library, i.e. openable outside the set.
@@ -326,6 +333,8 @@ export class SetlistsService {
         ...(arrangementId !== undefined && { arrangementId }),
         ...(dto.transposeSteps !== undefined && { transposeSteps: dto.transposeSteps }),
         ...(dto.notes !== undefined && { notes: dto.notes || null }),
+        ...(dto.transition !== undefined && { transition: dto.transition }),
+        ...(dto.transitionNote !== undefined && { transitionNote: dto.transitionNote }),
       },
       });
     });
@@ -403,6 +412,8 @@ export class SetlistsService {
     return {
       set: { ...summarize(set), itemCount: set.items.length, canEdit: access.canEdit, isGuest: access.isGuest },
       item: { id: item.id, position: item.position, transposeSteps: item.transposeSteps, notes: item.notes, arrangementId: arrangement?.id ?? null },
+      // What happens after it (issue #199), with the key and tempo it goes from and to.
+      transition: item.transition ? this.transitionView(item, next && (readable.has(next.id) || inViewersLibrary(next.songVersion)) ? next : null, shown) : null,
       song: shown
         ? {
             ...toSongRef(song),
@@ -434,6 +445,21 @@ export class SetlistsService {
       nextTitle: next && (readable.has(next.id) || inViewersLibrary(next.songVersion)) ? next.songVersion.title : null,
       myNote: note?.content ?? "",
     };
+  }
+
+  /** A song's transition into the next (issue #199): its kind and note, and the keys and tempos either side, as played. */
+  private transitionView(
+    item: { transition: SetTransitionValue | null; transitionNote: string | null; transposeSteps: number; tempoOverride: number | null; songVersion: SongRow; arrangement: { id: string; name: string; documentJson: unknown; setlistItemId: string | null } | null },
+    next: { transposeSteps: number; tempoOverride: number | null; songVersion: SongRow; arrangement: { id: string; name: string; documentJson: unknown; setlistItemId: string | null } | null } | null,
+    shown: boolean,
+  ) {
+    const side = (one: NonNullable<typeof next>) => {
+      const ref = toSongRef(one.songVersion);
+      return { key: playedKey(ref, one.arrangement ? arrangementRef(one.arrangement) : null, one.transposeSteps), tempo: one.tempoOverride ?? ref.tempo };
+    };
+    const from = shown ? side(item) : { key: null, tempo: null };
+    const to = next ? side(next) : { key: null, tempo: null };
+    return { kind: item.transition!, note: item.transitionNote, fromKey: from.key, toKey: to.key, fromTempo: from.tempo, toTempo: to.tempo };
   }
 
   /** Where each song is in `user`'s numbered songbooks, by song: "JEM 855 · JEM3" (issues #55, #59). */
@@ -522,7 +548,8 @@ export class SetlistsService {
 }
 
 export function toSongRef(song: SongRow): SongRef {
-  const defaults = (song.documentJson as { defaults?: { key?: unknown } } | null)?.defaults;
+  const defaults = (song.documentJson as { defaults?: { key?: unknown; tempo?: unknown; timeSignature?: unknown; durationSeconds?: unknown } } | null)?.defaults;
+  const signature = defaults?.timeSignature as { numerator?: unknown; denominator?: unknown } | null | undefined;
   return {
     id: song.id,
     title: song.title,
@@ -532,7 +559,15 @@ export function toSongRef(song: SongRow): SongRef {
     ownerScope: song.ownerScope,
     teamName: song.ownerTeam?.name ?? null,
     artists: song.contributors.flatMap((credit) => (credit.source?.trim() ? [credit.source.trim()] : [])),
+    tempo: typeof defaults?.tempo === "number" ? defaults.tempo : null,
+    timeSignature: typeof signature?.numerator === "number" && typeof signature.denominator === "number" ? { numerator: signature.numerator, denominator: signature.denominator } : null,
+    durationSeconds: typeof defaults?.durationSeconds === "number" ? defaults.durationSeconds : null,
   };
+}
+
+/** The key a set's song is played in: the song's, moved by its arrangement and the set's own transposition. */
+function playedKey(song: SongRef, arrangement: { transposeSteps: number } | null, itemSteps: number): string | null {
+  return song.key ? (transposeKey(song.key, (arrangement?.transposeSteps ?? 0) + itemSteps) ?? song.key) : null;
 }
 
 /** A set item's arrangement: its name, and the key it moves the song to (the item's own key goes on top). */

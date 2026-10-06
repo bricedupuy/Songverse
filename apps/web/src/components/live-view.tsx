@@ -1,4 +1,4 @@
-import { chartSeconds, structureOf, type RenderedChart, type StructureGroup } from "@songverse/core";
+import { chartSeconds, structureOf, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
 import { AArrowDown, AArrowUp, ArrowLeft, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { PresentPanel } from "#/components/present-panel";
+import { TransitionSymbol, transitionText } from "#/components/set-transition";
 import { SongChart } from "#/components/song-chart";
 import { SyncControl } from "#/components/sync-control";
 import { SidebarTrigger } from "#/components/ui/sidebar";
@@ -52,6 +53,8 @@ export interface LiveSong {
   next: (() => void) | null;
   /** "Next: …" or "End of the set"; null for a song on its own. */
   nextLabel: string | null;
+  /** What happens after it (issue #199), in a set; null when nothing's said. */
+  transition?: SetTransitionView | null;
 }
 
 /** How far down a chart is scrolled for its song to count as played (issue #153). */
@@ -330,6 +333,13 @@ export function LiveView({ song }: { song: LiveSong }) {
             <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
           )}
           {inSet ? <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">{song.nextLabel}</p> : null}
+          {/* What happens after it (issue #199): before the end, for whoever plays. */}
+          {song.transition ? (
+            <p className="flex items-center gap-2 text-sm font-medium" data-testid="live-transition" data-kind={song.transition.kind}>
+              <TransitionSymbol kind={song.transition.kind} className="size-4 text-primary" />
+              {transitionText(song.transition, t)}
+            </p>
+          ) : null}
         </div>
       </main>
 

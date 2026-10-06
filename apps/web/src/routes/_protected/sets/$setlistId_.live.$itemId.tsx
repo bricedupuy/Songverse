@@ -85,6 +85,7 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
     previous: goTo(view.previousItemId),
     next: goTo(view.nextItemId),
     nextLabel: view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet"),
+    transition: view.transition ?? null,
   };
   return <LiveView song={live} />;
 }

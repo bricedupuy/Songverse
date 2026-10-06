@@ -1001,6 +1001,10 @@ model SetlistItem {
   transposeSteps Int     @default(0)
   tempoOverride  Int?
   notes          String? // Quick inline note
+  // What happens after it (issue #199): null, nothing said; and for a
+  // TRANSITION, what's played into the next song.
+  transition     SetTransition?
+  transitionNote String?
 
   // Set on a song shared into the set by its owner - when a personal set
   // moves to a team, its owner's songs a team set couldn't otherwise hold.
@@ -2204,4 +2208,12 @@ model SignupInvitation {
   invitedBy User? @relation(fields: [invitedById], references: [id], onDelete: SetNull)
 
   @@index([invitedById])
+}
+
+// After a song of a set (issue #199): see SET_TRANSITIONS in packages/core.
+enum SetTransition {
+  STOP
+  NEXT
+  SEGUE
+  TRANSITION
 }

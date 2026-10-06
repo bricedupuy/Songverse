@@ -78,6 +78,19 @@ export type ChordNotationValue = (typeof CHORD_NOTATIONS)[number];
 export const LIVE_VIEWS = ["CHART", "PDF"] as const;
 export type LiveViewValue = (typeof LIVE_VIEWS)[number];
 
+/**
+ * What happens after a song of a set (issue #199): the end, wait for the
+ * leader (STOP); straight on to the next (NEXT); into the next with no pause,
+ * its count-in on the last bar (SEGUE); or a bridge into it - a key or tempo
+ * change, a pad under a prayer (TRANSITION, with a note).
+ */
+export const SET_TRANSITIONS = ["STOP", "NEXT", "SEGUE", "TRANSITION"] as const;
+export type SetTransitionValue = (typeof SET_TRANSITIONS)[number];
+
+/** What a set's songs can show on their right, in Live's sidebar (issue #199): each person picks. */
+export const SET_LIST_DETAILS = ["KEY", "TEMPO", "TIME_SIGNATURE", "LENGTH", "TRANSITION"] as const;
+export type SetListDetailValue = (typeof SET_LIST_DETAILS)[number];
+
 export const MIDI_EVENT_TYPES = ["program_change", "control_change"] as const;
 export type MidiEventTypeValue = (typeof MIDI_EVENT_TYPES)[number];
 

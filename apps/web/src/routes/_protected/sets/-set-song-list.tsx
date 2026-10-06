@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { TRANSPOSE_STEP_OPTIONS, transposeKey, type SetlistItem, type SetlistSongRef } from "@songverse/core";
+import { SET_TRANSITIONS, TRANSPOSE_STEP_OPTIONS, transposeKey, type SetlistItem, type SetlistSongRef, type UpdateSetlistItemRequest } from "@songverse/core";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Check, GripVertical, Pencil, X } from "lucide-react";
 import { useState } from "react";
@@ -21,6 +21,8 @@ import { useMode } from "#/lib/mode";
 import type { SetProgress } from "#/lib/set-progress";
 import { transposeLabel } from "#/lib/setlists";
 import { NativeSelect } from "#/components/ui/native-select";
+import { Input } from "#/components/ui/input";
+import { TransitionSymbol } from "#/components/set-transition";
 
 // The arrangement picker's "make one just for this set" choice.
 const SET_ONLY = "__set";
@@ -40,7 +42,7 @@ interface SetSongListProps {
   canEdit: boolean;
   ownership: OwnershipActions;
   onReorder: (items: SetlistItem[]) => void;
-  onChangeItem: (itemId: string, change: { songVersionId?: string; transposeSteps?: number; arrangementId?: string | null }) => void;
+  onChangeItem: (itemId: string, change: UpdateSetlistItemRequest) => void;
   onRemoveItem: (itemId: string) => void;
 }
 
@@ -106,7 +108,7 @@ function SongRow({
   played: boolean;
   current: boolean;
   canEdit: boolean;
-  onChange: (change: { songVersionId?: string; transposeSteps?: number; arrangementId?: string | null }) => void;
+  onChange: (change: UpdateSetlistItemRequest) => void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
@@ -266,6 +268,45 @@ function SongRow({
         </NativeSelect>
       ) : song ? (
         <span className="text-sm text-muted-foreground">{transposeLabel(baseKey, item.transposeSteps, t)}</span>
+      ) : null}
+
+      {/* What happens after it (issue #199): to choose, or shown; a transition's note beside it. */}
+      {canEdit ? (
+        <span className="flex items-center gap-1">
+          <NativeSelect
+            aria-label={t("sets.afterThisSong")}
+            value={item.transition ?? ""}
+            onChange={(event) => onChange({ transition: (event.target.value || null) as UpdateSetlistItemRequest["transition"] })}
+            compact
+            className="text-sm"
+            data-testid="set-song-transition"
+          >
+            <option value="">{t("sets.transitions.none")}</option>
+            {SET_TRANSITIONS.map((kind) => (
+              <option key={kind} value={kind}>
+                {t(`sets.transitions.${kind}`)}
+              </option>
+            ))}
+          </NativeSelect>
+          {item.transition === "TRANSITION" ? (
+            <Input
+              key={item.transitionNote ?? ""}
+              defaultValue={item.transitionNote ?? ""}
+              maxLength={200}
+              placeholder={t("sets.transitionNote")}
+              aria-label={t("sets.transitionNote")}
+              className="h-8 w-44 text-sm"
+              onBlur={(event) => event.target.value.trim() !== (item.transitionNote ?? "") && onChange({ transitionNote: event.target.value })}
+              data-testid="set-song-transition-note"
+            />
+          ) : null}
+        </span>
+      ) : item.transition ? (
+        <span className="flex items-center gap-1 text-sm text-muted-foreground">
+          <TransitionSymbol kind={item.transition} />
+          {t(`sets.transitions.${item.transition}`)}
+          {item.transitionNote ? ` · ${item.transitionNote}` : ""}
+        </span>
       ) : null}
 
       {canEdit ? (

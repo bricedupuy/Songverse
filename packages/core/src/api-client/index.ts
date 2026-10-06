@@ -3,6 +3,7 @@ import type {
   CapoDisplayModeValue,
   ChordNotationValue,
   LiveViewValue,
+  SetTransitionValue,
   TechRoleValue,
 } from "../constants/index.js";
 import type { ArrangementDocumentV2, ChartPreferences } from "../schemas/arrangement-document-v2.js";
@@ -17,6 +18,7 @@ import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
 import type { CreateSignupInvitationRequest } from "../requests/invitations.js";
+import type { UpdateSetlistItemRequest } from "../requests/sets.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
 import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
@@ -126,6 +128,10 @@ export interface SetlistSongRef {
   teamName: string | null;
   /** Its artists' names (issue #68); missing from copies kept offline before then. */
   artists?: string[];
+  /** From its chart (issue #199); missing from copies kept offline before then. */
+  tempo?: number | null;
+  timeSignature?: { numerator: number; denominator: number } | null;
+  durationSeconds?: number | null;
 }
 
 export interface SetlistSummary {
@@ -151,6 +157,9 @@ export interface SetlistItem {
   /** Semitones relative to the song's own key. */
   transposeSteps: number;
   notes: string | null;
+  /** What happens after it (issue #199); null: nothing said. Missing from copies kept offline before then. */
+  transition?: SetTransitionValue | null;
+  transitionNote?: string | null;
   /** Null when the song isn't readable by the current user (shown as a placeholder). */
   song: SetlistSongRef | null;
   /** Also in the current user's own library, i.e. openable outside the set. */
@@ -176,9 +185,21 @@ export interface SetlistDetail extends SetlistSummary {
 }
 
 /** One song of a set, as anyone who can open the set sees it. */
+/** A set song's transition into the next (issue #199). */
+export interface SetTransitionView {
+  kind: SetTransitionValue;
+  note: string | null;
+  fromKey: string | null;
+  toKey: string | null;
+  fromTempo: number | null;
+  toTempo: number | null;
+}
+
 export interface SetlistSongView {
   set: SetlistSummary;
   item: { id: string; position: number; transposeSteps: number; notes: string | null; arrangementId: string | null };
+  /** What happens after it (issue #199), with the keys and tempos either side as played; null: nothing said. */
+  transition?: SetTransitionView | null;
   song:
     | (SetlistSongRef & {
         tempo: number | null;
@@ -1700,7 +1721,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     updateSetlistItem: (
       setlistId: string,
       itemId: string,
-      data: { songVersionId?: string; transposeSteps?: number; notes?: string | null; arrangementId?: string | null },
+      data: UpdateSetlistItemRequest,
     ) => request<SetlistDetail>(`/setlists/${setlistId}/items/${itemId}`, { method: "PATCH", body: JSON.stringify(data) }),
     /** The current user's own preferences for this song as the set plays it (guests too). */
     setSetlistChartPreferences: (setlistId: string, itemId: string, preferences: Partial<ChartPreferences>) =>
