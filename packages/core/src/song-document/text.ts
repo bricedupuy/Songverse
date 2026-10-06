@@ -1,5 +1,6 @@
 import type { SupportedImportFormat } from "../constants/index.js";
 import { parseSongText } from "../import-detection/detect-format.js";
+import { sectionHeading } from "../chordpro/section-labels.js";
 import { transposeChord } from "../chords/chord.js";
 import { generateId, ID_PREFIXES } from "../ids/index.js";
 import { parseKey } from "../music-keys/transpose.js";
@@ -33,10 +34,35 @@ const BLOCK_END = /^\s*\{\s*(end_of_\w[\w-]*|eo[vcbt])\b/i;
 const REPEAT_MARK = "\u2063repeat\u2063";
 const KEY_MARK = "\u2063key\u2063";
 
+// Comments before the first section that aren't about the music: the
+// song's copyright, and its address on the site it came from.
+const COPYRIGHT_NOTE = /^(?:©|\(c\)\s|copyright\b)/i;
+const ADDRESS_NOTE = /^(?:https?:\/\/|www\.)\S+/i;
+// A comment saying the key changes, right after the "{key: A}" that changes it.
+const KEY_CHANGE_NOTE = /\b(?:key change|change of key|modulation|changement de (?:tonalit[ée]|ton)|cambio de (?:tonalidad|tono)|mudan[çc]a de tom|tonartwechsel)/iu;
+
 /** A chart: its sections, each once, and the order they're sung in. */
 export interface SongChart {
   sections: SectionV2[];
   flow: SectionInstance[];
+  /** The key the text starts in ("{key: A}"), if it gives one. */
+  key: string | null;
+  /** A copyright line before the first section ("{comment: © 2020 …}"), if there is one. */
+  copyright: string | null;
+}
+
+/**
+ * The first line's "2. " dropped when it numbers a section headed "Verse 2" (or
+ * a verse headed without a number), its chords moved with it.
+ */
+function withoutVerseNumber(section: SectionV2, number: string | null): void {
+  const first = section.lines.find((line) => line.kind !== "note");
+  const digits = number === null ? (section.type === "verse" ? "\\d+" : null) : number.match(/^\d+/)?.[0];
+  if (!first || !digits) return;
+  const prefix = new RegExp(`^${digits}[.)]\\s+`).exec(first.text)?.[0];
+  if (!prefix) return;
+  first.text = first.text.slice(prefix.length);
+  first.chords = first.chords.map((chord) => ({ ...chord, at: Math.max(0, chord.at - prefix.length) }));
 }
 
 /** Semitones from one key to another, the shorter way (-5 to +6); null if either can't be read. */
@@ -60,9 +86,16 @@ const sameContent = (a: SectionV2, b: SectionV2) =>
  * "{key: A}" after the first a key change on it - with the sections written
  * after it (in the new key, as ChordPro does) stored back in the song's key,
  * and one that then matches an earlier section sung as that section again.
+ * A comment that only names a section ("{comment: Verse 2}", "Refrain",
+ * "Pont") sets the type and label of the section after it, and a "2. "
+ * numbering its first line is dropped. Comments before the first section
+ * give the song's copyright ("© …") or are its address on a site, left out;
+ * one saying the key changes, right after a "{key}", is left out too.
+ * `mergeRepeats` (importing a file): a section written out again as it was
+ * is sung as that section again rather than kept twice.
  */
-export function songFromText(text: string, format: SupportedImportFormat): SongChart {
-  if (!text.trim()) return { sections: [], flow: [] };
+export function songFromText(text: string, format: SupportedImportFormat, options: { mergeRepeats?: boolean } = {}): SongChart {
+  if (!text.trim()) return { sections: [], flow: [], key: null, copyright: null };
   const hide = (value: string) => value.replaceAll("[", OPEN).replaceAll("]", CLOSE);
   const unmark = (value: string) => value.replaceAll(OPEN, "[").replaceAll(CLOSE, "]");
   let marked = text;
@@ -94,6 +127,19 @@ export function songFromText(text: string, format: SupportedImportFormat): SongC
   let currentKey: string | null = null;
   let shift = 0;
   let keyChange: SectionInstance["keyChange"] = null;
+  let copyright: string | null = null;
+  // Just after a "{key}" line: a comment saying so is left out.
+  let afterKey = false;
+  // A comment naming the section that follows ("{comment: Verse 2}") is its heading, not part of its note.
+  const takeHeading = () => {
+    const found = cue ? sectionHeading(cue.lines[0]!.text) : null;
+    if (!found) return null;
+    const text = cue!.lines[0]!.text.trim().replace(/^\[\s*|\s*:?\s*\]?$/g, "");
+    cue!.lines = cue!.lines.slice(1);
+    if (cue!.lines.length === 0) cue = null;
+    // A plain name ("Chorus", "Refrain") is shown in the reader's language; a numbered one as written.
+    return { ...found, label: found.number ? text : null };
+  };
   const pass = (item: SectionInstance): SectionInstance => {
     const note = cue ? cue.lines.map((line) => line.text).join(" / ").slice(0, 500) : null;
     const change = keyChange;
@@ -110,6 +156,7 @@ export function songFromText(text: string, format: SupportedImportFormat): SongC
     const only = section.lines.length === 1 ? section.lines[0]!.text : "";
     if (only.startsWith(KEY_MARK)) {
       const key = unmark(only.slice(KEY_MARK.length)).trim();
+      afterKey = currentKey !== null;
       if (currentKey === null) {
         songKey = currentKey = key;
       } else {
@@ -123,32 +170,49 @@ export function songFromText(text: string, format: SupportedImportFormat): SongC
       continue;
     }
     if (only.startsWith(REPEAT_MARK)) {
-      const label = unmark(only.slice(REPEAT_MARK.length)).trim();
+      const written = unmark(only.slice(REPEAT_MARK.length)).trim();
+      const label = written || takeHeading()?.label;
       if (lastChorus) flow.push(pass({ id: generateId(ID_PREFIXES.flowItem), sectionId: lastChorus.id, ...(label && { label }) }));
       continue;
     }
     section.lines = section.lines.map((line) =>
       line.text.startsWith(NOTE_MARK) ? { ...line, kind: "note", text: unmark(line.text.slice(NOTE_MARK.length)), chords: [] } : line,
     );
-    if (cue) {
-      // Two cues in a row: the first was a section of notes after all.
-      addSection(cue);
-      cue = null;
-    }
     if (section.type === "other" && !section.label && section.lines.length > 0 && section.lines.every((line) => line.kind === "note")) {
+      section.lines = section.lines.filter((line) => {
+        if (!line.text.trim() || (afterKey && KEY_CHANGE_NOTE.test(line.text))) return false;
+        if (sections.length > 0) return true;
+        if (COPYRIGHT_NOTE.test(line.text.trim())) {
+          copyright ??= line.text.trim();
+          return false;
+        }
+        return !ADDRESS_NOTE.test(line.text.trim());
+      });
+      if (section.lines.length === 0) continue;
+      // Two cues in a row: the first was a section of notes after all.
+      if (cue) addSection(cue);
       cue = section;
       continue;
     }
+    afterKey = false;
+    const heading = takeHeading();
+    if (heading) {
+      section.type = heading.type;
+      section.label ??= heading.label;
+    }
+    const named = heading ?? (section.label ? sectionHeading(section.label) : null);
+    if (named) withoutVerseNumber(section, named.number);
     if (shift % 12 !== 0) {
       // Written in the key it's sung in: stored in the song's key.
       for (const line of section.lines) {
         line.chords = line.chords.map((chord) => ({ ...chord, raw: transposeChord(chord.raw, -shift, songKey) }));
       }
-      const earlier = sections.find((other) => sameContent(other, section));
-      if (earlier) {
-        flow.push(pass({ id: generateId(ID_PREFIXES.flowItem), sectionId: earlier.id, ...(section.label && section.label !== earlier.label && { label: section.label }) }));
-        continue;
-      }
+    }
+    // Sung again as written (a chorus each time, or anything after a key change): the same section again.
+    const earlier = options.mergeRepeats || shift % 12 !== 0 ? sections.find((other) => sameContent(other, section)) : undefined;
+    if (earlier) {
+      flow.push(pass({ id: generateId(ID_PREFIXES.flowItem), sectionId: earlier.id, ...(section.label && section.label !== earlier.label && { label: section.label }) }));
+      continue;
     }
     sections.push(section);
     flow.push(pass({ id: flowItemId(section.id), sectionId: section.id }));
@@ -156,7 +220,7 @@ export function songFromText(text: string, format: SupportedImportFormat): SongC
   }
   // Notes at the very end: nothing follows, so they stay a section.
   if (cue) addSection(cue);
-  return { sections, flow };
+  return { sections, flow, key: songKey, copyright };
 }
 
 /** Pasted or typed text as v2 sections, with fresh IDs (see songFromText). */
@@ -173,9 +237,9 @@ export function sectionsFromText(text: string, format: SupportedImportFormat): S
  */
 export function songDocumentFromText(
   previous: SongDocumentV2 | null,
-  change: { content?: string; format: SupportedImportFormat; defaults?: SongDefaultsV2 },
+  change: { content?: string; format: SupportedImportFormat; defaults?: SongDefaultsV2; mergeRepeats?: boolean },
 ): SongDocumentV2 {
-  const parsed = change.content === undefined ? null : songFromText(change.content, change.format);
+  const parsed = change.content === undefined ? null : songFromText(change.content, change.format, { mergeRepeats: change.mergeRepeats });
   const sections = parsed ? reconcileSections(previous?.sections ?? [], parsed.sections) : (previous?.sections ?? []);
   let flow: SectionInstance[];
   if (parsed && parsed.flow.length > parsed.sections.length) {

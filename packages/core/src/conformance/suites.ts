@@ -5,7 +5,8 @@ import { chordPositionProblem } from "../schemas/song-document-v2.js";
 import { arrangementFromChart, mapChartIds, remapArrangement } from "../song-document/fold.js";
 import { chartSeconds, renderChart } from "../song-document/render.js";
 import { structureOf } from "../song-document/structure.js";
-import { flowToChordPro, lineToInlineText, readSongDocument, sectionsFromText, songDocumentFromSections, songDocumentFromText, songToChordPro } from "../song-document/text.js";
+import { flowToChordPro, lineToInlineText, readSongDocument, sectionsFromText, songDocumentFromSections, songDocumentFromText, songFromText, songToChordPro } from "../song-document/text.js";
+import { sectionHeading } from "../chordpro/section-labels.js";
 import { beatAt, clicksBetween, normalizeMetronome, tapTempo } from "../metronome/index.js";
 import { clockOffset, deviceTime, metronomePositionAt, stemsPositionAt } from "../sync/index.js";
 import { cuesFromSections } from "../recording/cues.js";
@@ -195,7 +196,9 @@ export const CONFORMANCE: ConformanceArea[] = [
         about: "A chord symbol read: its root, quality, seventh, extensions, alterations and bass; \"N.C.\" is no chord; null when it isn't a chord.",
         params: ["raw"],
         run: parseChord,
-        cases: ["G", "Em7", "D/F#", "Cmaj7", "Bbm7b5", "F#dim7", "Gsus4", "Asus2", "C5", "Eaug", "C7#9", "Cadd9", "G6/B", "(Am)", "N.C.", "Hm", "verse", ""].map((raw) => ({
+        cases: ["G", "Em7", "D/F#", "Cmaj7", "Bbm7b5", "F#dim7", "Gsus4", "Asus2", "C5", "Eaug", "C7#9", "Cadd9", "G6/B", "(Am)", "N.C.", "Hm", "verse", "",
+          // As French books write them (issue #203).
+          "G7maj", "C7M", "F#d", "C#7d", "A4", "Am4", "Asus", "Esus7", "F9/6", "C/9", "Ab+", "Bb9maj", "Bm7/5"].map((raw) => ({
           name: JSON.stringify(raw),
           args: [raw],
         })),
@@ -364,7 +367,35 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "chords over lyrics, chords above the right letters", args: ["Verse 1:\n  G        D/F#   Em\nAmazing grace how sweet\n\nChorus:\nC      G\nI once was lost\n", "CHORDS_OVER_LYRICS"] },
           { name: "a line of chords only", args: ["[Intro]\nG  D  Em  C\n", "CHORDS_OVER_LYRICS"] },
           { name: "plain lyrics: a section per paragraph", args: ["One\nTwo\n\nThree\n", "RAW_TEXT"] },
+          { name: "labels in other languages", args: ["Strophe 1\n[G]Un\n\nRefrain\n[C]Deux\n\nPuente:\n[D]Tres\n", "CHORDS_OVER_LYRICS"] },
         ],
+      },
+      songFromText: {
+        about:
+          "A file imported (mergeRepeats: a section written out again is sung again, not kept twice): its sections, the order they're sung in, the key it starts in, and a copyright line before the first section. A comment naming a section (\"Strophe 2\", \"Refrain\", \"Pont\") sets the type and label of the one after it, and a \"2. \" numbering its first line is dropped; the site's address and a comment saying the key changes are left out.",
+        params: ["text", "format", "options"],
+        run: songFromText,
+        cases: [
+          {
+            name: "a songbook's file",
+            args: [
+              "{t: Christ a triomphé}\n{c: © 2020 Rolf Schneider}\n{c: https://www.example.org – 1143}\n{key: C}\n\n{c: Strophe 1}\n{start_of_verse}\n1. Des [C]ténèbres il s'est levé,\n{end_of_verse}\n\n{c: Refrain}\n{start_of_chorus}\nOh ! [F]mort\n{end_of_chorus}\n\n{c: Pont}\n{start_of_verse}\n[Am]Sur son corps\n{end_of_verse}\n\n{c: Strophe 2}\n{start_of_verse}\n2. Après [C]la peur\n{end_of_verse}\n\n{c: Refrain}\n{start_of_chorus}\nOh ! [F]mort\n{end_of_chorus}\n\n{key: D}\n{c: Changement de tonalité : D}\n\n{c: Fin}\n{start_of_chorus}\nOh ! [G]mort\n{end_of_chorus}\n",
+              "CHORDPRO",
+              { mergeRepeats: true },
+            ],
+          },
+          { name: "a note before a section stays its note", args: ["{c: Softly}\n{start_of_verse}\n[G]One\n{end_of_verse}\n", "CHORDPRO", {}] },
+          { name: "without mergeRepeats, a section written twice stays twice", args: ["{soc}\n[C]La\n{eoc}\n{soc}\n[C]La\n{eoc}\n", "CHORDPRO", {}] },
+        ],
+      },
+      sectionHeading: {
+        about: "Whether a line only names a section, in the languages songs come in: its type and its number or letter.",
+        params: ["text"],
+        run: sectionHeading,
+        cases: ["Verse 2", "[Chorus]", "Bridge:", "Strophe 2a", "Refrain", "Pont b", "Pré-refrain", "Coro", "Estribillo 2", "Fin", "Introduction", "Amazing grace", "Allemand.1"].map((text) => ({
+          name: JSON.stringify(text),
+          args: [text],
+        })),
       },
       songToChordPro: {
         about: "A song as a ChordPro file, with its details.",

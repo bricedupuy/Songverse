@@ -130,6 +130,8 @@ function parseSuffix(input: string): Pick<ParsedChord, "quality" | "seventh" | "
   let seventh: ParsedChord["seventh"] = null;
   const extensions: string[] = [];
   const alterations: string[] = [];
+  // A "7" written, not implied by a 9: "F9/6" has none.
+  let explicitSeventh = false;
   const take = (pattern: RegExp): RegExpExecArray | null => {
     const match = pattern.exec(rest);
     if (match) rest = rest.slice(match[0].length);
@@ -147,7 +149,8 @@ function parseSuffix(input: string): Pick<ParsedChord, "quality" | "seventh" | "
   } else if (take(/^(?:m7b5|m7\(b5\)|min7b5|-7b5)/)) {
     quality = "half-diminished";
     seventh = "minor";
-  } else if (take(/^(?:dim|°|o)/)) {
+  } else if (take(/^(?:dim|°|o|d(?![a-z]))/)) {
+    // "Fd", "F#d7": the French books' diminished (issue #203).
     quality = "diminished";
     if (take(/^7/)) seventh = "diminished";
   } else if (take(/^(?:aug|\+)/)) {
@@ -174,17 +177,70 @@ function parseSuffix(input: string): Pick<ParsedChord, "quality" | "seventh" | "
     }
     const degree = take(/^(7|9|11|13)/);
     if (degree) {
+      if (degree[1] === "7") explicitSeventh = true;
       if (quality !== "half-diminished" && seventh === null) seventh = "minor";
-      extend(degree[1]);
+      // "C11#", "E13b": the degree altered, written after it (issue #203).
+      const sign = degree[1] !== "7" ? take(/^([#♯b♭])(?!\d)/) : null;
+      if (sign) alterations.push(`${sign[1] === "#" || sign[1] === "♯" ? "#" : "b"}${degree[1]}`);
+      else extend(degree[1]);
+      // As French books write them (issue #203): "C7maj", "C7M", "Bb9maj" (major seventh), "C#7d" (diminished seventh).
+      if (take(/^maj/i) || (degree[1] === "7" && take(/^M(?![a-zA-Z])/))) seventh = "major";
+      else if (quality !== "diminished" && take(/^d(?![a-z])/)) {
+        quality = "diminished";
+        seventh = "diminished";
+      }
     }
   }
 
   // Suspensions, additions and alterations, in any order.
   for (let progress = true; progress && rest.length > 0; ) {
     progress = false;
+    // A number after a slash is part of the chord, not its bass (issue #203): "Dm7/9", "F9/6", "C#m7/b5", "D7/4".
+    if (take(/^\/(?=[#♯b♭+-]?\d)/)) {
+      progress = true;
+      continue;
+    }
     const sus = take(/^\(?sus(2|4)?\)?/);
     if (sus) {
       quality = sus[1] === "2" ? "sus2" : "sus4";
+      // "Bsus7": the seventh written after.
+      if (take(/^7/) && seventh === null) seventh = "minor";
+      progress = true;
+      continue;
+    }
+    // "A4", "D7/4": the fourth instead of the third - suspended; on a minor chord ("Am4"), added.
+    if (take(/^4/)) {
+      if (quality === "minor") extensions.push("add4");
+      else quality = "sus4";
+      progress = true;
+      continue;
+    }
+    // "C7maj11#", "E13b": the alteration written after the degree.
+    const after = take(/^(9|11|13)([#♯b♭])/);
+    if (after) {
+      alterations.push(`${after[2] === "#" || after[2] === "♯" ? "#" : "b"}${after[1]}`);
+      progress = true;
+      continue;
+    }
+    // "A7/5aug", "D5aug", "A9aug", "G#7+/C#": the fifth raised.
+    if (take(/^(?:5?aug|\+(?!\d))/)) {
+      if (quality === "major") quality = "augmented";
+      else alterations.push("#5");
+      progress = true;
+      continue;
+    }
+    // Degrees written after another ("F9/6", "Dm7/9", "E4/7"), and a major seventh after them ("F2/7maj").
+    const later = take(/^(6|7|9|11|13)/);
+    if (later) {
+      if (later[1] === "7") {
+        explicitSeventh = true;
+        if (seventh === null) seventh = take(/^maj/i) ? "major" : "minor";
+      } else if (!extensions.includes(later[1]!)) extensions.push(later[1]!);
+      progress = true;
+      continue;
+    }
+    if (take(/^maj/i)) {
+      seventh = "major";
       progress = true;
       continue;
     }
@@ -213,7 +269,15 @@ function parseSuffix(input: string): Pick<ParsedChord, "quality" | "seventh" | "
     }
   }
 
-  return rest.length === 0 ? { quality, seventh, extensions, alterations } : null;
+  if (rest.length > 0) return null;
+  // "F9/6": a 6/9 chord - the nine added to the sixth, no seventh.
+  if (extensions.includes("6") && extensions.includes("9") && !explicitSeventh && seventh === "minor") seventh = null;
+  // "C#m7/b5": the minor seventh with its fifth flattened, written apart - half-diminished.
+  if (quality === "minor" && seventh === "minor" && alterations.includes("b5")) {
+    quality = "half-diminished";
+    alterations.splice(alterations.indexOf("b5"), 1);
+  }
+  return { quality, seventh, extensions, alterations };
 }
 
 function semitoneOf(note: NoteName): number {

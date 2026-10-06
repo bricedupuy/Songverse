@@ -317,6 +317,250 @@
             ""
           ],
           "expected": null
+        },
+        {
+          "name": "\"G7maj\"",
+          "args": [
+            "G7maj"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "G",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": "major",
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"C7M\"",
+          "args": [
+            "C7M"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "C",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": "major",
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"F#d\"",
+          "args": [
+            "F#d"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "F",
+              "accidental": "sharp"
+            },
+            "quality": "diminished",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"C#7d\"",
+          "args": [
+            "C#7d"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "C",
+              "accidental": "sharp"
+            },
+            "quality": "diminished",
+            "seventh": "diminished",
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"A4\"",
+          "args": [
+            "A4"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "A",
+              "accidental": null
+            },
+            "quality": "sus4",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Am4\"",
+          "args": [
+            "Am4"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "A",
+              "accidental": null
+            },
+            "quality": "minor",
+            "seventh": null,
+            "extensions": [
+              "add4"
+            ],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Asus\"",
+          "args": [
+            "Asus"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "A",
+              "accidental": null
+            },
+            "quality": "sus4",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Esus7\"",
+          "args": [
+            "Esus7"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "E",
+              "accidental": null
+            },
+            "quality": "sus4",
+            "seventh": "minor",
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"F9/6\"",
+          "args": [
+            "F9/6"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "F",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": null,
+            "extensions": [
+              "9",
+              "6"
+            ],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"C/9\"",
+          "args": [
+            "C/9"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "C",
+              "accidental": null
+            },
+            "quality": "major",
+            "seventh": null,
+            "extensions": [
+              "9"
+            ],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Ab+\"",
+          "args": [
+            "Ab+"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "A",
+              "accidental": "flat"
+            },
+            "quality": "augmented",
+            "seventh": null,
+            "extensions": [],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Bb9maj\"",
+          "args": [
+            "Bb9maj"
+          ],
+          "expected": {
+            "kind": "chord",
+            "root": {
+              "letter": "B",
+              "accidental": "flat"
+            },
+            "quality": "major",
+            "seventh": "major",
+            "extensions": [
+              "9"
+            ],
+            "alterations": [],
+            "bass": null,
+            "optional": false
+          }
+        },
+        {
+          "name": "\"Bm7/5\"",
+          "args": [
+            "Bm7/5"
+          ],
+          "expected": null
         }
       ]
     },

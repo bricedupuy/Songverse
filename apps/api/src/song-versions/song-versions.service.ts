@@ -813,7 +813,10 @@ export class SongVersionsService {
     if (dto.tagIds) await this.assertTagsUsable(user, dto.tagIds);
 
     const content = dto.content?.trim() ? dto.content : null;
-    const chart = chartFrom(dto, []) ?? (content ? songFromText(content, dto.contentFormat ?? detectImportFormat(content)) : undefined);
+    const given = chartFrom(dto, []);
+    // A whole file read in (issue #203): a section written out again is sung again, and the key and copyright it gives are kept unless set.
+    const imported = !given && content ? songFromText(content, dto.contentFormat ?? detectImportFormat(content), { mergeRepeats: true }) : undefined;
+    const chart = given ?? imported;
     return this.createVersion(
       owner,
       {
@@ -824,7 +827,7 @@ export class SongVersionsService {
         sortTitle: dto.sortTitle,
         album: dto.album,
         year: dto.year,
-        copyright: dto.copyright,
+        copyright: dto.copyright ?? imported?.copyright?.slice(0, 500),
         copyrightYear: dto.copyrightYear,
         publisher: dto.publisher,
         ccli: dto.ccli,
@@ -835,7 +838,7 @@ export class SongVersionsService {
       {
         workId: dto.workId,
         parent,
-        defaults: defaultsFrom(dto),
+        defaults: { ...(imported?.key && imported.key.length <= 12 && { key: imported.key }), ...defaultsFrom(dto) },
         sections: chart?.sections ?? [],
         flow: chart?.flow,
         capo: dto.capo || null,
@@ -1187,20 +1190,30 @@ export class SongVersionsService {
 
   /**
    * Replaces this version's content with the result of parsing an uploaded
-   * file (bulk upload), keeping IDs where the content is unchanged, and
-   * leaving everything else untouched.
+   * file (bulk upload), keeping IDs where the content is unchanged: a section
+   * written out again is sung again (issue #203), and the key and copyright
+   * the file gives fill the song's only where it has none. Everything else
+   * is left untouched.
    */
   async importText(id: string, content: string, format: SupportedImportFormat, authorUserId: string | null = null): Promise<void> {
     const existing = await this.prisma.client.songVersion.findUnique({
       where: { id },
-      select: { documentJson: true },
+      select: { documentJson: true, copyright: true },
     });
     if (!existing) throw new NotFoundException("Song version not found");
 
-    const documentJson = songDocumentFromText(readSongDocument(existing.documentJson), { content, format });
+    const previous = readSongDocument(existing.documentJson);
+    const read = songFromText(content, format);
+    const documentJson = songDocumentFromText(previous, {
+      content,
+      format,
+      mergeRepeats: true,
+      ...(!previous.defaults.key && read.key && read.key.length <= 12 && { defaults: { key: read.key } }),
+    });
     await this.prisma.client.$transaction(async (tx) => {
       const before = await this.history.before(tx, id);
       await this.writeDocument(tx, id, existing.documentJson, documentJson);
+      if (!existing.copyright?.trim() && read.copyright) await tx.songVersion.update({ where: { id }, data: { copyright: read.copyright.slice(0, 500) } });
       await this.history.record(tx, id, { kind: "EDITED", authorUserId, before });
     });
     // Nothing returned: its caller is the Worker's bulk upload (issue #92), which runs without

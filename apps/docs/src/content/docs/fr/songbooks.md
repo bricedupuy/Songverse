@@ -43,3 +43,11 @@ Commencer un recueil à partir d'un catalogue vous donne toutes ses entrées d'u
 ## Import en masse
 
 Pour remplir vite un recueil numéroté, l'**Import en masse** ajoute de nombreux fichiers ChordPro ou PDF d'un coup. Chaque fichier est associé à un chant par le numéro dans son nom (`0245.cho` ou `JEM_0245.pdf` correspond au numéro 245). Vérifiez les correspondances, puis **Confirmer l'import**. Deux fichiers avec le même numéro sont tous deux marqués en conflit, chacun nommant l'autre (« Même numéro que … »), et aucun n'est importé. Seuls les fichiers du type choisi sont associés (un PDF à côté d'un fichier ChordPro n'est pas un conflit). Les fichiers système, comme les copies `._0245.cho` de macOS ou `.DS_Store`, sont ignorés et seulement comptés. Un recueil entier peut partir d'un coup : les fichiers sont envoyés par centaines, et le bouton les compte (« Envoi de 300 sur 1199… »).
+
+Chaque fichier ChordPro devient la grille de son chant, et le fichier est gardé avec le chant. Les fichiers écrits comme les recueils les écrivent sont compris :
+- un commentaire qui nomme une section (`{c: Strophe 1}`, `{c: Refrain}`, `{c: Pont}`, `{c: Fin}`, en français, anglais, espagnol, allemand, italien ou portugais) en donne le type ;
+- le « 2. » au début de la première ligne d'une strophe est retiré ;
+- un refrain réécrit à chaque fois est chanté à nouveau, plutôt que gardé en double ;
+- une ligne `© …` avant la première section devient le copyright du chant, et la tonalité vient de `{key}`, si le chant ne les a pas encore ;
+- l'adresse du site et les commentaires « Changement de tonalité » sont ignorés ;
+- les accords écrits à la française sont lus aussi (`G7maj`, `C7M`, `F#d`, `A4`, `F9/6`).

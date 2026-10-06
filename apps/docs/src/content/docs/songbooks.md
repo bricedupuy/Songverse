@@ -43,3 +43,11 @@ Starting a songbook from a catalog gives you every entry at once. Entries whose 
 ## Bulk upload
 
 To fill a numbered songbook quickly, **Bulk upload** many ChordPro or PDF files at once. Each file is matched to a song by the number in its name (`0245.cho` or `JEM_0245.pdf` matches number 245). Check the matches, then **Confirm upload**. Two files with the same number are both marked as a conflict, each naming the other ("Same number as …"), and neither is uploaded. Only files of the kind chosen are matched (a PDF beside a ChordPro file isn't a conflict). System files, like macOS's `._0245.cho` copies or `.DS_Store`, are left out and only counted. A whole songbook can go at once: the files are sent a hundred at a time, and the button counts them ("Uploading 300 of 1199…").
+
+Each ChordPro file becomes its song's chart, and the file is kept with the song. Files written as songbooks write them are understood:
+- a comment naming a section (`{c: Verse 2}`, `{c: Strophe 1}`, `{c: Refrain}`, `{c: Pont}`, in English, French, Spanish, German, Italian or Portuguese) sets that section's kind;
+- a verse's "2. " at the start of its first line is left out;
+- a chorus written out again each time is sung again, rather than stored twice;
+- a `© …` line before the first section becomes the song's copyright, and the song's key comes from `{key}`, when the song doesn't have them yet;
+- the site's address and "key change" comments are left out;
+- chords are read as French books spell them too (`G7maj`, `C7M`, `F#d`, `A4`, `F9/6`).
