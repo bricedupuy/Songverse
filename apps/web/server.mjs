@@ -15,7 +15,7 @@ import { brotliCompressSync, constants as zlib, createBrotliCompress, createGzip
 import { createServerAdapter } from "@whatwg-node/server";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, join, extname, sep } from "node:path";
+import { dirname, join, extname, relative, sep } from "node:path";
 import { redirectToWebUrl } from "./redirect-hosts.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -100,11 +100,15 @@ const shell =
   shellHtml
     .replace(/window\.__PUBLIC_ENV__=\{[^<]*?\};/, publicEnvScript)
     .replace(staleAppCssPattern, actualAppCssHref ?? "$&");
-// Everything the app needs offline: its content-hashed code, and the web app
-// manifest. Not pdf.js (1.7 MB, issue #124): it reads a PDF dropped on a new
+// Everything the app needs offline: its content-hashed code, pdf.js's image
+// decoders (a scanned chart's PDF, issue #208) - files only, a folder can't
+// be fetched and would fail the whole install - and the web app manifest.
+// Not pdf.js itself (1.7 MB, issue #124): it reads a PDF dropped on a new
 // song, which is online only, so it's fetched when that happens instead.
 const precache = [
-  ...(await readdir(join(clientDir, "assets")).catch(() => []))
+  ...(await readdir(join(clientDir, "assets"), { recursive: true, withFileTypes: true }).catch(() => []))
+    .filter((entry) => entry.isFile())
+    .map((entry) => relative(join(clientDir, "assets"), join(entry.parentPath, entry.name)).split(sep).join("/"))
     .filter((file) => !/^pdf[.-]/.test(file))
     .sort()
     .map((file) => `/assets/${file}`),
