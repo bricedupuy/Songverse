@@ -564,6 +564,2567 @@
         }
       ]
     },
+    "chordTones": {
+      "about": "A chord's notes, each with its interval above the root, its pitch class (C = 0), its role and whether a shape may leave it out; null when it isn't a chord.",
+      "params": [
+        "chord"
+      ],
+      "cases": [
+        {
+          "name": "\"C\"",
+          "args": [
+            "C"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 0,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 4,
+              "pitchClass": 4,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 7,
+              "role": "fifth",
+              "needed": false
+            }
+          ]
+        },
+        {
+          "name": "\"Am7\"",
+          "args": [
+            "Am7"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 9,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 3,
+              "pitchClass": 0,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 4,
+              "role": "fifth",
+              "needed": false
+            },
+            {
+              "interval": 10,
+              "pitchClass": 7,
+              "role": "seventh",
+              "needed": true
+            }
+          ]
+        },
+        {
+          "name": "\"G7\"",
+          "args": [
+            "G7"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 7,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 4,
+              "pitchClass": 11,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 2,
+              "role": "fifth",
+              "needed": false
+            },
+            {
+              "interval": 10,
+              "pitchClass": 5,
+              "role": "seventh",
+              "needed": true
+            }
+          ]
+        },
+        {
+          "name": "\"Bm7b5\"",
+          "args": [
+            "Bm7b5"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 11,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 3,
+              "pitchClass": 2,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 6,
+              "pitchClass": 5,
+              "role": "fifth",
+              "needed": true
+            },
+            {
+              "interval": 10,
+              "pitchClass": 9,
+              "role": "seventh",
+              "needed": true
+            }
+          ]
+        },
+        {
+          "name": "\"Cmaj9\"",
+          "args": [
+            "Cmaj9"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 0,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 4,
+              "pitchClass": 4,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 7,
+              "role": "fifth",
+              "needed": false
+            },
+            {
+              "interval": 11,
+              "pitchClass": 11,
+              "role": "seventh",
+              "needed": true
+            },
+            {
+              "interval": 2,
+              "pitchClass": 2,
+              "role": "extension",
+              "needed": true
+            }
+          ]
+        },
+        {
+          "name": "\"A13\"",
+          "args": [
+            "A13"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 9,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 4,
+              "pitchClass": 1,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 4,
+              "role": "fifth",
+              "needed": false
+            },
+            {
+              "interval": 10,
+              "pitchClass": 7,
+              "role": "seventh",
+              "needed": true
+            },
+            {
+              "interval": 9,
+              "pitchClass": 6,
+              "role": "extension",
+              "needed": true
+            },
+            {
+              "interval": 2,
+              "pitchClass": 11,
+              "role": "extension",
+              "needed": false
+            }
+          ]
+        },
+        {
+          "name": "\"Dsus4\"",
+          "args": [
+            "Dsus4"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 2,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 5,
+              "pitchClass": 7,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 9,
+              "role": "fifth",
+              "needed": false
+            }
+          ]
+        },
+        {
+          "name": "\"E7#9\"",
+          "args": [
+            "E7#9"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 4,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 4,
+              "pitchClass": 8,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 11,
+              "role": "fifth",
+              "needed": false
+            },
+            {
+              "interval": 10,
+              "pitchClass": 2,
+              "role": "seventh",
+              "needed": true
+            },
+            {
+              "interval": 3,
+              "pitchClass": 7,
+              "role": "alteration",
+              "needed": true
+            }
+          ]
+        },
+        {
+          "name": "\"C/E\"",
+          "args": [
+            "C/E"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 0,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 4,
+              "pitchClass": 4,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 7,
+              "role": "fifth",
+              "needed": false
+            }
+          ]
+        },
+        {
+          "name": "\"D/C\"",
+          "args": [
+            "D/C"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 2,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 4,
+              "pitchClass": 6,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 9,
+              "role": "fifth",
+              "needed": false
+            },
+            {
+              "interval": 10,
+              "pitchClass": 0,
+              "role": "bass",
+              "needed": true
+            }
+          ]
+        },
+        {
+          "name": "\"F#dim7\"",
+          "args": [
+            "F#dim7"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 6,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 3,
+              "pitchClass": 9,
+              "role": "third",
+              "needed": true
+            },
+            {
+              "interval": 6,
+              "pitchClass": 0,
+              "role": "fifth",
+              "needed": true
+            },
+            {
+              "interval": 9,
+              "pitchClass": 3,
+              "role": "seventh",
+              "needed": true
+            }
+          ]
+        },
+        {
+          "name": "\"C5\"",
+          "args": [
+            "C5"
+          ],
+          "expected": [
+            {
+              "interval": 0,
+              "pitchClass": 0,
+              "role": "root",
+              "needed": true
+            },
+            {
+              "interval": 7,
+              "pitchClass": 7,
+              "role": "fifth",
+              "needed": true
+            }
+          ]
+        },
+        {
+          "name": "\"N.C.\"",
+          "args": [
+            "N.C."
+          ],
+          "expected": null
+        }
+      ]
+    },
+    "chordShapes": {
+      "about": "Shapes for a chord on a guitar (EADGBE) or a ukulele (GCEA, high G), easiest and most usual first (issue #207): per string the fret (0 open, null muted), the fingers, barres, the fret the diagram starts at and the MIDI notes it sounds. Every needed note and nothing else; on a guitar the bass is lowest; at most four fingers, a barre counting as one. Each client draws them its own way (docs/chord-diagrams.md).",
+      "params": [
+        "chord",
+        "instrument",
+        "limit"
+      ],
+      "cases": [
+        {
+          "name": "guitar C",
+          "args": [
+            "C",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                3,
+                2,
+                0,
+                1,
+                0
+              ],
+              "fingers": [
+                null,
+                3,
+                2,
+                null,
+                1,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                48,
+                52,
+                55,
+                60,
+                64
+              ]
+            },
+            {
+              "frets": [
+                null,
+                3,
+                5,
+                5,
+                5,
+                3
+              ],
+              "fingers": [
+                null,
+                1,
+                2,
+                3,
+                4,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 3,
+                  "from": 1,
+                  "to": 5
+                }
+              ],
+              "baseFret": 3,
+              "notes": [
+                48,
+                55,
+                60,
+                64,
+                67
+              ]
+            },
+            {
+              "frets": [
+                null,
+                3,
+                2,
+                0,
+                1,
+                3
+              ],
+              "fingers": [
+                null,
+                3,
+                2,
+                null,
+                1,
+                4
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                48,
+                52,
+                55,
+                60,
+                67
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar G",
+          "args": [
+            "G",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                3,
+                2,
+                0,
+                0,
+                0,
+                3
+              ],
+              "fingers": [
+                2,
+                1,
+                null,
+                null,
+                null,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                43,
+                47,
+                50,
+                55,
+                59,
+                67
+              ]
+            },
+            {
+              "frets": [
+                3,
+                5,
+                5,
+                4,
+                3,
+                3
+              ],
+              "fingers": [
+                1,
+                3,
+                4,
+                2,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 3,
+                  "from": 0,
+                  "to": 5
+                }
+              ],
+              "baseFret": 3,
+              "notes": [
+                43,
+                50,
+                55,
+                59,
+                62,
+                67
+              ]
+            },
+            {
+              "frets": [
+                3,
+                2,
+                0,
+                0,
+                3,
+                3
+              ],
+              "fingers": [
+                2,
+                1,
+                null,
+                null,
+                3,
+                4
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                43,
+                47,
+                50,
+                55,
+                62,
+                67
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar D",
+          "args": [
+            "D",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                null,
+                0,
+                2,
+                3,
+                2
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1,
+                3,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                50,
+                57,
+                62,
+                66
+              ]
+            },
+            {
+              "frets": [
+                null,
+                5,
+                7,
+                7,
+                7,
+                5
+              ],
+              "fingers": [
+                null,
+                1,
+                2,
+                3,
+                4,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 5,
+                  "from": 1,
+                  "to": 5
+                }
+              ],
+              "baseFret": 5,
+              "notes": [
+                50,
+                57,
+                62,
+                66,
+                69
+              ]
+            },
+            {
+              "frets": [
+                null,
+                null,
+                0,
+                2,
+                null,
+                2
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1,
+                null,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                50,
+                57,
+                66
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar Em",
+          "args": [
+            "Em",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                0,
+                2,
+                2,
+                0,
+                0,
+                0
+              ],
+              "fingers": [
+                null,
+                1,
+                2,
+                null,
+                null,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                40,
+                47,
+                52,
+                55,
+                59,
+                64
+              ]
+            },
+            {
+              "frets": [
+                0,
+                2,
+                2,
+                0,
+                0,
+                3
+              ],
+              "fingers": [
+                null,
+                1,
+                2,
+                null,
+                null,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                40,
+                47,
+                52,
+                55,
+                59,
+                67
+              ]
+            },
+            {
+              "frets": [
+                0,
+                2,
+                2,
+                0,
+                0,
+                null
+              ],
+              "fingers": [
+                null,
+                1,
+                2,
+                null,
+                null,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                40,
+                47,
+                52,
+                55,
+                59
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar F",
+          "args": [
+            "F",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                1,
+                3,
+                3,
+                2,
+                1,
+                1
+              ],
+              "fingers": [
+                1,
+                3,
+                4,
+                2,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 1,
+                  "from": 0,
+                  "to": 5
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                41,
+                48,
+                53,
+                57,
+                60,
+                65
+              ]
+            },
+            {
+              "frets": [
+                null,
+                null,
+                3,
+                2,
+                1,
+                1
+              ],
+              "fingers": [
+                null,
+                null,
+                3,
+                2,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 1,
+                  "from": 4,
+                  "to": 5
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                53,
+                57,
+                60,
+                65
+              ]
+            },
+            {
+              "frets": [
+                1,
+                3,
+                3,
+                2,
+                1,
+                null
+              ],
+              "fingers": [
+                1,
+                3,
+                4,
+                2,
+                1,
+                null
+              ],
+              "barres": [
+                {
+                  "fret": 1,
+                  "from": 0,
+                  "to": 4
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                41,
+                48,
+                53,
+                57,
+                60
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar Bm",
+          "args": [
+            "Bm",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                2,
+                4,
+                4,
+                3,
+                2
+              ],
+              "fingers": [
+                null,
+                1,
+                3,
+                4,
+                2,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 2,
+                  "from": 1,
+                  "to": 5
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                47,
+                54,
+                59,
+                62,
+                66
+              ]
+            },
+            {
+              "frets": [
+                7,
+                9,
+                9,
+                7,
+                7,
+                7
+              ],
+              "fingers": [
+                1,
+                2,
+                3,
+                1,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 7,
+                  "from": 0,
+                  "to": 5
+                }
+              ],
+              "baseFret": 7,
+              "notes": [
+                47,
+                54,
+                59,
+                62,
+                66,
+                71
+              ]
+            },
+            {
+              "frets": [
+                null,
+                null,
+                null,
+                4,
+                3,
+                2
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                3,
+                2,
+                1
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                59,
+                62,
+                66
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar B7",
+          "args": [
+            "B7",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                2,
+                1,
+                2,
+                0,
+                2
+              ],
+              "fingers": [
+                null,
+                2,
+                1,
+                3,
+                null,
+                4
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                47,
+                51,
+                57,
+                59,
+                66
+              ]
+            },
+            {
+              "frets": [
+                null,
+                2,
+                4,
+                2,
+                4,
+                2
+              ],
+              "fingers": [
+                null,
+                1,
+                2,
+                1,
+                3,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 2,
+                  "from": 1,
+                  "to": 5
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                47,
+                54,
+                57,
+                63,
+                66
+              ]
+            },
+            {
+              "frets": [
+                7,
+                9,
+                7,
+                8,
+                7,
+                7
+              ],
+              "fingers": [
+                1,
+                3,
+                1,
+                2,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 7,
+                  "from": 0,
+                  "to": 5
+                }
+              ],
+              "baseFret": 7,
+              "notes": [
+                47,
+                54,
+                57,
+                63,
+                66,
+                71
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar Cmaj7",
+          "args": [
+            "Cmaj7",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                3,
+                2,
+                0,
+                0,
+                0
+              ],
+              "fingers": [
+                null,
+                2,
+                1,
+                null,
+                null,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                48,
+                52,
+                55,
+                59,
+                64
+              ]
+            },
+            {
+              "frets": [
+                null,
+                3,
+                5,
+                4,
+                5,
+                3
+              ],
+              "fingers": [
+                null,
+                1,
+                3,
+                2,
+                4,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 3,
+                  "from": 1,
+                  "to": 5
+                }
+              ],
+              "baseFret": 3,
+              "notes": [
+                48,
+                55,
+                59,
+                64,
+                67
+              ]
+            },
+            {
+              "frets": [
+                null,
+                3,
+                2,
+                0,
+                0,
+                3
+              ],
+              "fingers": [
+                null,
+                2,
+                1,
+                null,
+                null,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                48,
+                52,
+                55,
+                59,
+                67
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar Asus4",
+          "args": [
+            "Asus4",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                0,
+                2,
+                2,
+                3,
+                0
+              ],
+              "fingers": [
+                null,
+                null,
+                1,
+                2,
+                3,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                45,
+                52,
+                57,
+                62,
+                64
+              ]
+            },
+            {
+              "frets": [
+                null,
+                0,
+                0,
+                2,
+                3,
+                0
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1,
+                2,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                45,
+                50,
+                57,
+                62,
+                64
+              ]
+            },
+            {
+              "frets": [
+                5,
+                7,
+                7,
+                7,
+                5,
+                5
+              ],
+              "fingers": [
+                1,
+                2,
+                3,
+                4,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 5,
+                  "from": 0,
+                  "to": 5
+                }
+              ],
+              "baseFret": 5,
+              "notes": [
+                45,
+                52,
+                57,
+                62,
+                64,
+                69
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar D/F#",
+          "args": [
+            "D/F#",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                2,
+                null,
+                0,
+                2,
+                3,
+                2
+              ],
+              "fingers": [
+                1,
+                null,
+                null,
+                2,
+                4,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                42,
+                50,
+                57,
+                62,
+                66
+              ]
+            },
+            {
+              "frets": [
+                2,
+                0,
+                0,
+                2,
+                3,
+                2
+              ],
+              "fingers": [
+                1,
+                null,
+                null,
+                2,
+                4,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                42,
+                45,
+                50,
+                57,
+                62,
+                66
+              ]
+            },
+            {
+              "frets": [
+                2,
+                0,
+                0,
+                2,
+                3,
+                null
+              ],
+              "fingers": [
+                1,
+                null,
+                null,
+                2,
+                3,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                42,
+                45,
+                50,
+                57,
+                62
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar Ab",
+          "args": [
+            "Ab",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                4,
+                6,
+                6,
+                5,
+                4,
+                4
+              ],
+              "fingers": [
+                1,
+                3,
+                4,
+                2,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 4,
+                  "from": 0,
+                  "to": 5
+                }
+              ],
+              "baseFret": 4,
+              "notes": [
+                44,
+                51,
+                56,
+                60,
+                63,
+                68
+              ]
+            },
+            {
+              "frets": [
+                4,
+                3,
+                1,
+                1,
+                1,
+                4
+              ],
+              "fingers": [
+                3,
+                2,
+                1,
+                1,
+                1,
+                4
+              ],
+              "barres": [
+                {
+                  "fret": 1,
+                  "from": 2,
+                  "to": 4
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                44,
+                48,
+                51,
+                56,
+                60,
+                68
+              ]
+            },
+            {
+              "frets": [
+                4,
+                3,
+                1,
+                1,
+                1,
+                null
+              ],
+              "fingers": [
+                3,
+                2,
+                1,
+                1,
+                1,
+                null
+              ],
+              "barres": [
+                {
+                  "fret": 1,
+                  "from": 2,
+                  "to": 4
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                44,
+                48,
+                51,
+                56,
+                60
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar C#m",
+          "args": [
+            "C#m",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                4,
+                6,
+                6,
+                5,
+                4
+              ],
+              "fingers": [
+                null,
+                1,
+                3,
+                4,
+                2,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 4,
+                  "from": 1,
+                  "to": 5
+                }
+              ],
+              "baseFret": 4,
+              "notes": [
+                49,
+                56,
+                61,
+                64,
+                68
+              ]
+            },
+            {
+              "frets": [
+                null,
+                4,
+                2,
+                1,
+                2,
+                0
+              ],
+              "fingers": [
+                null,
+                4,
+                2,
+                1,
+                3,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                49,
+                52,
+                56,
+                61,
+                64
+              ]
+            },
+            {
+              "frets": [
+                9,
+                11,
+                11,
+                9,
+                9,
+                9
+              ],
+              "fingers": [
+                1,
+                2,
+                3,
+                1,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 9,
+                  "from": 0,
+                  "to": 5
+                }
+              ],
+              "baseFret": 9,
+              "notes": [
+                49,
+                56,
+                61,
+                64,
+                68,
+                73
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar A13",
+          "args": [
+            "A13",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                0,
+                2,
+                0,
+                2,
+                2
+              ],
+              "fingers": [
+                null,
+                null,
+                1,
+                null,
+                2,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                45,
+                52,
+                55,
+                61,
+                66
+              ]
+            },
+            {
+              "frets": [
+                null,
+                0,
+                4,
+                4,
+                2,
+                3
+              ],
+              "fingers": [
+                null,
+                null,
+                3,
+                4,
+                1,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                45,
+                54,
+                59,
+                61,
+                67
+              ]
+            },
+            {
+              "frets": [
+                null,
+                0,
+                4,
+                0,
+                2,
+                0
+              ],
+              "fingers": [
+                null,
+                null,
+                2,
+                null,
+                1,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                45,
+                54,
+                55,
+                61,
+                64
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar E7#9",
+          "args": [
+            "E7#9",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                0,
+                2,
+                0,
+                1,
+                0,
+                3
+              ],
+              "fingers": [
+                null,
+                2,
+                null,
+                1,
+                null,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                40,
+                47,
+                50,
+                56,
+                59,
+                67
+              ]
+            },
+            {
+              "frets": [
+                0,
+                2,
+                0,
+                1,
+                3,
+                3
+              ],
+              "fingers": [
+                null,
+                2,
+                null,
+                1,
+                3,
+                4
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                40,
+                47,
+                50,
+                56,
+                62,
+                67
+              ]
+            },
+            {
+              "frets": [
+                0,
+                null,
+                0,
+                1,
+                0,
+                3
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1,
+                null,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                40,
+                50,
+                56,
+                59,
+                67
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar C5",
+          "args": [
+            "C5",
+            "guitar",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                3,
+                5,
+                5,
+                null,
+                null
+              ],
+              "fingers": [
+                null,
+                1,
+                2,
+                3,
+                null,
+                null
+              ],
+              "barres": [],
+              "baseFret": 3,
+              "notes": [
+                48,
+                55,
+                60
+              ]
+            },
+            {
+              "frets": [
+                null,
+                3,
+                null,
+                0,
+                1,
+                3
+              ],
+              "fingers": [
+                null,
+                2,
+                null,
+                null,
+                1,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                48,
+                55,
+                60,
+                67
+              ]
+            },
+            {
+              "frets": [
+                null,
+                3,
+                null,
+                0,
+                1,
+                null
+              ],
+              "fingers": [
+                null,
+                2,
+                null,
+                null,
+                1,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                48,
+                55,
+                60
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele C",
+          "args": [
+            "C",
+            "ukulele",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                0,
+                0,
+                0,
+                3
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                67,
+                60,
+                64,
+                72
+              ]
+            },
+            {
+              "frets": [
+                0,
+                4,
+                3,
+                3
+              ],
+              "fingers": [
+                null,
+                3,
+                1,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                67,
+                64,
+                67,
+                72
+              ]
+            },
+            {
+              "frets": [
+                0,
+                4,
+                0,
+                3
+              ],
+              "fingers": [
+                null,
+                2,
+                null,
+                1
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                67,
+                64,
+                64,
+                72
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele F",
+          "args": [
+            "F",
+            "ukulele",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                2,
+                0,
+                1,
+                0
+              ],
+              "fingers": [
+                2,
+                null,
+                1,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                69,
+                60,
+                65,
+                69
+              ]
+            },
+            {
+              "frets": [
+                2,
+                0,
+                1,
+                3
+              ],
+              "fingers": [
+                2,
+                null,
+                1,
+                3
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                69,
+                60,
+                65,
+                72
+              ]
+            },
+            {
+              "frets": [
+                5,
+                5,
+                5,
+                3
+              ],
+              "fingers": [
+                2,
+                3,
+                4,
+                1
+              ],
+              "barres": [],
+              "baseFret": 3,
+              "notes": [
+                72,
+                65,
+                69,
+                72
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele G",
+          "args": [
+            "G",
+            "ukulele",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                0,
+                2,
+                3,
+                2
+              ],
+              "fingers": [
+                null,
+                1,
+                3,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                67,
+                62,
+                67,
+                71
+              ]
+            },
+            {
+              "frets": [
+                4,
+                2,
+                3,
+                2
+              ],
+              "fingers": [
+                3,
+                1,
+                2,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 2,
+                  "from": 1,
+                  "to": 3
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                71,
+                62,
+                67,
+                71
+              ]
+            },
+            {
+              "frets": [
+                4,
+                2,
+                3,
+                5
+              ],
+              "fingers": [
+                3,
+                1,
+                2,
+                4
+              ],
+              "barres": [],
+              "baseFret": 2,
+              "notes": [
+                71,
+                62,
+                67,
+                74
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele Am",
+          "args": [
+            "Am",
+            "ukulele",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                2,
+                0,
+                0,
+                0
+              ],
+              "fingers": [
+                1,
+                null,
+                null,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                69,
+                60,
+                64,
+                69
+              ]
+            },
+            {
+              "frets": [
+                2,
+                0,
+                0,
+                3
+              ],
+              "fingers": [
+                1,
+                null,
+                null,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                69,
+                60,
+                64,
+                72
+              ]
+            },
+            {
+              "frets": [
+                2,
+                4,
+                0,
+                3
+              ],
+              "fingers": [
+                1,
+                3,
+                null,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                69,
+                64,
+                64,
+                72
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele E",
+          "args": [
+            "E",
+            "ukulele",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                4,
+                4,
+                4,
+                2
+              ],
+              "fingers": [
+                2,
+                3,
+                4,
+                1
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                71,
+                64,
+                68,
+                71
+              ]
+            },
+            {
+              "frets": [
+                1,
+                4,
+                4,
+                2
+              ],
+              "fingers": [
+                1,
+                3,
+                4,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                68,
+                64,
+                68,
+                71
+              ]
+            },
+            {
+              "frets": [
+                1,
+                4,
+                0,
+                2
+              ],
+              "fingers": [
+                1,
+                3,
+                null,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                68,
+                64,
+                64,
+                71
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele Bb",
+          "args": [
+            "Bb",
+            "ukulele",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                3,
+                2,
+                1,
+                1
+              ],
+              "fingers": [
+                3,
+                2,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 1,
+                  "from": 2,
+                  "to": 3
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                70,
+                62,
+                65,
+                70
+              ]
+            },
+            {
+              "frets": [
+                3,
+                5,
+                6,
+                5
+              ],
+              "fingers": [
+                1,
+                2,
+                4,
+                3
+              ],
+              "barres": [],
+              "baseFret": 3,
+              "notes": [
+                70,
+                65,
+                70,
+                74
+              ]
+            },
+            {
+              "frets": [
+                7,
+                5,
+                6,
+                5
+              ],
+              "fingers": [
+                3,
+                1,
+                2,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 5,
+                  "from": 1,
+                  "to": 3
+                }
+              ],
+              "baseFret": 5,
+              "notes": [
+                74,
+                65,
+                70,
+                74
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele Bm7",
+          "args": [
+            "Bm7",
+            "ukulele",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                2,
+                2,
+                2,
+                2
+              ],
+              "fingers": [
+                1,
+                1,
+                1,
+                1
+              ],
+              "barres": [
+                {
+                  "fret": 2,
+                  "from": 0,
+                  "to": 3
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                69,
+                62,
+                66,
+                71
+              ]
+            },
+            {
+              "frets": [
+                4,
+                2,
+                2,
+                0
+              ],
+              "fingers": [
+                3,
+                1,
+                2,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                71,
+                62,
+                66,
+                69
+              ]
+            },
+            {
+              "frets": [
+                4,
+                6,
+                5,
+                5
+              ],
+              "fingers": [
+                1,
+                4,
+                2,
+                3
+              ],
+              "barres": [],
+              "baseFret": 4,
+              "notes": [
+                71,
+                66,
+                69,
+                74
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele D7",
+          "args": [
+            "D7",
+            "ukulele",
+            3
+          ],
+          "expected": [
+            {
+              "frets": [
+                2,
+                2,
+                2,
+                3
+              ],
+              "fingers": [
+                1,
+                1,
+                1,
+                2
+              ],
+              "barres": [
+                {
+                  "fret": 2,
+                  "from": 0,
+                  "to": 2
+                }
+              ],
+              "baseFret": 1,
+              "notes": [
+                69,
+                62,
+                66,
+                72
+              ]
+            },
+            {
+              "frets": [
+                2,
+                0,
+                2,
+                5
+              ],
+              "fingers": [
+                1,
+                null,
+                2,
+                3
+              ],
+              "barres": [],
+              "baseFret": 2,
+              "notes": [
+                69,
+                60,
+                66,
+                74
+              ]
+            },
+            {
+              "frets": [
+                5,
+                2,
+                2,
+                0
+              ],
+              "fingers": [
+                3,
+                1,
+                2,
+                null
+              ],
+              "barres": [],
+              "baseFret": 2,
+              "notes": [
+                72,
+                62,
+                66,
+                69
+              ]
+            }
+          ]
+        },
+        {
+          "name": "not a chord",
+          "args": [
+            "N.C.",
+            "guitar",
+            3
+          ],
+          "expected": []
+        }
+      ]
+    },
+    "shapeText": {
+      "about": "A shape written as players write it: \"x32010\", a fret past 9 in parentheses.",
+      "params": [
+        "shape"
+      ],
+      "cases": [
+        {
+          "name": "open C",
+          "args": [
+            {
+              "frets": [
+                null,
+                3,
+                2,
+                0,
+                1,
+                0
+              ]
+            }
+          ],
+          "expected": "x32010"
+        },
+        {
+          "name": "high up",
+          "args": [
+            {
+              "frets": [
+                null,
+                10,
+                12,
+                12,
+                12,
+                10
+              ]
+            }
+          ],
+          "expected": "x(10)(12)(12)(12)(10)"
+        }
+      ]
+    },
     "transposeChord": {
       "about": "A chord moved by semitones, spelt with sharps or flats as the target key uses; anything that isn't a chord is left as written.",
       "params": [
@@ -643,6 +3204,24 @@
             "C"
           ],
           "expected": "N.C."
+        },
+        {
+          "name": "A by -3 to F#",
+          "args": [
+            "A",
+            -3,
+            "F#"
+          ],
+          "expected": "F#"
+        },
+        {
+          "name": "E by -3 to C#",
+          "args": [
+            "E",
+            -3,
+            "C#"
+          ],
+          "expected": "C#"
         },
         {
           "name": "(Am) by 5 to D",
@@ -757,6 +3336,48 @@
             "Am"
           ],
           "expected": false
+        },
+        {
+          "name": "F#",
+          "args": [
+            "F#"
+          ],
+          "expected": false
+        },
+        {
+          "name": "C#",
+          "args": [
+            "C#"
+          ],
+          "expected": false
+        },
+        {
+          "name": "C#m",
+          "args": [
+            "C#m"
+          ],
+          "expected": false
+        },
+        {
+          "name": "Gb",
+          "args": [
+            "Gb"
+          ],
+          "expected": true
+        },
+        {
+          "name": "Db",
+          "args": [
+            "Db"
+          ],
+          "expected": true
+        },
+        {
+          "name": "Ebm",
+          "args": [
+            "Ebm"
+          ],
+          "expected": true
         },
         {
           "name": "null",

@@ -1,4 +1,4 @@
-import { chartSeconds, structureOf, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
+import { chartSeconds, structureOf, type ChordDiagramsValue, type ChordNotationValue, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
 import { AArrowDown, AArrowUp, ArrowLeft, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,7 @@ import { OfflineBanner } from "#/components/offline-banner";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { PresentPanel } from "#/components/present-panel";
 import { TransitionSymbol, transitionText } from "#/components/set-transition";
-import { SongChart } from "#/components/song-chart";
+import { ChartWithDiagrams } from "#/components/chord-diagrams";
 import { SyncControl } from "#/components/sync-control";
 import { SidebarTrigger } from "#/components/ui/sidebar";
 import { useChartColumns } from "#/lib/chart-columns";
@@ -55,6 +55,9 @@ export interface LiveSong {
   nextLabel: string | null;
   /** What happens after it (issue #199), in a set; null when nothing's said. */
   transition?: SetTransitionView | null;
+  /** The player's chord diagrams (issue #207), and how they name chords. */
+  diagrams?: ChordDiagramsValue;
+  notation?: ChordNotationValue;
 }
 
 /** How far down a chart is scrolled for its song to count as played (issue #153). */
@@ -328,7 +331,7 @@ export function LiveView({ song }: { song: LiveSong }) {
           {pdf && song.reading ? (
             <PdfPages key={pdf.id} source={() => song.reading!.source(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
           ) : chart ? (
-            <SongChart chart={chart} emptyText={t("sets.noChart")} columns={columns} />
+            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} />
           ) : (
             <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
           )}

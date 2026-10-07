@@ -1,9 +1,10 @@
+import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
 import { diatonicChords, formatChord, keyUsesFlats, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
 import { parseArrangementDocumentV2, findArrangementProblems } from "../schemas/arrangement-document-v2.js";
 import { chordPositionProblem } from "../schemas/song-document-v2.js";
 import { arrangementFromChart, mapChartIds, remapArrangement } from "../song-document/fold.js";
-import { chartSeconds, renderChart } from "../song-document/render.js";
+import { chartChords, chartSeconds, renderChart } from "../song-document/render.js";
 import { structureOf } from "../song-document/structure.js";
 import { flowToChordPro, lineToInlineText, readSongDocument, sectionsFromText, songDocumentFromSections, songDocumentFromText, songFromText, songToChordPro } from "../song-document/text.js";
 import { sectionHeading } from "../chordpro/section-labels.js";
@@ -203,6 +204,32 @@ export const CONFORMANCE: ConformanceArea[] = [
           args: [raw],
         })),
       },
+      chordTones: {
+        about: "A chord's notes, each with its interval above the root, its pitch class (C = 0), its role and whether a shape may leave it out; null when it isn't a chord.",
+        params: ["chord"],
+        run: chordTones,
+        cases: ["C", "Am7", "G7", "Bm7b5", "Cmaj9", "A13", "Dsus4", "E7#9", "C/E", "D/C", "F#dim7", "C5", "N.C."].map((chord) => ({ name: JSON.stringify(chord), args: [chord] })),
+      },
+      chordShapes: {
+        about:
+          "Shapes for a chord on a guitar (EADGBE) or a ukulele (GCEA, high G), easiest and most usual first (issue #207): per string the fret (0 open, null muted), the fingers, barres, the fret the diagram starts at and the MIDI notes it sounds. Every needed note and nothing else; on a guitar the bass is lowest; at most four fingers, a barre counting as one. Each client draws them its own way (docs/chord-diagrams.md).",
+        params: ["chord", "instrument", "limit"],
+        run: chordShapes,
+        cases: [
+          ...["C", "G", "D", "Em", "F", "Bm", "B7", "Cmaj7", "Asus4", "D/F#", "Ab", "C#m", "A13", "E7#9", "C5"].map((chord) => ({ name: `guitar ${chord}`, args: [chord, "guitar", 3] })),
+          ...["C", "F", "G", "Am", "E", "Bb", "Bm7", "D7"].map((chord) => ({ name: `ukulele ${chord}`, args: [chord, "ukulele", 3] })),
+          { name: "not a chord", args: ["N.C.", "guitar", 3] },
+        ],
+      },
+      shapeText: {
+        about: "A shape written as players write it: \"x32010\", a fret past 9 in parentheses.",
+        params: ["shape"],
+        run: shapeText,
+        cases: [
+          { name: "open C", args: [{ frets: [null, 3, 2, 0, 1, 0] }] },
+          { name: "high up", args: [{ frets: [null, 10, 12, 12, 12, 10] }] },
+        ],
+      },
       transposeChord: {
         about: "A chord moved by semitones, spelt with sharps or flats as the target key uses; anything that isn't a chord is left as written.",
         params: ["raw", "steps", "targetKey"],
@@ -216,6 +243,9 @@ export const CONFORMANCE: ConformanceArea[] = [
           ["C", 1, "Db"],
           ["F#m7b5", -2, "E"],
           ["N.C.", 3, "C"],
+          // A key written with a sharp keeps sharps (a guitarist's capo 3 shapes in A).
+          ["A", -3, "F#"],
+          ["E", -3, "C#"],
           ["(Am)", 5, "D"],
           ["verse", 2, "A"],
           ["G", 0, "G"],
@@ -226,7 +256,7 @@ export const CONFORMANCE: ConformanceArea[] = [
         about: "Whether chords in this key are spelt with flats.",
         params: ["key"],
         run: keyUsesFlats,
-        cases: ["F", "Bb", "Eb", "Dm", "Gm", "G", "D", "Em", "C", "Am", null].map((key) => ({ name: String(key), args: [key] })),
+        cases: ["F", "Bb", "Eb", "Dm", "Gm", "G", "D", "Em", "C", "Am", "F#", "C#", "C#m", "Gb", "Db", "Ebm", null].map((key) => ({ name: String(key), args: [key] })),
       },
       formatChord: {
         about: "A chord named in letters (\"english\", as written) or solfège (\"solfege\": Do, Ré, Mi…).",
@@ -420,7 +450,8 @@ export const CONFORMANCE: ConformanceArea[] = [
       "A song played as its arrangement says, seen through a reader's choices: what every client shows. Transposition, capo shapes, solfège, simpler chords, the arrangement's changes; references the song no longer has are kept as problems, never dropped.",
     functions: {
       renderChart: {
-        about: "The chart: each pass of the flow (or of the arrangement) with its lines and chord labels, its key and whether the arrangement changes it.",
+        about:
+          "The chart: each pass of the flow (or of the arrangement) with its lines and chords - each shown (label), as it sounds and as a guitarist frets it with the capo (for chord diagrams) - its key and whether the arrangement changes it.",
         params: ["song", "arrangement", "view"],
         run: (song: unknown, arr: unknown, view: Parameters<typeof renderChart>[2]) => renderChart(read(song), arr ? arrangement(arr) : null, view),
         cases: [
@@ -430,6 +461,15 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "simpler chords, no bass notes, a hidden chord", args: [SONG, null, { preferences: { simplifyChords: true, hideBassNotes: true, hiddenChordIds: ["chd_v2"] } }] },
           { name: "an arrangement", args: [SONG, ARRANGEMENT, {}] },
           { name: "an arrangement with its capo, as shapes", args: [SONG, ARRANGEMENT, { capoDisplay: "shapes" }] },
+        ],
+      },
+      chartChords: {
+        about: "The chords a chart plays, each once, in the order they first come (a strip of chord diagrams): as a guitarist frets them with the capo, or as they sound.",
+        params: ["song", "view", "as"],
+        run: (song: unknown, view: Parameters<typeof renderChart>[2], as: "fretted" | "sounding") => chartChords(renderChart(read(song), null, view), as),
+        cases: [
+          { name: "as they sound", args: [SONG, {}, "sounding"] },
+          { name: "fretted with the capo on 2", args: [SONG, { suggestedCapo: 2 }, "fretted"] },
         ],
       },
       structureOf: {

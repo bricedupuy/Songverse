@@ -1,4 +1,4 @@
-import { findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordNotationValue, type LiveViewValue, type SongDocumentV2 } from "@songverse/core";
+import { findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type LiveViewValue, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,8 @@ export interface LoneSong {
   capoDisplay: CapoDisplayModeValue;
   /** How the player reads songs unless chosen for this one (issue #155). */
   liveView: LiveViewValue;
+  /** Chord diagrams beside the chart (issue #207). */
+  diagrams: ChordDiagramsValue;
 }
 
 /**
@@ -59,6 +61,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           notation: me.chordNotation,
           capoDisplay: me.capoDisplayMode,
           liveView: me.liveView,
+          diagrams: me.chordDiagrams,
         };
       },
       async () => {
@@ -79,6 +82,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           notation: viewer?.chordNotation ?? "LETTERS",
           capoDisplay: viewer?.capoDisplayMode ?? "SOUNDING",
           liveView: viewer?.liveView ?? "CHART",
+          diagrams: viewer?.chordDiagrams ?? "OFF",
         };
       },
     ),
@@ -128,6 +132,8 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         next: null,
         nextLabel: null,
         reading,
+        diagrams: song.diagrams,
+        notation: song.notation,
       }}
     />
   );

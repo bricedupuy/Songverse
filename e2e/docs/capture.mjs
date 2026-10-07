@@ -312,6 +312,15 @@ try {
     await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
     // Practice: a library song is its chart (issue #67).
     await shoot("practice-song", `/library/${grace.id}`, () => page.getByTestId("practice-song").locator("[data-chord]").first().waitFor());
+    // Chord diagrams (issue #207): the strip of the song's chords, and one chord's card.
+    await api(me, "PATCH", "/users/me", { chordDiagrams: "GUITAR" });
+    await shoot("chord-diagrams", `/library/${grace.id}`, async () => {
+      await page.getByTestId("chord-strip").waitFor();
+      await page.locator("[data-chord-id]").nth(2).click();
+      await page.getByTestId("chord-card").waitFor();
+    });
+    await page.keyboard.press("Escape");
+    await api(me, "PATCH", "/users/me", { chordDiagrams: "OFF" });
     const dock = page.getByTestId("stem-player");
     await shoot("stems-compact", `/library/${grace.id}`, async () => {
       await page.locator('[data-testid="stem-player"][data-state="ready"]').waitFor({ timeout: 20000 });

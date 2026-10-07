@@ -2,6 +2,7 @@ import {
   SUPPORTED_LOCALES,
   type CapoDisplayModeValue,
   type ChordNotationValue,
+  type ChordDiagramsValue,
   type LiveViewValue,
   type LocaleValue,
   type StorageUsage,
@@ -362,14 +363,14 @@ export function LanguageCard({ locale }: { locale: string }) {
   );
 }
 
-/** How every chart reads for this user: chord names, chords with a capo, and how songs read in Live (issue #155). */
-export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView"> }) {
+/** How every chart reads for this user: chord names, chords with a capo, chord diagrams (issue #207), and how songs read in Live (issue #155). */
+export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView" | "chordDiagrams"> }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue }) {
+  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue }) {
     setSaving(true);
     setError(null);
     try {
@@ -414,6 +415,21 @@ export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chor
             <option value="SOUNDING">{t("dashboard.capoSounding")}</option>
             <option value="FINGERED">{t("dashboard.capoShapes")}</option>
           </NativeSelect>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="chord-diagrams">{t("dashboard.chordDiagrams")}</Label>
+          <NativeSelect
+            id="chord-diagrams"
+            value={profile.chordDiagrams}
+            disabled={saving}
+            onChange={(e) => void save({ chordDiagrams: e.target.value as ChordDiagramsValue })}
+            className="w-full max-w-xs"
+          >
+            <option value="OFF">{t("dashboard.diagramsOff")}</option>
+            <option value="GUITAR">{t("dashboard.diagramsGuitar")}</option>
+            <option value="UKULELE">{t("dashboard.diagramsUkulele")}</option>
+          </NativeSelect>
+          <p className="text-xs text-muted-foreground">{t("dashboard.chordDiagramsHint")}</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="live-view">{t("dashboard.liveView")}</Label>

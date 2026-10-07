@@ -45,5 +45,20 @@ When you open a song in a set, the **My view** bar changes the chart **for you o
 - **No bass notes** - D/F# shows as D.
 - **Do Ré Mi** - chord names in solfège.
 - **Capo shapes** - with a capo, chords as the shapes you play rather than as they sound.
+- **Diagrams** - **None**, **Guitar** or **Ukulele**: see [Chord diagrams](/versions/#chord-diagrams) below.
 
-Hidden and simpler chords are kept per song (and per version). Solfège and capo shapes apply to every chart; you can also set them in [your account](/account/#chart-display).
+Hidden and simpler chords are kept per song (and per version). Solfège, capo shapes and diagrams apply to every chart; you can also set them in [your account](/account/#chart-display).
+
+## Chord diagrams
+
+Choose **Guitar** or **Ukulele** under **Chord diagrams** in [Chart display](/account/#chart-display) (or **Diagrams** in **My view**), and the charts you read - in Practice, a set's songs, Live and offline - show how to play their chords. They're off until you choose; nothing ever covers the words, and the chart itself doesn't move.
+
+- At the top of the chart, the song's chords as small diagrams, each once, in the order they come. Tap one to hear it strummed (down, then up on the next tap). The arrow beside **Guitar chords** folds them to a single line of names, remembered on the device.
+- Tap a chord on the chart for its diagram, bigger, with the fingers to use. **‹ ›** go through the other ways to play it; tap the diagram to hear it.
+- A diagram shows the strings up and down and the frets across: × is a string not played, ○ an open one, each dot a finger (its number in the bigger diagram), and a bar one finger across several strings. Near the nut, it's drawn thick; further up the neck, the number on the left is the fret it starts at.
+- With a capo, guitar diagrams are the shapes you play with the capo on (**capo 2, shapes as played**), whatever your **With a capo** setting shows on the chart. Ukulele diagrams are the chords as they sound.
+- They follow everything else: the set's key, a last-minute transpose in Live, a key change, **Simpler chords** and **No bass notes**. Every chord Songverse can read has a diagram, worked out on the device, so they work offline too.
+
+In a set's **Hide chords** mode, tapping a chord still hides it.
+
+![Chord diagrams for a song in Practice, one chord's card open](../../assets/screenshots/en/chord-diagrams.jpg)

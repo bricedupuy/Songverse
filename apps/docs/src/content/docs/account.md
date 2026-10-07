@@ -33,6 +33,7 @@ How chords read on every chart you open:
 
 - **Chord names** - letters (C D E) or solfège (Do Ré Mi).
 - **With a capo** - chords as they sound, or as the shapes to play.
+- **Chord diagrams** - **None**, **Guitar** or **Ukulele**: how to play the song's chords, beside its chart (see [Chord diagrams](/versions/#chord-diagrams)).
 - **Songs read as** - **Chords and lyrics**, or **PDF, when the song has one**: how songs show in Practice and Live unless you choose otherwise for a song (see [Playing a set live](/sets/#playing-a-set-live)). A song without a PDF always shows its chart.
 
 You can also switch these from any chart in a set. Hiding chords and simpler chords are set per song, from its chart - see [Your own view of a chart](/versions/#your-own-view-of-a-chart).

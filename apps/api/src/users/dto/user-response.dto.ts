@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { DISPLAY_MODES, CAPO_DISPLAY_MODES, CHORD_NOTATIONS, LIVE_VIEWS, VOICING_PREFERENCES, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
+import { DISPLAY_MODES, CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, CHORD_NOTATIONS, LIVE_VIEWS, VOICING_PREFERENCES, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
 
 export class UserResponseDto {
   @ApiProperty() id!: string;
@@ -11,6 +11,7 @@ export class UserResponseDto {
   @ApiProperty({ enum: CAPO_DISPLAY_MODES }) capoDisplayMode!: (typeof CAPO_DISPLAY_MODES)[number];
   @ApiProperty({ enum: CHORD_NOTATIONS }) chordNotation!: (typeof CHORD_NOTATIONS)[number];
   @ApiProperty({ enum: LIVE_VIEWS }) liveView!: (typeof LIVE_VIEWS)[number];
+  @ApiProperty({ enum: CHORD_DIAGRAMS, description: "Chord diagrams beside charts (issue #207)" }) chordDiagrams!: (typeof CHORD_DIAGRAMS)[number];
   @ApiProperty({ enum: VOICING_PREFERENCES }) voicingPreference!: (typeof VOICING_PREFERENCES)[number];
   @ApiProperty() isGlobalAdmin!: boolean;
   @ApiProperty({ description: "From their roles, or their teams' (issue #160)" }) isReviewer!: boolean;

@@ -280,7 +280,8 @@ function parseSuffix(input: string): Pick<ParsedChord, "quality" | "seventh" | "
   return { quality, seventh, extensions, alterations };
 }
 
-function semitoneOf(note: NoteName): number {
+/** The note's pitch class: C = 0, C# = 1 … B = 11. */
+export function semitoneOf(note: NoteName): number {
   return mod12(LETTER_SEMITONES[note.letter] + (note.accidental === "sharp" ? 1 : note.accidental === "flat" ? -1 : 0));
 }
 
@@ -294,10 +295,17 @@ function rebuild(parts: ChordParts, notation: ChordNotation = "english"): string
   return parts.optional ? `(${text})` : text;
 }
 
-/** Whether keys like this one are written with flats (F, Bb, Dm...). Null/unknown keys use sharps. */
+/**
+ * Whether keys like this one are written with flats (F, Bb, Dm...). A key
+ * written with a sharp or a flat keeps it (F# and C#m use sharps, Gb and Ebm
+ * flats); a natural one follows the usual spelling of its major (F and Dm
+ * flats, G sharps). Null/unknown keys use sharps.
+ */
 export function keyUsesFlats(key: string | null | undefined): boolean {
   const match = key ? /^\s*([A-G])([#♯b♭]?)\s*(m(?!aj)|min|minor|-)?/i.exec(key) : null;
   if (!match) return false;
+  if (match[2] === "#" || match[2] === "♯") return false;
+  if (match[2] === "b" || match[2] === "♭") return true;
   const tonic = semitoneOf(toNote(match[1]!.toUpperCase(), match[2]!));
   const relativeMajor = match[3] ? mod12(tonic + 3) : tonic;
   return FLAT_MAJOR_KEYS.has(relativeMajor);

@@ -45,5 +45,20 @@ Quand vous ouvrez un chant dans une liste, la barre **Mon affichage** change la 
 - **Sans basses** - D/F# s'affiche D.
 - **Do Ré Mi** - les accords en solfège.
 - **Formes capo** - avec un capo, les accords comme les formes que vous jouez plutôt que tels qu'ils sonnent.
+- **Diagrammes** - **Aucun**, **Guitare** ou **Ukulélé** : voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords) ci-dessous.
 
-Les accords masqués et simplifiés sont gardés par chant (et par version). Le solfège et les formes de capo s'appliquent à toutes les grilles ; vous pouvez aussi les régler dans [votre compte](/fr/account/#affichage-des-grilles).
+Les accords masqués et simplifiés sont gardés par chant (et par version). Le solfège, les formes de capo et les diagrammes s'appliquent à toutes les grilles ; vous pouvez aussi les régler dans [votre compte](/fr/account/#affichage-des-grilles).
+
+## Diagrammes d'accords
+
+Choisissez **Guitare** ou **Ukulélé** sous **Diagrammes d'accords** dans [Affichage des grilles](/fr/account/#affichage-des-grilles) (ou **Diagrammes** dans **Mon affichage**), et les grilles que vous lisez - en Session, dans les chants d'une liste, en Live et hors ligne - montrent comment jouer leurs accords. Ils sont désactivés tant que vous ne les choisissez pas ; rien ne cache jamais les paroles, et la grille elle-même ne bouge pas.
+
+- En haut de la grille, les accords du chant en petits diagrammes, chacun une fois, dans l'ordre où ils viennent. Touchez-en un pour l'entendre gratté (vers le bas, puis vers le haut au toucher suivant). La flèche à côté de **Accords à la guitare** les replie en une seule ligne de noms, retenue sur l'appareil.
+- Touchez un accord de la grille pour voir son diagramme, plus grand, avec les doigts à utiliser. **‹ ›** passent aux autres façons de le jouer ; touchez le diagramme pour l'entendre.
+- Un diagramme montre les cordes de haut en bas et les cases en travers : × est une corde qu'on ne joue pas, ○ une corde à vide, chaque point un doigt (son numéro dans le grand diagramme), et une barre un doigt posé sur plusieurs cordes. Près du sillet, celui-ci est dessiné épais ; plus haut sur le manche, le nombre à gauche est la case où il commence.
+- Avec un capo, les diagrammes de guitare sont les formes que vous jouez capo posé (**capo 2, formes à jouer**), quel que soit votre réglage **Avec un capo** sur la grille. Les diagrammes de ukulélé sont les accords tels qu'ils sonnent.
+- Ils suivent tout le reste : la tonalité de la liste, une transposition de dernière minute en Live, un changement de tonalité, **Accords simplifiés** et **Sans basses**. Chaque accord que Songverse sait lire a un diagramme, calculé sur l'appareil : ils marchent aussi hors ligne.
+
+En mode **Masquer des accords** d'une liste, toucher un accord le masque toujours.
+
+![Les diagrammes d'accords d'un chant en Session, la fiche d'un accord ouverte](../../../assets/screenshots/fr/chord-diagrams.jpg)

@@ -1,4 +1,4 @@
-import { cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type LiveViewValue, type SongVersionDetail } from "@songverse/core";
+import { cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type LiveViewValue, type SongVersionDetail } from "@songverse/core";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { MetronomeSongButton } from "#/components/metronome";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { useChartColumns } from "#/lib/chart-columns";
-import { SongChart } from "#/components/song-chart";
+import { ChartWithDiagrams } from "#/components/chord-diagrams";
 import { ChartOrPdf, songViewStore } from "#/components/chart-or-pdf";
 import { StemDock } from "#/components/stem-dock";
 import { Button } from "#/components/ui/button";
@@ -30,6 +30,7 @@ export function PracticeSongPage({
   notation,
   capoDisplay,
   liveView,
+  diagrams,
 }: {
   version: SongVersionDetail;
   attachments: Attachment[];
@@ -38,6 +39,8 @@ export function PracticeSongPage({
   capoDisplay: CapoDisplayModeValue;
   /** How the player reads songs unless chosen for this one (issue #155). */
   liveView: LiveViewValue;
+  /** Chord diagrams beside the chart (issue #207). */
+  diagrams: ChordDiagramsValue;
 }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -99,7 +102,7 @@ export function PracticeSongPage({
         <Card>
           <CardContent className="flex flex-col gap-3">
             <ChartColumnsPicker className="self-end" />
-            <SongChart chart={chart} emptyText={t("sets.noChart")} columns={columns} />
+            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={diagrams} notation={notation} />
           </CardContent>
         </Card>
       </ChartOrPdf>

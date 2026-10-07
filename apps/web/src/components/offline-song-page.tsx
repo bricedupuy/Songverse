@@ -1,10 +1,10 @@
-import { cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
+import { cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useChartColumns } from "#/lib/chart-columns";
-import { SongChart } from "#/components/song-chart";
+import { ChartWithDiagrams } from "#/components/chord-diagrams";
 import { StemDock } from "#/components/stem-dock";
 import { downloadBlob } from "#/lib/download";
 import { stemFilesOf, useChosenMultitrack } from "#/lib/stem-engine";
@@ -20,6 +20,8 @@ export interface OfflineSong extends FoundSong {
   attachments: Attachment[];
   notation: ChordNotationValue;
   capoDisplay: CapoDisplayModeValue;
+  /** Chord diagrams beside the chart (issue #207), as of the last sync. */
+  diagrams: ChordDiagramsValue;
 }
 
 /** The song as kept on the device (on its own, or in a kept set), if it is. */
@@ -32,6 +34,7 @@ export async function loadOfflineSong(songVersionId: string): Promise<OfflineSon
     attachments: kept?.attachments ?? [],
     notation: viewer?.chordNotation ?? "LETTERS",
     capoDisplay: viewer?.capoDisplayMode ?? "SOUNDING",
+    diagrams: viewer?.chordDiagrams ?? "OFF",
   };
 }
 
@@ -107,7 +110,7 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
 
       <Card>
         <CardContent>
-          <SongChart chart={chart} columns={columns} />
+          <ChartWithDiagrams chart={chart} columns={columns} diagrams={song.diagrams} notation={song.notation} />
         </CardContent>
       </Card>
 

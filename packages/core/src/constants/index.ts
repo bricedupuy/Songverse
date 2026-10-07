@@ -74,6 +74,10 @@ export type CapoDisplayModeValue = (typeof CAPO_DISPLAY_MODES)[number];
 export const CHORD_NOTATIONS = ["LETTERS", "SOLFEGE"] as const;
 export type ChordNotationValue = (typeof CHORD_NOTATIONS)[number];
 
+/** Chord diagrams beside every chart (issue #207): off, or for a guitar or a ukulele. */
+export const CHORD_DIAGRAMS = ["OFF", "GUITAR", "UKULELE"] as const;
+export type ChordDiagramsValue = (typeof CHORD_DIAGRAMS)[number];
+
 /** How a song reads in Live (issue #155): its chart (chords and lyrics), or its PDF. More to come: lyrics only (#106), drummer (#107). */
 export const LIVE_VIEWS = ["CHART", "PDF"] as const;
 export type LiveViewValue = (typeof LIVE_VIEWS)[number];

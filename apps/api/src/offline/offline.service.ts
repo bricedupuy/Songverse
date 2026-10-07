@@ -193,8 +193,13 @@ export class OfflineService {
       },
     });
     const entries = current.map((row) => ({ id: row.id, version: songVersion(row.updatedAt, row.attachments), audio: audio.has(row.id) }));
-    const viewerRow = await this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true } });
-    const viewer = { chordNotation: viewerRow?.chordNotation ?? "LETTERS", capoDisplayMode: viewerRow?.capoDisplayMode ?? "SOUNDING", liveView: viewerRow?.liveView ?? "CHART" };
+    const viewerRow = await this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true } });
+    const viewer = {
+      chordNotation: viewerRow?.chordNotation ?? "LETTERS",
+      capoDisplayMode: viewerRow?.capoDisplayMode ?? "SOUNDING",
+      liveView: viewerRow?.liveView ?? "CHART",
+      chordDiagrams: viewerRow?.chordDiagrams ?? "OFF",
+    };
 
     // Asked only whether anything changed (issue #121): the device's
     // fingerprint of what it keeps against this one of what it should keep.

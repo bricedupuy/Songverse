@@ -2,6 +2,7 @@ import "../zod-config.js";
 import type {
   CapoDisplayModeValue,
   ChordNotationValue,
+  ChordDiagramsValue,
   LiveViewValue,
   SetTransitionValue,
   TechRoleValue,
@@ -292,7 +293,7 @@ export interface OfflineSyncResponse {
   goneSongs: string[];
   pins: OfflinePin[];
   /** The user's chord settings, for songs shown on their own. */
-  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue; liveView?: LiveViewValue };
+  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue };
 }
 
 /**
@@ -311,6 +312,8 @@ export interface ChartViewSettings {
   capoDisplayMode: CapoDisplayModeValue;
   /** How songs read in Live unless chosen for this one (issue #155); left out by an older copy kept offline. */
   liveView?: LiveViewValue;
+  /** Chord diagrams beside the chart (issue #207); left out by an older copy kept offline. */
+  chordDiagrams?: ChordDiagramsValue;
 }
 
 /** An arrangement of a song, as listed (docs/arrangement-document-v2.md). */
@@ -399,6 +402,8 @@ export interface UserProfile {
   chordNotation: ChordNotationValue;
   /** How songs read in Live unless chosen for a song (issue #155). */
   liveView: LiveViewValue;
+  /** Chord diagrams beside every chart (issue #207). */
+  chordDiagrams: ChordDiagramsValue;
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -1429,6 +1434,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       techRoles?: TechRoleValue[];
       capoDisplayMode?: CapoDisplayModeValue;
       chordNotation?: ChordNotationValue;
+      chordDiagrams?: ChordDiagramsValue;
       liveView?: LiveViewValue;
     }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),

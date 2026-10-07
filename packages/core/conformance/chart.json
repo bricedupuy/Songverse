@@ -4,7 +4,7 @@
   "about": "A song played as its arrangement says, seen through a reader's choices: what every client shows. Transposition, capo shapes, solfège, simpler chords, the arrangement's changes; references the song no longer has are kept as problems, never dropped.",
   "functions": {
     "renderChart": {
-      "about": "The chart: each pass of the flow (or of the arrangement) with its lines and chord labels, its key and whether the arrangement changes it.",
+      "about": "The chart: each pass of the flow (or of the arrangement) with its lines and chords - each shown (label), as it sounds and as a guitarist frets it with the capo (for chord diagrams) - its key and whether the arrangement changes it.",
       "params": [
         "song",
         "arrangement",
@@ -169,18 +169,24 @@
                         "id": "chd_v1",
                         "at": 0,
                         "label": "G",
+                        "sounding": "G",
+                        "fretted": "G",
                         "replaced": false
                       },
                       {
                         "id": "chd_v2",
                         "at": 18,
                         "label": "G7",
+                        "sounding": "G7",
+                        "fretted": "G7",
                         "replaced": false
                       },
                       {
                         "id": "chd_v3",
                         "at": 28,
                         "label": "C",
+                        "sounding": "C",
+                        "fretted": "C",
                         "replaced": false
                       }
                     ]
@@ -206,12 +212,16 @@
                         "id": "chd_v4",
                         "at": 0,
                         "label": "D/F#",
+                        "sounding": "D/F#",
+                        "fretted": "D/F#",
                         "replaced": false
                       },
                       {
                         "id": "chd_v5",
                         "at": 20,
                         "label": "Em7",
+                        "sounding": "Em7",
+                        "fretted": "Em7",
                         "replaced": false
                       }
                     ]
@@ -246,18 +256,24 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "C",
+                        "sounding": "C",
+                        "fretted": "C",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Dsus4",
+                        "sounding": "Dsus4",
+                        "fretted": "Dsus4",
                         "replaced": false
                       },
                       {
                         "id": "chd_c3",
                         "at": 26,
                         "label": "Bm7b5",
+                        "sounding": "Bm7b5",
+                        "fretted": "Bm7b5",
                         "replaced": false
                       }
                     ]
@@ -292,18 +308,24 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "D",
+                        "sounding": "D",
+                        "fretted": "D",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Esus4",
+                        "sounding": "Esus4",
+                        "fretted": "Esus4",
                         "replaced": false
                       },
                       {
                         "id": "chd_c3",
                         "at": 26,
                         "label": "C#m7b5",
+                        "sounding": "C#m7b5",
+                        "fretted": "C#m7b5",
                         "replaced": false
                       }
                     ]
@@ -476,18 +498,24 @@
                         "id": "chd_v1",
                         "at": 0,
                         "label": "Sib",
+                        "sounding": "Bb",
+                        "fretted": "Bb",
                         "replaced": false
                       },
                       {
                         "id": "chd_v2",
                         "at": 18,
                         "label": "Sib7",
+                        "sounding": "Bb7",
+                        "fretted": "Bb7",
                         "replaced": false
                       },
                       {
                         "id": "chd_v3",
                         "at": 28,
                         "label": "Mib",
+                        "sounding": "Eb",
+                        "fretted": "Eb",
                         "replaced": false
                       }
                     ]
@@ -513,12 +541,16 @@
                         "id": "chd_v4",
                         "at": 0,
                         "label": "Fa/La",
+                        "sounding": "F/A",
+                        "fretted": "F/A",
                         "replaced": false
                       },
                       {
                         "id": "chd_v5",
                         "at": 20,
                         "label": "Solm7",
+                        "sounding": "Gm7",
+                        "fretted": "Gm7",
                         "replaced": false
                       }
                     ]
@@ -553,18 +585,24 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "Mib",
+                        "sounding": "Eb",
+                        "fretted": "Eb",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Fasus4",
+                        "sounding": "Fsus4",
+                        "fretted": "Fsus4",
                         "replaced": false
                       },
                       {
                         "id": "chd_c3",
                         "at": 26,
                         "label": "Rém7b5",
+                        "sounding": "Dm7b5",
+                        "fretted": "Dm7b5",
                         "replaced": false
                       }
                     ]
@@ -599,18 +637,24 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "Fa",
+                        "sounding": "F",
+                        "fretted": "F",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Solsus4",
+                        "sounding": "Gsus4",
+                        "fretted": "Gsus4",
                         "replaced": false
                       },
                       {
                         "id": "chd_c3",
                         "at": 26,
                         "label": "Mim7b5",
+                        "sounding": "Em7b5",
+                        "fretted": "Em7b5",
                         "replaced": false
                       }
                     ]
@@ -783,18 +827,24 @@
                         "id": "chd_v1",
                         "at": 0,
                         "label": "F",
+                        "sounding": "G",
+                        "fretted": "F",
                         "replaced": false
                       },
                       {
                         "id": "chd_v2",
                         "at": 18,
                         "label": "F7",
+                        "sounding": "G7",
+                        "fretted": "F7",
                         "replaced": false
                       },
                       {
                         "id": "chd_v3",
                         "at": 28,
                         "label": "Bb",
+                        "sounding": "C",
+                        "fretted": "Bb",
                         "replaced": false
                       }
                     ]
@@ -820,12 +870,16 @@
                         "id": "chd_v4",
                         "at": 0,
                         "label": "C/E",
+                        "sounding": "D/F#",
+                        "fretted": "C/E",
                         "replaced": false
                       },
                       {
                         "id": "chd_v5",
                         "at": 20,
                         "label": "Dm7",
+                        "sounding": "Em7",
+                        "fretted": "Dm7",
                         "replaced": false
                       }
                     ]
@@ -860,18 +914,24 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "Bb",
+                        "sounding": "C",
+                        "fretted": "Bb",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Csus4",
+                        "sounding": "Dsus4",
+                        "fretted": "Csus4",
                         "replaced": false
                       },
                       {
                         "id": "chd_c3",
                         "at": 26,
                         "label": "Am7b5",
+                        "sounding": "Bm7b5",
+                        "fretted": "Am7b5",
                         "replaced": false
                       }
                     ]
@@ -906,18 +966,24 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "C",
+                        "sounding": "D",
+                        "fretted": "C",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Dsus4",
+                        "sounding": "Esus4",
+                        "fretted": "Dsus4",
                         "replaced": false
                       },
                       {
                         "id": "chd_c3",
                         "at": 26,
                         "label": "Bm7b5",
+                        "sounding": "C#m7b5",
+                        "fretted": "Bm7b5",
                         "replaced": false
                       }
                     ]
@@ -1095,12 +1161,16 @@
                         "id": "chd_v1",
                         "at": 0,
                         "label": "G",
+                        "sounding": "G",
+                        "fretted": "G",
                         "replaced": false
                       },
                       {
                         "id": "chd_v3",
                         "at": 28,
                         "label": "C",
+                        "sounding": "C",
+                        "fretted": "C",
                         "replaced": false
                       }
                     ]
@@ -1126,12 +1196,16 @@
                         "id": "chd_v4",
                         "at": 0,
                         "label": "D",
+                        "sounding": "D",
+                        "fretted": "D",
                         "replaced": false
                       },
                       {
                         "id": "chd_v5",
                         "at": 20,
                         "label": "Em",
+                        "sounding": "Em",
+                        "fretted": "Em",
                         "replaced": false
                       }
                     ]
@@ -1166,18 +1240,24 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "C",
+                        "sounding": "C",
+                        "fretted": "C",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Dsus4",
+                        "sounding": "Dsus4",
+                        "fretted": "Dsus4",
                         "replaced": false
                       },
                       {
                         "id": "chd_c3",
                         "at": 26,
                         "label": "Bdim",
+                        "sounding": "Bdim",
+                        "fretted": "Bdim",
                         "replaced": false
                       }
                     ]
@@ -1212,18 +1292,24 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "D",
+                        "sounding": "D",
+                        "fretted": "D",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Esus4",
+                        "sounding": "Esus4",
+                        "fretted": "Esus4",
                         "replaced": false
                       },
                       {
                         "id": "chd_c3",
                         "at": 26,
                         "label": "C#dim",
+                        "sounding": "C#dim",
+                        "fretted": "C#dim",
                         "replaced": false
                       }
                     ]
@@ -1462,18 +1548,24 @@
                         "id": "chd_v1",
                         "at": 0,
                         "label": "F",
+                        "sounding": "F",
+                        "fretted": "D",
                         "replaced": false
                       },
                       {
                         "id": "chd_v2",
                         "at": 18,
                         "label": "F7",
+                        "sounding": "F7",
+                        "fretted": "D7",
                         "replaced": false
                       },
                       {
                         "id": "chd_v3",
                         "at": 28,
                         "label": "Bbadd9",
+                        "sounding": "Bbadd9",
+                        "fretted": "Gadd9",
                         "replaced": true
                       }
                     ]
@@ -1490,12 +1582,16 @@
                         "id": "chd_v4",
                         "at": 0,
                         "label": "C/E",
+                        "sounding": "C/E",
+                        "fretted": "A/C#",
                         "replaced": false
                       },
                       {
                         "id": "chd_v5",
                         "at": 20,
                         "label": "Dm7",
+                        "sounding": "Dm7",
+                        "fretted": "Bm7",
                         "replaced": false
                       }
                     ]
@@ -1530,12 +1626,16 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "Bb",
+                        "sounding": "Bb",
+                        "fretted": "G",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Csus4",
+                        "sounding": "Csus4",
+                        "fretted": "Asus4",
                         "replaced": false
                       }
                     ]
@@ -1570,18 +1670,24 @@
                         "id": "chd_v1",
                         "at": 0,
                         "label": "F",
+                        "sounding": "F",
+                        "fretted": "D",
                         "replaced": false
                       },
                       {
                         "id": "chd_v2",
                         "at": 18,
                         "label": "F7",
+                        "sounding": "F7",
+                        "fretted": "D7",
                         "replaced": false
                       },
                       {
                         "id": "chd_v3",
                         "at": 28,
                         "label": "Bb",
+                        "sounding": "Bb",
+                        "fretted": "G",
                         "replaced": false
                       }
                     ]
@@ -1607,12 +1713,16 @@
                         "id": "chd_v4",
                         "at": 0,
                         "label": "C/E",
+                        "sounding": "C/E",
+                        "fretted": "A/C#",
                         "replaced": false
                       },
                       {
                         "id": "chd_v5",
                         "at": 20,
                         "label": "Dm7",
+                        "sounding": "Dm7",
+                        "fretted": "Bm7",
                         "replaced": false
                       }
                     ]
@@ -1629,6 +1739,8 @@
                         "id": "ins_chd_1",
                         "at": 0,
                         "label": "F",
+                        "sounding": "F",
+                        "fretted": "D",
                         "replaced": false
                       }
                     ]
@@ -1871,18 +1983,24 @@
                         "id": "chd_v1",
                         "at": 0,
                         "label": "D",
+                        "sounding": "F",
+                        "fretted": "D",
                         "replaced": false
                       },
                       {
                         "id": "chd_v2",
                         "at": 18,
                         "label": "D7",
+                        "sounding": "F7",
+                        "fretted": "D7",
                         "replaced": false
                       },
                       {
                         "id": "chd_v3",
                         "at": 28,
                         "label": "Gadd9",
+                        "sounding": "Bbadd9",
+                        "fretted": "Gadd9",
                         "replaced": true
                       }
                     ]
@@ -1899,12 +2017,16 @@
                         "id": "chd_v4",
                         "at": 0,
                         "label": "A/C#",
+                        "sounding": "C/E",
+                        "fretted": "A/C#",
                         "replaced": false
                       },
                       {
                         "id": "chd_v5",
                         "at": 20,
                         "label": "Bm7",
+                        "sounding": "Dm7",
+                        "fretted": "Bm7",
                         "replaced": false
                       }
                     ]
@@ -1939,12 +2061,16 @@
                         "id": "chd_c1",
                         "at": 2,
                         "label": "G",
+                        "sounding": "Bb",
+                        "fretted": "G",
                         "replaced": false
                       },
                       {
                         "id": "chd_c2",
                         "at": 17,
                         "label": "Asus4",
+                        "sounding": "Csus4",
+                        "fretted": "Asus4",
                         "replaced": false
                       }
                     ]
@@ -1979,18 +2105,24 @@
                         "id": "chd_v1",
                         "at": 0,
                         "label": "D",
+                        "sounding": "F",
+                        "fretted": "D",
                         "replaced": false
                       },
                       {
                         "id": "chd_v2",
                         "at": 18,
                         "label": "D7",
+                        "sounding": "F7",
+                        "fretted": "D7",
                         "replaced": false
                       },
                       {
                         "id": "chd_v3",
                         "at": 28,
                         "label": "G",
+                        "sounding": "Bb",
+                        "fretted": "G",
                         "replaced": false
                       }
                     ]
@@ -2016,12 +2148,16 @@
                         "id": "chd_v4",
                         "at": 0,
                         "label": "A/C#",
+                        "sounding": "C/E",
+                        "fretted": "A/C#",
                         "replaced": false
                       },
                       {
                         "id": "chd_v5",
                         "at": 20,
                         "label": "Bm7",
+                        "sounding": "Dm7",
+                        "fretted": "Bm7",
                         "replaced": false
                       }
                     ]
@@ -2038,6 +2174,8 @@
                         "id": "ins_chd_1",
                         "at": 0,
                         "label": "D",
+                        "sounding": "F",
+                        "fretted": "D",
                         "replaced": false
                       }
                     ]
@@ -2050,6 +2188,290 @@
               }
             ]
           }
+        }
+      ]
+    },
+    "chartChords": {
+      "about": "The chords a chart plays, each once, in the order they first come (a strip of chord diagrams): as a guitarist frets them with the capo, or as they sound.",
+      "params": [
+        "song",
+        "view",
+        "as"
+      ],
+      "cases": [
+        {
+          "name": "as they sound",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            {},
+            "sounding"
+          ],
+          "expected": [
+            "G",
+            "G7",
+            "C",
+            "D/F#",
+            "Em7",
+            "Dsus4",
+            "Bm7b5",
+            "D",
+            "Esus4",
+            "C#m7b5"
+          ]
+        },
+        {
+          "name": "fretted with the capo on 2",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            {
+              "suggestedCapo": 2
+            },
+            "fretted"
+          ],
+          "expected": [
+            "F",
+            "F7",
+            "Bb",
+            "C/E",
+            "Dm7",
+            "Csus4",
+            "Am7b5",
+            "C",
+            "Dsus4",
+            "Bm7b5"
+          ]
         }
       ]
     },

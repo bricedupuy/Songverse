@@ -2,6 +2,7 @@ import {
   layoutChordLine,
   renderChart,
   type RenderedChart,
+  type RenderedChord,
   type RenderedLine,
   type RenderedPass,
   type SectionInstance,
@@ -30,17 +31,22 @@ export function chartOfSections(sections: SectionV2[], flow: SectionInstance[] =
  *
  * Each pass shows its label, note and key change; one the arrangement
  * changes is marked, with its replaced chords and line notes. With
- * `onChordClick`, chords are buttons (a player hiding one for themselves).
+ * `onChordClick`, chords are buttons: a player hiding one for themselves,
+ * or opening its diagram (`chordClickAction`, issue #207).
  */
 export function SongChart({
   chart,
   emptyText,
   onChordClick,
+  chordClickAction = "hide",
   columns = "1",
 }: {
   chart: RenderedChart;
   emptyText?: string;
-  onChordClick?: (chordId: string) => void;
+  /** The chord tapped: its ID (the same on every pass of its section), the element, and the chord as this pass shows it. */
+  onChordClick?: (chordId: string, element: HTMLElement, chord: RenderedChord) => void;
+  /** What tapping a chord does, for its label: hide it, or show its diagram. */
+  chordClickAction?: "hide" | "diagram";
   /** Flowed into columns on a wide screen (issue #177): as many as fit, or up to 2 or 3; a section never split. */
   columns?: ChartColumns;
 }) {
@@ -93,7 +99,7 @@ export function SongChart({
             ) : null}
             <div className="flex flex-col gap-1">
               {pass.lines.map((line) => (
-                <ChartLine key={line.id} line={line} onChordClick={onChordClick} />
+                <ChartLine key={line.id} line={line} onChordClick={onChordClick} action={chordClickAction} />
               ))}
             </div>
           </div>
@@ -103,7 +109,15 @@ export function SongChart({
   );
 }
 
-function ChartLine({ line, onChordClick }: { line: RenderedLine; onChordClick?: (chordId: string) => void }) {
+function ChartLine({
+  line,
+  onChordClick,
+  action,
+}: {
+  line: RenderedLine;
+  onChordClick?: (chordId: string, element: HTMLElement, chord: RenderedChord) => void;
+  action: "hide" | "diagram";
+}) {
   const { t } = useTranslation();
   const note = line.note ? <span className="ml-2 font-sans text-xs text-amber-700 italic dark:text-amber-400">{line.note}</span> : null;
   if (line.kind === "note") return <p className="font-sans text-xs text-muted-foreground italic">{line.text}</p>;
@@ -142,8 +156,8 @@ function ChartLine({ line, onChordClick }: { line: RenderedLine; onChordClick?: 
                                 type="button"
                                 className={cn("rounded-sm hover:bg-primary/10", replaced.has(chord.id) && "underline decoration-amber-500 decoration-2")}
                                 data-chord-id={chord.id}
-                                aria-label={t("chart.hideChord", { chord: chord.label })}
-                                onClick={() => onChordClick(chord.id!)}
+                                aria-label={t(action === "hide" ? "chart.hideChord" : "chart.showDiagram", { chord: chord.label })}
+                                onClick={(event) => onChordClick(chord.id!, event.currentTarget, line.chords.find((c) => c.id === chord.id)!)}
                               >
                                 {chord.label}
                               </button>

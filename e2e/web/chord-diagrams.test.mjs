@@ -1,0 +1,137 @@
+// Chord diagrams (issue #207): off until the player picks an instrument in
+// Chart display; then the song's chords as small diagrams at the top of its
+// chart in Practice, a set's song and Live - the shape a guitarist frets with
+// the capo on - folding to one line, and a chord's card, with its other
+// shapes, when it's tapped on the chart. A set's "Hide chords" still hides.
+import { chromium } from "playwright";
+import { WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+
+let page;
+const step = stepper(() => page);
+const me = await user("Chord player");
+const song = await api(me, "POST", "/song-versions", {
+  title: `Diagram Song ${stamp}`,
+  language: "en",
+  artists: ["Someone"],
+  key: "A",
+  capo: 2,
+  content: "{start_of_verse}\n[A]Amazing [D]grace how [E]sweet the [F#m]sound\n[A]That saved a [E]wretch like [A]me\n{end_of_verse}\n",
+  contentFormat: "CHORDPRO",
+});
+const set = await api(me, "POST", "/setlists", { name: `Diagram Set ${stamp}` });
+const item = (await api(me, "POST", `/setlists/${set.id}/items`, { songVersionId: song.id })).items[0];
+
+check("off by default", (await api(me, "GET", "/users/me")).chordDiagrams === "OFF");
+check("only an instrument it knows", (await call(me, "PATCH", "/users/me", { chordDiagrams: "BANJO" })).status === 400);
+
+const browser = await chromium.launch();
+page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+await signIn(page, me);
+await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
+
+await step("no diagrams until the player picks an instrument", async () => {
+  await page.goto(`${WEB}/library/${song.id}`);
+  await page.getByTestId("practice-song").waitFor();
+  await page.locator('[data-chord="A"]').first().waitFor();
+  if ((await page.getByTestId("chord-strip").count()) > 0) throw new Error("a strip with diagrams off");
+});
+
+await step("Chart display: guitar", async () => {
+  await page.goto(`${WEB}/dashboard`);
+  await page.getByLabel("Chord diagrams").selectOption("GUITAR");
+  await page.waitForLoadState("networkidle");
+  const saved = (await api(me, "GET", "/users/me")).chordDiagrams;
+  if (saved !== "GUITAR") throw new Error(saved);
+});
+
+await step("Practice: the song's chords as a guitarist frets them with the capo on 2", async () => {
+  await page.goto(`${WEB}/library/${song.id}`);
+  const strip = page.getByTestId("chord-strip");
+  await strip.waitFor();
+  const chords = await strip.locator("[data-chord-diagram]").evaluateAll((els) => els.map((el) => el.dataset.chordDiagram));
+  // A D E F#m sounding, capo 2: G C D Em shapes, each once, in the order they come.
+  if (chords.join() !== "G,C,D,Em") throw new Error(chords.join());
+  const g = await strip.locator('[data-chord-diagram="G"] svg').getAttribute("data-shape");
+  if (g !== "320003") throw new Error(`G drawn as ${g}`);
+  await strip.getByText("capo 2, shapes as played").waitFor();
+  // The chart's own chords stay as they sound.
+  await page.locator('[data-chord="F#m"]').first().waitFor();
+});
+
+await step("a chord tapped on the chart shows its card, with its other shapes", async () => {
+  await page.getByRole("button", { name: "Show how to play D" }).first().click();
+  const card = page.getByTestId("chord-card");
+  await card.waitFor();
+  // D sounding with the capo on 2: a C shape.
+  if ((await card.getAttribute("data-chord")) !== "C") throw new Error(await card.getAttribute("data-chord"));
+  const first = await card.locator("svg[data-shape]").getAttribute("data-shape");
+  if (first !== "x32010") throw new Error(`C drawn as ${first}`);
+  await card.getByRole("button", { name: "Next shape" }).click();
+  const second = await card.locator("svg[data-shape]").getAttribute("data-shape");
+  if (second === first) throw new Error("the next shape is the same");
+  await card.getByTestId("chord-card-position").getByText(/^2 of /).waitFor();
+  await page.keyboard.press("Escape");
+  await card.waitFor({ state: "detached" });
+});
+
+await step("a section sung again in another key: the card is the chord tapped, on its own pass", async () => {
+  const modulating = await api(me, "POST", "/song-versions", {
+    title: `Modulating ${stamp}`,
+    language: "en",
+    artists: ["Someone"],
+    key: "G",
+    content: "{start_of_chorus}\n[G]Glory [C]glory\n{end_of_chorus}\n{key: A}\n{start_of_chorus}\n[A]Glory [D]glory\n{end_of_chorus}\n",
+    contentFormat: "CHORDPRO",
+  });
+  await page.goto(`${WEB}/library/${modulating.id}`);
+  await page.waitForLoadState("networkidle");
+  // One chorus, sung twice: its chords share their IDs on both passes.
+  await page.getByRole("button", { name: "Show how to play C" }).click();
+  if ((await page.getByTestId("chord-card").getAttribute("data-chord")) !== "C") throw new Error(await page.getByTestId("chord-card").getAttribute("data-chord"));
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Show how to play D" }).click();
+  if ((await page.getByTestId("chord-card").getAttribute("data-chord")) !== "D") throw new Error(await page.getByTestId("chord-card").getAttribute("data-chord"));
+  await page.keyboard.press("Escape");
+  await page.goto(`${WEB}/library/${song.id}`);
+  await page.waitForLoadState("networkidle");
+});
+
+await step("the strip folds to one line, and stays folded", async () => {
+  const strip = page.getByTestId("chord-strip");
+  await strip.getByRole("button", { name: /Guitar chords/ }).click();
+  await page.locator("[data-testid=chord-strip][data-folded]").waitFor();
+  await strip.getByText("G · C · D · Em").waitFor();
+  await page.reload();
+  await page.locator("[data-testid=chord-strip][data-folded]").waitFor();
+  await strip.getByRole("button", { name: /Guitar chords/ }).click();
+  await page.locator("[data-testid=chord-strip]:not([data-folded])").waitFor();
+});
+
+await step("a set's song: switched to ukulele from My view; Hide chords still hides", async () => {
+  await page.goto(`${WEB}/sets/${set.id}/songs/${item.id}`);
+  await page.waitForLoadState("networkidle");
+  await page.getByTestId("chord-strip").waitFor();
+  await page.getByTestId("diagrams-select").selectOption("UKULELE");
+  await page.locator("[data-testid=chord-strip][data-instrument=ukulele]").waitFor();
+  // A ukulele has no capo here: the chords as they sound.
+  const chords = await page.getByTestId("chord-strip").locator("[data-chord-diagram]").evaluateAll((els) => els.map((el) => el.dataset.chordDiagram));
+  if (chords.join() !== "A,D,E,F#m") throw new Error(chords.join());
+  const a = await page.locator('[data-chord-diagram="A"] svg').getAttribute("data-shape");
+  if (a !== "2100") throw new Error(`ukulele A drawn as ${a}`);
+  await page.getByRole("button", { name: "Hide chords" }).click();
+  await page.getByRole("button", { name: "Hide D for me" }).first().click();
+  await page.getByText("Show 1 hidden chord").waitFor();
+  if ((await page.getByTestId("chord-card").count()) > 0) throw new Error("a card while hiding chords");
+  await page.getByText("Show 1 hidden chord").click();
+});
+
+await step("Live: the strip at the top of the song", async () => {
+  await page.goto(`${WEB}/sets/${set.id}/live/${item.id}`);
+  await page.getByTestId("live-view").waitFor();
+  await page.locator("[data-testid=chord-strip][data-instrument=ukulele]").waitFor();
+  await page.getByRole("button", { name: "Show how to play E" }).first().click();
+  await page.getByTestId("chord-card").waitFor();
+});
+
+await browser.close();
+finish();

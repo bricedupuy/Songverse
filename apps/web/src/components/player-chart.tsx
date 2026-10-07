@@ -1,10 +1,10 @@
-import { renderChart, type ChartPreferences, type RenderedChart, type ChordNotationValue, type CapoDisplayModeValue, type SetlistSongView } from "@songverse/core";
+import { renderChart, type ChartPreferences, type RenderedChart, type ChordDiagramsValue, type ChordNotationValue, type CapoDisplayModeValue, type SetlistSongView } from "@songverse/core";
 import { EyeOff } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { useChartColumns } from "#/lib/chart-columns";
-import { SongChart } from "#/components/song-chart";
+import { ChartWithDiagrams } from "#/components/chord-diagrams";
 import { apiClient } from "#/lib/api-client";
 import { cn } from "#/lib/utils";
 
@@ -42,6 +42,7 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
   const [preferences, setPreferences] = useState<ChartPreferences>(view.view.preferences ?? EMPTY);
   const [notation, setNotation] = useState<ChordNotationValue>(view.view.chordNotation);
   const [capoDisplay, setCapoDisplay] = useState<CapoDisplayModeValue>(view.view.capoDisplayMode);
+  const [diagrams, setDiagrams] = useState<ChordDiagramsValue>(view.view.chordDiagrams ?? "OFF");
   const [hiding, setHiding] = useState(false);
   const columns = useChartColumns();
   const [error, setError] = useState<string | null>(null);
@@ -63,9 +64,10 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
     apiClient.setSetlistChartPreferences(view.set.id, view.item.id, mine).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }
 
-  function saveSetting(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue }) {
+  function saveSetting(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; chordDiagrams?: ChordDiagramsValue }) {
     if (change.chordNotation) setNotation(change.chordNotation);
     if (change.capoDisplayMode) setCapoDisplay(change.capoDisplayMode);
+    if (change.chordDiagrams) setDiagrams(change.chordDiagrams);
     setError(null);
     apiClient.updateMe(change).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }
@@ -97,6 +99,20 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
             {t("player.capoShapes", { capo: chart.capo })}
           </Toggle>
         ) : null}
+        {/* Chord diagrams (issue #207): for every chart, like the notation. */}
+        <label className={cn("flex items-center gap-1 rounded-md border px-2 py-1 text-xs", diagrams !== "OFF" ? "border-primary text-foreground" : "text-muted-foreground")}>
+          {t("player.diagrams")}
+          <select
+            value={diagrams}
+            onChange={(e) => saveSetting({ chordDiagrams: e.target.value as ChordDiagramsValue })}
+            className="bg-transparent text-xs outline-none"
+            data-testid="diagrams-select"
+          >
+            <option value="OFF">{t("dashboard.diagramsOff")}</option>
+            <option value="GUITAR">{t("dashboard.diagramsGuitar")}</option>
+            <option value="UKULELE">{t("dashboard.diagramsUkulele")}</option>
+          </select>
+        </label>
         <ChartColumnsPicker className="ml-auto" />
         {hiddenCount > 0 ? (
           <button
@@ -121,8 +137,10 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
           {error}
         </p>
       ) : null}
-      <SongChart
+      <ChartWithDiagrams
         chart={chart}
+        diagrams={diagrams}
+        notation={notation}
         columns={columns}
         emptyText={t("sets.noChart")}
         onChordClick={hiding ? (id) => savePreferences({ ...preferences, hiddenChordIds: [...new Set([...preferences.hiddenChordIds, id])] }) : undefined}

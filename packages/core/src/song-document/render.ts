@@ -1,4 +1,4 @@
-import { formatChord, simplifyChord, transposeChord, type ChordNotation } from "../chords/chord.js";
+import { formatChord, parseChord, simplifyChord, transposeChord, type ChordNotation } from "../chords/chord.js";
 import { transposeKey } from "../music-keys/transpose.js";
 import {
   ArrangementDocumentV2Schema,
@@ -35,6 +35,10 @@ export interface RenderedChord {
   at: number;
   /** What's shown: transposed, capo shapes, simplified, named - everything applied. */
   label: string;
+  /** The chord as it sounds, in letters: transposed and simplified, before the capo and the notation (issue #207). */
+  sounding: string;
+  /** The chord a guitarist frets with the capo on: the sounding chord moved down by the capo; the same without one. Chord diagrams draw this. */
+  fretted: string;
   /** Replaced by the arrangement on this pass. */
   replaced: boolean;
 }
@@ -97,14 +101,15 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
   const baseSteps = (defaults?.transposeSteps ?? 0) + (view.transposeSteps ?? 0);
   const keyAt = (steps: number) => (songKey ? (transposeKey(songKey, steps) ?? songKey) : null);
 
-  // How one chord (written in the song's key) is shown with `steps` in effect.
+  // How one chord (written in the song's key) sounds, is fretted and is shown with `steps` in effect.
   const show = (raw: string, steps: number, key: string | null) => {
-    let label = transposeChord(raw, steps, key);
-    if (capo && view.capoDisplay === "shapes") label = transposeChord(label, -capo, key ? transposeKey(key, -capo) : null);
+    let sounding = transposeChord(raw, steps, key);
     if (view.preferences?.simplifyChords || view.preferences?.hideBassNotes) {
-      label = simplifyChord(label, { dropExtensions: !!view.preferences?.simplifyChords, dropBass: !!view.preferences?.hideBassNotes });
+      sounding = simplifyChord(sounding, { dropExtensions: !!view.preferences?.simplifyChords, dropBass: !!view.preferences?.hideBassNotes });
     }
-    return view.notation === "solfege" ? formatChord(label, "solfege") : label;
+    const fretted = capo ? transposeChord(sounding, -capo, key ? transposeKey(key, -capo) : null) : sounding;
+    const shown = capo && view.capoDisplay === "shapes" ? fretted : sounding;
+    return { label: view.notation === "solfege" ? formatChord(shown, "solfege") : shown, sounding, fretted };
   };
 
   let steps = baseSteps;
@@ -213,7 +218,7 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
         lyricChanged: line.lyricChanged,
         chords: line.chords
           .filter((chord) => !hidden.has(chord.id))
-          .map((chord) => ({ id: chord.id, at: chord.at, label: show(chord.raw, steps, key), replaced: chord.replaced })),
+          .map((chord) => ({ id: chord.id, at: chord.at, ...show(chord.raw, steps, key), replaced: chord.replaced })),
       })),
       differs: overrides.length > 0,
       problems,
@@ -275,4 +280,17 @@ export function readArrangementDocument(
   const parsed = ArrangementDocumentV2Schema.safeParse(json);
   if (parsed.success) return { document: parsed.data, readable: true };
   return { document: { ...newArrangementDocument(song, songVersionId, makeId), songRevision: 0 }, readable: false };
+}
+
+/**
+ * The chords a chart plays, each once, in the order they first come: what a
+ * strip of chord diagrams shows (issue #207). `fretted` (a guitarist with
+ * the capo on) or as they sound (anyone else).
+ */
+export function chartChords(chart: Pick<RenderedChart, "passes">, as: "fretted" | "sounding" = "sounding"): string[] {
+  const seen = new Set<string>();
+  for (const pass of chart.passes) {
+    for (const line of pass.lines) for (const chord of line.chords) if (parseChord(chord[as])?.kind === "chord") seen.add(chord[as]);
+  }
+  return [...seen];
 }

@@ -29,6 +29,7 @@ export * from "./streaming-links/parser.js";
 export * from "./metadata/rank.js";
 export * from "./music-keys/transpose.js";
 export * from "./chords/chord.js";
+export * from "./chords/shapes.js";
 export * from "./user-roles/index.js";
 export * from "./songbook-catalog-format/index.js";
 export * from "./api-client/index.js";
