@@ -52,6 +52,8 @@ const MIME_TYPES = {
   ".woff": "font/woff",
   ".woff2": "font/woff2",
   ".txt": "text/plain",
+  // pdf.js's image decoders (vite.config.ts's pdfjsWasm).
+  ".wasm": "application/wasm",
 };
 
 async function tryServeStatic(pathname) {

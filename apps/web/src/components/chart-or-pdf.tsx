@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "#/components/ui/card";
 import { NativeSelect } from "#/components/ui/native-select";
 import { apiClient } from "#/lib/api-client";
-import { loadPdfjs } from "#/lib/pdfjs";
+import { loadPdfjs, pdfjsWasmUrl } from "#/lib/pdfjs";
 import { fileLoader, songFiles } from "#/lib/song-files";
 import { cn } from "#/lib/utils";
 
@@ -226,7 +226,7 @@ export function PdfPages({ source, name, className }: { source: () => Promise<Pd
     (async () => {
       try {
         const [pdfjs, from] = await Promise.all([loadPdfjs(), source()]);
-        const task = pdfjs.getDocument("url" in from ? { url: from.url, rangeChunkSize: 128 * 1024 } : { data: from.data });
+        const task = pdfjs.getDocument({ ...("url" in from ? { url: from.url, rangeChunkSize: 128 * 1024 } : { data: from.data }), wasmUrl: pdfjsWasmUrl(pdfjs) });
         destroy = () => void task.destroy();
         const opened = await task.promise;
         if (!cancelled) setPdf(opened);

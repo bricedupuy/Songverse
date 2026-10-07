@@ -1,5 +1,5 @@
 import type { PdfTextItem } from "@songverse/core";
-import { loadPdfjs } from "#/lib/pdfjs";
+import { loadPdfjs, pdfjsWasmUrl } from "#/lib/pdfjs";
 
 /**
  * A PDF's text with where each piece is on its page (issue #124), read in
@@ -9,7 +9,7 @@ import { loadPdfjs } from "#/lib/pdfjs";
  */
 export async function pdfTextItems(file: Blob): Promise<PdfTextItem[]> {
   const pdfjs = await loadPdfjs();
-  const task = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) });
+  const task = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()), wasmUrl: pdfjsWasmUrl(pdfjs) });
   try {
     const pdf = await task.promise;
     const items: PdfTextItem[] = [];

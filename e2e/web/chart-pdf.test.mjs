@@ -4,7 +4,7 @@
 // on the server - so another device, and Live, show the same - else their
 // default from their settings.
 import { chromium } from "playwright";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, concatTransformationMatrix, drawObject, popGraphicsState, pushGraphicsState, rgb } from "pdf-lib";
 import { API, WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
@@ -178,6 +178,43 @@ await step("a long PDF streams (issue #156): fetched by byte ranges, its first p
 
 await step("no page errors", async () => {
   if (errors.length) throw new Error(errors.join(" | "));
+});
+
+await step("a scanned page (CCITT fax, as sheet music is often scanned) draws its image, not just its text", async () => {
+  // pdf.js decodes these with WebAssembly it fetches from /assets/pdfjs-<version>/; without it, only text was drawn.
+  const scan = await PDFDocument.create();
+  const sheet = scan.addPage([595, 842]);
+  // 64 rows of a white G4 line (one bit each: "the same as the line above"), painted black through Decode [1 0].
+  const ref = scan.context.register(
+    scan.context.stream(new Uint8Array(8).fill(0xff), {
+      Type: "XObject",
+      Subtype: "Image",
+      Width: 64,
+      Height: 64,
+      ImageMask: true,
+      BitsPerComponent: 1,
+      Filter: "CCITTFaxDecode",
+      DecodeParms: { K: -1, Columns: 64, Rows: 64 },
+      Decode: [1, 0],
+    }),
+  );
+  sheet.pushOperators(pushGraphicsState(), concatTransformationMatrix(400, 0, 0, 400, 100, 300), drawObject(sheet.node.newXObject("Scan", ref)), popGraphicsState());
+  const scanned = await api(me, "POST", "/song-versions", { title: `Scanned ${stamp}`, language: "en", artists: ["Someone"] });
+  const upload = new FormData();
+  upload.append("type", "PDF");
+  upload.append("file", new Blob([await scan.save()], { type: "application/pdf" }), "Scan.pdf");
+  await fetch(`${API}/song-versions/${scanned.id}/attachments`, { method: "POST", headers: { Authorization: `Bearer ${me.bearer}` }, body: upload });
+  await page.goto(`${WEB}/library/${scanned.id}`);
+  await page.waitForLoadState("networkidle");
+  await page.getByTestId("chart-view-pdf").click();
+  const drawn = page.getByTestId("pdf-page").first();
+  await drawn.waitFor();
+  let ink = 0;
+  for (let i = 0; i < 40 && ink < 1000; i++) {
+    await page.waitForTimeout(250);
+    ink = await inked(drawn);
+  }
+  if (ink < 1000) throw new Error(`the scan wasn't drawn (${ink} dark samples)`);
 });
 
 await browser.close();

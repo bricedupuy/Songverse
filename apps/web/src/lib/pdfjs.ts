@@ -15,3 +15,12 @@ export async function loadPdfjs() {
   pdfjs.GlobalWorkerOptions.workerPort = workerPort;
   return pdfjs;
 }
+
+/**
+ * Where pdf.js finds its image decoders (vite.config.ts's pdfjsWasm), for
+ * getDocument's `wasmUrl`: without them, a scanned page (JBIG2, CCITT fax,
+ * JPEG 2000) draws only its text.
+ */
+export function pdfjsWasmUrl(pdfjs: { version: string }): string {
+  return `/assets/pdfjs-${pdfjs.version}/`;
+}
