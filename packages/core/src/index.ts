@@ -31,6 +31,7 @@ export * from "./music-keys/transpose.js";
 export * from "./chords/chord.js";
 export * from "./chords/shapes.js";
 export * from "./chords/piano.js";
+export * from "./chords/progressions.js";
 export * from "./user-roles/index.js";
 export * from "./songbook-catalog-format/index.js";
 export * from "./api-client/index.js";

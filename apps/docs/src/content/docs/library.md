@@ -44,6 +44,12 @@ A global admin can **Upload a picture** (dragged and zoomed into the circle), **
 
 ![The artists](../../assets/screenshots/en/artists.jpg)
 
+## Songs by chord progression
+
+**Progressions**, under **Library** in the sidebar, finds songs by how their chords move, whatever their key. Type the chords as numbers - **1 5 6m 4** - or Roman numerals - **I V vi IV**, lowercase for minor; a plain 2, 3 or 6 is minor, as in the key's own chords, and **b7** or **#4** are chords from outside the key. You get the songs you can see that go that way, with the parts it's in. A part is read as a loop, as it's played, so **1 5 6m 4** also finds a chorus written **6m 4 1 5**. Sevenths, extensions and bass notes don't matter (G7/B counts as 5 in C), and a song needs a key to be found.
+
+On a song's page, **Chord progressions** shows each part's chords as numbers, and **Songs with similar progressions**: the songs you can see that share the most runs of chords with it - the rarer the run, the more it counts, since 1 4 5 is everywhere - with the runs they share. Useful to build a medley or a transition between two songs.
+
 ## Smart lists
 
 **Songs** shows 50 songs at first; more come as you scroll to the end (or with **Show more**), and a reload or going back brings back as many as you'd reached. **Columns** chooses which columns show - Artist and Tags at first, with Title; Language, Status, Updated, Added and CCLI too if you want them - and their order (Title stays first), remembered on this device.

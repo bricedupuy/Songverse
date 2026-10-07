@@ -41,6 +41,7 @@ import { AutoDetectCard, BasicInfoCard, LibraryMatchPanel, MoreDetailsCard, Song
 import { PublishCard } from "./publish-card";
 import { MySuggestionsCard } from "./my-suggestions-card";
 import { LinkedSongsCard, relationKind } from "./linked-songs-card";
+import { ProgressionsCard } from "./progressions-card";
 import { Textarea } from "#/components/ui/textarea";
 import { ArrangementsTab } from "./arrangements-tab";
 import { HistoryTab } from "./history-tab";
@@ -450,6 +451,7 @@ export function SongEditor(props: (CreateProps | EditProps) & { tags: Tag[]; tab
         ) : null}
         {edit ? <SongbooksCard memberships={edit.songbookMemberships} title={edit.version.title} /> : null}
         {edit ? <LinkedSongsCard version={edit.version} /> : null}
+        {edit ? <ProgressionsCard songVersionId={edit.version.id} /> : null}
         {edit && canManage && edit.version.ownerScope !== "GLOBAL" ? <PublishCard songVersionId={edit.version.id} /> : null}
         {edit && edit.version.ownerScope === "GLOBAL" ? <MySuggestionsCard songVersionId={edit.version.id} refreshKey={suggestionsKey} /> : null}
       </div>

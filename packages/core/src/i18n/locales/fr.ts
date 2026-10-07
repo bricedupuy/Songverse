@@ -294,6 +294,7 @@ const fr: typeof en = {
     description: "Un accordeur pour votre instrument et votre voix, avec le micro de votre appareil, sera ici, à côté du métronome.",
   },
   nav: {
+    progressions: "Progressions",
     tools: "Outils",
     tuner: "Accordeur",
     documentation: "Documentation",
@@ -1257,6 +1258,19 @@ const fr: typeof en = {
     names: "Noms",
     numbers: "1 4 5",
     colors: "Couleurs",
+  },
+  progressions: {
+    title: "Progressions d'accords",
+    description: "Les accords de chaque partie en chiffres dans la tonalité du chant, et les chants qui avancent le plus comme lui - pour les enchaînements et les transitions.",
+    none: "Aucune progression : le chant a besoin d'une tonalité et d'accords.",
+    similar: "Chants aux progressions semblables",
+    noSimilar: "Aucun chant que vous voyez n'avance vraiment comme celui-ci.",
+    page: "Progressions",
+    pageDescription: "Trouvez des chants selon le mouvement de leurs accords, dans n'importe quelle tonalité : tapez des chiffres (1 5 6m 4) ou des chiffres romains (I V vi IV).",
+    searchLabel: "Une progression d'accords",
+    try: "Essayez",
+    notAProgression: "Tapez au moins deux accords en chiffres, comme 1 5 6m 4, ou I V vi IV.",
+    noMatch: "Aucun chant que vous voyez ne fait {{progression}}.",
   },
   chords: {
     guitar: "Accords à la guitare",

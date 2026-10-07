@@ -140,3 +140,9 @@ export const SetStreamingLinkSchema = z.strictObject({
     .refine((value) => !value.includes("://") || URL.canParse(value), { params: { format: "url" } })
     .describe("A share link (or, for Spotify/YouTube, a bare ID also works)"),
 });
+
+/** GET /progressions/search: songs by chord progression (issue #204), "1 5 6m 4" or "I V vi IV". */
+export const ProgressionSearchQuerySchema = z.strictObject({
+  q: z.string().trim().min(1).max(120),
+});
+export type ProgressionSearchQuery = z.input<typeof ProgressionSearchQuerySchema>;

@@ -4023,6 +4023,519 @@
         }
       ]
     },
+    "progressionDegree": {
+      "about": "A chord as a degree for finding songs by progression (issue #204): its triad only - no 7ths, extensions or slash bass - as a Nashville number in the key.",
+      "params": [
+        "raw",
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "G7/B in G",
+          "args": [
+            "G7/B",
+            "G"
+          ],
+          "expected": "1"
+        },
+        {
+          "name": "Em7 in G",
+          "args": [
+            "Em7",
+            "G"
+          ],
+          "expected": "6m"
+        },
+        {
+          "name": "Cadd9 in G",
+          "args": [
+            "Cadd9",
+            "G"
+          ],
+          "expected": "4"
+        },
+        {
+          "name": "Dsus4 in G",
+          "args": [
+            "Dsus4",
+            "G"
+          ],
+          "expected": "5sus4"
+        },
+        {
+          "name": "F in G",
+          "args": [
+            "F",
+            "G"
+          ],
+          "expected": "b7"
+        },
+        {
+          "name": "Bm7b5 in C",
+          "args": [
+            "Bm7b5",
+            "C"
+          ],
+          "expected": "7dim"
+        },
+        {
+          "name": "(Am) in C",
+          "args": [
+            "(Am)",
+            "C"
+          ],
+          "expected": "6m"
+        },
+        {
+          "name": "N.C. in G",
+          "args": [
+            "N.C.",
+            "G"
+          ],
+          "expected": null
+        }
+      ]
+    },
+    "songProgressions": {
+      "about": "Each section's progression in the song's key: chord changes in order, repeats collapsed; empty without a key.",
+      "params": [
+        "song"
+      ],
+      "cases": [
+        {
+          "name": "verse and chorus",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            }
+          ],
+          "expected": [
+            {
+              "sectionId": "sec_verse",
+              "type": "verse",
+              "label": null,
+              "degrees": [
+                "1",
+                "4",
+                "5",
+                "6m"
+              ]
+            },
+            {
+              "sectionId": "sec_chorus",
+              "type": "chorus",
+              "label": null,
+              "degrees": [
+                "4",
+                "5sus4",
+                "3dim"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "progressionGrams": {
+      "about": "The runs of 3 and 4 chords in a song's sections, each section read as a loop, each run once: what songs are compared by.",
+      "params": [
+        "sections"
+      ],
+      "cases": [
+        {
+          "name": "1 5 6m 4",
+          "args": [
+            [
+              {
+                "degrees": [
+                  "1",
+                  "5",
+                  "6m",
+                  "4"
+                ]
+              }
+            ]
+          ],
+          "expected": [
+            "1-5-6m",
+            "1-5-6m-4",
+            "4-1-5",
+            "4-1-5-6m",
+            "5-6m-4",
+            "5-6m-4-1",
+            "6m-4-1",
+            "6m-4-1-5"
+          ]
+        },
+        {
+          "name": "starting and ending on 1",
+          "args": [
+            [
+              {
+                "degrees": [
+                  "1",
+                  "4",
+                  "5",
+                  "1"
+                ]
+              }
+            ]
+          ],
+          "expected": [
+            "1-4-5",
+            "4-5-1",
+            "5-1-4"
+          ]
+        },
+        {
+          "name": "back and forth only",
+          "args": [
+            [
+              {
+                "degrees": [
+                  "1",
+                  "4"
+                ]
+              }
+            ]
+          ],
+          "expected": []
+        }
+      ]
+    },
+    "parseProgressionQuery": {
+      "about": "A progression typed to search with, as degrees: numbers, Roman numerals (lowercase minor), flats and sharps; a plain 2, 3 or 6 is minor. Null when it isn't one.",
+      "params": [
+        "text"
+      ],
+      "cases": [
+        {
+          "name": "\"1 5 6m 4\"",
+          "args": [
+            "1 5 6m 4"
+          ],
+          "expected": [
+            "1",
+            "5",
+            "6m",
+            "4"
+          ]
+        },
+        {
+          "name": "\"I V vi IV\"",
+          "args": [
+            "I V vi IV"
+          ],
+          "expected": [
+            "1",
+            "5",
+            "6m",
+            "4"
+          ]
+        },
+        {
+          "name": "\"1-5-6-4\"",
+          "args": [
+            "1-5-6-4"
+          ],
+          "expected": [
+            "1",
+            "5",
+            "6m",
+            "4"
+          ]
+        },
+        {
+          "name": "\"6 4 1 5\"",
+          "args": [
+            "6 4 1 5"
+          ],
+          "expected": [
+            "6m",
+            "4",
+            "1",
+            "5"
+          ]
+        },
+        {
+          "name": "\"1 b7 4 1\"",
+          "args": [
+            "1 b7 4 1"
+          ],
+          "expected": [
+            "1",
+            "b7",
+            "4",
+            "1"
+          ]
+        },
+        {
+          "name": "\"2m7 5 1\"",
+          "args": [
+            "2m7 5 1"
+          ],
+          "expected": [
+            "2m",
+            "5",
+            "1"
+          ]
+        },
+        {
+          "name": "\"ii V I\"",
+          "args": [
+            "ii V I"
+          ],
+          "expected": [
+            "2m",
+            "5",
+            "1"
+          ]
+        },
+        {
+          "name": "\"1 5sus 5\"",
+          "args": [
+            "1 5sus 5"
+          ],
+          "expected": [
+            "1",
+            "5sus4",
+            "5"
+          ]
+        },
+        {
+          "name": "\"Amazing grace\"",
+          "args": [
+            "Amazing grace"
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"4\"",
+          "args": [
+            "4"
+          ],
+          "expected": null
+        }
+      ]
+    },
+    "findProgression": {
+      "about": "The sections whose chords, read as a loop, contain a progression in order.",
+      "params": [
+        "sections",
+        "query"
+      ],
+      "cases": [
+        {
+          "name": "in a loop",
+          "args": [
+            [
+              {
+                "sectionId": "s1",
+                "type": "chorus",
+                "label": null,
+                "degrees": [
+                  "6m",
+                  "4",
+                  "1",
+                  "5"
+                ]
+              }
+            ],
+            [
+              "1",
+              "5",
+              "6m",
+              "4"
+            ]
+          ],
+          "expected": [
+            {
+              "sectionId": "s1",
+              "type": "chorus",
+              "label": null,
+              "degrees": [
+                "6m",
+                "4",
+                "1",
+                "5"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "not there",
+          "args": [
+            [
+              {
+                "sectionId": "s1",
+                "type": "verse",
+                "label": null,
+                "degrees": [
+                  "1",
+                  "4",
+                  "5"
+                ]
+              }
+            ],
+            [
+              "1",
+              "5",
+              "6m",
+              "4"
+            ]
+          ],
+          "expected": []
+        }
+      ]
+    },
+    "progressionSimilarity": {
+      "about": "How alike two songs' runs are, 0 to 1: the shared ones over all, each weighted (here equally).",
+      "params": [
+        "a",
+        "b"
+      ],
+      "cases": [
+        {
+          "name": "half shared",
+          "args": [
+            [
+              "1-5-6m",
+              "5-6m-4"
+            ],
+            [
+              "1-5-6m",
+              "4-1-5"
+            ]
+          ],
+          "expected": 0.3333333333333333
+        },
+        {
+          "name": "nothing shared",
+          "args": [
+            [
+              "1-4-5"
+            ],
+            [
+              "2m-5-1"
+            ]
+          ],
+          "expected": 0
+        }
+      ]
+    },
     "voicingText": {
       "about": "A voicing written down to keep a player's choice: left hand | right hand, as MIDI notes.",
       "params": [

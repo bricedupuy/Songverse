@@ -1,5 +1,6 @@
 import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
 import { pianoVoicings, songVoicings, voicingText } from "../chords/piano.js";
+import { findProgression, parseProgressionQuery, progressionDegree, progressionGrams, progressionSimilarity, songProgressions } from "../chords/progressions.js";
 import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
 import { parseArrangementDocumentV2, findArrangementProblems } from "../schemas/arrangement-document-v2.js";
@@ -271,6 +272,52 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "C G Am F, smooth", args: [["C", "G", "Am", "F"], {}] },
           { name: "C G Am F, root position", args: [["C", "G", "Am", "F"], { smooth: false }] },
           { name: "a ii-V-I in C", args: [["Dm7", "G7", "Cmaj7"], {}] },
+        ],
+      },
+      progressionDegree: {
+        about: "A chord as a degree for finding songs by progression (issue #204): its triad only - no 7ths, extensions or slash bass - as a Nashville number in the key.",
+        params: ["raw", "key"],
+        run: progressionDegree,
+        cases: [["G7/B", "G"], ["Em7", "G"], ["Cadd9", "G"], ["Dsus4", "G"], ["F", "G"], ["Bm7b5", "C"], ["(Am)", "C"], ["N.C.", "G"]].map((args) => ({ name: `${args[0]} in ${args[1]}`, args })),
+      },
+      songProgressions: {
+        about: "Each section's progression in the song's key: chord changes in order, repeats collapsed; empty without a key.",
+        params: ["song"],
+        run: (song: unknown) => songProgressions(read(song)),
+        cases: [{ name: "verse and chorus", args: [SONG] }],
+      },
+      progressionGrams: {
+        about: "The runs of 3 and 4 chords in a song's sections, each section read as a loop, each run once: what songs are compared by.",
+        params: ["sections"],
+        run: progressionGrams,
+        cases: [
+          { name: "1 5 6m 4", args: [[{ degrees: ["1", "5", "6m", "4"] }]] },
+          { name: "starting and ending on 1", args: [[{ degrees: ["1", "4", "5", "1"] }]] },
+          { name: "back and forth only", args: [[{ degrees: ["1", "4"] }]] },
+        ],
+      },
+      parseProgressionQuery: {
+        about: "A progression typed to search with, as degrees: numbers, Roman numerals (lowercase minor), flats and sharps; a plain 2, 3 or 6 is minor. Null when it isn't one.",
+        params: ["text"],
+        run: parseProgressionQuery,
+        cases: ["1 5 6m 4", "I V vi IV", "1-5-6-4", "6 4 1 5", "1 b7 4 1", "2m7 5 1", "ii V I", "1 5sus 5", "Amazing grace", "4"].map((text) => ({ name: JSON.stringify(text), args: [text] })),
+      },
+      findProgression: {
+        about: "The sections whose chords, read as a loop, contain a progression in order.",
+        params: ["sections", "query"],
+        run: findProgression,
+        cases: [
+          { name: "in a loop", args: [[{ sectionId: "s1", type: "chorus", label: null, degrees: ["6m", "4", "1", "5"] }], ["1", "5", "6m", "4"]] },
+          { name: "not there", args: [[{ sectionId: "s1", type: "verse", label: null, degrees: ["1", "4", "5"] }], ["1", "5", "6m", "4"]] },
+        ],
+      },
+      progressionSimilarity: {
+        about: "How alike two songs' runs are, 0 to 1: the shared ones over all, each weighted (here equally).",
+        params: ["a", "b"],
+        run: (a: string[], b: string[]) => progressionSimilarity(a, b),
+        cases: [
+          { name: "half shared", args: [["1-5-6m", "5-6m-4"], ["1-5-6m", "4-1-5"]] },
+          { name: "nothing shared", args: [["1-4-5"], ["2m-5-1"]] },
         ],
       },
       voicingText: {

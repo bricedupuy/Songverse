@@ -15,6 +15,7 @@ import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
+import type { SectionProgression } from "../chords/progressions.js";
 import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
@@ -1800,6 +1801,12 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     ) => request<ArrangementDetail>(`/arrangements/${arrangementId}`, { method: "PATCH", body: JSON.stringify(data) }),
     markArrangementReviewed: (arrangementId: string) => request<ArrangementDetail>(`/arrangements/${arrangementId}/reviewed`, { method: "POST" }),
     deleteArrangement: (arrangementId: string) => request<void>(`/arrangements/${arrangementId}`, { method: "DELETE" }),
+    /** Songs whose chords go like `q` ("1 5 6m 4"), in any key (issue #204). */
+    searchProgressions: (q: string) =>
+      request<{ query: string[] | null; songs: (SongVersionSummary & { sections: SectionProgression[] })[] }>(`/progressions/search?q=${encodeURIComponent(q)}`),
+    /** A song's progressions, and the songs that move most like it (issue #204). */
+    getSongProgressions: (songVersionId: string) =>
+      request<{ sections: SectionProgression[]; similar: (SongVersionSummary & { score: number; shared: string[] })[] }>(`/progressions/songs/${songVersionId}`),
     /** The shapes this player chose for the song's chords (issue #207). */
     getChordShapeChoices: (songVersionId: string) => request<ChordShapeChoice[]>(`/song-versions/${songVersionId}/chord-shapes`),
     /** Keeps a shape for a chord of the song (frets null: back to the usual one); all of the song's choices back. */

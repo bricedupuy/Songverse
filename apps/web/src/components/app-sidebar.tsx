@@ -33,6 +33,7 @@ import {
   ClipboardList,
   Gauge,
   MicVocal,
+  Waypoints,
   Music,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -357,6 +358,8 @@ function MainNav({
                 link: { to: "/library/songs" as const, search: { favorites: true } },
               },
               { key: "artists", label: t("nav.artists"), icon: <MicVocal />, isActive: pathname === "/library/artists" || pathname.startsWith("/library/artists/"), link: { to: "/library/artists" as const } },
+              // Songs by chord progression (issue #204).
+              { key: "progressions", label: t("nav.progressions"), icon: <Waypoints />, isActive: pathname === "/library/progressions", link: { to: "/library/progressions" as const } },
               ...smartLists.map((list) => ({
                 key: list.id,
                 label: list.name,

@@ -294,6 +294,7 @@ const en = {
     description: "A tuner for your instrument and your voice, from your device's microphone, will be here, beside the metronome.",
   },
   nav: {
+    progressions: "Progressions",
     tools: "Tools",
     tuner: "Tuner",
     documentation: "Documentation",
@@ -1254,6 +1255,19 @@ const en = {
     names: "Names",
     numbers: "1 4 5",
     colors: "Colours",
+  },
+  progressions: {
+    title: "Chord progressions",
+    description: "Each part's chords as numbers in the song's key, and the songs that move most like it - for medleys and transitions.",
+    none: "No progressions: the song needs a key and chords.",
+    similar: "Songs with similar progressions",
+    noSimilar: "No song you can see moves quite like this one.",
+    page: "Progressions",
+    pageDescription: "Find songs by how their chords move, in any key: type numbers (1 5 6m 4) or Roman numerals (I V vi IV).",
+    searchLabel: "A chord progression",
+    try: "Try",
+    notAProgression: "Type at least two chords as numbers, like 1 5 6m 4, or I V vi IV.",
+    noMatch: "No song you can see goes {{progression}}.",
   },
   chords: {
     guitar: "Guitar chords",

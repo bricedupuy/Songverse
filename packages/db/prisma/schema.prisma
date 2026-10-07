@@ -744,6 +744,7 @@ model SongVersion {
   arrangements      Arrangement[]
   chartPreferences  ChartPreference[]
   chordShapeChoices ChordShapeChoice[]
+  progression       SongProgression?
   songbookEntries   SongbookEntry[]
   versionTags       SongVersionTag[]
   identifiers       SongVersionIdentifier[]
@@ -900,6 +901,24 @@ model Arrangement {
 // "Personal chart preferences"): chords they hide, simpler chords, no bass
 // notes. Per user, and per arrangement - or per song when it's played as
 // written. Never shared, never changes the song or the arrangement.
+// A song's chord progressions (issue #204), for finding songs by progression:
+// worked out from the chart (core's songProgressions) for the chart's
+// revision, and worked out again when the chart has moved on. Never part of
+// the song itself.
+model SongProgression {
+  songVersionId String   @id
+  revision      Int
+  // [{ sectionId, type, label, degrees: ["1", "5", "6m", "4"] }]
+  sections      Json
+  // Runs of 3 and 4 chords, "1-5-6m": what's searched and compared.
+  grams         String[]
+  updatedAt     DateTime @updatedAt
+
+  songVersion SongVersion @relation(fields: [songVersionId], references: [id], onDelete: Cascade)
+
+  @@index([grams], type: Gin)
+}
+
 // The shape a player chose for a chord of a song (issue #207 phase 3): theirs
 // only, for that song, on that instrument and tuning. `chord` is the chord as
 // fretted ("G" with the capo on); `frets` the shape as players write it

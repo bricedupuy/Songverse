@@ -44,6 +44,12 @@ Un administrateur global peut **Ajouter une photo** (glissée et zoomée dans le
 
 ![Les artistes](../../../assets/screenshots/fr/artists.jpg)
 
+## Chants par progression d'accords
+
+**Progressions**, sous **Bibliothèque** dans la barre latérale, trouve des chants selon le mouvement de leurs accords, quelle que soit leur tonalité. Tapez les accords en chiffres - **1 5 6m 4** - ou en chiffres romains - **I V vi IV**, en minuscules pour les mineurs ; un 2, 3 ou 6 seul est mineur, comme dans les accords de la tonalité, et **b7** ou **#4** sont des accords hors de la tonalité. Vous obtenez les chants que vous voyez qui font ce chemin, avec les parties où il se trouve. Une partie se lit en boucle, comme elle se joue : **1 5 6m 4** trouve aussi un refrain écrit **6m 4 1 5**. Les septièmes, les extensions et les basses ne comptent pas (G7/B compte comme 5 en Do), et un chant a besoin d'une tonalité pour être trouvé.
+
+Sur la page d'un chant, **Progressions d'accords** montre les accords de chaque partie en chiffres, et **Chants aux progressions semblables** : les chants que vous voyez qui partagent le plus d'enchaînements d'accords avec lui - plus l'enchaînement est rare, plus il compte, car 1 4 5 est partout - avec les enchaînements qu'ils partagent. Pratique pour construire un medley ou une transition entre deux chants.
+
 ## Listes intelligentes
 
 **Chants** affiche d'abord 50 chants ; les suivants arrivent quand vous faites défiler jusqu'en bas (ou avec **Afficher plus**), et recharger ou revenir en arrière ramène tous ceux déjà affichés. **Colonnes** choisit les colonnes affichées - Artiste et Étiquettes au départ, avec le titre ; Langue, Statut, Mis à jour, Ajouté et CCLI aussi si vous le voulez - et leur ordre (le titre reste en premier), retenus sur cet appareil.
