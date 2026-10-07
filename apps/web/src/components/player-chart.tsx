@@ -1,4 +1,4 @@
-import { renderChart, type ChartPreferences, type RenderedChart, type ChordDiagramsValue, type ChordNotationValue, type CapoDisplayModeValue, type SetlistSongView } from "@songverse/core";
+import { chartNotation, renderChart, type ChartPreferences, type RenderedChart, type ChordDiagramsValue, type ChordNotationValue, type CapoDisplayModeValue, type SetlistSongView } from "@songverse/core";
 import { EyeOff } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -23,7 +23,7 @@ export function renderPlayerChart(
   return renderChart(song.document, view.arrangement?.document ?? null, {
     transposeSteps: view.item.transposeSteps + extraSteps,
     preferences,
-    notation: notation === "SOLFEGE" ? "solfege" : "english",
+    notation: chartNotation(notation),
     capoDisplay: capoDisplay === "FINGERED" ? "shapes" : "sounding",
     suggestedCapo: song.suggestedCapo,
   });
@@ -43,6 +43,7 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
   const [notation, setNotation] = useState<ChordNotationValue>(view.view.chordNotation);
   const [capoDisplay, setCapoDisplay] = useState<CapoDisplayModeValue>(view.view.capoDisplayMode);
   const [diagrams, setDiagrams] = useState<ChordDiagramsValue>(view.view.chordDiagrams ?? "OFF");
+  const [colors, setColors] = useState(view.view.chordColors ?? false);
   const [hiding, setHiding] = useState(false);
   const columns = useChartColumns();
   const [error, setError] = useState<string | null>(null);
@@ -64,10 +65,11 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
     apiClient.setSetlistChartPreferences(view.set.id, view.item.id, mine).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }
 
-  function saveSetting(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; chordDiagrams?: ChordDiagramsValue }) {
+  function saveSetting(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean }) {
     if (change.chordNotation) setNotation(change.chordNotation);
     if (change.capoDisplayMode) setCapoDisplay(change.capoDisplayMode);
     if (change.chordDiagrams) setDiagrams(change.chordDiagrams);
+    if (change.chordColors !== undefined) setColors(change.chordColors);
     setError(null);
     apiClient.updateMe(change).catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
   }
@@ -88,8 +90,22 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
         <Toggle pressed={preferences.hideBassNotes} onClick={() => savePreferences({ ...preferences, hideBassNotes: !preferences.hideBassNotes })}>
           {t("player.noBass")}
         </Toggle>
-        <Toggle pressed={notation === "SOLFEGE"} onClick={() => saveSetting({ chordNotation: notation === "SOLFEGE" ? "LETTERS" : "SOLFEGE" })}>
-          {t("player.solfege")}
+        {/* Chord names (issue #207): letters, solfège or Nashville numbers, for every chart. */}
+        <label className={cn("flex items-center gap-1 rounded-md border px-2 py-1 text-xs", notation !== "LETTERS" ? "border-primary text-foreground" : "text-muted-foreground")}>
+          {t("player.names")}
+          <select
+            value={notation}
+            onChange={(e) => saveSetting({ chordNotation: e.target.value as ChordNotationValue })}
+            className="bg-transparent text-xs outline-none"
+            data-testid="notation-select"
+          >
+            <option value="LETTERS">C D E</option>
+            <option value="SOLFEGE">{t("player.solfege")}</option>
+            <option value="NASHVILLE">{t("player.numbers")}</option>
+          </select>
+        </label>
+        <Toggle pressed={colors} onClick={() => saveSetting({ chordColors: !colors })}>
+          {t("player.colors")}
         </Toggle>
         {chart.capo ? (
           <Toggle
@@ -141,6 +157,7 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
         chart={chart}
         diagrams={diagrams}
         notation={notation}
+        colors={colors}
         columns={columns}
         emptyText={t("sets.noChart")}
         onChordClick={hiding ? (id) => savePreferences({ ...preferences, hiddenChordIds: [...new Set([...preferences.hiddenChordIds, id])] }) : undefined}

@@ -43,11 +43,18 @@ When you open a song in a set, the **My view** bar changes the chart **for you o
 - **Hide chords** - then tap a chord to hide it (one that's too fast for you, say). **Show hidden** brings them back.
 - **Simpler chords** - Gmaj7 shows as G, Bm7b5 as Bdim.
 - **No bass notes** - D/F# shows as D.
-- **Do Ré Mi** - chord names in solfège.
+- **Names** - chord names in letters (**C D E**), solfège (**Do Ré Mi**) or Nashville numbers (**1 4 5**).
+- **Colours** - chords coloured by type.
 - **Capo shapes** - with a capo, chords as the shapes you play rather than as they sound.
 - **Diagrams** - **None**, **Guitar** or **Ukulele**: see [Chord diagrams](/versions/#chord-diagrams) below.
 
-Hidden and simpler chords are kept per song (and per version). Solfège, capo shapes and diagrams apply to every chart; you can also set them in [your account](/account/#chart-display).
+Hidden and simpler chords are kept per song (and per version). Names, colours, capo shapes and diagrams apply to every chart; you can also set them in [your account](/account/#chart-display).
+
+## Nashville numbers and chord colours
+
+With **Nashville numbers (1 4 5)** under **Chord names**, each chord shows as its place in the key: in D, D is **1**, Em7 **2m7**, D/F# **1/3**, G **4** and A7 **57**; a chord from outside the key gets a flat or a sharp (Bb in C is **b7**). The rest of the chord is written as usual. Numbers count from the key each part is sung in, so after a key change they stay the same, and a capo doesn't change them either. In a minor key they count from its own tonic: in Em, Em is **1m** and G **b3**. A song without a key keeps its letters. Diagrams keep their letters too: they show a real chord to play.
+
+With **Chord colours** set to **By chord type**, each chord on the chart is coloured by what it sounds like: major green, minor blue, sus yellow, diminished (and m7b5) purple, augmented orange, dominant 7ths (G7, G9, G13) red. Power chords (G5) keep the usual colour.
 
 ## Chord diagrams
 

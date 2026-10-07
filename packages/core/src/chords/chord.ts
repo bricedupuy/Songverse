@@ -365,14 +365,69 @@ export function diatonicChords(key: string | null | undefined): DiatonicChord[] 
   }));
 }
 
-export type ChordNotation = "english" | "solfege";
+export type ChordNotation = "english" | "solfege" | "nashville";
 const SOLFEGE: Record<NoteLetter, string> = { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" };
 
-/** The chord with its notes named for `notation` ("Sol/Si" for "G/B" in solfège). */
-export function formatChord(raw: string, notation: ChordNotation): string {
+/**
+ * The chord with its notes named for `notation`: "Sol/Si" for "G/B" in
+ * solfège; "1/3" in G as Nashville numbers, which need the key (letters
+ * without one).
+ */
+export function formatChord(raw: string, notation: ChordNotation, key?: string | null): string {
   if (notation === "english") return raw;
+  if (notation === "nashville") return nashvilleChord(raw, key);
   const parts = splitChord(raw);
   return parts ? rebuild(parts, notation) : raw;
+}
+
+// Each semitone above the key's tonic as a scale degree, as Nashville charts write them.
+const DEGREES = ["1", "b2", "2", "b3", "3", "4", "#4", "5", "b6", "6", "b7", "7"];
+
+/**
+ * The chord as a Nashville number in `key` (issue #207): its root and bass as
+ * degrees of the key, the rest as written - Em7 in D is "2m7", D/F# "1/3",
+ * Bb in C "b7". A minor key counts from its own tonic (in Em, Em is "1m",
+ * G "b3"). Without a key it can read, or for anything that isn't a chord,
+ * the chord as written.
+ */
+export function nashvilleChord(raw: string, key: string | null | undefined): string {
+  const parts = splitChord(raw);
+  const match = key ? /^\s*([A-G])([#♯b♭]?)/i.exec(key) : null;
+  if (!parts || !match) return raw;
+  const tonic = semitoneOf(toNote(match[1]!.toUpperCase(), match[2]!));
+  const degree = (note: NoteName) => DEGREES[mod12(semitoneOf(note) - tonic)]!;
+  const text = degree(parts.root) + parts.suffix + (parts.bass ? `/${degree(parts.bass)}` : "");
+  return parts.optional ? `(${text})` : text;
+}
+
+/** A chord's family, for colouring it (issue #9): what it sounds like at a glance. */
+export type ChordFamily = "major" | "minor" | "suspended" | "diminished" | "augmented" | "dominant";
+
+/**
+ * Which family a chord belongs to: a major triad with a minor seventh (G7,
+ * G9, G13) is dominant; sus2 and sus4 (and 7sus4) suspended; half-diminished
+ * diminished. Null for a power chord (no third), "N.C." and anything that
+ * isn't a chord.
+ */
+export function chordFamily(raw: string): ChordFamily | null {
+  const parsed = parseChord(raw);
+  if (!parsed || parsed.kind !== "chord") return null;
+  switch (parsed.quality) {
+    case "major":
+      return parsed.seventh === "minor" ? "dominant" : "major";
+    case "minor":
+      return "minor";
+    case "sus2":
+    case "sus4":
+      return "suspended";
+    case "diminished":
+    case "half-diminished":
+      return "diminished";
+    case "augmented":
+      return "augmented";
+    default:
+      return null;
+  }
 }
 
 export interface SimplifyOptions {

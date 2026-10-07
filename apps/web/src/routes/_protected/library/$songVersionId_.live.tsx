@@ -1,4 +1,4 @@
-import { findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type LiveViewValue, type SongDocumentV2 } from "@songverse/core";
+import { chartNotation, findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type LiveViewValue, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -25,6 +25,7 @@ export interface LoneSong {
   liveView: LiveViewValue;
   /** Chord diagrams beside the chart (issue #207). */
   diagrams: ChordDiagramsValue;
+  colors: boolean;
 }
 
 /**
@@ -62,6 +63,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           capoDisplay: me.capoDisplayMode,
           liveView: me.liveView,
           diagrams: me.chordDiagrams,
+          colors: me.chordColors,
         };
       },
       async () => {
@@ -83,6 +85,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           capoDisplay: viewer?.capoDisplayMode ?? "SOUNDING",
           liveView: viewer?.liveView ?? "CHART",
           diagrams: viewer?.chordDiagrams ?? "OFF",
+          colors: viewer?.chordColors ?? false,
         };
       },
     ),
@@ -114,7 +117,7 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         chartFor: (extraSteps) =>
           renderChart(song.document, null, {
             transposeSteps: extraSteps,
-            notation: song.notation === "SOLFEGE" ? "solfege" : "english",
+            notation: chartNotation(song.notation),
             capoDisplay: song.capoDisplay === "FINGERED" ? "shapes" : "sounding",
             suggestedCapo: song.capo,
           }),
@@ -134,6 +137,7 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         reading,
         diagrams: song.diagrams,
         notation: song.notation,
+        colors: song.colors,
       }}
     />
   );

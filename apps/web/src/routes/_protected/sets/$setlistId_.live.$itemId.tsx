@@ -88,6 +88,7 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
     transition: view.transition ?? null,
     diagrams: view.view.chordDiagrams,
     notation: view.view.chordNotation,
+    colors: view.view.chordColors,
   };
   return <LiveView song={live} />;
 }

@@ -171,6 +171,7 @@
                         "label": "G",
                         "sounding": "G",
                         "fretted": "G",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -179,6 +180,7 @@
                         "label": "G7",
                         "sounding": "G7",
                         "fretted": "G7",
+                        "family": "dominant",
                         "replaced": false
                       },
                       {
@@ -187,6 +189,7 @@
                         "label": "C",
                         "sounding": "C",
                         "fretted": "C",
+                        "family": "major",
                         "replaced": false
                       }
                     ]
@@ -214,6 +217,7 @@
                         "label": "D/F#",
                         "sounding": "D/F#",
                         "fretted": "D/F#",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -222,6 +226,7 @@
                         "label": "Em7",
                         "sounding": "Em7",
                         "fretted": "Em7",
+                        "family": "minor",
                         "replaced": false
                       }
                     ]
@@ -258,6 +263,7 @@
                         "label": "C",
                         "sounding": "C",
                         "fretted": "C",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -266,6 +272,7 @@
                         "label": "Dsus4",
                         "sounding": "Dsus4",
                         "fretted": "Dsus4",
+                        "family": "suspended",
                         "replaced": false
                       },
                       {
@@ -274,6 +281,7 @@
                         "label": "Bm7b5",
                         "sounding": "Bm7b5",
                         "fretted": "Bm7b5",
+                        "family": "diminished",
                         "replaced": false
                       }
                     ]
@@ -310,6 +318,7 @@
                         "label": "D",
                         "sounding": "D",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -318,6 +327,7 @@
                         "label": "Esus4",
                         "sounding": "Esus4",
                         "fretted": "Esus4",
+                        "family": "suspended",
                         "replaced": false
                       },
                       {
@@ -326,6 +336,7 @@
                         "label": "C#m7b5",
                         "sounding": "C#m7b5",
                         "fretted": "C#m7b5",
+                        "family": "diminished",
                         "replaced": false
                       }
                     ]
@@ -500,6 +511,7 @@
                         "label": "Sib",
                         "sounding": "Bb",
                         "fretted": "Bb",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -508,6 +520,7 @@
                         "label": "Sib7",
                         "sounding": "Bb7",
                         "fretted": "Bb7",
+                        "family": "dominant",
                         "replaced": false
                       },
                       {
@@ -516,6 +529,7 @@
                         "label": "Mib",
                         "sounding": "Eb",
                         "fretted": "Eb",
+                        "family": "major",
                         "replaced": false
                       }
                     ]
@@ -543,6 +557,7 @@
                         "label": "Fa/La",
                         "sounding": "F/A",
                         "fretted": "F/A",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -551,6 +566,7 @@
                         "label": "Solm7",
                         "sounding": "Gm7",
                         "fretted": "Gm7",
+                        "family": "minor",
                         "replaced": false
                       }
                     ]
@@ -587,6 +603,7 @@
                         "label": "Mib",
                         "sounding": "Eb",
                         "fretted": "Eb",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -595,6 +612,7 @@
                         "label": "Fasus4",
                         "sounding": "Fsus4",
                         "fretted": "Fsus4",
+                        "family": "suspended",
                         "replaced": false
                       },
                       {
@@ -603,6 +621,7 @@
                         "label": "Rém7b5",
                         "sounding": "Dm7b5",
                         "fretted": "Dm7b5",
+                        "family": "diminished",
                         "replaced": false
                       }
                     ]
@@ -639,6 +658,7 @@
                         "label": "Fa",
                         "sounding": "F",
                         "fretted": "F",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -647,6 +667,7 @@
                         "label": "Solsus4",
                         "sounding": "Gsus4",
                         "fretted": "Gsus4",
+                        "family": "suspended",
                         "replaced": false
                       },
                       {
@@ -655,6 +676,348 @@
                         "label": "Mim7b5",
                         "sounding": "Em7b5",
                         "fretted": "Em7b5",
+                        "family": "diminished",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              }
+            ]
+          }
+        },
+        {
+          "name": "Nashville numbers, the same with a capo",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            null,
+            {
+              "notation": "nashville",
+              "suggestedCapo": 2,
+              "capoDisplay": "shapes"
+            }
+          ],
+          "expected": {
+            "key": "G",
+            "capo": 2,
+            "tempo": 72,
+            "timeSignature": {
+              "numerator": 4,
+              "denominator": 4
+            },
+            "passes": [
+              {
+                "id": "fi_verse",
+                "section": {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "G",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_v1",
+                    "kind": "lyric",
+                    "text": "Amazing grace how sweet the sound",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v1",
+                        "at": 0,
+                        "label": "1",
+                        "sounding": "G",
+                        "fretted": "F",
+                        "family": "major",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v2",
+                        "at": 18,
+                        "label": "17",
+                        "sounding": "G7",
+                        "fretted": "F7",
+                        "family": "dominant",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v3",
+                        "at": 28,
+                        "label": "4",
+                        "sounding": "C",
+                        "fretted": "Bb",
+                        "family": "major",
+                        "replaced": false
+                      }
+                    ]
+                  },
+                  {
+                    "id": "line_v2",
+                    "kind": "note",
+                    "text": "softly",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": []
+                  },
+                  {
+                    "id": "line_v3",
+                    "kind": "lyric",
+                    "text": "That saved a wretch like me",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_v4",
+                        "at": 0,
+                        "label": "5/7",
+                        "sounding": "D/F#",
+                        "fretted": "C/E",
+                        "family": "major",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_v5",
+                        "at": 20,
+                        "label": "6m7",
+                        "sounding": "Em7",
+                        "fretted": "Dm7",
+                        "family": "minor",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": null,
+                "note": null,
+                "keyChange": null,
+                "key": "G",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "4",
+                        "sounding": "C",
+                        "fretted": "Bb",
+                        "family": "major",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "5sus4",
+                        "sounding": "Dsus4",
+                        "fretted": "Csus4",
+                        "family": "suspended",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "3m7b5",
+                        "sounding": "Bm7b5",
+                        "fretted": "Am7b5",
+                        "family": "diminished",
+                        "replaced": false
+                      }
+                    ]
+                  }
+                ],
+                "differs": false,
+                "problems": []
+              },
+              {
+                "id": "fi_chorus2",
+                "section": {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true
+                },
+                "label": "Chorus 2",
+                "note": null,
+                "keyChange": "A",
+                "key": "A",
+                "tempo": 72,
+                "lines": [
+                  {
+                    "id": "line_c1",
+                    "kind": "lyric",
+                    "text": "I once was lost but now am found",
+                    "note": null,
+                    "inserted": false,
+                    "lyricChanged": false,
+                    "chords": [
+                      {
+                        "id": "chd_c1",
+                        "at": 2,
+                        "label": "4",
+                        "sounding": "D",
+                        "fretted": "C",
+                        "family": "major",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c2",
+                        "at": 17,
+                        "label": "5sus4",
+                        "sounding": "Esus4",
+                        "fretted": "Dsus4",
+                        "family": "suspended",
+                        "replaced": false
+                      },
+                      {
+                        "id": "chd_c3",
+                        "at": 26,
+                        "label": "3m7b5",
+                        "sounding": "C#m7b5",
+                        "fretted": "Bm7b5",
+                        "family": "diminished",
                         "replaced": false
                       }
                     ]
@@ -829,6 +1192,7 @@
                         "label": "F",
                         "sounding": "G",
                         "fretted": "F",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -837,6 +1201,7 @@
                         "label": "F7",
                         "sounding": "G7",
                         "fretted": "F7",
+                        "family": "dominant",
                         "replaced": false
                       },
                       {
@@ -845,6 +1210,7 @@
                         "label": "Bb",
                         "sounding": "C",
                         "fretted": "Bb",
+                        "family": "major",
                         "replaced": false
                       }
                     ]
@@ -872,6 +1238,7 @@
                         "label": "C/E",
                         "sounding": "D/F#",
                         "fretted": "C/E",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -880,6 +1247,7 @@
                         "label": "Dm7",
                         "sounding": "Em7",
                         "fretted": "Dm7",
+                        "family": "minor",
                         "replaced": false
                       }
                     ]
@@ -916,6 +1284,7 @@
                         "label": "Bb",
                         "sounding": "C",
                         "fretted": "Bb",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -924,6 +1293,7 @@
                         "label": "Csus4",
                         "sounding": "Dsus4",
                         "fretted": "Csus4",
+                        "family": "suspended",
                         "replaced": false
                       },
                       {
@@ -932,6 +1302,7 @@
                         "label": "Am7b5",
                         "sounding": "Bm7b5",
                         "fretted": "Am7b5",
+                        "family": "diminished",
                         "replaced": false
                       }
                     ]
@@ -968,6 +1339,7 @@
                         "label": "C",
                         "sounding": "D",
                         "fretted": "C",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -976,6 +1348,7 @@
                         "label": "Dsus4",
                         "sounding": "Esus4",
                         "fretted": "Dsus4",
+                        "family": "suspended",
                         "replaced": false
                       },
                       {
@@ -984,6 +1357,7 @@
                         "label": "Bm7b5",
                         "sounding": "C#m7b5",
                         "fretted": "Bm7b5",
+                        "family": "diminished",
                         "replaced": false
                       }
                     ]
@@ -1163,6 +1537,7 @@
                         "label": "G",
                         "sounding": "G",
                         "fretted": "G",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1171,6 +1546,7 @@
                         "label": "C",
                         "sounding": "C",
                         "fretted": "C",
+                        "family": "major",
                         "replaced": false
                       }
                     ]
@@ -1198,6 +1574,7 @@
                         "label": "D",
                         "sounding": "D",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1206,6 +1583,7 @@
                         "label": "Em",
                         "sounding": "Em",
                         "fretted": "Em",
+                        "family": "minor",
                         "replaced": false
                       }
                     ]
@@ -1242,6 +1620,7 @@
                         "label": "C",
                         "sounding": "C",
                         "fretted": "C",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1250,6 +1629,7 @@
                         "label": "Dsus4",
                         "sounding": "Dsus4",
                         "fretted": "Dsus4",
+                        "family": "suspended",
                         "replaced": false
                       },
                       {
@@ -1258,6 +1638,7 @@
                         "label": "Bdim",
                         "sounding": "Bdim",
                         "fretted": "Bdim",
+                        "family": "diminished",
                         "replaced": false
                       }
                     ]
@@ -1294,6 +1675,7 @@
                         "label": "D",
                         "sounding": "D",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1302,6 +1684,7 @@
                         "label": "Esus4",
                         "sounding": "Esus4",
                         "fretted": "Esus4",
+                        "family": "suspended",
                         "replaced": false
                       },
                       {
@@ -1310,6 +1693,7 @@
                         "label": "C#dim",
                         "sounding": "C#dim",
                         "fretted": "C#dim",
+                        "family": "diminished",
                         "replaced": false
                       }
                     ]
@@ -1550,6 +1934,7 @@
                         "label": "F",
                         "sounding": "F",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1558,6 +1943,7 @@
                         "label": "F7",
                         "sounding": "F7",
                         "fretted": "D7",
+                        "family": "dominant",
                         "replaced": false
                       },
                       {
@@ -1566,6 +1952,7 @@
                         "label": "Bbadd9",
                         "sounding": "Bbadd9",
                         "fretted": "Gadd9",
+                        "family": "major",
                         "replaced": true
                       }
                     ]
@@ -1584,6 +1971,7 @@
                         "label": "C/E",
                         "sounding": "C/E",
                         "fretted": "A/C#",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1592,6 +1980,7 @@
                         "label": "Dm7",
                         "sounding": "Dm7",
                         "fretted": "Bm7",
+                        "family": "minor",
                         "replaced": false
                       }
                     ]
@@ -1628,6 +2017,7 @@
                         "label": "Bb",
                         "sounding": "Bb",
                         "fretted": "G",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1636,6 +2026,7 @@
                         "label": "Csus4",
                         "sounding": "Csus4",
                         "fretted": "Asus4",
+                        "family": "suspended",
                         "replaced": false
                       }
                     ]
@@ -1672,6 +2063,7 @@
                         "label": "F",
                         "sounding": "F",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1680,6 +2072,7 @@
                         "label": "F7",
                         "sounding": "F7",
                         "fretted": "D7",
+                        "family": "dominant",
                         "replaced": false
                       },
                       {
@@ -1688,6 +2081,7 @@
                         "label": "Bb",
                         "sounding": "Bb",
                         "fretted": "G",
+                        "family": "major",
                         "replaced": false
                       }
                     ]
@@ -1715,6 +2109,7 @@
                         "label": "C/E",
                         "sounding": "C/E",
                         "fretted": "A/C#",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1723,6 +2118,7 @@
                         "label": "Dm7",
                         "sounding": "Dm7",
                         "fretted": "Bm7",
+                        "family": "minor",
                         "replaced": false
                       }
                     ]
@@ -1741,6 +2137,7 @@
                         "label": "F",
                         "sounding": "F",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       }
                     ]
@@ -1985,6 +2382,7 @@
                         "label": "D",
                         "sounding": "F",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -1993,6 +2391,7 @@
                         "label": "D7",
                         "sounding": "F7",
                         "fretted": "D7",
+                        "family": "dominant",
                         "replaced": false
                       },
                       {
@@ -2001,6 +2400,7 @@
                         "label": "Gadd9",
                         "sounding": "Bbadd9",
                         "fretted": "Gadd9",
+                        "family": "major",
                         "replaced": true
                       }
                     ]
@@ -2019,6 +2419,7 @@
                         "label": "A/C#",
                         "sounding": "C/E",
                         "fretted": "A/C#",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -2027,6 +2428,7 @@
                         "label": "Bm7",
                         "sounding": "Dm7",
                         "fretted": "Bm7",
+                        "family": "minor",
                         "replaced": false
                       }
                     ]
@@ -2063,6 +2465,7 @@
                         "label": "G",
                         "sounding": "Bb",
                         "fretted": "G",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -2071,6 +2474,7 @@
                         "label": "Asus4",
                         "sounding": "Csus4",
                         "fretted": "Asus4",
+                        "family": "suspended",
                         "replaced": false
                       }
                     ]
@@ -2107,6 +2511,7 @@
                         "label": "D",
                         "sounding": "F",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -2115,6 +2520,7 @@
                         "label": "D7",
                         "sounding": "F7",
                         "fretted": "D7",
+                        "family": "dominant",
                         "replaced": false
                       },
                       {
@@ -2123,6 +2529,7 @@
                         "label": "G",
                         "sounding": "Bb",
                         "fretted": "G",
+                        "family": "major",
                         "replaced": false
                       }
                     ]
@@ -2150,6 +2557,7 @@
                         "label": "A/C#",
                         "sounding": "C/E",
                         "fretted": "A/C#",
+                        "family": "major",
                         "replaced": false
                       },
                       {
@@ -2158,6 +2566,7 @@
                         "label": "Bm7",
                         "sounding": "Dm7",
                         "fretted": "Bm7",
+                        "family": "minor",
                         "replaced": false
                       }
                     ]
@@ -2176,6 +2585,7 @@
                         "label": "D",
                         "sounding": "F",
                         "fretted": "D",
+                        "family": "major",
                         "replaced": false
                       }
                     ]

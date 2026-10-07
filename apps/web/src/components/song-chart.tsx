@@ -3,6 +3,7 @@ import {
   renderChart,
   type RenderedChart,
   type RenderedChord,
+  type ChordFamily,
   type RenderedLine,
   type RenderedPass,
   type SectionInstance,
@@ -39,6 +40,7 @@ export function SongChart({
   emptyText,
   onChordClick,
   chordClickAction = "hide",
+  colors = false,
   columns = "1",
 }: {
   chart: RenderedChart;
@@ -47,6 +49,8 @@ export function SongChart({
   onChordClick?: (chordId: string, element: HTMLElement, chord: RenderedChord) => void;
   /** What tapping a chord does, for its label: hide it, or show its diagram. */
   chordClickAction?: "hide" | "diagram";
+  /** Chords coloured by family (issues #9, #207): major, minor, sus, dim, aug, dominant 7th. */
+  colors?: boolean;
   /** Flowed into columns on a wide screen (issue #177): as many as fit, or up to 2 or 3; a section never split. */
   columns?: ChartColumns;
 }) {
@@ -99,7 +103,7 @@ export function SongChart({
             ) : null}
             <div className="flex flex-col gap-1">
               {pass.lines.map((line) => (
-                <ChartLine key={line.id} line={line} onChordClick={onChordClick} action={chordClickAction} />
+                <ChartLine key={line.id} line={line} onChordClick={onChordClick} action={chordClickAction} colors={colors} />
               ))}
             </div>
           </div>
@@ -109,14 +113,26 @@ export function SongChart({
   );
 }
 
+/** Each chord family's colour, readable in light and dark (Live): the scheme issue #9 proposed. */
+const FAMILY_COLORS: Record<ChordFamily, string> = {
+  major: "text-emerald-700 dark:text-emerald-400",
+  minor: "text-blue-600 dark:text-sky-400",
+  suspended: "text-amber-600 dark:text-yellow-300",
+  diminished: "text-purple-600 dark:text-purple-400",
+  augmented: "text-orange-600 dark:text-orange-400",
+  dominant: "text-red-600 dark:text-red-400",
+};
+
 function ChartLine({
   line,
   onChordClick,
   action,
+  colors,
 }: {
   line: RenderedLine;
   onChordClick?: (chordId: string, element: HTMLElement, chord: RenderedChord) => void;
   action: "hide" | "diagram";
+  colors: boolean;
 }) {
   const { t } = useTranslation();
   const note = line.note ? <span className="ml-2 font-sans text-xs text-amber-700 italic dark:text-amber-400">{line.note}</span> : null;
@@ -131,6 +147,11 @@ function ChartLine({
   }
 
   const replaced = new Set(line.chords.filter((chord) => chord.replaced).map((chord) => chord.id));
+  const families = new Map(line.chords.map((chord) => [chord.id, chord.family]));
+  const tint = (id: string | undefined) => {
+    const family = id ? families.get(id) : null;
+    return colors && family ? FAMILY_COLORS[family] : undefined;
+  };
   const words = layoutChordLine(line.text, line.chords);
   return (
     <p data-line="" className={cn(line.inserted && "text-amber-800 dark:text-amber-300")}>
@@ -154,15 +175,21 @@ function ChartLine({
                             {onChordClick && chord.id ? (
                               <button
                                 type="button"
-                                className={cn("rounded-sm hover:bg-primary/10", replaced.has(chord.id) && "underline decoration-amber-500 decoration-2")}
+                                className={cn("rounded-sm hover:bg-primary/10", replaced.has(chord.id) && "underline decoration-amber-500 decoration-2", tint(chord.id))}
                                 data-chord-id={chord.id}
+                                data-family={families.get(chord.id) ?? undefined}
                                 aria-label={t(action === "hide" ? "chart.hideChord" : "chart.showDiagram", { chord: chord.label })}
                                 onClick={(event) => onChordClick(chord.id!, event.currentTarget, line.chords.find((c) => c.id === chord.id)!)}
                               >
                                 {chord.label}
                               </button>
                             ) : (
-                              <span className={cn(chord.id && replaced.has(chord.id) && "underline decoration-amber-500 decoration-2")}>{chord.label}</span>
+                              <span
+                                className={cn(chord.id && replaced.has(chord.id) && "underline decoration-amber-500 decoration-2", tint(chord.id))}
+                                data-family={(chord.id && families.get(chord.id)) || undefined}
+                              >
+                                {chord.label}
+                              </span>
                             )}
                           </Fragment>
                         ))}

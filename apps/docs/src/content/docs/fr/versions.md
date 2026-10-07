@@ -43,11 +43,18 @@ Quand vous ouvrez un chant dans une liste, la barre **Mon affichage** change la 
 - **Masquer des accords** - puis touchez un accord pour le masquer (un accord trop rapide pour vous, par exemple). **Afficher les accords masqués** les fait revenir.
 - **Accords simplifiés** - Gmaj7 s'affiche G, Bm7b5 Bdim.
 - **Sans basses** - D/F# s'affiche D.
-- **Do Ré Mi** - les accords en solfège.
+- **Noms** - les accords en lettres (**C D E**), en solfège (**Do Ré Mi**) ou en chiffres Nashville (**1 4 5**).
+- **Couleurs** - les accords colorés selon leur type.
 - **Formes capo** - avec un capo, les accords comme les formes que vous jouez plutôt que tels qu'ils sonnent.
 - **Diagrammes** - **Aucun**, **Guitare** ou **Ukulélé** : voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords) ci-dessous.
 
-Les accords masqués et simplifiés sont gardés par chant (et par version). Le solfège, les formes de capo et les diagrammes s'appliquent à toutes les grilles ; vous pouvez aussi les régler dans [votre compte](/fr/account/#affichage-des-grilles).
+Les accords masqués et simplifiés sont gardés par chant (et par version). Les noms, les couleurs, les formes de capo et les diagrammes s'appliquent à toutes les grilles ; vous pouvez aussi les régler dans [votre compte](/fr/account/#affichage-des-grilles).
+
+## Chiffres Nashville et couleurs des accords
+
+Avec **Chiffres Nashville (1 4 5)** sous **Noms des accords**, chaque accord s'affiche selon sa place dans la tonalité : en Ré, D est **1**, Em7 **2m7**, D/F# **1/3**, G **4** et A7 **57** ; un accord hors de la tonalité prend un bémol ou un dièse (Bb en Do est **b7**). Le reste de l'accord s'écrit comme d'habitude. Les chiffres comptent depuis la tonalité où chaque partie est chantée : après un changement de tonalité ils restent les mêmes, et un capo ne les change pas non plus. Dans une tonalité mineure, ils comptent depuis sa propre tonique : en Mi mineur, Em est **1m** et G **b3**. Un chant sans tonalité garde ses lettres. Les diagrammes aussi : ils montrent un vrai accord à jouer.
+
+Avec **Couleurs des accords** sur **Selon le type d'accord**, chaque accord de la grille est coloré selon ce qu'il évoque : majeurs en vert, mineurs en bleu, sus en jaune, diminués (et m7b5) en violet, augmentés en orange, septièmes de dominante (G7, G9, G13) en rouge. Les power chords (G5) gardent la couleur habituelle.
 
 ## Diagrammes d'accords
 

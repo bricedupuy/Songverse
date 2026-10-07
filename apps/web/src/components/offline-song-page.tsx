@@ -1,4 +1,4 @@
-import { cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
+import { chartNotation, cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -22,6 +22,7 @@ export interface OfflineSong extends FoundSong {
   capoDisplay: CapoDisplayModeValue;
   /** Chord diagrams beside the chart (issue #207), as of the last sync. */
   diagrams: ChordDiagramsValue;
+  colors: boolean;
 }
 
 /** The song as kept on the device (on its own, or in a kept set), if it is. */
@@ -35,6 +36,7 @@ export async function loadOfflineSong(songVersionId: string): Promise<OfflineSon
     notation: viewer?.chordNotation ?? "LETTERS",
     capoDisplay: viewer?.capoDisplayMode ?? "SOUNDING",
     diagrams: viewer?.chordDiagrams ?? "OFF",
+    colors: viewer?.chordColors ?? false,
   };
 }
 
@@ -50,7 +52,7 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
   const chart = useMemo(
     () =>
       renderChart(song.document, null, {
-        notation: song.notation === "SOLFEGE" ? "solfege" : "english",
+        notation: chartNotation(song.notation),
         capoDisplay: song.capoDisplay === "FINGERED" ? "shapes" : "sounding",
         suggestedCapo: song.capo,
       }),
@@ -110,7 +112,7 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
 
       <Card>
         <CardContent>
-          <ChartWithDiagrams chart={chart} columns={columns} diagrams={song.diagrams} notation={song.notation} />
+          <ChartWithDiagrams chart={chart} columns={columns} diagrams={song.diagrams} notation={song.notation} colors={song.colors} />
         </CardContent>
       </Card>
 

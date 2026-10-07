@@ -69,6 +69,8 @@ enum CapoDisplayMode {
 enum ChordNotation {
   LETTERS
   SOLFEGE
+  // Nashville numbers, in the key of each pass (issue #207).
+  NASHVILLE
 }
 
 // Chord diagrams beside a chart (issue #207): none, or for this instrument.
@@ -281,6 +283,8 @@ model User {
   liveView          LiveView          @default(CHART)
   // Chord diagrams on charts (issue #207): off unless chosen.
   chordDiagrams     ChordDiagrams     @default(OFF)
+  // Chords coloured by family - major, minor, sus, dim, aug, dominant (issues #9, #207).
+  chordColors       Boolean           @default(false)
   voicingPreference VoicingPreference @default(AUTO)
   pedalMappingJson  Json? // UserPedalMapping — null = use defaults
   midiOutputDevice  String? // Last selected MIDI output device name

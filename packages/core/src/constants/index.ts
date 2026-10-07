@@ -70,8 +70,8 @@ export type VoicingPreferenceValue = (typeof VOICING_PREFERENCES)[number];
 export const CAPO_DISPLAY_MODES = ["SOUNDING", "FINGERED"] as const;
 export type CapoDisplayModeValue = (typeof CAPO_DISPLAY_MODES)[number];
 
-/** Chord names on every chart: letters (G) or solfège (Sol). */
-export const CHORD_NOTATIONS = ["LETTERS", "SOLFEGE"] as const;
+/** Chord names on every chart: letters (G), solfège (Sol) or Nashville numbers (1, issue #207). */
+export const CHORD_NOTATIONS = ["LETTERS", "SOLFEGE", "NASHVILLE"] as const;
 export type ChordNotationValue = (typeof CHORD_NOTATIONS)[number];
 
 /** Chord diagrams beside every chart (issue #207): off, or for a guitar or a ukulele. */

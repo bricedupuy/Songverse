@@ -12,6 +12,7 @@ export class UserResponseDto {
   @ApiProperty({ enum: CHORD_NOTATIONS }) chordNotation!: (typeof CHORD_NOTATIONS)[number];
   @ApiProperty({ enum: LIVE_VIEWS }) liveView!: (typeof LIVE_VIEWS)[number];
   @ApiProperty({ enum: CHORD_DIAGRAMS, description: "Chord diagrams beside charts (issue #207)" }) chordDiagrams!: (typeof CHORD_DIAGRAMS)[number];
+  @ApiProperty({ description: "Chords coloured by family (issue #9)" }) chordColors!: boolean;
   @ApiProperty({ enum: VOICING_PREFERENCES }) voicingPreference!: (typeof VOICING_PREFERENCES)[number];
   @ApiProperty() isGlobalAdmin!: boolean;
   @ApiProperty({ description: "From their roles, or their teams' (issue #160)" }) isReviewer!: boolean;

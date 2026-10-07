@@ -13,6 +13,7 @@ export const UpdateUserSchema = z.strictObject({
   capoDisplayMode: optional(z.enum(CAPO_DISPLAY_MODES)),
   chordNotation: optional(z.enum(CHORD_NOTATIONS)),
   chordDiagrams: optional(z.enum(CHORD_DIAGRAMS)),
+  chordColors: optional(z.boolean()),
   liveView: optional(z.enum(LIVE_VIEWS)),
 });
 export type UpdateUserRequest = z.input<typeof UpdateUserSchema>;

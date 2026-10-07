@@ -564,6 +564,232 @@
         }
       ]
     },
+    "nashvilleChord": {
+      "about": "A chord as a Nashville number in a key (issue #207): root and bass as degrees of the key, the rest as written; a minor key counts from its own tonic; the chord as written without a key.",
+      "params": [
+        "raw",
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "G in G",
+          "args": [
+            "G",
+            "G"
+          ],
+          "expected": "1"
+        },
+        {
+          "name": "Em7 in D",
+          "args": [
+            "Em7",
+            "D"
+          ],
+          "expected": "2m7"
+        },
+        {
+          "name": "D/F# in D",
+          "args": [
+            "D/F#",
+            "D"
+          ],
+          "expected": "1/3"
+        },
+        {
+          "name": "Bb in C",
+          "args": [
+            "Bb",
+            "C"
+          ],
+          "expected": "b7"
+        },
+        {
+          "name": "F#m7b5 in G",
+          "args": [
+            "F#m7b5",
+            "G"
+          ],
+          "expected": "7m7b5"
+        },
+        {
+          "name": "Asus4 in A",
+          "args": [
+            "Asus4",
+            "A"
+          ],
+          "expected": "1sus4"
+        },
+        {
+          "name": "Em in Em",
+          "args": [
+            "Em",
+            "Em"
+          ],
+          "expected": "1m"
+        },
+        {
+          "name": "G in Em",
+          "args": [
+            "G",
+            "Em"
+          ],
+          "expected": "b3"
+        },
+        {
+          "name": "B7 in Em",
+          "args": [
+            "B7",
+            "Em"
+          ],
+          "expected": "57"
+        },
+        {
+          "name": "(C) in G",
+          "args": [
+            "(C)",
+            "G"
+          ],
+          "expected": "(4)"
+        },
+        {
+          "name": "Db in Ab",
+          "args": [
+            "Db",
+            "Ab"
+          ],
+          "expected": "4"
+        },
+        {
+          "name": "N.C. in G",
+          "args": [
+            "N.C.",
+            "G"
+          ],
+          "expected": "N.C."
+        },
+        {
+          "name": "G in null",
+          "args": [
+            "G",
+            null
+          ],
+          "expected": "G"
+        }
+      ]
+    },
+    "chordFamily": {
+      "about": "A chord's family, for colouring it (issue #9): major, minor, suspended, diminished, augmented or dominant (a major triad with a minor seventh); null for a power chord or something that isn't a chord.",
+      "params": [
+        "raw"
+      ],
+      "cases": [
+        {
+          "name": "\"G\"",
+          "args": [
+            "G"
+          ],
+          "expected": "major"
+        },
+        {
+          "name": "\"Gmaj7\"",
+          "args": [
+            "Gmaj7"
+          ],
+          "expected": "major"
+        },
+        {
+          "name": "\"G6\"",
+          "args": [
+            "G6"
+          ],
+          "expected": "major"
+        },
+        {
+          "name": "\"G7\"",
+          "args": [
+            "G7"
+          ],
+          "expected": "dominant"
+        },
+        {
+          "name": "\"G13\"",
+          "args": [
+            "G13"
+          ],
+          "expected": "dominant"
+        },
+        {
+          "name": "\"Em\"",
+          "args": [
+            "Em"
+          ],
+          "expected": "minor"
+        },
+        {
+          "name": "\"Em7\"",
+          "args": [
+            "Em7"
+          ],
+          "expected": "minor"
+        },
+        {
+          "name": "\"Asus4\"",
+          "args": [
+            "Asus4"
+          ],
+          "expected": "suspended"
+        },
+        {
+          "name": "\"A7sus4\"",
+          "args": [
+            "A7sus4"
+          ],
+          "expected": "suspended"
+        },
+        {
+          "name": "\"Bdim\"",
+          "args": [
+            "Bdim"
+          ],
+          "expected": "diminished"
+        },
+        {
+          "name": "\"Bm7b5\"",
+          "args": [
+            "Bm7b5"
+          ],
+          "expected": "diminished"
+        },
+        {
+          "name": "\"Caug\"",
+          "args": [
+            "Caug"
+          ],
+          "expected": "augmented"
+        },
+        {
+          "name": "\"C5\"",
+          "args": [
+            "C5"
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"N.C.\"",
+          "args": [
+            "N.C."
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"verse\"",
+          "args": [
+            "verse"
+          ],
+          "expected": null
+        }
+      ]
+    },
     "chordTones": {
       "about": "A chord's notes, each with its interval above the root, its pitch class (C = 0), its role and whether a shape may leave it out; null when it isn't a chord.",
       "params": [

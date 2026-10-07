@@ -187,6 +187,7 @@ export interface OfflineViewer {
   capoDisplayMode: CapoDisplayModeValue;
   liveView?: LiveViewValue;
   chordDiagrams?: ChordDiagramsValue;
+  chordColors?: boolean;
 }
 
 export async function offlineViewer(storage: OfflineStorage): Promise<OfflineViewer | undefined> {

@@ -364,13 +364,13 @@ export function LanguageCard({ locale }: { locale: string }) {
 }
 
 /** How every chart reads for this user: chord names, chords with a capo, chord diagrams (issue #207), and how songs read in Live (issue #155). */
-export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView" | "chordDiagrams"> }) {
+export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView" | "chordDiagrams" | "chordColors"> }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue }) {
+  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean }) {
     setSaving(true);
     setError(null);
     try {
@@ -401,7 +401,23 @@ export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chor
           >
             <option value="LETTERS">{t("dashboard.notationLetters")}</option>
             <option value="SOLFEGE">{t("dashboard.notationSolfege")}</option>
+            <option value="NASHVILLE">{t("dashboard.notationNashville")}</option>
           </NativeSelect>
+          <p className="text-xs text-muted-foreground">{t("dashboard.notationHint")}</p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="chord-colors">{t("dashboard.chordColors")}</Label>
+          <NativeSelect
+            id="chord-colors"
+            value={profile.chordColors ? "ON" : "OFF"}
+            disabled={saving}
+            onChange={(e) => void save({ chordColors: e.target.value === "ON" })}
+            className="w-full max-w-xs"
+          >
+            <option value="OFF">{t("dashboard.colorsOff")}</option>
+            <option value="ON">{t("dashboard.colorsOn")}</option>
+          </NativeSelect>
+          <p className="text-xs text-muted-foreground">{t("dashboard.chordColorsHint")}</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="capo-display">{t("dashboard.capoDisplay")}</Label>

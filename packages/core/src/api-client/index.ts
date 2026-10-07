@@ -293,7 +293,7 @@ export interface OfflineSyncResponse {
   goneSongs: string[];
   pins: OfflinePin[];
   /** The user's chord settings, for songs shown on their own. */
-  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue };
+  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean };
 }
 
 /**
@@ -314,6 +314,8 @@ export interface ChartViewSettings {
   liveView?: LiveViewValue;
   /** Chord diagrams beside the chart (issue #207); left out by an older copy kept offline. */
   chordDiagrams?: ChordDiagramsValue;
+  /** Chords coloured by family (issue #9); left out by an older copy kept offline. */
+  chordColors?: boolean;
 }
 
 /** An arrangement of a song, as listed (docs/arrangement-document-v2.md). */
@@ -404,6 +406,8 @@ export interface UserProfile {
   liveView: LiveViewValue;
   /** Chord diagrams beside every chart (issue #207). */
   chordDiagrams: ChordDiagramsValue;
+  /** Chords coloured by family (issue #9). */
+  chordColors: boolean;
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -1435,6 +1439,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       capoDisplayMode?: CapoDisplayModeValue;
       chordNotation?: ChordNotationValue;
       chordDiagrams?: ChordDiagramsValue;
+      chordColors?: boolean;
       liveView?: LiveViewValue;
     }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),

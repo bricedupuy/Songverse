@@ -73,6 +73,7 @@ function SongVersionPage() {
         capoDisplay={data.me?.capoDisplayMode ?? "SOUNDING"}
         liveView={data.me?.liveView ?? "CHART"}
         diagrams={data.me?.chordDiagrams ?? "OFF"}
+        colors={data.me?.chordColors ?? false}
         />
       </>
     );

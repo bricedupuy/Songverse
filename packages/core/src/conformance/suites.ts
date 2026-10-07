@@ -1,5 +1,5 @@
 import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
-import { diatonicChords, formatChord, keyUsesFlats, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
+import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
 import { parseArrangementDocumentV2, findArrangementProblems } from "../schemas/arrangement-document-v2.js";
 import { chordPositionProblem } from "../schemas/song-document-v2.js";
@@ -203,6 +203,32 @@ export const CONFORMANCE: ConformanceArea[] = [
           name: JSON.stringify(raw),
           args: [raw],
         })),
+      },
+      nashvilleChord: {
+        about: "A chord as a Nashville number in a key (issue #207): root and bass as degrees of the key, the rest as written; a minor key counts from its own tonic; the chord as written without a key.",
+        params: ["raw", "key"],
+        run: nashvilleChord,
+        cases: [
+          ["G", "G"],
+          ["Em7", "D"],
+          ["D/F#", "D"],
+          ["Bb", "C"],
+          ["F#m7b5", "G"],
+          ["Asus4", "A"],
+          ["Em", "Em"],
+          ["G", "Em"],
+          ["B7", "Em"],
+          ["(C)", "G"],
+          ["Db", "Ab"],
+          ["N.C.", "G"],
+          ["G", null],
+        ].map((args) => ({ name: `${args[0]} in ${args[1]}`, args })),
+      },
+      chordFamily: {
+        about: "A chord's family, for colouring it (issue #9): major, minor, suspended, diminished, augmented or dominant (a major triad with a minor seventh); null for a power chord or something that isn't a chord.",
+        params: ["raw"],
+        run: chordFamily,
+        cases: ["G", "Gmaj7", "G6", "G7", "G13", "Em", "Em7", "Asus4", "A7sus4", "Bdim", "Bm7b5", "Caug", "C5", "N.C.", "verse"].map((raw) => ({ name: JSON.stringify(raw), args: [raw] })),
       },
       chordTones: {
         about: "A chord's notes, each with its interval above the root, its pitch class (C = 0), its role and whether a shape may leave it out; null when it isn't a chord.",
@@ -457,6 +483,7 @@ export const CONFORMANCE: ConformanceArea[] = [
         cases: [
           { name: "as written", args: [SONG, null, {}] },
           { name: "a set's own transposition, in solfège", args: [SONG, null, { transposeSteps: 3, notation: "solfege" }] },
+          { name: "Nashville numbers, the same with a capo", args: [SONG, null, { notation: "nashville", suggestedCapo: 2, capoDisplay: "shapes" }] },
           { name: "the song's capo suggestion, as shapes", args: [SONG, null, { suggestedCapo: 2, capoDisplay: "shapes" }] },
           { name: "simpler chords, no bass notes, a hidden chord", args: [SONG, null, { preferences: { simplifyChords: true, hideBassNotes: true, hiddenChordIds: ["chd_v2"] } }] },
           { name: "an arrangement", args: [SONG, ARRANGEMENT, {}] },

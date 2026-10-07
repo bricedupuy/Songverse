@@ -31,7 +31,8 @@ Dites à vos équipes ce que vous jouez ou faites : des **Instruments** (chant, 
 
 Comment se lisent les accords sur toutes les grilles que vous ouvrez :
 
-- **Noms des accords** - en lettres (C D E) ou en solfège (Do Ré Mi).
+- **Noms des accords** - en lettres (C D E), en solfège (Do Ré Mi) ou en chiffres Nashville (1 4 5) : voir [Chiffres Nashville et couleurs des accords](/fr/versions/#chiffres-nashville-et-couleurs-des-accords).
+- **Couleurs des accords** - **Sans couleur**, ou **Selon le type d'accord**.
 - **Avec un capo** - les accords tels qu'ils sonnent, ou les formes à jouer.
 - **Diagrammes d'accords** - **Aucun**, **Guitare** ou **Ukulélé** : comment jouer les accords du chant, à côté de sa grille (voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords)).
 - **Lire les chants en** - **Accords et paroles**, ou **PDF, quand le chant en a un** : comment les chants s'affichent en Session et en Live, sauf si vous choisissez autrement pour un chant (voir [Jouer une liste en live](/fr/sets/#jouer-une-liste-en-live)). Un chant sans PDF montre toujours sa grille.

@@ -1,4 +1,5 @@
-import { formatChord, parseChord, simplifyChord, transposeChord, type ChordNotation } from "../chords/chord.js";
+import { chordFamily, formatChord, parseChord, simplifyChord, transposeChord, type ChordFamily, type ChordNotation } from "../chords/chord.js";
+import type { ChordNotationValue } from "../constants/index.js";
 import { transposeKey } from "../music-keys/transpose.js";
 import {
   ArrangementDocumentV2Schema,
@@ -22,7 +23,7 @@ export interface ChartView {
   transposeSteps?: number;
   /** The player's own chart preferences (hidden chords, simpler chords, no bass notes). */
   preferences?: Partial<ChartPreferences> | null;
-  /** Chord names in letters ("G") or solfège ("Sol"). */
+  /** Chord names in letters ("G"), solfège ("Sol") or Nashville numbers ("1", in the key of each pass). */
   notation?: ChordNotation;
   /** With a capo: chords as they sound (the default), or as the shapes a guitarist plays. */
   capoDisplay?: "sounding" | "shapes";
@@ -39,6 +40,8 @@ export interface RenderedChord {
   sounding: string;
   /** The chord a guitarist frets with the capo on: the sounding chord moved down by the capo; the same without one. Chord diagrams draw this. */
   fretted: string;
+  /** Its family, for colouring it (issue #9): major, minor, suspended, diminished, augmented, dominant; null for none. */
+  family: ChordFamily | null;
   /** Replaced by the arrangement on this pass. */
   replaced: boolean;
 }
@@ -86,6 +89,11 @@ export interface RenderedChart {
 
 type Item = SectionInstance & { overrides?: OverrideV2[] };
 
+/** How renderChart names chords for a player's setting: letters, solfège or Nashville numbers. */
+export function chartNotation(value: ChordNotationValue | null | undefined): ChordNotation {
+  return value === "SOLFEGE" ? "solfege" : value === "NASHVILLE" ? "nashville" : "english";
+}
+
 /** The song played as `arrangement` says (or as written), seen through `view`. */
 export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocumentV2 | null = null, view: ChartView = {}): RenderedChart {
   const sections = new Map(song.sections.map((section) => [section.id, section]));
@@ -109,7 +117,9 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
     }
     const fretted = capo ? transposeChord(sounding, -capo, key ? transposeKey(key, -capo) : null) : sounding;
     const shown = capo && view.capoDisplay === "shapes" ? fretted : sounding;
-    return { label: view.notation === "solfege" ? formatChord(shown, "solfege") : shown, sounding, fretted };
+    // Numbers are the same with or without a capo: the sounding chord in the key it's sung in.
+    const label = view.notation === "nashville" ? formatChord(sounding, "nashville", key) : view.notation === "solfege" ? formatChord(shown, "solfege") : shown;
+    return { label, sounding, fretted, family: chordFamily(sounding) };
   };
 
   let steps = baseSteps;

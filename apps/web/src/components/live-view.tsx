@@ -58,6 +58,8 @@ export interface LiveSong {
   /** The player's chord diagrams (issue #207), and how they name chords. */
   diagrams?: ChordDiagramsValue;
   notation?: ChordNotationValue;
+  /** Chords coloured by family (issue #9). */
+  colors?: boolean;
 }
 
 /** How far down a chart is scrolled for its song to count as played (issue #153). */
@@ -331,7 +333,7 @@ export function LiveView({ song }: { song: LiveSong }) {
           {pdf && song.reading ? (
             <PdfPages key={pdf.id} source={() => song.reading!.source(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
           ) : chart ? (
-            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} />
+            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} colors={song.colors} />
           ) : (
             <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
           )}

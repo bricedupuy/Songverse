@@ -133,9 +133,9 @@ await step("a player reads it as capo shapes or in solfège", async () => {
   await chord("Em").first().waitFor(); // F#m, two frets down
   await page.getByTestId("capo").getByText("chords shown as the shapes to play").waitFor();
   await page.getByRole("button", { name: "Capo 2 shapes" }).click();
-  await page.getByRole("button", { name: "Do Ré Mi" }).click();
+  await page.getByTestId("notation-select").selectOption("SOLFEGE");
   await chord("La").first().waitFor();
-  await page.getByRole("button", { name: "Do Ré Mi" }).click();
+  await page.getByTestId("notation-select").selectOption("LETTERS");
   await chord("A").first().waitFor();
 });
 
