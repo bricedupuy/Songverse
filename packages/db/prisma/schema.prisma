@@ -1069,6 +1069,8 @@ model SetlistItem {
   // TRANSITION, what's played into the next song.
   transition     SetTransition?
   transitionNote String?
+  /// Chords played into the next song (issue #10), as degrees of its key: "2m7", "57".
+  transitionChords String[] @default([])
 
   // Set on a song shared into the set by its owner - when a personal set
   // moves to a team, its owner's songs a team set couldn't otherwise hold.

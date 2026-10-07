@@ -37,7 +37,7 @@ check("each song's tempo and key come with the set", saved?.song.tempo === 72 &&
 let liveView = await api(leader, "GET", `/setlists/${set.id}/items/${openerItem}/song`);
 check(
   "Live's view: the transition, from G at 72 to D at 96",
-  JSON.stringify(liveView.transition) === JSON.stringify({ kind: "TRANSITION", note: "Pad under the prayer", fromKey: "G", toKey: "D", fromTempo: 72, toTempo: 96 }),
+  JSON.stringify(liveView.transition) === JSON.stringify({ kind: "TRANSITION", note: "Pad under the prayer", chords: [], fromKey: "G", toKey: "D", fromTempo: 72, toTempo: 96 }),
   JSON.stringify(liveView.transition),
 );
 r = await call(leader, "PATCH", `/setlists/${set.id}/items/${openerItem}`, { transition: "WHATEVER" });

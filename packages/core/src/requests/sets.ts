@@ -40,6 +40,11 @@ export const UpdateSetlistItemSchema = z.strictObject({
   arrangementId: z.string().nullable().optional().describe("The arrangement to play; null plays the song as written"),
   transition: z.enum(SET_TRANSITIONS).nullable().optional().describe("What happens after it (issue #199); null: nothing said"),
   transitionNote: clearableText(200).describe("For a transition: what's played into the next song"),
+  transitionChords: z
+    .array(z.string().regex(/^[#b]?[1-7][^/\s]{0,12}(?:\/[#b]?[1-7])?$/, "transitionChords must be degrees of the next song's key, like 2m7 or 57"))
+    .max(8)
+    .optional()
+    .describe('For a transition (issue #10): the chords played into the next song, as degrees of its key ("2m7", "57"); [] for none'),
 });
 export type UpdateSetlistItemRequest = z.input<typeof UpdateSetlistItemSchema>;
 

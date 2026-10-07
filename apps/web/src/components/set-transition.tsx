@@ -1,6 +1,11 @@
-import { SET_TRANSITIONS, type SetTransitionValue, type SetTransitionView } from "@songverse/core";
-import { ArrowDown, ArrowRightLeft, ChevronsDown, Square, type LucideIcon } from "lucide-react";
+import { degreeChords, SET_TRANSITIONS, transitionDegrees, transitionProgressions, type SetTransitionValue, type SetTransitionView } from "@songverse/core";
+import { ArrowDown, ArrowRightLeft, ChevronsDown, Music, Square, type LucideIcon } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
+import { NativeSelect } from "#/components/ui/native-select";
+import { Popover, PopoverContent, PopoverTrigger } from "#/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { cn } from "#/lib/utils";
 
@@ -70,4 +75,118 @@ export function transitionText(view: SetTransitionView, t: (key: string, options
   }
   if (view.note) parts.push(view.note);
   return parts.join(" · ");
+}
+
+/**
+ * The chords played into the next song (issue #10), for who edits the set:
+ * suggestions from music theory for the two keys as they're played - its
+ * dominant, a ii-V, a chord both keys share... - with as many chords as
+ * asked for, or typed (letters, or Nashville numbers). Kept as degrees of
+ * the next song's key, so they follow it when it's moved.
+ */
+export function TransitionChordsPicker({
+  fromKey,
+  toKey,
+  degrees,
+  onChange,
+}: {
+  fromKey: string | null;
+  toKey: string | null;
+  degrees: string[];
+  onChange: (degrees: string[]) => void;
+}) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const [count, setCount] = useState<number | null>(null);
+  const [typed, setTyped] = useState("");
+  const [invalid, setInvalid] = useState(false);
+  const suggestions = useMemo(() => transitionProgressions(fromKey, toKey, count === null ? {} : { chords: count }), [fromKey, toKey, count]);
+  const current = toKey ? degreeChords(degrees, toKey) : degrees;
+  const chosen = degrees.join(" ");
+
+  function pick(next: string[]) {
+    onChange(next);
+    setOpen(false);
+  }
+  function keepTyped() {
+    // Without the next song's key, only numbers can be kept.
+    const read = transitionDegrees(typed, toKey ?? "C");
+    const ok = read && read.length > 0 && read.length <= 8 && (toKey || typed.trim().split(/[\s,]+/).every((part) => /^[#b]?[1-7]/.test(part)));
+    if (!ok) return setInvalid(true);
+    setInvalid(false);
+    setTyped("");
+    pick(read);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button type="button" variant="outline" size="sm" className="h-8 gap-1.5 font-normal" aria-label={t("sets.transitionChordsLabel")} data-testid="set-song-transition-chords" data-degrees={chosen} />
+        }
+      >
+        <Music className="size-3.5" />
+        {current.length > 0 ? <span className="font-semibold">{current.join(" ")}</span> : t("sets.transitionChords")}
+      </PopoverTrigger>
+      <PopoverContent align="start" className="flex w-80 flex-col gap-3" data-testid="transition-chords-picker">
+        <p className="text-sm font-medium">{toKey ? t("sets.transitionChordsInto", { key: toKey }) : t("sets.transitionChordsLabel")}</p>
+        {!fromKey || !toKey ? (
+          <p className="text-xs text-muted-foreground">{t("sets.transitionChordsNeedKeys")}</p>
+        ) : (
+          <>
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              {t("sets.transitionChordCount")}
+              <NativeSelect compact className="text-sm" value={count ?? ""} onChange={(event) => setCount(event.target.value ? Number(event.target.value) : null)} data-testid="transition-chord-count">
+                <option value="">{t("sets.transitionChordCountAny")}</option>
+                {[1, 2, 3, 4].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </NativeSelect>
+            </label>
+            <ul className="-mx-1 flex flex-col">
+              {suggestions.map((one) => (
+                <li key={one.kind}>
+                  <button
+                    type="button"
+                    onClick={() => pick(one.degrees)}
+                    className={cn("flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left hover:bg-muted", one.degrees.join(" ") === chosen && "bg-muted")}
+                    data-testid="transition-suggestion"
+                    data-kind={one.kind}
+                  >
+                    <span className="text-xs text-muted-foreground">{t(`sets.transitionKinds.${one.kind}`)}</span>
+                    <span className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="font-semibold">{one.chords.join(" ")}</span>
+                      <span className="font-mono text-xs text-muted-foreground">{one.degrees.join(" ")}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <form
+          className="flex flex-col gap-1"
+          onSubmit={(event) => {
+            event.preventDefault();
+            keepTyped();
+          }}
+        >
+          <span className="flex gap-1">
+            <Input value={typed} onChange={(event) => setTyped(event.target.value)} placeholder={t("sets.transitionChordsOwn")} aria-label={t("sets.transitionChordsOwn")} className="h-8 text-sm" data-testid="transition-chords-typed" />
+            <Button type="submit" size="sm" className="h-8" disabled={!typed.trim()}>
+              {t("sets.transitionChordsUse")}
+            </Button>
+          </span>
+          {invalid ? <span className="text-xs text-destructive">{t("sets.transitionChordsInvalid")}</span> : null}
+        </form>
+        {degrees.length > 0 ? (
+          <Button type="button" variant="ghost" size="sm" className="self-start" onClick={() => pick([])} data-testid="transition-chords-clear">
+            {t("sets.transitionChordsNone")}
+          </Button>
+        ) : null}
+      </PopoverContent>
+    </Popover>
+  );
 }

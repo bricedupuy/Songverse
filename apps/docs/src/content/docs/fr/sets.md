@@ -23,8 +23,22 @@ Choisissez **Listes de chants** > **Nouvelle liste** :
   - sa **Traduction**, quand le chant a des [chants liés](/fr/library/#chants-liés) (le même chant dans une autre langue, par exemple) ;
   - sa **Version** - **Tel qu'écrit**, ou l'une de vos [versions](/fr/versions/) ou de celles de votre équipe. Dans une liste d'équipe, la version habituelle de l'équipe est choisie pour vous ;
   - sa **Tonalité** - déplace le chant depuis la tonalité de la version (« un ton plus bas ce dimanche ») sans changer la version ;
-  - **Après ce chant** - ce qui suit : **Arrêt** (la fin, attendre le meneur), **Enchaîner le suivant** (directement le chant suivant), **Segue (sans pause)** (le décompte du suivant sur la dernière mesure) ou **Transition**, un pont vers le chant suivant avec une note à côté (« Pad sous la prière »). Le mode Live l'indique avant la fin du chant, avec le changement de tonalité et de tempo quand le chant suivant en a d'autres.
+  - **Après ce chant** - ce qui suit : **Arrêt** (la fin, attendre le meneur), **Enchaîner le suivant** (directement le chant suivant), **Segue (sans pause)** (le décompte du suivant sur la dernière mesure) ou **Transition**, un pont vers le chant suivant avec une note à côté (« Pad sous la prière ») et [des accords pour y entrer](/fr/sets/#accords-vers-le-chant-suivant). Le mode Live l'indique avant la fin du chant, avec le changement de tonalité et de tempo quand le chant suivant en a d'autres.
 - **×** retire un chant de la liste (le chant lui-même n'est pas touché).
+
+### Accords vers le chant suivant
+
+Pour une **Transition**, le bouton **Accords** à côté de sa note propose des accords à jouer vers le chant suivant, calculés à partir des deux tonalités telles que la liste les joue (avec la **Tonalité** de chaque chant) :
+
+- **La dominante de la nouvelle tonalité** - un accord, le V7 de la tonalité suivante (A7 vers D) ;
+- **Dominante suspendue** - V7sus4 qui se résout sur V7 ;
+- **II–V** - Em7 A7 vers D (vers une tonalité mineure, son IIø7 et V7) ;
+- **IV–V** - G A7 vers D ;
+- **Par un accord commun aux deux tonalités** - un accord qui sonne encore comme le chant qu'on quitte, puis la nouvelle tonalité : de G vers D, Bm Em7 A7 ;
+- **Monter d'un ton (♭VI–♭VII)** - vers une tonalité un demi-ton ou un ton plus haut, la montée classique : F G vers A ;
+- **Par le cycle des quintes** - quatre accords, F#m7 Bm7 Em7 A7 vers D.
+
+**Nombre d'accords** garde ceux de cette longueur. Touchez-en un pour l'utiliser, ou écrivez les vôtres (**Em7 A7**, ou en chiffres, **2m7 57**) et touchez **Utiliser** ; **Pas d'accords** les retire. Ils sont gardés en chiffres dans la tonalité du chant suivant : si ce chant change de tonalité, ses accords suivent. En mode Live, ils s'affichent sous la transition, avant la fin du chant, en [diagrammes d'accords](/fr/versions/#diagrammes-daccords) si vous les avez activés : touchez-en un pour l'entendre.
 
 ### Pour cette liste seulement
 

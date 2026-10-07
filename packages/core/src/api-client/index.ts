@@ -162,6 +162,8 @@ export interface SetlistItem {
   /** What happens after it (issue #199); null: nothing said. Missing from copies kept offline before then. */
   transition?: SetTransitionValue | null;
   transitionNote?: string | null;
+  /** The chords played into the next song (issue #10), as degrees of its key. */
+  transitionChords?: string[];
   /** Null when the song isn't readable by the current user (shown as a placeholder). */
   song: SetlistSongRef | null;
   /** Also in the current user's own library, i.e. openable outside the set. */
@@ -191,6 +193,8 @@ export interface SetlistDetail extends SetlistSummary {
 export interface SetTransitionView {
   kind: SetTransitionValue;
   note: string | null;
+  /** The chords played into the next song (issue #10), as degrees of its key: spell them with degreeChords(chords, toKey). */
+  chords?: string[];
   fromKey: string | null;
   toKey: string | null;
   fromTempo: number | null;

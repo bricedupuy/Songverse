@@ -1,5 +1,6 @@
 import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
 import { pianoVoicings, songVoicings, voicingText } from "../chords/piano.js";
+import { degreeChord, transitionDegrees, transitionProgressions } from "../chords/transitions.js";
 import { findProgression, parseProgressionQuery, progressionDegree, progressionGrams, progressionSimilarity, songProgressions } from "../chords/progressions.js";
 import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
@@ -319,6 +320,32 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "half shared", args: [["1-5-6m", "5-6m-4"], ["1-5-6m", "4-1-5"]] },
           { name: "nothing shared", args: [["1-4-5"], ["2m-5-1"]] },
         ],
+      },
+      transitionProgressions: {
+        about: "Chord progressions from one song's key into the next song's (issue #10): the new key's dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII into a key a step up, the circle of fifths; as degrees of the new key and spelled in it. Into the same key, a turnaround. `chords` keeps those of that length.",
+        params: ["fromKey", "toKey", "options"],
+        run: transitionProgressions,
+        cases: [
+          { name: "G into D", args: ["G", "D", {}] },
+          { name: "G into A, a step up", args: ["G", "A", {}] },
+          { name: "D into Em", args: ["D", "Em", {}] },
+          { name: "Bb into F#, sharps", args: ["Bb", "F#", {}] },
+          { name: "the same key", args: ["G", "G", {}] },
+          { name: "C into Db, two chords", args: ["C", "Db", { chords: 2 }] },
+          { name: "no key", args: [null, "D", {}] },
+        ],
+      },
+      degreeChord: {
+        about: "A degree of a key as a chord: a flat degree spelled with flats, a sharp one with sharps, the others as the key is. Null when it isn't a degree.",
+        params: ["degree", "key"],
+        run: degreeChord,
+        cases: [["2m7", "D"], ["57", "Eb"], ["b6", "D"], ["#4m7b5", "C"], ["1/3", "G"], ["b3", "Em"], ["57sus4", "F#"], ["8", "C"], ["2m", "H"]].map((args) => ({ name: `${args[0]} in ${args[1]}`, args })),
+      },
+      transitionDegrees: {
+        about: "Chords typed for a transition, kept as degrees of the key it goes into; degrees typed are kept. Null when something isn't a chord or a degree.",
+        params: ["text", "key"],
+        run: transitionDegrees,
+        cases: [["Em7 A7", "D"], ["2m7 57", "D"], ["Bb, C", "D"], ["Em7 hello", "D"], ["A7", "not a key"]].map((args) => ({ name: `${JSON.stringify(args[0])} into ${args[1]}`, args })),
       },
       voicingText: {
         about: "A voicing written down to keep a player's choice: left hand | right hand, as MIDI notes.",

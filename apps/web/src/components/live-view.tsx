@@ -1,4 +1,4 @@
-import { chartSeconds, structureOf, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
+import { chartSeconds, degreeChords, structureOf, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
 import { AArrowDown, AArrowUp, ArrowLeft, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,7 +10,7 @@ import { OfflineBanner } from "#/components/offline-banner";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { PresentPanel } from "#/components/present-panel";
 import { TransitionSymbol, transitionText } from "#/components/set-transition";
-import { ChartWithDiagrams } from "#/components/chord-diagrams";
+import { ChartWithDiagrams, ChordRow } from "#/components/chord-diagrams";
 import { SyncControl } from "#/components/sync-control";
 import { SidebarTrigger } from "#/components/ui/sidebar";
 import { useChartColumns } from "#/lib/chart-columns";
@@ -347,6 +347,19 @@ export function LiveView({ song }: { song: LiveSong }) {
               <TransitionSymbol kind={song.transition.kind} className="size-4 text-primary" />
               {transitionText(song.transition, t)}
             </p>
+          ) : null}
+          {/* The chords played into the next song (issue #10), in its key, to see and hear. */}
+          {song.transition?.chords?.length ? (
+            <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="live-transition-chords">
+              <span className="text-muted-foreground">{t("sets.transitionChordsLive")}</span>
+              <ChordRow
+                chords={song.transition.toKey ? degreeChords(song.transition.chords, song.transition.toKey) : song.transition.chords}
+                musicalKey={song.transition.toKey}
+                diagrams={song.diagrams}
+                notation={song.notation ?? "LETTERS"}
+                player={song.player}
+              />
+            </div>
           ) : null}
         </div>
       </main>

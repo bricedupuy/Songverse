@@ -23,8 +23,22 @@ Choose **Sets** > **New set**:
   - its **Translation**, when the song has [linked songs](/library/#linked-songs) (the same song in another language, say);
   - its **Version** - **As written**, or one of your or your team's [versions](/versions/). In a team set, the team's usual version is picked for you;
   - its **Key** - moves the song from the version's key ("a tone lower this Sunday") without changing the version;
-  - **After this song** - what happens next: **Stop** (the end, wait for the leader), **Go to next** (straight into the next song), **Segue (no pause)** (the next song's count-in on the last bar) or **Transition**, a bridge into the next song with a note beside it ("Pad under the prayer"). Live says it before the song ends, with the change of key and tempo when the next song has another one.
+  - **After this song** - what happens next: **Stop** (the end, wait for the leader), **Go to next** (straight into the next song), **Segue (no pause)** (the next song's count-in on the last bar) or **Transition**, a bridge into the next song with a note beside it ("Pad under the prayer") and [chords to play into it](/sets/#chords-into-the-next-song). Live says it before the song ends, with the change of key and tempo when the next song has another one.
 - **×** removes a song from the set (the song itself isn't affected).
+
+### Chords into the next song
+
+For a **Transition**, the **Chords** button beside its note suggests chords to play into the next song, worked out from the two keys as the set plays them (with each song's **Key**):
+
+- **The new key's dominant** - one chord, the next key's V7 (A7 into D);
+- **Suspended dominant** - V7sus4 resolving to V7;
+- **ii–V** - Em7 A7 into D (into a minor key, its iiø7 and V7);
+- **IV–V** - G A7 into D;
+- **Through a chord both keys share** - a chord that still sounds like the song you're leaving, then into the new key: from G into D, Bm Em7 A7;
+- **Step up (♭VI–♭VII)** - into a key a half or whole step up, the classic lift: F G into A;
+- **Down the circle of fifths** - four chords, F#m7 Bm7 Em7 A7 into D.
+
+**How many chords** keeps the ones of that length. Tap one to use it, or type your own (**Em7 A7**, or as numbers, **2m7 57**) and tap **Use**; **No chords** takes them away. They're kept as numbers in the next song's key, so if that song moves to another key, its chords move with it. In Live, they're shown under the transition, before the end of the song, as [chord diagrams](/versions/#chord-diagrams) if you have them on: tap one to hear it.
 
 ### Just for this set
 

@@ -437,3 +437,60 @@ export function ChartWithDiagrams({
     </div>
   );
 }
+
+/**
+ * A few chords on their own - a set's transition into the next song (issue
+ * #10): their names, with the player's diagrams when they have some on, each
+ * tapped to hear it (on a guitar without diagrams). In Nashville numbers,
+ * as degrees of `musicalKey`.
+ */
+export function ChordRow({
+  chords,
+  diagrams,
+  notation,
+  player,
+  musicalKey,
+  className,
+}: {
+  chords: string[];
+  diagrams: ChordDiagramsValue | undefined;
+  notation: ChordNotationValue;
+  player?: DiagramPlayer;
+  musicalKey?: string | null;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  const drawn = instrumentOf(diagrams ?? "OFF");
+  const instrument = drawn ?? "guitar";
+  const up = useRef(false);
+  const setup = useMemo<Setup>(() => {
+    const tuning = instrument === "piano" ? "standard" : ((instrument === "ukulele" ? player?.ukuleleTuning : player?.guitarTuning) ?? "standard");
+    const pianoNames = player?.pianoNoteNames === "all" || player?.pianoNoteNames === "none" ? player.pianoNoteNames : "card";
+    const pianoHands = player?.pianoHands === "right" ? "right" : "both";
+    const start = new Map<string, number>();
+    if (instrument === "piano") songVoicings(chords, { hands: pianoHands, smooth: player?.pianoSmooth !== false }).forEach((index, i) => start.set(chords[i]!, index));
+    return { instrument, tuning, leftHanded: !!player?.leftHanded, pianoHands, pianoNames, start, chosen: new Map() };
+  }, [instrument, chords, player?.ukuleleTuning, player?.guitarTuning, player?.pianoNoteNames, player?.pianoHands, player?.pianoSmooth, player?.leftHanded]);
+  const name = (chord: string) => (notation === "NASHVILLE" ? formatChord(chord, "nashville", musicalKey) : shownName(chord, notation));
+  return (
+    <span className={cn("flex flex-wrap items-end gap-1", className)} data-testid="chord-row">
+      {chords.map((chord, i) => {
+        const option = optionsFor(chord, setup, 1)[0];
+        return (
+          <button
+            key={`${i}-${chord}`}
+            type="button"
+            disabled={!option}
+            onClick={() => option && play(option, setup, up)}
+            aria-label={t("chords.play", { chord: name(chord) })}
+            className={cn("flex shrink-0 flex-col items-center rounded-md px-1.5 hover:bg-muted disabled:opacity-60", drawn ? "pt-0.5" : "border py-0.5")}
+            data-chord={chord}
+          >
+            <span className="text-sm font-bold text-primary">{name(chord)}</span>
+            {drawn && option ? <OptionDiagram option={option} setup={setup} chord={chord} name={name(chord)} notation={notation} /> : null}
+          </button>
+        );
+      })}
+    </span>
+  );
+}

@@ -177,6 +177,7 @@ export class SetlistsService {
           // What happens after it (issue #199).
           transition: item.transition,
           transitionNote: item.transitionNote,
+          transitionChords: item.transitionChords,
           // Null when this viewer can't read the song (shown as a placeholder).
           song: shown ? toSongRef(song) : null,
           // Whether it's also in the viewer's own library, i.e. openable outside the set.
@@ -335,6 +336,7 @@ export class SetlistsService {
         ...(dto.notes !== undefined && { notes: dto.notes || null }),
         ...(dto.transition !== undefined && { transition: dto.transition }),
         ...(dto.transitionNote !== undefined && { transitionNote: dto.transitionNote }),
+        ...(dto.transitionChords !== undefined && { transitionChords: dto.transitionChords }),
       },
       });
     });
@@ -457,7 +459,7 @@ export class SetlistsService {
 
   /** A song's transition into the next (issue #199): its kind and note, and the keys and tempos either side, as played. */
   private transitionView(
-    item: { transition: SetTransitionValue | null; transitionNote: string | null; transposeSteps: number; tempoOverride: number | null; songVersion: SongRow; arrangement: { id: string; name: string; documentJson: unknown; setlistItemId: string | null } | null },
+    item: { transition: SetTransitionValue | null; transitionNote: string | null; transitionChords: string[]; transposeSteps: number; tempoOverride: number | null; songVersion: SongRow; arrangement: { id: string; name: string; documentJson: unknown; setlistItemId: string | null } | null },
     next: { transposeSteps: number; tempoOverride: number | null; songVersion: SongRow; arrangement: { id: string; name: string; documentJson: unknown; setlistItemId: string | null } | null } | null,
     shown: boolean,
   ) {
@@ -467,7 +469,7 @@ export class SetlistsService {
     };
     const from = shown ? side(item) : { key: null, tempo: null };
     const to = next ? side(next) : { key: null, tempo: null };
-    return { kind: item.transition!, note: item.transitionNote, fromKey: from.key, toKey: to.key, fromTempo: from.tempo, toTempo: to.tempo };
+    return { kind: item.transition!, note: item.transitionNote, chords: item.transitionChords, fromKey: from.key, toKey: to.key, fromTempo: from.tempo, toTempo: to.tempo };
   }
 
   /** Where each song is in `user`'s numbered songbooks, by song: "JEM 855 · JEM3" (issues #55, #59). */

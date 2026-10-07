@@ -4536,6 +4536,583 @@
         }
       ]
     },
+    "transitionProgressions": {
+      "about": "Chord progressions from one song's key into the next song's (issue #10): the new key's dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII into a key a step up, the circle of fifths; as degrees of the new key and spelled in it. Into the same key, a turnaround. `chords` keeps those of that length.",
+      "params": [
+        "fromKey",
+        "toKey",
+        "options"
+      ],
+      "cases": [
+        {
+          "name": "G into D",
+          "args": [
+            "G",
+            "D",
+            {}
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "A7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "57sus4",
+                "57"
+              ],
+              "chords": [
+                "A7sus4",
+                "A7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Em7",
+                "A7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "4",
+                "57"
+              ],
+              "chords": [
+                "G",
+                "A7"
+              ]
+            },
+            {
+              "kind": "pivot",
+              "degrees": [
+                "6m",
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Bm",
+                "Em7",
+                "A7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "3m7",
+                "6m7",
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "F#m7",
+                "Bm7",
+                "Em7",
+                "A7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "G into A, a step up",
+          "args": [
+            "G",
+            "A",
+            {}
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "E7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "57sus4",
+                "57"
+              ],
+              "chords": [
+                "E7sus4",
+                "E7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Bm7",
+                "E7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "4",
+                "57"
+              ],
+              "chords": [
+                "D",
+                "E7"
+              ]
+            },
+            {
+              "kind": "step-up",
+              "degrees": [
+                "b6",
+                "b7"
+              ],
+              "chords": [
+                "F",
+                "G"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "3m7",
+                "6m7",
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "C#m7",
+                "F#m7",
+                "Bm7",
+                "E7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "D into Em",
+          "args": [
+            "D",
+            "Em",
+            {}
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "B7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "57sus4",
+                "57"
+              ],
+              "chords": [
+                "B7sus4",
+                "B7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "2m7b5",
+                "57"
+              ],
+              "chords": [
+                "F#m7b5",
+                "B7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "4m",
+                "57"
+              ],
+              "chords": [
+                "Am",
+                "B7"
+              ]
+            },
+            {
+              "kind": "pivot",
+              "degrees": [
+                "b3",
+                "4m",
+                "57"
+              ],
+              "chords": [
+                "G",
+                "Am",
+                "B7"
+              ]
+            },
+            {
+              "kind": "step-up",
+              "degrees": [
+                "b6",
+                "b7"
+              ],
+              "chords": [
+                "C",
+                "D"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "b3",
+                "b6",
+                "2m7b5",
+                "57"
+              ],
+              "chords": [
+                "G",
+                "C",
+                "F#m7b5",
+                "B7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Bb into F#, sharps",
+          "args": [
+            "Bb",
+            "F#",
+            {}
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "C#7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "57sus4",
+                "57"
+              ],
+              "chords": [
+                "C#7sus4",
+                "C#7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "G#m7",
+                "C#7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "4",
+                "57"
+              ],
+              "chords": [
+                "B",
+                "C#7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "3m7",
+                "6m7",
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "A#m7",
+                "D#m7",
+                "G#m7",
+                "C#7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "the same key",
+          "args": [
+            "G",
+            "G",
+            {}
+          ],
+          "expected": [
+            {
+              "kind": "two-five",
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Am7",
+                "D7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "4",
+                "57"
+              ],
+              "chords": [
+                "C",
+                "D7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "3m7",
+                "6m7",
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Bm7",
+                "Em7",
+                "Am7",
+                "D7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "C into Db, two chords",
+          "args": [
+            "C",
+            "Db",
+            {
+              "chords": 2
+            }
+          ],
+          "expected": [
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "57sus4",
+                "57"
+              ],
+              "chords": [
+                "Ab7sus4",
+                "Ab7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Ebm7",
+                "Ab7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "4",
+                "57"
+              ],
+              "chords": [
+                "Gb",
+                "Ab7"
+              ]
+            },
+            {
+              "kind": "step-up",
+              "degrees": [
+                "b6",
+                "b7"
+              ],
+              "chords": [
+                "A",
+                "B"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "no key",
+          "args": [
+            null,
+            "D",
+            {}
+          ],
+          "expected": []
+        }
+      ]
+    },
+    "degreeChord": {
+      "about": "A degree of a key as a chord: a flat degree spelled with flats, a sharp one with sharps, the others as the key is. Null when it isn't a degree.",
+      "params": [
+        "degree",
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "2m7 in D",
+          "args": [
+            "2m7",
+            "D"
+          ],
+          "expected": "Em7"
+        },
+        {
+          "name": "57 in Eb",
+          "args": [
+            "57",
+            "Eb"
+          ],
+          "expected": "Bb7"
+        },
+        {
+          "name": "b6 in D",
+          "args": [
+            "b6",
+            "D"
+          ],
+          "expected": "Bb"
+        },
+        {
+          "name": "#4m7b5 in C",
+          "args": [
+            "#4m7b5",
+            "C"
+          ],
+          "expected": "F#m7b5"
+        },
+        {
+          "name": "1/3 in G",
+          "args": [
+            "1/3",
+            "G"
+          ],
+          "expected": "G/B"
+        },
+        {
+          "name": "b3 in Em",
+          "args": [
+            "b3",
+            "Em"
+          ],
+          "expected": "G"
+        },
+        {
+          "name": "57sus4 in F#",
+          "args": [
+            "57sus4",
+            "F#"
+          ],
+          "expected": "C#7sus4"
+        },
+        {
+          "name": "8 in C",
+          "args": [
+            "8",
+            "C"
+          ],
+          "expected": null
+        },
+        {
+          "name": "2m in H",
+          "args": [
+            "2m",
+            "H"
+          ],
+          "expected": null
+        }
+      ]
+    },
+    "transitionDegrees": {
+      "about": "Chords typed for a transition, kept as degrees of the key it goes into; degrees typed are kept. Null when something isn't a chord or a degree.",
+      "params": [
+        "text",
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "\"Em7 A7\" into D",
+          "args": [
+            "Em7 A7",
+            "D"
+          ],
+          "expected": [
+            "2m7",
+            "57"
+          ]
+        },
+        {
+          "name": "\"2m7 57\" into D",
+          "args": [
+            "2m7 57",
+            "D"
+          ],
+          "expected": [
+            "2m7",
+            "57"
+          ]
+        },
+        {
+          "name": "\"Bb, C\" into D",
+          "args": [
+            "Bb, C",
+            "D"
+          ],
+          "expected": [
+            "b6",
+            "b7"
+          ]
+        },
+        {
+          "name": "\"Em7 hello\" into D",
+          "args": [
+            "Em7 hello",
+            "D"
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"A7\" into not a key",
+          "args": [
+            "A7",
+            "not a key"
+          ],
+          "expected": null
+        }
+      ]
+    },
     "voicingText": {
       "about": "A voicing written down to keep a player's choice: left hand | right hand, as MIDI notes.",
       "params": [

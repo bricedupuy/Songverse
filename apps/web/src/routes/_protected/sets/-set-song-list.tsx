@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SET_TRANSITIONS, TRANSPOSE_STEP_OPTIONS, transposeKey, type SetlistItem, type SetlistSongRef, type UpdateSetlistItemRequest } from "@songverse/core";
+import { degreeChords, SET_TRANSITIONS, TRANSPOSE_STEP_OPTIONS, transposeKey, type SetlistItem, type SetlistSongRef, type UpdateSetlistItemRequest } from "@songverse/core";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Check, GripVertical, Pencil, X } from "lucide-react";
 import { useState } from "react";
@@ -22,7 +22,14 @@ import type { SetProgress } from "#/lib/set-progress";
 import { transposeLabel } from "#/lib/setlists";
 import { NativeSelect } from "#/components/ui/native-select";
 import { Input } from "#/components/ui/input";
-import { TransitionSymbol } from "#/components/set-transition";
+import { TransitionChordsPicker, TransitionSymbol } from "#/components/set-transition";
+
+/** The key a song of the set is played in: its own, moved by its arrangement, then by the set. */
+function playedKey(item: SetlistItem): string | null {
+  const song = item.song;
+  const baseKey = song?.key && item.arrangement ? (transposeKey(song.key, item.arrangement.transposeSteps) ?? song.key) : (song?.key ?? null);
+  return baseKey ? (transposeKey(baseKey, item.transposeSteps) ?? baseKey) : null;
+}
 
 // The arrangement picker's "make one just for this set" choice.
 const SET_ONLY = "__set";
@@ -71,6 +78,8 @@ export function SetSongList({ setlistId, items, progress, canEdit, ownership, on
               item={item}
               ownership={ownership}
               index={index}
+              hasNext={index < items.length - 1}
+              nextKey={items[index + 1] ? playedKey(items[index + 1]!) : null}
               played={!!progress?.played.includes(item.id)}
               current={progress?.current === item.id}
               canEdit={canEdit}
@@ -95,6 +104,8 @@ function SongRow({
   item,
   ownership,
   index,
+  hasNext,
+  nextKey,
   played,
   current,
   canEdit,
@@ -105,6 +116,9 @@ function SongRow({
   item: SetlistItem;
   ownership: OwnershipActions;
   index: number;
+  hasNext: boolean;
+  /** The key the next song is played in; null at the end of the set, or without one. */
+  nextKey: string | null;
   played: boolean;
   current: boolean;
   canEdit: boolean;
@@ -288,7 +302,7 @@ function SongRow({
               </option>
             ))}
           </NativeSelect>
-          {item.transition === "TRANSITION" ? (
+          {item.transition === "TRANSITION" && hasNext ? (
             <Input
               key={item.transitionNote ?? ""}
               defaultValue={item.transitionNote ?? ""}
@@ -300,12 +314,17 @@ function SongRow({
               data-testid="set-song-transition-note"
             />
           ) : null}
+          {/* The chords played into the next song (issue #10). */}
+          {item.transition === "TRANSITION" && hasNext ? (
+            <TransitionChordsPicker fromKey={song ? playedKey(item) : null} toKey={nextKey} degrees={item.transitionChords ?? []} onChange={(transitionChords) => onChange({ transitionChords })} />
+          ) : null}
         </span>
       ) : item.transition ? (
         <span className="flex items-center gap-1 text-sm text-muted-foreground">
           <TransitionSymbol kind={item.transition} />
           {t(`sets.transitions.${item.transition}`)}
           {item.transitionNote ? ` · ${item.transitionNote}` : ""}
+          {item.transitionChords?.length ? ` · ${nextKey ? degreeChords(item.transitionChords, nextKey).join(" ") : item.transitionChords.join(" ")}` : ""}
         </span>
       ) : null}
 
