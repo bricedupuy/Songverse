@@ -34,6 +34,8 @@ await fetch(`${API}/song-versions/${song.id}/attachments`, { method: "POST", hea
 const set = await api(alice, "POST", "/setlists", { name: `Fold set ${stamp}` });
 await api(alice, "POST", `/setlists/${set.id}/items`, { songVersionId: song.id });
 await call(alice, "PUT", "/offline/pins", { kind: "SONG", targetId: song.id });
+// The shape she chose for its G (issue #207).
+await api(alice, "PUT", `/song-versions/${song.id}/chord-shapes`, { instrument: "guitar", tuning: "standard", chord: "G", frets: "355433" });
 // Since then: Alice changed a line, added one and set the rights; an admin changed the catalogue chorus.
 await api(alice, "PATCH", `/song-versions/${song.id}`, {
   content: CHART.replace("wretch like [D]me", "soul like [D]me").replace("[C]My chains are [G]gone", "[C]My chains are [G]gone\n[D]I've been set free"),
@@ -80,6 +82,7 @@ check("nobody else sees it", (await api(bob, "GET", `/song-versions/${copy.id}/a
 const item = (await api(alice, "GET", `/setlists/${set.id}`)).items[0];
 check("her set plays the catalogue song, her way", item.song.id === copy.id && item.arrangement?.id === own.id, JSON.stringify(item));
 check("her pin follows", (await api(alice, "GET", "/offline/pins")).some((pin) => pin.targetId === copy.id));
+check("her chosen chord shape follows", (await api(alice, "GET", `/song-versions/${copy.id}/chord-shapes`)).some((choice) => choice.chord === "G" && choice.frets === "355433"));
 check("its tag too", (await api(alice, "GET", `/song-versions/${copy.id}`)).tags.some((t) => t.id === globalTag));
 const suggestion = (await api(alice, "GET", `/song-versions/${copy.id}/suggestions`))[0];
 check("her details are suggested to the reviewers", suggestion?.state === "OPEN" && suggestion.changes.join() === "details", JSON.stringify(suggestion));

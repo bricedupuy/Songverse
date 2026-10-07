@@ -188,6 +188,9 @@ export interface OfflineViewer {
   liveView?: LiveViewValue;
   chordDiagrams?: ChordDiagramsValue;
   chordColors?: boolean;
+  leftHanded?: boolean;
+  guitarTuning?: string;
+  ukuleleTuning?: string;
 }
 
 export async function offlineViewer(storage: OfflineStorage): Promise<OfflineViewer | undefined> {

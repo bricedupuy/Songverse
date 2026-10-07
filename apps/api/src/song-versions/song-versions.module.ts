@@ -1,3 +1,4 @@
+import { ChordShapesController } from "./chord-shapes.controller.js";
 import { Module } from "@nestjs/common";
 import { ArtworkModule } from "../artwork/artwork.module.js";
 import { ArtistsModule } from "../artists/artists.module.js";
@@ -11,7 +12,7 @@ import { SongVersionsService } from "./song-versions.service.js";
 
 @Module({
   imports: [MusicBrainzModule, StorageModule, ArtworkModule, MetadataModule, ArtistsModule, LookupsModule],
-  controllers: [SongVersionsController],
+  controllers: [SongVersionsController, ChordShapesController],
   providers: [SongVersionsService, SongHistoryService],
   exports: [SongVersionsService, SongHistoryService],
 })

@@ -1,4 +1,4 @@
-import { chartNotation, cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type LiveViewValue, type SongVersionDetail } from "@songverse/core";
+import { chartNotation, cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type LiveViewValue, type SongVersionDetail } from "@songverse/core";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
@@ -32,6 +32,7 @@ export function PracticeSongPage({
   liveView,
   diagrams,
   colors,
+  player,
 }: {
   version: SongVersionDetail;
   attachments: Attachment[];
@@ -44,6 +45,8 @@ export function PracticeSongPage({
   diagrams: ChordDiagramsValue;
   /** Chords coloured by family (issue #9). */
   colors: boolean;
+  /** Left-handed diagrams and tunings (issue #207). */
+  player?: DiagramPlayer;
 }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
@@ -105,7 +108,7 @@ export function PracticeSongPage({
         <Card>
           <CardContent className="flex flex-col gap-3">
             <ChartColumnsPicker className="self-end" />
-            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={diagrams} notation={notation} colors={colors} />
+            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={diagrams} notation={notation} colors={colors} player={player} songVersionId={version.id} />
           </CardContent>
         </Card>
       </ChartOrPdf>

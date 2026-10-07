@@ -133,5 +133,63 @@ await step("Live: the strip at the top of the song", async () => {
   await page.getByTestId("chord-card").waitFor();
 });
 
+await step("your own shape for a chord, for this song only (issue #207 phase 3)", async () => {
+  await api(me, "PATCH", "/users/me", { chordDiagrams: "GUITAR" });
+  const other = await api(me, "POST", "/song-versions", {
+    title: `Other G ${stamp}`,
+    language: "en",
+    artists: ["Someone"],
+    key: "G",
+    content: "{start_of_verse}\n[G]Other [C]song\n{end_of_verse}\n",
+    contentFormat: "CHORDPRO",
+  });
+  const plain = await api(me, "POST", "/song-versions", { title: `Plain G ${stamp}`, language: "en", artists: ["Someone"], key: "G", content: "{start_of_verse}\n[G]Third [C]song\n{end_of_verse}\n", contentFormat: "CHORDPRO" });
+  await page.goto(`${WEB}/library/${other.id}`);
+  await page.waitForLoadState("networkidle");
+  const strip = page.getByTestId("chord-strip");
+  const usual = await strip.locator('[data-chord-diagram="G"] svg').getAttribute("data-shape");
+  await page.getByRole("button", { name: "Show how to play G" }).click();
+  const card = page.getByTestId("chord-card");
+  await card.getByRole("button", { name: "Next shape" }).click();
+  const second = await card.locator("svg[data-shape]").getAttribute("data-shape");
+  await card.getByRole("button", { name: "Use this shape for this song" }).click();
+  await card.getByTestId("chord-card-chosen").waitFor();
+  await page.keyboard.press("Escape");
+  // Kept for the song, on the account: the strip draws it, here and after reloading.
+  await page.reload();
+  await page.waitForLoadState("networkidle");
+  await page.locator(`[data-testid=chord-strip] [data-chord-diagram="G"] svg[data-shape="${second}"]`).waitFor();
+  const saved = await api(me, "GET", `/song-versions/${other.id}/chord-shapes`);
+  if (saved.length !== 1 || saved[0].chord !== "G" || saved[0].frets !== second) throw new Error(JSON.stringify(saved));
+  // Another song's G is still the usual one.
+  await page.goto(`${WEB}/library/${plain.id}`);
+  await page.locator(`[data-testid=chord-strip] [data-chord-diagram="G"] svg[data-shape="${usual}"]`).waitFor();
+  // Back to the usual one.
+  await page.goto(`${WEB}/library/${other.id}`);
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "Show how to play G" }).click();
+  await card.getByRole("button", { name: "Back to the usual one" }).click();
+  await card.getByRole("button", { name: "Use this shape for this song" }).waitFor();
+  if ((await api(me, "GET", `/song-versions/${other.id}/chord-shapes`)).length !== 0) throw new Error("not forgotten");
+  await page.keyboard.press("Escape");
+});
+
+await step("a tuning, and left-handed diagrams", async () => {
+  check("only tunings it knows", (await call(me, "PATCH", "/users/me", { guitarTuning: "banjo" })).status === 400);
+  await page.goto(`${WEB}/dashboard`);
+  await page.getByLabel("Guitar tuning").selectOption("drop-d");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel("Left-handed diagrams").selectOption("YES");
+  await page.waitForLoadState("networkidle");
+  await page.goto(`${WEB}/library/${song.id}`);
+  await page.waitForLoadState("networkidle");
+  // C fretted (D sounding, capo 2) in drop D: its low string is a D, not an E.
+  const strip = page.getByTestId("chord-strip");
+  await strip.locator('[data-chord-diagram="C"] svg[data-left-handed]').waitFor();
+  const me2 = await api(me, "GET", "/users/me");
+  if (me2.guitarTuning !== "drop-d" || me2.leftHanded !== true) throw new Error(JSON.stringify(me2));
+  await api(me, "PATCH", "/users/me", { guitarTuning: "standard", leftHanded: false });
+});
+
 await browser.close();
 finish();

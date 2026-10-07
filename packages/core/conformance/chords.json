@@ -1184,11 +1184,12 @@
       ]
     },
     "chordShapes": {
-      "about": "Shapes for a chord on a guitar (EADGBE) or a ukulele (GCEA, high G), easiest and most usual first (issue #207): per string the fret (0 open, null muted), the fingers, barres, the fret the diagram starts at and the MIDI notes it sounds. Every needed note and nothing else; on a guitar the bass is lowest; at most four fingers, a barre counting as one. Each client draws them its own way (docs/chord-diagrams.md).",
+      "about": "Shapes for a chord on a guitar (EADGBE unless a tuning is given) or a ukulele (GCEA, high G unless given), easiest and most usual first (issue #207): per string the fret (0 open, null muted), the fingers, barres, the fret the diagram starts at and the MIDI notes it sounds. Every needed note and nothing else; on a guitar the bass is lowest; at most four fingers, a barre counting as one. Each client draws them its own way (docs/chord-diagrams.md).",
       "params": [
         "chord",
         "instrument",
-        "limit"
+        "limit",
+        "tuning"
       ],
       "cases": [
         {
@@ -1762,26 +1763,27 @@
             {
               "frets": [
                 null,
-                null,
-                null,
+                2,
+                4,
                 4,
                 3,
-                2
+                null
               ],
               "fingers": [
                 null,
-                null,
-                null,
+                1,
                 3,
+                4,
                 2,
-                1
+                null
               ],
               "barres": [],
               "baseFret": 1,
               "notes": [
+                47,
+                54,
                 59,
-                62,
-                66
+                62
               ]
             }
           ]
@@ -3308,6 +3310,246 @@
             3
           ],
           "expected": []
+        },
+        {
+          "name": "guitar in drop D: D",
+          "args": [
+            "D",
+            "guitar",
+            2,
+            "drop-d"
+          ],
+          "expected": [
+            {
+              "frets": [
+                0,
+                0,
+                0,
+                2,
+                3,
+                2
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1,
+                3,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                38,
+                45,
+                50,
+                57,
+                62,
+                66
+              ]
+            },
+            {
+              "frets": [
+                0,
+                0,
+                0,
+                2,
+                null,
+                2
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1,
+                null,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                38,
+                45,
+                50,
+                57,
+                66
+              ]
+            }
+          ]
+        },
+        {
+          "name": "guitar in DADGAD: G",
+          "args": [
+            "G",
+            "guitar",
+            2,
+            "dadgad"
+          ],
+          "expected": [
+            {
+              "frets": [
+                null,
+                null,
+                null,
+                0,
+                2,
+                0
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                null,
+                1,
+                null
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                55,
+                59,
+                62
+              ]
+            },
+            {
+              "frets": [
+                5,
+                2,
+                0,
+                0,
+                2,
+                5
+              ],
+              "fingers": [
+                3,
+                1,
+                null,
+                null,
+                2,
+                4
+              ],
+              "barres": [],
+              "baseFret": 2,
+              "notes": [
+                43,
+                47,
+                50,
+                55,
+                59,
+                67
+              ]
+            }
+          ]
+        },
+        {
+          "name": "ukulele with a low G: C",
+          "args": [
+            "C",
+            "ukulele",
+            2,
+            "low-g"
+          ],
+          "expected": [
+            {
+              "frets": [
+                0,
+                0,
+                0,
+                3
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                55,
+                60,
+                64,
+                72
+              ]
+            },
+            {
+              "frets": [
+                0,
+                4,
+                3,
+                3
+              ],
+              "fingers": [
+                null,
+                3,
+                1,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                55,
+                64,
+                67,
+                72
+              ]
+            }
+          ]
+        },
+        {
+          "name": "baritone ukulele: G",
+          "args": [
+            "G",
+            "ukulele",
+            2,
+            "baritone"
+          ],
+          "expected": [
+            {
+              "frets": [
+                0,
+                0,
+                0,
+                3
+              ],
+              "fingers": [
+                null,
+                null,
+                null,
+                1
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                50,
+                55,
+                59,
+                67
+              ]
+            },
+            {
+              "frets": [
+                0,
+                4,
+                3,
+                3
+              ],
+              "fingers": [
+                null,
+                3,
+                1,
+                2
+              ],
+              "barres": [],
+              "baseFret": 1,
+              "notes": [
+                50,
+                59,
+                62,
+                67
+              ]
+            }
+          ]
         }
       ]
     },

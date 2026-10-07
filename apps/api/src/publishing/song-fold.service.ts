@@ -229,6 +229,14 @@ export class SongFoldService implements OnApplicationBootstrap {
     }
 
     // Chart settings: an arrangement's follow it; the song-as-written ones go to its owner's arrangement, or the song.
+    // Players' chosen chord shapes (issue #207) follow, unless they already chose one for that chord there.
+    for (const choice of await tx.chordShapeChoice.findMany({ where: { songVersionId: songId } })) {
+      const there = await tx.chordShapeChoice.count({
+        where: { userId: choice.userId, songVersionId: targetId, instrument: choice.instrument, tuning: choice.tuning, chord: choice.chord },
+      });
+      if (there > 0) await tx.chordShapeChoice.delete({ where: { id: choice.id } });
+      else await tx.chordShapeChoice.update({ where: { id: choice.id }, data: { songVersionId: targetId } });
+    }
     await tx.chartPreference.updateMany({ where: { songVersionId: songId, arrangementId: { not: null } }, data: { songVersionId: targetId } });
     for (const preference of await tx.chartPreference.findMany({ where: { songVersionId: songId, arrangementKey: "" }, select: { id: true, userId: true } })) {
       const key = ownArrangementId ?? "";

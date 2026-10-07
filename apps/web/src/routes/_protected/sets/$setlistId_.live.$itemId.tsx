@@ -89,6 +89,8 @@ function SetLiveView({ view }: { view: SetlistSongView }) {
     diagrams: view.view.chordDiagrams,
     notation: view.view.chordNotation,
     colors: view.view.chordColors,
+    player: view.view,
+    songVersionId: song?.id,
   };
   return <LiveView song={live} />;
 }

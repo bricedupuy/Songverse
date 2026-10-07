@@ -1,4 +1,4 @@
-import { chartNotation, cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type FoundSong } from "@songverse/core";
+import { chartNotation, cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type FoundSong } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -23,6 +23,7 @@ export interface OfflineSong extends FoundSong {
   /** Chord diagrams beside the chart (issue #207), as of the last sync. */
   diagrams: ChordDiagramsValue;
   colors: boolean;
+  player: DiagramPlayer;
 }
 
 /** The song as kept on the device (on its own, or in a kept set), if it is. */
@@ -37,6 +38,7 @@ export async function loadOfflineSong(songVersionId: string): Promise<OfflineSon
     capoDisplay: viewer?.capoDisplayMode ?? "SOUNDING",
     diagrams: viewer?.chordDiagrams ?? "OFF",
     colors: viewer?.chordColors ?? false,
+    player: { leftHanded: viewer?.leftHanded, guitarTuning: viewer?.guitarTuning, ukuleleTuning: viewer?.ukuleleTuning },
   };
 }
 
@@ -112,7 +114,7 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
 
       <Card>
         <CardContent>
-          <ChartWithDiagrams chart={chart} columns={columns} diagrams={song.diagrams} notation={song.notation} colors={song.colors} />
+          <ChartWithDiagrams chart={chart} columns={columns} diagrams={song.diagrams} notation={song.notation} colors={song.colors} player={song.player} songVersionId={song.songVersionId} />
         </CardContent>
       </Card>
 

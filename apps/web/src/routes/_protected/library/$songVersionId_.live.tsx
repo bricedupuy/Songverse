@@ -1,4 +1,4 @@
-import { chartNotation, findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordDiagramsValue, type ChordNotationValue, type LiveViewValue, type SongDocumentV2 } from "@songverse/core";
+import { chartNotation, findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type LiveViewValue, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -26,6 +26,7 @@ export interface LoneSong {
   /** Chord diagrams beside the chart (issue #207). */
   diagrams: ChordDiagramsValue;
   colors: boolean;
+  player: DiagramPlayer;
 }
 
 /**
@@ -64,6 +65,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           liveView: me.liveView,
           diagrams: me.chordDiagrams,
           colors: me.chordColors,
+          player: { leftHanded: me.leftHanded, guitarTuning: me.guitarTuning, ukuleleTuning: me.ukuleleTuning },
         };
       },
       async () => {
@@ -86,6 +88,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           liveView: viewer?.liveView ?? "CHART",
           diagrams: viewer?.chordDiagrams ?? "OFF",
           colors: viewer?.chordColors ?? false,
+          player: { leftHanded: viewer?.leftHanded, guitarTuning: viewer?.guitarTuning, ukuleleTuning: viewer?.ukuleleTuning },
         };
       },
     ),
@@ -138,6 +141,8 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         diagrams: song.diagrams,
         notation: song.notation,
         colors: song.colors,
+        player: song.player,
+        songVersionId: song.id,
       }}
     />
   );

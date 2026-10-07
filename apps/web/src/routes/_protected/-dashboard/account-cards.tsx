@@ -3,6 +3,7 @@ import {
   type CapoDisplayModeValue,
   type ChordNotationValue,
   type ChordDiagramsValue,
+  TUNINGS,
   type LiveViewValue,
   type LocaleValue,
   type StorageUsage,
@@ -364,13 +365,13 @@ export function LanguageCard({ locale }: { locale: string }) {
 }
 
 /** How every chart reads for this user: chord names, chords with a capo, chord diagrams (issue #207), and how songs read in Live (issue #155). */
-export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView" | "chordDiagrams" | "chordColors"> }) {
+export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView" | "chordDiagrams" | "chordColors" | "leftHanded" | "guitarTuning" | "ukuleleTuning"> }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean }) {
+  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean; leftHanded?: boolean; guitarTuning?: string; ukuleleTuning?: string }) {
     setSaving(true);
     setError(null);
     try {
@@ -447,6 +448,39 @@ export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chor
           </NativeSelect>
           <p className="text-xs text-muted-foreground">{t("dashboard.chordDiagramsHint")}</p>
         </div>
+        {profile.chordDiagrams !== "OFF" ? (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="instrument-tuning">{t(profile.chordDiagrams === "UKULELE" ? "dashboard.ukuleleTuning" : "dashboard.guitarTuning")}</Label>
+              <NativeSelect
+                id="instrument-tuning"
+                value={profile.chordDiagrams === "UKULELE" ? profile.ukuleleTuning : profile.guitarTuning}
+                disabled={saving}
+                onChange={(e) => void save(profile.chordDiagrams === "UKULELE" ? { ukuleleTuning: e.target.value } : { guitarTuning: e.target.value })}
+                className="w-full max-w-xs"
+              >
+                {TUNINGS[profile.chordDiagrams === "UKULELE" ? "ukulele" : "guitar"].map((tuning) => (
+                  <option key={tuning.id} value={tuning.id}>
+                    {tuning.name}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="left-handed">{t("dashboard.leftHanded")}</Label>
+              <NativeSelect
+                id="left-handed"
+                value={profile.leftHanded ? "YES" : "NO"}
+                disabled={saving}
+                onChange={(e) => void save({ leftHanded: e.target.value === "YES" })}
+                className="w-full max-w-xs"
+              >
+                <option value="NO">{t("dashboard.leftHandedNo")}</option>
+                <option value="YES">{t("dashboard.leftHandedYes")}</option>
+              </NativeSelect>
+            </div>
+          </>
+        ) : null}
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="live-view">{t("dashboard.liveView")}</Label>
           <NativeSelect

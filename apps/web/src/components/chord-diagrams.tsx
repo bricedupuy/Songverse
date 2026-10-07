@@ -5,6 +5,8 @@ import {
   FRETTED_INSTRUMENTS,
   shapeText,
   type ChordDiagramsValue,
+  type ChordShapeChoice,
+  type DiagramPlayer,
   type ChordNotationValue,
   type ChordShape,
   type InstrumentId,
@@ -16,6 +18,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react
 import { useTranslation } from "react-i18next";
 import { SongChart } from "#/components/song-chart";
 import { Popover, PopoverContent } from "#/components/ui/popover";
+import { apiClient } from "#/lib/api-client";
 import { strum } from "#/lib/chord-sound";
 import { cn } from "#/lib/utils";
 
@@ -47,6 +50,7 @@ export function ChordDiagram({
   instrument,
   name,
   fingers = false,
+  leftHanded = false,
   className,
 }: {
   shape: ChordShape;
@@ -54,13 +58,15 @@ export function ChordDiagram({
   name: string;
   /** Finger numbers in the dots: for the bigger diagram. */
   fingers?: boolean;
+  /** Mirrored, the lowest string on the right, as a left-handed player holds it (issue #207). */
+  leftHanded?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation();
   const strings = FRETTED_INSTRUMENTS[instrument].strings.length;
   const width = LEFT + (strings - 1) * STRING_GAP + 8;
   const height = TOP + FRETS_SHOWN * FRET_GAP + 4;
-  const x = (string: number) => LEFT + string * STRING_GAP;
+  const x = (string: number) => LEFT + (leftHanded ? strings - 1 - string : string) * STRING_GAP;
   const y = (fret: number) => TOP + (fret - shape.baseFret + 0.5) * FRET_GAP;
   return (
     <svg
@@ -69,6 +75,7 @@ export function ChordDiagram({
       aria-label={t("chords.diagramLabel", { chord: name, shape: shapeText(shape) })}
       className={cn("text-foreground", className)}
       data-shape={shapeText(shape)}
+      data-left-handed={leftHanded ? "" : undefined}
     >
       {/* The nut, thick, when the shape is near it; else the fret it starts at. */}
       {shape.baseFret === 1 ? (
@@ -94,9 +101,9 @@ export function ChordDiagram({
       {shape.barres.map((barre) => (
         <rect
           key={`b${barre.fret}`}
-          x={x(barre.from) - 3.5}
+          x={Math.min(x(barre.from), x(barre.to)) - 3.5}
           y={y(barre.fret) - 3.5}
-          width={x(barre.to) - x(barre.from) + 7}
+          width={Math.abs(x(barre.to) - x(barre.from)) + 7}
           height={7}
           rx={3.5}
           fill="currentColor"
@@ -120,6 +127,26 @@ export function ChordDiagram({
   );
 }
 
+/** How this player's diagrams are made (issue #207): the instrument, its tuning, mirrored or not, and the shapes they chose for this song. */
+interface Setup {
+  instrument: InstrumentId;
+  tuning: string;
+  leftHanded: boolean;
+  /** Chord as fretted → the frets chosen for it (shapeText), for this song. */
+  chosen: Map<string, string>;
+  /** Keeps a shape for a chord of this song (null: back to the usual one); absent where it can't be saved. */
+  choose?: (chord: string, frets: string | null) => void;
+}
+
+/** The chord's shapes, easiest first - the one chosen for this song, if any, before them. */
+function shapesFor(chord: string, setup: Setup, limit: number): ChordShape[] {
+  const shapes = chordShapes(chord, setup.instrument, limit, setup.tuning);
+  const wanted = setup.chosen.get(chord);
+  if (!wanted) return shapes;
+  const chosen = shapes.find((shape) => shapeText(shape) === wanted) ?? chordShapes(chord, setup.instrument, 24, setup.tuning).find((shape) => shapeText(shape) === wanted);
+  return chosen ? [chosen, ...shapes.filter((shape) => shape !== chosen)] : shapes;
+}
+
 /** A chord's name as the player reads chords: letters or solfège. */
 function shownName(chord: string, notation: ChordNotationValue) {
   return notation === "SOLFEGE" ? formatChord(chord, "solfege") : chord;
@@ -129,8 +156,9 @@ function shownName(chord: string, notation: ChordNotationValue) {
  * The song's chords, each once, in the order they first come, as small
  * diagrams: tap one to hear it. Folds to one line, remembered on the device.
  */
-export function ChordStrip({ chart, instrument, notation }: { chart: Pick<RenderedChart, "passes" | "capo">; instrument: InstrumentId; notation: ChordNotationValue }) {
+function ChordStrip({ chart, setup, notation }: { chart: Pick<RenderedChart, "passes" | "capo">; setup: Setup; notation: ChordNotationValue }) {
   const { t } = useTranslation();
+  const { instrument } = setup;
   const chords = useMemo(() => chartChords(chart, instrument === "guitar" ? "fretted" : "sounding"), [chart, instrument]);
   const [folded, setFolded] = useState(false);
   const up = useRef(false);
@@ -167,7 +195,7 @@ export function ChordStrip({ chart, instrument, notation }: { chart: Pick<Render
       {folded ? null : (
         <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
           {chords.map((chord) => {
-            const shape = chordShapes(chord, instrument, 1)[0];
+            const shape = shapesFor(chord, setup, 1)[0];
             return (
               <button
                 key={chord}
@@ -183,7 +211,7 @@ export function ChordStrip({ chart, instrument, notation }: { chart: Pick<Render
                 data-chord-diagram={chord}
               >
                 <span className="text-xs font-bold text-primary">{shownName(chord, notation)}</span>
-                {shape ? <ChordDiagram shape={shape} instrument={instrument} name={shownName(chord, notation)} className="h-14 w-auto" /> : <span className="h-14 text-xs text-muted-foreground">?</span>}
+                {shape ? <ChordDiagram shape={shape} instrument={instrument} leftHanded={setup.leftHanded} name={shownName(chord, notation)} className="h-14 w-auto" /> : <span className="h-14 text-xs text-muted-foreground">?</span>}
               </button>
             );
           })}
@@ -194,10 +222,13 @@ export function ChordStrip({ chart, instrument, notation }: { chart: Pick<Render
 }
 
 /** A chord's diagram, bigger, with its fingers, the other shapes for it (‹ ›), and heard with a tap. */
-function ChordCard({ chord, instrument, notation }: { chord: string; instrument: InstrumentId; notation: ChordNotationValue }) {
+function ChordCard({ chord, setup, notation }: { chord: string; setup: Setup; notation: ChordNotationValue }) {
   const { t } = useTranslation();
-  const shapes = useMemo(() => chordShapes(chord, instrument, 6), [chord, instrument]);
+  const { instrument } = setup;
+  // In the order the card opened with: choosing one doesn't reshuffle them under the player.
+  const shapes = useMemo(() => shapesFor(chord, setup, 6), [chord, setup.instrument, setup.tuning]);
   const [index, setIndex] = useState(0);
+  const chosen = setup.chosen.get(chord) ?? null;
   const up = useRef(false);
   const shape = shapes[index];
   const name = shownName(chord, notation);
@@ -215,7 +246,7 @@ function ChordCard({ chord, instrument, notation }: { chord: string; instrument:
               up.current = !up.current;
             }}
           >
-            <ChordDiagram shape={shape} instrument={instrument} name={name} fingers className="h-32 w-auto" />
+            <ChordDiagram shape={shape} instrument={instrument} leftHanded={setup.leftHanded} name={name} fingers className="h-32 w-auto" />
           </button>
           {shapes.length > 1 ? (
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -236,6 +267,20 @@ function ChordCard({ chord, instrument, notation }: { chord: string; instrument:
               </button>
             </div>
           ) : null}
+          {setup.choose ? (
+            shapeText(shape) === chosen ? (
+              <p className="flex items-center gap-1 text-xs text-muted-foreground" data-testid="chord-card-chosen">
+                {t("chords.yourShape")}
+                <button type="button" className="text-primary hover:underline" onClick={() => setup.choose?.(chord, null)}>
+                  {t("chords.backToUsual")}
+                </button>
+              </p>
+            ) : (
+              <button type="button" className="text-xs text-primary hover:underline" onClick={() => setup.choose?.(chord, shapeText(shape))}>
+                {t("chords.useThisShape")}
+              </button>
+            )
+          ) : null}
           <p className="text-xs text-muted-foreground">{t("chords.tapToHear")}</p>
         </>
       ) : (
@@ -254,15 +299,51 @@ export function ChartWithDiagrams({
   chart,
   diagrams,
   notation,
+  player,
+  songVersionId,
   onChordClick,
   ...props
-}: ComponentProps<typeof SongChart> & { diagrams: ChordDiagramsValue | undefined; notation: ChordNotationValue }) {
+}: ComponentProps<typeof SongChart> & {
+  diagrams: ChordDiagramsValue | undefined;
+  notation: ChordNotationValue;
+  /** Left-handed, and the tunings (issue #207 phase 3). */
+  player?: DiagramPlayer;
+  /** The song: the shapes the player chose for its chords are kept for it. Without it, nothing's chosen. */
+  songVersionId?: string;
+}) {
   const instrument = instrumentOf(diagrams ?? "OFF");
   const [open, setOpen] = useState<{ chord: string; anchor: HTMLElement } | null>(null);
-  if (!instrument) return <SongChart chart={chart} onChordClick={onChordClick} {...props} />;
+  const tuning = (instrument === "ukulele" ? player?.ukuleleTuning : player?.guitarTuning) ?? "standard";
+  const [choices, setChoices] = useState<ChordShapeChoice[]>([]);
+  useEffect(() => {
+    setChoices([]);
+    if (!instrument || !songVersionId) return;
+    let current = true;
+    // Offline (or a song this player can't read): the usual shapes.
+    apiClient
+      .getChordShapeChoices(songVersionId)
+      .then((found) => current && setChoices(found))
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [instrument, songVersionId]);
+  const setup = useMemo<Setup | null>(() => {
+    if (!instrument) return null;
+    const chosen = new Map(choices.filter((one) => one.instrument === instrument && one.tuning === tuning).map((one) => [one.chord, one.frets]));
+    const choose = songVersionId
+      ? (chord: string, frets: string | null) =>
+          void apiClient
+            .chooseChordShape(songVersionId, { instrument, tuning, chord, frets })
+            .then(setChoices)
+            .catch(() => undefined)
+      : undefined;
+    return { instrument, tuning, leftHanded: !!player?.leftHanded, chosen, choose };
+  }, [instrument, tuning, player?.leftHanded, choices, songVersionId]);
+  if (!instrument || !setup) return <SongChart chart={chart} onChordClick={onChordClick} {...props} />;
   return (
     <div className="flex flex-col gap-3">
-      <ChordStrip chart={chart} instrument={instrument} notation={notation} />
+      <ChordStrip chart={chart} setup={setup} notation={notation} />
       <SongChart
         chart={chart}
         {...props}
@@ -275,7 +356,7 @@ export function ChartWithDiagrams({
       <Popover open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
         {open ? (
           <PopoverContent anchor={open.anchor} className="w-auto min-w-36 p-2">
-            <ChordCard key={open.chord} chord={open.chord} instrument={instrument} notation={notation} />
+            <ChordCard key={open.chord} chord={open.chord} setup={setup} notation={notation} />
           </PopoverContent>
         ) : null}
       </Popover>

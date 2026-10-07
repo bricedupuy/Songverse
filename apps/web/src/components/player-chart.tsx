@@ -158,6 +158,8 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
         diagrams={diagrams}
         notation={notation}
         colors={colors}
+        player={view.view}
+        songVersionId={song.id}
         columns={columns}
         emptyText={t("sets.noChart")}
         onChordClick={hiding ? (id) => savePreferences({ ...preferences, hiddenChordIds: [...new Set([...preferences.hiddenChordIds, id])] }) : undefined}

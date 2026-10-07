@@ -98,6 +98,43 @@ export interface FrettedInstrument {
   minStrings: number;
   /** Strings may be muted (guitar); a ukulele strums all four. */
   mutes: boolean;
+  /** The usual shapes (KNOWN_OPEN, MOVABLE) apply: only in the tunings they were learnt in. */
+  knownShapes?: boolean;
+}
+
+export interface Tuning {
+  id: string;
+  /** As players name it. */
+  name: string;
+  /** Open strings as MIDI notes, in drawing order. */
+  strings: number[];
+  /** The usual shapes still hold (a ukulele's low G changes no fingering). */
+  knownShapes: boolean;
+}
+
+/**
+ * The tunings a player can choose (issue #207, phase 3), each instrument's
+ * standard one first. Shapes are worked out for whichever is chosen.
+ */
+export const TUNINGS: Record<InstrumentId, Tuning[]> = {
+  guitar: [
+    { id: "standard", name: "EADGBE", strings: [40, 45, 50, 55, 59, 64], knownShapes: true },
+    { id: "drop-d", name: "Drop D (DADGBE)", strings: [38, 45, 50, 55, 59, 64], knownShapes: false },
+    { id: "dadgad", name: "DADGAD", strings: [38, 45, 50, 55, 57, 62], knownShapes: false },
+    { id: "open-g", name: "Open G (DGDGBD)", strings: [38, 43, 50, 55, 59, 62], knownShapes: false },
+    { id: "half-step-down", name: "Half step down (Eb)", strings: [39, 44, 49, 54, 58, 63], knownShapes: false },
+  ],
+  ukulele: [
+    { id: "standard", name: "GCEA (high G)", strings: [67, 60, 64, 69], knownShapes: true },
+    { id: "low-g", name: "GCEA (low G)", strings: [55, 60, 64, 69], knownShapes: true },
+    { id: "baritone", name: "Baritone (DGBE)", strings: [50, 55, 59, 64], knownShapes: false },
+  ],
+};
+
+/** An instrument in a tuning (its standard one when the tuning isn't known). */
+export function tunedInstrument(instrumentId: InstrumentId, tuningId = "standard"): FrettedInstrument & { tuning: Tuning } {
+  const tuning = TUNINGS[instrumentId].find((one) => one.id === tuningId) ?? TUNINGS[instrumentId][0]!;
+  return { ...FRETTED_INSTRUMENTS[instrumentId], strings: tuning.strings, knownShapes: tuning.knownShapes, tuning };
 }
 
 export const FRETTED_INSTRUMENTS: Record<InstrumentId, FrettedInstrument> = {
@@ -143,6 +180,7 @@ const MOVABLE: Record<InstrumentId, (number | null)[][]> = {
 };
 
 function knownShape(frets: (number | null)[], instrument: FrettedInstrument): "open" | "movable" | null {
+  if (instrument.knownShapes === false) return null;
   const text = frets.map((fret) => (fret === null ? "x" : fret > 9 ? "?" : String(fret))).join("");
   if (KNOWN_OPEN[instrument.id].has(text)) return "open";
   const pressed = frets.filter((fret): fret is number => !!fret);
@@ -210,7 +248,7 @@ function difficulty(frets: (number | null)[], shape: Pick<ChordShape, "barres" |
   score -= sounding * 1.2;
   for (let string = 0; string < frets.length; string++) {
     if (frets[string] !== null) continue;
-    if (string < firstSounding) score += 0.5;
+    if (string < firstSounding) score += string >= 2 ? 2 : 0.5;
     else if (string > lastSounding) score += 2;
     else score += 4;
   }
@@ -233,17 +271,18 @@ const cache = new Map<string, ChordShape[]>();
  * guitar, at most four fingers (a barre counting as one) across four frets.
  * When no shape holds every needed note, the ones a player leaves out first
  * (an extension's colour, then an alteration) are dropped. Empty for
- * something that isn't a chord.
+ * something that isn't a chord. `tuningId` is one of TUNINGS (standard by
+ * default); in another tuning the shapes are worked out for its strings.
  */
-export function chordShapes(chord: string, instrumentId: InstrumentId = "guitar", limit = 8): ChordShape[] {
-  const key = `${instrumentId}|${chord.trim()}|${limit}`;
+export function chordShapes(chord: string, instrumentId: InstrumentId = "guitar", limit = 8, tuningId = "standard"): ChordShape[] {
+  const key = `${instrumentId}|${tuningId}|${chord.trim()}|${limit}`;
   const cached = cache.get(key);
   if (cached) return cached;
   const parsed = parseChord(chord);
   const tones = parsed && parsed.kind === "chord" ? chordTones(parsed) : null;
   let shapes: ChordShape[] = [];
   if (parsed && parsed.kind === "chord" && tones) {
-    const instrument = FRETTED_INSTRUMENTS[instrumentId];
+    const instrument = tunedInstrument(instrumentId, tuningId);
     const bass = parsed.bass ? semitoneOf(parsed.bass) : semitoneOf(parsed.root);
     // Fewer notes needed each time nothing fits: first the extensions' colours, then the alterations.
     const attempts = [tones, tones.map((tone) => (tone.role === "extension" ? { ...tone, needed: false } : tone)), tones.map((tone) => (tone.role === "extension" || tone.role === "alteration" ? { ...tone, needed: false } : tone))];

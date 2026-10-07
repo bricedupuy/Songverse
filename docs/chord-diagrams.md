@@ -58,6 +58,22 @@ Instruments (`FRETTED_INSTRUMENTS`):
 - ukulele GCEA with a high G (67 60 64 69), 12 frets. A ukulele has no bass:
   any string may sound lowest, and all four sound.
 
+Tunings (`TUNINGS`, issue #207 phase 3): guitar `standard`, `drop-d`,
+`dadgad`, `open-g`, `half-step-down`; ukulele `standard`, `low-g`, `baritone`.
+`chordShapes(chord, instrument, limit, tuning)` works shapes out for the
+tuning's strings. The known shapes only count in the tunings they were learnt
+in: standard, and a ukulele's low G, which changes no fingering.
+
+## Which shape comes first
+
+1. The shape **the player chose for this chord in this song** (theirs only,
+   per instrument and tuning: `ChordShapeChoice`, `GET`/`PUT
+   /song-versions/:id/chord-shapes`, with `frets` written as `shapeText`
+   writes them; `null` forgets it). It isn't global: another song's G keeps
+   the usual shape. It follows the song when a duplicate is folded into it.
+2. Later, the song's own shapes from ChordPro's `{define}` (issue #215).
+3. The shapes `chordShapes` works out, in its order.
+
 ## What a shape says
 
 ```ts
@@ -116,7 +132,8 @@ All in the drawing's own units, so it scales with the text:
   finger numbers. Light and dark themes come out right with nothing else.
 - **Accessibility:** the drawing is one image, labelled "G: 320003" (the
   chord's name, then `shapeText`).
-- **Left-handed** (phase 3): the same drawing mirrored left to right.
+- **Left-handed** (`User.leftHanded`): the same drawing mirrored left to
+  right, the lowest string on the right. The fret number stays on the left.
 
 ## Sound
 

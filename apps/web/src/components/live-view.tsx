@@ -1,4 +1,4 @@
-import { chartSeconds, structureOf, type ChordDiagramsValue, type ChordNotationValue, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
+import { chartSeconds, structureOf, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
 import { AArrowDown, AArrowUp, ArrowLeft, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -60,6 +60,9 @@ export interface LiveSong {
   notation?: ChordNotationValue;
   /** Chords coloured by family (issue #9). */
   colors?: boolean;
+  /** Left-handed diagrams and tunings (issue #207), and the song whose chosen shapes they use. */
+  player?: DiagramPlayer;
+  songVersionId?: string;
 }
 
 /** How far down a chart is scrolled for its song to count as played (issue #153). */
@@ -333,7 +336,7 @@ export function LiveView({ song }: { song: LiveSong }) {
           {pdf && song.reading ? (
             <PdfPages key={pdf.id} source={() => song.reading!.source(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
           ) : chart ? (
-            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} colors={song.colors} />
+            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} colors={song.colors} player={song.player} songVersionId={song.songVersionId} />
           ) : (
             <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
           )}

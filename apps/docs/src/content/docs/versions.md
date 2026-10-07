@@ -61,10 +61,12 @@ With **Chord colours** set to **By chord type**, each chord on the chart is colo
 Choose **Guitar** or **Ukulele** under **Chord diagrams** in [Chart display](/account/#chart-display) (or **Diagrams** in **My view**), and the charts you read - in Practice, a set's songs, Live and offline - show how to play their chords. They're off until you choose; nothing ever covers the words, and the chart itself doesn't move.
 
 - At the top of the chart, the song's chords as small diagrams, each once, in the order they come. Tap one to hear it strummed (down, then up on the next tap). The arrow beside **Guitar chords** folds them to a single line of names, remembered on the device.
-- Tap a chord on the chart for its diagram, bigger, with the fingers to use. **‹ ›** go through the other ways to play it; tap the diagram to hear it.
+- Tap a chord on the chart for its diagram, bigger, with the fingers to use. **‹ ›** go through the other ways to play it; tap the diagram to hear it. **Use this shape for this song** keeps the one shown for that chord in this song, for you only, on every device: the strip and the card show it first from then on. **Back to the usual one** undoes it. Other songs keep the usual shape.
 - A diagram shows the strings up and down and the frets across: × is a string not played, ○ an open one, each dot a finger (its number in the bigger diagram), and a bar one finger across several strings. Near the nut, it's drawn thick; further up the neck, the number on the left is the fret it starts at.
 - With a capo, guitar diagrams are the shapes you play with the capo on (**capo 2, shapes as played**), whatever your **With a capo** setting shows on the chart. Ukulele diagrams are the chords as they sound.
 - They follow everything else: the set's key, a last-minute transpose in Live, a key change, **Simpler chords** and **No bass notes**. Every chord Songverse can read has a diagram, worked out on the device, so they work offline too.
+
+Under **Chord diagrams** in [Chart display](/account/#chart-display), once an instrument is chosen: its **tuning** (guitar: EADGBE, drop D, DADGAD, open G, half a step down; ukulele: high G, low G, baritone) - the shapes are worked out for its strings - and **Left-handed diagrams**, drawn mirrored, the lowest string on the right.
 
 In a set's **Hide chords** mode, tapping a chord still hides it.
 

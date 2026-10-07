@@ -293,7 +293,7 @@ export interface OfflineSyncResponse {
   goneSongs: string[];
   pins: OfflinePin[];
   /** The user's chord settings, for songs shown on their own. */
-  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean };
+  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean } & DiagramPlayer;
 }
 
 /**
@@ -304,6 +304,14 @@ export interface OfflineSyncResponse {
 export type OfflineSyncCheck =
   | ({ unchanged: true } & Pick<OfflineSyncResponse, "days" | "upcoming" | "pins" | "viewer">)
   | { unchanged: false };
+
+/** The shape a player chose for a chord of a song (issue #207): theirs only, per instrument and tuning; `frets` as players write it ("320003"). */
+export interface ChordShapeChoice {
+  instrument: "guitar" | "ukulele";
+  tuning: string;
+  chord: string;
+  frets: string;
+}
 
 /** A player's own way of reading charts: this chart's preferences, and their settings for every chart. */
 export interface ChartViewSettings {
@@ -316,6 +324,17 @@ export interface ChartViewSettings {
   chordDiagrams?: ChordDiagramsValue;
   /** Chords coloured by family (issue #9); left out by an older copy kept offline. */
   chordColors?: boolean;
+  /** Left-handed diagrams and tunings (issue #207); left out by an older copy kept offline. */
+  leftHanded?: boolean;
+  guitarTuning?: string;
+  ukuleleTuning?: string;
+}
+
+/** How a player's diagrams are drawn (issue #207 phase 3): mirrored, and in which tunings. */
+export interface DiagramPlayer {
+  leftHanded?: boolean;
+  guitarTuning?: string;
+  ukuleleTuning?: string;
 }
 
 /** An arrangement of a song, as listed (docs/arrangement-document-v2.md). */
@@ -408,6 +427,10 @@ export interface UserProfile {
   chordDiagrams: ChordDiagramsValue;
   /** Chords coloured by family (issue #9). */
   chordColors: boolean;
+  /** Chord diagrams mirrored for a left-handed player, and each instrument's tuning (issue #207). */
+  leftHanded: boolean;
+  guitarTuning: string;
+  ukuleleTuning: string;
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -1440,6 +1463,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       chordNotation?: ChordNotationValue;
       chordDiagrams?: ChordDiagramsValue;
       chordColors?: boolean;
+      leftHanded?: boolean;
+      guitarTuning?: string;
+      ukuleleTuning?: string;
       liveView?: LiveViewValue;
     }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
@@ -1758,6 +1784,11 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     ) => request<ArrangementDetail>(`/arrangements/${arrangementId}`, { method: "PATCH", body: JSON.stringify(data) }),
     markArrangementReviewed: (arrangementId: string) => request<ArrangementDetail>(`/arrangements/${arrangementId}/reviewed`, { method: "POST" }),
     deleteArrangement: (arrangementId: string) => request<void>(`/arrangements/${arrangementId}`, { method: "DELETE" }),
+    /** The shapes this player chose for the song's chords (issue #207). */
+    getChordShapeChoices: (songVersionId: string) => request<ChordShapeChoice[]>(`/song-versions/${songVersionId}/chord-shapes`),
+    /** Keeps a shape for a chord of the song (frets null: back to the usual one); all of the song's choices back. */
+    chooseChordShape: (songVersionId: string, choice: { instrument: "guitar" | "ukulele"; tuning: string; chord: string; frets: string | null }) =>
+      request<ChordShapeChoice[]>(`/song-versions/${songVersionId}/chord-shapes`, { method: "PUT", body: JSON.stringify(choice) }),
     getChartPreferences: (songVersionId: string, arrangementId?: string | null) =>
       request<ChartPreferences>(`/chart-preferences?songVersionId=${songVersionId}${arrangementId ? `&arrangementId=${arrangementId}` : ""}`),
     saveChartPreferences: (songVersionId: string, arrangementId: string | null, preferences: Partial<ChartPreferences>) =>

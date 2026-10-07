@@ -238,13 +238,18 @@ export const CONFORMANCE: ConformanceArea[] = [
       },
       chordShapes: {
         about:
-          "Shapes for a chord on a guitar (EADGBE) or a ukulele (GCEA, high G), easiest and most usual first (issue #207): per string the fret (0 open, null muted), the fingers, barres, the fret the diagram starts at and the MIDI notes it sounds. Every needed note and nothing else; on a guitar the bass is lowest; at most four fingers, a barre counting as one. Each client draws them its own way (docs/chord-diagrams.md).",
-        params: ["chord", "instrument", "limit"],
+          "Shapes for a chord on a guitar (EADGBE unless a tuning is given) or a ukulele (GCEA, high G unless given), easiest and most usual first (issue #207): per string the fret (0 open, null muted), the fingers, barres, the fret the diagram starts at and the MIDI notes it sounds. Every needed note and nothing else; on a guitar the bass is lowest; at most four fingers, a barre counting as one. Each client draws them its own way (docs/chord-diagrams.md).",
+        params: ["chord", "instrument", "limit", "tuning"],
         run: chordShapes,
         cases: [
           ...["C", "G", "D", "Em", "F", "Bm", "B7", "Cmaj7", "Asus4", "D/F#", "Ab", "C#m", "A13", "E7#9", "C5"].map((chord) => ({ name: `guitar ${chord}`, args: [chord, "guitar", 3] })),
           ...["C", "F", "G", "Am", "E", "Bb", "Bm7", "D7"].map((chord) => ({ name: `ukulele ${chord}`, args: [chord, "ukulele", 3] })),
           { name: "not a chord", args: ["N.C.", "guitar", 3] },
+          // Other tunings (issue #207 phase 3): shapes worked out for their strings.
+          { name: "guitar in drop D: D", args: ["D", "guitar", 2, "drop-d"] },
+          { name: "guitar in DADGAD: G", args: ["G", "guitar", 2, "dadgad"] },
+          { name: "ukulele with a low G: C", args: ["C", "ukulele", 2, "low-g"] },
+          { name: "baritone ukulele: G", args: ["G", "ukulele", 2, "baritone"] },
         ],
       },
       shapeText: {
