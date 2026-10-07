@@ -46,7 +46,7 @@ Quand vous ouvrez un chant dans une liste, la barre **Mon affichage** change la 
 - **Noms** - les accords en lettres (**C D E**), en solfège (**Do Ré Mi**) ou en chiffres Nashville (**1 4 5**).
 - **Couleurs** - les accords colorés selon leur type.
 - **Formes capo** - avec un capo, les accords comme les formes que vous jouez plutôt que tels qu'ils sonnent.
-- **Diagrammes** - **Aucun**, **Guitare** ou **Ukulélé** : voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords) ci-dessous.
+- **Diagrammes** - **Aucun**, **Guitare**, **Ukulélé** ou **Piano** : voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords) ci-dessous.
 
 Les accords masqués et simplifiés sont gardés par chant (et par version). Les noms, les couleurs, les formes de capo et les diagrammes s'appliquent à toutes les grilles ; vous pouvez aussi les régler dans [votre compte](/fr/account/#affichage-des-grilles).
 
@@ -58,7 +58,7 @@ Avec **Couleurs des accords** sur **Selon le type d'accord**, chaque accord de l
 
 ## Diagrammes d'accords
 
-Choisissez **Guitare** ou **Ukulélé** sous **Diagrammes d'accords** dans [Affichage des grilles](/fr/account/#affichage-des-grilles) (ou **Diagrammes** dans **Mon affichage**), et les grilles que vous lisez - en Session, dans les chants d'une liste, en Live et hors ligne - montrent comment jouer leurs accords. Ils sont désactivés tant que vous ne les choisissez pas ; rien ne cache jamais les paroles, et la grille elle-même ne bouge pas.
+Choisissez **Guitare**, **Ukulélé** ou **Piano** sous **Diagrammes d'accords** dans [Affichage des grilles](/fr/account/#affichage-des-grilles) (ou **Diagrammes** dans **Mon affichage**), et les grilles que vous lisez - en Session, dans les chants d'une liste, en Live et hors ligne - montrent comment jouer leurs accords. Ils sont désactivés tant que vous ne les choisissez pas ; rien ne cache jamais les paroles, et la grille elle-même ne bouge pas.
 
 - En haut de la grille, les accords du chant en petits diagrammes, chacun une fois, dans l'ordre où ils viennent. Touchez-en un pour l'entendre gratté (vers le bas, puis vers le haut au toucher suivant). La flèche à côté de **Accords à la guitare** les replie en une seule ligne de noms, retenue sur l'appareil.
 - Touchez un accord de la grille pour voir son diagramme, plus grand, avec les doigts à utiliser. **‹ ›** passent aux autres façons de le jouer ; touchez le diagramme pour l'entendre. **Utiliser cette forme pour ce chant** garde celle affichée pour cet accord dans ce chant, pour vous seul, sur tous vos appareils : le bandeau et la fiche la montrent d'abord. **Revenir à l'habituelle** l'annule. Les autres chants gardent la forme habituelle.
@@ -67,6 +67,14 @@ Choisissez **Guitare** ou **Ukulélé** sous **Diagrammes d'accords** dans [Affi
 - Ils suivent tout le reste : la tonalité de la liste, une transposition de dernière minute en Live, un changement de tonalité, **Accords simplifiés** et **Sans basses**. Chaque accord que Songverse sait lire a un diagramme, calculé sur l'appareil : ils marchent aussi hors ligne.
 
 Sous **Diagrammes d'accords** dans [Affichage des grilles](/fr/account/#affichage-des-grilles), une fois un instrument choisi : son **accordage** (guitare : EADGBE, drop D, DADGAD, open G, un demi-ton plus bas ; ukulélé : sol aigu, sol grave, baryton) - les formes sont calculées pour ses cordes - et **Diagrammes pour gaucher**, dessinés en miroir, la corde la plus grave à droite.
+
+### Piano
+
+Avec **Piano**, chaque accord est un petit clavier : les touches de la main droite en points pleins, près du do central, et la basse à la main gauche en anneau (la fondamentale, ou la basse d'un accord à basse : D/F# met F# à la main gauche). Touchez-en un pour l'entendre, la basse d'abord. Dans le grand diagramme, **‹ ›** passent d'un renversement à l'autre, et **Utiliser ce voicing pour ce chant** en garde un pour cet accord dans ce chant, comme à la guitare. Le capo ne change pas les accords au piano : ils s'affichent tels qu'ils sonnent. Ses réglages, sous **Diagrammes d'accords** dans [Affichage des grilles](/fr/account/#affichage-des-grilles) :
+
+- **Voicings au piano** - **Fluides** (par défaut) : chaque accord dans le renversement le plus proche du précédent, la main bouge à peine, comme le font les claviéristes ; ou **État fondamental** : chaque accord depuis sa fondamentale, plus facile à lire.
+- **Mains** - **Les deux mains (la basse à gauche)**, ou **Main droite seule** - quand un bassiste joue la basse.
+- **Noms des notes sur les touches** - **Dans le grand diagramme seulement**, **Partout** ou **Jamais**.
 
 En mode **Masquer des accords** d'une liste, toucher un accord le masque toujours.
 

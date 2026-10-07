@@ -46,7 +46,7 @@ When you open a song in a set, the **My view** bar changes the chart **for you o
 - **Names** - chord names in letters (**C D E**), solfège (**Do Ré Mi**) or Nashville numbers (**1 4 5**).
 - **Colours** - chords coloured by type.
 - **Capo shapes** - with a capo, chords as the shapes you play rather than as they sound.
-- **Diagrams** - **None**, **Guitar** or **Ukulele**: see [Chord diagrams](/versions/#chord-diagrams) below.
+- **Diagrams** - **None**, **Guitar**, **Ukulele** or **Piano**: see [Chord diagrams](/versions/#chord-diagrams) below.
 
 Hidden and simpler chords are kept per song (and per version). Names, colours, capo shapes and diagrams apply to every chart; you can also set them in [your account](/account/#chart-display).
 
@@ -58,7 +58,7 @@ With **Chord colours** set to **By chord type**, each chord on the chart is colo
 
 ## Chord diagrams
 
-Choose **Guitar** or **Ukulele** under **Chord diagrams** in [Chart display](/account/#chart-display) (or **Diagrams** in **My view**), and the charts you read - in Practice, a set's songs, Live and offline - show how to play their chords. They're off until you choose; nothing ever covers the words, and the chart itself doesn't move.
+Choose **Guitar**, **Ukulele** or **Piano** under **Chord diagrams** in [Chart display](/account/#chart-display) (or **Diagrams** in **My view**), and the charts you read - in Practice, a set's songs, Live and offline - show how to play their chords. They're off until you choose; nothing ever covers the words, and the chart itself doesn't move.
 
 - At the top of the chart, the song's chords as small diagrams, each once, in the order they come. Tap one to hear it strummed (down, then up on the next tap). The arrow beside **Guitar chords** folds them to a single line of names, remembered on the device.
 - Tap a chord on the chart for its diagram, bigger, with the fingers to use. **‹ ›** go through the other ways to play it; tap the diagram to hear it. **Use this shape for this song** keeps the one shown for that chord in this song, for you only, on every device: the strip and the card show it first from then on. **Back to the usual one** undoes it. Other songs keep the usual shape.
@@ -67,6 +67,14 @@ Choose **Guitar** or **Ukulele** under **Chord diagrams** in [Chart display](/ac
 - They follow everything else: the set's key, a last-minute transpose in Live, a key change, **Simpler chords** and **No bass notes**. Every chord Songverse can read has a diagram, worked out on the device, so they work offline too.
 
 Under **Chord diagrams** in [Chart display](/account/#chart-display), once an instrument is chosen: its **tuning** (guitar: EADGBE, drop D, DADGAD, open G, half a step down; ukulele: high G, low G, baritone) - the shapes are worked out for its strings - and **Left-handed diagrams**, drawn mirrored, the lowest string on the right.
+
+### Piano
+
+With **Piano**, each chord is a small keyboard: the right hand's keys as filled dots, near middle C, and the bass in the left hand as a ring (the root, or a slash chord's bass: D/F# puts F# in the left hand). Tap one to hear it, the bass first. In the bigger diagram, **‹ ›** go through the inversions, and **Use this voicing for this song** keeps one for that chord in this song, as for a guitar. The capo doesn't change a piano's chords: they're shown as they sound. Its options, under **Chord diagrams** in [Chart display](/account/#chart-display):
+
+- **Piano voicings** - **Smooth** (the default): each chord in the inversion nearest the one before, so the hand hardly moves, as keyboard players voice them; or **Root position**: every chord from its root, easier to read.
+- **Hands** - **Both hands (bass in the left)**, or **Right hand only** - when a bassist plays the bass.
+- **Note names on the keys** - **In the bigger diagram only**, **Everywhere** or **Never**.
 
 In a set's **Hide chords** mode, tapping a chord still hides it.
 

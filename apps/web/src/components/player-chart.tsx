@@ -127,6 +127,7 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
             <option value="OFF">{t("dashboard.diagramsOff")}</option>
             <option value="GUITAR">{t("dashboard.diagramsGuitar")}</option>
             <option value="UKULELE">{t("dashboard.diagramsUkulele")}</option>
+            <option value="PIANO">{t("dashboard.diagramsPiano")}</option>
           </select>
         </label>
         <ChartColumnsPicker className="ml-auto" />

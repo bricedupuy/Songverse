@@ -191,5 +191,41 @@ await step("a tuning, and left-handed diagrams", async () => {
   await api(me, "PATCH", "/users/me", { guitarTuning: "standard", leftHanded: false });
 });
 
+await step("piano (phase 4): smooth voicings or root position, both hands or the right only, note names in the card", async () => {
+  await page.goto(`${WEB}/dashboard`);
+  await page.getByLabel("Chord diagrams").selectOption("PIANO");
+  await page.waitForLoadState("networkidle");
+  await page.goto(`${WEB}/library/${song.id}`);
+  await page.waitForLoadState("networkidle");
+  const strip = page.locator("[data-testid=chord-strip][data-instrument=piano]");
+  await strip.waitFor();
+  // As they sound (no capo for a piano): A D E F#m. Smooth: D's right hand stays near A's (A4 D5 F#5), the bass D3 in the left.
+  const keys = (chord) => strip.locator(`[data-chord-diagram="${chord}"] svg`).getAttribute("data-keys");
+  if ((await keys("A")) !== "57.69.73.76") throw new Error(`A ${await keys("A")}`);
+  if ((await keys("D")) !== "50.69.74.78") throw new Error(`D ${await keys("D")}`);
+  // The card: note names under the keys, and the voicing kept for the song.
+  await page.getByRole("button", { name: "Show how to play D" }).first().click();
+  const card = page.getByTestId("chord-card");
+  await card.getByText("F#", { exact: true }).waitFor();
+  await card.getByRole("button", { name: "Next shape" }).click();
+  await card.getByRole("button", { name: "Use this voicing for this song" }).click();
+  await card.getByTestId("chord-card-chosen").waitFor();
+  await page.keyboard.press("Escape");
+  const chosen = (await api(me, "GET", `/song-versions/${song.id}/chord-shapes`)).find((one) => one.instrument === "piano");
+  if (!chosen || chosen.chord !== "D") throw new Error(JSON.stringify(chosen));
+  await api(me, "PUT", `/song-versions/${song.id}/chord-shapes`, { instrument: "piano", tuning: "standard", chord: "D", frets: null });
+  // Root position, right hand only.
+  await page.goto(`${WEB}/dashboard`);
+  await page.getByLabel("Piano voicings").selectOption("ROOT");
+  await page.waitForLoadState("networkidle");
+  await page.getByLabel("Hands").selectOption("right");
+  await page.waitForLoadState("networkidle");
+  await page.goto(`${WEB}/library/${song.id}`);
+  await page.waitForLoadState("networkidle");
+  await strip.waitFor();
+  if ((await keys("D")) !== "62.66.69") throw new Error(`D ${await keys("D")}`);
+  await api(me, "PATCH", "/users/me", { pianoSmooth: true, pianoHands: "both", chordDiagrams: "OFF" });
+});
+
 await browser.close();
 finish();

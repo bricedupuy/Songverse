@@ -1,4 +1,5 @@
 import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
+import { pianoVoicings, songVoicings, voicingText } from "../chords/piano.js";
 import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
 import { parseArrangementDocumentV2, findArrangementProblems } from "../schemas/arrangement-document-v2.js";
@@ -251,6 +252,32 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "ukulele with a low G: C", args: ["C", "ukulele", 2, "low-g"] },
           { name: "baritone ukulele: G", args: ["G", "ukulele", 2, "baritone"] },
         ],
+      },
+      pianoVoicings: {
+        about:
+          "A chord's piano voicings (issue #207 phase 4): the right hand's notes in close position near middle C (MIDI 60), root position first then each inversion; the left hand's bass (the root, or a slash chord's bass) in the octave below - or the right hand only. Optional notes go when there'd be more than four.",
+        params: ["chord", "options"],
+        run: pianoVoicings,
+        cases: [
+          ...["C", "Am", "G7", "D/F#", "Cmaj9", "Bm7b5", "Csus4", "N.C."].map((chord) => ({ name: chord, args: [chord, {}] })),
+          { name: "G7, right hand only", args: ["G7", { hands: "right" }] },
+        ],
+      },
+      songVoicings: {
+        about: "Which voicing of each chord a song plays: smooth, the inversion nearest the chord before (the hand hardly moves), from the first chord's root position; or root position throughout.",
+        params: ["chords", "options"],
+        run: songVoicings,
+        cases: [
+          { name: "C G Am F, smooth", args: [["C", "G", "Am", "F"], {}] },
+          { name: "C G Am F, root position", args: [["C", "G", "Am", "F"], { smooth: false }] },
+          { name: "a ii-V-I in C", args: [["Dm7", "G7", "Cmaj7"], {}] },
+        ],
+      },
+      voicingText: {
+        about: "A voicing written down to keep a player's choice: left hand | right hand, as MIDI notes.",
+        params: ["voicing"],
+        run: voicingText,
+        cases: [{ name: "C, both hands", args: [{ left: [48], right: [60, 64, 67] }] }, { name: "right hand only", args: [{ left: [], right: [64, 67, 72] }] }],
       },
       shapeText: {
         about: "A shape written as players write it: \"x32010\", a fret past 9 in parentheses.",

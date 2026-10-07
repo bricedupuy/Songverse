@@ -191,6 +191,9 @@ export interface OfflineViewer {
   leftHanded?: boolean;
   guitarTuning?: string;
   ukuleleTuning?: string;
+  pianoSmooth?: boolean;
+  pianoHands?: string;
+  pianoNoteNames?: string;
 }
 
 export async function offlineViewer(storage: OfflineStorage): Promise<OfflineViewer | undefined> {

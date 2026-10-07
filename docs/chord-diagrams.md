@@ -74,6 +74,39 @@ in: standard, and a ukulele's low G, which changes no fingering.
 2. Later, the song's own shapes from ChordPro's `{define}` (issue #215).
 3. The shapes `chordShapes` works out, in its order.
 
+## Piano voicings (phase 4)
+
+`pianoVoicings(chord, { hands })` (`packages/core/src/chords/piano.ts`):
+- **Right hand:** the chord's own notes (not a slash chord's foreign bass) in
+  close position, one voicing per inversion, root position first. Each is
+  placed nearest a middle around E4/F#4 (MIDI 66), never below middle C (60),
+  and always above the left hand's bass. With more than four notes, the
+  optional ones (the 5th, implied extensions) go first.
+- **Left hand:** the bass (the root, or a slash chord's bass) in C3–B3
+  (48–59), or nothing with `hands: "right"`.
+- `songVoicings(chords, { smooth })`: for a song's chords in order, the
+  inversion of each nearest the one before (the least total movement of the
+  right hand's keys), from the first chord's root position. With
+  `smooth: false`, root position throughout. The strip draws these, and the
+  card starts at them.
+- `voicingText` writes a voicing as `48|60.64.67` (left | right, MIDI), the
+  way a player's choice is kept (`ChordShapeChoice` with `instrument: "piano"`,
+  `tuning: "standard"`).
+
+**Drawing a keyboard:** from the white key below the lowest key played to the
+one above the highest.
+- White keys are 10×40 and outlined; black keys are 6×25 and filled with the
+  foreground colour.
+- Right-hand keys get a filled dot (radius 3, the accent colour) near the
+  key's bottom; the left hand's bass gets a ring (amber).
+- Note names, when shown, go under the keys, spelled with flats when the
+  chord's root or bass is a flat, and in solfège for a player who reads it.
+- Settings: `User.pianoSmooth`, `pianoHands` ("both" | "right") and
+  `pianoNoteNames` ("card" | "all" | "none").
+
+**Sound:** a simple struck-string tone (a few harmonics, the higher ones
+fading sooner), the left hand first, then the right hand 35 ms later.
+
 ## What a shape says
 
 ```ts

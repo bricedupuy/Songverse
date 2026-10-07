@@ -400,7 +400,7 @@ export class SetlistsService {
       this.sets.readableItems(set, next ? [item, next] : [item]),
       this.sets.visibilityFor(user),
       this.myNoteRow(user.id, itemId),
-      this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true, chordColors: true, leftHanded: true, guitarTuning: true, ukuleleTuning: true } }),
+      this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true, chordColors: true, leftHanded: true, guitarTuning: true, ukuleleTuning: true, pianoSmooth: true, pianoHands: true, pianoNoteNames: true } }),
     ]);
     const song = item.songVersion;
     const shown = readable.has(item.id) || inViewersLibrary(song);
@@ -439,6 +439,9 @@ export class SetlistsService {
         leftHanded: viewer?.leftHanded ?? false,
         guitarTuning: viewer?.guitarTuning ?? "standard",
         ukuleleTuning: viewer?.ukuleleTuning ?? "standard",
+        pianoSmooth: viewer?.pianoSmooth ?? true,
+        pianoHands: viewer?.pianoHands ?? "both",
+        pianoNoteNames: viewer?.pianoNoteNames ?? "card",
       },
       inLibrary: inViewersLibrary(song),
       sharedBy: shown && item.sharedBy ? { id: item.sharedBy.id, displayName: item.sharedBy.displayName } : null,

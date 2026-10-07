@@ -65,7 +65,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           liveView: me.liveView,
           diagrams: me.chordDiagrams,
           colors: me.chordColors,
-          player: { leftHanded: me.leftHanded, guitarTuning: me.guitarTuning, ukuleleTuning: me.ukuleleTuning },
+          player: me,
         };
       },
       async () => {
@@ -88,7 +88,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           liveView: viewer?.liveView ?? "CHART",
           diagrams: viewer?.chordDiagrams ?? "OFF",
           colors: viewer?.chordColors ?? false,
-          player: { leftHanded: viewer?.leftHanded, guitarTuning: viewer?.guitarTuning, ukuleleTuning: viewer?.ukuleleTuning },
+          player: viewer ?? {},
         };
       },
     ),

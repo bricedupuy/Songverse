@@ -69,3 +69,54 @@ export function strum(notes: number[], { up = false, gap = 0.028 }: { up?: boole
   });
   current = { output, at: start };
 }
+
+const tones = new Map<number, AudioBuffer>();
+
+/**
+ * One piano-like note, made once: a few harmonics, the higher ones fading
+ * sooner, after a quick attack - not a real piano, but clearly a struck
+ * string, and the same every time.
+ */
+function pianoTone(ctx: AudioContext, midi: number): AudioBuffer {
+  const made = tones.get(midi);
+  if (made) return made;
+  const rate = ctx.sampleRate;
+  const frequency = 440 * 2 ** ((midi - 69) / 12);
+  const length = Math.round(rate * 2.2);
+  const buffer = ctx.createBuffer(1, length, rate);
+  const data = buffer.getChannelData(0);
+  const harmonics = [1, 0.45, 0.25, 0.12, 0.07, 0.04];
+  for (let i = 0; i < length; i++) {
+    const time = i / rate;
+    let value = 0;
+    harmonics.forEach((level, h) => {
+      const partial = frequency * (h + 1);
+      if (partial < rate / 2) value += level * Math.exp(-time * (1.6 + h * 1.4)) * Math.sin(2 * Math.PI * partial * time);
+    });
+    const attack = Math.min(1, time / 0.004);
+    data[i] = value * attack * 0.5;
+  }
+  const fade = Math.round(rate * 0.08);
+  for (let i = 0; i < fade; i++) data[length - 1 - i]! *= i / fade;
+  tones.set(midi, buffer);
+  return buffer;
+}
+
+/** Plays a piano voicing (issue #207 phase 4): the left hand's bass, then the right hand's chord a moment later. A new chord stops the last. */
+export function playPiano(left: number[], right: number[]): void {
+  const notes = [...left, ...right];
+  if (notes.length === 0) return;
+  const ctx = audio();
+  const start = ctx.currentTime + 0.01;
+  if (current) current.output.gain.setTargetAtTime(0, start, 0.03);
+  const output = ctx.createGain();
+  output.gain.value = 0.6 / Math.sqrt(notes.length);
+  output.connect(ctx.destination);
+  notes.forEach((note, i) => {
+    const source = ctx.createBufferSource();
+    source.buffer = pianoTone(ctx, note);
+    source.connect(output);
+    source.start(start + (i < left.length ? 0 : left.length > 0 ? 0.035 : 0) + (i >= left.length ? (i - left.length) * 0.008 : 0));
+  });
+  current = { output, at: start };
+}

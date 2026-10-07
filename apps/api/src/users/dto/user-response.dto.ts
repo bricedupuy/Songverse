@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { DISPLAY_MODES, CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, CHORD_NOTATIONS, LIVE_VIEWS, VOICING_PREFERENCES, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
+import { DISPLAY_MODES, CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, LIVE_VIEWS, VOICING_PREFERENCES, SUPPORTED_LOCALES, TECH_ROLES } from "@songverse/core";
 
 export class UserResponseDto {
   @ApiProperty() id!: string;
@@ -16,6 +16,9 @@ export class UserResponseDto {
   @ApiProperty({ description: "Chord diagrams mirrored for a left-handed player (issue #207)" }) leftHanded!: boolean;
   @ApiProperty({ description: "The guitar's tuning: one of TUNINGS.guitar's ids in core" }) guitarTuning!: string;
   @ApiProperty({ description: "The ukulele's tuning: one of TUNINGS.ukulele's ids in core" }) ukuleleTuning!: string;
+  @ApiProperty({ description: "Piano diagrams: each chord's inversion nearest the one before (issue #207)" }) pianoSmooth!: boolean;
+  @ApiProperty({ enum: PIANO_HANDS }) pianoHands!: string;
+  @ApiProperty({ enum: PIANO_NOTE_NAMES }) pianoNoteNames!: string;
   @ApiProperty({ enum: VOICING_PREFERENCES }) voicingPreference!: (typeof VOICING_PREFERENCES)[number];
   @ApiProperty() isGlobalAdmin!: boolean;
   @ApiProperty({ description: "From their roles, or their teams' (issue #160)" }) isReviewer!: boolean;

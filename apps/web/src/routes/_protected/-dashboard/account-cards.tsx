@@ -365,13 +365,13 @@ export function LanguageCard({ locale }: { locale: string }) {
 }
 
 /** How every chart reads for this user: chord names, chords with a capo, chord diagrams (issue #207), and how songs read in Live (issue #155). */
-export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView" | "chordDiagrams" | "chordColors" | "leftHanded" | "guitarTuning" | "ukuleleTuning"> }) {
+export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chordNotation" | "capoDisplayMode" | "liveView" | "chordDiagrams" | "chordColors" | "leftHanded" | "guitarTuning" | "ukuleleTuning" | "pianoSmooth" | "pianoHands" | "pianoNoteNames"> }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean; leftHanded?: boolean; guitarTuning?: string; ukuleleTuning?: string }) {
+  async function save(change: { chordNotation?: ChordNotationValue; capoDisplayMode?: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean; leftHanded?: boolean; guitarTuning?: string; ukuleleTuning?: string; pianoSmooth?: boolean; pianoHands?: string; pianoNoteNames?: string }) {
     setSaving(true);
     setError(null);
     try {
@@ -445,10 +445,49 @@ export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chor
             <option value="OFF">{t("dashboard.diagramsOff")}</option>
             <option value="GUITAR">{t("dashboard.diagramsGuitar")}</option>
             <option value="UKULELE">{t("dashboard.diagramsUkulele")}</option>
+            <option value="PIANO">{t("dashboard.diagramsPiano")}</option>
           </NativeSelect>
           <p className="text-xs text-muted-foreground">{t("dashboard.chordDiagramsHint")}</p>
         </div>
-        {profile.chordDiagrams !== "OFF" ? (
+        {profile.chordDiagrams === "PIANO" ? (
+          <>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="piano-voicing">{t("dashboard.pianoVoicing")}</Label>
+              <NativeSelect
+                id="piano-voicing"
+                value={profile.pianoSmooth ? "SMOOTH" : "ROOT"}
+                disabled={saving}
+                onChange={(e) => void save({ pianoSmooth: e.target.value === "SMOOTH" })}
+                className="w-full max-w-xs"
+              >
+                <option value="SMOOTH">{t("dashboard.pianoSmooth")}</option>
+                <option value="ROOT">{t("dashboard.pianoRoot")}</option>
+              </NativeSelect>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="piano-hands">{t("dashboard.pianoHands")}</Label>
+              <NativeSelect id="piano-hands" value={profile.pianoHands} disabled={saving} onChange={(e) => void save({ pianoHands: e.target.value })} className="w-full max-w-xs">
+                <option value="both">{t("dashboard.pianoBoth")}</option>
+                <option value="right">{t("dashboard.pianoRight")}</option>
+              </NativeSelect>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="piano-names">{t("dashboard.pianoNoteNames")}</Label>
+              <NativeSelect
+                id="piano-names"
+                value={profile.pianoNoteNames}
+                disabled={saving}
+                onChange={(e) => void save({ pianoNoteNames: e.target.value })}
+                className="w-full max-w-xs"
+              >
+                <option value="card">{t("dashboard.pianoNamesCard")}</option>
+                <option value="all">{t("dashboard.pianoNamesAll")}</option>
+                <option value="none">{t("dashboard.pianoNamesNone")}</option>
+              </NativeSelect>
+            </div>
+          </>
+        ) : null}
+        {profile.chordDiagrams === "GUITAR" || profile.chordDiagrams === "UKULELE" ? (
           <>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="instrument-tuning">{t(profile.chordDiagrams === "UKULELE" ? "dashboard.ukuleleTuning" : "dashboard.guitarTuning")}</Label>

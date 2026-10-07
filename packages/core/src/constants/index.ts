@@ -74,8 +74,12 @@ export type CapoDisplayModeValue = (typeof CAPO_DISPLAY_MODES)[number];
 export const CHORD_NOTATIONS = ["LETTERS", "SOLFEGE", "NASHVILLE"] as const;
 export type ChordNotationValue = (typeof CHORD_NOTATIONS)[number];
 
-/** Chord diagrams beside every chart (issue #207): off, or for a guitar or a ukulele. */
-export const CHORD_DIAGRAMS = ["OFF", "GUITAR", "UKULELE"] as const;
+/** Chord diagrams beside every chart (issue #207): off, or for a guitar, a ukulele or a piano. */
+export const CHORD_DIAGRAMS = ["OFF", "GUITAR", "UKULELE", "PIANO"] as const;
+/** Piano diagrams' hands (issue #207 phase 4): both, or the right only (a bassist covers the bass). */
+export const PIANO_HANDS = ["both", "right"] as const;
+/** Note names on a piano diagram's keys: in the bigger card only, everywhere, or never. */
+export const PIANO_NOTE_NAMES = ["card", "all", "none"] as const;
 export type ChordDiagramsValue = (typeof CHORD_DIAGRAMS)[number];
 
 /** How a song reads in Live (issue #155): its chart (chords and lyrics), or its PDF. More to come: lyrics only (#106), drummer (#107). */

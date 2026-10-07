@@ -38,7 +38,7 @@ export async function loadOfflineSong(songVersionId: string): Promise<OfflineSon
     capoDisplay: viewer?.capoDisplayMode ?? "SOUNDING",
     diagrams: viewer?.chordDiagrams ?? "OFF",
     colors: viewer?.chordColors ?? false,
-    player: { leftHanded: viewer?.leftHanded, guitarTuning: viewer?.guitarTuning, ukuleleTuning: viewer?.ukuleleTuning },
+    player: viewer ?? {},
   };
 }
 

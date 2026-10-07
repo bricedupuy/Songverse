@@ -307,7 +307,7 @@ export type OfflineSyncCheck =
 
 /** The shape a player chose for a chord of a song (issue #207): theirs only, per instrument and tuning; `frets` as players write it ("320003"). */
 export interface ChordShapeChoice {
-  instrument: "guitar" | "ukulele";
+  instrument: "guitar" | "ukulele" | "piano";
   tuning: string;
   chord: string;
   frets: string;
@@ -328,13 +328,22 @@ export interface ChartViewSettings {
   leftHanded?: boolean;
   guitarTuning?: string;
   ukuleleTuning?: string;
+  pianoSmooth?: boolean;
+  pianoHands?: string;
+  pianoNoteNames?: string;
 }
 
-/** How a player's diagrams are drawn (issue #207 phase 3): mirrored, and in which tunings. */
+/** How a player's diagrams are drawn (issue #207 phases 3 and 4): mirrored, in which tunings, and the piano's options. */
 export interface DiagramPlayer {
   leftHanded?: boolean;
   guitarTuning?: string;
   ukuleleTuning?: string;
+  /** Each chord's inversion nearest the one before (default), or root position. */
+  pianoSmooth?: boolean;
+  /** "both" hands (default) or "right" only. */
+  pianoHands?: string;
+  /** Note names on the keys: "card" (default), "all" or "none". */
+  pianoNoteNames?: string;
 }
 
 /** An arrangement of a song, as listed (docs/arrangement-document-v2.md). */
@@ -431,6 +440,10 @@ export interface UserProfile {
   leftHanded: boolean;
   guitarTuning: string;
   ukuleleTuning: string;
+  /** Piano diagrams' options (issue #207 phase 4). */
+  pianoSmooth: boolean;
+  pianoHands: string;
+  pianoNoteNames: string;
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -1466,6 +1479,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       leftHanded?: boolean;
       guitarTuning?: string;
       ukuleleTuning?: string;
+      pianoSmooth?: boolean;
+      pianoHands?: string;
+      pianoNoteNames?: string;
       liveView?: LiveViewValue;
     }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
@@ -1787,7 +1803,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     /** The shapes this player chose for the song's chords (issue #207). */
     getChordShapeChoices: (songVersionId: string) => request<ChordShapeChoice[]>(`/song-versions/${songVersionId}/chord-shapes`),
     /** Keeps a shape for a chord of the song (frets null: back to the usual one); all of the song's choices back. */
-    chooseChordShape: (songVersionId: string, choice: { instrument: "guitar" | "ukulele"; tuning: string; chord: string; frets: string | null }) =>
+    chooseChordShape: (songVersionId: string, choice: { instrument: "guitar" | "ukulele" | "piano"; tuning: string; chord: string; frets: string | null }) =>
       request<ChordShapeChoice[]>(`/song-versions/${songVersionId}/chord-shapes`, { method: "PUT", body: JSON.stringify(choice) }),
     getChartPreferences: (songVersionId: string, arrangementId?: string | null) =>
       request<ChartPreferences>(`/chart-preferences?songVersionId=${songVersionId}${arrangementId ? `&arrangementId=${arrangementId}` : ""}`),

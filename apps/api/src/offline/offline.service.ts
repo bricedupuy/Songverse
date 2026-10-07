@@ -193,7 +193,7 @@ export class OfflineService {
       },
     });
     const entries = current.map((row) => ({ id: row.id, version: songVersion(row.updatedAt, row.attachments), audio: audio.has(row.id) }));
-    const viewerRow = await this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true, chordColors: true, leftHanded: true, guitarTuning: true, ukuleleTuning: true } });
+    const viewerRow = await this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true, chordColors: true, leftHanded: true, guitarTuning: true, ukuleleTuning: true, pianoSmooth: true, pianoHands: true, pianoNoteNames: true } });
     const viewer = {
       chordNotation: viewerRow?.chordNotation ?? "LETTERS",
       capoDisplayMode: viewerRow?.capoDisplayMode ?? "SOUNDING",
@@ -203,6 +203,9 @@ export class OfflineService {
       leftHanded: viewerRow?.leftHanded ?? false,
       guitarTuning: viewerRow?.guitarTuning ?? "standard",
       ukuleleTuning: viewerRow?.ukuleleTuning ?? "standard",
+      pianoSmooth: viewerRow?.pianoSmooth ?? true,
+      pianoHands: viewerRow?.pianoHands ?? "both",
+      pianoNoteNames: viewerRow?.pianoNoteNames ?? "card",
     };
 
     // Asked only whether anything changed (issue #121): the device's

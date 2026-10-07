@@ -3553,6 +3553,514 @@
         }
       ]
     },
+    "pianoVoicings": {
+      "about": "A chord's piano voicings (issue #207 phase 4): the right hand's notes in close position near middle C (MIDI 60), root position first then each inversion; the left hand's bass (the root, or a slash chord's bass) in the octave below - or the right hand only. Optional notes go when there'd be more than four.",
+      "params": [
+        "chord",
+        "options"
+      ],
+      "cases": [
+        {
+          "name": "C",
+          "args": [
+            "C",
+            {}
+          ],
+          "expected": [
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                60,
+                64,
+                67
+              ],
+              "inversion": 0
+            },
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                64,
+                67,
+                72
+              ],
+              "inversion": 1
+            },
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                67,
+                72,
+                76
+              ],
+              "inversion": 2
+            }
+          ]
+        },
+        {
+          "name": "Am",
+          "args": [
+            "Am",
+            {}
+          ],
+          "expected": [
+            {
+              "left": [
+                57
+              ],
+              "right": [
+                69,
+                72,
+                76
+              ],
+              "inversion": 0
+            },
+            {
+              "left": [
+                57
+              ],
+              "right": [
+                60,
+                64,
+                69
+              ],
+              "inversion": 1
+            },
+            {
+              "left": [
+                57
+              ],
+              "right": [
+                64,
+                69,
+                72
+              ],
+              "inversion": 2
+            }
+          ]
+        },
+        {
+          "name": "G7",
+          "args": [
+            "G7",
+            {}
+          ],
+          "expected": [
+            {
+              "left": [
+                55
+              ],
+              "right": [
+                67,
+                71,
+                74,
+                77
+              ],
+              "inversion": 0
+            },
+            {
+              "left": [
+                55
+              ],
+              "right": [
+                71,
+                74,
+                77,
+                79
+              ],
+              "inversion": 1
+            },
+            {
+              "left": [
+                55
+              ],
+              "right": [
+                62,
+                65,
+                67,
+                71
+              ],
+              "inversion": 2
+            },
+            {
+              "left": [
+                55
+              ],
+              "right": [
+                65,
+                67,
+                71,
+                74
+              ],
+              "inversion": 3
+            }
+          ]
+        },
+        {
+          "name": "D/F#",
+          "args": [
+            "D/F#",
+            {}
+          ],
+          "expected": [
+            {
+              "left": [
+                54
+              ],
+              "right": [
+                62,
+                66,
+                69
+              ],
+              "inversion": 0
+            },
+            {
+              "left": [
+                54
+              ],
+              "right": [
+                66,
+                69,
+                74
+              ],
+              "inversion": 1
+            },
+            {
+              "left": [
+                54
+              ],
+              "right": [
+                69,
+                74,
+                78
+              ],
+              "inversion": 2
+            }
+          ]
+        },
+        {
+          "name": "Cmaj9",
+          "args": [
+            "Cmaj9",
+            {}
+          ],
+          "expected": [
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                60,
+                62,
+                64,
+                71
+              ],
+              "inversion": 0
+            },
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                62,
+                64,
+                71,
+                72
+              ],
+              "inversion": 1
+            },
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                64,
+                71,
+                72,
+                74
+              ],
+              "inversion": 2
+            },
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                71,
+                72,
+                74,
+                76
+              ],
+              "inversion": 3
+            }
+          ]
+        },
+        {
+          "name": "Bm7b5",
+          "args": [
+            "Bm7b5",
+            {}
+          ],
+          "expected": [
+            {
+              "left": [
+                59
+              ],
+              "right": [
+                71,
+                74,
+                77,
+                81
+              ],
+              "inversion": 0
+            },
+            {
+              "left": [
+                59
+              ],
+              "right": [
+                62,
+                65,
+                69,
+                71
+              ],
+              "inversion": 1
+            },
+            {
+              "left": [
+                59
+              ],
+              "right": [
+                65,
+                69,
+                71,
+                74
+              ],
+              "inversion": 2
+            },
+            {
+              "left": [
+                59
+              ],
+              "right": [
+                69,
+                71,
+                74,
+                77
+              ],
+              "inversion": 3
+            }
+          ]
+        },
+        {
+          "name": "Csus4",
+          "args": [
+            "Csus4",
+            {}
+          ],
+          "expected": [
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                60,
+                65,
+                67
+              ],
+              "inversion": 0
+            },
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                65,
+                67,
+                72
+              ],
+              "inversion": 1
+            },
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                67,
+                72,
+                77
+              ],
+              "inversion": 2
+            }
+          ]
+        },
+        {
+          "name": "N.C.",
+          "args": [
+            "N.C.",
+            {}
+          ],
+          "expected": []
+        },
+        {
+          "name": "G7, right hand only",
+          "args": [
+            "G7",
+            {
+              "hands": "right"
+            }
+          ],
+          "expected": [
+            {
+              "left": [],
+              "right": [
+                67,
+                71,
+                74,
+                77
+              ],
+              "inversion": 0
+            },
+            {
+              "left": [],
+              "right": [
+                71,
+                74,
+                77,
+                79
+              ],
+              "inversion": 1
+            },
+            {
+              "left": [],
+              "right": [
+                62,
+                65,
+                67,
+                71
+              ],
+              "inversion": 2
+            },
+            {
+              "left": [],
+              "right": [
+                65,
+                67,
+                71,
+                74
+              ],
+              "inversion": 3
+            }
+          ]
+        }
+      ]
+    },
+    "songVoicings": {
+      "about": "Which voicing of each chord a song plays: smooth, the inversion nearest the chord before (the hand hardly moves), from the first chord's root position; or root position throughout.",
+      "params": [
+        "chords",
+        "options"
+      ],
+      "cases": [
+        {
+          "name": "C G Am F, smooth",
+          "args": [
+            [
+              "C",
+              "G",
+              "Am",
+              "F"
+            ],
+            {}
+          ],
+          "expected": [
+            0,
+            2,
+            2,
+            0
+          ]
+        },
+        {
+          "name": "C G Am F, root position",
+          "args": [
+            [
+              "C",
+              "G",
+              "Am",
+              "F"
+            ],
+            {
+              "smooth": false
+            }
+          ],
+          "expected": [
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "name": "a ii-V-I in C",
+          "args": [
+            [
+              "Dm7",
+              "G7",
+              "Cmaj7"
+            ],
+            {}
+          ],
+          "expected": [
+            0,
+            2,
+            1
+          ]
+        }
+      ]
+    },
+    "voicingText": {
+      "about": "A voicing written down to keep a player's choice: left hand | right hand, as MIDI notes.",
+      "params": [
+        "voicing"
+      ],
+      "cases": [
+        {
+          "name": "C, both hands",
+          "args": [
+            {
+              "left": [
+                48
+              ],
+              "right": [
+                60,
+                64,
+                67
+              ]
+            }
+          ],
+          "expected": "48|60.64.67"
+        },
+        {
+          "name": "right hand only",
+          "args": [
+            {
+              "left": [],
+              "right": [
+                64,
+                67,
+                72
+              ]
+            }
+          ],
+          "expected": "|64.67.72"
+        }
+      ]
+    },
     "shapeText": {
       "about": "A shape written as players write it: \"x32010\", a fret past 9 in parentheses.",
       "params": [

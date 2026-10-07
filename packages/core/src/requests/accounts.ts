@@ -1,6 +1,6 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
+import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
 import { TUNINGS } from "../chords/shapes.js";
 import { clearableText, optional, requiredText } from "./fields.js";
 
@@ -14,13 +14,14 @@ const TUNING_IDS = {
  * of this song (issue #207); `frets` null goes back to the usual one.
  */
 export const ChooseChordShapeSchema = z.strictObject({
-  instrument: z.enum(["guitar", "ukulele"]),
+  instrument: z.enum(["guitar", "ukulele", "piano"]),
   tuning: z.string().trim().min(1).max(30),
   chord: z.string().trim().min(1).max(64),
   frets: z
     .string()
     .trim()
-    .regex(/^[x0-9()]{4,40}$/, "frets must be a shape as players write it, like 320003")
+    // A fretted shape as players write it ("320003"), or a piano voicing ("48|60.64.67").
+    .regex(/^[x0-9().|]{3,60}$/, "frets must be a shape as players write it, like 320003")
     .nullable(),
 });
 export type ChooseChordShapeRequest = z.input<typeof ChooseChordShapeSchema>;
@@ -39,6 +40,9 @@ export const UpdateUserSchema = z.strictObject({
   leftHanded: optional(z.boolean()),
   guitarTuning: optional(z.enum(TUNING_IDS.guitar)),
   ukuleleTuning: optional(z.enum(TUNING_IDS.ukulele)),
+  pianoSmooth: optional(z.boolean()),
+  pianoHands: optional(z.enum(PIANO_HANDS)),
+  pianoNoteNames: optional(z.enum(PIANO_NOTE_NAMES)),
   liveView: optional(z.enum(LIVE_VIEWS)),
 });
 export type UpdateUserRequest = z.input<typeof UpdateUserSchema>;

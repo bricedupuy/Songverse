@@ -78,6 +78,7 @@ enum ChordDiagrams {
   OFF
   GUITAR
   UKULELE
+  PIANO
 }
 
 // How a song reads in Live (issue #155): see LIVE_VIEWS in packages/core.
@@ -289,6 +290,10 @@ model User {
   leftHanded        Boolean           @default(false)
   guitarTuning      String            @default("standard")
   ukuleleTuning     String            @default("standard")
+  // Piano diagrams (issue #207 phase 4): smooth voice leading or root position, both hands or the right only, note names on the keys ("card", "all", "none").
+  pianoSmooth       Boolean           @default(true)
+  pianoHands        String            @default("both")
+  pianoNoteNames    String            @default("card")
   voicingPreference VoicingPreference @default(AUTO)
   pedalMappingJson  Json? // UserPedalMapping — null = use defaults
   midiOutputDevice  String? // Last selected MIDI output device name
