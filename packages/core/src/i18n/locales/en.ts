@@ -1101,7 +1101,6 @@ const en = {
     stackSegues: "Stack segues and transitions",
     transitionFrom: "From",
     transitionTo: "into",
-    transitionChordsTapToHear: "Tap a chord to hear it.",
     transitionKinds: {
       dominant: "V7 → I",
       "two-five": "ii7 → V7 → I",
@@ -1125,7 +1124,10 @@ const en = {
       stacked: "Voice-leading, sus and altered dominant together: often the really great transitions.",
     },
     transitionFast: "Fast",
-    transitionRecommended: "For a band",
+    transitionFastHint: "Only what takes one chord",
+    transitionVariation: "Variations",
+    transitionVariationPrevious: "Previous variation",
+    transitionVariationNext: "Next variation",
     transitions: {
       none: "Nothing said",
       STOP: "Stop",

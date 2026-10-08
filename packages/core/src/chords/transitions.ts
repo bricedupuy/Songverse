@@ -166,7 +166,7 @@ function noteName(semitone: number, key: string): string {
  * song's last chord (`lastChord`, as played) into the next song's first
  * (`firstChord`; its 1 when left out) - its "I" below - each a strategy
  * with its usual form and variations:
- * - dominant ★: V7 → I (A7 → D; A9, A13, A7♭9). Into a first chord that
+ * - dominant ★: V7 → I (A7 → D; A9, A13). Into a first chord that
  *   isn't the key's 1, also the key's own V7 landing on it (A7 → Bm,
  *   G/A A7 → Bm);
  * - two-five ★: ii7 V7 → I (Em7 A7; Em9 A13, Em7 A7♭9; iiø7 into minor);
@@ -219,7 +219,8 @@ export function transitionProgressions(
 
   strategies.push({
     kind: "dominant",
-    forms: [around("57"), around("59"), around("513"), around("57b9"), ...(intoKeyTonic ? [] : [["57"], ...(key.minor ? [] : [["4/5", "57"]])])],
+    // (V7♭9 is the altered way's own.)
+    forms: [around("57"), around("59"), around("513"), ...(intoKeyTonic ? [] : [["57"], ...(key.minor ? [] : [["4/5", "57"]])])],
   });
   strategies.push({
     kind: "two-five",

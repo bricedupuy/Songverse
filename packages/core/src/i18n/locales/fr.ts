@@ -1105,7 +1105,6 @@ const fr: typeof en = {
     stackSegues: "Enchaîner segues et transitions sur la même page",
     transitionFrom: "De",
     transitionTo: "vers",
-    transitionChordsTapToHear: "Touchez un accord pour l'entendre.",
     transitionKinds: {
       dominant: "V7 → I",
       "two-five": "II7 → V7 → I",
@@ -1129,7 +1128,10 @@ const fr: typeof en = {
       stacked: "Conduite des voix, sus et dominante altérée ensemble : souvent les plus belles transitions.",
     },
     transitionFast: "Rapide",
-    transitionRecommended: "Pour un groupe",
+    transitionFastHint: "Seulement ce qui tient en un accord",
+    transitionVariation: "Variantes",
+    transitionVariationPrevious: "Variante précédente",
+    transitionVariationNext: "Variante suivante",
     transitions: {
       none: "Rien d'indiqué",
       STOP: "Arrêt",

@@ -1,9 +1,8 @@
-import { degreeChords, SET_TRANSITIONS, transitionDegrees, transitionProgressions, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type SetTransitionValue, type SetTransitionView } from "@songverse/core";
-import { ArrowDown, ArrowRight, ArrowRightLeft, ChevronsDown, Music, Square, Zap, type LucideIcon } from "lucide-react";
+import { degreeChords, SET_TRANSITIONS, transitionDegrees, transitionProgressions, type TransitionForm, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type SetTransitionValue, type SetTransitionView } from "@songverse/core";
+import { ArrowDown, ArrowRight, ArrowRightLeft, ChevronLeft, ChevronRight, ChevronsDown, Music, Square, Zap, type LucideIcon } from "lucide-react";
 import { useMemo, useState, type ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
-import { ChordRow } from "#/components/chord-diagrams";
-import { Degrees } from "#/components/song-editor/progressions-card";
+import { ChordRow, ChordSteps } from "#/components/chord-diagrams";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "#/components/ui/popover";
@@ -109,6 +108,7 @@ export function TransitionChordsPicker(props: Omit<ComponentProps<typeof Transit
         <TransitionChordsChooser
           {...props}
           className={undefined}
+          onVariation={props.onChange}
           onChange={(degrees) => {
             props.onChange(degrees);
             setOpen(false);
@@ -137,6 +137,7 @@ export function TransitionChordsChooser({
   notation = "LETTERS",
   player,
   framed = true,
+  onVariation,
   className,
 }: {
   fromKey: string | null;
@@ -152,6 +153,8 @@ export function TransitionChordsChooser({
   player?: DiagramPlayer;
   /** With the song's last chord and the next one's first around the choice; not where they're shown already. */
   framed?: boolean;
+  /** Another variation of the chosen way in (a popup stays open for it); `onChange` when left out. */
+  onVariation?: (degrees: string[]) => void;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -176,7 +179,16 @@ export function TransitionChordsChooser({
 
   return (
       <div className={cn("flex flex-col gap-3", className)} data-testid="transition-chords-chooser">
-        <p className="text-sm font-medium">{toKey ? t("sets.transitionChordsInto", { key: toKey }) : t("sets.transitionChordsLabel")}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-medium">{toKey ? t("sets.transitionChordsInto", { key: toKey }) : t("sets.transitionChordsLabel")}</p>
+          {/* Fast: only what takes one chord, for when there's no room. */}
+          {fromKey && toKey ? (
+            <Button type="button" variant={fast ? "default" : "ghost"} size="sm" className="h-7 gap-1 px-2" aria-pressed={fast} onClick={() => setFast(!fast)} title={t("sets.transitionFastHint")} data-testid="transition-fast">
+              <Zap className="size-3.5" />
+              {t("sets.transitionFast")}
+            </Button>
+          ) : null}
+        </div>
         {/* Where it goes from and to: the end of this song, what's chosen, the start of the next - each heard with a tap. */}
         {framed && (lastChord || firstChord) ? (
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground" data-testid="transition-chords-frame">
@@ -201,53 +213,35 @@ export function TransitionChordsChooser({
           <p className="text-xs text-muted-foreground">{t("sets.transitionChordsNeedKeys")}</p>
         ) : (
           <>
-            {/* Fast: only what takes one chord, for when there's no room. */}
-            <Button
-              type="button"
-              variant={fast ? "default" : "outline"}
-              size="sm"
-              className="h-8 gap-1.5 self-start"
-              aria-pressed={fast}
-              onClick={() => setFast(!fast)}
-              data-testid="transition-fast"
-            >
-              <Zap className="size-3.5" />
-              {t("sets.transitionFast")}
-            </Button>
-            <ul className="-mx-1 flex flex-col gap-1">
-              {suggestions.map((one) => (
-                <li key={one.kind} className="flex flex-col gap-1 rounded-md px-2 py-1.5" data-testid="transition-suggestion" data-kind={one.kind} data-degrees={one.degrees.join(" ")}>
-                  <span className="flex flex-col">
-                    <span className="flex items-center gap-1.5 text-sm font-medium">
+            <ul className="-mx-1 flex flex-col">
+              {suggestions.map((one) => {
+                const forms = [one, ...one.variations];
+                const at = forms.findIndex((form) => form.degrees.join(" ") === chosen);
+                const shown = forms[Math.max(0, at)]!;
+                return (
+                  <li
+                    key={one.kind}
+                    className={cn("flex items-center gap-2 rounded-md px-1 py-1", at >= 0 && "bg-muted")}
+                    data-testid="transition-suggestion"
+                    data-kind={one.kind}
+                    data-degrees={one.degrees.join(" ")}
+                  >
+                    <span className="w-24 shrink-0 text-xs leading-tight text-muted-foreground" title={t(`sets.transitionBestWhen.${one.kind}`)}>
                       {t(`sets.transitionKinds.${one.kind}`)}
-                      {one.recommended ? (
-                        <span className="rounded-sm bg-primary/15 px-1 text-[0.65rem] font-semibold text-primary" title={t("sets.transitionRecommended")} data-testid="transition-recommended">
-                          ★ {t("sets.transitionRecommended")}
-                        </span>
-                      ) : null}
                     </span>
-                    <span className="text-xs text-muted-foreground">{t(`sets.transitionBestWhen.${one.kind}`)}</span>
-                  </span>
-                  {[one, ...one.variations].map((form, i) => (
-                    <span
-                      key={form.degrees.join(" ")}
-                      className={cn("flex items-center gap-2 rounded-md py-0.5", i > 0 && "pl-3", form.degrees.join(" ") === chosen && "bg-muted")}
-                      data-testid={i === 0 ? "transition-form" : "transition-variation"}
-                      data-degrees={form.degrees.join(" ")}
-                    >
-                      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
-                        {row(form.chords, "transition-suggestion-chords")}
-                        <Degrees degrees={form.degrees} className="font-mono text-xs text-muted-foreground" />
-                      </span>
-                      <Button type="button" size="sm" variant={i === 0 ? "secondary" : "ghost"} className="h-7 shrink-0" onClick={() => pick(form.degrees)} data-testid="transition-suggestion-use">
+                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                      <ChordSteps steps={shown.chords.map((chord) => ({ chord, role: "option" }))} expanded={false} diagrams={diagrams} notation={notation} player={player} musicalKey={toKey} />
+                      {at >= 0 && forms.length > 1 ? <VariationSwitcher forms={forms} at={at} onPick={onVariation ?? pick} /> : null}
+                    </span>
+                    {at >= 0 ? null : (
+                      <Button type="button" size="sm" variant="secondary" className="h-7 shrink-0" onClick={() => pick(one.degrees)} data-testid="transition-suggestion-use">
                         {t("sets.transitionChordsUse")}
                       </Button>
-                    </span>
-                  ))}
-                </li>
-              ))}
+                    )}
+                  </li>
+                );
+              })}
             </ul>
-            <p className="text-xs text-muted-foreground">{t("sets.transitionChordsTapToHear")}</p>
           </>
         )}
         <form
@@ -272,4 +266,55 @@ export function TransitionChordsChooser({
         ) : null}
       </div>
   );
+}
+
+/** One way in's variations, the chosen one's place among them: ‹ 2/4 ›, each step chosen at once (issue #218). */
+function VariationSwitcher({ forms, at, onPick }: { forms: TransitionForm[]; at: number; onPick: (degrees: string[]) => void }) {
+  const { t } = useTranslation();
+  const go = (step: 1 | -1) => onPick(forms[(at + step + forms.length) % forms.length]!.degrees);
+  return (
+    <span className="inline-flex items-center rounded-md border bg-background text-xs" role="group" aria-label={t("sets.transitionVariation")} data-testid="transition-variations">
+      <button type="button" className="flex h-7 w-6 items-center justify-center text-muted-foreground hover:text-foreground" onClick={() => go(-1)} aria-label={t("sets.transitionVariationPrevious")} data-testid="transition-variation-previous">
+        <ChevronLeft className="size-3.5" />
+      </button>
+      <span className="min-w-7 text-center tabular-nums" data-testid="transition-variation-position">
+        {at + 1}/{forms.length}
+      </span>
+      <button type="button" className="flex h-7 w-6 items-center justify-center text-muted-foreground hover:text-foreground" onClick={() => go(1)} aria-label={t("sets.transitionVariationNext")} data-testid="transition-variation-next">
+        <ChevronRight className="size-3.5" />
+      </button>
+    </span>
+  );
+}
+
+/**
+ * The chosen chords' variations, beside them (issue #218): when they're one
+ * of the ways in, its others a tap away - A7 → A9 → A13 → A7♭9. Nothing
+ * when they're typed, or the way in has no others.
+ */
+export function TransitionVariations({
+  fromKey,
+  toKey,
+  lastChord,
+  firstChord,
+  degrees,
+  onChange,
+}: {
+  fromKey: string | null;
+  toKey: string | null;
+  lastChord?: string | null;
+  firstChord?: string | null;
+  degrees: string[];
+  onChange: (degrees: string[]) => void;
+}) {
+  const chosen = degrees.join(" ");
+  const found = useMemo(() => {
+    if (!chosen) return null;
+    // The way in it's the usual form of, else one it's a variation of.
+    const all = transitionProgressions(fromKey, toKey, { firstChord, lastChord }).map((one) => [one, ...one.variations]);
+    const forms = all.find((list) => list[0]!.degrees.join(" ") === chosen) ?? all.find((list) => list.some((form) => form.degrees.join(" ") === chosen));
+    if (!forms || forms.length < 2) return null;
+    return { forms, at: forms.findIndex((form) => form.degrees.join(" ") === chosen) };
+  }, [fromKey, toKey, firstChord, lastChord, chosen]);
+  return found ? <VariationSwitcher forms={found.forms} at={found.at} onPick={onChange} /> : null;
 }

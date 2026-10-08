@@ -1,6 +1,6 @@
 import { ApiError, keptSetSong, onlineOrKept, type SetlistSongView } from "@songverse/core";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { LiveView, type LiveControl, type LiveSong } from "#/components/live-view";
 import { setSongViewStore, useReadingView, type ReadingView } from "#/components/chart-or-pdf";
@@ -108,6 +108,7 @@ function SetLiveView({ views, readings }: { views: SetlistSongView[]; readings: 
   const router = useRouter();
   const set = views[0]!.set;
   const control = useRef<LiveControl | null>(null);
+  const [chordsChanged, setChordsChanged] = useState<Record<string, string[]>>({});
   // The song being played: the page's first, until it's scrolled on into the next (issue #214),
   // which the address then says - the page staying as it is (?from= its first song).
   const { itemId } = Route.useParams();
@@ -155,19 +156,21 @@ function SetLiveView({ views, readings }: { views: SetlistSongView[]; readings: 
       previous: goTo(view.previousItemId),
       next: goTo(view.nextItemId),
       nextLabel: view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet"),
-      transition: view.transition ?? null,
+      // The chords as just changed here, before the page next loads.
+      transition: view.transition ? { ...view.transition, chords: chordsChanged[item.id] ?? view.transition.chords } : null,
       diagrams: view.view.chordDiagrams,
       notation: view.view.chordNotation,
       colors: view.view.chordColors,
       player: view.view,
       songVersionId: song?.id,
       // Changed here by who can change the set (issue #214), online.
+      // Shown at once, and saved - without reloading the page under the player's scroll; put back if it can't be.
       onTransitionChords: set.canEdit
-        ? (transitionChords) =>
-            void apiClient
-              .updateSetlistItem(set.id, item.id, { transitionChords })
-              .then(() => router.invalidate())
-              .catch(() => undefined)
+        ? (transitionChords) => {
+            const before = chordsChanged[item.id];
+            setChordsChanged((all) => ({ ...all, [item.id]: transitionChords }));
+            apiClient.updateSetlistItem(set.id, item.id, { transitionChords }).catch(() => setChordsChanged((all) => ({ ...all, [item.id]: before ?? view.transition?.chords ?? [] })));
+          }
         : undefined,
     };
   });

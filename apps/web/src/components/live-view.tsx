@@ -9,7 +9,7 @@ import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { PresentPanel } from "#/components/present-panel";
-import { TransitionChordsChooser, TransitionSymbol, transitionText } from "#/components/set-transition";
+import { TransitionChordsChooser, TransitionSymbol, TransitionVariations, transitionText } from "#/components/set-transition";
 import { ChartWithDiagrams, ChordSteps, type ChordStep } from "#/components/chord-diagrams";
 import { Button } from "#/components/ui/button";
 import { SyncControl } from "#/components/sync-control";
@@ -638,6 +638,19 @@ function TransitionBlock({ song, transition, between }: { song: LiveSong; transi
           {/* Compact: the chords as one row of steps, each heard with a tap; opened, their diagrams and (for who changes the set) the other ways in. */}
           <div className="flex flex-wrap items-start gap-2" data-testid="live-transition-chords">
             <ChordSteps steps={steps} expanded={open} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} player={song.player} musicalKey={transition.toKey} />
+            {/* The chosen way in's other variations, a tap away. */}
+            {song.onTransitionChords ? (
+              <span className="flex h-9 items-center">
+                <TransitionVariations
+                  fromKey={transition.fromKey}
+                  toKey={transition.toKey}
+                  lastChord={transition.lastChord}
+                  firstChord={transition.firstChord}
+                  degrees={chords}
+                  onChange={song.onTransitionChords}
+                />
+              </span>
+            ) : null}
             <Button
               type="button"
               variant="outline"

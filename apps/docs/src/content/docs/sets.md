@@ -30,11 +30,11 @@ Choose **Sets** > **New set**:
 
 For a **Transition**, the **Chords** button beside its note suggests chords to play into the next song: from the last chord of this song to the first chord of the next, as the set plays them (with each song's version and **Key**). The two frame the list - **From C → … → into D** - and the suggestions lead into that first chord ("I" below): if the next song starts on its 4 or its 6m rather than its 1, they lead there. Chords are shown with their numbers in the next song's key, as Nashville charts write them: **5⁷** is its 5 with a 7th (A7 in D), **7°7** a diminished 7th on its 7 (C#°7), **♭7/6** C over B.
 
-Each way in comes with its usual form, a line on when to use it, and variations. From a song ending on C into a song in D:
+Each way in is one row: its chords as steps (tap one to hear it) and **Use**; hover its name for when to use it. Once one is chosen, **‹ ›** beside its chords goes through its variations, here, on the set's page and in Live. From a song ending on C into a song in D:
 
-- ★ **V7 → I** - the workhorse: A7 → D, or A9, A13, A7♭9. The new key is obvious at once, from almost anywhere. When the next song doesn't start on its 1, also the key's own dominant landing on its first chord: A7 → Bm, G/A A7 → Bm.
-- ★ **ii7 → V7 → I** - smoother, the dominant prepared: Em7 A7 → D, or Em9 A13, Em7 A7♭9 (into a minor chord, iiø7 V7).
-- ★ **V7sus → V7 → I** - contemporary, big and intentional: A7sus4 A7 → D, or A9sus4 A7♭9.
+- **V7 → I** - the workhorse: A7 → D, or A9, A13. The new key is obvious at once, from almost anywhere. When the next song doesn't start on its 1, also the key's own dominant landing on its first chord: A7 → Bm, G/A A7 → Bm.
+- **ii7 → V7 → I** - smoother, the dominant prepared: Em7 A7 → D, or Em9 A13, Em7 A7♭9 (into a minor chord, iiø7 V7).
+- **V7sus → V7 → I** - contemporary, big and intentional: A7sus4 A7 → D, or A9sus4 A7♭9.
 - **Altered V7 → I** - maximum tension: A7♭9 → D, or A7♯5, A7♯9.
 - **Diminished approach** - one elegant chord, voices moving by half steps: C#°7 → D, or C#°7 A7 → D.
 - **A chord both keys share** - seamless: C → G → D (G is V of C and IV of D), or G A7.
@@ -42,7 +42,7 @@ Each way in comes with its usual form, a line on when to use it, and variations.
 - **Backdoor: iv7 → ♭VII7 → I** - soulful, warm, a little unexpected: Gm7 C7 → D, or C7.
 - **Stacked: bass, sus and altered** - all of it at once: C → G/B → A9sus4 → A7♭9 → D.
 
-★ marks the three a band would reach for first. **Fast** keeps only what takes one chord - A7, A7♭9, C#°7, a shared chord, C7. Tap any chord - in a suggestion, or the two around them - to hear it, and **Use** to choose that form; or type your own (**Em7 A7**, or as numbers, **2m7 57**) and tap **Use**; **No chords** takes them away. They're kept as numbers in the next song's key, so if that song moves to another key, its chords move with it. In Live, they're shown under the transition as one compact row of steps - the song's last chord, the transition's chords, the next one's first - each tapped to hear it. The button at the end of the row opens it: the [chord diagrams](/versions/#chord-diagrams) of your instrument under each chord and, if you can change the set, the other ways in to choose from (the list above). It stays open or compact on this device.
+**Fast** keeps only what takes one chord - A7, A7♭9, C#°7, a shared chord, C7. Tap any chord - in a suggestion, or the two around them - to hear it; or type your own (**Em7 A7**, or as numbers, **2m7 57**) and tap **Use**; **No chords** takes them away. They're kept as numbers in the next song's key, so if that song moves to another key, its chords move with it. In Live, they're shown under the transition as one compact row of steps - the song's last chord, the transition's chords, the next one's first - each tapped to hear it. The button at the end of the row opens it: the [chord diagrams](/versions/#chord-diagrams) of your instrument under each chord and, if you can change the set, the other ways in to choose from (the list above). It stays open or compact on this device.
 
 ### Just for this set
 

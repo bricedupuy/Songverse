@@ -57,7 +57,7 @@ try {
     throw new Error(`not saved: ${JSON.stringify((await items())[0].transitionChords)}`);
   };
 
-  await step("the set's page: from G to D, the ways in, their variations, to hear, and Fast", async () => {
+  await step("the set's page: from G to D, the ways in, to hear, Fast, and variations once chosen", async () => {
     await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
     await page.goto(`${WEB}/sets/${set.id}`);
     await page.waitForLoadState("networkidle");
@@ -69,16 +69,12 @@ try {
     await picker.getByTestId("transition-first-chord").locator('[data-chord="D"]').waitFor();
     const kinds = await picker.getByTestId("transition-suggestion").evaluateAll((all) => all.map((one) => one.dataset.kind).join(" "));
     if (kinds !== "dominant two-five sus-dominant altered diminished pivot chromatic-bass backdoor") throw new Error(kinds);
-    // The three for a band, marked.
-    if ((await picker.getByTestId("transition-recommended").count()) !== 3) throw new Error("not three recommended");
     const twoFive = picker.locator('[data-testid="transition-suggestion"][data-kind="two-five"]');
     if ((await twoFive.getAttribute("data-degrees")) !== "2m7 57") throw new Error(await twoFive.getAttribute("data-degrees"));
-    await twoFive.locator('[data-testid="transition-variation"][data-degrees="2m7 57b9"]').waitFor();
+    // Compact: each way in as one row of steps, its variations not shown yet.
+    if (await picker.getByTestId("transition-variations").count()) throw new Error("variations shown before choosing");
     // From the last chord: the bass walking down into the next song's first (G, F#m, Em, D).
     await picker.locator('[data-kind="chromatic-bass"][data-degrees="3m 2m"]').locator('[data-chord="F#m"]').first().waitFor();
-    // Numbers as Nashville charts write them: the 7th raised, not "57"; a diminished 7th as °7.
-    await picker.locator('[data-kind="dominant"] sup').first().getByText("7").waitFor();
-    await picker.locator('[data-kind="diminished"] sup').first().getByText("°7").waitFor();
     // A chord tapped is heard, not chosen.
     await twoFive.locator('[data-chord="Em7"]').first().click();
     await page.waitForTimeout(300);
@@ -86,12 +82,19 @@ try {
     // Fast: one chord each.
     await picker.getByTestId("transition-fast").click();
     await picker.locator('[data-kind="dominant"]').waitFor();
-    const forms = await picker.locator('[data-testid="transition-form"], [data-testid="transition-variation"]').evaluateAll((all) => all.map((one) => one.dataset.degrees));
+    const forms = await picker.getByTestId("transition-suggestion").evaluateAll((all) => all.map((one) => one.dataset.degrees));
     if (forms.length === 0 || forms.some((one) => one.includes(" "))) throw new Error(JSON.stringify(forms));
     await picker.getByTestId("transition-fast").click();
-    await picker.locator('[data-kind="sus-dominant"] [data-testid="transition-form"]').getByTestId("transition-suggestion-use").click();
+    await picker.locator('[data-kind="sus-dominant"]').getByTestId("transition-suggestion-use").click();
     await saved(["57sus4", "57"]);
     await row().getByTestId("set-song-transition-chords").getByText("A7sus4 A7").waitFor();
+    // Chosen: its variations a tap away, beside it.
+    const variations = row().getByTestId("transition-variations");
+    await variations.getByTestId("transition-variation-position").getByText("1/2").waitFor();
+    await variations.getByTestId("transition-variation-next").click();
+    await saved(["59sus4", "57b9"]);
+    await row().getByTestId("set-song-transition-chords").getByText("A9sus4 A7b9").waitFor();
+    await variations.getByTestId("transition-variation-position").getByText("2/2").waitFor();
   });
 
   await step("typed: letters or numbers", async () => {
@@ -130,9 +133,15 @@ try {
     // Opened: the other ways in, to pick from there.
     await block.getByTestId("live-transition-expand").click();
     await block.locator('[data-step="step"] svg').first().waitFor();
-    await block.getByTestId("transition-chords-chooser").locator('[data-kind="altered"] [data-testid="transition-form"]').getByTestId("transition-suggestion-use").click();
+    await block.getByTestId("transition-chords-chooser").locator('[data-kind="altered"]').getByTestId("transition-suggestion-use").click();
     await saved(["57b9"]);
     await block.locator('[data-step="step"][data-chord="A7b9"]').waitFor();
+    // Its variations, beside the chords: A7♯5 next, then back.
+    await block.getByTestId("live-transition-chords").getByTestId("transition-variation-next").click();
+    await saved(["57#5"]);
+    await block.locator('[data-step="step"][data-chord="A7#5"]').waitFor();
+    await block.getByTestId("live-transition-chords").getByTestId("transition-variation-previous").click();
+    await saved(["57b9"]);
   });
 
   await step("Live: Next scrolls on into the stacked song, which becomes the one playing", async () => {

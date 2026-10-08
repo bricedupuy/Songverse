@@ -22,7 +22,7 @@ import type { SetProgress } from "#/lib/set-progress";
 import { transposeLabel } from "#/lib/setlists";
 import { NativeSelect } from "#/components/ui/native-select";
 import { Input } from "#/components/ui/input";
-import { TransitionChordsPicker, TransitionSymbol } from "#/components/set-transition";
+import { TransitionChordsPicker, TransitionSymbol, TransitionVariations } from "#/components/set-transition";
 
 /** The key a song of the set is played in: its own, moved by its arrangement, then by the set. */
 function playedKey(item: SetlistItem): string | null {
@@ -320,7 +320,10 @@ function SongRow({
           ) : null}
           {/* The chords played into the next song (issue #10). */}
           {item.transition === "TRANSITION" && hasNext ? (
-            <TransitionChordsPicker fromKey={song ? playedKey(item) : null} toKey={nextKey} lastChord={item.edgeChords?.last ?? null} firstChord={nextFirstChord} degrees={item.transitionChords ?? []} onChange={(transitionChords) => onChange({ transitionChords })} />
+            <>
+              <TransitionChordsPicker fromKey={song ? playedKey(item) : null} toKey={nextKey} lastChord={item.edgeChords?.last ?? null} firstChord={nextFirstChord} degrees={item.transitionChords ?? []} onChange={(transitionChords) => onChange({ transitionChords })} />
+              <TransitionVariations fromKey={song ? playedKey(item) : null} toKey={nextKey} lastChord={item.edgeChords?.last ?? null} firstChord={nextFirstChord} degrees={item.transitionChords ?? []} onChange={(transitionChords) => onChange({ transitionChords })} />
+            </>
           ) : null}
         </span>
       ) : item.transition ? (
