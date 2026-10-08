@@ -156,7 +156,34 @@ try {
     await page.getByTestId("live-transition-first").locator('[data-chord="E"]').waitFor();
   });
 
+  await step("Live: a key changed at the last minute moves the transition with it", async () => {
+    const keyOf = (item) => page.locator(`[data-testid="live-song"][data-item="${item}"]`).locator("button[aria-expanded]").first();
+    // The next song up a semitone more (E to F): its first chord, and the chords into it, follow.
+    await keyOf(secondItem).click();
+    await page.getByTestId("live-transpose").getByRole("button", { name: "Up a semitone" }).click();
+    const block = page.locator('[data-testid="live-transition-block"][data-between]');
+    await block.getByTestId("live-transition-first").locator('[data-chord="F"]').waitFor();
+    await block.getByTestId("live-transition-chords").locator('[data-chord="Bb"]').waitFor();
+    await block.getByTestId("live-transition-chords").locator('[data-chord="C7"]').waitFor();
+    await block.getByTestId("live-transition").getByText(/G → F/).waitFor();
+    // This song down a semitone (G to F#): where it starts follows.
+    // (The open transpose box closes with a tap elsewhere.)
+    await page.locator(`[data-testid="live-song"][data-item="${firstItem}"] h1`).click();
+    await keyOf(firstItem).click();
+    await page.getByTestId("live-transpose").getByRole("button", { name: "Down a semitone" }).click();
+    await block.getByTestId("live-transition-last").locator('[data-chord="F#"], [data-chord="Gb"]').first().waitFor();
+    // Only here, tonight: the set keeps its chords as they were.
+    if (JSON.stringify((await items())[0].transitionChords) !== JSON.stringify(["4", "57"])) throw new Error("changed in the set");
+    // Gone with the page: back to the set's keys.
+    await page.reload();
+    await page.getByTestId("live-view").waitFor();
+    await page.waitForLoadState("networkidle");
+    await page.locator('[data-testid="live-transition-block"][data-between]').getByTestId("live-transition-first").locator('[data-chord="E"]').waitFor();
+  });
+
   await step("Stack segues and transitions, turned off on this device: a song per page", async () => {
+    await page.goto(`${WEB}/sets/${set.id}/live/${firstItem}`);
+    await page.getByTestId("live-song").nth(1).waitFor();
     await page.getByTestId("sidebar-set-details").click();
     await page.getByTestId("sidebar-stack-segues").click();
     await page.keyboard.press("Escape");

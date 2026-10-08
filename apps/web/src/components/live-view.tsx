@@ -1,4 +1,4 @@
-import { chartSeconds, degreeChords, structureOf, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
+import { chartSeconds, degreeChords, transposeChord, transposeKey, structureOf, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
 import { AArrowDown, AArrowUp, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -431,6 +431,7 @@ export function LiveView({
               textSize={textSize}
               columns={columns}
               extraSteps={extra[one.id] ?? 0}
+              nextSteps={songs[i + 1] ? (extra[songs[i + 1]!.id] ?? 0) : 0}
               onTranspose={(steps) => setExtra((before) => ({ ...before, [one.id]: steps }))}
             />
           ))}
@@ -513,6 +514,7 @@ function LiveSongSection({
   textSize,
   columns,
   extraSteps,
+  nextSteps,
   onTranspose,
 }: {
   ref: (element: HTMLElement | null) => void;
@@ -525,10 +527,13 @@ function LiveSongSection({
   textSize: number;
   columns: ReturnType<typeof useChartColumns>;
   extraSteps: number;
+  /** The next song's last-minute transpose, when it's stacked under this one. */
+  nextSteps: number;
   onTranspose: (steps: number) => void;
 }) {
   const { t } = useTranslation();
   const pdf = song.reading?.shown ?? null;
+  const transition = useMemo(() => (song.transition ? transposedTransition(song.transition, extraSteps, nextSteps) : null), [song.transition, extraSteps, nextSteps]);
   const details = [
     ...song.references,
     chart?.capo ? t("player.capo", { capo: chart.capo }) : null,
@@ -573,9 +578,28 @@ function LiveSongSection({
         )}
         {song.nextLabel !== null && !followed ? <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">{song.nextLabel}</p> : null}
       </div>
-      {song.transition ? <TransitionBlock song={song} between={followed} /> : null}
+      {transition ? <TransitionBlock song={song} transition={transition} between={followed} /> : null}
     </section>
   );
+}
+
+/**
+ * A transition as it's played tonight: the song's last-minute transpose
+ * moves where it starts (its key and last chord), the next song's moves
+ * where it goes (its key and first chord). Its chords are degrees of the
+ * next song's key, so they follow by themselves.
+ */
+function transposedTransition(transition: SetTransitionView, steps: number, nextSteps: number): SetTransitionView {
+  if (steps === 0 && nextSteps === 0) return transition;
+  const fromKey = transition.fromKey ? (transposeKey(transition.fromKey, steps) ?? transition.fromKey) : null;
+  const toKey = transition.toKey ? (transposeKey(transition.toKey, nextSteps) ?? transition.toKey) : null;
+  return {
+    ...transition,
+    fromKey,
+    toKey,
+    lastChord: transition.lastChord ? transposeChord(transition.lastChord, steps, fromKey) : transition.lastChord,
+    firstChord: transition.firstChord ? transposeChord(transition.firstChord, nextSteps, toKey) : transition.firstChord,
+  };
 }
 
 /**
@@ -585,9 +609,8 @@ function LiveSongSection({
  * a tap - which who can change the set changes here. Between two stacked
  * songs, a band across the page.
  */
-function TransitionBlock({ song, between }: { song: LiveSong; between: boolean }) {
+function TransitionBlock({ song, transition, between }: { song: LiveSong; transition: SetTransitionView; between: boolean }) {
   const { t } = useTranslation();
-  const transition = song.transition!;
   const chords = transition.chords ?? [];
   const spelled = transition.toKey ? degreeChords(chords, transition.toKey) : chords;
   const isTransition = transition.kind === "TRANSITION";
