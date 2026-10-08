@@ -164,6 +164,8 @@ export interface SetlistItem {
   transitionNote?: string | null;
   /** The chords played into the next song (issue #10), as degrees of its key. */
   transitionChords?: string[];
+  /** Its first and last chords as played (issue #217); null when the viewer can't read it. */
+  edgeChords?: { first: string | null; last: string | null } | null;
   /** Null when the song isn't readable by the current user (shown as a placeholder). */
   song: SetlistSongRef | null;
   /** Also in the current user's own library, i.e. openable outside the set. */
@@ -199,6 +201,9 @@ export interface SetTransitionView {
   toKey: string | null;
   fromTempo: number | null;
   toTempo: number | null;
+  /** The song's last chord and the next one's first, as played (issue #217): where the transition goes from and to. */
+  lastChord?: string | null;
+  firstChord?: string | null;
 }
 
 export interface SetlistSongView {

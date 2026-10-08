@@ -34,7 +34,7 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { useTranslation } from "react-i18next";
 import { AccountMenuContent } from "#/components/app-sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { TransitionPicker, TransitionSymbol } from "#/components/set-transition";
 import { setDetailValue, toggleSetDetail, useSetDetails } from "#/lib/set-details";
 import { Input } from "#/components/ui/input";
@@ -47,6 +47,7 @@ import { EntityAvatar } from "#/components/entity-avatar";
 import { initials } from "#/lib/initials";
 import { useMode } from "#/lib/mode";
 import { clearSetProgress, useSetProgress } from "#/lib/set-progress";
+import { setStackSegues, useStackSegues } from "#/lib/live-stack";
 import type { AppSession } from "#/lib/server-auth";
 import { deviceStorage } from "#/lib/offline-data";
 import { setlistTitle, setOwnerLabel, transposeLabel } from "#/lib/setlists";
@@ -499,8 +500,9 @@ function SetSongsPanel({ setId, pathname, sets, onBack }: { setId: string; pathn
   const [set, setSet] = useState<SetlistDetail | null>(null);
   const [reorderError, setReorderError] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
-  // The song playing in Live: the one open there.
+  // The song playing in Live: the one open there (scrolled on into, on a stacked page: issue #214).
   const playing = mode === "live" ? /^\/sets\/[^/]+\/live\/([^/]+)/.exec(pathname)?.[1] ?? null : null;
+  const stacked = useStackSegues();
 
   const details = useSetDetails();
   // What happens after a song (issue #199), chosen from its symbol: shown at once, saved, Live says it.
@@ -588,6 +590,12 @@ function SetSongsPanel({ setId, pathname, sets, onBack }: { setId: string; pathn
                     {t(`sets.listDetails.${detail}`)}
                   </DropdownMenuItem>
                 ))}
+                {/* A segue or transition: the next song under it on the same page (issue #214). */}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem closeOnClick={false} onClick={() => setStackSegues(!stacked)} data-testid="sidebar-stack-segues" data-checked={stacked}>
+                  <Check className={cn(!stacked && "invisible")} />
+                  {t("sets.stackSegues")}
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

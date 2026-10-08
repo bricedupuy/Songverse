@@ -442,7 +442,8 @@ export function ChartWithDiagrams({
  * A few chords on their own - a set's transition into the next song (issue
  * #10): their names, with the player's diagrams when they have some on, each
  * tapped to hear it (on a guitar without diagrams). In Nashville numbers,
- * as degrees of `musicalKey`.
+ * as degrees of `musicalKey`. `names` keeps to the names (a list to choose
+ * from), still heard on the player's instrument.
  */
 export function ChordRow({
   chords,
@@ -450,18 +451,23 @@ export function ChordRow({
   notation,
   player,
   musicalKey,
+  names = false,
   className,
+  testId = "chord-row",
 }: {
   chords: string[];
   diagrams: ChordDiagramsValue | undefined;
   notation: ChordNotationValue;
   player?: DiagramPlayer;
   musicalKey?: string | null;
+  names?: boolean;
   className?: string;
+  testId?: string;
 }) {
   const { t } = useTranslation();
-  const drawn = instrumentOf(diagrams ?? "OFF");
-  const instrument = drawn ?? "guitar";
+  const chosen = instrumentOf(diagrams ?? "OFF");
+  const drawn = names ? null : chosen;
+  const instrument = chosen ?? "guitar";
   const up = useRef(false);
   const setup = useMemo<Setup>(() => {
     const tuning = instrument === "piano" ? "standard" : ((instrument === "ukulele" ? player?.ukuleleTuning : player?.guitarTuning) ?? "standard");
@@ -473,7 +479,7 @@ export function ChordRow({
   }, [instrument, chords, player?.ukuleleTuning, player?.guitarTuning, player?.pianoNoteNames, player?.pianoHands, player?.pianoSmooth, player?.leftHanded]);
   const name = (chord: string) => (notation === "NASHVILLE" ? formatChord(chord, "nashville", musicalKey) : shownName(chord, notation));
   return (
-    <span className={cn("flex flex-wrap items-end gap-1", className)} data-testid="chord-row">
+    <span className={cn("flex flex-wrap items-end gap-1", className)} data-testid={testId}>
       {chords.map((chord, i) => {
         const option = optionsFor(chord, setup, 1)[0];
         return (

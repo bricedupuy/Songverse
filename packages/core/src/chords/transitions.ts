@@ -1,10 +1,10 @@
-import { diatonicChords, nashvilleChord, parseChord, sameChord, semitoneOf, transposeChord, type NoteLetter } from "./chord.js";
+import { chordFamily, diatonicChords, nashvilleChord, parseChord, sameChord, semitoneOf, transposeChord, type NoteLetter } from "./chord.js";
 
 /**
  * Chord progressions between two songs of a set (issue #10, phase 6 of
- * #207): a few ways into the next song's key - its dominant, a ii-V, a
- * chord both keys share - kept as degrees of the new key, so they stay
- * right when the next song is moved to another key.
+ * #207): a few ways from the end of one song into the first chord of the
+ * next (issue #217) - its dominant, a ii-V, a chord both keys share - kept
+ * as degrees of the next song's key, so they stay right when it's moved.
  */
 
 export type TransitionKind = "dominant" | "sus-dominant" | "two-five" | "four-five" | "pivot" | "step-up" | "circle";
@@ -73,27 +73,43 @@ export function transitionDegrees(text: string, key: string | null | undefined):
 }
 
 /**
- * Ways from one key into another, with `chords` chords each (any number
- * when left out), the simplest first:
- * - dominant: the new key's V7;
+ * The key a transition resolves into: the next song's first chord taken as
+ * a key of its own (Em in D: E minor), so its dominant leads to that chord;
+ * the next song's key when it has no first chord, or starts on its 1.
+ */
+function targetKey(toKey: string, firstChord: string | null | undefined): string {
+  const parsed = firstChord ? parseChord(firstChord.replace(/^\((.*)\)$/, "$1")) : null;
+  if (!parsed || parsed.kind !== "chord") return toKey;
+  const family = chordFamily(firstChord!);
+  const root = (parsed.root.letter as string) + (parsed.root.accidental === "sharp" ? "#" : parsed.root.accidental === "flat" ? "b" : "");
+  return root + (family === "minor" || family === "diminished" ? "m" : "");
+}
+
+/**
+ * Ways from one song into the next, with `chords` chords each (any number
+ * when left out), the simplest first. They lead into the next song's first
+ * chord (`firstChord`, as played; its 1 when left out):
+ * - dominant: that chord's V7;
  * - sus-dominant: V7sus4 resolving to V7;
- * - two-five: ii7 V7 (iiø7 V7 into a minor key);
+ * - two-five: ii7 V7 (iiø7 V7 into a minor chord);
  * - four-five: IV V7 (iv V7);
- * - pivot: a chord both keys share - still in the old key - then ii7 V7
- *   (iv V7);
- * - step-up, into a key a half or whole step up: bVI bVII;
+ * - pivot: a chord of the old key the new one has too - still sounding like
+ *   the song being left - then ii7 V7 (iv V7);
+ * - step-up, a half or whole step up: bVI bVII;
  * - circle: down the circle of fifths, iii7 vi7 ii7 V7 (bIII bVI iiø7 V7).
- * Into the same key: a turnaround back to 1 (four-five, two-five,
- * circle). Empty when either key can't be read.
+ * Into the same key, from a song ending where the next starts: a turnaround
+ * (two-five, four-five, circle). Degrees are always of the next song's key
+ * (into its 4, the dominant is "17"). Empty when either key can't be read.
  */
 export function transitionProgressions(
   fromKey: string | null | undefined,
   toKey: string | null | undefined,
-  options: { chords?: number } = {},
+  options: { chords?: number; firstChord?: string | null } = {},
 ): TransitionSuggestion[] {
   const from = readKey(fromKey);
-  const to = readKey(toKey);
-  if (!from || !to) return [];
+  if (!from || !readKey(toKey)) return [];
+  const target = targetKey(toKey!, options.firstChord);
+  const to = readKey(target)!;
   const up = (((to.tonic - from.tonic) % 12) + 12) % 12;
   const sameKey = up === 0 && from.minor === to.minor;
   const two = to.minor ? "2m7b5" : "2m7";
@@ -106,11 +122,11 @@ export function transitionProgressions(
   suggestions.push({ kind: "two-five", degrees: [two, "57"] });
   suggestions.push({ kind: "four-five", degrees: [to.minor ? "4m" : "4", "57"] });
   if (!sameKey) {
-    // A chord of the old key that the new one has too, beyond the ii or IV the others already start on.
-    const shared = diatonicChords(toKey)
+    // A chord of the old key that the target has too, beyond the ii or IV the others already start on.
+    const shared = diatonicChords(target)
       .map((chord) => chord.chord)
       .filter((chord) => diatonicChords(fromKey).some((other) => sameChord(other.chord, chord)))
-      .map((chord) => nashvilleChord(chord, toKey));
+      .map((chord) => nashvilleChord(chord, target));
     const pivot = (to.minor ? ["b6", "b3"] : ["6m", "3m"]).find((degree) => shared.includes(degree));
     if (pivot) suggestions.push({ kind: "pivot", degrees: [pivot, to.minor ? "4m" : "2m7", "57"] });
     if (up === 1 || up === 2) suggestions.push({ kind: "step-up", degrees: ["b6", "b7"] });
@@ -119,5 +135,29 @@ export function transitionProgressions(
 
   return suggestions
     .filter((one) => options.chords === undefined || one.degrees.length === options.chords)
-    .map((one) => ({ ...one, chords: degreeChords(one.degrees, toKey) }));
+    .map((one) => {
+      // Worked out around the target chord; kept as degrees of the next song's key.
+      const degrees = target === toKey ? one.degrees : one.degrees.map((degree) => nashvilleChord(degreeChord(degree, target) ?? degree, toKey));
+      return { kind: one.kind, degrees, chords: degreeChords(degrees, toKey) };
+    });
+}
+
+/**
+ * A chart's first and last chords as played (sounding, in the order its
+ * passes come): where a set's transition starts and where it leads.
+ * Nulls for a chart without chords.
+ */
+export function chartEdgeChords(chart: { passes: { lines: { chords: { sounding: string }[] }[] }[] }): { first: string | null; last: string | null } {
+  let first: string | null = null;
+  let last: string | null = null;
+  for (const pass of chart.passes) {
+    for (const line of pass.lines) {
+      for (const chord of line.chords) {
+        if (parseChord(chord.sounding)?.kind !== "chord") continue;
+        first ??= chord.sounding;
+        last = chord.sounding;
+      }
+    }
+  }
+  return { first, last };
 }

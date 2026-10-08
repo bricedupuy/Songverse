@@ -1,9 +1,9 @@
 import { ApiError, keptSetSong, onlineOrKept, type SetlistSongView } from "@songverse/core";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { LiveView, type LiveSong } from "#/components/live-view";
-import { setSongViewStore, useReadingView } from "#/components/chart-or-pdf";
+import { LiveView, type LiveControl, type LiveSong } from "#/components/live-view";
+import { setSongViewStore, useReadingView, type ReadingView } from "#/components/chart-or-pdf";
 import { renderPlayerChart } from "#/components/player-chart";
 import { Button } from "#/components/ui/button";
 import { apiClient } from "#/lib/api-client";
@@ -13,34 +13,68 @@ import { markCurrent, markPlayed } from "#/lib/set-progress";
 import { setlistTitle } from "#/lib/setlists";
 import { useSongView } from "#/lib/song-views";
 import { useSyncSong } from "#/lib/sync-client";
+import { useStackSegues } from "#/lib/live-stack";
 
-/** One song of a set, full screen, in Live mode (components/live-view.tsx). */
+/** At most this many songs on one page (issue #214): a long chain of segues goes on over the next. */
+const STACK_MAX = 6;
+
+/**
+ * One song of a set, full screen, in Live mode (components/live-view.tsx) -
+ * and, when it segues or transitions into the next, that one stacked under
+ * it, and so on (issue #214).
+ */
 export const Route = createFileRoute("/_protected/sets/$setlistId_/live/$itemId")({
   staticData: { fullScreen: true },
+  // The page's first song, when the one playing was scrolled on into (issue #214): the page stays as it was.
+  validateSearch: (search: Record<string, unknown>): { from?: string } => (typeof search.from === "string" && search.from ? { from: search.from } : {}),
+  loaderDeps: ({ search }) => ({ from: search.from }),
   // Null when the set or song doesn't exist or isn't visible to this user.
   // Offline, from the set kept on the device (issue #50).
-  loader: ({ params }) =>
-    onlineOrKept(
-      () =>
-        apiClient.getSetlistSong(params.setlistId, params.itemId).catch((error: unknown) => {
-          if (error instanceof ApiError && error.status === 404) return null;
-          throw error;
-        }),
-      () => keptSetSong(deviceStorage(), params.setlistId, params.itemId),
-    ),
+  loader: async ({ params, deps }): Promise<SetlistSongView[] | null> => {
+    const load = (itemId: string) =>
+      onlineOrKept(
+        () =>
+          apiClient.getSetlistSong(params.setlistId, itemId).catch((error: unknown) => {
+            if (error instanceof ApiError && error.status === 404) return null;
+            throw error;
+          }),
+        () => keptSetSong(deviceStorage(), params.setlistId, itemId),
+      );
+    // A song and the songs it runs on into, without a stop: a segue's or a transition's next.
+    const chain = async (itemId: string) => {
+      const first = await load(itemId);
+      if (!first) return null;
+      const views = [first];
+      for (let last = first; views.length < STACK_MAX && last.nextItemId && (last.transition?.kind === "SEGUE" || last.transition?.kind === "TRANSITION"); ) {
+        const next = await load(last.nextItemId).catch(() => null);
+        if (!next) break;
+        views.push(next);
+        last = next;
+      }
+      return views;
+    };
+    if (deps.from && deps.from !== params.itemId) {
+      const views = await chain(deps.from).catch(() => null);
+      if (views?.some((view) => view.item.id === params.itemId)) return views;
+    }
+    return chain(params.itemId);
+  },
   component: LiveRoute,
 });
 
 function LiveRoute() {
   const { t } = useTranslation();
-  const view = Route.useLoaderData();
+  const views = Route.useLoaderData();
+  const { itemId } = Route.useParams();
+  const view = views?.[0] ?? null;
   // Kept on the device as it's opened, to play offline (issue #50).
   useKeepSet(view?.set.id);
+  const stacked = useStackSegues();
 
   // Opened from a link, it's Live mode from here on.
   useEffect(() => setMode("live"), []);
 
-  if (!view) {
+  if (!views || !view) {
     return (
       <div className="flex min-h-dvh flex-col items-start gap-4 bg-background p-6 text-foreground">
         <h1 className="text-2xl font-semibold">{t("sets.notFoundTitle")}</h1>
@@ -49,48 +83,93 @@ function LiveRoute() {
       </div>
     );
   }
-  return <SetLiveView view={view} />;
+  // A song per page: the one asked for.
+  const shown = stacked ? views : [views.find((one) => one.item.id === itemId) ?? views[0]!];
+  return <WithReadings views={shown}>{(readings) => <SetLiveView views={shown} readings={readings} />}</WithReadings>;
 }
 
-function SetLiveView({ view }: { view: SetlistSongView }) {
+/**
+ * Each stacked song's chart or PDF, as this player reads it (issue #155):
+ * one hook per song, so one component per song, nested.
+ */
+function WithReadings({ views, found = [], children }: { views: SetlistSongView[]; found?: ReadingView[]; children: (readings: ReadingView[]) => ReactNode }) {
+  if (found.length === views.length) return children(found);
+  return <OneReading view={views[found.length]!}>{(reading) => <WithReadings views={views} found={[...found, reading]} children={children} />}</OneReading>;
+}
+
+function OneReading({ view, children }: { view: SetlistSongView; children: (reading: ReadingView) => ReactNode }) {
+  const reading = useReadingView(view.song?.id ?? "", undefined, view.view.liveView ?? "CHART", setSongViewStore(view.set.id, view.item.id, view.view.preferences));
+  return children(reading);
+}
+
+function SetLiveView({ views, readings }: { views: SetlistSongView[]; readings: ReadingView[] }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { set, item, song } = view;
-  useSongView(song?.id);
+  const router = useRouter();
+  const set = views[0]!.set;
+  const control = useRef<LiveControl | null>(null);
+  // The song being played: the page's first, until it's scrolled on into the next (issue #214),
+  // which the address then says - the page staying as it is (?from= its first song).
+  const { itemId } = Route.useParams();
+  const headId = views[0]!.item.id;
+  const currentId = views.some((one) => one.item.id === itemId) ? itemId : headId;
+  const current = views.find((one) => one.item.id === currentId)!;
+  useSongView(current.song?.id);
   // Where the set is now: coming back to it picks up here (issue #153); played once its end is reached.
-  useEffect(() => markCurrent(set.id, item.id), [set.id, item.id]);
-  // Sync play (issue #13): the leader's song, followed.
-  useSyncSong(set.id, item.id, (itemId) => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }));
-  // Its chart or its PDF, as this player reads it (issue #155).
-  const reading = useReadingView(song?.id ?? "", undefined, view.view.liveView ?? "CHART", setSongViewStore(set.id, item.id, view.view.preferences));
+  useEffect(() => markCurrent(set.id, currentId), [set.id, currentId]);
   const goTo = (itemId: string | null) =>
     itemId ? () => void navigate({ to: "/sets/$setlistId/live/$itemId", params: { setlistId: set.id, itemId } }) : null;
-
-  const live: LiveSong = {
-    id: item.id,
-    title: song?.title ?? t("sets.hiddenSong"),
-    artist: song?.artists?.join(", ") || null,
-    setName: setlistTitle(set, t, i18n.language),
-    setId: set.id,
-    chartFor: (extraSteps) =>
-      song ? renderPlayerChart(view, undefined, undefined, undefined, extraSteps) : null,
-    keyShift: (view.arrangement?.document.defaults.transposeSteps ?? 0) + item.transposeSteps,
-    durationSeconds: song?.document.defaults.durationSeconds,
-    arrangementName: view.arrangement?.name ?? null,
-    // A copy kept before #59 has none.
-    references: view.songbookReferences ?? [],
-    notes: [...(item.notes ? [{ text: item.notes }] : []), ...(view.myNote ? [{ label: t("sets.myNotes"), text: view.myNote }] : [])],
-    onPlayed: () => markPlayed(set.id, item.id),
-    reading: song ? reading : null,
-    previous: goTo(view.previousItemId),
-    next: goTo(view.nextItemId),
-    nextLabel: view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet"),
-    transition: view.transition ?? null,
-    diagrams: view.view.chordDiagrams,
-    notation: view.view.chordNotation,
-    colors: view.view.chordColors,
-    player: view.view,
-    songVersionId: song?.id,
+  const onCurrent = (songId: string) => {
+    // On the way to another page already (Next past the end): that one wins.
+    if (songId === currentId || router.state.status !== "idle") return;
+    void navigate({
+      to: "/sets/$setlistId/live/$itemId",
+      params: { setlistId: set.id, itemId: songId },
+      search: songId === headId ? {} : { from: headId },
+      replace: true,
+      resetScroll: false,
+    });
   };
-  return <LiveView song={live} />;
+  // Sync play (issue #13): the leader's song, followed - scrolled to, when it's on this page.
+  useSyncSong(set.id, currentId, (itemId) => {
+    if (!control.current?.goTo(itemId)) goTo(itemId)?.();
+  });
+
+  const songs: LiveSong[] = views.map((view, i) => {
+    const { item, song } = view;
+    return {
+      id: item.id,
+      title: song?.title ?? t("sets.hiddenSong"),
+      artist: song?.artists?.join(", ") || null,
+      setName: setlistTitle(set, t, i18n.language),
+      setId: set.id,
+      chartFor: (extraSteps) => (song ? renderPlayerChart(view, undefined, undefined, undefined, extraSteps) : null),
+      keyShift: (view.arrangement?.document.defaults.transposeSteps ?? 0) + item.transposeSteps,
+      durationSeconds: song?.document.defaults.durationSeconds,
+      arrangementName: view.arrangement?.name ?? null,
+      // A copy kept before #59 has none.
+      references: view.songbookReferences ?? [],
+      notes: [...(item.notes ? [{ text: item.notes }] : []), ...(view.myNote ? [{ label: t("sets.myNotes"), text: view.myNote }] : [])],
+      onPlayed: () => markPlayed(set.id, item.id),
+      reading: song ? (readings[i] ?? null) : null,
+      previous: goTo(view.previousItemId),
+      next: goTo(view.nextItemId),
+      nextLabel: view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet"),
+      transition: view.transition ?? null,
+      diagrams: view.view.chordDiagrams,
+      notation: view.view.chordNotation,
+      colors: view.view.chordColors,
+      player: view.view,
+      songVersionId: song?.id,
+      // Changed here by who can change the set (issue #214), online.
+      onTransitionChords: set.canEdit
+        ? (transitionChords) =>
+            void apiClient
+              .updateSetlistItem(set.id, item.id, { transitionChords })
+              .then(() => router.invalidate())
+              .catch(() => undefined)
+        : undefined,
+    };
+  });
+  return <LiveView songs={songs} startAt={currentId} onCurrent={onCurrent} control={control} />;
 }

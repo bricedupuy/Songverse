@@ -1,6 +1,6 @@
 import { chartSeconds, degreeChords, structureOf, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
-import { AArrowDown, AArrowUp, ArrowLeft, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject, type TouchEvent } from "react";
+import { AArrowDown, AArrowUp, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { PdfPages, ViewSwitch, type ReadingView } from "#/components/chart-or-pdf";
 import { CommandSearch } from "#/components/command-search";
@@ -9,7 +9,7 @@ import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { PresentPanel } from "#/components/present-panel";
-import { TransitionSymbol, transitionText } from "#/components/set-transition";
+import { TransitionChordsPicker, TransitionSymbol, transitionText } from "#/components/set-transition";
 import { ChartWithDiagrams, ChordRow } from "#/components/chord-diagrams";
 import { SyncControl } from "#/components/sync-control";
 import { SidebarTrigger } from "#/components/ui/sidebar";
@@ -63,6 +63,8 @@ export interface LiveSong {
   /** Left-handed diagrams and tunings (issue #207), and the song whose chosen shapes they use. */
   player?: DiagramPlayer;
   songVersionId?: string;
+  /** Who can change the set changes its transition's chords in Live (issue #214); absent for who can't. */
+  onTransitionChords?: (degrees: string[]) => void;
 }
 
 /** How far down a chart is scrolled for its song to count as played (issue #153). */
@@ -74,26 +76,68 @@ function shiftOf(steps: number): number {
   return up > 6 ? up - 12 : up;
 }
 
+/** Moves a stacked Live (issue #214) from outside: to a song of the stack (Sync play's leader), false when it isn't one. */
+export interface LiveControl {
+  goTo: (songId: string) => boolean;
+}
+
 /**
  * A song full screen, to play from (Live mode, issues #29, #47 and #48): the
  * chart big, as this player reads it, what's next, and autoscroll paced by
  * the tempo. Keeps the screen awake. Keys (and page-turner pedals, which
  * send them): Space starts and pauses autoscroll, the up and down arrows
  * and Page Up/Down scroll, the left and right arrows change song.
+ *
+ * A song that segues or transitions into the next has it stacked under it
+ * (issue #214): `songs` is that run, one page scrolled on into the next,
+ * with the transition between them. The song being played follows the
+ * scroll (`onCurrent`); Next and Previous move within the stack, and change
+ * page only past its ends.
  */
-export function LiveView({ song }: { song: LiveSong }) {
+export function LiveView({
+  songs,
+  startAt,
+  onCurrent,
+  control,
+}: {
+  songs: LiveSong[];
+  /** The song of the stack the page opens at (a reload after scrolling on into it); its first when left out. */
+  startAt?: string;
+  onCurrent?: (songId: string) => void;
+  control?: MutableRefObject<LiveControl | null>;
+}) {
   const { t } = useTranslation();
   const scroller = useRef<HTMLElement>(null);
+  const sections = useRef<(HTMLElement | null)[]>([]);
+  const head = songs[0]!;
+  // The song being played, on which page: another page starts at its own start.
+  const startOf = (list: LiveSong[]) => Math.max(0, list.findIndex((one) => one.id === startAt));
+  const [position, setPosition] = useState(() => ({ head: head.id, index: startOf(songs) }));
+  const at = position.head === head.id ? Math.min(position.index, songs.length - 1) : startOf(songs);
+  const setIndex = (index: number) => {
+    const page = latest.current[0]!.id;
+    setPosition((before) => (before.head === page && before.index === index ? before : { head: page, index }));
+  };
+  const song = songs[at]!;
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [textSize, setTextSize] = useState(DEFAULT_TEXT_SIZE);
   const fullScreen = useFullScreen();
   useWakeLock();
 
-  // The last-minute transpose (issue #68): this song, here, until it's left.
-  const [extraSteps, setExtraSteps] = useState(0);
-  const chart = useMemo(() => song.chartFor(extraSteps), [song, extraSteps]);
-  const seconds = chart ? chartSeconds(chart, song.durationSeconds) : 0;
+  // (Functions new on each render: kept in a ref.)
+  const latest = useRef(songs);
+  latest.current = songs;
+  // The song last reported as the one playing, on which page.
+  const shownIndex = useRef({ head: head.id, at: startOf(songs) });
+
+  // The last-minute transpose (issue #68): each song, here, until it's left.
+  const [extra, setExtra] = useState<Record<string, number>>({});
+  const charts = useMemo(() => songs.map((one) => one.chartFor(extra[one.id] ?? 0)), [songs, extra]);
+  const chart = charts[at] ?? null;
+  const secondsOf = (i: number) => (charts[i] ? chartSeconds(charts[i]!, songs[i]!.durationSeconds) : 0);
+  const seconds = secondsOf(at);
+  const anySeconds = charts.some((_, i) => secondsOf(i) > 0);
 
   // The player's text size, from the last time (after hydrating: the server can't know it).
   useEffect(() => {
@@ -119,43 +163,94 @@ export function LiveView({ song }: { song: LiveSong }) {
     setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, Math.max(0, SPEEDS.indexOf(speed) + step))]!);
   }
 
-  // Each song starts at its top, not scrolling, at its own pace.
+  // Another page (the next, a swipe away): from its top, its first song, at its own pace, autoscroll off.
+  // The router's scroll restoration puts the last page's position back on the
+  // scroller as the page changes, so this runs again once it has.
+  // Opened at a song further down the page: its top.
+  const start = useRef(startAt);
+  start.current = startAt;
   useEffect(() => {
     setPlaying(false);
     setSpeed(1);
-    scroller.current?.scrollTo({ top: 0 });
-  }, [song.id]);
+    setExtra({});
+    const startIndex = Math.max(0, latest.current.findIndex((one) => one.id === start.current));
+    setIndex(startIndex);
+    shownIndex.current = { head: head.id, at: startIndex };
+    const toStart = () => {
+      const element = scroller.current;
+      const section = sections.current[startIndex];
+      if (!element) return;
+      element.scrollTo({ top: startIndex > 0 && section ? section.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop - 8 : 0 });
+    };
+    toStart();
+    const frame = requestAnimationFrame(toStart);
+    return () => cancelAnimationFrame(frame);
+  }, [head.id]);
 
-  // Autoscroll: the whole chart over the time it takes to play, nudged by `speed`.
+  // The song being played follows the scroll (issue #214): the last whose top has passed the upper third.
   useEffect(() => {
     const element = scroller.current;
-    if (!playing || !element || seconds <= 0) return;
+    if (!element || songs.length < 2) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const line = element.getBoundingClientRect().top + element.clientHeight / 3;
+      let found = 0;
+      sections.current.slice(0, songs.length).forEach((section, i) => {
+        if (section && section.getBoundingClientRect().top <= line) found = i;
+      });
+      setIndex(found);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    element.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      element.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [head.id, songs.length]);
+
+  // Scrolled on into the next song: the one before is played, and this one is current.
+  const onCurrentRef = useRef(onCurrent);
+  onCurrentRef.current = onCurrent;
+  useEffect(() => {
+    const before = shownIndex.current;
+    // Another page: its own start, set as it opened.
+    if (before.head !== latest.current[0]!.id || at === before.at) return;
+    shownIndex.current = { head: before.head, at };
+    for (let i = before.at; i < at; i++) latest.current[i]?.onPlayed?.();
+    onCurrentRef.current?.(latest.current[at]!.id);
+  }, [at]);
+
+  // Autoscroll: each song over the time it takes to play, nudged by `speed`, on across the join.
+  const pace = useRef({ at, secondsOf });
+  pace.current = { at, secondsOf };
+  useEffect(() => {
+    const element = scroller.current;
+    if (!playing || !element || !anySeconds) return;
     let position = element.scrollTop;
     let last = performance.now();
     let frame = requestAnimationFrame(function step(now) {
       const distance = element.scrollHeight - element.clientHeight;
       // Scrolled by hand meanwhile: carry on from there.
       if (Math.abs(element.scrollTop - Math.round(position)) > 2) position = element.scrollTop;
-      position = Math.min(distance, position + ((distance / seconds) * speed * (now - last)) / 1000);
+      const { at: i, secondsOf: secondsAt } = pace.current;
+      const songSeconds = secondsAt(i);
+      const section = sections.current[i];
+      // A song stacked above another: its own height; the last, what's left to scroll.
+      const sectionTop = section ? section.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop : 0;
+      const length = section && i < latest.current.length - 1 ? section.offsetHeight : distance - (latest.current.length > 1 ? sectionTop : 0);
+      const rate = songSeconds > 0 ? length / songSeconds : 0;
+      position = Math.min(distance, position + (rate * speed * (now - last)) / 1000);
       last = now;
       element.scrollTop = position;
-      if (position >= distance) setPlaying(false);
+      if (position >= distance || rate === 0) setPlaying(false);
       else frame = requestAnimationFrame(step);
     });
     return () => cancelAnimationFrame(frame);
-  }, [playing, speed, seconds]);
-
-  // Another song (the next, a swipe away): from its top, autoscroll off. The
-  // router's scroll restoration puts the last song's position back on the
-  // scroller as the page changes, so this runs again once it has.
-  useEffect(() => {
-    setPlaying(false);
-    setExtraSteps(0);
-    const toTop = () => scroller.current?.scrollTo({ top: 0 });
-    toTop();
-    const frame = requestAnimationFrame(toTop);
-    return () => cancelAnimationFrame(frame);
-  }, [song.id]);
+  }, [playing, speed, anySeconds]);
 
   // Played through (issue #153): scrolled to 95% of the way down, once it's been seen higher up
   // (the router's scroll restoration can put the last song's position back for a moment).
@@ -180,19 +275,39 @@ export function LiveView({ song }: { song: LiveSong }) {
     };
     element.addEventListener("scroll", check, { passive: true });
     return () => element.removeEventListener("scroll", check);
-  }, [song.id]);
+  }, [head.id]);
+
+  // A song of the stack, its top brought up smoothly.
+  function scrollToSong(i: number) {
+    const element = scroller.current;
+    const section = sections.current[i];
+    if (!element || !section) return;
+    element.scrollTo({ top: section.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop - 8, behavior: "smooth" });
+  }
+  if (control) control.current = { goTo: (songId) => {
+    const i = songs.findIndex((one) => one.id === songId);
+    if (i === -1) return false;
+    scrollToSong(i);
+    return true;
+  } };
+
+  // Next: the next song of the stack, or past its end, the next page.
   // A chart that fits the screen has no end to scroll to: played once it's moved on from.
   // (Its room below - the 40vh that lets the last line come up - isn't the song's: issue #199.)
-  const next = song.next
-    ? () => {
-        const element = scroller.current;
-        const content = element?.firstElementChild as HTMLElement | null | undefined;
-        const room = content ? parseFloat(getComputedStyle(content).paddingBottom) * (Number(content.style.zoom) || 1) : 0;
-        if (element && element.scrollHeight - element.clientHeight - room <= 8 && !played.current) onPlayed.current?.();
-        song.next?.();
-      }
-    : null;
-  const { previous } = song;
+  const leave = song.next;
+  const next =
+    at < songs.length - 1
+      ? () => scrollToSong(at + 1)
+      : leave
+        ? () => {
+            const element = scroller.current;
+            const content = element?.firstElementChild as HTMLElement | null | undefined;
+            const room = content ? parseFloat(getComputedStyle(content).paddingBottom) : 0;
+            if (element && element.scrollHeight - element.clientHeight - room <= 8 && !played.current) onPlayed.current?.();
+            leave();
+          }
+        : null;
+  const previous = at > 0 ? () => scrollToSong(at - 1) : head.previous;
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) return;
@@ -252,22 +367,16 @@ export function LiveView({ song }: { song: LiveSong }) {
     else previous?.();
   };
 
-  const details = [
-    ...song.references,
-    chart?.capo ? t("player.capo", { capo: chart.capo }) : null,
-    chart?.tempo ? `${chart.tempo} BPM` : null,
-    song.arrangementName,
-  ].filter(Boolean);
   const inSet = song.nextLabel !== null;
   const pdf = song.reading?.shown ?? null;
   const steps = useMemo(() => (chart ? structureOf(chart) : []), [chart]);
   const columns = useChartColumns();
-  const [current, pickPass] = useCurrentPass(scroller, steps, song.id, columns !== "1");
+  const [current, pickPass] = useCurrentPass(scroller, steps, song.id, columns !== "1", () => sections.current[at] ?? null);
 
   function goToPass(passId: string) {
     pickPass(passId);
     const element = scroller.current;
-    const pass = element?.querySelector(`[data-pass="${CSS.escape(passId)}"]`);
+    const pass = (sections.current[at] ?? element)?.querySelector(`[data-pass="${CSS.escape(passId)}"]`);
     if (!element || !pass) return;
     element.scrollTo({ top: pass.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop - 12, behavior: "smooth" });
   }
@@ -306,61 +415,25 @@ export function LiveView({ song }: { song: LiveSong }) {
       {steps.length > 0 && !pdf ? <StructureBar steps={steps} current={current} onPick={goToPass} /> : null}
 
       <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
-        {/* A PDF isn't zoomed: its pages fit the width (on a phone, edge to edge). */}
         {/* The whole screen's width (issue #177): a long song flows into columns rather than down. */}
-        <div className={cn("flex w-full flex-col gap-4 px-4 pt-6 pb-[40vh] sm:px-8", pdf && "max-sm:pt-0")} style={pdf ? undefined : { zoom: textSize }}>
-          {/* With a PDF on a phone, the PDF's own title does: the whole screen for its pages. */}
-          <div className={cn("flex items-start justify-between gap-4", pdf && "max-sm:hidden")} data-testid="live-song-top">
-            <div className="min-w-0">
-              <h1 className="text-2xl leading-tight font-bold sm:text-3xl">{song.title}</h1>
-              {song.artist ? <p className="text-base text-muted-foreground sm:text-lg">{song.artist}</p> : null}
-              {details.length > 0 ? (
-                <p className="mt-1 text-xs text-muted-foreground" data-testid="live-details">
-                  {details.join(" · ")}
-                </p>
-              ) : null}
-            </div>
-            {chart?.key ? <KeyButton musicalKey={chart.key} shift={shiftOf(song.keyShift + extraSteps)} extraSteps={extraSteps} onTranspose={setExtraSteps} /> : null}
-          </div>
-          {song.notes.length > 0 ? (
-            <div className="flex flex-col gap-1 rounded-md border-l-4 border-primary bg-muted px-3 py-2 text-sm">
-              {song.notes.map((note, i) => (
-                <p key={i} className={note.label ? "whitespace-pre-wrap text-muted-foreground" : "whitespace-pre-wrap"}>
-                  {note.label ? <span className="font-medium">{note.label}: </span> : null}
-                  {note.text}
-                </p>
-              ))}
-            </div>
-          ) : null}
-          {pdf && song.reading ? (
-            <PdfPages key={pdf.id} source={() => song.reading!.source(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
-          ) : chart ? (
-            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} colors={song.colors} player={song.player} songVersionId={song.songVersionId} />
-          ) : (
-            <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
-          )}
-          {inSet ? <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">{song.nextLabel}</p> : null}
-          {/* What happens after it (issue #199): before the end, for whoever plays. */}
-          {song.transition ? (
-            <p className="flex items-center gap-2 text-sm font-medium" data-testid="live-transition" data-kind={song.transition.kind}>
-              <TransitionSymbol kind={song.transition.kind} className="size-4 text-primary" />
-              {transitionText(song.transition, t)}
-            </p>
-          ) : null}
-          {/* The chords played into the next song (issue #10), in its key, to see and hear. */}
-          {song.transition?.chords?.length ? (
-            <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="live-transition-chords">
-              <span className="text-muted-foreground">{t("sets.transitionChordsLive")}</span>
-              <ChordRow
-                chords={song.transition.toKey ? degreeChords(song.transition.chords, song.transition.toKey) : song.transition.chords}
-                musicalKey={song.transition.toKey}
-                diagrams={song.diagrams}
-                notation={song.notation ?? "LETTERS"}
-                player={song.player}
-              />
-            </div>
-          ) : null}
+        <div className={cn("flex w-full flex-col px-4 pt-6 pb-[40vh] sm:px-8", head.reading?.shown && "max-sm:pt-0")}>
+          {songs.map((one, i) => (
+            <LiveSongSection
+              key={one.id}
+              ref={(element) => {
+                sections.current[i] = element;
+              }}
+              song={one}
+              chart={charts[i] ?? null}
+              current={i === at}
+              stacked={songs.length > 1}
+              followed={i < songs.length - 1}
+              textSize={textSize}
+              columns={columns}
+              extraSteps={extra[one.id] ?? 0}
+              onTranspose={(steps) => setExtra((before) => ({ ...before, [one.id]: steps }))}
+            />
+          ))}
         </div>
       </main>
 
@@ -421,6 +494,146 @@ export function LiveView({ song }: { song: LiveSong }) {
           </button>
         ) : null}
       </footer>
+    </div>
+  );
+}
+
+/**
+ * One song of a Live page: its title, key and details, notes, then its
+ * chart or PDF, and what happens after it. Stacked (issue #214), only the
+ * song being played carries the ids its page is checked by.
+ */
+function LiveSongSection({
+  ref,
+  song,
+  chart,
+  current,
+  stacked,
+  followed,
+  textSize,
+  columns,
+  extraSteps,
+  onTranspose,
+}: {
+  ref: (element: HTMLElement | null) => void;
+  song: LiveSong;
+  chart: RenderedChart | null;
+  current: boolean;
+  stacked: boolean;
+  /** The next song is stacked under it: the transition goes between them. */
+  followed: boolean;
+  textSize: number;
+  columns: ReturnType<typeof useChartColumns>;
+  extraSteps: number;
+  onTranspose: (steps: number) => void;
+}) {
+  const { t } = useTranslation();
+  const pdf = song.reading?.shown ?? null;
+  const details = [
+    ...song.references,
+    chart?.capo ? t("player.capo", { capo: chart.capo }) : null,
+    chart?.tempo ? `${chart.tempo} BPM` : null,
+    song.arrangementName,
+  ].filter(Boolean);
+  const id = (name: string) => (current ? name : undefined);
+  return (
+    <section ref={ref} className="flex flex-col" data-testid="live-song" data-item={song.id} data-current={current ? "" : undefined}>
+      {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
+      {/* A PDF isn't zoomed: its pages fit the width (on a phone, edge to edge). */}
+      <div className="flex flex-col gap-4" style={pdf ? undefined : { zoom: textSize }}>
+        {/* With a PDF on a phone, the PDF's own title does: the whole screen for its pages. */}
+        <div className={cn("flex items-start justify-between gap-4", pdf && "max-sm:hidden")} data-testid={id("live-song-top")}>
+          <div className="min-w-0">
+            <h1 className={cn("text-2xl leading-tight font-bold sm:text-3xl", stacked && !current && "text-muted-foreground")}>{song.title}</h1>
+            {song.artist ? <p className="text-base text-muted-foreground sm:text-lg">{song.artist}</p> : null}
+            {details.length > 0 ? (
+              <p className="mt-1 text-xs text-muted-foreground" data-testid={id("live-details")}>
+                {details.join(" · ")}
+              </p>
+            ) : null}
+          </div>
+          {chart?.key ? <KeyButton musicalKey={chart.key} shift={shiftOf(song.keyShift + extraSteps)} extraSteps={extraSteps} onTranspose={onTranspose} testId={id("live-key")} /> : null}
+        </div>
+        {song.notes.length > 0 ? (
+          <div className="flex flex-col gap-1 rounded-md border-l-4 border-primary bg-muted px-3 py-2 text-sm">
+            {song.notes.map((note, i) => (
+              <p key={i} className={note.label ? "whitespace-pre-wrap text-muted-foreground" : "whitespace-pre-wrap"}>
+                {note.label ? <span className="font-medium">{note.label}: </span> : null}
+                {note.text}
+              </p>
+            ))}
+          </div>
+        ) : null}
+        {pdf && song.reading ? (
+          <PdfPages key={pdf.id} source={() => song.reading!.source(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
+        ) : chart ? (
+          <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} colors={song.colors} player={song.player} songVersionId={song.songVersionId} />
+        ) : (
+          <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
+        )}
+        {song.nextLabel !== null && !followed ? <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">{song.nextLabel}</p> : null}
+      </div>
+      {song.transition ? <TransitionBlock song={song} between={followed} /> : null}
+    </section>
+  );
+}
+
+/**
+ * What happens after a song (issues #199, #10, #214, #217): its symbol and
+ * what it says, and for a transition, its chords from the song's last chord
+ * to the next one's first - drawn as the player's diagrams, each heard with
+ * a tap - which who can change the set changes here. Between two stacked
+ * songs, a band across the page.
+ */
+function TransitionBlock({ song, between }: { song: LiveSong; between: boolean }) {
+  const { t } = useTranslation();
+  const transition = song.transition!;
+  const chords = transition.chords ?? [];
+  const spelled = transition.toKey ? degreeChords(chords, transition.toKey) : chords;
+  const isTransition = transition.kind === "TRANSITION";
+  const row = (list: string[], testId: string) => (
+    <ChordRow chords={list} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} player={song.player} musicalKey={transition.toKey} testId={testId} />
+  );
+  return (
+    <div
+      className={cn("flex flex-col gap-2 text-sm", between ? "my-8 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 px-4 py-3" : "mt-2")}
+      data-testid="live-transition-block"
+      data-between={between ? "" : undefined}
+    >
+      <p className="flex items-center gap-2 font-medium" data-testid="live-transition" data-kind={transition.kind}>
+        <TransitionSymbol kind={transition.kind} className="size-4 text-primary" />
+        {transitionText(transition, t)}
+      </p>
+      {isTransition && (chords.length > 0 || song.onTransitionChords) ? (
+        <div className="flex flex-wrap items-end gap-2">
+          {transition.lastChord ? row([transition.lastChord], "live-transition-last") : null}
+          {transition.lastChord ? <ArrowRight className="mb-2 size-4 text-muted-foreground" aria-hidden /> : null}
+          {chords.length > 0 ? (
+            <span className="flex items-end gap-2" data-testid="live-transition-chords">
+              <span className="mb-1 text-muted-foreground">{t("sets.transitionChordsLive")}</span>
+              {row(spelled, "chord-row")}
+            </span>
+          ) : (
+            <span className="mb-1 text-muted-foreground">…</span>
+          )}
+          {transition.firstChord ? <ArrowRight className="mb-2 size-4 text-muted-foreground" aria-hidden /> : null}
+          {transition.firstChord ? row([transition.firstChord], "live-transition-first") : null}
+          {song.onTransitionChords ? (
+            <TransitionChordsPicker
+              fromKey={transition.fromKey}
+              toKey={transition.toKey}
+              lastChord={transition.lastChord}
+              firstChord={transition.firstChord}
+              degrees={chords}
+              onChange={song.onTransitionChords}
+              diagrams={song.diagrams}
+              notation={song.notation ?? "LETTERS"}
+              player={song.player}
+              className="mb-1"
+            />
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -505,6 +718,8 @@ function useCurrentPass(
   songId: string,
   /** The chart in columns (issue #177): how far it's scrolled doesn't say where the song is - the pass picked does. */
   flowed = false,
+  /** Where its passes are: the song's own part of a stacked page (issue #214). */
+  root: () => HTMLElement | null = () => scroller.current,
 ): [string | null, (passId: string) => void] {
   const [current, setCurrent] = useState<string | null>(steps[0]?.passId ?? null);
   // A pass picked in the bar stays current while it's scrolled to: near the
@@ -526,7 +741,7 @@ function useCurrentPass(
       picked.current = null;
       const line = element.getBoundingClientRect().top + element.clientHeight * 0.25;
       let found: string | null = steps[0]?.passId ?? null;
-      for (const pass of element.querySelectorAll<HTMLElement>("[data-pass]")) {
+      for (const pass of (root() ?? element).querySelectorAll<HTMLElement>("[data-pass]")) {
         if (pass.getBoundingClientRect().top <= line) found = pass.dataset.pass ?? found;
         else break;
       }
@@ -610,7 +825,7 @@ function StructureBar({ steps, current, onPick }: { steps: ReturnType<typeof str
  * subtle "+1" when it's moved from the song's own. Tapping it transposes,
  * for now only: this song, here, until it's left.
  */
-function KeyButton({ musicalKey, shift, extraSteps, onTranspose }: { musicalKey: string; shift: number; extraSteps: number; onTranspose: (steps: number) => void }) {
+function KeyButton({ musicalKey, shift, extraSteps, onTranspose, testId }: { musicalKey: string; shift: number; extraSteps: number; onTranspose: (steps: number) => void; testId?: string }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -634,7 +849,7 @@ function KeyButton({ musicalKey, shift, extraSteps, onTranspose }: { musicalKey:
         aria-expanded={open}
         aria-label={shiftText ? t("live.keyShifted", { key: musicalKey, shift: shiftText }) : t("live.key", { key: musicalKey })}
         className="flex items-baseline gap-0.5 rounded-lg border px-3 py-1 hover:bg-accent"
-        data-testid="live-key"
+        data-testid={testId}
       >
         <span className="text-2xl font-bold sm:text-3xl">{musicalKey}</span>
         {shiftText ? <span className="text-sm text-muted-foreground">{shiftText}</span> : null}

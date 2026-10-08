@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { computeSectionLabel, formatSongbookReference, readSongDocument, transposeKey, type SetTransitionValue, type SongbookSection } from "@songverse/core";
+import { chartEdgeChords, computeSectionLabel, formatSongbookReference, readArrangementDocument, readSongDocument, renderChart, transposeKey, type SetTransitionValue, type SongbookSection } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -178,6 +178,8 @@ export class SetlistsService {
           transition: item.transition,
           transitionNote: item.transitionNote,
           transitionChords: item.transitionChords,
+          // Its first and last chords as played, where transitions start and lead (issue #217).
+          edgeChords: shown ? edgeChords(item) : null,
           // Null when this viewer can't read the song (shown as a placeholder).
           song: shown ? toSongRef(song) : null,
           // Whether it's also in the viewer's own library, i.e. openable outside the set.
@@ -469,7 +471,10 @@ export class SetlistsService {
     };
     const from = shown ? side(item) : { key: null, tempo: null };
     const to = next ? side(next) : { key: null, tempo: null };
-    return { kind: item.transition!, note: item.transitionNote, chords: item.transitionChords, fromKey: from.key, toKey: to.key, fromTempo: from.tempo, toTempo: to.tempo };
+    // From the song's last chord to the next one's first (issue #217).
+    const lastChord = shown ? edgeChords(item).last : null;
+    const firstChord = next ? edgeChords(next).first : null;
+    return { kind: item.transition!, note: item.transitionNote, chords: item.transitionChords, fromKey: from.key, toKey: to.key, fromTempo: from.tempo, toTempo: to.tempo, lastChord, firstChord };
   }
 
   /** Where each song is in `user`'s numbered songbooks, by song: "JEM 855 · JEM3" (issues #55, #59). */
@@ -578,6 +583,13 @@ export function toSongRef(song: SongRow): SongRef {
 /** The key a set's song is played in: the song's, moved by its arrangement and the set's own transposition. */
 function playedKey(song: SongRef, arrangement: { transposeSteps: number } | null, itemSteps: number): string | null {
   return song.key ? (transposeKey(song.key, (arrangement?.transposeSteps ?? 0) + itemSteps) ?? song.key) : null;
+}
+
+/** A set item's first and last chords as it's played - its arrangement, then the set's key - for transitions (issue #217). */
+function edgeChords(item: { transposeSteps: number; songVersion: SongRow; arrangement: { documentJson: unknown } | null }): { first: string | null; last: string | null } {
+  const document = readSongDocument(item.songVersion.documentJson);
+  const arrangement = item.arrangement ? readArrangementDocument(item.arrangement.documentJson, document, item.songVersion.id, () => "a").document : null;
+  return chartEdgeChords(renderChart(document, arrangement, { transposeSteps: item.transposeSteps }));
 }
 
 /** A set item's arrangement: its name, and the key it moves the song to (the item's own key goes on top). */

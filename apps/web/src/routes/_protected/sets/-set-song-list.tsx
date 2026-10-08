@@ -80,6 +80,7 @@ export function SetSongList({ setlistId, items, progress, canEdit, ownership, on
               index={index}
               hasNext={index < items.length - 1}
               nextKey={items[index + 1] ? playedKey(items[index + 1]!) : null}
+              nextFirstChord={items[index + 1]?.edgeChords?.first ?? null}
               played={!!progress?.played.includes(item.id)}
               current={progress?.current === item.id}
               canEdit={canEdit}
@@ -106,6 +107,7 @@ function SongRow({
   index,
   hasNext,
   nextKey,
+  nextFirstChord,
   played,
   current,
   canEdit,
@@ -119,6 +121,8 @@ function SongRow({
   hasNext: boolean;
   /** The key the next song is played in; null at the end of the set, or without one. */
   nextKey: string | null;
+  /** The next song's first chord as played, where a transition leads (issue #217). */
+  nextFirstChord: string | null;
   played: boolean;
   current: boolean;
   canEdit: boolean;
@@ -316,7 +320,7 @@ function SongRow({
           ) : null}
           {/* The chords played into the next song (issue #10). */}
           {item.transition === "TRANSITION" && hasNext ? (
-            <TransitionChordsPicker fromKey={song ? playedKey(item) : null} toKey={nextKey} degrees={item.transitionChords ?? []} onChange={(transitionChords) => onChange({ transitionChords })} />
+            <TransitionChordsPicker fromKey={song ? playedKey(item) : null} toKey={nextKey} lastChord={item.edgeChords?.last ?? null} firstChord={nextFirstChord} degrees={item.transitionChords ?? []} onChange={(transitionChords) => onChange({ transitionChords })} />
           ) : null}
         </span>
       ) : item.transition ? (

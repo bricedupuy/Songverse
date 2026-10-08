@@ -110,7 +110,7 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
   const reading = useReadingView(song.id, undefined, song.liveView, songViewStore(song.id));
   return (
     <LiveView
-      song={{
+      songs={[{
         id: song.id,
         title: song.title,
         artist: song.artists,
@@ -143,7 +143,7 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         colors: song.colors,
         player: song.player,
         songVersionId: song.id,
-      }}
+      }]}
     />
   );
 }

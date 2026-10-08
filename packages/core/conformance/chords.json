@@ -4537,7 +4537,7 @@
       ]
     },
     "transitionProgressions": {
-      "about": "Chord progressions from one song's key into the next song's (issue #10): the new key's dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII into a key a step up, the circle of fifths; as degrees of the new key and spelled in it. Into the same key, a turnaround. `chords` keeps those of that length.",
+      "about": "Chord progressions from one song into the next (issues #10, #217): leading into the next song's first chord (its 1 when not given) - its dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII a step up, the circle of fifths; as degrees of the next song's key and spelled in it. Into the same key and chord, a turnaround. `chords` keeps those of that length.",
       "params": [
         "fromKey",
         "toKey",
@@ -4971,6 +4971,324 @@
             {}
           ],
           "expected": []
+        },
+        {
+          "name": "G into D, starting on Bm",
+          "args": [
+            "G",
+            "D",
+            {
+              "firstChord": "Bm"
+            }
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "degrees": [
+                "37"
+              ],
+              "chords": [
+                "F#7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "37sus4",
+                "37"
+              ],
+              "chords": [
+                "F#7sus4",
+                "F#7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "C#m7b5",
+                "F#7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "2m",
+                "37"
+              ],
+              "chords": [
+                "Em",
+                "F#7"
+              ]
+            },
+            {
+              "kind": "pivot",
+              "degrees": [
+                "4",
+                "2m",
+                "37"
+              ],
+              "chords": [
+                "G",
+                "Em",
+                "F#7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "1",
+                "4",
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "D",
+                "G",
+                "C#m7b5",
+                "F#7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "G into G, starting on its 4",
+          "args": [
+            "G",
+            "G",
+            {
+              "firstChord": "C"
+            }
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "degrees": [
+                "17"
+              ],
+              "chords": [
+                "G7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "17sus4",
+                "17"
+              ],
+              "chords": [
+                "G7sus4",
+                "G7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "5m7",
+                "17"
+              ],
+              "chords": [
+                "Dm7",
+                "G7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "b7",
+                "17"
+              ],
+              "chords": [
+                "F",
+                "G7"
+              ]
+            },
+            {
+              "kind": "pivot",
+              "degrees": [
+                "2m",
+                "5m7",
+                "17"
+              ],
+              "chords": [
+                "Am",
+                "Dm7",
+                "G7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "6m7",
+                "2m7",
+                "5m7",
+                "17"
+              ],
+              "chords": [
+                "Em7",
+                "Am7",
+                "Dm7",
+                "G7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "G into D, starting on D/F#",
+          "args": [
+            "G",
+            "D",
+            {
+              "firstChord": "D/F#"
+            }
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "A7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "57sus4",
+                "57"
+              ],
+              "chords": [
+                "A7sus4",
+                "A7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Em7",
+                "A7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "4",
+                "57"
+              ],
+              "chords": [
+                "G",
+                "A7"
+              ]
+            },
+            {
+              "kind": "pivot",
+              "degrees": [
+                "6m",
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Bm",
+                "Em7",
+                "A7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "3m7",
+                "6m7",
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "F#m7",
+                "Bm7",
+                "Em7",
+                "A7"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "chartEdgeChords": {
+      "about": "A chart's first and last chords as played (sounding), where a set's transition starts and leads; nulls without chords.",
+      "params": [
+        "chart"
+      ],
+      "cases": [
+        {
+          "name": "two passes",
+          "args": [
+            {
+              "passes": [
+                {
+                  "lines": [
+                    {
+                      "chords": [
+                        {
+                          "sounding": "N.C."
+                        },
+                        {
+                          "sounding": "G"
+                        },
+                        {
+                          "sounding": "C"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "lines": [
+                    {
+                      "chords": [
+                        {
+                          "sounding": "D"
+                        }
+                      ]
+                    },
+                    {
+                      "chords": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "expected": {
+            "first": "G",
+            "last": "D"
+          }
+        },
+        {
+          "name": "no chords",
+          "args": [
+            {
+              "passes": [
+                {
+                  "lines": [
+                    {
+                      "chords": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "expected": {
+            "first": null,
+            "last": null
+          }
         }
       ]
     },

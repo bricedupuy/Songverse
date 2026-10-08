@@ -1101,6 +1101,10 @@ const fr: typeof en = {
     transitionChordsNone: "Pas d'accords",
     transitionChordsInvalid: "Ce ne sont pas des accords : écrivez-les comme Em7 A7, ou en chiffres comme 2m7 57.",
     transitionChordsLive: "Accords :",
+    stackSegues: "Enchaîner segues et transitions sur la même page",
+    transitionFrom: "De",
+    transitionTo: "vers",
+    transitionChordsTapToHear: "Touchez un accord pour l'entendre.",
     transitionKinds: {
       dominant: "La dominante de la nouvelle tonalité",
       "sus-dominant": "Dominante suspendue",

@@ -1097,6 +1097,10 @@ const en = {
     transitionChordsNone: "No chords",
     transitionChordsInvalid: "Not chords: write them like Em7 A7, or as numbers like 2m7 57.",
     transitionChordsLive: "Chords:",
+    stackSegues: "Stack segues and transitions",
+    transitionFrom: "From",
+    transitionTo: "into",
+    transitionChordsTapToHear: "Tap a chord to hear it.",
     transitionKinds: {
       dominant: "The new key's dominant",
       "sus-dominant": "Suspended dominant",

@@ -1,6 +1,6 @@
 import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
 import { pianoVoicings, songVoicings, voicingText } from "../chords/piano.js";
-import { degreeChord, transitionDegrees, transitionProgressions } from "../chords/transitions.js";
+import { chartEdgeChords, degreeChord, transitionDegrees, transitionProgressions } from "../chords/transitions.js";
 import { findProgression, parseProgressionQuery, progressionDegree, progressionGrams, progressionSimilarity, songProgressions } from "../chords/progressions.js";
 import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
@@ -322,7 +322,7 @@ export const CONFORMANCE: ConformanceArea[] = [
         ],
       },
       transitionProgressions: {
-        about: "Chord progressions from one song's key into the next song's (issue #10): the new key's dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII into a key a step up, the circle of fifths; as degrees of the new key and spelled in it. Into the same key, a turnaround. `chords` keeps those of that length.",
+        about: "Chord progressions from one song into the next (issues #10, #217): leading into the next song's first chord (its 1 when not given) - its dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII a step up, the circle of fifths; as degrees of the next song's key and spelled in it. Into the same key and chord, a turnaround. `chords` keeps those of that length.",
         params: ["fromKey", "toKey", "options"],
         run: transitionProgressions,
         cases: [
@@ -333,6 +333,18 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "the same key", args: ["G", "G", {}] },
           { name: "C into Db, two chords", args: ["C", "Db", { chords: 2 }] },
           { name: "no key", args: [null, "D", {}] },
+          { name: "G into D, starting on Bm", args: ["G", "D", { firstChord: "Bm" }] },
+          { name: "G into G, starting on its 4", args: ["G", "G", { firstChord: "C" }] },
+          { name: "G into D, starting on D/F#", args: ["G", "D", { firstChord: "D/F#" }] },
+        ],
+      },
+      chartEdgeChords: {
+        about: "A chart's first and last chords as played (sounding), where a set's transition starts and leads; nulls without chords.",
+        params: ["chart"],
+        run: chartEdgeChords,
+        cases: [
+          { name: "two passes", args: [{ passes: [{ lines: [{ chords: [{ sounding: "N.C." }, { sounding: "G" }, { sounding: "C" }] }] }, { lines: [{ chords: [{ sounding: "D" }] }, { chords: [] }] }] }] },
+          { name: "no chords", args: [{ passes: [{ lines: [{ chords: [] }] }] }] },
         ],
       },
       degreeChord: {

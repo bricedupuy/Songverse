@@ -37,7 +37,7 @@ check("each song's tempo and key come with the set", saved?.song.tempo === 72 &&
 let liveView = await api(leader, "GET", `/setlists/${set.id}/items/${openerItem}/song`);
 check(
   "Live's view: the transition, from G at 72 to D at 96",
-  JSON.stringify(liveView.transition) === JSON.stringify({ kind: "TRANSITION", note: "Pad under the prayer", chords: [], fromKey: "G", toKey: "D", fromTempo: 72, toTempo: 96 }),
+  JSON.stringify(liveView.transition) === JSON.stringify({ kind: "TRANSITION", note: "Pad under the prayer", chords: [], fromKey: "G", toKey: "D", fromTempo: 72, toTempo: 96, lastChord: "C", firstChord: "G" }),
   JSON.stringify(liveView.transition),
 );
 r = await call(leader, "PATCH", `/setlists/${set.id}/items/${openerItem}`, { transition: "WHATEVER" });
@@ -67,7 +67,9 @@ try {
 
   await step("moved on: the first is ticked as played, the Now mark follows", async () => {
     await page.getByTestId("live-next").click();
-    await page.waitForURL(`**/live/${await itemOf("Middle")}`);
+    // Stacked under the opener (a transition, issue #214): scrolled to, the address following.
+    const middle = await itemOf("Middle");
+    await page.waitForURL((url) => url.pathname.endsWith(`/live/${middle}`));
     await entries().nth(0).getByTestId("sidebar-played").waitFor();
     await entries().nth(1).getByTestId("sidebar-now").waitFor();
     await page.getByTestId("sidebar-reset-played").getByText("Start from the top").waitFor();
