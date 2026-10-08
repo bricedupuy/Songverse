@@ -1102,7 +1102,10 @@ const en = {
     transitionTo: "into",
     transitionChordsTapToHear: "Tap a chord to hear it.",
     transitionKinds: {
-      dominant: "The new key's dominant",
+      "walking-bass": "Walking bass from the last chord",
+      "walk-sus": "Last chord over the moving bass, then IV/V–V",
+      "key-dominant": "The key's dominant, landing on the first chord",
+      dominant: "The first chord's own dominant",
       "sus-dominant": "Suspended dominant",
       "two-five": "ii–V",
       "four-five": "IV–V",

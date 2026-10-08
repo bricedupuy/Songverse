@@ -4537,7 +4537,7 @@
       ]
     },
     "transitionProgressions": {
-      "about": "Chord progressions from one song into the next (issues #10, #217): leading into the next song's first chord (its 1 when not given) - its dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII a step up, the circle of fifths; as degrees of the next song's key and spelled in it. Into the same key and chord, a turnaround. `chords` keeps those of that length.",
+      "about": "Chord progressions from one song into the next (issues #10, #217): from the song's last chord - a walking bass into the first chord, the last chord over the bass's first step then IV/V V7 - and into the next song's first chord (its 1 when not given) - the key's dominant landing on it, its own dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII a step up, the circle of fifths; as degrees of the next song's key and spelled in it. Into the same key and chord, a turnaround. `chords` keeps those of that length.",
       "params": [
         "fromKey",
         "toKey",
@@ -4983,6 +4983,26 @@
           ],
           "expected": [
             {
+              "kind": "key-dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "A7"
+              ]
+            },
+            {
+              "kind": "key-dominant",
+              "degrees": [
+                "4/5",
+                "57"
+              ],
+              "chords": [
+                "G/A",
+                "A7"
+              ]
+            },
+            {
               "kind": "dominant",
               "degrees": [
                 "37"
@@ -5064,6 +5084,26 @@
             }
           ],
           "expected": [
+            {
+              "kind": "key-dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "D7"
+              ]
+            },
+            {
+              "kind": "key-dominant",
+              "degrees": [
+                "4/5",
+                "57"
+              ],
+              "chords": [
+                "C/D",
+                "D7"
+              ]
+            },
             {
               "kind": "dominant",
               "degrees": [
@@ -5199,6 +5239,324 @@
                 "Bm",
                 "Em7",
                 "A7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "3m7",
+                "6m7",
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "F#m7",
+                "Bm7",
+                "Em7",
+                "A7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "from E♭ into Bm, in D",
+          "args": [
+            "Eb",
+            "D",
+            {
+              "lastChord": "Eb",
+              "firstChord": "Bm"
+            }
+          ],
+          "expected": [
+            {
+              "kind": "walking-bass",
+              "degrees": [
+                "1",
+                "5/7"
+              ],
+              "chords": [
+                "D",
+                "A/C#"
+              ]
+            },
+            {
+              "kind": "walk-sus",
+              "degrees": [
+                "b2/1",
+                "4/5",
+                "57"
+              ],
+              "chords": [
+                "Eb/D",
+                "G/A",
+                "A7"
+              ]
+            },
+            {
+              "kind": "key-dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "A7"
+              ]
+            },
+            {
+              "kind": "key-dominant",
+              "degrees": [
+                "4/5",
+                "57"
+              ],
+              "chords": [
+                "G/A",
+                "A7"
+              ]
+            },
+            {
+              "kind": "dominant",
+              "degrees": [
+                "37"
+              ],
+              "chords": [
+                "F#7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "37sus4",
+                "37"
+              ],
+              "chords": [
+                "F#7sus4",
+                "F#7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "C#m7b5",
+                "F#7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "2m",
+                "37"
+              ],
+              "chords": [
+                "Em",
+                "F#7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "1",
+                "4",
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "D",
+                "G",
+                "C#m7b5",
+                "F#7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "from A into Em, in G",
+          "args": [
+            "A",
+            "G",
+            {
+              "lastChord": "A",
+              "firstChord": "Em"
+            }
+          ],
+          "expected": [
+            {
+              "kind": "walking-bass",
+              "degrees": [
+                "1",
+                "5/7"
+              ],
+              "chords": [
+                "G",
+                "D/F#"
+              ]
+            },
+            {
+              "kind": "walk-sus",
+              "degrees": [
+                "2/1",
+                "4/5",
+                "57"
+              ],
+              "chords": [
+                "A/G",
+                "C/D",
+                "D7"
+              ]
+            },
+            {
+              "kind": "key-dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "D7"
+              ]
+            },
+            {
+              "kind": "key-dominant",
+              "degrees": [
+                "4/5",
+                "57"
+              ],
+              "chords": [
+                "C/D",
+                "D7"
+              ]
+            },
+            {
+              "kind": "dominant",
+              "degrees": [
+                "37"
+              ],
+              "chords": [
+                "B7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "37sus4",
+                "37"
+              ],
+              "chords": [
+                "B7sus4",
+                "B7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "F#m7b5",
+                "B7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "2m",
+                "37"
+              ],
+              "chords": [
+                "Am",
+                "B7"
+              ]
+            },
+            {
+              "kind": "circle",
+              "degrees": [
+                "1",
+                "4",
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "G",
+                "C",
+                "F#m7b5",
+                "B7"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "from C into D, a step up",
+          "args": [
+            "C",
+            "D",
+            {
+              "lastChord": "C",
+              "firstChord": "D"
+            }
+          ],
+          "expected": [
+            {
+              "kind": "walking-bass",
+              "degrees": [
+                "5/7"
+              ],
+              "chords": [
+                "A/C#"
+              ]
+            },
+            {
+              "kind": "dominant",
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "A7"
+              ]
+            },
+            {
+              "kind": "sus-dominant",
+              "degrees": [
+                "57sus4",
+                "57"
+              ],
+              "chords": [
+                "A7sus4",
+                "A7"
+              ]
+            },
+            {
+              "kind": "two-five",
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Em7",
+                "A7"
+              ]
+            },
+            {
+              "kind": "four-five",
+              "degrees": [
+                "4",
+                "57"
+              ],
+              "chords": [
+                "G",
+                "A7"
+              ]
+            },
+            {
+              "kind": "step-up",
+              "degrees": [
+                "b6",
+                "b7"
+              ],
+              "chords": [
+                "Bb",
+                "C"
               ]
             },
             {

@@ -65,6 +65,10 @@ try {
     await picker.getByTestId("transition-first-chord").locator('[data-chord="D"]').waitFor();
     const twoFive = picker.locator('[data-testid="transition-suggestion"][data-kind="two-five"]');
     if ((await twoFive.getAttribute("data-degrees")) !== "2m7 57") throw new Error(await twoFive.getAttribute("data-degrees"));
+    // From the last chord: its bass walking down into the next song's first (G, F#m, Em, D).
+    await picker.locator('[data-kind="walking-bass"][data-degrees="3m 2m"]').locator('[data-chord="F#m"]').waitFor();
+    // Numbers as Nashville charts write them: the 7th raised, not "57".
+    await picker.locator('[data-kind="dominant"] sup').getByText("7").waitFor();
     // A chord tapped is heard, not chosen.
     await twoFive.locator('[data-chord="Em7"]').click();
     await page.waitForTimeout(300);

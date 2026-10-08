@@ -28,9 +28,15 @@ Choisissez **Listes de chants** > **Nouvelle liste** :
 
 ### Accords vers le chant suivant
 
-Pour une **Transition**, le bouton **Accords** à côté de sa note propose des accords à jouer vers le chant suivant : du dernier accord de ce chant au premier accord du suivant, tels que la liste les joue (avec la version et la **Tonalité** de chaque chant). Les deux encadrent la liste - **De G → … → vers D** - et les propositions mènent à ce premier accord : si le chant suivant commence sur son 4 ou son 6m plutôt que son 1, elles y mènent. Vers un chant en D qui commence sur D :
+Pour une **Transition**, le bouton **Accords** à côté de sa note propose des accords à jouer vers le chant suivant : du dernier accord de ce chant au premier accord du suivant, tels que la liste les joue (avec la version et la **Tonalité** de chaque chant). Les deux encadrent la liste - **De G → … → vers D** - et les propositions mènent à ce premier accord : si le chant suivant commence sur son 4 ou son 6m plutôt que son 1, elles y mènent. Les accords sont montrés avec leurs chiffres dans la tonalité du chant suivant, comme les grilles Nashville les écrivent : **3⁷** est son 3 avec une septième (F#7 en D), **♭2/1** E♭ sur D. D'un chant qui finit sur E♭ vers un chant en D qui commence sur Bm :
 
-- **La dominante de la nouvelle tonalité** - un accord, le V7 du premier accord du chant suivant (A7 vers D) ;
+- **Une basse qui marche depuis le dernier accord** - la basse va d'une fondamentale à l'autre par les notes de la gamme, chaque note sous un accord de la tonalité : E♭ → D → A/C# → Bm ;
+- **Le dernier accord sur la basse qui bouge, puis IV/V–V** - E♭ → E♭/D → G/A → A7 → Bm ;
+- **La dominante de la tonalité, qui se pose sur le premier accord** - quand le chant suivant ne commence pas sur son 1 : A7 → Bm, ou G/A A7 → Bm.
+
+Et vers le premier accord lui-même (vers un chant en D qui commence sur D) :
+
+- **La dominante du premier accord** - un accord, son V7 (A7 vers D ; F#7 vers Bm) ;
 - **Dominante suspendue** - V7sus4 qui se résout sur V7 ;
 - **II–V** - Em7 A7 vers D (vers une tonalité mineure, son IIø7 et V7) ;
 - **IV–V** - G A7 vers D ;

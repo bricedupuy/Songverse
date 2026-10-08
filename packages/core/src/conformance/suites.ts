@@ -322,7 +322,7 @@ export const CONFORMANCE: ConformanceArea[] = [
         ],
       },
       transitionProgressions: {
-        about: "Chord progressions from one song into the next (issues #10, #217): leading into the next song's first chord (its 1 when not given) - its dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII a step up, the circle of fifths; as degrees of the next song's key and spelled in it. Into the same key and chord, a turnaround. `chords` keeps those of that length.",
+        about: "Chord progressions from one song into the next (issues #10, #217): from the song's last chord - a walking bass into the first chord, the last chord over the bass's first step then IV/V V7 - and into the next song's first chord (its 1 when not given) - the key's dominant landing on it, its own dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII a step up, the circle of fifths; as degrees of the next song's key and spelled in it. Into the same key and chord, a turnaround. `chords` keeps those of that length.",
         params: ["fromKey", "toKey", "options"],
         run: transitionProgressions,
         cases: [
@@ -336,6 +336,9 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "G into D, starting on Bm", args: ["G", "D", { firstChord: "Bm" }] },
           { name: "G into G, starting on its 4", args: ["G", "G", { firstChord: "C" }] },
           { name: "G into D, starting on D/F#", args: ["G", "D", { firstChord: "D/F#" }] },
+          { name: "from E♭ into Bm, in D", args: ["Eb", "D", { lastChord: "Eb", firstChord: "Bm" }] },
+          { name: "from A into Em, in G", args: ["A", "G", { lastChord: "A", firstChord: "Em" }] },
+          { name: "from C into D, a step up", args: ["C", "D", { lastChord: "C", firstChord: "D" }] },
         ],
       },
       chartEdgeChords: {

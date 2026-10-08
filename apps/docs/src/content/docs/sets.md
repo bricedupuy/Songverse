@@ -28,9 +28,15 @@ Choose **Sets** > **New set**:
 
 ### Chords into the next song
 
-For a **Transition**, the **Chords** button beside its note suggests chords to play into the next song: from the last chord of this song to the first chord of the next, as the set plays them (with each song's version and **Key**). The two frame the list - **From G → … → into D** - and the suggestions lead into that first chord: if the next song starts on its 4 or its 6m rather than its 1, they lead there. Into a song in D that starts on D:
+For a **Transition**, the **Chords** button beside its note suggests chords to play into the next song: from the last chord of this song to the first chord of the next, as the set plays them (with each song's version and **Key**). The two frame the list - **From G → … → into D** - and the suggestions lead into that first chord: if the next song starts on its 4 or its 6m rather than its 1, they lead there. Chords are shown with their numbers in the next song's key, as Nashville charts write them: **3⁷** is its 3 with a 7th (F#7 in D), **♭2/1** E♭ over D. From a song ending on E♭ into a song in D that starts on Bm:
 
-- **The new key's dominant** - one chord, the V7 of the next song's first chord (A7 into D);
+- **Walking bass from the last chord** - the bass steps from one chord's root to the other along the key's scale, each note under a chord of the key: E♭ → D → A/C# → Bm;
+- **Last chord over the moving bass, then IV/V–V** - E♭ → E♭/D → G/A → A7 → Bm;
+- **The key's dominant, landing on the first chord** - when the next song doesn't start on its 1: A7 → Bm, or G/A A7 → Bm.
+
+And into the first chord itself (into a song in D that starts on D):
+
+- **The first chord's own dominant** - one chord, its V7 (A7 into D; F#7 into Bm);
 - **Suspended dominant** - V7sus4 resolving to V7;
 - **ii–V** - Em7 A7 into D (into a minor key, its iiø7 and V7);
 - **IV–V** - G A7 into D;

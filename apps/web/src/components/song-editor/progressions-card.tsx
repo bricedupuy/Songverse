@@ -13,11 +13,36 @@ export function useSectionName() {
   return (section: Pick<SectionProgression, "label" | "type">) => section.label ?? t(`chart.sections.${section.type}`, { defaultValue: section.type });
 }
 
+/**
+ * One degree as Nashville charts write it: the number, a flat or sharp
+ * before it, "m" beside it, the rest raised - 3⁷, 2m⁷, ♭7, 5/7 - so "37"
+ * doesn't read as thirty-seven.
+ */
+export function Degree({ degree }: { degree: string }) {
+  const match = /^([#b]?)([1-7])(m(?!aj))?([^/]*)(?:\/([#b]?)([1-7]))?$/.exec(degree);
+  if (!match) return <>{degree}</>;
+  const accidental = (text: string) => (text === "b" ? "♭" : text === "#" ? "♯" : "");
+  return (
+    <span className="whitespace-nowrap">
+      {accidental(match[1]!)}
+      {match[2]}
+      {match[3] ?? ""}
+      {match[4] ? <sup className="text-[0.7em]">{match[4]}</sup> : null}
+      {match[6] ? `/${accidental(match[5]!)}${match[6]}` : ""}
+    </span>
+  );
+}
+
 /** A progression written as degrees, spaced: "1 5 6m 4". */
 export function Degrees({ degrees, className }: { degrees: string[]; className?: string }) {
   return (
     <span className={className ?? "font-mono text-sm"} data-degrees={degrees.join(" ")}>
-      {degrees.join(" ")}
+      {degrees.map((degree, i) => (
+        <span key={i}>
+          {i > 0 ? " " : null}
+          <Degree degree={degree} />
+        </span>
+      ))}
     </span>
   );
 }

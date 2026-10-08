@@ -3,6 +3,7 @@ import { ArrowDown, ArrowRight, ArrowRightLeft, ChevronsDown, Music, Square, typ
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ChordRow } from "#/components/chord-diagrams";
+import { Degrees } from "#/components/song-editor/progressions-card";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import { NativeSelect } from "#/components/ui/native-select";
@@ -116,7 +117,7 @@ export function TransitionChordsPicker({
   const [count, setCount] = useState<number | null>(null);
   const [typed, setTyped] = useState("");
   const [invalid, setInvalid] = useState(false);
-  const suggestions = useMemo(() => transitionProgressions(fromKey, toKey, { ...(count === null ? {} : { chords: count }), firstChord }), [fromKey, toKey, count, firstChord]);
+  const suggestions = useMemo(() => transitionProgressions(fromKey, toKey, { ...(count === null ? {} : { chords: count }), firstChord, lastChord }), [fromKey, toKey, count, firstChord, lastChord]);
   const current = toKey ? degreeChords(degrees, toKey) : degrees;
   const chosen = degrees.join(" ");
   const row = (chords: string[], testId: string) => <ChordRow chords={chords} names diagrams={diagrams} notation={notation} player={player} musicalKey={toKey} testId={testId} />;
@@ -193,7 +194,7 @@ export function TransitionChordsPicker({
             <ul className="-mx-1 flex flex-col">
               {suggestions.map((one) => (
                 <li
-                  key={one.kind}
+                  key={`${one.kind} ${one.degrees.join(" ")}`}
                   className={cn("flex items-center gap-2 rounded-md px-2 py-1.5", one.degrees.join(" ") === chosen && "bg-muted")}
                   data-testid="transition-suggestion"
                   data-kind={one.kind}
@@ -201,7 +202,7 @@ export function TransitionChordsPicker({
                 >
                   <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
                     <span className="text-xs text-muted-foreground">
-                      {t(`sets.transitionKinds.${one.kind}`)} · <span className="font-mono">{one.degrees.join(" ")}</span>
+                      {t(`sets.transitionKinds.${one.kind}`)} · <Degrees degrees={one.degrees} className="font-mono" />
                     </span>
                     {row(one.chords, "transition-suggestion-chords")}
                   </span>

@@ -1106,7 +1106,10 @@ const fr: typeof en = {
     transitionTo: "vers",
     transitionChordsTapToHear: "Touchez un accord pour l'entendre.",
     transitionKinds: {
-      dominant: "La dominante de la nouvelle tonalité",
+      "walking-bass": "Une basse qui marche depuis le dernier accord",
+      "walk-sus": "Le dernier accord sur la basse qui bouge, puis IV/V–V",
+      "key-dominant": "La dominante de la tonalité, qui se pose sur le premier accord",
+      dominant: "La dominante du premier accord",
       "sus-dominant": "Dominante suspendue",
       "two-five": "II–V",
       "four-five": "IV–V",
