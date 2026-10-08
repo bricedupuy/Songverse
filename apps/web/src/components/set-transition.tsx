@@ -221,16 +221,17 @@ export function TransitionChordsChooser({
                 return (
                   <li
                     key={one.kind}
-                    className={cn("flex items-center gap-2 rounded-md px-1 py-1", at >= 0 && "bg-muted")}
+                    className={cn("flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md px-1 py-1 sm:flex-nowrap", at >= 0 && "bg-muted")}
                     data-testid="transition-suggestion"
                     data-kind={one.kind}
                     data-degrees={one.degrees.join(" ")}
                   >
-                    <span className="w-24 shrink-0 text-xs leading-tight text-muted-foreground" title={t(`sets.transitionBestWhen.${one.kind}`)}>
+                    {/* On a phone, the name on its own line above the chords; beside them where there's room. */}
+                    <span className="w-full truncate text-[0.7rem] leading-tight text-muted-foreground sm:w-24 sm:shrink-0 sm:whitespace-normal sm:text-xs" title={t(`sets.transitionBestWhen.${one.kind}`)}>
                       {t(`sets.transitionKinds.${one.kind}`)}
                     </span>
-                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                      <ChordSteps steps={shown.chords.map((chord) => ({ chord, role: "option" }))} expanded={false} diagrams={diagrams} notation={notation} player={player} musicalKey={toKey} />
+                    <span className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+                      <ChordSteps steps={shown.chords.map((chord) => ({ chord, role: "option" }))} expanded={false} size="sm" diagrams={diagrams} notation={notation} player={player} musicalKey={toKey} />
                       {at >= 0 && forms.length > 1 ? <VariationSwitcher forms={forms} at={at} onPick={onVariation ?? pick} /> : null}
                     </span>
                     {at >= 0 ? null : (

@@ -523,10 +523,13 @@ export function ChordSteps({
   notation,
   player,
   musicalKey,
+  size = "default",
   className,
 }: {
   steps: ChordStep[];
   expanded: boolean;
+  /** "sm": smaller steps on one line, for a list of them (the transition chooser). */
+  size?: "default" | "sm";
   diagrams: ChordDiagramsValue | undefined;
   notation: ChordNotationValue;
   player?: DiagramPlayer;
@@ -549,7 +552,7 @@ export function ChordSteps({
   }, [instrument, chords.join(" "), player?.ukuleleTuning, player?.guitarTuning, player?.pianoNoteNames, player?.pianoHands, player?.pianoSmooth, player?.leftHanded]);
   const name = (chord: string) => (notation === "NASHVILLE" ? formatChord(chord, "nashville", musicalKey) : shownName(chord, notation));
   return (
-    <ButtonGroup variant="chevron" className={cn("max-w-full flex-wrap gap-y-1", className)} data-testid="chord-steps" data-expanded={expanded ? "" : undefined}>
+    <ButtonGroup variant="chevron" className={cn(size === "sm" ? "flex-nowrap" : "max-w-full flex-wrap gap-y-1", className)} data-testid="chord-steps" data-expanded={expanded ? "" : undefined}>
       {steps.map((step, i) => {
         const option = step.chord ? optionsFor(step.chord, setup, 1)[0] : undefined;
         return (
@@ -560,8 +563,9 @@ export function ChordSteps({
             onClick={() => option && play(option, setup, up)}
             aria-label={step.chord ? t("chords.play", { chord: name(step.chord) }) : undefined}
             className={cn(
-              "flex min-h-9 flex-col items-center justify-center text-sm font-bold transition-colors disabled:cursor-default",
-              expanded ? "gap-0.5 py-1.5 [--step-padding:0.875rem]" : "py-1 [--step-padding:0.5rem]",
+              "flex shrink-0 flex-col items-center justify-center font-bold whitespace-nowrap transition-colors disabled:cursor-default",
+              size === "sm" ? "min-h-7 py-0.5 text-xs [--step-padding:0.3rem]" : "min-h-9 text-sm",
+              size === "sm" ? null : expanded ? "gap-0.5 py-1.5 [--step-padding:0.875rem]" : "py-1 [--step-padding:0.5rem]",
               step.edge ? "bg-muted text-muted-foreground hover:bg-muted/70" : "bg-secondary text-primary hover:bg-accent",
               !step.chord && "font-normal text-muted-foreground",
             )}
