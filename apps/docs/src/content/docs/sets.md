@@ -55,12 +55,12 @@ Click a song in the set to open its chart, as the set plays it: its version, in 
 ![A song in a set](../../assets/screenshots/en/set-song.jpg)
 
 - **Previous** and **Next** go through the set in order.
-- **My view** changes the chart for you only - hide chords, simpler chords, solfège, capo shapes. See [Your own view of a chart](/versions/#your-own-view-of-a-chart).
+- **My view** changes the chart for you only - hide chords, simpler chords, no bass notes. See [Your own view of a chart](/versions/#your-own-view-of-a-chart). **Display** beside it sets how charts read - chord names, capo shapes, diagrams, text, columns: see [Display](/display/).
 - **My notes** are private: capo, cues, reminders. Only you see them.
 
 ## Playing a set live
 
-On stage, switch to **Live** - the button on the set's page, or the mode switch at the top right of every page. Songverse turns dark (easy on the eyes in a dim room) and each song of the set takes the whole page beside the sidebar, big, as you read it with [My view](/versions/#your-own-view-of-a-chart).
+On stage, switch to **Live** - the button on the set's page, or the mode switch at the top right of every page. Songverse turns dark (easy on the eyes in a dim room) and each song of the set takes the whole page beside the sidebar, big, as you read it with [My view](/versions/#your-own-view-of-a-chart) and Live's own [Display](/display/) settings.
 
 ![A song of a set in Live mode](../../assets/screenshots/en/live.jpg)
 
@@ -73,7 +73,7 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 - The bottom shows what's next - **Next: …** takes you there - and the previous song's arrow.
 - **Autoscroll** (the play button) scrolls the chart at the song's pace: over its duration when it has one, or else two bars a line at its tempo. The tortoise and hare slow it down or speed it up, a step at a time.
 - The metronome button, at the top, starts the [metronome](/metronome/) at the song's tempo and time signature, and flashes with the beat; press it again to stop.
-- The **A** buttons make the text smaller or bigger; Songverse remembers your size on this device. Beside them, the columns: **Auto** flows a long song into as many columns as the screen fits, like a newspaper, a section never split between two, so it fits without scrolling; **1**, **2** or **3** set how many at most. Songverse remembers your choice on this device, for Practice too.
+- The **A** buttons make the text smaller or bigger. **Display** in the header (sliders) opens the [Display](/display/) panel for Live, at the bottom of the screen while the song stays in view: the text size, font and spacing, chord names and colours, diagrams, and the columns - **Auto** flows a long song into as many columns as the screen fits, like a newspaper, a section never split between two, so it fits without scrolling; **1**, **2** or **3** set how many at most. They're kept for Live on your account, apart from Practice's.
 - The expand button goes full screen, hiding the browser's own bars.
 - The screen stays on while a song is open.
 

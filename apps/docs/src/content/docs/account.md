@@ -37,7 +37,7 @@ How chords read on every chart you open:
 - **Chord diagrams** - **None**, **Guitar**, **Ukulele** or **Piano**: how to play the song's chords, beside its chart (see [Chord diagrams](/versions/#chord-diagrams)).
 - **Songs read as** - **Chords and lyrics**, or **PDF, when the song has one**: how songs show in Practice and Live unless you choose otherwise for a song (see [Playing a set live](/sets/#playing-a-set-live)). A song without a PDF always shows its chart.
 
-You can also switch these from any chart in a set. Hiding chords and simpler chords are set per song, from its chart - see [Your own view of a chart](/versions/#your-own-view-of-a-chart).
+They're where every mode starts: the [Display](/display/) panel changes them for one mode - Edit, Practice or Live - and its **↺** puts that mode back to these. Hiding chords and simpler chords are set per song, from its chart - see [Your own view of a chart](/versions/#your-own-view-of-a-chart).
 
 ## Storage
 

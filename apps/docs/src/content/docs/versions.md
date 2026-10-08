@@ -43,12 +43,8 @@ When you open a song in a set, the **My view** bar changes the chart **for you o
 - **Hide chords** - then tap a chord to hide it (one that's too fast for you, say). **Show hidden** brings them back.
 - **Simpler chords** - Gmaj7 shows as G, Bm7b5 as Bdim.
 - **No bass notes** - D/F# shows as D.
-- **Names** - chord names in letters (**C D E**), solfège (**Do Ré Mi**) or Nashville numbers (**1 4 5**).
-- **Colours** - chords coloured by type.
-- **Capo shapes** - with a capo, chords as the shapes you play rather than as they sound.
-- **Diagrams** - **None**, **Guitar**, **Ukulele** or **Piano**: see [Chord diagrams](/versions/#chord-diagrams) below.
 
-Hidden and simpler chords are kept per song (and per version). Names, colours, capo shapes and diagrams apply to every chart; you can also set them in [your account](/account/#chart-display).
+Hidden and simpler chords are kept per song (and per version). Beside them, **Display** changes how every chart reads in the mode you're in - chord names, colours, capo shapes, diagrams, the text and the columns: see [Display](/display/).
 
 ## Nashville numbers and chord colours
 
@@ -58,7 +54,7 @@ With **Chord colours** set to **By chord type**, each chord on the chart is colo
 
 ## Chord diagrams
 
-Choose **Guitar**, **Ukulele** or **Piano** under **Chord diagrams** in [Chart display](/account/#chart-display) (or **Diagrams** in **My view**), and the charts you read - in Practice, a set's songs, Live and offline - show how to play their chords. They're off until you choose; nothing ever covers the words, and the chart itself doesn't move.
+Choose **Guitar**, **Ukulele** or **Piano** under **Chord diagrams** in [Chart display](/account/#chart-display) (or **Instrument** in the [Display](/display/) panel, for one mode), and the charts you read - in Practice, a set's songs, Live and offline - show how to play their chords. They're off until you choose; nothing ever covers the words, and the chart itself doesn't move.
 
 - At the top of the chart, the song's chords as small diagrams, each once, in the order they come. Tap one to hear it strummed (down, then up on the next tap). The arrow beside **Guitar chords** folds them to a single line of names, remembered on the device.
 - Tap a chord on the chart for its diagram, bigger, with the fingers to use. **‹ ›** go through the other ways to play it; tap the diagram to hear it. **Use this shape for this song** keeps the one shown for that chord in this song, for you only, on every device: the strip and the card show it first from then on. **Back to the usual one** undoes it. Other songs keep the usual shape.

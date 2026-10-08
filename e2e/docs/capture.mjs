@@ -254,6 +254,17 @@ try {
     await shoot("version-editor", `/library/${grace.id}/arrangements/${arrangement.id}`, () => page.locator("[data-pass-editor]").first().waitFor(), { fullPage: true });
     await shoot("set", `/sets/${set.id}`, () => page.getByTestId("set-song-row").first().waitFor());
     await shoot("set-song", `/sets/${set.id}/songs/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor(), { fullPage: true });
+    // The Display panel (issue #209), on a phone: the bottom of the screen, the chart still in view.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await shoot("display", `/sets/${set.id}/songs/${items[0].id}`, async () => {
+      await page.locator("[data-pass]").first().waitFor();
+      await page.getByTestId("display-open").click();
+      await page.getByTestId("display-section").click();
+      await page.getByTestId("display-section-chords").click();
+      await page.getByTestId("display-notation-LETTERS").waitFor();
+    });
+    await page.getByTestId("display-close").click();
+    await page.setViewportSize({ width: 1280, height: 800 });
     // Sync play (issue #13): on, leading, its menu open; then ended and off, for the rest.
     const syncControl = page.getByTestId("sync-control");
     const syncItem = (name) => page.getByTestId("sync-menu").getByRole("menuitem", { name });

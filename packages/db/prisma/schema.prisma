@@ -294,6 +294,9 @@ model User {
   pianoSmooth       Boolean           @default(true)
   pianoHands        String            @default("both")
   pianoNoteNames    String            @default("card")
+  /// What the Display panel changed for each mode (issue #209): { EDIT, PRACTICE, LIVE } each a partial
+  /// DisplaySettings (@songverse/core), over the account settings above.
+  displaySettings Json @default("{}")
   voicingPreference VoicingPreference @default(AUTO)
   pedalMappingJson  Json? // UserPedalMapping — null = use defaults
   midiOutputDevice  String? // Last selected MIDI output device name

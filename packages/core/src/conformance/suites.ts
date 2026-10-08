@@ -1,5 +1,6 @@
 import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
 import { pianoVoicings, songVoicings, voicingText } from "../chords/piano.js";
+import { effectiveDisplaySettings, mergeDisplaySettings } from "../display/settings.js";
 import { chartEdgeChords, degreeChord, transitionDegrees, transitionProgressions } from "../chords/transitions.js";
 import { findProgression, parseProgressionQuery, progressionDegree, progressionGrams, progressionSimilarity, songProgressions } from "../chords/progressions.js";
 import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
@@ -610,6 +611,25 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "simpler chords, no bass notes, a hidden chord", args: [SONG, null, { preferences: { simplifyChords: true, hideBassNotes: true, hiddenChordIds: ["chd_v2"] } }] },
           { name: "an arrangement", args: [SONG, ARRANGEMENT, {}] },
           { name: "an arrangement with its capo, as shapes", args: [SONG, ARRANGEMENT, { capoDisplay: "shapes" }] },
+        ],
+      },
+      effectiveDisplaySettings: {
+        about: "A mode's display settings (issue #209): what the Display panel changed for that mode, else the account's chord settings, else a default (Live's text bigger).",
+        params: ["account", "saved", "mode"],
+        run: effectiveDisplaySettings,
+        cases: [
+          { name: "nothing changed: the account's, Live bigger", args: [{ chordNotation: "SOLFEGE", chordDiagrams: "GUITAR" }, {}, "LIVE"] },
+          { name: "Practice changed its names and size", args: [{ chordNotation: "SOLFEGE" }, { PRACTICE: { chordNotation: "NASHVILLE", textSize: 1.25 }, LIVE: { font: "sans" } }, "PRACTICE"] },
+          { name: "no account settings", args: [null, null, "EDIT"] },
+        ],
+      },
+      mergeDisplaySettings: {
+        about: "Changes merged into a user's display settings, mode by mode: a value replaces, null goes back to the account's, a field left out stays.",
+        params: ["saved", "changes"],
+        run: mergeDisplaySettings,
+        cases: [
+          { name: "one field changed, one cleared", args: [{ LIVE: { textSize: 2, font: "sans" } }, { LIVE: { textSize: 2.5, font: null } }] },
+          { name: "the last one cleared: the mode gone", args: [{ EDIT: { hideChords: true } }, { EDIT: { hideChords: null }, PRACTICE: { columns: "2" } }] },
         ],
       },
       chartChords: {

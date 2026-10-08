@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { chartEdgeChords, computeSectionLabel, formatSongbookReference, readArrangementDocument, readSongDocument, renderChart, transposeKey, type SetTransitionValue, type SongbookSection } from "@songverse/core";
+import { type SavedDisplaySettings, chartEdgeChords, computeSectionLabel, formatSongbookReference, readArrangementDocument, readSongDocument, renderChart, transposeKey, type SetTransitionValue, type SongbookSection } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -404,7 +404,7 @@ export class SetlistsService {
       this.sets.readableItems(set, next ? [item, next] : [item]),
       this.sets.visibilityFor(user),
       this.myNoteRow(user.id, itemId),
-      this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true, chordColors: true, leftHanded: true, guitarTuning: true, ukuleleTuning: true, pianoSmooth: true, pianoHands: true, pianoNoteNames: true } }),
+      this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true, chordColors: true, leftHanded: true, guitarTuning: true, ukuleleTuning: true, pianoSmooth: true, pianoHands: true, pianoNoteNames: true, displaySettings: true } }),
     ]);
     const song = item.songVersion;
     const shown = readable.has(item.id) || inViewersLibrary(song);
@@ -446,6 +446,8 @@ export class SetlistsService {
         pianoSmooth: viewer?.pianoSmooth ?? true,
         pianoHands: viewer?.pianoHands ?? "both",
         pianoNoteNames: viewer?.pianoNoteNames ?? "card",
+        // Each mode's, from the Display panel (issue #209).
+        displaySettings: (viewer?.displaySettings ?? {}) as SavedDisplaySettings,
       },
       inLibrary: inViewersLibrary(song),
       sharedBy: shown && item.sharedBy ? { id: item.sharedBy.id, displayName: item.sharedBy.displayName } : null,

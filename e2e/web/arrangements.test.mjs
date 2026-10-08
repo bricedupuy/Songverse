@@ -3,7 +3,7 @@
 // lines and notes, making it the team's usual one, playing it in a set with
 // a player's own view on top, and the song changing underneath it.
 import { chromium } from "playwright";
-import { WEB, SP, stamp, tag, sql, stepper, user, api, signIn, finish } from "../lib/harness.mjs";
+import { WEB, SP, stamp, tag, sql, stepper, user, api, signIn, finish, displaySetting, resetDisplay } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -129,17 +129,18 @@ await step("the set's chart is the arrangement: its key, capo, chords and notes"
 });
 
 await step("a player reads it as capo shapes or in solfège", async () => {
-  await page.getByRole("button", { name: "Capo 2 shapes" }).click();
+  await displaySetting(page, "chords", "display-capo-FINGERED");
   await chord("Em").first().waitFor(); // F#m, two frets down
   await page.getByTestId("capo").getByText("chords shown as the shapes to play").waitFor();
   // Shapes, not what sounds: in italics (issue #219).
   const italic = await chord("Em").first().evaluate((element) => getComputedStyle(element).fontStyle);
   if (italic !== "italic" || !(await page.locator('[data-testid="song-chart"][data-capo-shapes]').count())) throw new Error(`shapes not in italics: ${italic}`);
-  await page.getByRole("button", { name: "Capo 2 shapes" }).click();
+  await displaySetting(page, "chords", "display-capo-SOUNDING");
   await page.locator('[data-testid="song-chart"][data-capo-shapes]').waitFor({ state: "detached" });
-  await page.getByTestId("notation-select").selectOption("SOLFEGE");
+  await displaySetting(page, "chords", "display-notation-SOLFEGE");
   await chord("La").first().waitFor();
-  await page.getByTestId("notation-select").selectOption("LETTERS");
+  // Back to the account's settings (letters, as they sound): the dashboard's, below, show again.
+  await resetDisplay(page);
   await chord("A").first().waitFor();
 });
 

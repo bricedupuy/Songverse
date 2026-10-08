@@ -90,6 +90,8 @@ export async function forgetOffline(): Promise<void> {
   const userId = lastUser();
   try {
     localStorage.removeItem(USER_KEY);
+    // The display settings (issue #209) are the account's: the next one to sign in has their own.
+    localStorage.removeItem("songverse.display");
   } catch {
     // Nothing to remove.
   }

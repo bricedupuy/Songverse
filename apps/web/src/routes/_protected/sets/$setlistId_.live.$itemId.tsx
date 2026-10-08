@@ -14,6 +14,7 @@ import { setlistTitle } from "#/lib/setlists";
 import { useSongView } from "#/lib/song-views";
 import { useSyncSong } from "#/lib/sync-client";
 import { useStackSegues } from "#/lib/live-stack";
+import { displaySeed, useDiagramPlayer, useDisplaySettings } from "#/lib/display-settings";
 
 /** At most this many songs on one page (issue #214): a long chain of segues goes on over the next. */
 const STACK_MAX = 6;
@@ -108,6 +109,9 @@ function SetLiveView({ views, readings }: { views: SetlistSongView[]; readings: 
   const router = useRouter();
   const set = views[0]!.set;
   const control = useRef<LiveControl | null>(null);
+  // How Live reads (issue #209): the account's, as the Display panel changes it.
+  const display = useDisplaySettings("LIVE", displaySeed(views[0]!.view));
+  const player = useDiagramPlayer(views[0]!.view);
   const [chordsChanged, setChordsChanged] = useState<Record<string, string[]>>({});
   // The song being played: the page's first, until it's scrolled on into the next (issue #214),
   // which the address then says - the page staying as it is (?from= its first song).
@@ -144,7 +148,7 @@ function SetLiveView({ views, readings }: { views: SetlistSongView[]; readings: 
       artist: song?.artists?.join(", ") || null,
       setName: setlistTitle(set, t, i18n.language),
       setId: set.id,
-      chartFor: (extraSteps) => (song ? renderPlayerChart(view, undefined, undefined, undefined, extraSteps) : null),
+      chartFor: (extraSteps) => (song ? renderPlayerChart(view, undefined, display.chordNotation, display.capoDisplayMode, extraSteps) : null),
       keyShift: (view.arrangement?.document.defaults.transposeSteps ?? 0) + item.transposeSteps,
       durationSeconds: song?.document.defaults.durationSeconds,
       arrangementName: view.arrangement?.name ?? null,
@@ -158,10 +162,7 @@ function SetLiveView({ views, readings }: { views: SetlistSongView[]; readings: 
       nextLabel: view.nextItemId ? (view.nextTitle ? t("live.nextUp", { title: view.nextTitle }) : t("live.nextHidden")) : t("live.endOfSet"),
       // The chords as just changed here, before the page next loads.
       transition: view.transition ? { ...view.transition, chords: chordsChanged[item.id] ?? view.transition.chords } : null,
-      diagrams: view.view.chordDiagrams,
-      notation: view.view.chordNotation,
-      colors: view.view.chordColors,
-      player: view.view,
+      player,
       songVersionId: song?.id,
       // Changed here by who can change the set (issue #214), online.
       // Shown at once, and saved - without reloading the page under the player's scroll; put back if it can't be.
@@ -174,5 +175,5 @@ function SetLiveView({ views, readings }: { views: SetlistSongView[]; readings: 
         : undefined,
     };
   });
-  return <LiveView songs={songs} startAt={currentId} onCurrent={onCurrent} control={control} />;
+  return <LiveView songs={songs} display={display} startAt={currentId} onCurrent={onCurrent} control={control} />;
 }

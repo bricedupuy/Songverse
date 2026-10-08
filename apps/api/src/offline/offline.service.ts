@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { offlineFingerprint } from "@songverse/core";
+import { type SavedDisplaySettings, offlineFingerprint } from "@songverse/core";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { AttachmentsService } from "../attachments/attachments.service.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
@@ -193,7 +193,7 @@ export class OfflineService {
       },
     });
     const entries = current.map((row) => ({ id: row.id, version: songVersion(row.updatedAt, row.attachments), audio: audio.has(row.id) }));
-    const viewerRow = await this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true, chordColors: true, leftHanded: true, guitarTuning: true, ukuleleTuning: true, pianoSmooth: true, pianoHands: true, pianoNoteNames: true } });
+    const viewerRow = await this.prisma.client.user.findUnique({ where: { id: user.id }, select: { chordNotation: true, capoDisplayMode: true, liveView: true, chordDiagrams: true, chordColors: true, leftHanded: true, guitarTuning: true, ukuleleTuning: true, pianoSmooth: true, pianoHands: true, pianoNoteNames: true, displaySettings: true } });
     const viewer = {
       chordNotation: viewerRow?.chordNotation ?? "LETTERS",
       capoDisplayMode: viewerRow?.capoDisplayMode ?? "SOUNDING",
@@ -206,6 +206,8 @@ export class OfflineService {
       pianoSmooth: viewerRow?.pianoSmooth ?? true,
       pianoHands: viewerRow?.pianoHands ?? "both",
       pianoNoteNames: viewerRow?.pianoNoteNames ?? "card",
+      // Each mode's, from the Display panel (issue #209).
+      displaySettings: (viewerRow?.displaySettings ?? {}) as SavedDisplaySettings,
     };
 
     // Asked only whether anything changed (issue #121): the device's

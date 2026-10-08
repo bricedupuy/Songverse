@@ -3,6 +3,10 @@ import type {
   CapoDisplayModeValue,
   ChordNotationValue,
   ChordDiagramsValue,
+  DisplayColumnsValue,
+  DisplayFontValue,
+  AppModeValue,
+  DisplaySpacingValue,
   LiveViewValue,
   SetTransitionValue,
   TechRoleValue,
@@ -303,7 +307,15 @@ export interface OfflineSyncResponse {
   goneSongs: string[];
   pins: OfflinePin[];
   /** The user's chord settings, for songs shown on their own. */
-  viewer: { chordNotation: ChordNotationValue; capoDisplayMode: CapoDisplayModeValue; liveView?: LiveViewValue; chordDiagrams?: ChordDiagramsValue; chordColors?: boolean } & DiagramPlayer;
+  viewer: {
+    chordNotation: ChordNotationValue;
+    capoDisplayMode: CapoDisplayModeValue;
+    liveView?: LiveViewValue;
+    chordDiagrams?: ChordDiagramsValue;
+    chordColors?: boolean;
+    /** Each mode's display settings (issue #209), for offline. */
+    displaySettings?: Partial<Record<AppModeValue, DisplaySettings>>;
+  } & DiagramPlayer;
 }
 
 /**
@@ -341,6 +353,8 @@ export interface ChartViewSettings {
   pianoSmooth?: boolean;
   pianoHands?: string;
   pianoNoteNames?: string;
+  /** Each mode's display settings (issue #209). Missing from copies kept offline before then. */
+  displaySettings?: Partial<Record<AppModeValue, DisplaySettings>>;
 }
 
 /** How a player's diagrams are drawn (issue #207 phases 3 and 4): mirrored, in which tunings, and the piano's options. */
@@ -418,6 +432,19 @@ export interface SongOwnershipRequest {
   ownerIsTeamMember: boolean;
 }
 
+/** One mode's display settings (issue #209): only what it changes; the rest comes from the account's. */
+export interface DisplaySettings {
+  textSize?: number;
+  font?: DisplayFontValue;
+  spacing?: DisplaySpacingValue;
+  columns?: DisplayColumnsValue;
+  chordNotation?: ChordNotationValue;
+  chordColors?: boolean;
+  capoDisplayMode?: CapoDisplayModeValue;
+  chordDiagrams?: ChordDiagramsValue;
+  hideChords?: boolean;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -454,6 +481,8 @@ export interface UserProfile {
   pianoSmooth: boolean;
   pianoHands: string;
   pianoNoteNames: string;
+  /** What the Display panel changed for each mode (issue #209): over the account's settings above. */
+  displaySettings?: Partial<Record<AppModeValue, DisplaySettings>>;
 }
 
 export type StorageConfigSource = "database" | "env" | "none";
@@ -1506,6 +1535,8 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       pianoHands?: string;
       pianoNoteNames?: string;
       liveView?: LiveViewValue;
+      /** A mode's display settings (issue #209), merged into what's kept; null back to the account's. */
+      displaySettings?: Partial<Record<AppModeValue, { [K in keyof DisplaySettings]?: DisplaySettings[K] | null }>>;
     }) =>
       request<UserProfile>("/users/me", { method: "PATCH", body: JSON.stringify(data) }),
     getMyStorage: () => request<StorageUsage>("/users/me/storage"),

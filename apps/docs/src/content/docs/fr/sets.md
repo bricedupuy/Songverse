@@ -55,12 +55,12 @@ Cliquez sur un chant de la liste pour ouvrir sa grille, telle que la liste la jo
 ![Un chant dans une liste](../../../assets/screenshots/fr/set-song.jpg)
 
 - **Précédent** et **Suivant** parcourent la liste dans l'ordre.
-- **Mon affichage** change la grille pour vous seul - accords masqués, simplifiés, solfège, formes de capo. Voir [Votre propre affichage d'une grille](/fr/versions/#votre-propre-affichage-dune-grille).
+- **Mon affichage** change la grille pour vous seul - accords masqués, simplifiés, sans basses. Voir [Votre propre affichage d'une grille](/fr/versions/#votre-propre-affichage-dune-grille). **Affichage** à côté règle la façon dont les grilles se lisent - noms des accords, formes de capo, diagrammes, texte, colonnes : voir [Affichage](/fr/display/).
 - **Mes notes** sont privées : capo, repères, rappels. Vous seul les voyez.
 
 ## Jouer une liste en live
 
-Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. Songverse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste occupe toute la page à côté de la barre latérale, en grand, tel que vous le lisez avec [Mon affichage](/fr/versions/#votre-propre-affichage-dune-grille).
+Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le sélecteur de mode en haut à droite de chaque page. Songverse passe en sombre (reposant dans une salle peu éclairée) et chaque chant de la liste occupe toute la page à côté de la barre latérale, en grand, tel que vous le lisez avec [Mon affichage](/fr/versions/#votre-propre-affichage-dune-grille) et les réglages d'[Affichage](/fr/display/) propres au Live.
 
 ![Un chant d'une liste en mode Live](../../../assets/screenshots/fr/live.jpg)
 
@@ -73,7 +73,7 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 - En bas : ce qui vient ensuite - **Ensuite : …** y mène - et la flèche du chant précédent.
 - Le **défilement** (le bouton lecture) fait défiler la grille au rythme du chant : sur sa durée quand elle est connue, sinon deux mesures par ligne à son tempo. La tortue et le lièvre le ralentissent ou l'accélèrent, un cran à la fois.
 - Le bouton du métronome, en haut, démarre le [métronome](/fr/metronome/) au tempo et à la mesure du chant, et clignote avec le temps ; appuyez à nouveau pour l'arrêter.
-- Les boutons **A** réduisent ou agrandissent le texte ; Songverse retient votre taille sur cet appareil. À côté, les colonnes : **Auto** répartit un long chant sur autant de colonnes que l'écran en contient, comme un journal, sans jamais couper une section entre deux, pour qu'il tienne sans défiler ; **1**, **2** ou **3** fixent le maximum. Songverse retient votre choix sur cet appareil, pour la Session aussi.
+- Les boutons **A** réduisent ou agrandissent le texte. **Affichage** dans l'en-tête (curseurs) ouvre le panneau [Affichage](/fr/display/) du Live, en bas de l'écran pendant que le chant reste visible : taille du texte, police et interligne, noms et couleurs des accords, diagrammes, et les colonnes - **Auto** répartit un long chant sur autant de colonnes que l'écran en contient, comme un journal, sans jamais couper une section entre deux, pour qu'il tienne sans défiler ; **1**, **2** ou **3** fixent le maximum. Ils sont gardés pour le Live sur votre compte, à part de ceux de la Session.
 - Le bouton d'agrandissement passe en plein écran, sans les barres du navigateur.
 - L'écran reste allumé tant qu'un chant est ouvert.
 

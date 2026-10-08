@@ -3,7 +3,7 @@
 // same - and a capo doesn't change them; chords coloured by family. Chosen
 // in Chart display or a set's My view, for every chart.
 import { chromium } from "playwright";
-import { WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, call, check, finish, signIn, stamp, stepper, user, displaySetting } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -56,17 +56,25 @@ await step("Chart display: colours by chord type", async () => {
   if (red === minor) throw new Error(`dominant and minor both ${red}`);
 });
 
-await step("a set's My view: back to letters, colours off", async () => {
+await step("a set's song: back to letters, colours off, from the Display panel - for Practice only", async () => {
   await page.goto(`${WEB}/sets/${set.id}/songs/${item.id}`);
   await page.waitForLoadState("networkidle");
-  await page.getByTestId("notation-select").selectOption("LETTERS");
+  await displaySetting(page, "chords", "display-notation-LETTERS");
   await page.locator('[data-chord="C"]').first().waitFor(); // D sounding, capo 2 shapes: C
   const before = await page.locator('[data-family="dominant"]').first().evaluate((el) => getComputedStyle(el).color);
-  await page.getByRole("button", { name: "Colours" }).click();
+  await displaySetting(page, "chords", "display-colors-off");
   await page.waitForFunction((was) => getComputedStyle(document.querySelector('[data-family="dominant"]')).color !== was, before);
   await page.waitForLoadState("networkidle");
-  const after = await api(me, "GET", "/users/me");
-  if (after.chordNotation !== "LETTERS" || after.chordColors !== false) throw new Error(JSON.stringify(after));
+  // Saved a moment after the last change, for Practice; the account's own settings stay as they were.
+  let after;
+  for (let i = 0; i < 20; i++) {
+    after = await api(me, "GET", "/users/me");
+    if (after.displaySettings?.PRACTICE?.chordColors === false) break;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  const practice = after.displaySettings?.PRACTICE ?? {};
+  if (practice.chordNotation !== "LETTERS" || practice.chordColors !== false) throw new Error(JSON.stringify(after.displaySettings));
+  if (after.chordColors !== true) throw new Error(`the account's colours changed: ${after.chordColors}`);
 });
 
 await browser.close();

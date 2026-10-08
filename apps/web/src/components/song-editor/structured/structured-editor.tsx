@@ -21,7 +21,9 @@ import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/r
 import { ChevronLeft, ChevronRight, Minus, Plus, Redo2, StickyNote, Trash2, Undo2 } from "lucide-react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { DisplayPanel } from "#/components/display-panel";
 import { chartOfSections, SongChart } from "#/components/song-chart";
+import { useDisplaySettings } from "#/lib/display-settings";
 import { Button } from "#/components/ui/button";
 import { NativeSelect } from "#/components/ui/native-select";
 import { Textarea } from "#/components/ui/textarea";
@@ -130,7 +132,7 @@ export function StructuredEditor({
   }, [editor, readOnly]);
 
   if (readOnly) {
-    return <SongChart chart={chartOfSections(sections, flow, songKey || null)} emptyText={t("songEditor.previewEmpty")} />;
+    return <EditPreview chart={chartOfSections(sections, flow, songKey || null)} />;
   }
 
   return (
@@ -152,13 +154,38 @@ export function StructuredEditor({
           <p className="mt-4 text-xs text-muted-foreground">{t("structuredEditor.hints")}</p>
         </div>
         {mode === "text" ? <TextMode sections={sections} onChange={(next) => onChangeRef.current(next)} /> : null}
-        {mode === "preview" ? <SongChart chart={chartOfSections(sections, flow, songKey || null)} emptyText={t("songEditor.previewEmpty")} /> : null}
+        {mode === "preview" ? <EditPreview chart={chartOfSections(sections, flow, songKey || null)} withPanel /> : null}
         {mode !== "preview" ? (
           <aside className="hidden min-w-0 flex-col gap-2 border-l pl-6 @7xl:flex" aria-label={t("structuredEditor.modes.preview")} data-testid="editor-side-preview">
             <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{t("structuredEditor.modes.preview")}</p>
-            <SongChart chart={chartOfSections(sections, flow, songKey || null)} emptyText={t("songEditor.previewEmpty")} />
+            <EditPreview chart={chartOfSections(sections, flow, songKey || null)} withPanel />
           </aside>
         ) : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The chart as it will read, through Edit's display settings (issue #209):
+ * the text, spacing and columns the Display panel sets for Edit mode.
+ */
+function EditPreview({ chart, withPanel = false }: { chart: ReturnType<typeof chartOfSections>; withPanel?: boolean }) {
+  const { t } = useTranslation();
+  const display = useDisplaySettings("EDIT");
+  return (
+    <div className="flex min-w-0 flex-col gap-2">
+      {withPanel ? <DisplayPanel mode="EDIT" settings={display} className="self-end" /> : null}
+      <div style={{ zoom: display.textSize }}>
+        <SongChart
+          chart={chart}
+          emptyText={t("songEditor.previewEmpty")}
+          columns={display.columns}
+          font={display.font}
+          spacing={display.spacing}
+          hideChords={display.hideChords}
+          colors={display.chordColors}
+        />
       </div>
     </div>
   );

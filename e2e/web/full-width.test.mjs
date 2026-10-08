@@ -3,7 +3,7 @@
 // or 3, remembered on the device - a section never split between two, one
 // column on a phone; Live the same; the editor's preview beside it.
 import { chromium } from "playwright";
-import { WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, finish, signIn, stamp, stepper, user, displaySetting } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -39,29 +39,30 @@ try {
     await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
     await page.goto(`${WEB}/library/${song.id}`);
     await page.getByTestId("song-chart").waitFor();
-    await page.locator('[data-testid="chart-columns-auto"][aria-pressed="true"]').waitFor();
+    await page.locator('[data-testid="song-chart"][data-columns="auto"]').waitFor();
     const all = await passes();
     if ((await columnsOf()) < 2) throw new Error(`one column: ${JSON.stringify(all)}`);
     if (all.some((pass) => pass.boxes !== 1)) throw new Error(`a section split: ${JSON.stringify(all)}`);
   });
 
-  await step("2 columns, remembered on the device; 1 puts it back in one", async () => {
-    await page.getByTestId("chart-columns-2").click();
+  await step("2 columns, kept for Practice; 1 puts it back in one", async () => {
+    await displaySetting(page, "layout", "display-columns-2");
     await page.waitForFunction(() => document.querySelector('[data-testid="song-chart"]')?.dataset.columns === "2");
     if ((await columnsOf()) !== 2) throw new Error(`${await columnsOf()} columns`);
+    await page.waitForTimeout(1000); // saved a moment after the change
     await page.reload();
-    await page.locator('[data-testid="chart-columns-2"][aria-pressed="true"]').waitFor();
+    await page.locator('[data-testid="song-chart"][data-columns="2"]').waitFor();
     if ((await columnsOf()) !== 2) throw new Error("not remembered");
-    await page.getByTestId("chart-columns-1").click();
+    await displaySetting(page, "layout", "display-columns-1");
     await page.waitForFunction(() => document.querySelector('[data-testid="song-chart"]')?.dataset.columns === "1");
     if ((await columnsOf()) !== 1) throw new Error(`${await columnsOf()} columns`);
-    await page.getByTestId("chart-columns-auto").click();
+    await displaySetting(page, "layout", "display-columns-auto");
   });
 
-  await step("Live: in columns too, with the same choice", async () => {
+  await step("Live: in columns too (Auto)", async () => {
     await page.goto(`${WEB}/library/${song.id}/live`);
     await page.getByTestId("song-chart").waitFor();
-    await page.locator('[data-testid="chart-columns-auto"][aria-pressed="true"]').waitFor();
+    await page.locator('[data-testid="song-chart"][data-columns="auto"]').waitFor();
     if ((await columnsOf()) < 2) throw new Error("one column in Live");
   });
 

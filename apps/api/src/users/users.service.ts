@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { INSTRUMENTS, orderInstruments, orderTechRoles } from "@songverse/core";
+import { INSTRUMENTS, mergeDisplaySettings, orderInstruments, orderTechRoles, type SavedDisplaySettings } from "@songverse/core";
+import type { Prisma } from "@songverse/db";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { ImageService } from "../images/image.service.js";
 import { StorageQuotaService } from "../storage/storage-quota.service.js";
@@ -28,6 +29,7 @@ const SELECT = {
   pianoSmooth: true,
   pianoHands: true,
   pianoNoteNames: true,
+  displaySettings: true,
   voicingPreference: true,
   isGlobalAdmin: true,
   instruments: true,
@@ -75,9 +77,17 @@ export class UsersService {
     // A built-in instrument or one an admin added (issue #166); anything else is refused, by name.
     const unknown = dto.instruments?.filter((value) => !(INSTRUMENTS as readonly string[]).includes(value) && !custom.includes(value)) ?? [];
     if (unknown.length > 0) throw new BadRequestException([`instruments must be on the list: ${unknown.join(", ")} isn't`]);
+    // A mode's display settings (issue #209): merged into what's kept, null back to the account's.
+    const displaySettings = dto.displaySettings
+      ? mergeDisplaySettings(
+          ((await this.prisma.client.user.findUniqueOrThrow({ where: { id: userId }, select: { displaySettings: true } })).displaySettings ?? {}) as SavedDisplaySettings,
+          dto.displaySettings,
+        )
+      : undefined;
     const user = await this.prisma.client.user.update({
       where: { id: userId },
       data: {
+        ...(displaySettings && { displaySettings: displaySettings as Prisma.InputJsonValue }),
         locale: dto.locale,
         displayName: dto.displayName,
         capoDisplayMode: dto.capoDisplayMode,

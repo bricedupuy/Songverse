@@ -1,5 +1,6 @@
 import type {
   Attachment,
+  DisplaySettings,
   OfflinePin,
   OfflineSyncCheck,
   OfflineSyncResponse,
@@ -11,7 +12,7 @@ import type {
   SongbookOfflineCopy,
   SongOfflineCopy,
 } from "../api-client/index.js";
-import type { CapoDisplayModeValue, ChordDiagramsValue, ChordNotationValue, LiveViewValue } from "../constants/index.js";
+import type { AppModeValue, CapoDisplayModeValue, ChordDiagramsValue, ChordNotationValue, LiveViewValue } from "../constants/index.js";
 import type { SongDocumentV2 } from "../schemas/song-document-v2.js";
 import { foldForSearch } from "../search-text/index.js";
 import { entryCodeMatches, formatSongbookReference, songbookMatches, songbookReferences } from "../songbook-references/index.js";
@@ -194,6 +195,8 @@ export interface OfflineViewer {
   pianoSmooth?: boolean;
   pianoHands?: string;
   pianoNoteNames?: string;
+  /** Each mode's display settings (issue #209); left out by an older copy. */
+  displaySettings?: Partial<Record<AppModeValue, DisplaySettings>>;
 }
 
 export async function offlineViewer(storage: OfflineStorage): Promise<OfflineViewer | undefined> {

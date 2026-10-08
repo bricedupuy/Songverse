@@ -4,7 +4,7 @@
 // the capo on - folding to one line, and a chord's card, with its other
 // shapes, when it's tapped on the chart. A set's "Hide chords" still hides.
 import { chromium } from "playwright";
-import { WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, call, check, finish, signIn, stamp, stepper, user, displaySetting, resetDisplay } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -107,11 +107,11 @@ await step("the strip folds to one line, and stays folded", async () => {
   await page.locator("[data-testid=chord-strip]:not([data-folded])").waitFor();
 });
 
-await step("a set's song: switched to ukulele from My view; Hide chords still hides", async () => {
+await step("a set's song: switched to ukulele from the Display panel; Hide chords still hides", async () => {
   await page.goto(`${WEB}/sets/${set.id}/songs/${item.id}`);
   await page.waitForLoadState("networkidle");
   await page.getByTestId("chord-strip").waitFor();
-  await page.getByTestId("diagrams-select").selectOption("UKULELE");
+  await displaySetting(page, "instrument", "display-diagrams-UKULELE");
   await page.locator("[data-testid=chord-strip][data-instrument=ukulele]").waitFor();
   // A ukulele has no capo here: the chords as they sound.
   const chords = await page.getByTestId("chord-strip").locator("[data-chord-diagram]").evaluateAll((els) => els.map((el) => el.dataset.chordDiagram));
@@ -123,14 +123,20 @@ await step("a set's song: switched to ukulele from My view; Hide chords still hi
   await page.getByText("Show 1 hidden chord").waitFor();
   if ((await page.getByTestId("chord-card").count()) > 0) throw new Error("a card while hiding chords");
   await page.getByText("Show 1 hidden chord").click();
+  // Practice back to the account's diagrams (issue #209), for the steps below.
+  await resetDisplay(page);
 });
 
 await step("Live: the strip at the top of the song", async () => {
   await page.goto(`${WEB}/sets/${set.id}/live/${item.id}`);
   await page.getByTestId("live-view").waitFor();
+  // Each mode keeps its own (issue #209): ukulele for Live too.
+  await displaySetting(page, "instrument", "display-diagrams-UKULELE");
   await page.locator("[data-testid=chord-strip][data-instrument=ukulele]").waitFor();
   await page.getByRole("button", { name: "Show how to play E" }).first().click();
   await page.getByTestId("chord-card").waitFor();
+  await page.keyboard.press("Escape");
+  await resetDisplay(page);
 });
 
 await step("your own shape for a chord, for this song only (issue #207 phase 3)", async () => {

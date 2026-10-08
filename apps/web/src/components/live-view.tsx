@@ -1,4 +1,4 @@
-import { chartSeconds, degreeChords, transposeChord, transposeKey, structureOf, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
+import { chartSeconds, degreeChords, transposeChord, transposeKey, structureOf, type DiagramPlayer, type EffectiveDisplaySettings, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
 import { AArrowDown, AArrowUp, ArrowLeft, ChevronDown, ChevronUp, Settings2, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -7,7 +7,7 @@ import { CommandSearch } from "#/components/command-search";
 import { MetronomeSongButton } from "#/components/metronome";
 import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
-import { ChartColumnsPicker } from "#/components/chart-columns-picker";
+import { DisplayPanel } from "#/components/display-panel";
 import { PresentPanel } from "#/components/present-panel";
 import { TransitionChordsChooser, TransitionSymbol, TransitionVariations, transitionText } from "#/components/set-transition";
 import { CapoBadge } from "#/components/capo-badge";
@@ -15,13 +15,9 @@ import { ChartWithDiagrams, ChordSteps, type ChordStep } from "#/components/chor
 import { Button } from "#/components/ui/button";
 import { SyncControl } from "#/components/sync-control";
 import { SidebarTrigger } from "#/components/ui/sidebar";
-import { useChartColumns } from "#/lib/chart-columns";
+import { chartDisplayProps, changeDisplaySettings, stepTextSize } from "#/lib/display-settings";
 import { cn } from "#/lib/utils";
 
-const TEXT_SIZE_KEY = "songverse.liveTextSize";
-const TEXT_SIZES = [1, 1.25, 1.5, 1.75, 2, 2.5, 3];
-const DEFAULT_TEXT_SIZE = 1.5;
-const PHONE_TEXT_SIZE = 1.25;
 const SPEEDS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
 
 /** What the Live view shows: a song of a set, or one pulled up on its own (issue #48). */
@@ -57,11 +53,6 @@ export interface LiveSong {
   nextLabel: string | null;
   /** What happens after it (issue #199), in a set; null when nothing's said. */
   transition?: SetTransitionView | null;
-  /** The player's chord diagrams (issue #207), and how they name chords. */
-  diagrams?: ChordDiagramsValue;
-  notation?: ChordNotationValue;
-  /** Chords coloured by family (issue #9). */
-  colors?: boolean;
   /** Left-handed diagrams and tunings (issue #207), and the song whose chosen shapes they use. */
   player?: DiagramPlayer;
   songVersionId?: string;
@@ -101,8 +92,11 @@ export function LiveView({
   startAt,
   onCurrent,
   control,
+  display,
 }: {
   songs: LiveSong[];
+  /** How Live reads (issue #209): the Display panel's settings for Live. */
+  display: EffectiveDisplaySettings;
   /** The song of the stack the page opens at (a reload after scrolling on into it); its first when left out. */
   startAt?: string;
   onCurrent?: (songId: string) => void;
@@ -123,7 +117,7 @@ export function LiveView({
   const song = songs[at]!;
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [textSize, setTextSize] = useState(DEFAULT_TEXT_SIZE);
+  const textSize = display.textSize;
   const fullScreen = useFullScreen();
   useWakeLock();
 
@@ -141,25 +135,8 @@ export function LiveView({
   const seconds = secondsOf(at);
   const anySeconds = charts.some((_, i) => secondsOf(i) > 0);
 
-  // The player's text size, from the last time (after hydrating: the server can't know it).
-  useEffect(() => {
-    try {
-      const stored = Number(localStorage.getItem(TEXT_SIZE_KEY));
-      if (TEXT_SIZES.includes(stored)) return setTextSize(stored);
-    } catch {
-      // Storage blocked: the default.
-    }
-    // A phone's lines are short: a size down, so fewer of them wrap.
-    if (window.innerWidth < 640) setTextSize(PHONE_TEXT_SIZE);
-  }, []);
   function changeTextSize(step: 1 | -1) {
-    const next = TEXT_SIZES[Math.min(TEXT_SIZES.length - 1, Math.max(0, TEXT_SIZES.indexOf(textSize) + step))]!;
-    setTextSize(next);
-    try {
-      localStorage.setItem(TEXT_SIZE_KEY, String(next));
-    } catch {
-      // Storage blocked: it lasts for this page.
-    }
+    changeDisplaySettings("LIVE", { textSize: stepTextSize(textSize, step) });
   }
   function changeSpeed(step: 1 | -1) {
     setSpeed(SPEEDS[Math.min(SPEEDS.length - 1, Math.max(0, SPEEDS.indexOf(speed) + step))]!);
@@ -372,7 +349,7 @@ export function LiveView({
   const inSet = song.nextLabel !== null;
   const pdf = song.reading?.shown ?? null;
   const steps = useMemo(() => (chart ? structureOf(chart) : []), [chart]);
-  const columns = useChartColumns();
+  const columns = display.columns;
   const [current, pickPass] = useCurrentPass(scroller, steps, song.id, columns !== "1", () => sections.current[at] ?? null);
 
   function goToPass(passId: string) {
@@ -404,6 +381,7 @@ export function LiveView({
         {song.setId ? <SyncControl setId={song.setId} itemId={song.id} compact /> : null}
         <MetronomeSongButton songId={song.id} tempo={chart?.tempo} timeSignature={chart?.timeSignature} />
         <CommandSearch />
+        <DisplayPanel mode="LIVE" settings={display} player={head.player} compact className="size-10 border-0 text-muted-foreground [&_svg]:size-5" />
         {fullScreen.available ? (
           <span className="hidden sm:contents">
             <IconButton label={t("live.fullScreen")} pressed={fullScreen.active} onClick={fullScreen.toggle}>
@@ -430,8 +408,7 @@ export function LiveView({
               current={i === at}
               stacked={songs.length > 1}
               followed={i < songs.length - 1}
-              textSize={textSize}
-              columns={columns}
+              display={display}
               extraSteps={extra[one.id] ?? 0}
               nextSteps={songs[i + 1] ? (extra[songs[i + 1]!.id] ?? 0) : 0}
               onTranspose={(steps) => setExtra((before) => ({ ...before, [one.id]: steps }))}
@@ -473,13 +450,12 @@ export function LiveView({
         </div>
 
         <div className="hidden items-center gap-1 sm:flex">
-          <IconButton label={t("live.smaller")} onClick={() => changeTextSize(-1)} disabled={!!pdf || textSize === TEXT_SIZES[0]}>
+          <IconButton label={t("live.smaller")} onClick={() => changeTextSize(-1)} disabled={!!pdf || stepTextSize(textSize, -1) === textSize}>
             <AArrowDown />
           </IconButton>
-          <IconButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={!!pdf || textSize === TEXT_SIZES.at(-1)}>
+          <IconButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={!!pdf || stepTextSize(textSize, 1) === textSize}>
             <AArrowUp />
           </IconButton>
-          {pdf ? null : <ChartColumnsPicker className="ml-1" />}
         </div>
 
         <p className="hidden flex-1 text-center text-xs text-muted-foreground lg:block">{inSet ? t("live.keys") : t("live.keysAlone")}</p>
@@ -513,8 +489,7 @@ function LiveSongSection({
   current,
   stacked,
   followed,
-  textSize,
-  columns,
+  display,
   extraSteps,
   nextSteps,
   onTranspose,
@@ -526,8 +501,7 @@ function LiveSongSection({
   stacked: boolean;
   /** The next song is stacked under it: the transition goes between them. */
   followed: boolean;
-  textSize: number;
-  columns: ReturnType<typeof useChartColumns>;
+  display: EffectiveDisplaySettings;
   extraSteps: number;
   /** The next song's last-minute transpose, when it's stacked under this one. */
   nextSteps: number;
@@ -546,7 +520,7 @@ function LiveSongSection({
     <section ref={ref} className="flex flex-col" data-testid="live-song" data-item={song.id} data-current={current ? "" : undefined}>
       {/* Zoom, not font size: the chart's own sizes (chords, headings, notes) keep their proportions. */}
       {/* A PDF isn't zoomed: its pages fit the width (on a phone, edge to edge). */}
-      <div className="flex flex-col gap-4" style={pdf ? undefined : { zoom: textSize }}>
+      <div className="flex flex-col gap-4" style={pdf ? undefined : { zoom: display.textSize }}>
         {/* With a PDF on a phone, the PDF's own title does: the whole screen for its pages. */}
         <div className={cn("flex items-start justify-between gap-4", pdf && "max-sm:hidden")} data-testid={id("live-song-top")}>
           <div className="min-w-0">
@@ -575,13 +549,13 @@ function LiveSongSection({
         {pdf && song.reading ? (
           <PdfPages key={pdf.id} source={() => song.reading!.source(pdf)} name={pdf.filename} className="max-sm:-mx-4" />
         ) : chart ? (
-          <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} colors={song.colors} player={song.player} songVersionId={song.songVersionId} />
+          <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} {...chartDisplayProps(display)} player={song.player} songVersionId={song.songVersionId} />
         ) : (
           <p className="text-muted-foreground">{t("sets.hiddenSong")}</p>
         )}
         {song.nextLabel !== null && !followed ? <p className="mt-8 border-t pt-4 text-sm font-medium text-muted-foreground">{song.nextLabel}</p> : null}
       </div>
-      {transition ? <TransitionBlock song={song} transition={transition} between={followed} /> : null}
+      {transition ? <TransitionBlock song={song} transition={transition} between={followed} display={display} /> : null}
     </section>
   );
 }
@@ -612,7 +586,7 @@ function transposedTransition(transition: SetTransitionView, steps: number, next
  * a tap - which who can change the set changes here. Between two stacked
  * songs, a band across the page.
  */
-function TransitionBlock({ song, transition, between }: { song: LiveSong; transition: SetTransitionView; between: boolean }) {
+function TransitionBlock({ song, transition, between, display }: { song: LiveSong; transition: SetTransitionView; between: boolean; display: EffectiveDisplaySettings }) {
   const { t } = useTranslation();
   const [open, setOpen] = useTransitionOpen();
   const chords = transition.chords ?? [];
@@ -639,7 +613,7 @@ function TransitionBlock({ song, transition, between }: { song: LiveSong; transi
         <>
           {/* Compact: the chords as one row of steps, each heard with a tap; opened, their diagrams and (for who changes the set) the other ways in. */}
           <div className="flex flex-wrap items-start gap-2" data-testid="live-transition-chords">
-            <ChordSteps steps={steps} expanded={open} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} player={song.player} musicalKey={transition.toKey} />
+            <ChordSteps steps={steps} expanded={open} diagrams={display.chordDiagrams} notation={display.chordNotation} player={song.player} musicalKey={transition.toKey} />
             {/* The chosen way in's other variations, a tap away. */}
             {song.onTransitionChords ? (
               <span className="flex h-9 items-center">
@@ -675,8 +649,8 @@ function TransitionBlock({ song, transition, between }: { song: LiveSong; transi
               firstChord={transition.firstChord}
               degrees={chords}
               onChange={song.onTransitionChords!}
-              diagrams={song.diagrams}
-              notation={song.notation ?? "LETTERS"}
+              diagrams={display.chordDiagrams}
+              notation={display.chordNotation}
               player={song.player}
               framed={false}
               className="max-w-xl rounded-md border bg-background p-3"

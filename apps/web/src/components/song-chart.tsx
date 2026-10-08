@@ -13,6 +13,7 @@ import { AlertTriangle } from "lucide-react";
 import { Fragment } from "react";
 import { useTranslation } from "react-i18next";
 import type { ChartColumns } from "#/lib/chart-columns";
+import type { DisplayFontValue, DisplaySpacingValue } from "@songverse/core";
 import { cn } from "#/lib/utils";
 
 // Section types with a heading of their own; "other" has none.
@@ -42,6 +43,9 @@ export function SongChart({
   chordClickAction = "hide",
   colors = false,
   columns = "1",
+  font = "mono",
+  spacing = "normal",
+  hideChords = false,
 }: {
   chart: RenderedChart;
   emptyText?: string;
@@ -53,6 +57,10 @@ export function SongChart({
   colors?: boolean;
   /** Flowed into columns on a wide screen (issue #177): as many as fit, or up to 2 or 3; a section never split. */
   columns?: ChartColumns;
+  /** The player's Display settings (issue #209): the lettering, the space between lines, and lyrics only. */
+  font?: DisplayFontValue;
+  spacing?: DisplaySpacingValue;
+  hideChords?: boolean;
 }) {
   const { t } = useTranslation();
   if (chart.passes.length === 0) {
@@ -65,7 +73,9 @@ export function SongChart({
   return (
     <div
       className={cn(
-        "font-mono text-sm leading-snug",
+        "text-sm",
+        font === "sans" ? "font-sans" : "font-mono",
+        spacing === "compact" ? "leading-tight" : spacing === "relaxed" ? "leading-relaxed [&_[data-line]]:mb-1" : "leading-snug",
         // Chords named as capo shapes, not as they sound (issue #219): in italics, never mistaken for the sounding ones.
         chart.capoShapes && "[&_[data-chord]]:italic",
         flowed ? "gap-x-12 [column-rule:1px_solid_var(--color-border)] [&>[data-pass]]:mb-5 [&>[data-pass]]:break-inside-avoid" : "flex flex-col gap-5",
@@ -73,6 +83,9 @@ export function SongChart({
       // Auto: as many columns of at least 24rem as fit; 2 or 3: up to that many, never narrower than 18rem (a phone keeps one).
       style={flowed ? { columns: columns === "auto" ? "24rem" : `${columns} 18rem` } : undefined}
       data-columns={columns}
+      data-font={font}
+      data-spacing={spacing}
+      data-hide-chords={hideChords ? "" : undefined}
       data-capo-shapes={chart.capoShapes ? "" : undefined}
       data-testid="song-chart"
     >
@@ -106,7 +119,7 @@ export function SongChart({
             ) : null}
             <div className="flex flex-col gap-1">
               {pass.lines.map((line) => (
-                <ChartLine key={line.id} line={line} onChordClick={onChordClick} action={chordClickAction} colors={colors} />
+                <ChartLine key={line.id} line={hideChords && line.kind !== "note" ? { ...line, chords: [] } : line} onChordClick={onChordClick} action={chordClickAction} colors={colors} />
               ))}
             </div>
           </div>

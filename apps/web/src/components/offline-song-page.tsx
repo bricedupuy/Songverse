@@ -1,9 +1,10 @@
-import { chartNotation, cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type FoundSong } from "@songverse/core";
+import { chartNotation, cueSectionsOf, findKeptSong, inlineSafeType, keptFile, keptSongCopy, offlineViewer, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type FoundSong, type SavedDisplaySettings } from "@songverse/core";
 import { Link } from "@tanstack/react-router";
 import { FileText, Mic } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useChartColumns } from "#/lib/chart-columns";
+import { DisplayPanel } from "#/components/display-panel";
+import { chartDisplayProps, displayModeOf, useDiagramPlayer, useDisplaySettings } from "#/lib/display-settings";
 import { ChartWithDiagrams } from "#/components/chord-diagrams";
 import { StemDock } from "#/components/stem-dock";
 import { downloadBlob } from "#/lib/download";
@@ -24,6 +25,8 @@ export interface OfflineSong extends FoundSong {
   diagrams: ChordDiagramsValue;
   colors: boolean;
   player: DiagramPlayer;
+  /** Each mode's display settings (issue #209), as of the last sync. */
+  displaySettings: SavedDisplaySettings | null;
 }
 
 /** The song as kept on the device (on its own, or in a kept set), if it is. */
@@ -39,6 +42,7 @@ export async function loadOfflineSong(songVersionId: string): Promise<OfflineSon
     diagrams: viewer?.chordDiagrams ?? "OFF",
     colors: viewer?.chordColors ?? false,
     player: viewer ?? {},
+    displaySettings: viewer?.displaySettings ?? null,
   };
 }
 
@@ -48,17 +52,23 @@ export async function loadOfflineSong(songVersionId: string): Promise<OfflineSon
  */
 export function OfflineSongPage({ song }: { song: OfflineSong }) {
   const { t } = useTranslation();
-  const columns = useChartColumns();
   const { mode } = useMode();
+  // How this mode reads (issue #209), as the Display panel changes it.
+  const displayMode = displayModeOf(mode);
+  const display = useDisplaySettings(displayMode, {
+    account: { chordNotation: song.notation, capoDisplayMode: song.capoDisplay, chordDiagrams: song.diagrams, chordColors: song.colors },
+    saved: song.displaySettings,
+  });
+  const player = useDiagramPlayer(song.player);
   const [keptFiles, setKeptFiles] = useState<Set<string>>(new Set());
   const chart = useMemo(
     () =>
       renderChart(song.document, null, {
-        notation: chartNotation(song.notation),
-        capoDisplay: song.capoDisplay === "FINGERED" ? "shapes" : "sounding",
+        notation: chartNotation(display.chordNotation),
+        capoDisplay: display.capoDisplayMode === "FINGERED" ? "shapes" : "sounding",
         suggestedCapo: song.capo,
       }),
-    [song],
+    [song, display.chordNotation, display.capoDisplayMode],
   );
 
   useEffect(() => {
@@ -88,10 +98,13 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
           {song.artists ? <p className="text-sm text-muted-foreground">{song.artists}</p> : null}
           <p className="text-sm text-muted-foreground">{t("offline.songReadOnly")}</p>
         </div>
+        <div className="flex items-center gap-2">
+        <DisplayPanel mode={displayMode} settings={display} player={player} className="h-9" />
         <Button onClick={() => setMode("live")} render={<Link to="/library/$songVersionId/live" params={{ songVersionId: song.songVersionId }} />}>
             <Mic />
             {t("live.start")}
           </Button>
+        </div>
       </div>
 
       {/* Practice: the stems kept on the device (with "Include audio"), docked at the bottom. */}
@@ -114,7 +127,9 @@ export function OfflineSongPage({ song }: { song: OfflineSong }) {
 
       <Card>
         <CardContent>
-          <ChartWithDiagrams chart={chart} columns={columns} diagrams={song.diagrams} notation={song.notation} colors={song.colors} player={song.player} songVersionId={song.songVersionId} />
+          <div style={{ zoom: display.textSize }}>
+            <ChartWithDiagrams chart={chart} {...chartDisplayProps(display)} player={player} songVersionId={song.songVersionId} />
+          </div>
         </CardContent>
       </Card>
 

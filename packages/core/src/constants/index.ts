@@ -82,6 +82,24 @@ export const PIANO_HANDS = ["both", "right"] as const;
 export const PIANO_NOTE_NAMES = ["card", "all", "none"] as const;
 export type ChordDiagramsValue = (typeof CHORD_DIAGRAMS)[number];
 
+/**
+ * How a player reads charts, kept for each mode (issue #209): Edit, Practice
+ * and Live each have their own, changed from the Display panel.
+ */
+export const APP_MODES = ["EDIT", "PRACTICE", "LIVE"] as const;
+export type AppModeValue = (typeof APP_MODES)[number];
+/** The chart's lettering: a fixed-width font keeps chords over their syllables; sans reads lighter. */
+export const DISPLAY_FONTS = ["mono", "sans"] as const;
+export type DisplayFontValue = (typeof DISPLAY_FONTS)[number];
+/** The space between a chart's lines. */
+export const DISPLAY_SPACINGS = ["compact", "normal", "relaxed"] as const;
+export type DisplaySpacingValue = (typeof DISPLAY_SPACINGS)[number];
+/** Columns a chart flows into (issue #177): as many as fit, or 1, 2, 3. */
+export const DISPLAY_COLUMNS = ["auto", "1", "2", "3"] as const;
+export type DisplayColumnsValue = (typeof DISPLAY_COLUMNS)[number];
+/** Text size, as a zoom of the chart: its own proportions kept. */
+export const DISPLAY_TEXT_SIZES = [0.75, 0.875, 1, 1.25, 1.5, 1.75, 2, 2.5, 3] as const;
+
 /** How a song reads in Live (issue #155): its chart (chords and lyrics), or its PDF. More to come: lyrics only (#106), drummer (#107). */
 export const LIVE_VIEWS = ["CHART", "PDF"] as const;
 export type LiveViewValue = (typeof LIVE_VIEWS)[number];

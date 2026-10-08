@@ -49,6 +49,7 @@ export default defineConfig({
             { slug: "library" },
             { slug: "song-editor" },
             { slug: "versions" },
+            { slug: "display" },
           ],
         },
         {

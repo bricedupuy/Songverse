@@ -1,12 +1,12 @@
-import { chartNotation, cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type LiveViewValue, type SongVersionDetail } from "@songverse/core";
+import { chartNotation, cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type LiveViewValue, type SavedDisplaySettings, type SongVersionDetail } from "@songverse/core";
 import { CapoBadge } from "#/components/capo-badge";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MetronomeSongButton } from "#/components/metronome";
-import { ChartColumnsPicker } from "#/components/chart-columns-picker";
-import { useChartColumns } from "#/lib/chart-columns";
+import { DisplayPanel } from "#/components/display-panel";
+import { chartDisplayProps, useDiagramPlayer, useDisplaySettings } from "#/lib/display-settings";
 import { ChartWithDiagrams } from "#/components/chord-diagrams";
 import { ChartOrPdf, songViewStore } from "#/components/chart-or-pdf";
 import { StemDock } from "#/components/stem-dock";
@@ -33,7 +33,8 @@ export function PracticeSongPage({
   liveView,
   diagrams,
   colors,
-  player,
+  player: accountPlayer,
+  displaySettings,
 }: {
   version: SongVersionDetail;
   attachments: Attachment[];
@@ -48,18 +49,22 @@ export function PracticeSongPage({
   colors: boolean;
   /** Left-handed diagrams and tunings (issue #207). */
   player?: DiagramPlayer;
+  /** Each mode's display settings (issue #209). */
+  displaySettings?: SavedDisplaySettings | null;
 }) {
   const { t, i18n } = useTranslation();
   const router = useRouter();
-  const columns = useChartColumns();
+  // How Practice reads (issue #209), as the Display panel changes it.
+  const display = useDisplaySettings("PRACTICE", { account: { chordNotation: notation, capoDisplayMode: capoDisplay, chordDiagrams: diagrams, chordColors: colors }, saved: displaySettings });
+  const player = useDiagramPlayer(accountPlayer);
   const chart = useMemo(
     () =>
       renderChart(version.documentJson, null, {
-        notation: chartNotation(notation),
-        capoDisplay: capoDisplay === "FINGERED" ? "shapes" : "sounding",
+        notation: chartNotation(display.chordNotation),
+        capoDisplay: display.capoDisplayMode === "FINGERED" ? "shapes" : "sounding",
         suggestedCapo: version.capo,
       }),
-    [version, notation, capoDisplay],
+    [version, display.chordNotation, display.capoDisplayMode],
   );
   const playable = stemFilesOf(attachments, useChosenMultitrack(version.id));
   const cueSections = useMemo(() => cueSectionsOf(version.documentJson), [version]);
@@ -92,7 +97,8 @@ export function PracticeSongPage({
           {chart.capo ? <CapoBadge capo={chart.capo} shapes={chart.capoShapes} /> : null}
         </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <DisplayPanel mode="PRACTICE" settings={display} player={player} className="h-9" />
           <MetronomeSongButton songId={version.id} tempo={chart.tempo} timeSignature={chart.timeSignature} variant="button" />
           <Button variant="outline" onClick={() => setMode("edit")}>
             <Pencil />
@@ -109,8 +115,10 @@ export function PracticeSongPage({
       <ChartOrPdf songVersionId={version.id} attachments={attachments} defaultView={liveView} store={songViewStore(version.id)}>
         <Card>
           <CardContent className="flex flex-col gap-3">
-            <ChartColumnsPicker className="self-end" />
-            <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} columns={columns} diagrams={diagrams} notation={notation} colors={colors} player={player} songVersionId={version.id} />
+            {/* Zoom, not font size: the chart's own sizes keep their proportions. */}
+            <div style={{ zoom: display.textSize }}>
+              <ChartWithDiagrams chart={chart} emptyText={t("sets.noChart")} {...chartDisplayProps(display)} player={player} songVersionId={version.id} />
+            </div>
           </CardContent>
         </Card>
       </ChartOrPdf>

@@ -169,3 +169,29 @@ export async function settledFiles(who, songVersionId, timeout = 30000) {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
 }
+
+/**
+ * Sets one display setting from the page's Display panel (issue #209): opens
+ * it, picks the section, presses the choice (its test id, `display-<field>-<value>`),
+ * and closes it again so it doesn't cover the page.
+ */
+export async function displaySetting(p, section, choice) {
+  const open = (await p.getByTestId("display-panel").count()) > 0;
+  if (!open) await p.getByTestId("display-open").first().click();
+  const panel = p.getByTestId("display-panel");
+  await panel.waitFor();
+  await panel.getByTestId("display-section").click();
+  await p.getByTestId(`display-section-${section}`).click();
+  await panel.getByTestId(choice).click();
+  await panel.getByTestId("display-close").click();
+  await panel.waitFor({ state: "detached" });
+}
+
+/** Puts the page's mode back to the account's display settings (issue #209), from the Display panel. */
+export async function resetDisplay(p) {
+  await p.getByTestId("display-open").first().click();
+  const panel = p.getByTestId("display-panel");
+  await panel.getByTestId("display-reset").click();
+  await panel.getByTestId("display-close").click();
+  await panel.waitFor({ state: "detached" });
+}

@@ -37,7 +37,7 @@ Comment se lisent les accords sur toutes les grilles que vous ouvrez :
 - **Diagrammes d'accords** - **Aucun**, **Guitare**, **Ukulélé** ou **Piano** : comment jouer les accords du chant, à côté de sa grille (voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords)).
 - **Lire les chants en** - **Accords et paroles**, ou **PDF, quand le chant en a un** : comment les chants s'affichent en Session et en Live, sauf si vous choisissez autrement pour un chant (voir [Jouer une liste en live](/fr/sets/#jouer-une-liste-en-live)). Un chant sans PDF montre toujours sa grille.
 
-Vous pouvez aussi les changer depuis n'importe quelle grille d'une liste de chants. Les accords masqués et simplifiés se règlent par chant, depuis sa grille : voir [Votre propre affichage d'une grille](/fr/versions/#votre-propre-affichage-dune-grille).
+C'est le point de départ de chaque mode : le panneau [Affichage](/fr/display/) les change pour un mode - Édition, Session ou Live - et son **↺** remet ce mode sur ces réglages. Les accords masqués et simplifiés se règlent par chant, depuis sa grille : voir [Votre propre affichage d'une grille](/fr/versions/#votre-propre-affichage-dune-grille).
 
 ## Stockage
 

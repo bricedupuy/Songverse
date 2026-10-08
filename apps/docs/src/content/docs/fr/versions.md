@@ -43,12 +43,8 @@ Quand vous ouvrez un chant dans une liste, la barre **Mon affichage** change la 
 - **Masquer des accords** - puis touchez un accord pour le masquer (un accord trop rapide pour vous, par exemple). **Afficher les accords masqués** les fait revenir.
 - **Accords simplifiés** - Gmaj7 s'affiche G, Bm7b5 Bdim.
 - **Sans basses** - D/F# s'affiche D.
-- **Noms** - les accords en lettres (**C D E**), en solfège (**Do Ré Mi**) ou en chiffres Nashville (**1 4 5**).
-- **Couleurs** - les accords colorés selon leur type.
-- **Formes capo** - avec un capo, les accords comme les formes que vous jouez plutôt que tels qu'ils sonnent.
-- **Diagrammes** - **Aucun**, **Guitare**, **Ukulélé** ou **Piano** : voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords) ci-dessous.
 
-Les accords masqués et simplifiés sont gardés par chant (et par version). Les noms, les couleurs, les formes de capo et les diagrammes s'appliquent à toutes les grilles ; vous pouvez aussi les régler dans [votre compte](/fr/account/#affichage-des-grilles).
+Les accords masqués et simplifiés sont gardés par chant (et par version). À côté, **Affichage** change la façon dont toutes les grilles se lisent dans le mode où vous êtes - noms des accords, couleurs, formes de capo, diagrammes, texte et colonnes : voir [Affichage](/fr/display/).
 
 ## Chiffres Nashville et couleurs des accords
 
@@ -58,7 +54,7 @@ Avec **Couleurs des accords** sur **Selon le type d'accord**, chaque accord de l
 
 ## Diagrammes d'accords
 
-Choisissez **Guitare**, **Ukulélé** ou **Piano** sous **Diagrammes d'accords** dans [Affichage des grilles](/fr/account/#affichage-des-grilles) (ou **Diagrammes** dans **Mon affichage**), et les grilles que vous lisez - en Session, dans les chants d'une liste, en Live et hors ligne - montrent comment jouer leurs accords. Ils sont désactivés tant que vous ne les choisissez pas ; rien ne cache jamais les paroles, et la grille elle-même ne bouge pas.
+Choisissez **Guitare**, **Ukulélé** ou **Piano** sous **Diagrammes d'accords** dans [Affichage des grilles](/fr/account/#affichage-des-grilles) (ou **Instrument** dans le panneau [Affichage](/fr/display/), pour un mode), et les grilles que vous lisez - en Session, dans les chants d'une liste, en Live et hors ligne - montrent comment jouer leurs accords. Ils sont désactivés tant que vous ne les choisissez pas ; rien ne cache jamais les paroles, et la grille elle-même ne bouge pas.
 
 - En haut de la grille, les accords du chant en petits diagrammes, chacun une fois, dans l'ordre où ils viennent. Touchez-en un pour l'entendre gratté (vers le bas, puis vers le haut au toucher suivant). La flèche à côté de **Accords à la guitare** les replie en une seule ligne de noms, retenue sur l'appareil.
 - Touchez un accord de la grille pour voir son diagramme, plus grand, avec les doigts à utiliser. **‹ ›** passent aux autres façons de le jouer ; touchez le diagramme pour l'entendre. **Utiliser cette forme pour ce chant** garde celle affichée pour cet accord dans ce chant, pour vous seul, sur tous vos appareils : le bandeau et la fiche la montrent d'abord. **Revenir à l'habituelle** l'annule. Les autres chants gardent la forme habituelle.

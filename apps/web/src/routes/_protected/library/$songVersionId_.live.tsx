@@ -1,4 +1,4 @@
-import { chartNotation, findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type LiveViewValue, type SongDocumentV2 } from "@songverse/core";
+import { chartNotation, findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type LiveViewValue, type SavedDisplaySettings, type SongDocumentV2 } from "@songverse/core";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,6 +9,7 @@ import { artistNames } from "#/lib/artists";
 import { setMode } from "#/lib/mode";
 import { deviceStorage } from "#/lib/offline-data";
 import { useSongView } from "#/lib/song-views";
+import { useDiagramPlayer, useDisplaySettings } from "#/lib/display-settings";
 
 /** What playing a song on its own needs: from the library online, from a kept set offline. */
 export interface LoneSong {
@@ -27,6 +28,8 @@ export interface LoneSong {
   diagrams: ChordDiagramsValue;
   colors: boolean;
   player: DiagramPlayer;
+  /** Each mode's display settings (issue #209). */
+  displaySettings: SavedDisplaySettings | null;
 }
 
 /**
@@ -66,6 +69,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           diagrams: me.chordDiagrams,
           colors: me.chordColors,
           player: me,
+          displaySettings: me.displaySettings ?? null,
         };
       },
       async () => {
@@ -89,6 +93,7 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
           diagrams: viewer?.chordDiagrams ?? "OFF",
           colors: viewer?.chordColors ?? false,
           player: viewer ?? {},
+          displaySettings: viewer?.displaySettings ?? null,
         };
       },
     ),
@@ -108,6 +113,12 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
   const router = useRouter();
   // Its chart or its PDF, as this player reads it (issue #155).
   const reading = useReadingView(song.id, undefined, song.liveView, songViewStore(song.id));
+  // How Live reads (issue #209), as the Display panel changes it.
+  const display = useDisplaySettings("LIVE", {
+    account: { chordNotation: song.notation, capoDisplayMode: song.capoDisplay, chordDiagrams: song.diagrams, chordColors: song.colors },
+    saved: song.displaySettings,
+  });
+  const player = useDiagramPlayer(song.player);
   return (
     <LiveView
       songs={[{
@@ -120,8 +131,8 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         chartFor: (extraSteps) =>
           renderChart(song.document, null, {
             transposeSteps: extraSteps,
-            notation: chartNotation(song.notation),
-            capoDisplay: song.capoDisplay === "FINGERED" ? "shapes" : "sounding",
+            notation: chartNotation(display.chordNotation),
+            capoDisplay: display.capoDisplayMode === "FINGERED" ? "shapes" : "sounding",
             suggestedCapo: song.capo,
           }),
         keyShift: 0,
@@ -138,12 +149,10 @@ function SongLiveView({ song, back }: { song: LoneSong; back: string | undefined
         next: null,
         nextLabel: null,
         reading,
-        diagrams: song.diagrams,
-        notation: song.notation,
-        colors: song.colors,
-        player: song.player,
+        player,
         songVersionId: song.id,
       }]}
+      display={display}
     />
   );
 }

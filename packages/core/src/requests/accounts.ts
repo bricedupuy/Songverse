@@ -1,6 +1,6 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
+import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
 import { TUNINGS } from "../chords/shapes.js";
 import { clearableText, optional, requiredText } from "./fields.js";
 
@@ -26,8 +26,29 @@ export const ChooseChordShapeSchema = z.strictObject({
 });
 export type ChooseChordShapeRequest = z.input<typeof ChooseChordShapeSchema>;
 
+/**
+ * One mode's display settings (issue #209), as changed in the Display panel:
+ * only what differs from the account's (the dashboard's Chart display); a
+ * field set to null goes back to it.
+ */
+export const DisplaySettingsSchema = z.strictObject({
+  textSize: z.union(DISPLAY_TEXT_SIZES.map((size) => z.literal(size)) as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]).nullable().optional(),
+  font: z.enum(DISPLAY_FONTS).nullable().optional(),
+  spacing: z.enum(DISPLAY_SPACINGS).nullable().optional(),
+  columns: z.enum(DISPLAY_COLUMNS).nullable().optional(),
+  chordNotation: z.enum(CHORD_NOTATIONS).nullable().optional(),
+  chordColors: z.boolean().nullable().optional(),
+  capoDisplayMode: z.enum(CAPO_DISPLAY_MODES).nullable().optional(),
+  chordDiagrams: z.enum(CHORD_DIAGRAMS).nullable().optional(),
+  /** Lyrics only: the chords hidden, for a singer. */
+  hideChords: z.boolean().nullable().optional(),
+});
+export type DisplaySettingsRequest = z.input<typeof DisplaySettingsSchema>;
+
 /** PATCH /users/me */
 export const UpdateUserSchema = z.strictObject({
+  /** Display settings for a mode (issue #209), merged into what's kept: { LIVE: { textSize: 2 } }. */
+  displaySettings: optional(z.strictObject({ EDIT: optional(DisplaySettingsSchema), PRACTICE: optional(DisplaySettingsSchema), LIVE: optional(DisplaySettingsSchema) })),
   locale: optional(z.enum(SUPPORTED_LOCALES)),
   displayName: optional(requiredText(80)),
   // A built-in instrument's key, or the id of one an admin added (issue #166); the API keeps the known ones.

@@ -75,6 +75,7 @@ function SongVersionPage() {
         diagrams={data.me?.chordDiagrams ?? "OFF"}
         colors={data.me?.chordColors ?? false}
         player={data.me ?? undefined}
+        displaySettings={data.me?.displaySettings}
         />
       </>
     );
