@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ENTITY_COLORS, SONGBOOK_KINDS } from "../constants/index.js";
 import { ISO_639_1_CODES } from "../languages/index.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
-import { optional, webAddress } from "./fields.js";
+import { optional, queryBoolean, webAddress } from "./fields.js";
 
 // Checked by validateSongbookSections where they're saved (its own messages).
 const sections = z.array(z.unknown()).transform((value) => value as SongbookSection[]);
@@ -109,3 +109,10 @@ export const ImportCatalogEntriesSchema = CatalogFileSchema.extend({
   mode: optional(z.enum(["merge", "replace"])).describe("merge (default) adds and updates; replace also removes entries not in the file"),
   dryRun: optional(z.boolean()).describe("Only report what would change"),
 });
+
+/** GET /songbook-entries: entries by the number people call out (issues #48, #213). */
+export const SongbookEntrySearchQuerySchema = z.strictObject({
+  q: z.string().max(60).describe('A songbook reference: "HY 42", "HY42", "Hymns 42", "42", "A-17"'),
+  more: optional(queryBoolean()).describe("More of each group (Show more): numbers starting with it, and containing it"),
+});
+export type SongbookEntrySearchQuery = z.input<typeof SongbookEntrySearchQuerySchema>;

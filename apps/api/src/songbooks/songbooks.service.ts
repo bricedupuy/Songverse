@@ -2,10 +2,12 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import {
   compareEntryCodes,
   computeSectionLabel,
-  entryCodeMatches,
+  limitSongbookHits,
+  partialEntryDigits,
+  rankSongbookHits,
+  SONGBOOK_HIT_LIMITS,
   normalizeEntryCode,
   parseOriginalSongReference,
-  songbookMatches,
   songbookReferences,
   validateSongbookSections,
   type SongbookSection,
@@ -64,47 +66,37 @@ export class SongbooksService {
   /**
    * Songbook entries a search reads as a reference - "HY 42", "Hymns 42",
    * "42" (issue #48) - in songbooks the user can see, whose songs they can
-   * see too. Matched as @songverse/core's songbookReferences() reads it, the
-   * same way offline search does.
+   * see too: exactly that number, then numbers starting with it, then
+   * containing it (issue #213), ranked by @songverse/core's
+   * rankSongbookHits() as offline search ranks them; `more` for Show more.
    */
-  async searchEntries(user: AuthenticatedUser, query: string, limit = 8) {
+  async searchEntries(user: AuthenticatedUser, query: string, more = false) {
     const references = songbookReferences(query);
     if (references.length === 0) return [];
     const [books, songs] = await Promise.all([this.access.songbooksVisibleTo(user), this.access.songsVisibleTo(user)]);
+    // The numbers asked for, and (from two digits) the ones containing their digits (issue #213).
+    const exact = references.flatMap((reference) => [...new Set([reference.code, normalizeEntryCode(reference.code)])].map((code) => ({ entryCode: { equals: code, mode: "insensitive" as const } })));
+    const partial = partialEntryDigits(query).map((digits) => ({ entryCode: { contains: digits } }));
     const rows = await this.prisma.client.songbookEntry.findMany({
-      where: {
-        AND: [
-          { songbook: books },
-          { songVersion: songs },
-          {
-            OR: references.flatMap((reference) =>
-              [...new Set([reference.code, normalizeEntryCode(reference.code)])].map((code) => ({ entryCode: { equals: code, mode: "insensitive" as const } })),
-            ),
-          },
-        ],
-      },
+      where: { AND: [{ songbook: books }, { songVersion: songs }, { OR: [...exact, ...partial] }] },
       select: {
         entryCode: true,
         songbook: { select: { id: true, name: true, abbreviation: true, sections: true } },
         songVersion: { select: { id: true, title: true } },
       },
-      take: 200,
+      take: 2000,
     });
-    const rank = (row: (typeof rows)[number]) =>
-      references.findIndex((reference) => entryCodeMatches(row.entryCode, reference.code) && songbookMatches(row.songbook, reference.book));
-    return rows
-      .filter((row) => rank(row) !== -1)
-      .sort((a, b) => rank(a) - rank(b) || a.songbook.name.localeCompare(b.songbook.name))
-      .slice(0, limit)
-      .map((row) => ({
-        songbookId: row.songbook.id,
-        songbookName: row.songbook.name,
-        abbreviation: row.songbook.abbreviation,
-        entryCode: row.entryCode!,
-        sectionLabel: computeSectionLabel(row.entryCode, row.songbook.sections as SongbookSection[] | null),
-        songVersionId: row.songVersion.id,
-        title: row.songVersion.title,
-      }));
+    const limits = more ? { exact: 50, prefix: 100, contains: 100 } : SONGBOOK_HIT_LIMITS;
+    return limitSongbookHits(rankSongbookHits(query, rows), limits).map((row) => ({
+      songbookId: row.songbook.id,
+      songbookName: row.songbook.name,
+      abbreviation: row.songbook.abbreviation,
+      entryCode: row.entryCode!,
+      sectionLabel: computeSectionLabel(row.entryCode, row.songbook.sections as SongbookSection[] | null),
+      songVersionId: row.songVersion.id,
+      title: row.songVersion.title,
+      match: row.match,
+    }));
   }
 
   async findVisibleToUser(user: AuthenticatedUser) {

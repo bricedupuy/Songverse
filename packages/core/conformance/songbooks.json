@@ -1,0 +1,701 @@
+{
+  "$schema": "songverse-conformance/v1",
+  "area": "songbooks",
+  "about": "Finding a song by the number people call out (issues #48, #213): how a search reads as a songbook reference, and the order songbook entries come in for it.",
+  "functions": {
+    "songbookReferences": {
+      "about": "The ways a search reads as a songbook entry, most likely first: a book (abbreviation or part of its name) and a code; none without a digit.",
+      "params": [
+        "query"
+      ],
+      "cases": [
+        {
+          "name": "\"HY 42\"",
+          "args": [
+            "HY 42"
+          ],
+          "expected": [
+            {
+              "book": "HY",
+              "code": "42"
+            }
+          ]
+        },
+        {
+          "name": "\"HY42\"",
+          "args": [
+            "HY42"
+          ],
+          "expected": [
+            {
+              "book": "HY",
+              "code": "42"
+            },
+            {
+              "book": null,
+              "code": "HY42"
+            }
+          ]
+        },
+        {
+          "name": "\"Hymns 42\"",
+          "args": [
+            "Hymns 42"
+          ],
+          "expected": [
+            {
+              "book": "Hymns",
+              "code": "42"
+            }
+          ]
+        },
+        {
+          "name": "\"42\"",
+          "args": [
+            "42"
+          ],
+          "expected": [
+            {
+              "book": null,
+              "code": "42"
+            }
+          ]
+        },
+        {
+          "name": "\"A-17\"",
+          "args": [
+            "A-17"
+          ],
+          "expected": [
+            {
+              "book": null,
+              "code": "A-17"
+            }
+          ]
+        },
+        {
+          "name": "\"Hymns FR-092\"",
+          "args": [
+            "Hymns FR-092"
+          ],
+          "expected": [
+            {
+              "book": "Hymns",
+              "code": "FR-092"
+            }
+          ]
+        },
+        {
+          "name": "\"grace\"",
+          "args": [
+            "grace"
+          ],
+          "expected": []
+        }
+      ]
+    },
+    "rankSongbookHits": {
+      "about": "Entries for a search by number, in the order shown, each with how it matched: exactly that number, then numbers starting with it, then containing it (from two digits), each group in number order then by songbook; a number with letters matches on its digits; a book keeps all three to it.",
+      "params": [
+        "query",
+        "entries"
+      ],
+      "cases": [
+        {
+          "name": "a number",
+          "args": [
+            "58",
+            [
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "580",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "5800",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "581",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "158",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "258",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12a",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "058b",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              },
+              {
+                "entryCode": "1058",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              }
+            ]
+          ],
+          "expected": [
+            {
+              "entryCode": "58",
+              "songbook": {
+                "name": "Hymns",
+                "abbreviation": "HY"
+              },
+              "match": "exact"
+            },
+            {
+              "entryCode": "58",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "exact"
+            },
+            {
+              "entryCode": "058b",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            },
+            {
+              "entryCode": "580",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            },
+            {
+              "entryCode": "581",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            },
+            {
+              "entryCode": "5800",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            },
+            {
+              "entryCode": "158",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "contains"
+            },
+            {
+              "entryCode": "258",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "contains"
+            },
+            {
+              "entryCode": "1058",
+              "songbook": {
+                "name": "Hymns",
+                "abbreviation": "HY"
+              },
+              "match": "contains"
+            }
+          ]
+        },
+        {
+          "name": "a book and a number",
+          "args": [
+            "JEM 58",
+            [
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "580",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "5800",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "581",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "158",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "258",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12a",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "058b",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              },
+              {
+                "entryCode": "1058",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              }
+            ]
+          ],
+          "expected": [
+            {
+              "entryCode": "58",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "exact"
+            },
+            {
+              "entryCode": "058b",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            },
+            {
+              "entryCode": "580",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            },
+            {
+              "entryCode": "581",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            },
+            {
+              "entryCode": "5800",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            },
+            {
+              "entryCode": "158",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "contains"
+            },
+            {
+              "entryCode": "258",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "contains"
+            }
+          ]
+        },
+        {
+          "name": "run together",
+          "args": [
+            "hy58",
+            [
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "580",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "5800",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "581",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "158",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "258",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12a",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "058b",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              },
+              {
+                "entryCode": "1058",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              }
+            ]
+          ],
+          "expected": [
+            {
+              "entryCode": "58",
+              "songbook": {
+                "name": "Hymns",
+                "abbreviation": "HY"
+              },
+              "match": "exact"
+            },
+            {
+              "entryCode": "1058",
+              "songbook": {
+                "name": "Hymns",
+                "abbreviation": "HY"
+              },
+              "match": "contains"
+            }
+          ]
+        },
+        {
+          "name": "a number with letters",
+          "args": [
+            "12",
+            [
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "580",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "5800",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "581",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "158",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "258",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12a",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "058b",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              },
+              {
+                "entryCode": "1058",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              }
+            ]
+          ],
+          "expected": [
+            {
+              "entryCode": "12",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "exact"
+            },
+            {
+              "entryCode": "12a",
+              "songbook": {
+                "name": "J'aime l'Éternel",
+                "abbreviation": "JEM"
+              },
+              "match": "prefix"
+            }
+          ]
+        },
+        {
+          "name": "one digit: only itself",
+          "args": [
+            "5",
+            [
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "580",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "5800",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "581",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "158",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "258",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12a",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "12",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "058b",
+                "songbook": {
+                  "name": "J'aime l'Éternel",
+                  "abbreviation": "JEM"
+                }
+              },
+              {
+                "entryCode": "58",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              },
+              {
+                "entryCode": "1058",
+                "songbook": {
+                  "name": "Hymns",
+                  "abbreviation": "HY"
+                }
+              }
+            ]
+          ],
+          "expected": []
+        }
+      ]
+    }
+  }
+}

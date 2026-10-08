@@ -129,6 +129,7 @@ export const ListSongVersionsQuerySchema = z.strictObject({
   dir: optional(z.enum(["asc", "desc"])).describe("Defaults to desc for dates, asc otherwise"),
   page: optional(queryInt().pipe(z.number().min(1))).describe("Defaults to 1"),
   pageSize: optional(queryInt().pipe(z.number().min(1).max(200))).describe("Defaults to 50"),
+  references: optional(queryBoolean()).describe("Each song's places in your numbered songbooks too (issue #213): songbookReferences"),
 });
 
 export const SetStreamingLinkSchema = z.strictObject({

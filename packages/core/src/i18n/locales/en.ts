@@ -1417,6 +1417,10 @@ const en = {
   },
   search: {
     entries: "In songbooks",
+    entriesPrefix: "Numbers starting with {{number}}",
+    entriesContains: "Numbers containing {{number}}",
+    showMore: "Show more",
+    moreReferences: "+{{count}}",
     open: "Search…",
     label: "Search songs, sets, songbooks and teams",
     placeholder: "Songs, sets, songbooks, teams… or a number: HY 42",

@@ -213,6 +213,24 @@ describe("songbook references offline", () => {
     expect((await searchKeptEntries(storage, "42")).map((hit) => hit.songbookName)).toEqual(["Chants de victoire", "Hymns"]);
     expect(await searchKeptEntries(storage, "grace")).toEqual([]);
   });
+
+  it("numbers starting with the one typed, then containing it (issue #213)", async () => {
+    const storage = memoryStorage();
+    const entries = ["58", "580", "5800", "581", "158", "258", "12a", "12", "5"];
+    await storage.put("songbooks", "jem", {
+      songbook: { id: "jem", name: "J'aime l'Éternel", abbreviation: "JEM", entries: entries.map((entryCode) => ({ id: entryCode, entryCode, songVersionId: `v${entryCode}`, songVersionTitle: entryCode })) },
+      version: "1",
+      savedAt: "",
+    });
+    const found = async (query: string) => (await searchKeptEntries(storage, query)).map((hit) => `${hit.match}:${hit.entryCode}`);
+    expect(await found("58")).toEqual(["exact:58", "prefix:580", "prefix:581", "prefix:5800", "contains:158", "contains:258"]);
+    expect(await found("JEM 58")).toEqual(await found("58"));
+    expect(await found("jem58")).toEqual(await found("58"));
+    expect(await found("12")).toEqual(["exact:12", "prefix:12a"]);
+    expect(await found("5")).toEqual(["exact:5"]);
+    expect(await found("HY 58")).toEqual([]);
+    expect((await searchKeptEntries(storage, "58", { exact: 10, prefix: 1, contains: 1 })).map((hit) => hit.entryCode)).toEqual(["58", "580", "158"]);
+  });
 });
 
 describe("a kept song's references", () => {

@@ -46,7 +46,7 @@ Your name at the bottom of the sidebar opens a menu with the **Dashboard** (your
 
 The search box at the top of every page - a magnifying glass on a phone - finds anything: **Songs** (by title, subtitle, version, artist or CCLI number), **Sets**, **Songbooks** and **Teams**, grouped by kind, ignoring case and accents ("elevation" finds "Élévation"). **Ctrl K** (**⌘ K** on a Mac) opens it from anywhere. The arrow keys move through the results, **Enter** opens one and **Esc** closes it. Empty, it lists the sets coming up.
 
-A songbook number finds its entry: type the songbook's abbreviation or part of its name and the number - **HY 42**, **HY42**, **Hymns 42** - or just **42** for that number in every songbook. Entries come first, under **In songbooks**.
+A songbook number finds its entry: type the songbook's abbreviation or part of its name and the number - **HY 42**, **HY42**, **Hymns 42** - or just **42** for that number in every songbook. Entries come first, under **In songbooks**; **Enter** opens the first. From two digits, two more groups follow: **Numbers starting with 58** (580, 581… 589, then 5800…) and **Numbers containing 58** (158, 258… 1580…), each in number order; with a songbook (**JEM 58**) they stay within it. A number with letters (12a, A-17) counts by its digits. **Show more** below them lists the rest. Songs found by their title show, on the right, the songbooks they're in (**JEM 58 · HY 12**, abbreviations first, and **+2** when there are more). It's the same offline, in the songbooks kept on the device.
 
 ![Searching across songs, sets, songbooks and teams](../../assets/screenshots/en/search.jpg)
 

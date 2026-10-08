@@ -40,6 +40,7 @@ import { MusicBrainzService } from "../musicbrainz/musicbrainz.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AccessPolicyService } from "../access/access-policy.service.js";
+import { songbookReferencesOf } from "../songbooks/songbook-references.js";
 import { setOrder } from "../common/utils/set-order.js";
 import type { CreateSongVersionDto } from "./dto/create-song-version.dto.js";
 import type { ListSongVersionsQueryDto } from "./dto/list-song-versions-query.dto.js";
@@ -478,7 +479,17 @@ export class SongVersionsService {
     ]);
     const seesTag = await this.seesTag(user);
     const shared = await this.sharedByOf(user, versions.map((version) => version.id));
-    return { items: versions.map((version) => toListItem(version, seesTag, shared.get(version.id) ?? null)), total, page, pageSize };
+    // Where each is in the user's songbooks, when asked (issue #213: beside the songs a search finds).
+    const references = query.references ? await songbookReferencesOf(this.prisma, await this.access.songbooksVisibleTo(user), versions.map((version) => version.id)) : null;
+    return {
+      items: versions.map((version) => ({
+        ...toListItem(version, seesTag, shared.get(version.id) ?? null),
+        ...(references && { songbookReferences: references.get(version.id) ?? [] }),
+      })),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   /**

@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { type SavedDisplaySettings, chartEdgeChords, computeSectionLabel, formatSongbookReference, readArrangementDocument, readSongDocument, renderChart, transposeKey, type SetTransitionValue, type SongbookSection } from "@songverse/core";
+import { type SavedDisplaySettings, chartEdgeChords, readArrangementDocument, readSongDocument, renderChart, transposeKey, type SetTransitionValue } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
+import { songbookReferencesOf } from "../songbooks/songbook-references.js";
 import type {
   AddSetlistItemDto,
   CreateSetlistDto,
@@ -481,21 +482,7 @@ export class SetlistsService {
 
   /** Where each song is in `user`'s numbered songbooks, by song: "JEM 855 · JEM3" (issues #55, #59). */
   private async songbookReferences(user: AuthenticatedUser, songVersionIds: string[]): Promise<Map<string, string[]>> {
-    const entries = await this.prisma.client.songbookEntry.findMany({
-      where: { songVersionId: { in: songVersionIds }, entryCode: { not: null }, songbook: await this.policy.songbooksVisibleTo(user) },
-      select: { songVersionId: true, entryCode: true, songbook: { select: { name: true, abbreviation: true, sections: true } } },
-    });
-    const references = new Map<string, string[]>();
-    for (const entry of entries) {
-      const reference = formatSongbookReference({
-        songbookName: entry.songbook.name,
-        abbreviation: entry.songbook.abbreviation,
-        entryCode: entry.entryCode,
-        sectionLabel: computeSectionLabel(entry.entryCode, entry.songbook.sections as SongbookSection[] | null),
-      });
-      references.set(entry.songVersionId, [...(references.get(entry.songVersionId) ?? []), reference].sort());
-    }
-    return references;
+    return songbookReferencesOf(this.prisma, await this.policy.songbooksVisibleTo(user), songVersionIds);
   }
 
   /**

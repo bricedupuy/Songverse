@@ -32,9 +32,33 @@ const [item] = (await api(me, "POST", `/setlists/${set.id}/items`, { songVersion
 
 await api(me, "POST", `/songbooks/${songbook.id}/entries`, { songVersionId: unplanned.id, entryCode: "7" });
 const outsider = await user("Outsider");
+let r;
+
+// Numbers that also find 581, 582... and 158, 258... (issue #213): this songbook's own, by its abbreviation.
+const numbered = {};
+for (const code of ["58", "580", "581", "582", "583", "584", "585", "586", "587", "588", "589", "5800", "5801", "5802", "5803", "5804", "5805", "5806", "5807", "5808", "5809", "5810", "158", "258"]) {
+  const song = await api(me, "POST", "/song-versions", { title: `Number ${code} ${abbr}`, language: "en", artists: ["Someone"], content: "[G]Words\n", contentFormat: "CHORDPRO" });
+  await api(me, "POST", `/songbooks/${songbook.id}/entries`, { songVersionId: song.id, entryCode: code });
+  numbered[code] = song;
+}
+const ranked = (body) => body.map((hit) => `${hit.match}:${hit.entryCode}`).join(" ");
+r = await call(me, "GET", `/songbook-entries?q=${encodeURIComponent(`${abbr} 58`)}`);
+check(
+  "a number: exactly it, then 20 starting with it in number order, then containing it",
+  ranked(r.body) === ["exact:58", ...["580", "581", "582", "583", "584", "585", "586", "587", "588", "589", "5800", "5801", "5802", "5803", "5804", "5805", "5806", "5807", "5808", "5809"].map((code) => `prefix:${code}`), "contains:158", "contains:258"].join(" "),
+  ranked(r.body),
+);
+r = await call(me, "GET", `/songbook-entries?q=${encodeURIComponent(`${abbr} 58`)}&more=true`);
+check("Show more: the rest of them", r.body.some((hit) => hit.entryCode === "5810"), ranked(r.body));
+r = await call(me, "GET", `/songbook-entries?q=${encodeURIComponent(`${abbr} 5`)}`);
+check("one digit finds only itself", r.body.length === 0, ranked(r.body));
+r = await call(me, "GET", `/song-versions?q=${encodeURIComponent(`Number 158 ${abbr}`)}&references=true`);
+check("a song's songbook references, when asked", JSON.stringify(r.body.items[0]?.songbookReferences) === JSON.stringify([`${abbr} 158`]), JSON.stringify(r.body.items[0]));
+r = await call(me, "GET", `/song-versions?q=${encodeURIComponent(`Number 158 ${abbr}`)}`);
+check("not otherwise", r.body.items[0] && !("songbookReferences" in r.body.items[0]));
 
 // --- songbook references (the API)
-let r = await call(me, "GET", `/songbook-entries?q=${encodeURIComponent(`${abbr} 7`)}`);
+r = await call(me, "GET", `/songbook-entries?q=${encodeURIComponent(`${abbr} 7`)}`);
 check("an entry by its songbook's abbreviation and number", r.status === 200 && r.body.length === 1 && r.body[0].songVersionId === unplanned.id && r.body[0].entryCode === "7", JSON.stringify(r.body));
 r = await call(me, "GET", `/songbook-entries?q=${abbr}7`);
 check("run together", r.body.length === 1 && r.body[0].title === `Called ${tag}`);
@@ -116,6 +140,24 @@ await step("a songbook number finds its entry, first; Enter opens the song", asy
   if ((await dialog().getByRole("option").first().textContent()) !== (await entry.textContent())) throw new Error("the entry isn't first");
   await page.keyboard.press("Enter");
   await page.waitForURL(`**/library/${unplanned.id}`);
+});
+
+await step("numbers starting with it, then containing it, with Show more; songs show where they are (issue #213)", async () => {
+  await page.keyboard.press("Control+k");
+  await field().fill(`${abbr} 58`);
+  await group("In songbooks").getByRole("option", { name: new RegExp(`${abbr} 58 — Number 58 ${abbr}`) }).waitFor();
+  const starting = group("Numbers starting with 58");
+  await starting.getByRole("option").first().waitFor();
+  if ((await starting.getByRole("option").count()) !== 20) throw new Error(`${await starting.getByRole("option").count()} starting with 58`);
+  const containing = group("Numbers containing 58");
+  const contained = (await containing.getByRole("option").allTextContents()).map((text) => text.split(" — ")[0]);
+  if (contained.join("|") !== `${abbr} 158|${abbr} 258`) throw new Error(contained.join("|"));
+  await dialog().getByTestId("search-entries-more").click();
+  await starting.getByRole("option", { name: new RegExp(`${abbr} 5810 `) }).waitFor();
+  // Songs found by title say where they are.
+  await field().fill(`Number 258 ${abbr}`);
+  await group("Songs").getByTestId("search-song-references").getByText(`${abbr} 258`).waitFor();
+  await page.keyboard.press("Escape");
 });
 
 await step("the song's page gives its songbook reference, to copy", async () => {

@@ -15,7 +15,7 @@ import type {
 import type { AppModeValue, CapoDisplayModeValue, ChordDiagramsValue, ChordNotationValue, LiveViewValue } from "../constants/index.js";
 import type { SongDocumentV2 } from "../schemas/song-document-v2.js";
 import { foldForSearch } from "../search-text/index.js";
-import { entryCodeMatches, formatSongbookReference, songbookMatches, songbookReferences } from "../songbook-references/index.js";
+import { formatSongbookReference, limitSongbookHits, rankSongbookHits, SONGBOOK_HIT_LIMITS, songbookReferences, type SongbookHitMatch } from "../songbook-references/index.js";
 
 /**
  * What a device keeps to work offline (docs/offline.md, issues #25 and
@@ -140,31 +140,26 @@ export async function findKeptSong(storage: OfflineStorage, songVersionId: strin
   return (await allFoundSongs(storage)).find((song) => song.songVersionId === songVersionId);
 }
 
-/** Entries of the songbooks kept on the device that `query` reads as ("HY 42"), as the API's search finds them. */
-export async function searchKeptEntries(storage: OfflineStorage, query: string, limit = 8): Promise<SongbookEntryHit[]> {
-  const references = songbookReferences(query);
-  if (references.length === 0) return [];
-  const hits: (SongbookEntryHit & { rank: number })[] = [];
-  for (const { songbook } of await allKeptSongbooks(storage)) {
-    for (const entry of songbook.entries) {
-      const rank = references.findIndex((reference) => entryCodeMatches(entry.entryCode, reference.code) && songbookMatches(songbook, reference.book));
-      if (rank === -1) continue;
-      hits.push({
-        rank,
-        songbookId: songbook.id,
-        songbookName: songbook.name,
-        abbreviation: songbook.abbreviation,
-        entryCode: entry.entryCode!,
-        sectionLabel: entry.sectionLabel ?? null,
-        songVersionId: entry.songVersionId,
-        title: entry.songVersionTitle ?? "",
-      });
-    }
-  }
-  return hits
-    .sort((a, b) => a.rank - b.rank || a.songbookName.localeCompare(b.songbookName))
-    .slice(0, limit)
-    .map(({ rank: _rank, ...hit }) => hit);
+/**
+ * Entries of the songbooks kept on the device for a search by number ("HY 42",
+ * "58"), ranked as the API ranks them (issue #213): exactly that number, then
+ * numbers starting with it, then containing it, `limits` of each.
+ */
+export async function searchKeptEntries(storage: OfflineStorage, query: string, limits: Record<SongbookHitMatch, number> = SONGBOOK_HIT_LIMITS): Promise<SongbookEntryHit[]> {
+  if (songbookReferences(query).length === 0) return [];
+  const entries = (await allKeptSongbooks(storage)).flatMap(({ songbook }) =>
+    songbook.entries.map((entry) => ({ entryCode: entry.entryCode ?? null, songbook, entry })),
+  );
+  return limitSongbookHits(rankSongbookHits(query, entries), limits).map(({ songbook, entry, match }) => ({
+    songbookId: songbook.id,
+    songbookName: songbook.name,
+    abbreviation: songbook.abbreviation,
+    entryCode: entry.entryCode!,
+    sectionLabel: entry.sectionLabel ?? null,
+    songVersionId: entry.songVersionId,
+    title: entry.songVersionTitle ?? "",
+    match,
+  }));
 }
 
 /** Where a song is in the numbered songbooks and sets kept on the device: "JEM 855 · JEM3" (issue #59). */

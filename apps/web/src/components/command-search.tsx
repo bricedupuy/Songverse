@@ -1,4 +1,4 @@
-import { foldForSearch, formatSongbookReference, onlineOrKept, searchKeptEntries, searchKeptSongs, songbookReferences, type SongbookEntryHit } from "@songverse/core";
+import { foldForSearch, formatSongbookReference, keptSongReferences, onlineOrKept, partialEntryDigits, searchKeptEntries, searchKeptSongs, SONGBOOK_HIT_LIMITS, songbookReferences, type SongbookEntryHit } from "@songverse/core";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { useNavigate, useRouteContext, useRouter, useRouterState } from "@tanstack/react-router";
 import { BookOpen, Hash, ListEnd, ListMusic, ListPlus, Music, Search, Users, type LucideIcon } from "lucide-react";
@@ -19,21 +19,29 @@ interface FoundSong {
   title: string;
   versionName: string | null;
   artists: string | null;
+  /** Where it is in the player's songbooks, abbreviations first (issue #213). */
+  references: string[];
 }
 const OTHER_LIMIT = 5;
+// Songbook references beside a song: the first two, then "+2".
+const SHOWN_REFERENCES = 2;
+// Show more (issue #213): more of each group of numbers.
+const MORE_LIMITS = { exact: 50, prefix: 100, contains: 100 };
 const DEBOUNCE_MS = 200;
 
-type Kind = "entries" | "songs" | "sets" | "songbooks" | "teams";
+type Kind = "entries" | "entriesPrefix" | "entriesContains" | "songs" | "sets" | "songbooks" | "teams";
 interface Result {
   kind: Kind;
   id: string;
   label: string;
   detail: string | null;
   open: () => void;
+  /** A song's places in the player's songbooks, on the right of its row (issue #213). */
+  references?: string[];
   /** A song, in Live in a set they can change (issue #199): added after the song playing, or at the end. */
   add?: (where: "next" | "end") => void;
 }
-const ICONS: Record<Kind, LucideIcon> = { entries: Hash, songs: Music, sets: ListMusic, songbooks: BookOpen, teams: Users };
+const ICONS: Record<Kind, LucideIcon> = { entries: Hash, entriesPrefix: Hash, entriesContains: Hash, songs: Music, sets: ListMusic, songbooks: BookOpen, teams: Users };
 
 
 /**
@@ -99,6 +107,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   const [query, setQuery] = useState("");
   const [songs, setSongs] = useState<FoundSong[]>([]);
   const [entries, setEntries] = useState<SongbookEntryHit[]>([]);
+  const [moreEntries, setMoreEntries] = useState(false);
   const [searching, setSearching] = useState(false);
   const [active, setActive] = useState(0);
   const list = useRef<HTMLDivElement>(null);
@@ -117,20 +126,24 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
     const timer = setTimeout(() => {
       onlineOrKept<FoundSong[]>(
         async () =>
-          (await apiClient.listSongVersions({ q: query.trim(), pageSize: SONG_LIMIT, sort: "title" })).items.map((song) => ({
+          (await apiClient.listSongVersions({ q: query.trim(), pageSize: SONG_LIMIT, sort: "title", references: true })).items.map((song) => ({
             id: song.id,
             title: song.title,
             versionName: song.versionName,
             artists: artistNames(song.artists),
+            references: song.songbookReferences ?? [],
           })),
         // Offline: the songs kept on the device, on their own or in kept sets (issues #50, #52).
         async () =>
-          (await searchKeptSongs(deviceStorage(), query, SONG_LIMIT)).map(({ songVersionId, title, versionName, artists }) => ({
-            id: songVersionId,
-            title,
-            versionName,
-            artists,
-          })),
+          Promise.all(
+            (await searchKeptSongs(deviceStorage(), query, SONG_LIMIT)).map(async ({ songVersionId, title, versionName, artists }) => ({
+              id: songVersionId,
+              title,
+              versionName,
+              artists,
+              references: await keptSongReferences(deviceStorage(), songVersionId),
+            })),
+          ),
       )
         .then((found) => current && setSongs(found))
         .catch(() => current && setSongs([]))
@@ -139,8 +152,8 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
       if (songbookReferences(query).length === 0) setEntries([]);
       else
         onlineOrKept(
-          () => apiClient.searchSongbookEntries(query.trim()),
-          () => searchKeptEntries(deviceStorage(), query),
+          () => apiClient.searchSongbookEntries(query.trim(), moreEntries),
+          () => searchKeptEntries(deviceStorage(), query, moreEntries ? MORE_LIMITS : SONGBOOK_HIT_LIMITS),
         )
           .then((hits) => current && setEntries(hits))
           .catch(() => current && setEntries([]));
@@ -149,7 +162,9 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
       current = false;
       clearTimeout(timer);
     };
-  }, [q, query]);
+  }, [q, query, moreEntries]);
+  // Another search: the first of each group of numbers again.
+  useEffect(() => setMoreEntries(false), [q]);
 
   const results = useMemo(() => {
     const go = (open: () => void) => () => {
@@ -182,7 +197,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         : undefined;
     const byKind: Result[] = [
       ...entries.map((entry) => ({
-        kind: "entries" as const,
+        kind: entry.match === "prefix" ? ("entriesPrefix" as const) : entry.match === "contains" ? ("entriesContains" as const) : ("entries" as const),
         id: `${entry.songbookId}-${entry.entryCode}`,
         label: `${formatSongbookReference(entry)} — ${entry.title}`,
         detail: entry.abbreviation ? entry.songbookName : null,
@@ -194,6 +209,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         id: song.id,
         label: song.versionName ? `${song.title} — ${song.versionName}` : song.title,
         detail: song.artists,
+        references: song.references,
         open: go(() => void openSong(song.id)),
         add: addToSet(song.id),
       })),
@@ -251,9 +267,14 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
     event.preventDefault();
   }
 
-  const groups = (["entries", "songs", "sets", "songbooks", "teams"] as const)
+  const groups = (["entries", "entriesPrefix", "entriesContains", "songs", "sets", "songbooks", "teams"] as const)
     .map((kind) => ({ kind, items: results.map((result, index) => ({ result, index })).filter(({ result }) => result.kind === kind) }))
     .filter((group) => group.items.length > 0);
+
+  // Show more under the last group of numbers, while a group came back full.
+  const count = (match: SongbookEntryHit["match"]) => entries.filter((entry) => entry.match === match).length;
+  const hasMoreEntries = !moreEntries && (count("prefix") >= SONGBOOK_HIT_LIMITS.prefix || count("contains") >= SONGBOOK_HIT_LIMITS.contains || count("exact") >= SONGBOOK_HIT_LIMITS.exact);
+  const lastEntryGroup = (["entriesContains", "entriesPrefix", "entries"] as const).find((kind) => groups.some((group) => group.kind === kind));
 
   return (
     <>
@@ -276,8 +297,10 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
       </div>
       <div ref={list} id="command-search-results" role="listbox" aria-label={t("search.label")} className="flex-1 overflow-y-auto p-2">
         {groups.map((group) => (
-          <div key={group.kind} role="group" aria-label={t(`search.${group.kind}`)} className="mb-2 last:mb-0" data-testid={`search-${group.kind}`}>
-            <p className="px-2 py-1 text-xs font-medium text-muted-foreground">{!q && group.kind === "sets" ? t("search.upcomingSets") : t(`search.${group.kind}`)}</p>
+          <div key={group.kind} role="group" aria-label={t(`search.${group.kind}`, { number: partialEntryDigits(query)[0] ?? "" })} className="mb-2 last:mb-0" data-testid={`search-${group.kind}`}>
+            <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+              {!q && group.kind === "sets" ? t("search.upcomingSets") : t(`search.${group.kind}`, { number: partialEntryDigits(query)[0] ?? "" })}
+            </p>
             {group.items.map(({ result, index }) => {
               const Icon = ICONS[result.kind];
               return (
@@ -294,6 +317,12 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
                   <Icon className="size-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate text-sm">{result.label}</span>
                   {result.detail ? <span className="max-w-[45%] shrink-0 truncate text-xs text-muted-foreground">{result.detail}</span> : null}
+                  {result.references?.length ? (
+                    <span className="shrink-0 text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums" data-testid="search-song-references">
+                      {result.references.slice(0, SHOWN_REFERENCES).join(" · ")}
+                      {result.references.length > SHOWN_REFERENCES ? ` ${t("search.moreReferences", { count: result.references.length - SHOWN_REFERENCES })}` : null}
+                    </span>
+                  ) : null}
                   {result.add ? (
                     <span className="flex shrink-0 gap-1">
                       <button
@@ -328,6 +357,17 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
                 </div>
               );
             })}
+            {/* More of the numbers starting with it or containing it, when there may be (issue #213). */}
+            {group.kind === lastEntryGroup && hasMoreEntries ? (
+              <button
+                type="button"
+                onClick={() => setMoreEntries(true)}
+                className="mx-2 mt-1 rounded-md px-2 py-1 text-xs font-medium text-primary hover:bg-accent"
+                data-testid="search-entries-more"
+              >
+                {t("search.showMore")}
+              </button>
+            ) : null}
           </div>
         ))}
         {q && !searching && results.length === 0 ? (

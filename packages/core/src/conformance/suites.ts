@@ -16,6 +16,7 @@ import { beatAt, clicksBetween, normalizeMetronome, tapTempo } from "../metronom
 import { clockOffset, deviceTime, metronomePositionAt, stemsPositionAt } from "../sync/index.js";
 import { cuesFromSections } from "../recording/cues.js";
 import { lyricSlides, normalizeScreenCode } from "../screens/index.js";
+import { rankSongbookHits, songbookReferences } from "../songbook-references/index.js";
 import { CreateSongVersionSchema, UpdateSongVersionSchema } from "../requests/songs.js";
 import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
 import { UpdateUserSchema } from "../requests/accounts.js";
@@ -893,6 +894,39 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "a letter it never uses (O)", args: ["K7Q-O3X"] },
           { name: "too short", args: ["K7QM"] },
         ],
+      },
+    },
+  },
+  {
+    area: "songbooks",
+    about: "Finding a song by the number people call out (issues #48, #213): how a search reads as a songbook reference, and the order songbook entries come in for it.",
+    functions: {
+      songbookReferences: {
+        about: "The ways a search reads as a songbook entry, most likely first: a book (abbreviation or part of its name) and a code; none without a digit.",
+        params: ["query"],
+        run: songbookReferences,
+        cases: ["HY 42", "HY42", "Hymns 42", "42", "A-17", "Hymns FR-092", "grace"].map((query) => ({ name: JSON.stringify(query), args: [query] })),
+      },
+      rankSongbookHits: {
+        about:
+          "Entries for a search by number, in the order shown, each with how it matched: exactly that number, then numbers starting with it, then containing it (from two digits), each group in number order then by songbook; a number with letters matches on its digits; a book keeps all three to it.",
+        params: ["query", "entries"],
+        run: rankSongbookHits,
+        cases: (() => {
+          const jem = { name: "J'aime l'Éternel", abbreviation: "JEM" };
+          const hy = { name: "Hymns", abbreviation: "HY" };
+          const entries = [
+            ...["58", "580", "5800", "581", "158", "258", "12a", "12", "058b"].map((entryCode) => ({ entryCode, songbook: jem })),
+            ...["58", "1058"].map((entryCode) => ({ entryCode, songbook: hy })),
+          ];
+          return [
+            { name: "a number", args: ["58", entries] },
+            { name: "a book and a number", args: ["JEM 58", entries] },
+            { name: "run together", args: ["hy58", entries] },
+            { name: "a number with letters", args: ["12", entries] },
+            { name: "one digit: only itself", args: ["5", entries] },
+          ];
+        })(),
       },
     },
   },

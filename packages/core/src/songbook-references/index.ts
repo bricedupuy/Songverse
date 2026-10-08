@@ -3,7 +3,7 @@
  * "42", "A-17", "Hymns FR-092" - the number people call out on stage. The
  * API and offline search read a query the same way.
  */
-import { normalizeEntryCode } from "../songbook-catalog-format/index.js";
+import { compareEntryCodes, normalizeEntryCode } from "../songbook-catalog-format/index.js";
 import { foldForSearch } from "../search-text/index.js";
 export interface SongbookReference {
   /** A songbook's abbreviation or part of its name; null for any songbook. */
@@ -64,4 +64,80 @@ export function formatSongbookReference(entry: {
   if (!entry.entryCode) return entry.songbookName;
   const reference = `${entry.abbreviation?.trim() || entry.songbookName} ${entry.entryCode}`;
   return entry.sectionLabel ? `${reference} · ${entry.sectionLabel}` : reference;
+}
+
+/** How an entry's number answers a search (issue #213): that number, one starting with it, or one containing it. */
+export type SongbookHitMatch = "exact" | "prefix" | "contains";
+
+/** The shortest number that also finds the ones starting with it or containing it: "5" alone would find half of every songbook. */
+export const PARTIAL_NUMBER_MIN_DIGITS = 2;
+
+/** An entry's number as digits only, without leading zeros ("A-017" is "17"); null when it has none. */
+function entryDigits(code: string): string | null {
+  const digits = code.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+  return digits || null;
+}
+
+/**
+ * The digits of a search's number that `rankSongbookHits` also looks for
+ * inside other numbers; null when there aren't enough of them. The API
+ * fetches its candidates with them, offline search reads every entry.
+ */
+export function partialEntryDigits(query: string): string[] {
+  return [...new Set(songbookReferences(query).filter((_, index) => index === 0).map((reference) => entryDigits(reference.code)))].filter(
+    (digits): digits is string => digits !== null && digits.length >= PARTIAL_NUMBER_MIN_DIGITS,
+  );
+}
+
+/**
+ * Songbook entries for a search by number (issue #213), in the order to show
+ * them: exactly that number first ("58": JEM 58, HY 58), then the numbers
+ * starting with it (580, 581... 5800) and then the ones containing it (158,
+ * 258... 1580), each group in number order, then by songbook. A number
+ * with letters ("12a", "A-17") matches on its digits. "JEM 58" keeps all
+ * three to that songbook; a number under two digits finds only itself.
+ */
+export function rankSongbookHits<T extends { entryCode: string | null; songbook: { name: string; abbreviation: string | null } }>(
+  query: string,
+  entries: T[],
+): (T & { match: SongbookHitMatch })[] {
+  const references = songbookReferences(query);
+  const order: Record<SongbookHitMatch, number> = { exact: 0, prefix: 1, contains: 2 };
+  const ranked: { entry: T; match: SongbookHitMatch; reference: number; value: number }[] = [];
+  for (const entry of entries) {
+    if (entry.entryCode === null) continue;
+    const digits = entryDigits(entry.entryCode);
+    let best: { match: SongbookHitMatch; reference: number } | null = null;
+    references.forEach((reference, index) => {
+      if (!songbookMatches(entry.songbook, reference.book)) return;
+      const wanted = entryDigits(reference.code);
+      let match: SongbookHitMatch | null = null;
+      if (entryCodeMatches(entry.entryCode, reference.code)) match = "exact";
+      // "HY42" read as written as well as "HY 42": only the latter finds numbers by their digits.
+      else if (index === 0 && wanted && digits && wanted.length >= PARTIAL_NUMBER_MIN_DIGITS) {
+        if (digits.startsWith(wanted)) match = "prefix";
+        else if (digits.includes(wanted)) match = "contains";
+      }
+      if (match && (!best || order[match] < order[best.match] || (order[match] === order[best.match] && index < best.reference))) best = { match, reference: index };
+    });
+    if (best) ranked.push({ entry, ...(best as { match: SongbookHitMatch; reference: number }), value: digits ? Number(digits) : 0 });
+  }
+  return ranked
+    .sort(
+      (a, b) =>
+        order[a.match] - order[b.match] ||
+        (a.match === "exact" ? a.reference - b.reference : a.value - b.value) ||
+        a.entry.songbook.name.localeCompare(b.entry.songbook.name) ||
+        compareEntryCodes(a.entry.entryCode!, b.entry.entryCode!),
+    )
+    .map(({ entry, match }) => ({ ...entry, match }));
+}
+
+/** How many of each group a search shows at first (issue #213); Show more asks for more. */
+export const SONGBOOK_HIT_LIMITS: Record<SongbookHitMatch, number> = { exact: 10, prefix: 20, contains: 20 };
+
+/** Ranked hits cut to `limits` per group, in the same order. */
+export function limitSongbookHits<T extends { match: SongbookHitMatch }>(hits: T[], limits: Record<SongbookHitMatch, number> = SONGBOOK_HIT_LIMITS): T[] {
+  const taken: Record<SongbookHitMatch, number> = { exact: 0, prefix: 0, contains: 0 };
+  return hits.filter((hit) => taken[hit.match]++ < limits[hit.match]);
 }

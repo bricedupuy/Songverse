@@ -273,6 +273,8 @@ export interface SongbookEntryHit {
   sectionLabel: string | null;
   songVersionId: string;
   title: string;
+  /** How its number answers the search (issue #213): exactly, starting with it, or containing it. */
+  match?: "exact" | "prefix" | "contains";
 }
 
 export type OfflinePinKind = "SET" | "SONG" | "SONGBOOK";
@@ -984,6 +986,8 @@ export interface SongVersionSummary {
   updatedAt: string;
   artists: ArtistSummary[];
   tags: Tag[];
+  /** Where it is in the viewer's numbered songbooks, abbreviations first ("JEM 58", "HY 12"), when asked for (issue #213). */
+  songbookReferences?: string[];
 }
 
 
@@ -1004,6 +1008,8 @@ export interface ListSongVersionsQuery {
   page?: number;
   /** Up to 200; defaults to 50. */
   pageSize?: number;
+  /** Each song's places in the viewer's numbered songbooks too (issue #213). */
+  references?: boolean;
 }
 
 /** What a smart list (issue #58) filters the library by: the library's own search. */
@@ -1888,7 +1894,8 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     unpinOffline: (kind: OfflinePinKind, targetId: string) => request<void>(`/offline/pins/${kind}/${targetId}`, { method: "DELETE" }),
     getOfflineSongs: (ids: string[]) => request<SongOfflineCopy[]>("/offline/songs", { method: "POST", body: JSON.stringify({ ids }) }),
     getSongbookOffline: (songbookId: string) => request<SongbookOfflineCopy>(`/offline/songbooks/${songbookId}`),
-    searchSongbookEntries: (q: string) => request<SongbookEntryHit[]>(`/songbook-entries?q=${encodeURIComponent(q)}`),
+    /** Entries by number (issue #213): exactly it, then starting with it, then containing it; `more` for Show more. */
+    searchSongbookEntries: (q: string, more = false) => request<SongbookEntryHit[]>(`/songbook-entries?q=${encodeURIComponent(q)}${more ? "&more=true" : ""}`),
     /** An empty note deletes it. */
     setSetlistNote: (setlistId: string, itemId: string, content: string) =>
       request<{ myNote: string }>(`/setlists/${setlistId}/items/${itemId}/my-note`, { method: "PUT", body: JSON.stringify({ content }) }),

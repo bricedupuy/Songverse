@@ -1420,6 +1420,10 @@ const fr: typeof en = {
   },
   search: {
     entries: "Dans les recueils",
+    entriesPrefix: "Numéros commençant par {{number}}",
+    entriesContains: "Numéros contenant {{number}}",
+    showMore: "Afficher plus",
+    moreReferences: "+{{count}}",
     open: "Rechercher…",
     label: "Rechercher des chants, listes, recueils et équipes",
     placeholder: "Chants, listes, recueils, équipes… ou un numéro : HY 42",

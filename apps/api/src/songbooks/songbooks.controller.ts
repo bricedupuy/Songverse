@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UnauthorizedException, UseGuards } from "@nestjs/common";
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AddSongbookEntryDto } from "./dto/add-songbook-entry.dto.js";
+import { SongbookEntrySearchQueryDto } from "./dto/songbook-entry-search-query.dto.js";
 import { CreateSongbookDto } from "./dto/create-songbook.dto.js";
 import { ImportSongbookFromCatalogDto } from "./dto/import-songbook-from-catalog.dto.js";
 import { SongbookResponseDto } from "./dto/songbook-response.dto.js";
@@ -111,11 +112,10 @@ export class SongbookEntriesController {
   @ApiOperation({
     summary: "Songbook entries by reference",
     description:
-      'Reads `q` as a songbook reference - "HY 42", "HY42", "Hymns 42", "42", "A-17" - and returns up to 8 matching entries in songbooks the user can see, whose songs they can see too. Empty when `q` has no number.',
+      'Reads `q` as a songbook reference - "HY 42", "HY42", "Hymns 42", "42", "A-17" - and returns matching entries in songbooks the user can see, whose songs they can see too (issue #213): exactly that number (up to 10), then numbers starting with it and numbers containing it (from two digits, up to 20 each), each marked by `match`. `more` gives more of each. Empty when `q` has no number.',
   })
-  @ApiQuery({ name: "q", required: true })
-  search(@CurrentUser() user: AuthenticatedUser | undefined, @Query("q") q: string | undefined) {
+  search(@CurrentUser() user: AuthenticatedUser | undefined, @Query() query: SongbookEntrySearchQueryDto) {
     if (!user) throw new UnauthorizedException();
-    return this.songbooksService.searchEntries(user, q ?? "");
+    return this.songbooksService.searchEntries(user, query.q, query.more ?? false);
   }
 }
