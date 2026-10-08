@@ -1,11 +1,11 @@
-import { formatScreenCode, lyricSlides, renderChart, type ScreenCurrent, type SyncPresenting } from "@songverse/core";
+import { formatScreenCode, lyricSlides, renderChart, screenThemeTemplate, type ScreenCurrent, type ScreenTheme, type SyncPresenting } from "@songverse/core";
 import { createFileRoute } from "@tanstack/react-router";
 import { Music2, WifiOff } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { renderSVG } from "uqr";
 import { LocaleProvider } from "#/components/locale-provider";
-import { SongChart } from "#/components/song-chart";
+import { ScreenStage, type StageSong } from "#/components/screen-stage";
 import { loadLocale } from "#/lib/i18n";
 import { useScreenDisplay } from "#/lib/screen-display";
 import { getVisitorLocale } from "#/lib/server-auth";
@@ -16,9 +16,14 @@ import { setlistTitle } from "#/lib/setlists";
  * it - a TV's browser, a laptop on HDMI, the Google TV app (#187). No
  * sign-in: it shows a code and a QR code until someone who leads a set
  * confirms it from their phone; then it shows what's presented from Live -
- * the lyrics two lines at a time, or the chart - and goes black on demand.
+ * the lyrics two lines at a time, or the chart - and goes black on demand,
+ * in the look its theme gives it (issue #194). `?theme=concert` shows a
+ * built-in theme instead, on this device: to try one, or for a browser
+ * source in streaming software.
  */
 export const Route = createFileRoute("/screen")({
+  validateSearch: (search: Record<string, unknown>): { theme?: string } =>
+    typeof search.theme === "string" && screenThemeTemplate(search.theme) ? { theme: search.theme } : {},
   beforeLoad: async () => ({ locale: await loadLocale(await getVisitorLocale()) }),
   head: () => ({ meta: [{ title: "Songverse screen" }] }),
   component: ScreenPage,
@@ -35,12 +40,15 @@ function ScreenPage() {
 
 function ScreenDisplay() {
   const state = useScreenDisplay();
+  const { theme: pinned } = Route.useSearch();
   useWakeLock();
   return (
-    // Always black: what's on a projector is the words, not the page.
+    // Black under everything: what's on a projector is the words, not the page.
     <div className="fixed inset-0 cursor-none overflow-hidden bg-black text-white select-none" data-testid="screen-display" data-state={state.kind}>
       {state.kind === "pairing" ? <Pairing code={state.code} /> : null}
-      {state.kind === "showing" ? <Showing current={state.current} presenting={state.presenting} online={state.online} /> : null}
+      {state.kind === "showing" ? (
+        <Showing current={state.current} presenting={state.presenting} online={state.online} theme={screenThemeTemplate(pinned)?.theme ?? state.current.theme} />
+      ) : null}
     </div>
   );
 }
@@ -71,112 +79,46 @@ function Pairing({ code }: { code: string }) {
   );
 }
 
-function Showing({ current, presenting, online }: { current: ScreenCurrent; presenting: SyncPresenting | null; online: boolean }) {
+function Showing({ current, presenting, online, theme }: { current: ScreenCurrent; presenting: SyncPresenting | null; online: boolean; theme: ScreenTheme }) {
   const { t, i18n } = useTranslation();
   const set = current.set;
   const view = presenting && set ? set.songs.find((song) => song.item.id === presenting.itemId) : undefined;
-  const chart = useMemo(
-    () => (view?.song ? renderChart(view.song.document, view.arrangement?.document ?? null, { transposeSteps: view.item.transposeSteps, suggestedCapo: view.song.suggestedCapo }) : null),
-    [view],
-  );
+  // A copy kept before themes (issue #194) has none: the default look.
+  const look = theme ?? screenThemeTemplate("classic")!.theme;
+  const song = useMemo<StageSong | null>(() => {
+    if (!view?.song) return null;
+    const chart = renderChart(view.song.document, view.arrangement?.document ?? null, { transposeSteps: view.item.transposeSteps, suggestedCapo: view.song.suggestedCapo });
+    return { key: view.item.id, title: view.song.title, slides: lyricSlides(chart), credits: set?.credits[view.song.id], chart };
+  }, [view, set]);
 
-  const body = !set ? (
+  const idle = !set ? (
     <Idle title={current.screen.name} subtitle={t("screens.displayNoSet")} />
   ) : !presenting || !view ? (
     <Idle title={setlistTitle(set.set, t, i18n.language)} subtitle={current.screen.name} />
-  ) : presenting.black ? null : current.screen.mode === "CHART" ? (
-    chart ? <ChartScreen chart={chart} title={view.song?.title ?? ""} slide={presenting.slide} /> : null
-  ) : chart && view.song ? (
-    <LyricsScreen chart={chart} slide={presenting.slide} title={view.song.title} credits={set.credits[view.song.id]} />
   ) : null;
 
   return (
-    <div className="size-full" data-testid="screen-showing" data-mode={current.screen.mode} data-black={String(!!presenting?.black)} data-item={presenting?.itemId ?? ""} data-slide={presenting?.slide ?? ""}>
-      {body}
+    <div
+      className="size-full"
+      data-testid="screen-showing"
+      data-mode={current.screen.mode}
+      data-black={String(!!presenting?.black)}
+      data-item={presenting?.itemId ?? ""}
+      data-slide={presenting?.slide ?? ""}
+      data-theme={current.screen.themeId ?? current.screen.themeTemplate ?? ""}
+    >
+      <ScreenStage className="size-full" theme={look} mode={current.screen.mode} song={idle ? null : song} slide={presenting?.slide ?? 0} black={!!presenting?.black} idle={idle} />
       {/* Lost the connection: said quietly, in a corner; it comes back by itself. */}
-      {!online ? <WifiOff className="absolute right-[2vmin] bottom-[2vmin] size-[3vmin] text-neutral-600" aria-label={t("screens.displayOffline")} /> : null}
+      {!online ? <WifiOff className="absolute right-[2vmin] bottom-[2vmin] z-10 size-[3vmin] text-neutral-600" aria-label={t("screens.displayOffline")} /> : null}
     </div>
   );
 }
 
 function Idle({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="flex size-full flex-col items-center justify-center gap-[2vmin] text-center text-neutral-500" data-testid="screen-idle">
-      <p className="text-[6vmin] font-semibold">{title}</p>
-      <p className="text-[3vmin]">{subtitle}</p>
-    </div>
-  );
-}
-
-/**
- * The slide: its lines big, in the middle; the line before and the line after
- * faint, to see where it's going. A song's first slide has its title above,
- * its first and last its credits below.
- */
-function LyricsScreen({
-  chart,
-  slide,
-  title,
-  credits,
-}: {
-  chart: ReturnType<typeof renderChart>;
-  slide: number;
-  title: string;
-  credits: { writers: string[]; copyright: string | null; ccli: string | null } | undefined;
-}) {
-  const { t } = useTranslation();
-  const slides = useMemo(() => lyricSlides(chart), [chart]);
-  const index = Math.min(slide, slides.length - 1);
-  const current = slides[index];
-  if (!current) return null;
-  const before = slides[index - 1]?.lines.at(-1);
-  const after = slides[index + 1]?.lines[0];
-  const edge = index === 0 || index === slides.length - 1;
-  const creditLine = credits
-    ? [credits.writers.join(", "), credits.copyright, credits.ccli ? t("screens.ccliSong", { number: credits.ccli }) : null].filter(Boolean).join(" · ")
-    : "";
-
-  return (
-    <div className="flex size-full flex-col items-center justify-center gap-[3vh] px-[6vw] text-center" data-testid="screen-lyrics">
-      {index === 0 ? <p className="text-[3.2vmin] font-semibold tracking-wide text-neutral-400 uppercase">{title}</p> : null}
-      <p className="min-h-[1.2em] text-[4vmin] leading-tight text-neutral-600" data-testid="screen-before">
-        {before ?? ""}
-      </p>
-      <div key={`${current.passId}:${current.part}`} className="screen-slide flex flex-col gap-[1.5vh]" data-testid="screen-lines">
-        {current.lines.map((line, i) => (
-          <p key={i} className="text-[clamp(2rem,7vmin,9rem)] leading-[1.15] font-semibold text-balance">
-            {line}
-          </p>
-        ))}
-      </div>
-      <p className="min-h-[1.2em] text-[4vmin] leading-tight text-neutral-600" data-testid="screen-after">
-        {after ?? ""}
-      </p>
-      {edge && creditLine ? (
-        <p className="absolute inset-x-[6vw] bottom-[3vh] text-[2vmin] text-neutral-500" data-testid="screen-credits">
-          {creditLine}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-/** The chart for the band, big, the pass being sung marked and kept in view. */
-function ChartScreen({ chart, title, slide }: { chart: ReturnType<typeof renderChart>; title: string; slide: number }) {
-  const box = useRef<HTMLDivElement>(null);
-  const slides = useMemo(() => lyricSlides(chart), [chart]);
-  const passId = slides[Math.min(slide, slides.length - 1)]?.passId ?? null;
-  useEffect(() => {
-    const pass = passId ? box.current?.querySelector<HTMLElement>(`[data-pass="${CSS.escape(passId)}"]`) : null;
-    box.current?.querySelectorAll("[data-pass]").forEach((element) => element.removeAttribute("data-current"));
-    if (!pass) return;
-    pass.setAttribute("data-current", "true");
-    pass.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [passId, chart]);
-  return (
-    <div ref={box} className="size-full overflow-hidden px-[4vw] py-[4vh] [&_[data-pass]]:rounded-lg [&_[data-pass]]:p-2 [&_[data-pass]]:opacity-60 [&_[data-pass][data-current]]:bg-white/10 [&_[data-pass][data-current]]:opacity-100" style={{ zoom: 1.8 }} data-testid="screen-chart">
-      <p className="mb-4 text-xl font-bold">{title}</p>
-      <SongChart chart={chart} columns="1" />
+    <div className="flex flex-col items-center gap-[2cqmin] opacity-60" data-testid="screen-idle">
+      <p className="text-[6cqmin] font-semibold">{title}</p>
+      <p className="text-[3cqmin]">{subtitle}</p>
     </div>
   );
 }

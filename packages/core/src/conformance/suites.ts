@@ -15,7 +15,7 @@ import { sectionHeading } from "../chordpro/section-labels.js";
 import { beatAt, clicksBetween, normalizeMetronome, tapTempo } from "../metronome/index.js";
 import { clockOffset, deviceTime, metronomePositionAt, stemsPositionAt } from "../sync/index.js";
 import { cuesFromSections } from "../recording/cues.js";
-import { lyricSlides, normalizeScreenCode } from "../screens/index.js";
+import { lyricSlides, normalizeScreenCode, resolveScreenTheme, SCREEN_THEME_TEMPLATES, screenThemeContrast, sectionEnergy } from "../screens/index.js";
 import { rankSongbookHits, songbookReferences } from "../songbook-references/index.js";
 import { CreateSongVersionSchema, UpdateSongVersionSchema } from "../requests/songs.js";
 import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
@@ -883,6 +883,41 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "one at a time", args: [SONG, null, 1] },
           { name: "an arrangement: changed words, an inserted line", args: [SONG, ARRANGEMENT, 2] },
         ],
+      },
+      resolveScreenTheme: {
+        about:
+          "A screen theme as every client reads it (issue #194, docs/screen-theme-v1.md): what it says over the defaults; a part it can't read falls back to that part's defaults, a field it doesn't know is ignored, and anything that isn't a theme is the default look.",
+        params: ["input"],
+        run: resolveScreenTheme,
+        cases: [
+          { name: "nothing: the default look", args: [{}] },
+          { name: "a few fields: the rest default", args: [{ text: { font: "elegant", upperCase: true }, motion: { transition: "blur", reveal: "words" } }] },
+          { name: "a bad colour: that part's defaults, the rest kept", args: [{ text: { color: "red", font: "serif" }, background: { kind: "aurora", colors: ["#000000", "#6d28d9"] } }] },
+          { name: "a field from a later version: ignored", args: [{ background: { kind: "waves", shimmer: true }, future: { x: 1 } }] },
+          { name: "not a theme", args: ["concert"] },
+        ],
+      },
+      screenThemeTemplates: {
+        about: "The built-in themes, by id, in full: a client that offers them shows these.",
+        params: ["id"],
+        run: (id: string) => SCREEN_THEME_TEMPLATES.find((one) => one.id === id)?.theme ?? null,
+        cases: SCREEN_THEME_TEMPLATES.map((one) => ({ name: one.id, args: [one.id] })),
+      },
+      screenThemeContrast: {
+        about: "The lowest contrast between a theme's words and what's under them (WCAG 2, 1 to 21); an outline, shadow or glow counts as half again. An editor warns under 4.5.",
+        params: ["theme"],
+        run: (input: unknown) => screenThemeContrast(resolveScreenTheme(input)),
+        cases: [
+          { name: "white on black", args: [{}] },
+          { name: "dark grey on black, no effect", args: [{ text: { color: "#333333", effect: "none" } }] },
+          { name: "a moving background's lights, darkened", args: [{ text: { effect: "none" }, background: { kind: "aurora", colors: ["#05010f", "#facc15", "#ffffff"], dim: 0.3 } }] },
+        ],
+      },
+      sectionEnergy: {
+        about: "How lively a part is, from its label, for a background that warms up in a chorus: high, mid or low.",
+        params: ["label"],
+        run: sectionEnergy,
+        cases: ["Chorus", "Refrain 2", "Bridge", "Pre-chorus", "Verse 1", null].map((label) => ({ name: String(label), args: [label] })),
       },
       normalizeScreenCode: {
         about: "A pairing code as typed, as it's kept: upper case, no spaces or dashes; null when it can't be one.",

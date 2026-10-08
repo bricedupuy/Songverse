@@ -28,7 +28,8 @@ import type { UpdateSetlistItemRequest } from "../requests/sets.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
 import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
-import type { ConfirmScreenPairingRequest, UpdateScreenRequest } from "../requests/screens.js";
+import type { ConfirmScreenPairingRequest, CreateScreenThemeRequest, UpdateScreenRequest, UpdateScreenThemeRequest } from "../requests/screens.js";
+import type { ScreenTheme } from "../screens/theme.js";
 import type { ScreenMode } from "../screens/index.js";
 import type {
   CreateCatalogSchema,
@@ -567,11 +568,29 @@ export interface ScreenSummary {
   /** When it last loaded its set. */
   lastSeenAt: string | null;
   createdAt: string;
+  /** Its look (issue #194): a saved theme, or a built-in one by its id; neither, the default. */
+  themeId: string | null;
+  themeTemplate: string | null;
+}
+
+/** A saved screen theme (issue #194): the user's own or a team's. */
+export interface ScreenThemeSummary {
+  id: string;
+  name: string;
+  theme: ScreenTheme;
+  ownerUserId: string | null;
+  ownerTeamId: string | null;
+  teamName: string | null;
+  /** Theirs, or a team's they're an admin of: they change and delete it. */
+  canEdit: boolean;
+  updatedAt: string;
 }
 
 /** What a screen shows (GET /screens/current, with its own token): itself, and its set to keep - each song as the song view gives it - with the songs' credits. */
 export interface ScreenCurrent {
   screen: ScreenSummary;
+  /** Its look (issue #194), worked out: its theme, else its built-in one, else the default. */
+  theme: ScreenTheme;
   set: (SetlistOfflineCopy & { credits: Record<string, { writers: string[]; copyright: string | null; ccli: string | null }> }) | null;
 }
 
@@ -2108,6 +2127,11 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     listScreens: (setlistId?: string) => request<ScreenSummary[]>(`/screens${setlistId ? `?setlistId=${encodeURIComponent(setlistId)}` : ""}`),
     updateScreen: (screenId: string, data: UpdateScreenRequest) => request<ScreenSummary>(`/screens/${screenId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteScreen: (screenId: string) => request<void>(`/screens/${screenId}`, { method: "DELETE" }),
+    /** Screen themes (issue #194): the user's own and their teams'. */
+    listScreenThemes: () => request<ScreenThemeSummary[]>("/screen-themes"),
+    createScreenTheme: (data: CreateScreenThemeRequest) => request<ScreenThemeSummary>("/screen-themes", { method: "POST", body: JSON.stringify(data) }),
+    updateScreenTheme: (themeId: string, data: UpdateScreenThemeRequest) => request<ScreenThemeSummary>(`/screen-themes/${themeId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    deleteScreenTheme: (themeId: string) => request<void>(`/screen-themes/${themeId}`, { method: "DELETE" }),
     adminCreateInstrument: (data: CreateInstrumentRequest) => request<CustomInstrument>("/admin/instruments", { method: "POST", body: JSON.stringify(data) }),
     adminUpdateInstrument: (id: string, data: UpdateInstrumentRequest) => request<CustomInstrument>(`/admin/instruments/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     adminDeleteInstrument: (id: string) => request<void>(`/admin/instruments/${id}`, { method: "DELETE" }),

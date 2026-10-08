@@ -69,3 +69,4 @@ export function normalizeScreenCode(input: string): string | null {
 export function formatScreenCode(code: string): string {
   return `${code.slice(0, 3)}-${code.slice(3)}`;
 }
+export * from "./theme.js";

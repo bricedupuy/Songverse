@@ -1,0 +1,478 @@
+/*
+ * A screen's stage (issue #194): its background, its words and how they come
+ * and go. Everything that moves animates `transform` and `opacity` (and a
+ * little `filter` for blur), which the browser hands to the GPU: steady at
+ * 60 frames a second on a TV's browser, nothing laid out again while it
+ * plays. Sizes are in `cqmin` - the stage's own shorter side - so the same
+ * stage fills a projector or a preview card.
+ */
+
+/* In the components layer: a utility class on the stage (absolute inset-0, size-full) places it. */
+@layer components {
+
+.sv-stage {
+  position: relative;
+  container-type: size;
+  overflow: hidden;
+  isolation: isolate;
+  --t: 350ms;
+  --stagger: 60ms;
+  --energy: 0.35;
+  --motion: 0.5;
+  --text: #ffffff;
+  --c0: #000000;
+  --c1: var(--c0);
+  --c2: var(--c1);
+  --c3: var(--c2);
+  background: var(--c0);
+  color: var(--text);
+}
+
+/* ---- Backgrounds ---------------------------------------------------- */
+
+.sv-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.sv-bg-gradient {
+  background: linear-gradient(160deg, var(--c0), var(--c1) 55%, var(--c2));
+}
+.sv-bg-dim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: #000;
+  pointer-events: none;
+}
+
+/* Soft lights drifting: radial gradients (no blur filter), moved by transform. */
+.sv-blob {
+  position: absolute;
+  width: 90cqmax;
+  height: 90cqmax;
+  border-radius: 50%;
+  opacity: calc(0.25 + var(--energy) * 0.55);
+  transition:
+    opacity 1.2s ease,
+    scale 1.2s ease;
+  scale: calc(0.85 + var(--energy) * 0.3);
+  will-change: transform;
+  animation: sv-drift calc(26s - var(--motion) * 16s) ease-in-out infinite alternate;
+}
+.sv-blob:nth-child(1) {
+  left: -30cqmax;
+  top: -35cqmax;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c1) 85%, transparent), transparent);
+}
+.sv-blob:nth-child(2) {
+  right: -35cqmax;
+  top: -10cqmax;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c2) 80%, transparent), transparent);
+  animation-duration: calc(31s - var(--motion) * 18s);
+  animation-direction: alternate-reverse;
+}
+.sv-blob:nth-child(3) {
+  left: 5cqmax;
+  bottom: -55cqmax;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c3) 75%, transparent), transparent);
+  animation-duration: calc(37s - var(--motion) * 20s);
+}
+@keyframes sv-drift {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(14cqmax, 8cqmax, 0) rotate(40deg);
+  }
+  100% {
+    transform: translate3d(-10cqmax, 14cqmax, 0) rotate(-25deg);
+  }
+}
+
+/* Waves: wide soft bands rising and falling, each at its own pace. */
+.sv-wave {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 70cqh;
+  border-radius: 45%;
+  opacity: calc(0.25 + var(--energy) * 0.5);
+  transition: opacity 1.2s ease;
+  will-change: transform;
+  animation: sv-wave calc(18s - var(--motion) * 10s) ease-in-out infinite alternate;
+}
+.sv-wave:nth-child(1) {
+  bottom: -40cqh;
+  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--c1) 80%, transparent), transparent 70%);
+}
+.sv-wave:nth-child(2) {
+  bottom: -50cqh;
+  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--c2) 70%, transparent), transparent 70%);
+  animation-duration: calc(23s - var(--motion) * 12s);
+  animation-direction: alternate-reverse;
+}
+.sv-wave:nth-child(3) {
+  bottom: -60cqh;
+  background: radial-gradient(50% 50% at 50% 50%, color-mix(in srgb, var(--c3) 70%, transparent), transparent 70%);
+  animation-duration: calc(29s - var(--motion) * 14s);
+}
+@keyframes sv-wave {
+  from {
+    transform: translate3d(-12%, 4cqh, 0) rotate(-3deg);
+  }
+  to {
+    transform: translate3d(12%, -10cqh, 0) rotate(4deg);
+  }
+}
+
+/* Particles: points of light rising slowly, each its own path (set inline). */
+.sv-particle {
+  position: absolute;
+  bottom: -2cqmin;
+  width: var(--size, 0.6cqmin);
+  height: var(--size, 0.6cqmin);
+  border-radius: 50%;
+  background: var(--c2);
+  box-shadow: 0 0 1.2cqmin var(--c2);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: sv-rise var(--dur, 14s) linear var(--delay, 0s) infinite;
+}
+@keyframes sv-rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: calc(0.35 + var(--energy) * 0.6);
+  }
+  90% {
+    opacity: calc(0.35 + var(--energy) * 0.6);
+  }
+  100% {
+    transform: translate3d(var(--sway, 4cqmin), -110cqh, 0);
+    opacity: 0;
+  }
+}
+
+/* A spotlight from above, sweeping a little. */
+.sv-beam {
+  position: absolute;
+  left: 50%;
+  top: -20cqh;
+  width: 80cqmax;
+  height: 150cqh;
+  margin-left: -40cqmax;
+  transform-origin: 50% 0;
+  background: conic-gradient(from 165deg at 50% 0%, transparent 0deg, color-mix(in srgb, var(--c1) 55%, transparent) 15deg, transparent 30deg);
+  opacity: calc(0.2 + var(--energy) * 0.6);
+  transition: opacity 1s ease;
+  will-change: transform;
+  animation: sv-sweep calc(16s - var(--motion) * 9s) ease-in-out infinite alternate;
+}
+.sv-beam + .sv-beam {
+  animation-duration: calc(21s - var(--motion) * 11s);
+  animation-direction: alternate-reverse;
+  opacity: calc(0.12 + var(--energy) * 0.4);
+}
+@keyframes sv-sweep {
+  from {
+    transform: rotate(-14deg);
+  }
+  to {
+    transform: rotate(14deg);
+  }
+}
+
+/* The background answers each new slide: a pulse of light from the middle. */
+.sv-pulse {
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--c2) 45%, transparent), transparent 70%);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: sv-pulse 1.4s ease-out;
+}
+@keyframes sv-pulse {
+  0% {
+    opacity: calc(0.15 + var(--energy) * 0.45);
+    transform: scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+/* ---- Words ---------------------------------------------------------- */
+
+.sv-words {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+}
+.sv-slide {
+  will-change: transform, opacity;
+}
+.sv-line {
+  margin: 0;
+  text-wrap: balance;
+}
+.sv-effect-shadow .sv-line {
+  text-shadow:
+    0 0.04em 0.12em rgb(0 0 0 / 0.75),
+    0 0 0.6em rgb(0 0 0 / 0.35);
+}
+.sv-effect-outline .sv-line {
+  -webkit-text-stroke: 0.07em #000;
+  paint-order: stroke fill;
+}
+.sv-effect-glow .sv-line {
+  text-shadow:
+    0 0 0.18em color-mix(in srgb, var(--text) 70%, transparent),
+    0 0 0.6em color-mix(in srgb, var(--c2) 60%, transparent);
+}
+
+/* The lines around the current ones. */
+.sv-context {
+  transition:
+    opacity var(--t) ease,
+    filter var(--t) ease;
+}
+.sv-context-dim {
+  opacity: 0.35;
+}
+.sv-context-small {
+  opacity: 0.45;
+  --k: 0.62;
+}
+.sv-context-blur {
+  opacity: 0.4;
+  filter: blur(0.06em);
+}
+.sv-context-hidden {
+  visibility: hidden;
+}
+
+/* A slide in, and the one before it out: the same length, one over the other. */
+.sv-in {
+  animation-duration: var(--t);
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+}
+.sv-out {
+  position: absolute;
+  inset: 0;
+  animation-duration: var(--t);
+  animation-timing-function: cubic-bezier(0.64, 0, 0.78, 0);
+  animation-fill-mode: both;
+  pointer-events: none;
+}
+.sv-in-fade {
+  animation-name: sv-fade-in;
+}
+.sv-out-fade {
+  animation-name: sv-fade-out;
+}
+.sv-in-slide {
+  animation-name: sv-slide-in;
+}
+.sv-out-slide {
+  animation-name: sv-slide-out;
+}
+.sv-in-rise {
+  animation-name: sv-rise-in;
+}
+.sv-out-rise {
+  animation-name: sv-rise-out;
+}
+.sv-in-scale {
+  animation-name: sv-scale-in;
+}
+.sv-out-scale {
+  animation-name: sv-scale-out;
+}
+.sv-in-blur {
+  animation-name: sv-blur-in;
+}
+.sv-out-blur {
+  animation-name: sv-blur-out;
+}
+.sv-in-zoom {
+  animation-name: sv-zoom-in;
+}
+.sv-out-zoom {
+  animation-name: sv-zoom-out;
+}
+@keyframes sv-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sv-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes sv-slide-in {
+  from {
+    opacity: 0;
+    transform: translate3d(12cqw, 0, 0);
+  }
+}
+@keyframes sv-slide-out {
+  to {
+    opacity: 0;
+    transform: translate3d(-12cqw, 0, 0);
+  }
+}
+@keyframes sv-rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6cqh, 0);
+  }
+}
+@keyframes sv-rise-out {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -5cqh, 0);
+  }
+}
+@keyframes sv-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+}
+@keyframes sv-scale-out {
+  to {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+@keyframes sv-blur-in {
+  from {
+    opacity: 0;
+    filter: blur(1.2cqmin);
+    transform: scale(1.03);
+  }
+}
+@keyframes sv-blur-out {
+  to {
+    opacity: 0;
+    filter: blur(1.2cqmin);
+    transform: scale(0.98);
+  }
+}
+@keyframes sv-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(1.35);
+    filter: blur(0.6cqmin);
+  }
+}
+@keyframes sv-zoom-out {
+  to {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+/* Text reveal: each piece (line, word or letter) after the one before. */
+.sv-piece {
+  display: inline-block;
+  animation-fill-mode: both;
+  animation-delay: calc(var(--i) * var(--stagger) + var(--t) * 0.35);
+  will-change: transform, opacity;
+}
+.sv-reveal-lines .sv-piece {
+  display: block;
+  animation: sv-piece-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + var(--t) * 0.35);
+}
+.sv-reveal-words .sv-piece {
+  animation: sv-piece-word 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + var(--t) * 0.35);
+}
+.sv-reveal-letters .sv-piece {
+  animation: sv-piece-letter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + var(--t) * 0.35);
+}
+.sv-reveal-typewriter .sv-piece {
+  animation: sv-piece-type 1ms steps(1) both;
+  animation-delay: calc(var(--i) * var(--stagger) + var(--t) * 0.35);
+}
+.sv-reveal-glow .sv-piece {
+  animation: sv-piece-glow 0.9s ease-out both;
+  animation-delay: calc(var(--i) * var(--stagger) + var(--t) * 0.35);
+}
+@keyframes sv-piece-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.4em, 0);
+  }
+}
+@keyframes sv-piece-word {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.35em, 0);
+    filter: blur(0.08em);
+  }
+}
+@keyframes sv-piece-letter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.25em, 0) scale(0.8);
+  }
+}
+@keyframes sv-piece-type {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sv-piece-glow {
+  from {
+    opacity: 0;
+    filter: blur(0.12em) brightness(2.2);
+  }
+  60% {
+    opacity: 1;
+    filter: blur(0) brightness(1.4);
+  }
+}
+
+/* Going to black: the words and the background fade out together. */
+.sv-black {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: #000;
+  opacity: 0;
+  transition: opacity var(--t) ease;
+  pointer-events: none;
+}
+.sv-black[data-on] {
+  opacity: 1;
+}
+
+/* Who asked for less motion gets still backgrounds and plain fades. */
+@media (prefers-reduced-motion: reduce) {
+  .sv-stage *,
+  .sv-stage *::before,
+  .sv-stage *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+  }
+  .sv-in,
+  .sv-out {
+    animation-name: none !important;
+  }
+}
+}

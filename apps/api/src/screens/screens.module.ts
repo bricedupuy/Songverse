@@ -1,13 +1,15 @@
 import { Module } from "@nestjs/common";
 import { SetlistsModule } from "../setlists/setlists.module.js";
+import { ScreenThemesController } from "./screen-themes.controller.js";
+import { ScreenThemesService } from "./screen-themes.service.js";
 import { ScreensController } from "./screens.controller.js";
 import { ScreensService } from "./screens.service.js";
 
-/** Screens (issue #186): pairing, what a screen shows; the sync server signs them in. */
+/** Screens (issue #186): pairing, what a screen shows, their themes (#194); the sync server signs them in. */
 @Module({
   imports: [SetlistsModule],
-  controllers: [ScreensController],
-  providers: [ScreensService],
+  controllers: [ScreensController, ScreenThemesController],
+  providers: [ScreensService, ScreenThemesService],
   exports: [ScreensService],
 })
 export class ScreensModule {}

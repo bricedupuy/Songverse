@@ -562,6 +562,972 @@
         }
       ]
     },
+    "resolveScreenTheme": {
+      "about": "A screen theme as every client reads it (issue #194, docs/screen-theme-v1.md): what it says over the defaults; a part it can't read falls back to that part's defaults, a field it doesn't know is ignored, and anything that isn't a theme is the default look.",
+      "params": [
+        "input"
+      ],
+      "cases": [
+        {
+          "name": "nothing: the default look",
+          "args": [
+            {}
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "sans",
+              "size": "auto",
+              "weight": 600,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "shadow",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 1,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "color",
+              "colors": [
+                "#000000"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "fade",
+              "duration": 350,
+              "reveal": "none",
+              "stagger": 60
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "a few fields: the rest default",
+          "args": [
+            {
+              "text": {
+                "font": "elegant",
+                "upperCase": true
+              },
+              "motion": {
+                "transition": "blur",
+                "reveal": "words"
+              }
+            }
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "elegant",
+              "size": "auto",
+              "weight": 600,
+              "upperCase": true,
+              "color": "#ffffff",
+              "effect": "shadow",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 1,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "color",
+              "colors": [
+                "#000000"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "blur",
+              "duration": 350,
+              "reveal": "words",
+              "stagger": 60
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "a bad colour: that part's defaults, the rest kept",
+          "args": [
+            {
+              "text": {
+                "color": "red",
+                "font": "serif"
+              },
+              "background": {
+                "kind": "aurora",
+                "colors": [
+                  "#000000",
+                  "#6d28d9"
+                ]
+              }
+            }
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "sans",
+              "size": "auto",
+              "weight": 600,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "shadow",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 1,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "aurora",
+              "colors": [
+                "#000000",
+                "#6d28d9"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "fade",
+              "duration": 350,
+              "reveal": "none",
+              "stagger": 60
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "a field from a later version: ignored",
+          "args": [
+            {
+              "background": {
+                "kind": "waves",
+                "shimmer": true
+              },
+              "future": {
+                "x": 1
+              }
+            }
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "sans",
+              "size": "auto",
+              "weight": 600,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "shadow",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 1,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "waves",
+              "colors": [
+                "#000000"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "fade",
+              "duration": 350,
+              "reveal": "none",
+              "stagger": 60
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "not a theme",
+          "args": [
+            "concert"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "sans",
+              "size": "auto",
+              "weight": 600,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "shadow",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 1,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "color",
+              "colors": [
+                "#000000"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "fade",
+              "duration": 350,
+              "reveal": "none",
+              "stagger": 60
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        }
+      ]
+    },
+    "screenThemeTemplates": {
+      "about": "The built-in themes, by id, in full: a client that offers them shows these.",
+      "params": [
+        "id"
+      ],
+      "cases": [
+        {
+          "name": "classic",
+          "args": [
+            "classic"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "sans",
+              "size": "auto",
+              "weight": 600,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "shadow",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 1,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "color",
+              "colors": [
+                "#000000"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "fade",
+              "duration": 350,
+              "reveal": "none",
+              "stagger": 60
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "concert",
+          "args": [
+            "concert"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "geometric",
+              "size": "auto",
+              "weight": 800,
+              "upperCase": true,
+              "color": "#ffffff",
+              "effect": "glow",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0.02
+            },
+            "lines": {
+              "group": "slide",
+              "before": 0,
+              "after": 1,
+              "contextStyle": "blur"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "aurora",
+              "colors": [
+                "#05010f",
+                "#6d28d9",
+                "#db2777",
+                "#0ea5e9"
+              ],
+              "reactive": true,
+              "motion": 0.7,
+              "dim": 0.15
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "blur",
+              "duration": 500,
+              "reveal": "words",
+              "stagger": 70
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "chapel",
+          "args": [
+            "chapel"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "elegant",
+              "size": "auto",
+              "weight": 500,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "shadow",
+              "lineHeight": 1.3,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 0,
+              "after": 0,
+              "contextStyle": "hidden"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "gradient",
+              "colors": [
+                "#1c1206",
+                "#3b2a14",
+                "#0d0905"
+              ],
+              "reactive": false,
+              "motion": 0.2,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "fade",
+              "duration": 700,
+              "reveal": "lines",
+              "stagger": 180
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "sunrise",
+          "args": [
+            "sunrise"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "rounded",
+              "size": "auto",
+              "weight": 700,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "shadow",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 1,
+              "contextStyle": "small"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "waves",
+              "colors": [
+                "#1e1b4b",
+                "#f97316",
+                "#facc15",
+                "#ec4899"
+              ],
+              "reactive": true,
+              "motion": 0.5,
+              "dim": 0.25
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "rise",
+              "duration": 450,
+              "reveal": "words",
+              "stagger": 50
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "starlight",
+          "args": [
+            "starlight"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "serif",
+              "size": "auto",
+              "weight": 600,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "glow",
+              "lineHeight": 1.25,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 1,
+              "contextStyle": "blur"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "particles",
+              "colors": [
+                "#020617",
+                "#1e3a8a",
+                "#e0f2fe"
+              ],
+              "reactive": true,
+              "motion": 0.4,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "zoom",
+              "duration": 600,
+              "reveal": "glow",
+              "stagger": 90
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "spotlight",
+          "args": [
+            "spotlight"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "display",
+              "size": "auto",
+              "weight": 400,
+              "upperCase": true,
+              "color": "#ffffff",
+              "effect": "none",
+              "lineHeight": 1.05,
+              "align": "center",
+              "letterSpacing": 0.04
+            },
+            "lines": {
+              "group": "slide",
+              "before": 0,
+              "after": 0,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 5
+            },
+            "background": {
+              "kind": "spotlight",
+              "colors": [
+                "#000000",
+                "#fef3c7"
+              ],
+              "reactive": true,
+              "motion": 0.6,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "scale",
+              "duration": 400,
+              "reveal": "letters",
+              "stagger": 25
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "stream",
+          "args": [
+            "stream"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "sans",
+              "size": 5.5,
+              "weight": 700,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "outline",
+              "lineHeight": 1.15,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 0,
+              "after": 0,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "lower-third",
+              "margin": 4
+            },
+            "background": {
+              "kind": "color",
+              "colors": [
+                "#000000"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": false,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "top",
+              "when": "first"
+            },
+            "motion": {
+              "transition": "slide",
+              "duration": 300,
+              "reveal": "none",
+              "stagger": 60
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "minimal",
+          "args": [
+            "minimal"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "sans",
+              "size": "auto",
+              "weight": 500,
+              "upperCase": false,
+              "color": "#ffffff",
+              "effect": "none",
+              "lineHeight": 1.25,
+              "align": "left",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "slide",
+              "before": 1,
+              "after": 2,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "center",
+              "margin": 8
+            },
+            "background": {
+              "kind": "color",
+              "colors": [
+                "#0a0a0a"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "first"
+            },
+            "credits": {
+              "show": true,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "fade",
+              "duration": 250,
+              "reveal": "typewriter",
+              "stagger": 18
+            },
+            "chords": {
+              "color": "#7dd3fc",
+              "scale": 1
+            }
+          }
+        },
+        {
+          "name": "stage-monitor",
+          "args": [
+            "stage-monitor"
+          ],
+          "expected": {
+            "$schema": "screen-theme/v1",
+            "text": {
+              "font": "condensed",
+              "size": 9,
+              "weight": 700,
+              "upperCase": true,
+              "color": "#ffffff",
+              "effect": "none",
+              "lineHeight": 1.05,
+              "align": "center",
+              "letterSpacing": 0
+            },
+            "lines": {
+              "group": "section",
+              "before": 0,
+              "after": 0,
+              "contextStyle": "dim"
+            },
+            "layout": {
+              "position": "top",
+              "margin": 3
+            },
+            "background": {
+              "kind": "color",
+              "colors": [
+                "#000000"
+              ],
+              "reactive": false,
+              "motion": 0.5,
+              "dim": 0
+            },
+            "title": {
+              "show": true,
+              "when": "every"
+            },
+            "credits": {
+              "show": false,
+              "where": "bottom",
+              "when": "first-and-last"
+            },
+            "motion": {
+              "transition": "cut",
+              "duration": 0,
+              "reveal": "none",
+              "stagger": 60
+            },
+            "chords": {
+              "color": "#facc15",
+              "scale": 1.2
+            }
+          }
+        }
+      ]
+    },
+    "screenThemeContrast": {
+      "about": "The lowest contrast between a theme's words and what's under them (WCAG 2, 1 to 21); an outline, shadow or glow counts as half again. An editor warns under 4.5.",
+      "params": [
+        "theme"
+      ],
+      "cases": [
+        {
+          "name": "white on black",
+          "args": [
+            {}
+          ],
+          "expected": 21
+        },
+        {
+          "name": "dark grey on black, no effect",
+          "args": [
+            {
+              "text": {
+                "color": "#333333",
+                "effect": "none"
+              }
+            }
+          ],
+          "expected": 1.66
+        },
+        {
+          "name": "a moving background's lights, darkened",
+          "args": [
+            {
+              "text": {
+                "effect": "none"
+              },
+              "background": {
+                "kind": "aurora",
+                "colors": [
+                  "#05010f",
+                  "#facc15",
+                  "#ffffff"
+                ],
+                "dim": 0.3
+              }
+            }
+          ],
+          "expected": 7.86
+        }
+      ]
+    },
+    "sectionEnergy": {
+      "about": "How lively a part is, from its label, for a background that warms up in a chorus: high, mid or low.",
+      "params": [
+        "label"
+      ],
+      "cases": [
+        {
+          "name": "Chorus",
+          "args": [
+            "Chorus"
+          ],
+          "expected": "high"
+        },
+        {
+          "name": "Refrain 2",
+          "args": [
+            "Refrain 2"
+          ],
+          "expected": "high"
+        },
+        {
+          "name": "Bridge",
+          "args": [
+            "Bridge"
+          ],
+          "expected": "mid"
+        },
+        {
+          "name": "Pre-chorus",
+          "args": [
+            "Pre-chorus"
+          ],
+          "expected": "mid"
+        },
+        {
+          "name": "Verse 1",
+          "args": [
+            "Verse 1"
+          ],
+          "expected": "low"
+        },
+        {
+          "name": "null",
+          "args": [
+            null
+          ],
+          "expected": "low"
+        }
+      ]
+    },
     "normalizeScreenCode": {
       "about": "A pairing code as typed, as it's kept: upper case, no spaces or dashes; null when it can't be one.",
       "params": [

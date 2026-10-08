@@ -122,7 +122,10 @@ try {
     await tablet.getByTestId("present-black").click();
     page = tv;
     await tv.locator('[data-testid="screen-showing"][data-black="true"]').waitFor();
-    if (await tv.getByTestId("screen-lyrics").count()) throw new Error("lyrics while black");
+    // Faded to black, then nothing left to read (issue #194).
+    await tv.getByTestId("screen-lyrics").waitFor({ state: "detached", timeout: 3000 }).catch(() => {
+      throw new Error("lyrics while black");
+    });
     page = tablet;
     await tablet.getByTestId("present-black").click();
     page = tv;

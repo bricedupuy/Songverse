@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, GoneException, Injectable, NotFoundException } from "@nestjs/common";
-import { SCREEN_CODE_ALPHABET, SCREEN_CODE_LENGTH, normalizeScreenCode, type ScreenMode } from "@songverse/core";
+import { SCREEN_CODE_ALPHABET, SCREEN_CODE_LENGTH, normalizeScreenCode, resolveScreenTheme, screenThemeTemplate, type ScreenMode, type ScreenTheme } from "@songverse/core";
 import { createHash, randomBytes, randomInt, randomUUID, timingSafeEqual } from "node:crypto";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { redis } from "../jobs/redis.js";
@@ -10,8 +10,10 @@ import { SetlistsService } from "../setlists/setlists.service.js";
 
 /** How long a pairing code waits to be confirmed. */
 export const PAIRING_TTL_S = 10 * 60;
-/** Announced when a screen changes (renamed, another mode or set, deleted): the sync server tells it at once. */
-export const SCREEN_CHANNEL = "songverse:sync:screen";
+import { SCREEN_CHANNEL } from "./screen-channel.js";
+import { ScreenThemesService } from "./screen-themes.service.js";
+
+export { SCREEN_CHANNEL };
 const codeKey = (code: string) => `songverse:screen:code:${code}`;
 const pairingKey = (id: string) => `songverse:screen:pairing:${id}`;
 
@@ -25,7 +27,31 @@ interface Pairing {
 
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 
-const SCREEN_SELECT = { id: true, name: true, mode: true, setlistId: true, ownerUserId: true, lastSeenAt: true, createdAt: true, setlist: { select: { id: true, name: true, eventDate: true } } } as const;
+const SCREEN_SELECT = {
+  id: true,
+  name: true,
+  mode: true,
+  setlistId: true,
+  themeId: true,
+  themeTemplate: true,
+  ownerUserId: true,
+  lastSeenAt: true,
+  createdAt: true,
+  setlist: { select: { id: true, name: true, eventDate: true } },
+} as const;
+
+/** A screen's look (issue #194), worked out: its theme, else its built-in one, else the default. */
+function screenLook(screen: { themeTemplate: string | null; theme: { document: unknown } | null }): ScreenTheme {
+  if (screen.theme) return resolveScreenTheme(screen.theme.document);
+  return screenThemeTemplate(screen.themeTemplate)?.theme ?? resolveScreenTheme(null);
+}
+
+/** A screen's theme as asked for: one or the other (picking one clears the other); left out, as it was. */
+function lookChange(change: { themeId?: string | null; themeTemplate?: string | null }) {
+  if (change.themeId) return { themeId: change.themeId, themeTemplate: null };
+  if (change.themeTemplate) return { themeId: null, themeTemplate: change.themeTemplate };
+  return { ...(change.themeId === null && { themeId: null }), ...(change.themeTemplate === null && { themeTemplate: null }) };
+}
 
 /**
  * Screens (issue #186). A screen asks for a pairing code (no sign-in); someone
@@ -40,6 +66,7 @@ export class ScreensService {
     private readonly prisma: PrismaService,
     private readonly access: SetlistAccessService,
     private readonly setlists: SetlistsService,
+    private readonly themes: ScreenThemesService,
   ) {}
 
   /** A new code for a screen to show, and the secret it claims its token with. */
@@ -66,12 +93,13 @@ export class ScreensService {
   }
 
   /** Confirmed by someone who leads `setlistId`: the screen's made, its token waiting for it to claim. */
-  async confirm(user: AuthenticatedUser, input: string, change: { name: string; mode: ScreenMode; setlistId: string }) {
+  async confirm(user: AuthenticatedUser, input: string, change: { name: string; mode: ScreenMode; setlistId: string; themeId?: string | null; themeTemplate?: string | null }) {
     const { code, pairingId, pairing } = await this.waiting(input);
     await this.assertCanPresent(user, change.setlistId);
+    if (change.themeId) await this.themes.assertCanUse(user, change.themeId);
     const token = `scr_${randomBytes(32).toString("base64url")}`;
     const screen = await this.prisma.client.screen.create({
-      data: { name: change.name, mode: change.mode, setlistId: change.setlistId, ownerUserId: user.id, tokenHash: hash(token) },
+      data: { name: change.name, mode: change.mode, setlistId: change.setlistId, ownerUserId: user.id, tokenHash: hash(token), ...lookChange(change) },
       select: SCREEN_SELECT,
     });
     const ttl = Math.max(30, await redis().ttl(pairingKey(pairingId)));
@@ -105,7 +133,7 @@ export class ScreensService {
   async current(token: string) {
     const screen = await this.byToken(token);
     if (!screen) throw new NotFoundException("This screen was disconnected");
-    await this.prisma.client.screen.update({ where: { id: screen.id }, data: { lastSeenAt: new Date() } });
+    const { theme } = await this.prisma.client.screen.update({ where: { id: screen.id }, data: { lastSeenAt: new Date() }, select: { theme: { select: { document: true } } } });
     const owner = await this.ownerOf(screen.ownerUserId);
     let set = null;
     if (owner && screen.setlistId) {
@@ -116,7 +144,7 @@ export class ScreensService {
         // No longer theirs to read: the screen waits for another set.
       }
     }
-    return { screen: present(screen), set };
+    return { screen: present(screen), theme: screenLook({ themeTemplate: screen.themeTemplate, theme }), set };
   }
 
   /** The screens of a set its leaders see, or the user's own. */
@@ -128,12 +156,18 @@ export class ScreensService {
     return (await this.prisma.client.screen.findMany({ where: { ownerUserId: user.id }, select: SCREEN_SELECT, orderBy: { createdAt: "asc" } })).map(present);
   }
 
-  async update(user: AuthenticatedUser, screenId: string, change: { name?: string; mode?: ScreenMode; setlistId?: string | null }) {
+  async update(user: AuthenticatedUser, screenId: string, change: { name?: string; mode?: ScreenMode; setlistId?: string | null; themeId?: string | null; themeTemplate?: string | null }) {
     const screen = await this.changeable(user, screenId);
     if (change.setlistId) await this.assertCanPresent(user, change.setlistId);
+    if (change.themeId) await this.themes.assertCanUse(user, change.themeId);
     const updated = await this.prisma.client.screen.update({
       where: { id: screen.id },
-      data: { ...(change.name !== undefined && { name: change.name }), ...(change.mode !== undefined && { mode: change.mode }), ...(change.setlistId !== undefined && { setlistId: change.setlistId }) },
+      data: {
+        ...(change.name !== undefined && { name: change.name }),
+        ...(change.mode !== undefined && { mode: change.mode }),
+        ...(change.setlistId !== undefined && { setlistId: change.setlistId }),
+        ...lookChange(change),
+      },
       select: SCREEN_SELECT,
     });
     await redis().publish(SCREEN_CHANNEL, screen.id);
@@ -206,7 +240,17 @@ export class ScreensService {
   }
 }
 
-function present(screen: { id: string; name: string; mode: ScreenMode; setlistId: string | null; lastSeenAt: Date | null; createdAt: Date; setlist: { id: string; name: string | null; eventDate: Date | null } | null }) {
+function present(screen: {
+  id: string;
+  name: string;
+  mode: ScreenMode;
+  setlistId: string | null;
+  themeId: string | null;
+  themeTemplate: string | null;
+  lastSeenAt: Date | null;
+  createdAt: Date;
+  setlist: { id: string; name: string | null; eventDate: Date | null } | null;
+}) {
   return {
     id: screen.id,
     name: screen.name,
@@ -215,5 +259,7 @@ function present(screen: { id: string; name: string; mode: ScreenMode; setlistId
     setlist: screen.setlist ? { id: screen.setlist.id, name: screen.setlist.name, eventDate: screen.setlist.eventDate ? screen.setlist.eventDate.toISOString().slice(0, 10) : null } : null,
     lastSeenAt: screen.lastSeenAt?.toISOString() ?? null,
     createdAt: screen.createdAt.toISOString(),
+    themeId: screen.themeId,
+    themeTemplate: screen.themeTemplate,
   };
 }

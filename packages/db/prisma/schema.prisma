@@ -324,6 +324,8 @@ model User {
   roleAssignments     RoleAssignment[]
   // The screens they paired (issue #186).
   screens             Screen[]
+  // Their own screen themes (issue #194).
+  screenThemes        ScreenTheme[]
   // The people they invited to sign up (issue #198).
   signupInvitations   SignupInvitation[]
   ownedSongbooks      Songbook[]             @relation("SongbookOwnerUser")
@@ -478,6 +480,8 @@ model Team {
   contributedVersions SongVersion[]          @relation("VersionContributedByTeam")
   // What its members may do (issue #160), and its storage pool's limit.
   roleAssignments     RoleAssignment[]
+  // Its screens' looks (issue #194), for every member to pick.
+  screenThemes        ScreenTheme[]
 
   @@index([slug])
 }
@@ -2277,15 +2281,41 @@ model Screen {
   // Who paired it: it reads the set as they would, and only they change it.
   ownerUserId String
   setlistId   String?
+  // Its look (issue #194): a saved theme, or a built-in one by its id ("concert"); neither, the default.
+  themeId       String?
+  themeTemplate String?
   lastSeenAt  DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  owner   User     @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  setlist Setlist? @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+  owner   User         @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  setlist Setlist?     @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+  theme   ScreenTheme? @relation(fields: [themeId], references: [id], onDelete: SetNull)
 
   @@index([ownerUserId])
   @@index([setlistId])
+  @@index([themeId])
+}
+
+// A look for screens (issue #194): a screen-theme/v1 document
+// (docs/screen-theme-v1.md), a person's own or shared with a team - a
+// venue or church matching its brand - picked per screen.
+model ScreenTheme {
+  id          String   @id @default(cuid())
+  name        String
+  document    Json
+  // A person's own, or a team's (its admins change it, its members pick it).
+  ownerUserId String?
+  ownerTeamId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner   User?    @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  team    Team?    @relation(fields: [ownerTeamId], references: [id], onDelete: Cascade)
+  screens Screen[]
+
+  @@index([ownerUserId])
+  @@index([ownerTeamId])
 }
 
 enum ScreenMode {
