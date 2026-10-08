@@ -3,7 +3,7 @@ title: Display
 description: How charts read in each mode - text, chords, your instrument's diagrams and the layout - changed from a small panel while you watch the chart change.
 ---
 
-The **Display** button (sliders) opens a small panel at the bottom of the screen: how the chart reads, changed while you look at it. It's on a song's page in Practice, on a set's songs, in Live's header (an icon only) and beside the song editor's preview. The panel covers only the bottom of the screen, so the chart above stays in view, scrolls and takes taps; every change shows on it at once. **×** closes the panel, and so does dragging it down by its handle.
+The **Display** button (sliders) opens a small panel at the bottom of the screen: how the chart reads, changed while you look at it. It's on a song's page in Practice, on a set's songs, in Live's header (an icon only) and beside the song editor's preview. On a phone the panel covers only the bottom of the screen, so the chart above stays in view, scrolls and takes taps. On a large screen it's a column down the right with every section in it at once, and the page moves over to make room. Every change shows on the chart at once. **×** closes the panel, and so does dragging it down by its handle.
 
 ![The Display panel on a phone](../../assets/screenshots/en/display.jpg)
 
@@ -15,7 +15,7 @@ Anything a mode hasn't changed comes from your account's [Chart display](/accoun
 
 ## What it changes
 
-The list at the top of the panel picks a section:
+On a phone, the list at the top of the panel picks a section; a large screen shows them all, one under the other:
 
 - **Text** - **Size** (**−** and **+**, from 75% to 300%; Live starts at 150%), **Font** (monospace, where chords line up with each letter, or proportional) and **Spacing** between lines (**Compact**, **Normal**, **Relaxed**).
 - **Chords** - **Names** in letters, solfège, Nashville numbers or Roman numerals (see [Nashville numbers and chord colours](/versions/#nashville-numbers-and-chord-colours)), **Colours** by chord type, chords **With a capo** as they sound or as the shapes to play, and **Chords** shown or hidden (**Lyrics only**).

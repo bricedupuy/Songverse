@@ -1,12 +1,4 @@
-import {
-  DISPLAY_TEXT_SIZES,
-  TUNINGS,
-  type AppModeValue,
-  type ChordDiagramsValue,
-  type DiagramPlayer,
-  type DisplayColumnsValue,
-  type EffectiveDisplaySettings,
-} from "@songverse/core";
+import { DISPLAY_TEXT_SIZES, TUNINGS, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
 import {
   Baseline,
   Columns2,
@@ -31,12 +23,13 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
 import { ButtonGroup } from "#/components/ui/button-group";
 import { Drawer, DrawerClose, DrawerContent, DrawerTitle, DrawerTrigger } from "#/components/ui/drawer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#/components/ui/select";
+import { useMediaQuery } from "#/hooks/use-media-query";
 import { changeDiagramPlayer, changeDisplaySettings, stepTextSize } from "#/lib/display-settings";
 import { cn } from "#/lib/utils";
 
@@ -45,6 +38,8 @@ type Section = (typeof SECTIONS)[number];
 const SECTION_ICONS: Record<Section, LucideIcon> = { text: Type, chords: Music, instrument: Guitar, layout: Columns3 };
 
 const KEY = "songverse.display.section";
+/** From here the panel is a column down the right, every section in it (issue #209). */
+const WIDE = "(min-width: 1024px)";
 
 function keptSection(): Section {
   try {
@@ -79,6 +74,16 @@ export function DisplayPanel({
 }) {
   const { t } = useTranslation();
   const [section, setSection] = useState<Section>(keptSection);
+  const [open, setOpen] = useState(false);
+  // A large screen has room for a column down the right with every section in it; a phone, the bottom.
+  const wide = useMediaQuery(WIDE);
+  const shown = (one: Section) => wide || section === one;
+  // The page makes room for the column rather than going under it.
+  useEffect(() => {
+    if (!open || !wide) return;
+    document.documentElement.setAttribute("data-side-panel", "");
+    return () => document.documentElement.removeAttribute("data-side-panel");
+  }, [open, wide]);
   const modeName = t(`mode.${mode.toLowerCase()}`);
   const change = (next: Parameters<typeof changeDisplaySettings>[1]) => changeDisplaySettings(mode, next);
 
@@ -92,7 +97,7 @@ export function DisplayPanel({
   }
 
   return (
-    <Drawer modal={false} disablePointerDismissal>
+    <Drawer modal={false} disablePointerDismissal open={open} onOpenChange={setOpen} swipeDirection={wide ? "right" : "down"}>
       <DrawerTrigger
         render={<Button variant="outline" size={compact ? "icon" : "sm"} className={cn(compact && "size-8", className)} />}
         aria-label={t("display.open")}
@@ -102,25 +107,26 @@ export function DisplayPanel({
         <SlidersHorizontal aria-hidden />
         {compact ? null : t("display.open")}
       </DrawerTrigger>
-      <DrawerContent data-testid="display-panel" data-mode={mode} aria-label={t("display.title")}>
-        <div className="flex items-center gap-2 border-b px-3 pb-2">
-          <DrawerTitle className="sr-only">{t("display.title")}</DrawerTitle>
-          <Select value={section} onValueChange={(value) => value && pick(value as Section)}>
-            <SelectTrigger className="h-8 w-auto min-w-36 font-medium" aria-label={t("display.section")} data-testid="display-section">
-              <SelectValue>
-                {(value: Section) => (
-                  <SectionLabel section={value} />
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {SECTIONS.map((value) => (
-                <SelectItem key={value} value={value} data-testid={`display-section-${value}`}>
-                  <SectionLabel section={value} />
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <DrawerContent side={wide ? "right" : "bottom"} data-testid="display-panel" data-mode={mode} aria-label={t("display.title")}>
+        <div className={cn("flex items-center gap-2 border-b px-3 pb-2", wide && "pt-3")}>
+          <DrawerTitle className={wide ? "flex items-center gap-2" : "sr-only"}>
+            {wide ? <SlidersHorizontal className="size-4 text-muted-foreground" aria-hidden /> : null}
+            {t("display.title")}
+          </DrawerTitle>
+          {wide ? null : (
+            <Select value={section} onValueChange={(value) => value && pick(value as Section)}>
+              <SelectTrigger className="h-8 w-auto min-w-36 font-medium" aria-label={t("display.section")} data-testid="display-section">
+                <SelectValue>{(value: Section) => <SectionLabel section={value} />}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {SECTIONS.map((value) => (
+                  <SelectItem key={value} value={value} data-testid={`display-section-${value}`}>
+                    <SectionLabel section={value} />
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <span className="truncate rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground" data-testid="display-mode">
             {t("display.forMode", { mode: modeName })}
           </span>
@@ -139,9 +145,9 @@ export function DisplayPanel({
             <X aria-hidden />
           </DrawerClose>
         </div>
-        <div className="flex flex-col gap-2 overflow-y-auto px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          {section === "text" ? (
-            <>
+        <div className={cn("flex flex-col gap-2 overflow-y-auto px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]", wide && "gap-5 pt-4")}>
+          {shown("text") ? (
+            <SectionBlock section="text" heading={wide}>
               <Row label={t("display.size")}>
                 <ButtonGroup className="w-full">
                   <Choice
@@ -190,10 +196,10 @@ export function DisplayPanel({
                   ]}
                 />
               </Row>
-            </>
+            </SectionBlock>
           ) : null}
-          {section === "chords" ? (
-            <>
+          {shown("chords") ? (
+            <SectionBlock section="chords" heading={wide}>
               <Row label={t("display.names")}>
                 <Choices
                   value={settings.chordNotation}
@@ -240,27 +246,47 @@ export function DisplayPanel({
                   ]}
                 />
               </Row>
-            </>
+            </SectionBlock>
           ) : null}
-          {section === "instrument" ? <InstrumentSection settings={settings} player={player} onChange={(chordDiagrams) => change({ chordDiagrams })} /> : null}
-          {section === "layout" ? (
-            <Row label={t("display.columns")}>
-              <Choices
-                value={settings.columns}
-                onChange={(columns: DisplayColumnsValue) => change({ columns })}
-                name="columns"
-                options={[
-                  { value: "auto", label: t("chart.columnsAuto"), content: <LayoutGrid /> },
-                  { value: "1", label: t("chart.columnsCount", { count: 1 }), content: <RectangleVertical /> },
-                  { value: "2", label: t("chart.columnsCount", { count: 2 }), content: <Columns2 /> },
-                  { value: "3", label: t("chart.columnsCount", { count: 3 }), content: <Columns3 /> },
-                ]}
-              />
-            </Row>
+          {shown("instrument") ? (
+            <SectionBlock section="instrument" heading={wide}>
+              <InstrumentSection settings={settings} player={player} onChange={(chordDiagrams) => change({ chordDiagrams })} />
+            </SectionBlock>
+          ) : null}
+          {shown("layout") ? (
+            <SectionBlock section="layout" heading={wide}>
+              <Row label={t("display.columns")}>
+                <Choices
+                  value={settings.columns}
+                  onChange={(columns: DisplayColumnsValue) => change({ columns })}
+                  name="columns"
+                  options={[
+                    { value: "auto", label: t("chart.columnsAuto"), content: <LayoutGrid /> },
+                    { value: "1", label: t("chart.columnsCount", { count: 1 }), content: <RectangleVertical /> },
+                    { value: "2", label: t("chart.columnsCount", { count: 2 }), content: <Columns2 /> },
+                    { value: "3", label: t("chart.columnsCount", { count: 3 }), content: <Columns3 /> },
+                  ]}
+                />
+              </Row>
+            </SectionBlock>
           ) : null}
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+/** A section of the panel: under its heading when they're all shown at once. */
+function SectionBlock({ section, heading, children }: { section: Section; heading: boolean; children: ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2" data-testid={`display-block-${section}`}>
+      {heading ? (
+        <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          <SectionLabel section={section} />
+        </h3>
+      ) : null}
+      {children}
+    </section>
   );
 }
 
@@ -352,17 +378,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 /** One of a few, side by side; each with its name as a tooltip when it shows an icon. */
-function Choices<T extends string>({
-  value,
-  onChange,
-  options,
-  name,
-}: {
-  value: T;
-  onChange: (value: T) => void;
-  options: { value: T; label: string; content: ReactNode }[];
-  name: string;
-}) {
+function Choices<T extends string>({ value, onChange, options, name }: { value: T; onChange: (value: T) => void; options: { value: T; label: string; content: ReactNode }[]; name: string }) {
   return (
     <ButtonGroup className="w-full">
       {options.map((option) => (
@@ -374,21 +390,7 @@ function Choices<T extends string>({
   );
 }
 
-function Choice({
-  pressed,
-  onClick,
-  label,
-  testId,
-  disabled,
-  children,
-}: {
-  pressed: boolean;
-  onClick: () => void;
-  label: string;
-  testId: string;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
+function Choice({ pressed, onClick, label, testId, disabled, children }: { pressed: boolean; onClick: () => void; label: string; testId: string; disabled?: boolean; children: ReactNode }) {
   return (
     <button
       type="button"

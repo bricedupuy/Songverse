@@ -25,6 +25,8 @@ import { apiClient } from "#/lib/api-client";
 
 const KEY = "songverse.display";
 const SAVE_DELAY_MS = 600;
+// How long changes the account has had still win over a page's data: one fetched while they were on their way is older.
+const SETTLE_MS = 15_000;
 
 type Changes = Partial<Record<AppModeValue, { [K in keyof DisplaySettings]?: DisplaySettings[K] | null }>>;
 
@@ -33,9 +35,10 @@ interface State {
   saved: SavedDisplaySettings;
 }
 
-/** As kept on the device: the settings, and changes the account hasn't had yet (a page left before they were sent). */
+/** As kept on the device: the settings, changes the account hasn't had yet (a page left before they were sent), and the ones it has just had. */
 interface Kept extends State {
   unsent?: Changes;
+  confirmed?: { changes: Changes; at: number };
 }
 
 let state: State | null = null;
@@ -44,6 +47,13 @@ const listeners = new Set<() => void>();
 // Changes not yet sent, the ones on their way, and the timer sending them.
 let pending: Changes = {};
 let inFlight: Changes = {};
+// Changes the account has just had (when, the last of them): a page's data fetched before they landed doesn't undo them.
+let confirmed: Changes = {};
+let confirmedAt = 0;
+
+function settled(): Changes {
+  return Date.now() - confirmedAt < SETTLE_MS ? confirmed : {};
+}
 let timer: ReturnType<typeof setTimeout> | null = null;
 // One save at a time, so they reach the account in the order they were made.
 let sending = false;
@@ -72,6 +82,10 @@ function load() {
     const kept = raw ? (JSON.parse(raw) as Kept) : null;
     if (!kept) return;
     state ??= { account: kept.account ?? {}, saved: kept.saved ?? {} };
+    if (kept.confirmed) {
+      confirmed = combine(kept.confirmed.changes, confirmed);
+      confirmedAt = Math.max(confirmedAt, kept.confirmed.at);
+    }
     if (kept.unsent && Object.keys(kept.unsent).length > 0) {
       pending = combine(kept.unsent, pending);
       schedule(0);
@@ -84,16 +98,17 @@ function load() {
 function keep() {
   if (!state) return;
   try {
-    localStorage.setItem(KEY, JSON.stringify({ ...state, unsent: unsent() } satisfies Kept));
+    const recent = settled();
+    localStorage.setItem(KEY, JSON.stringify({ ...state, unsent: unsent(), ...(Object.keys(recent).length > 0 && { confirmed: { changes: recent, at: confirmedAt } }) } satisfies Kept));
   } catch {
     // Storage blocked: for this page only.
   }
 }
 
-/** What the page's data says (the account's settings and each mode's), with changes still on their way on top. */
+/** What the page's data says (the account's settings and each mode's), with this page's changes on top - sent or still on their way. */
 export function seedDisplaySettings(account: AccountDisplaySettings, saved: SavedDisplaySettings | null | undefined) {
   load();
-  const next = { account, saved: mergeDisplaySettings(saved ?? {}, unsent()) };
+  const next = { account, saved: mergeDisplaySettings(saved ?? {}, combine(settled(), unsent())) };
   if (state && JSON.stringify(state) === JSON.stringify(next)) return;
   state = next;
   keep();
@@ -155,6 +170,8 @@ function send() {
     .updateMe({ displaySettings: inFlight })
     .then(
       () => {
+        confirmed = combine(settled(), inFlight);
+        confirmedAt = Date.now();
         inFlight = {};
         sending = false;
         keep();

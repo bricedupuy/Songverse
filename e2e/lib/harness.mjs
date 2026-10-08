@@ -172,7 +172,7 @@ export async function settledFiles(who, songVersionId, timeout = 30000) {
 
 /**
  * Sets one display setting from the page's Display panel (issue #209): opens
- * it, picks the section, presses the choice (its test id, `display-<field>-<value>`),
+ * it, picks the section (on a phone), presses the choice (its test id, `display-<field>-<value>`),
  * and closes it again so it doesn't cover the page.
  */
 export async function displaySetting(p, section, choice) {
@@ -180,8 +180,11 @@ export async function displaySetting(p, section, choice) {
   if (!open) await p.getByTestId("display-open").first().click();
   const panel = p.getByTestId("display-panel");
   await panel.waitFor();
-  await panel.getByTestId("display-section").click();
-  await p.getByTestId(`display-section-${section}`).click();
+  // On a phone, the section from the list; a large screen shows them all.
+  if ((await panel.getByTestId("display-section").count()) > 0) {
+    await panel.getByTestId("display-section").click();
+    await p.getByTestId(`display-section-${section}`).click();
+  }
   await panel.getByTestId(choice).click();
   await panel.getByTestId("display-close").click();
   await panel.waitFor({ state: "detached" });

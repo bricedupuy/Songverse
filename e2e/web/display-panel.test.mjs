@@ -136,5 +136,29 @@ await step("Reset: the mode back to the account's settings", async () => {
   await savedSettings((found) => !found.LIVE && !!found.PRACTICE);
 });
 
+await step("a large screen: a column down the right, every section at once, the page making room", async () => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.evaluate(() => localStorage.setItem("songverse.mode", "practice"));
+  await page.goto(`${WEB}/library/${song.id}`);
+  await chart().waitFor();
+  const before = await chart().evaluate((el) => el.getBoundingClientRect().right);
+  await page.getByTestId("display-open").click();
+  await panel().waitFor();
+  // Once it has slid in.
+  await page.waitForFunction(() => Math.round(document.querySelector('[data-testid="display-panel"]').getBoundingClientRect().right) === window.innerWidth);
+  const box = await panel().boundingBox();
+  if (!box || Math.round(box.x + box.width) !== 1440 || box.height < 880 || box.width > 340) throw new Error(`not a column on the right: ${JSON.stringify(box)}`);
+  if ((await panel().getByTestId("display-section").count()) > 0) throw new Error("a section list on a large screen");
+  for (const section of ["text", "chords", "instrument", "layout"]) await panel().getByTestId(`display-block-${section}`).waitFor();
+  // The chart moves over rather than going under the panel.
+  await page.waitForFunction((x) => document.querySelector('[data-testid="song-chart"]').getBoundingClientRect().right <= x, box.x);
+  if ((await chart().evaluate((el) => el.getBoundingClientRect().right)) >= before) throw new Error("the page didn't make room");
+  await panel().getByTestId("display-font-mono").click();
+  await page.locator('[data-testid="song-chart"][data-font="mono"]').waitFor();
+  await panel().getByTestId("display-close").click();
+  await panel().waitFor({ state: "detached" });
+  await page.waitForFunction(() => !document.documentElement.hasAttribute("data-side-panel"));
+});
+
 await browser.close();
 finish();

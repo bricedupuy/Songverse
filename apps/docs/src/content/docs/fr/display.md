@@ -3,7 +3,7 @@ title: Affichage
 description: Comment les grilles se lisent dans chaque mode - texte, accords, diagrammes de votre instrument et mise en page - réglé depuis un petit panneau pendant que la grille change sous vos yeux.
 ---
 
-Le bouton **Affichage** (curseurs) ouvre un petit panneau en bas de l'écran : la façon dont la grille se lit, réglée pendant que vous la regardez. Il se trouve sur la page d'un chant en mode Session, sur les chants d'une liste, dans l'en-tête du Live (une icône seule) et à côté de l'aperçu de l'éditeur. Le panneau ne couvre que le bas de l'écran : la grille au-dessus reste visible, défile et réagit aux touchers ; chaque réglage s'y voit aussitôt. **×** ferme le panneau, tout comme le faire glisser vers le bas par sa poignée.
+Le bouton **Affichage** (curseurs) ouvre un petit panneau en bas de l'écran : la façon dont la grille se lit, réglée pendant que vous la regardez. Il se trouve sur la page d'un chant en mode Session, sur les chants d'une liste, dans l'en-tête du Live (une icône seule) et à côté de l'aperçu de l'éditeur. Sur un téléphone, le panneau ne couvre que le bas de l'écran : la grille au-dessus reste visible, défile et réagit aux touchers. Sur un grand écran, c'est une colonne à droite qui montre toutes les parties à la fois, et la page se décale pour lui faire de la place. Chaque réglage se voit aussitôt sur la grille. **×** ferme le panneau, tout comme le faire glisser vers le bas par sa poignée.
 
 ![Le panneau Affichage sur un téléphone](../../../assets/screenshots/fr/display.jpg)
 
@@ -15,7 +15,7 @@ Ce qu'un mode n'a pas changé vient de l'[Affichage des grilles](/fr/account/#af
 
 ## Ce qu'il règle
 
-La liste en haut du panneau choisit une partie :
+Sur un téléphone, la liste en haut du panneau choisit une partie ; un grand écran les montre toutes, l'une sous l'autre :
 
 - **Texte** - **Taille** (**−** et **+**, de 75 % à 300 % ; le Live commence à 150 %), **Police** (à chasse fixe, où les accords s'alignent sur chaque lettre, ou proportionnelle) et **Interligne** (**Serré**, **Normal**, **Aéré**).
 - **Accords** - **Noms** en lettres, en solfège, en chiffres Nashville ou en chiffres romains (voir [Chiffres Nashville et couleurs des accords](/fr/versions/#chiffres-nashville-et-couleurs-des-accords)), **Couleurs** par type d'accord, accords **Avec un capodastre** tels qu'ils sonnent ou en formes à jouer, et **Accords** affichés ou masqués (**Paroles seules**).
