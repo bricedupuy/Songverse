@@ -4537,7 +4537,7 @@
       ]
     },
     "transitionProgressions": {
-      "about": "Chord progressions from one song into the next (issues #10, #217): from the song's last chord - a walking bass into the first chord, the last chord over the bass's first step then IV/V V7 - and into the next song's first chord (its 1 when not given) - the key's dominant landing on it, its own dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII a step up, the circle of fifths; as degrees of the next song's key and spelled in it. Into the same key and chord, a turnaround. `chords` keeps those of that length.",
+      "about": "The ways from one song into the next (issues #10, #217, #218), from the song's last chord into the next one's first (its 1 when not given): V7 → I, ii7 V7 → I, V7sus V7 → I (those three recommended), an altered V7, a diminished vii°7, a chord both keys share, a chromatic bass, the backdoor iv7 ♭VII7, and the stacked bass + sus + altered - each with its usual form and variations, as degrees of the next song's key and spelled in it. `fast` keeps the one-chord forms.",
       "params": [
         "fromKey",
         "toKey",
@@ -4554,15 +4554,77 @@
           "expected": [
             {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "57"
               ],
               "chords": [
                 "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "A9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "A13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "A7b9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Em7",
+                "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m9",
+                    "513"
+                  ],
+                  "chords": [
+                    "Em9",
+                    "A13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "2m7",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "Em7",
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "57sus4",
                 "57"
@@ -4570,56 +4632,112 @@
               "chords": [
                 "A7sus4",
                 "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59sus4",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "A9sus4",
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "2m7",
-                "57"
+                "57b9"
               ],
               "chords": [
-                "Em7",
-                "A7"
+                "A7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "A7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "A7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "4",
-                "57"
+                "7dim7"
               ],
               "chords": [
-                "G",
-                "A7"
+                "C#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7dim7",
+                    "57"
+                  ],
+                  "chords": [
+                    "C#dim7",
+                    "A7"
+                  ]
+                }
               ]
             },
             {
               "kind": "pivot",
+              "recommended": false,
               "degrees": [
-                "6m",
-                "2m7",
-                "57"
+                "4"
               ],
               "chords": [
-                "Bm",
-                "Em7",
-                "A7"
+                "G"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "4",
+                    "57"
+                  ],
+                  "chords": [
+                    "G",
+                    "A7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "circle",
+              "kind": "backdoor",
+              "recommended": false,
               "degrees": [
-                "3m7",
-                "6m7",
-                "2m7",
-                "57"
+                "4m7",
+                "b77"
               ],
               "chords": [
-                "F#m7",
-                "Bm7",
-                "Em7",
-                "A7"
+                "Gm7",
+                "C7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b77"
+                  ],
+                  "chords": [
+                    "C7"
+                  ]
+                }
               ]
             }
           ]
@@ -4634,15 +4752,77 @@
           "expected": [
             {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "57"
               ],
               "chords": [
                 "E7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "E9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "E13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "E7b9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Bm7",
+                "E7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m9",
+                    "513"
+                  ],
+                  "chords": [
+                    "Bm9",
+                    "E13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "2m7",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "Bm7",
+                    "E7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "57sus4",
                 "57"
@@ -4650,54 +4830,112 @@
               "chords": [
                 "E7sus4",
                 "E7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59sus4",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "E9sus4",
+                    "E7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "2m7",
-                "57"
+                "57b9"
               ],
               "chords": [
-                "Bm7",
-                "E7"
+                "E7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "E7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "E7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "4",
-                "57"
+                "7dim7"
               ],
               "chords": [
-                "D",
-                "E7"
+                "G#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7dim7",
+                    "57"
+                  ],
+                  "chords": [
+                    "G#dim7",
+                    "E7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "step-up",
+              "kind": "pivot",
+              "recommended": false,
               "degrees": [
-                "b6",
-                "b7"
+                "4"
               ],
               "chords": [
-                "F",
-                "G"
+                "D"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "4",
+                    "57"
+                  ],
+                  "chords": [
+                    "D",
+                    "E7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "circle",
+              "kind": "backdoor",
+              "recommended": false,
               "degrees": [
-                "3m7",
-                "6m7",
-                "2m7",
-                "57"
+                "4m7",
+                "b77"
               ],
               "chords": [
-                "C#m7",
-                "F#m7",
-                "Bm7",
-                "E7"
+                "Dm7",
+                "G7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b77"
+                  ],
+                  "chords": [
+                    "G7"
+                  ]
+                }
               ]
             }
           ]
@@ -4712,15 +4950,67 @@
           "expected": [
             {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "57"
               ],
               "chords": [
                 "B7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "B9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "B13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "B7b9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "2m7b5",
+                "57"
+              ],
+              "chords": [
+                "F#m7b5",
+                "B7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m7b5",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "F#m7b5",
+                    "B7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "57sus4",
                 "57"
@@ -4728,67 +5018,90 @@
               "chords": [
                 "B7sus4",
                 "B7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59sus4",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "B9sus4",
+                    "B7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "2m7b5",
-                "57"
+                "57b9"
               ],
               "chords": [
-                "F#m7b5",
-                "B7"
+                "B7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "B7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "B7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "4m",
-                "57"
+                "7dim7"
               ],
               "chords": [
-                "Am",
-                "B7"
+                "D#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7dim7",
+                    "57"
+                  ],
+                  "chords": [
+                    "D#dim7",
+                    "B7"
+                  ]
+                }
               ]
             },
             {
               "kind": "pivot",
+              "recommended": false,
               "degrees": [
-                "b3",
-                "4m",
-                "57"
+                "b3"
               ],
               "chords": [
-                "G",
-                "Am",
-                "B7"
-              ]
-            },
-            {
-              "kind": "step-up",
-              "degrees": [
-                "b6",
-                "b7"
+                "G"
               ],
-              "chords": [
-                "C",
-                "D"
-              ]
-            },
-            {
-              "kind": "circle",
-              "degrees": [
-                "b3",
-                "b6",
-                "2m7b5",
-                "57"
-              ],
-              "chords": [
-                "G",
-                "C",
-                "F#m7b5",
-                "B7"
+              "variations": [
+                {
+                  "degrees": [
+                    "b3",
+                    "57"
+                  ],
+                  "chords": [
+                    "G",
+                    "B7"
+                  ]
+                }
               ]
             }
           ]
@@ -4803,15 +5116,77 @@
           "expected": [
             {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "57"
               ],
               "chords": [
                 "C#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "C#9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "C#13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "C#7b9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "G#m7",
+                "C#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m9",
+                    "513"
+                  ],
+                  "chords": [
+                    "G#m9",
+                    "C#13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "2m7",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "G#m7",
+                    "C#7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "57sus4",
                 "57"
@@ -4819,43 +5194,90 @@
               "chords": [
                 "C#7sus4",
                 "C#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59sus4",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "C#9sus4",
+                    "C#7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "2m7",
-                "57"
+                "57b9"
               ],
               "chords": [
-                "G#m7",
-                "C#7"
+                "C#7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "C#7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "C#7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "4",
-                "57"
+                "7dim7"
               ],
               "chords": [
-                "B",
-                "C#7"
+                "Fdim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7dim7",
+                    "57"
+                  ],
+                  "chords": [
+                    "Fdim7",
+                    "C#7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "circle",
+              "kind": "backdoor",
+              "recommended": false,
               "degrees": [
-                "3m7",
-                "6m7",
-                "2m7",
-                "57"
+                "4m7",
+                "b77"
               ],
               "chords": [
-                "A#m7",
-                "D#m7",
-                "G#m7",
-                "C#7"
+                "Bm7",
+                "E7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b77"
+                  ],
+                  "chords": [
+                    "E7"
+                  ]
+                }
               ]
             }
           ]
@@ -4869,7 +5291,44 @@
           ],
           "expected": [
             {
+              "kind": "dominant",
+              "recommended": true,
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "D7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "D9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "D13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "D7b9"
+                  ]
+                }
+              ]
+            },
+            {
               "kind": "two-five",
+              "recommended": true,
               "degrees": [
                 "2m7",
                 "57"
@@ -4877,89 +5336,463 @@
               "chords": [
                 "Am7",
                 "D7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m9",
+                    "513"
+                  ],
+                  "chords": [
+                    "Am9",
+                    "D13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "2m7",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "Am7",
+                    "D7b9"
+                  ]
+                }
               ]
             },
-            {
-              "kind": "four-five",
-              "degrees": [
-                "4",
-                "57"
-              ],
-              "chords": [
-                "C",
-                "D7"
-              ]
-            },
-            {
-              "kind": "circle",
-              "degrees": [
-                "3m7",
-                "6m7",
-                "2m7",
-                "57"
-              ],
-              "chords": [
-                "Bm7",
-                "Em7",
-                "Am7",
-                "D7"
-              ]
-            }
-          ]
-        },
-        {
-          "name": "C into Db, two chords",
-          "args": [
-            "C",
-            "Db",
-            {
-              "chords": 2
-            }
-          ],
-          "expected": [
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "57sus4",
                 "57"
               ],
               "chords": [
-                "Ab7sus4",
+                "D7sus4",
+                "D7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59sus4",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "D9sus4",
+                    "D7b9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "altered",
+              "recommended": false,
+              "degrees": [
+                "57b9"
+              ],
+              "chords": [
+                "D7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "D7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "D7#9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "diminished",
+              "recommended": false,
+              "degrees": [
+                "7dim7"
+              ],
+              "chords": [
+                "F#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7dim7",
+                    "57"
+                  ],
+                  "chords": [
+                    "F#dim7",
+                    "D7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "backdoor",
+              "recommended": false,
+              "degrees": [
+                "4m7",
+                "b77"
+              ],
+              "chords": [
+                "Cm7",
+                "F7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b77"
+                  ],
+                  "chords": [
+                    "F7"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "C into Db, fast",
+          "args": [
+            "C",
+            "Db",
+            {
+              "fast": true
+            }
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "recommended": true,
+              "degrees": [
+                "57"
+              ],
+              "chords": [
                 "Ab7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "Ab9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "Ab13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "Ab7b9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "altered",
+              "recommended": false,
+              "degrees": [
+                "57b9"
+              ],
+              "chords": [
+                "Ab7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "Ab7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "Ab7#9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "diminished",
+              "recommended": false,
+              "degrees": [
+                "7dim7"
+              ],
+              "chords": [
+                "Cdim7"
+              ],
+              "variations": []
+            },
+            {
+              "kind": "backdoor",
+              "recommended": false,
+              "degrees": [
+                "b77"
+              ],
+              "chords": [
+                "B7"
+              ],
+              "variations": []
+            }
+          ]
+        },
+        {
+          "name": "from C into D, the eight ways",
+          "args": [
+            "C",
+            "D",
+            {
+              "lastChord": "C",
+              "firstChord": "D"
+            }
+          ],
+          "expected": [
+            {
+              "kind": "dominant",
+              "recommended": true,
+              "degrees": [
+                "57"
+              ],
+              "chords": [
+                "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "A9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "A13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "two-five",
+              "recommended": true,
               "degrees": [
                 "2m7",
                 "57"
               ],
               "chords": [
-                "Ebm7",
-                "Ab7"
+                "Em7",
+                "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m9",
+                    "513"
+                  ],
+                  "chords": [
+                    "Em9",
+                    "A13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "2m7",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "Em7",
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
-                "4",
+                "57sus4",
                 "57"
               ],
               "chords": [
-                "Gb",
-                "Ab7"
+                "A7sus4",
+                "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59sus4",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "A9sus4",
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "step-up",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "b6",
-                "b7"
+                "57b9"
               ],
               "chords": [
-                "A",
-                "B"
+                "A7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "A7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "A7#9"
+                  ]
+                }
               ]
+            },
+            {
+              "kind": "diminished",
+              "recommended": false,
+              "degrees": [
+                "7dim7"
+              ],
+              "chords": [
+                "C#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7dim7",
+                    "57"
+                  ],
+                  "chords": [
+                    "C#dim7",
+                    "A7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "pivot",
+              "recommended": false,
+              "degrees": [
+                "4"
+              ],
+              "chords": [
+                "G"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "4",
+                    "57"
+                  ],
+                  "chords": [
+                    "G",
+                    "A7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "chromatic-bass",
+              "recommended": false,
+              "degrees": [
+                "b7/6",
+                "b6",
+                "57"
+              ],
+              "chords": [
+                "C/B",
+                "Bb",
+                "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "5/7"
+                  ],
+                  "chords": [
+                    "A/C#"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "backdoor",
+              "recommended": false,
+              "degrees": [
+                "4m7",
+                "b77"
+              ],
+              "chords": [
+                "Gm7",
+                "C7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b77"
+                  ],
+                  "chords": [
+                    "C7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "stacked",
+              "recommended": false,
+              "degrees": [
+                "4/6",
+                "59sus4",
+                "57b9"
+              ],
+              "chords": [
+                "G/B",
+                "A9sus4",
+                "A7b9"
+              ],
+              "variations": []
             }
           ]
         },
@@ -4983,36 +5816,86 @@
           ],
           "expected": [
             {
-              "kind": "key-dominant",
-              "degrees": [
-                "57"
-              ],
-              "chords": [
-                "A7"
-              ]
-            },
-            {
-              "kind": "key-dominant",
-              "degrees": [
-                "4/5",
-                "57"
-              ],
-              "chords": [
-                "G/A",
-                "A7"
-              ]
-            },
-            {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "37"
               ],
               "chords": [
                 "F#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "39"
+                  ],
+                  "chords": [
+                    "F#9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "313"
+                  ],
+                  "chords": [
+                    "F#13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "37b9"
+                  ],
+                  "chords": [
+                    "F#7b9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57"
+                  ],
+                  "chords": [
+                    "A7"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "4/5",
+                    "57"
+                  ],
+                  "chords": [
+                    "G/A",
+                    "A7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "C#m7b5",
+                "F#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7m7b5",
+                    "37b9"
+                  ],
+                  "chords": [
+                    "C#m7b5",
+                    "F#7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "37sus4",
                 "37"
@@ -5020,56 +5903,90 @@
               "chords": [
                 "F#7sus4",
                 "F#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "39sus4",
+                    "37b9"
+                  ],
+                  "chords": [
+                    "F#9sus4",
+                    "F#7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "7m7b5",
-                "37"
+                "37b9"
               ],
               "chords": [
-                "C#m7b5",
-                "F#7"
+                "F#7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "37#5"
+                  ],
+                  "chords": [
+                    "F#7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "37#9"
+                  ],
+                  "chords": [
+                    "F#7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "2m",
-                "37"
+                "#5dim7"
               ],
               "chords": [
-                "Em",
-                "F#7"
+                "A#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "#5dim7",
+                    "37"
+                  ],
+                  "chords": [
+                    "A#dim7",
+                    "F#7"
+                  ]
+                }
               ]
             },
             {
               "kind": "pivot",
+              "recommended": false,
               "degrees": [
-                "4",
-                "2m",
-                "37"
+                "2m"
               ],
               "chords": [
-                "G",
-                "Em",
-                "F#7"
-              ]
-            },
-            {
-              "kind": "circle",
-              "degrees": [
-                "1",
-                "4",
-                "7m7b5",
-                "37"
+                "Em"
               ],
-              "chords": [
-                "D",
-                "G",
-                "C#m7b5",
-                "F#7"
+              "variations": [
+                {
+                  "degrees": [
+                    "2m",
+                    "37"
+                  ],
+                  "chords": [
+                    "Em",
+                    "F#7"
+                  ]
+                }
               ]
             }
           ]
@@ -5085,36 +6002,96 @@
           ],
           "expected": [
             {
-              "kind": "key-dominant",
-              "degrees": [
-                "57"
-              ],
-              "chords": [
-                "D7"
-              ]
-            },
-            {
-              "kind": "key-dominant",
-              "degrees": [
-                "4/5",
-                "57"
-              ],
-              "chords": [
-                "C/D",
-                "D7"
-              ]
-            },
-            {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "17"
               ],
               "chords": [
                 "G7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "19"
+                  ],
+                  "chords": [
+                    "G9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "113"
+                  ],
+                  "chords": [
+                    "G13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "17b9"
+                  ],
+                  "chords": [
+                    "G7b9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57"
+                  ],
+                  "chords": [
+                    "D7"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "4/5",
+                    "57"
+                  ],
+                  "chords": [
+                    "C/D",
+                    "D7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "5m7",
+                "17"
+              ],
+              "chords": [
+                "Dm7",
+                "G7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "5m9",
+                    "113"
+                  ],
+                  "chords": [
+                    "Dm9",
+                    "G13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "5m7",
+                    "17b9"
+                  ],
+                  "chords": [
+                    "Dm7",
+                    "G7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "17sus4",
                 "17"
@@ -5122,56 +6099,112 @@
               "chords": [
                 "G7sus4",
                 "G7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "19sus4",
+                    "17b9"
+                  ],
+                  "chords": [
+                    "G9sus4",
+                    "G7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "5m7",
-                "17"
+                "17b9"
               ],
               "chords": [
-                "Dm7",
-                "G7"
+                "G7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "17#5"
+                  ],
+                  "chords": [
+                    "G7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "17#9"
+                  ],
+                  "chords": [
+                    "G7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "b7",
-                "17"
+                "3dim7"
               ],
               "chords": [
-                "F",
-                "G7"
+                "Bdim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "3dim7",
+                    "17"
+                  ],
+                  "chords": [
+                    "Bdim7",
+                    "G7"
+                  ]
+                }
               ]
             },
             {
               "kind": "pivot",
+              "recommended": false,
               "degrees": [
-                "2m",
-                "5m7",
-                "17"
+                "2m"
               ],
               "chords": [
-                "Am",
-                "Dm7",
-                "G7"
+                "Am"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m",
+                    "17"
+                  ],
+                  "chords": [
+                    "Am",
+                    "G7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "circle",
+              "kind": "backdoor",
+              "recommended": false,
               "degrees": [
-                "6m7",
-                "2m7",
-                "5m7",
-                "17"
+                "b7m7",
+                "b37"
               ],
               "chords": [
-                "Em7",
-                "Am7",
-                "Dm7",
-                "G7"
+                "Fm7",
+                "Bb7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b37"
+                  ],
+                  "chords": [
+                    "Bb7"
+                  ]
+                }
               ]
             }
           ]
@@ -5188,15 +6221,77 @@
           "expected": [
             {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "57"
               ],
               "chords": [
                 "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "A9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "A13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "A7b9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Em7",
+                "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m9",
+                    "513"
+                  ],
+                  "chords": [
+                    "Em9",
+                    "A13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "2m7",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "Em7",
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "57sus4",
                 "57"
@@ -5204,56 +6299,112 @@
               "chords": [
                 "A7sus4",
                 "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59sus4",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "A9sus4",
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "2m7",
-                "57"
+                "57b9"
               ],
               "chords": [
-                "Em7",
-                "A7"
+                "A7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "A7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "A7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "4",
-                "57"
+                "7dim7"
               ],
               "chords": [
-                "G",
-                "A7"
+                "C#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7dim7",
+                    "57"
+                  ],
+                  "chords": [
+                    "C#dim7",
+                    "A7"
+                  ]
+                }
               ]
             },
             {
               "kind": "pivot",
+              "recommended": false,
               "degrees": [
-                "6m",
-                "2m7",
-                "57"
+                "4"
               ],
               "chords": [
-                "Bm",
-                "Em7",
-                "A7"
+                "G"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "4",
+                    "57"
+                  ],
+                  "chords": [
+                    "G",
+                    "A7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "circle",
+              "kind": "backdoor",
+              "recommended": false,
               "degrees": [
-                "3m7",
-                "6m7",
-                "2m7",
-                "57"
+                "4m7",
+                "b77"
               ],
               "chords": [
-                "F#m7",
-                "Bm7",
-                "Em7",
-                "A7"
+                "Gm7",
+                "C7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b77"
+                  ],
+                  "chords": [
+                    "C7"
+                  ]
+                }
               ]
             }
           ]
@@ -5270,60 +6421,86 @@
           ],
           "expected": [
             {
-              "kind": "walking-bass",
-              "degrees": [
-                "1",
-                "5/7"
-              ],
-              "chords": [
-                "D",
-                "A/C#"
-              ]
-            },
-            {
-              "kind": "walk-sus",
-              "degrees": [
-                "b2/1",
-                "4/5",
-                "57"
-              ],
-              "chords": [
-                "Eb/D",
-                "G/A",
-                "A7"
-              ]
-            },
-            {
-              "kind": "key-dominant",
-              "degrees": [
-                "57"
-              ],
-              "chords": [
-                "A7"
-              ]
-            },
-            {
-              "kind": "key-dominant",
-              "degrees": [
-                "4/5",
-                "57"
-              ],
-              "chords": [
-                "G/A",
-                "A7"
-              ]
-            },
-            {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "37"
               ],
               "chords": [
                 "F#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "39"
+                  ],
+                  "chords": [
+                    "F#9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "313"
+                  ],
+                  "chords": [
+                    "F#13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "37b9"
+                  ],
+                  "chords": [
+                    "F#7b9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57"
+                  ],
+                  "chords": [
+                    "A7"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "4/5",
+                    "57"
+                  ],
+                  "chords": [
+                    "G/A",
+                    "A7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "C#m7b5",
+                "F#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7m7b5",
+                    "37b9"
+                  ],
+                  "chords": [
+                    "C#m7b5",
+                    "F#7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "37sus4",
                 "37"
@@ -5331,44 +6508,110 @@
               "chords": [
                 "F#7sus4",
                 "F#7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "39sus4",
+                    "37b9"
+                  ],
+                  "chords": [
+                    "F#9sus4",
+                    "F#7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "7m7b5",
-                "37"
+                "37b9"
               ],
               "chords": [
-                "C#m7b5",
-                "F#7"
+                "F#7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "37#5"
+                  ],
+                  "chords": [
+                    "F#7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "37#9"
+                  ],
+                  "chords": [
+                    "F#7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "2m",
-                "37"
+                "#5dim7"
               ],
               "chords": [
-                "Em",
-                "F#7"
+                "A#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "#5dim7",
+                    "37"
+                  ],
+                  "chords": [
+                    "A#dim7",
+                    "F#7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "circle",
+              "kind": "chromatic-bass",
+              "recommended": false,
               "degrees": [
                 "1",
-                "4",
-                "7m7b5",
-                "37"
+                "5/7"
               ],
               "chords": [
                 "D",
-                "G",
-                "C#m7b5",
-                "F#7"
+                "A/C#"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b2/1",
+                    "4/5",
+                    "57"
+                  ],
+                  "chords": [
+                    "Eb/D",
+                    "G/A",
+                    "A7"
+                  ]
+                }
               ]
+            },
+            {
+              "kind": "stacked",
+              "recommended": false,
+              "degrees": [
+                "2m",
+                "39sus4",
+                "37b9"
+              ],
+              "chords": [
+                "Em",
+                "F#9sus4",
+                "F#7b9"
+              ],
+              "variations": []
             }
           ]
         },
@@ -5384,60 +6627,86 @@
           ],
           "expected": [
             {
-              "kind": "walking-bass",
-              "degrees": [
-                "1",
-                "5/7"
-              ],
-              "chords": [
-                "G",
-                "D/F#"
-              ]
-            },
-            {
-              "kind": "walk-sus",
-              "degrees": [
-                "2/1",
-                "4/5",
-                "57"
-              ],
-              "chords": [
-                "A/G",
-                "C/D",
-                "D7"
-              ]
-            },
-            {
-              "kind": "key-dominant",
-              "degrees": [
-                "57"
-              ],
-              "chords": [
-                "D7"
-              ]
-            },
-            {
-              "kind": "key-dominant",
-              "degrees": [
-                "4/5",
-                "57"
-              ],
-              "chords": [
-                "C/D",
-                "D7"
-              ]
-            },
-            {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "37"
               ],
               "chords": [
                 "B7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "39"
+                  ],
+                  "chords": [
+                    "B9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "313"
+                  ],
+                  "chords": [
+                    "B13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "37b9"
+                  ],
+                  "chords": [
+                    "B7b9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57"
+                  ],
+                  "chords": [
+                    "D7"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "4/5",
+                    "57"
+                  ],
+                  "chords": [
+                    "C/D",
+                    "D7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "7m7b5",
+                "37"
+              ],
+              "chords": [
+                "F#m7b5",
+                "B7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7m7b5",
+                    "37b9"
+                  ],
+                  "chords": [
+                    "F#m7b5",
+                    "B7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "37sus4",
                 "37"
@@ -5445,43 +6714,116 @@
               "chords": [
                 "B7sus4",
                 "B7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "39sus4",
+                    "37b9"
+                  ],
+                  "chords": [
+                    "B9sus4",
+                    "B7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "7m7b5",
-                "37"
+                "37b9"
               ],
               "chords": [
-                "F#m7b5",
-                "B7"
+                "B7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "37#5"
+                  ],
+                  "chords": [
+                    "B7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "37#9"
+                  ],
+                  "chords": [
+                    "B7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "2m",
-                "37"
+                "#5dim7"
               ],
               "chords": [
-                "Am",
-                "B7"
+                "D#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "#5dim7",
+                    "37"
+                  ],
+                  "chords": [
+                    "D#dim7",
+                    "B7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "circle",
+              "kind": "pivot",
+              "recommended": false,
+              "degrees": [
+                "5"
+              ],
+              "chords": [
+                "D"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "5",
+                    "37"
+                  ],
+                  "chords": [
+                    "D",
+                    "B7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "chromatic-bass",
+              "recommended": false,
               "degrees": [
                 "1",
-                "4",
-                "7m7b5",
-                "37"
+                "5/7"
               ],
               "chords": [
                 "G",
-                "C",
-                "F#m7b5",
-                "B7"
+                "D/F#"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2/1",
+                    "4/5",
+                    "57"
+                  ],
+                  "chords": [
+                    "A/G",
+                    "C/D",
+                    "D7"
+                  ]
+                }
               ]
             }
           ]
@@ -5498,25 +6840,78 @@
           ],
           "expected": [
             {
-              "kind": "walking-bass",
-              "degrees": [
-                "5/7"
-              ],
-              "chords": [
-                "A/C#"
-              ]
-            },
-            {
               "kind": "dominant",
+              "recommended": true,
               "degrees": [
                 "57"
               ],
               "chords": [
                 "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59"
+                  ],
+                  "chords": [
+                    "A9"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "513"
+                  ],
+                  "chords": [
+                    "A13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57b9"
+                  ],
+                  "chords": [
+                    "A7b9"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "two-five",
+              "recommended": true,
+              "degrees": [
+                "2m7",
+                "57"
+              ],
+              "chords": [
+                "Em7",
+                "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "2m9",
+                    "513"
+                  ],
+                  "chords": [
+                    "Em9",
+                    "A13"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "2m7",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "Em7",
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
               "kind": "sus-dominant",
+              "recommended": true,
               "degrees": [
                 "57sus4",
                 "57"
@@ -5524,55 +6919,152 @@
               "chords": [
                 "A7sus4",
                 "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "59sus4",
+                    "57b9"
+                  ],
+                  "chords": [
+                    "A9sus4",
+                    "A7b9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "two-five",
+              "kind": "altered",
+              "recommended": false,
               "degrees": [
-                "2m7",
-                "57"
+                "57b9"
               ],
               "chords": [
-                "Em7",
-                "A7"
+                "A7b9"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "57#5"
+                  ],
+                  "chords": [
+                    "A7#5"
+                  ]
+                },
+                {
+                  "degrees": [
+                    "57#9"
+                  ],
+                  "chords": [
+                    "A7#9"
+                  ]
+                }
               ]
             },
             {
-              "kind": "four-five",
+              "kind": "diminished",
+              "recommended": false,
               "degrees": [
-                "4",
-                "57"
+                "7dim7"
               ],
               "chords": [
-                "G",
-                "A7"
+                "C#dim7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "7dim7",
+                    "57"
+                  ],
+                  "chords": [
+                    "C#dim7",
+                    "A7"
+                  ]
+                }
               ]
             },
             {
-              "kind": "step-up",
+              "kind": "pivot",
+              "recommended": false,
               "degrees": [
+                "4"
+              ],
+              "chords": [
+                "G"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "4",
+                    "57"
+                  ],
+                  "chords": [
+                    "G",
+                    "A7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "chromatic-bass",
+              "recommended": false,
+              "degrees": [
+                "b7/6",
                 "b6",
-                "b7"
-              ],
-              "chords": [
-                "Bb",
-                "C"
-              ]
-            },
-            {
-              "kind": "circle",
-              "degrees": [
-                "3m7",
-                "6m7",
-                "2m7",
                 "57"
               ],
               "chords": [
-                "F#m7",
-                "Bm7",
-                "Em7",
+                "C/B",
+                "Bb",
                 "A7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "5/7"
+                  ],
+                  "chords": [
+                    "A/C#"
+                  ]
+                }
               ]
+            },
+            {
+              "kind": "backdoor",
+              "recommended": false,
+              "degrees": [
+                "4m7",
+                "b77"
+              ],
+              "chords": [
+                "Gm7",
+                "C7"
+              ],
+              "variations": [
+                {
+                  "degrees": [
+                    "b77"
+                  ],
+                  "chords": [
+                    "C7"
+                  ]
+                }
+              ]
+            },
+            {
+              "kind": "stacked",
+              "recommended": false,
+              "degrees": [
+                "4/6",
+                "59sus4",
+                "57b9"
+              ],
+              "chords": [
+                "G/B",
+                "A9sus4",
+                "A7b9"
+              ],
+              "variations": []
             }
           ]
         }

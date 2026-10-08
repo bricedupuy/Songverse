@@ -322,7 +322,7 @@ export const CONFORMANCE: ConformanceArea[] = [
         ],
       },
       transitionProgressions: {
-        about: "Chord progressions from one song into the next (issues #10, #217): from the song's last chord - a walking bass into the first chord, the last chord over the bass's first step then IV/V V7 - and into the next song's first chord (its 1 when not given) - the key's dominant landing on it, its own dominant, sus4 dominant, ii-V, IV-V, a chord both keys share, bVI-bVII a step up, the circle of fifths; as degrees of the next song's key and spelled in it. Into the same key and chord, a turnaround. `chords` keeps those of that length.",
+        about: "The ways from one song into the next (issues #10, #217, #218), from the song's last chord into the next one's first (its 1 when not given): V7 → I, ii7 V7 → I, V7sus V7 → I (those three recommended), an altered V7, a diminished vii°7, a chord both keys share, a chromatic bass, the backdoor iv7 ♭VII7, and the stacked bass + sus + altered - each with its usual form and variations, as degrees of the next song's key and spelled in it. `fast` keeps the one-chord forms.",
         params: ["fromKey", "toKey", "options"],
         run: transitionProgressions,
         cases: [
@@ -331,7 +331,8 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "D into Em", args: ["D", "Em", {}] },
           { name: "Bb into F#, sharps", args: ["Bb", "F#", {}] },
           { name: "the same key", args: ["G", "G", {}] },
-          { name: "C into Db, two chords", args: ["C", "Db", { chords: 2 }] },
+          { name: "C into Db, fast", args: ["C", "Db", { fast: true }] },
+          { name: "from C into D, the eight ways", args: ["C", "D", { lastChord: "C", firstChord: "D" }] },
           { name: "no key", args: [null, "D", {}] },
           { name: "G into D, starting on Bm", args: ["G", "D", { firstChord: "Bm" }] },
           { name: "G into G, starting on its 4", args: ["G", "G", { firstChord: "C" }] },

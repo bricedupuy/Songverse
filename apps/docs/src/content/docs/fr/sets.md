@@ -28,23 +28,21 @@ Choisissez **Listes de chants** > **Nouvelle liste** :
 
 ### Accords vers le chant suivant
 
-Pour une **Transition**, le bouton **Accords** à côté de sa note propose des accords à jouer vers le chant suivant : du dernier accord de ce chant au premier accord du suivant, tels que la liste les joue (avec la version et la **Tonalité** de chaque chant). Les deux encadrent la liste - **De G → … → vers D** - et les propositions mènent à ce premier accord : si le chant suivant commence sur son 4 ou son 6m plutôt que son 1, elles y mènent. Les accords sont montrés avec leurs chiffres dans la tonalité du chant suivant, comme les grilles Nashville les écrivent : **3⁷** est son 3 avec une septième (F#7 en D), **♭2/1** E♭ sur D. D'un chant qui finit sur E♭ vers un chant en D qui commence sur Bm :
+Pour une **Transition**, le bouton **Accords** à côté de sa note propose des accords à jouer vers le chant suivant : du dernier accord de ce chant au premier accord du suivant, tels que la liste les joue (avec la version et la **Tonalité** de chaque chant). Les deux encadrent la liste - **De C → … → vers D** - et les propositions mènent à ce premier accord (« I » ci-dessous) : si le chant suivant commence sur son 4 ou son 6m plutôt que son 1, elles y mènent. Les accords sont montrés avec leurs chiffres dans la tonalité du chant suivant, comme les grilles Nashville les écrivent : **5⁷** est son 5 avec une septième (A7 en D), **7°7** une septième diminuée sur son 7 (C#°7), **♭7/6** C sur B.
 
-- **Une basse qui marche depuis le dernier accord** - la basse va d'une fondamentale à l'autre par les notes de la gamme, chaque note sous un accord de la tonalité : E♭ → D → A/C# → Bm ;
-- **Le dernier accord sur la basse qui bouge, puis IV/V–V** - E♭ → E♭/D → G/A → A7 → Bm ;
-- **La dominante de la tonalité, qui se pose sur le premier accord** - quand le chant suivant ne commence pas sur son 1 : A7 → Bm, ou G/A A7 → Bm.
+Chaque façon d'enchaîner vient avec sa forme habituelle, une ligne sur quand l'utiliser, et des variantes. D'un chant qui finit sur C vers un chant en D :
 
-Et vers le premier accord lui-même (vers un chant en D qui commence sur D) :
+- ★ **V7 → I** - l'incontournable : A7 → D, ou A9, A13, A7♭9. La nouvelle tonalité s'entend tout de suite, d'à peu près n'importe où. Quand le chant suivant ne commence pas sur son 1, aussi la dominante de la tonalité qui se pose sur son premier accord : A7 → Bm, G/A A7 → Bm.
+- ★ **II7 → V7 → I** - plus doux, la dominante préparée : Em7 A7 → D, ou Em9 A13, Em7 A7♭9 (vers un accord mineur, IIø7 V7).
+- ★ **V7sus → V7 → I** - contemporain, ample et voulu : A7sus4 A7 → D, ou A9sus4 A7♭9.
+- **V7 altéré → I** - tension maximale : A7♭9 → D, ou A7♯5, A7♯9.
+- **Par un accord diminué** - un seul accord, élégant, les voix par demi-tons : C#°7 → D, ou C#°7 A7 → D.
+- **Un accord commun aux deux tonalités** - sans couture : C → G → D (G est le V de C et le IV de D), ou G A7.
+- **Basse chromatique** - des parties qui s'enchaînent : C → C/B → B♭ → A7 → D ; ou par la gamme jusqu'au premier accord (de E♭ vers Bm : D, A/C#) ; ou le dernier accord sur la note suivante de la basse, puis IV/V et V7 (E♭/D G/A A7).
+- **Porte dérobée : IV7 → ♭VII7 → I** - soul, chaleureux, un peu inattendu : Gm7 C7 → D, ou C7.
+- **Combiné : basse, sus et altéré** - tout à la fois : C → G/B → A9sus4 → A7♭9 → D.
 
-- **La dominante du premier accord** - un accord, son V7 (A7 vers D ; F#7 vers Bm) ;
-- **Dominante suspendue** - V7sus4 qui se résout sur V7 ;
-- **II–V** - Em7 A7 vers D (vers une tonalité mineure, son IIø7 et V7) ;
-- **IV–V** - G A7 vers D ;
-- **Par un accord commun aux deux tonalités** - un accord qui sonne encore comme le chant qu'on quitte, puis la nouvelle tonalité : de G vers D, Bm Em7 A7 ;
-- **Monter d'un ton (♭VI–♭VII)** - vers une tonalité un demi-ton ou un ton plus haut, la montée classique : F G vers A ;
-- **Par le cycle des quintes** - quatre accords, F#m7 Bm7 Em7 A7 vers D.
-
-**Nombre d'accords** garde ceux de cette longueur. Touchez n'importe quel accord - dans une proposition, ou les deux qui les encadrent - pour l'entendre, et **Utiliser** pour choisir cette proposition ; ou écrivez les vôtres (**Em7 A7**, ou en chiffres, **2m7 57**) et touchez **Utiliser** ; **Pas d'accords** les retire. Ils sont gardés en chiffres dans la tonalité du chant suivant : si ce chant change de tonalité, ses accords suivent. En mode Live, ils s'affichent sous la transition en une ligne compacte d'étapes - le dernier accord du chant, les accords de la transition, le premier du suivant - chacun touché pour l'entendre. Le bouton au bout de la ligne l'ouvre : les [diagrammes d'accords](/fr/versions/#diagrammes-daccords) de votre instrument sous chaque accord et, si vous pouvez modifier la liste, les autres façons d'enchaîner à choisir (la liste ci-dessus). Elle reste ouverte ou compacte sur cet appareil.
+★ marque les trois qu'un groupe choisirait d'abord. **Rapide** ne garde que ce qui tient en un accord - A7, A7♭9, C#°7, un accord commun, C7. Touchez n'importe quel accord - dans une proposition, ou les deux qui les encadrent - pour l'entendre, et **Utiliser** pour choisir cette forme ; ou écrivez les vôtres (**Em7 A7**, ou en chiffres, **2m7 57**) et touchez **Utiliser** ; **Pas d'accords** les retire. Ils sont gardés en chiffres dans la tonalité du chant suivant : si ce chant change de tonalité, ses accords suivent. En mode Live, ils s'affichent sous la transition en une ligne compacte d'étapes - le dernier accord du chant, les accords de la transition, le premier du suivant - chacun touché pour l'entendre. Le bouton au bout de la ligne l'ouvre : les [diagrammes d'accords](/fr/versions/#diagrammes-daccords) de votre instrument sous chaque accord et, si vous pouvez modifier la liste, les autres façons d'enchaîner à choisir (la liste ci-dessus). Elle reste ouverte ou compacte sur cet appareil.
 
 ### Pour cette liste seulement
 

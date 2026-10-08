@@ -7,14 +7,22 @@ import { chordFamily, diatonicChords, nashvilleChord, parseChord, sameChord, sem
  * as degrees of the next song's key, so they stay right when it's moved.
  */
 
-export type TransitionKind = "walking-bass" | "walk-sus" | "key-dominant" | "dominant" | "sus-dominant" | "two-five" | "four-five" | "pivot" | "step-up" | "circle";
+export type TransitionKind = "dominant" | "two-five" | "sus-dominant" | "altered" | "diminished" | "pivot" | "chromatic-bass" | "backdoor" | "stacked";
 
-export interface TransitionSuggestion {
-  kind: TransitionKind;
-  /** The chords as degrees of the new key: ["2m7", "57"]. */
+/** One way to play a transition: its chords, between the song's last chord and the next one's first. */
+export interface TransitionForm {
+  /** The chords as degrees of the next song's key: ["2m7", "57"]. */
   degrees: string[];
-  /** The same chords spelled in the new key: ["Em7", "A7"]. */
+  /** The same chords spelled in that key: ["Em7", "A7"]. */
   chords: string[];
+}
+
+/** A strategy for getting into the next song (issue #218): its usual form, and others like it. */
+export interface TransitionSuggestion extends TransitionForm {
+  kind: TransitionKind;
+  /** One of the three a band would reach for first: V7 → I, ii → V → I, V7sus → V7 → I. */
+  recommended: boolean;
+  variations: TransitionForm[];
 }
 
 const DEGREE = /^([#b]?)([1-7])([^/\s]*)(?:\/([#b]?)([1-7]))?$/;
@@ -154,103 +162,131 @@ function noteName(semitone: number, key: string): string {
 }
 
 /**
- * Ways from one song into the next, with `chords` chords each (any number
- * when left out). They go from the song's last chord (`lastChord`, as
- * played) into the next song's first (`firstChord`; its 1 when left out),
- * those that use the last chord first:
- * - walking-bass: the bass steps from one root to the other along the
- *   key's scale, each note under a chord of the key (E♭ to Bm in D:
- *   D, A/C#);
- * - walk-sus: the last chord over the bass's first step, then IV/V and V7
- *   of the key (E♭/D, G/A, A7 into Bm);
- * - key-dominant: into a first chord that isn't the key's 1, the key's own
- *   V7 landing on it (A7 into Bm), also after IV/V;
- * - dominant: the first chord's own V7 (into Bm, F#7);
- * - sus-dominant: that V7sus4 resolving to V7;
- * - two-five: ii7 V7 of the first chord (iiø7 V7 into a minor chord);
- * - four-five: IV V7 (iv V7);
- * - pivot: a chord of the old key the new one has too - still sounding like
- *   the song being left - then ii7 V7 (iv V7);
- * - step-up, a half or whole step up: bVI bVII;
- * - circle: down the circle of fifths, iii7 vi7 ii7 V7 (bIII bVI iiø7 V7).
- * Into the same key, from a song ending where the next starts: a turnaround
- * (two-five, four-five, circle). Degrees are always of the next song's key
- * (into its 6m, the first chord's dominant is "37"). Empty when either key
+ * The ways from one song into the next (issues #10, #217, #218): from the
+ * song's last chord (`lastChord`, as played) into the next song's first
+ * (`firstChord`; its 1 when left out) - its "I" below - each a strategy
+ * with its usual form and variations:
+ * - dominant ★: V7 → I (A7 → D; A9, A13, A7♭9). Into a first chord that
+ *   isn't the key's 1, also the key's own V7 landing on it (A7 → Bm,
+ *   G/A A7 → Bm);
+ * - two-five ★: ii7 V7 → I (Em7 A7; Em9 A13, Em7 A7♭9; iiø7 into minor);
+ * - sus-dominant ★: V7sus4 V7 → I (A9sus4 A7♭9);
+ * - altered: V7♭9 → I (A7♯5, A7♯9);
+ * - diminished: vii°7 → I, voices moving by half steps (C#°7; C#°7 A7);
+ * - pivot: a chord of both keys, heard in the old one and then the new
+ *   (C → G → D; G A7);
+ * - chromatic-bass: the bass down by half steps from the last chord to V7
+ *   (C → C/B → B♭ → A7); or along the scale into the first chord
+ *   (E♭ → D → A/C# → Bm); or the last chord over the bass's first step,
+ *   then IV/V V7 (E♭/D G/A A7);
+ * - backdoor, into a major chord: iv7 ♭VII7 → I (Gm7 C7; C7);
+ * - stacked: the bass walking to V, then V9sus4 V7♭9 (C → G/B → A9sus4 →
+ *   A7♭9 → D).
+ * `fast` keeps the one-chord forms. Degrees are always of the next song's
+ * key (into its 6m, the first chord's V7 is "37"). Empty when either key
  * can't be read.
  */
 export function transitionProgressions(
   fromKey: string | null | undefined,
   toKey: string | null | undefined,
-  options: { chords?: number; firstChord?: string | null; lastChord?: string | null } = {},
+  options: { fast?: boolean; firstChord?: string | null; lastChord?: string | null } = {},
 ): TransitionSuggestion[] {
   const from = readKey(fromKey);
   const key = readKey(toKey);
   if (!from || !key) return [];
   const target = targetKey(toKey!, options.firstChord);
   const to = readKey(target)!;
-  const up = (((to.tonic - from.tonic) % 12) + 12) % 12;
-  const sameKey = up === 0 && from.minor === to.minor;
-  const two = to.minor ? "2m7b5" : "2m7";
-  // Chords spelled in the next song's key, and degrees around the target chord (turned into the key's below).
-  const spelled: { kind: TransitionKind; chords: string[] }[] = [];
-  const local: { kind: TransitionKind; degrees: string[] }[] = [];
+  const sameKey = to.tonic === from.tonic && from.minor === to.minor;
+  // Degrees around the first chord, or chords spelled: both as degrees of the next song's key.
+  // (A diminished chord leads up a half step: spelled from below - A#°7 into B, not B♭°7.)
+  const SHARPER: Record<string, string> = { b2: "#1", b3: "#2", b5: "#4", b6: "#5", b7: "#6" };
+  const around = (...degrees: string[]) =>
+    degrees.map((degree) => {
+      const written = nashvilleChord(degreeChord(degree, target) ?? degree, toKey);
+      const flat = /^(b[2-7])(dim.*)$/.exec(written);
+      return flat ? SHARPER[flat[1]!]! + flat[2] : written;
+    });
+  const spelled = (...chords: string[]) => chords.map((chord) => nashvilleChord(chord, toKey));
+  const strategies: { kind: TransitionKind; forms: string[][] }[] = [];
 
-  // From the last chord: its bass walking into the first chord's.
-  const lastRoot = options.lastChord ? rootOf(options.lastChord) : null;
   const firstChord = options.firstChord ? unwrap(options.firstChord) : (degreeChord(key.minor ? "1m" : "1", toKey) ?? null);
   const firstRoot = firstChord ? rootOf(firstChord) : null;
-  if (lastRoot !== null && firstRoot !== null) {
-    const walk = bassWalk(lastRoot, firstRoot, key);
+  const intoKeyTonic = !firstChord || nashvilleChord(simplifyChord(firstChord, { dropExtensions: true, dropBass: true }), toKey).replace(/m$/, "") === "1";
+  const lastChord = options.lastChord ? unwrap(options.lastChord) : null;
+  const lastRoot = lastChord ? rootOf(lastChord) : null;
+  const held = lastChord ? simplifyChord(lastChord, { dropBass: true }) : null;
+  const dominantRoot = mod12(to.tonic + 7);
+
+  strategies.push({
+    kind: "dominant",
+    forms: [around("57"), around("59"), around("513"), around("57b9"), ...(intoKeyTonic ? [] : [["57"], ...(key.minor ? [] : [["4/5", "57"]])])],
+  });
+  strategies.push({
+    kind: "two-five",
+    forms: to.minor ? [around("2m7b5", "57"), around("2m7b5", "57b9")] : [around("2m7", "57"), around("2m9", "513"), around("2m7", "57b9")],
+  });
+  strategies.push({ kind: "sus-dominant", forms: [around("57sus4", "57"), around("59sus4", "57b9")] });
+  strategies.push({ kind: "altered", forms: [around("57b9"), around("57#5"), around("57#9")] });
+  strategies.push({ kind: "diminished", forms: [around("7dim7"), around("7dim7", "57")] });
+
+  if (!sameKey) {
+    // A chord both keys have - not the first chord itself, nor the one just played.
+    const targetChords = diatonicChords(target).map((chord) => chord.chord);
+    const shared = targetChords.filter(
+      (chord) => diatonicChords(fromKey).some((other) => sameChord(other.chord, chord)) && !sameChord(chord, target) && !(lastChord && sameChord(chord, held!)),
+    );
+    const rank = to.minor ? ["4m", "b6", "b3", "b7", "5m"] : ["4", "2m", "6m", "3m", "5"];
+    const pivot = rank.map((degree) => shared.find((chord) => nashvilleChord(chord, target) === degree)).find(Boolean);
+    if (pivot) strategies.push({ kind: "pivot", forms: [spelled(pivot), [...spelled(pivot), ...around("57")]] });
+  }
+
+  if (lastRoot !== null && held) {
+    const forms: string[][] = [];
+    // Down by half steps from the last chord's root to the dominant's: C, C/B, B♭, A7.
+    const down = mod12(lastRoot - dominantRoot);
+    if (down >= 2 && down <= 4) {
+      const notes = Array.from({ length: down - 1 }, (_, i) => mod12(lastRoot - 1 - i));
+      const chords = notes.map((note, i) =>
+        i === 0 ? `${held}/${noteName(note, target)}` : (overBass(note, target, to.minor, [held]) ?? noteName(note, target)),
+      );
+      forms.push([...spelled(...chords), ...around("57")]);
+    }
+    // Along the scale straight into the first chord: E♭, D, A/C#, Bm.
+    const walk = firstRoot !== null ? bassWalk(lastRoot, firstRoot, key) : null;
     if (walk) {
       const chords: string[] = [];
       for (const bass of walk) {
-        const chord = overBass(bass, toKey!, key.minor, [firstChord!, options.lastChord!, ...chords.slice(-1)]);
+        const chord = overBass(bass, toKey!, key.minor, [firstChord!, lastChord!, ...chords.slice(-1)]);
         if (!chord) break;
         chords.push(chord);
       }
-      if (chords.length === walk.length) spelled.push({ kind: "walking-bass", chords });
-      // The last chord held over the bass's first step, then the key's IV/V and V7.
+      if (chords.length === walk.length) forms.push(spelled(...chords));
+      // The last chord held over the bass's first step, then IV/V and V7 of the key.
       // (Not over the note a half step above its root: C over C# clashes, E♭ over D, its major 7th, doesn't.)
-      if (!key.minor && mod12(walk[0]! - lastRoot) !== 1) {
-        const held = simplifyChord(unwrap(options.lastChord!), { dropBass: true });
-        spelled.push({ kind: "walk-sus", chords: [`${held}/${noteName(walk[0]!, toKey!)}`, ...degreeChords(["4/5", "57"], toKey)] });
-      }
+      if (!key.minor && mod12(walk[0]! - lastRoot) !== 1) forms.push([...spelled(`${held}/${noteName(walk[0]!, toKey!)}`), "4/5", "57"]);
     }
-  }
-  // Into a first chord other than the key's 1: the key's dominant, landing there.
-  if (firstChord && nashvilleChord(simplifyChord(firstChord, { dropExtensions: true, dropBass: true }), toKey).replace(/m$/, "") !== "1") {
-    spelled.push({ kind: "key-dominant", chords: degreeChords(["57"], toKey) });
-    if (!key.minor) spelled.push({ kind: "key-dominant", chords: degreeChords(["4/5", "57"], toKey) });
+    if (forms.length > 0) strategies.push({ kind: "chromatic-bass", forms });
   }
 
-  if (!sameKey) {
-    local.push({ kind: "dominant", degrees: ["57"] });
-    local.push({ kind: "sus-dominant", degrees: ["57sus4", "57"] });
-  }
-  local.push({ kind: "two-five", degrees: [two, "57"] });
-  local.push({ kind: "four-five", degrees: [to.minor ? "4m" : "4", "57"] });
-  if (!sameKey) {
-    // A chord of the old key that the target has too, beyond the ii or IV the others already start on.
-    const shared = diatonicChords(target)
-      .map((chord) => chord.chord)
-      .filter((chord) => diatonicChords(fromKey).some((other) => sameChord(other.chord, chord)))
-      .map((chord) => nashvilleChord(chord, target));
-    const pivot = (to.minor ? ["b6", "b3"] : ["6m", "3m"]).find((degree) => shared.includes(degree));
-    if (pivot) local.push({ kind: "pivot", degrees: [pivot, to.minor ? "4m" : "2m7", "57"] });
-    if (up === 1 || up === 2) local.push({ kind: "step-up", degrees: ["b6", "b7"] });
-  }
-  local.push({ kind: "circle", degrees: to.minor ? ["b3", "b6", "2m7b5", "57"] : ["3m7", "6m7", "2m7", "57"] });
+  if (!to.minor) strategies.push({ kind: "backdoor", forms: [around("4m7", "b77"), around("b77")] });
 
-  const all = [
-    ...spelled.map((one) => ({ kind: one.kind, degrees: one.chords.map((chord) => nashvilleChord(chord, toKey)) })),
-    // Worked out around the target chord; kept as degrees of the next song's key.
-    ...local.map((one) => ({ kind: one.kind, degrees: target === toKey ? one.degrees : one.degrees.map((degree) => nashvilleChord(degreeChord(degree, target) ?? degree, toKey)) })),
-  ];
-  const seen = new Set<string>();
-  return all
-    .filter((one) => options.chords === undefined || one.degrees.length === options.chords)
-    .filter((one) => !seen.has(one.degrees.join(" ")) && !!seen.add(one.degrees.join(" ")))
-    .map((one) => ({ kind: one.kind, degrees: one.degrees, chords: degreeChords(one.degrees, toKey) }));
+  // Stacked: the bass walking to the dominant's root, then its sus and its altered form.
+  if (lastRoot !== null && held) {
+    const walk = bassWalk(lastRoot, dominantRoot, to);
+    const chords = (walk ?? []).map((note) => overBass(note, target, to.minor, [held]));
+    if (walk && walk.length <= 3 && chords.every(Boolean)) strategies.push({ kind: "stacked", forms: [[...spelled(...(chords as string[])), ...around("59sus4", "57b9")]] });
+  }
+
+  const form = (degrees: string[]): TransitionForm => ({ degrees, chords: degreeChords(degrees, toKey) });
+  const result: TransitionSuggestion[] = [];
+  for (const { kind, forms } of strategies) {
+    const seen = new Set<string>();
+    const unique = forms.filter((one) => !seen.has(one.join(" ")) && !!seen.add(one.join(" ")));
+    const kept = options.fast ? unique.filter((one) => one.length === 1) : unique;
+    if (kept.length === 0) continue;
+    result.push({ kind, recommended: kind === "dominant" || kind === "two-five" || kind === "sus-dominant", ...form(kept[0]!), variations: kept.slice(1).map(form) });
+  }
+  return result;
 }
 
 /**

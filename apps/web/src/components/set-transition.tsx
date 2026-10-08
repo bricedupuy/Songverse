@@ -1,12 +1,11 @@
 import { degreeChords, SET_TRANSITIONS, transitionDegrees, transitionProgressions, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type SetTransitionValue, type SetTransitionView } from "@songverse/core";
-import { ArrowDown, ArrowRight, ArrowRightLeft, ChevronsDown, Music, Square, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowRightLeft, ChevronsDown, Music, Square, Zap, type LucideIcon } from "lucide-react";
 import { useMemo, useState, type ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { ChordRow } from "#/components/chord-diagrams";
 import { Degrees } from "#/components/song-editor/progressions-card";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
-import { NativeSelect } from "#/components/ui/native-select";
 import { Popover, PopoverContent, PopoverTrigger } from "#/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { cn } from "#/lib/utils";
@@ -156,10 +155,10 @@ export function TransitionChordsChooser({
   className?: string;
 }) {
   const { t } = useTranslation();
-  const [count, setCount] = useState<number | null>(null);
+  const [fast, setFast] = useState(false);
   const [typed, setTyped] = useState("");
   const [invalid, setInvalid] = useState(false);
-  const suggestions = useMemo(() => transitionProgressions(fromKey, toKey, { ...(count === null ? {} : { chords: count }), firstChord, lastChord }), [fromKey, toKey, count, firstChord, lastChord]);
+  const suggestions = useMemo(() => transitionProgressions(fromKey, toKey, { fast, firstChord, lastChord }), [fromKey, toKey, fast, firstChord, lastChord]);
   const current = toKey ? degreeChords(degrees, toKey) : degrees;
   const chosen = degrees.join(" ");
   const row = (chords: string[], testId: string) => <ChordRow chords={chords} names diagrams={diagrams} notation={notation} player={player} musicalKey={toKey} testId={testId} />;
@@ -202,35 +201,49 @@ export function TransitionChordsChooser({
           <p className="text-xs text-muted-foreground">{t("sets.transitionChordsNeedKeys")}</p>
         ) : (
           <>
-            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-              {t("sets.transitionChordCount")}
-              <NativeSelect compact className="text-sm" value={count ?? ""} onChange={(event) => setCount(event.target.value ? Number(event.target.value) : null)} data-testid="transition-chord-count">
-                <option value="">{t("sets.transitionChordCountAny")}</option>
-                {[1, 2, 3, 4].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-            <ul className="-mx-1 flex flex-col">
+            {/* Fast: only what takes one chord, for when there's no room. */}
+            <Button
+              type="button"
+              variant={fast ? "default" : "outline"}
+              size="sm"
+              className="h-8 gap-1.5 self-start"
+              aria-pressed={fast}
+              onClick={() => setFast(!fast)}
+              data-testid="transition-fast"
+            >
+              <Zap className="size-3.5" />
+              {t("sets.transitionFast")}
+            </Button>
+            <ul className="-mx-1 flex flex-col gap-1">
               {suggestions.map((one) => (
-                <li
-                  key={`${one.kind} ${one.degrees.join(" ")}`}
-                  className={cn("flex items-center gap-2 rounded-md px-2 py-1.5", one.degrees.join(" ") === chosen && "bg-muted")}
-                  data-testid="transition-suggestion"
-                  data-kind={one.kind}
-                  data-degrees={one.degrees.join(" ")}
-                >
-                  <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
-                    <span className="text-xs text-muted-foreground">
-                      {t(`sets.transitionKinds.${one.kind}`)} · <Degrees degrees={one.degrees} className="font-mono" />
+                <li key={one.kind} className="flex flex-col gap-1 rounded-md px-2 py-1.5" data-testid="transition-suggestion" data-kind={one.kind} data-degrees={one.degrees.join(" ")}>
+                  <span className="flex flex-col">
+                    <span className="flex items-center gap-1.5 text-sm font-medium">
+                      {t(`sets.transitionKinds.${one.kind}`)}
+                      {one.recommended ? (
+                        <span className="rounded-sm bg-primary/15 px-1 text-[0.65rem] font-semibold text-primary" title={t("sets.transitionRecommended")} data-testid="transition-recommended">
+                          ★ {t("sets.transitionRecommended")}
+                        </span>
+                      ) : null}
                     </span>
-                    {row(one.chords, "transition-suggestion-chords")}
+                    <span className="text-xs text-muted-foreground">{t(`sets.transitionBestWhen.${one.kind}`)}</span>
                   </span>
-                  <Button type="button" size="sm" variant="secondary" className="h-7 shrink-0" onClick={() => pick(one.degrees)} data-testid="transition-suggestion-use">
-                    {t("sets.transitionChordsUse")}
-                  </Button>
+                  {[one, ...one.variations].map((form, i) => (
+                    <span
+                      key={form.degrees.join(" ")}
+                      className={cn("flex items-center gap-2 rounded-md py-0.5", i > 0 && "pl-3", form.degrees.join(" ") === chosen && "bg-muted")}
+                      data-testid={i === 0 ? "transition-form" : "transition-variation"}
+                      data-degrees={form.degrees.join(" ")}
+                    >
+                      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-0.5">
+                        {row(form.chords, "transition-suggestion-chords")}
+                        <Degrees degrees={form.degrees} className="font-mono text-xs text-muted-foreground" />
+                      </span>
+                      <Button type="button" size="sm" variant={i === 0 ? "secondary" : "ghost"} className="h-7 shrink-0" onClick={() => pick(form.degrees)} data-testid="transition-suggestion-use">
+                        {t("sets.transitionChordsUse")}
+                      </Button>
+                    </span>
+                  ))}
                 </li>
               ))}
             </ul>

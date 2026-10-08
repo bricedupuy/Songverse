@@ -560,7 +560,8 @@ export function ChordSteps({
             onClick={() => option && play(option, setup, up)}
             aria-label={step.chord ? t("chords.play", { chord: name(step.chord) }) : undefined}
             className={cn(
-              "flex min-h-9 flex-col items-center justify-center py-1 text-sm font-bold transition-colors [--step-padding:0.5rem] disabled:cursor-default",
+              "flex min-h-9 flex-col items-center justify-center text-sm font-bold transition-colors disabled:cursor-default",
+              expanded ? "gap-0.5 py-1.5 [--step-padding:0.875rem]" : "py-1 [--step-padding:0.5rem]",
               step.edge ? "bg-muted text-muted-foreground hover:bg-muted/70" : "bg-secondary text-primary hover:bg-accent",
               !step.chord && "font-normal text-muted-foreground",
             )}

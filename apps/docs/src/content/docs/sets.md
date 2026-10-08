@@ -28,23 +28,21 @@ Choose **Sets** > **New set**:
 
 ### Chords into the next song
 
-For a **Transition**, the **Chords** button beside its note suggests chords to play into the next song: from the last chord of this song to the first chord of the next, as the set plays them (with each song's version and **Key**). The two frame the list - **From G → … → into D** - and the suggestions lead into that first chord: if the next song starts on its 4 or its 6m rather than its 1, they lead there. Chords are shown with their numbers in the next song's key, as Nashville charts write them: **3⁷** is its 3 with a 7th (F#7 in D), **♭2/1** E♭ over D. From a song ending on E♭ into a song in D that starts on Bm:
+For a **Transition**, the **Chords** button beside its note suggests chords to play into the next song: from the last chord of this song to the first chord of the next, as the set plays them (with each song's version and **Key**). The two frame the list - **From C → … → into D** - and the suggestions lead into that first chord ("I" below): if the next song starts on its 4 or its 6m rather than its 1, they lead there. Chords are shown with their numbers in the next song's key, as Nashville charts write them: **5⁷** is its 5 with a 7th (A7 in D), **7°7** a diminished 7th on its 7 (C#°7), **♭7/6** C over B.
 
-- **Walking bass from the last chord** - the bass steps from one chord's root to the other along the key's scale, each note under a chord of the key: E♭ → D → A/C# → Bm;
-- **Last chord over the moving bass, then IV/V–V** - E♭ → E♭/D → G/A → A7 → Bm;
-- **The key's dominant, landing on the first chord** - when the next song doesn't start on its 1: A7 → Bm, or G/A A7 → Bm.
+Each way in comes with its usual form, a line on when to use it, and variations. From a song ending on C into a song in D:
 
-And into the first chord itself (into a song in D that starts on D):
+- ★ **V7 → I** - the workhorse: A7 → D, or A9, A13, A7♭9. The new key is obvious at once, from almost anywhere. When the next song doesn't start on its 1, also the key's own dominant landing on its first chord: A7 → Bm, G/A A7 → Bm.
+- ★ **ii7 → V7 → I** - smoother, the dominant prepared: Em7 A7 → D, or Em9 A13, Em7 A7♭9 (into a minor chord, iiø7 V7).
+- ★ **V7sus → V7 → I** - contemporary, big and intentional: A7sus4 A7 → D, or A9sus4 A7♭9.
+- **Altered V7 → I** - maximum tension: A7♭9 → D, or A7♯5, A7♯9.
+- **Diminished approach** - one elegant chord, voices moving by half steps: C#°7 → D, or C#°7 A7 → D.
+- **A chord both keys share** - seamless: C → G → D (G is V of C and IV of D), or G A7.
+- **Chromatic bass** - the parts connect: C → C/B → B♭ → A7 → D; or along the scale into the first chord (from E♭ into Bm: D, A/C#); or the last chord over the bass's next note, then IV/V and V7 (E♭/D G/A A7).
+- **Backdoor: iv7 → ♭VII7 → I** - soulful, warm, a little unexpected: Gm7 C7 → D, or C7.
+- **Stacked: bass, sus and altered** - all of it at once: C → G/B → A9sus4 → A7♭9 → D.
 
-- **The first chord's own dominant** - one chord, its V7 (A7 into D; F#7 into Bm);
-- **Suspended dominant** - V7sus4 resolving to V7;
-- **ii–V** - Em7 A7 into D (into a minor key, its iiø7 and V7);
-- **IV–V** - G A7 into D;
-- **Through a chord both keys share** - a chord that still sounds like the song you're leaving, then into the new key: from G into D, Bm Em7 A7;
-- **Step up (♭VI–♭VII)** - into a key a half or whole step up, the classic lift: F G into A;
-- **Down the circle of fifths** - four chords, F#m7 Bm7 Em7 A7 into D.
-
-**How many chords** keeps the ones of that length. Tap any chord - in a suggestion, or the two around them - to hear it, and **Use** to choose that suggestion; or type your own (**Em7 A7**, or as numbers, **2m7 57**) and tap **Use**; **No chords** takes them away. They're kept as numbers in the next song's key, so if that song moves to another key, its chords move with it. In Live, they're shown under the transition as one compact row of steps - the song's last chord, the transition's chords, the next one's first - each tapped to hear it. The button at the end of the row opens it: the [chord diagrams](/versions/#chord-diagrams) of your instrument under each chord and, if you can change the set, the other ways in to choose from (the list above). It stays open or compact on this device.
+★ marks the three a band would reach for first. **Fast** keeps only what takes one chord - A7, A7♭9, C#°7, a shared chord, C7. Tap any chord - in a suggestion, or the two around them - to hear it, and **Use** to choose that form; or type your own (**Em7 A7**, or as numbers, **2m7 57**) and tap **Use**; **No chords** takes them away. They're kept as numbers in the next song's key, so if that song moves to another key, its chords move with it. In Live, they're shown under the transition as one compact row of steps - the song's last chord, the transition's chords, the next one's first - each tapped to hear it. The button at the end of the row opens it: the [chord diagrams](/versions/#chord-diagrams) of your instrument under each chord and, if you can change the set, the other ways in to choose from (the list above). It stays open or compact on this device.
 
 ### Just for this set
 

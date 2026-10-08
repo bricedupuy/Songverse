@@ -22,12 +22,18 @@ export function Degree({ degree }: { degree: string }) {
   const match = /^([#b]?)([1-7])(m(?!aj))?([^/]*)(?:\/([#b]?)([1-7]))?$/.exec(degree);
   if (!match) return <>{degree}</>;
   const accidental = (text: string) => (text === "b" ? "♭" : text === "#" ? "♯" : "");
+  // Half-diminished (m7♭5) as ø7, diminished as °, flats and sharps as ♭ and ♯.
+  const halfDiminished = match[3] === "m" && match[4]!.startsWith("7b5");
+  const raised = (halfDiminished ? `ø7${match[4]!.slice(3)}` : match[4]!)
+    .replace(/dim7?/, (dim) => (dim === "dim7" ? "°7" : "°"))
+    .replace(/b(?=\d)/g, "♭")
+    .replace(/#(?=\d)/g, "♯");
   return (
     <span className="whitespace-nowrap">
       {accidental(match[1]!)}
       {match[2]}
-      {match[3] ?? ""}
-      {match[4] ? <sup className="text-[0.7em]">{match[4]}</sup> : null}
+      {halfDiminished ? "" : (match[3] ?? "")}
+      {raised ? <sup className="text-[0.7em]">{raised}</sup> : null}
       {match[6] ? `/${accidental(match[5]!)}${match[6]}` : ""}
     </span>
   );

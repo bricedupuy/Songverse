@@ -57,7 +57,7 @@ try {
     throw new Error(`not saved: ${JSON.stringify((await items())[0].transitionChords)}`);
   };
 
-  await step("the set's page: from G to D, suggestions to hear and how many chords", async () => {
+  await step("the set's page: from G to D, the ways in, their variations, to hear, and Fast", async () => {
     await page.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
     await page.goto(`${WEB}/sets/${set.id}`);
     await page.waitForLoadState("networkidle");
@@ -67,32 +67,38 @@ try {
     // Framed by the song's last chord and the next one's first.
     await picker.getByTestId("transition-last-chord").locator('[data-chord="G"]').waitFor();
     await picker.getByTestId("transition-first-chord").locator('[data-chord="D"]').waitFor();
+    const kinds = await picker.getByTestId("transition-suggestion").evaluateAll((all) => all.map((one) => one.dataset.kind).join(" "));
+    if (kinds !== "dominant two-five sus-dominant altered diminished pivot chromatic-bass backdoor") throw new Error(kinds);
+    // The three for a band, marked.
+    if ((await picker.getByTestId("transition-recommended").count()) !== 3) throw new Error("not three recommended");
     const twoFive = picker.locator('[data-testid="transition-suggestion"][data-kind="two-five"]');
     if ((await twoFive.getAttribute("data-degrees")) !== "2m7 57") throw new Error(await twoFive.getAttribute("data-degrees"));
-    // From the last chord: its bass walking down into the next song's first (G, F#m, Em, D).
-    await picker.locator('[data-kind="walking-bass"][data-degrees="3m 2m"]').locator('[data-chord="F#m"]').waitFor();
-    // Numbers as Nashville charts write them: the 7th raised, not "57".
-    await picker.locator('[data-kind="dominant"] sup').getByText("7").waitFor();
+    await twoFive.locator('[data-testid="transition-variation"][data-degrees="2m7 57b9"]').waitFor();
+    // From the last chord: the bass walking down into the next song's first (G, F#m, Em, D).
+    await picker.locator('[data-kind="chromatic-bass"][data-degrees="3m 2m"]').locator('[data-chord="F#m"]').first().waitFor();
+    // Numbers as Nashville charts write them: the 7th raised, not "57"; a diminished 7th as °7.
+    await picker.locator('[data-kind="dominant"] sup').first().getByText("7").waitFor();
+    await picker.locator('[data-kind="diminished"] sup').first().getByText("°7").waitFor();
     // A chord tapped is heard, not chosen.
-    await twoFive.locator('[data-chord="Em7"]').click();
+    await twoFive.locator('[data-chord="Em7"]').first().click();
     await page.waitForTimeout(300);
     if ((await items())[0].transitionChords.length) throw new Error("chosen by tapping a chord");
-    await picker.getByTestId("transition-chord-count").selectOption("1");
+    // Fast: one chord each.
+    await picker.getByTestId("transition-fast").click();
     await picker.locator('[data-kind="dominant"]').waitFor();
-    if ((await picker.getByTestId("transition-suggestion").count()) !== 1) throw new Error("more than the one-chord ones");
-    await picker.getByTestId("transition-chord-count").selectOption("3");
-    const pivot = picker.locator('[data-kind="pivot"]');
-    await pivot.locator('[data-chord="Bm"]').waitFor();
-    await pivot.getByTestId("transition-suggestion-use").click();
-    await saved(["6m", "2m7", "57"]);
-    await row().getByTestId("set-song-transition-chords").getByText("Bm Em7 A7").waitFor();
+    const forms = await picker.locator('[data-testid="transition-form"], [data-testid="transition-variation"]').evaluateAll((all) => all.map((one) => one.dataset.degrees));
+    if (forms.length === 0 || forms.some((one) => one.includes(" "))) throw new Error(JSON.stringify(forms));
+    await picker.getByTestId("transition-fast").click();
+    await picker.locator('[data-kind="sus-dominant"] [data-testid="transition-form"]').getByTestId("transition-suggestion-use").click();
+    await saved(["57sus4", "57"]);
+    await row().getByTestId("set-song-transition-chords").getByText("A7sus4 A7").waitFor();
   });
 
   await step("typed: letters or numbers", async () => {
     await row().getByTestId("set-song-transition-chords").click();
-    await page.getByTestId("transition-chords-typed").fill("A7sus4 A7");
+    await page.getByTestId("transition-chords-typed").fill("Bm Em7 A7");
     await page.getByTestId("transition-chords-typed-use").click();
-    await saved(["57sus4", "57"]);
+    await saved(["6m", "2m7", "57"]);
     await row().getByTestId("set-song-transition-chords").click();
     await page.getByTestId("transition-chords-typed").fill("hello");
     await page.getByTestId("transition-chords-typed-use").click();
@@ -124,9 +130,9 @@ try {
     // Opened: the other ways in, to pick from there.
     await block.getByTestId("live-transition-expand").click();
     await block.locator('[data-step="step"] svg').first().waitFor();
-    await block.getByTestId("transition-chords-chooser").locator('[data-kind="four-five"]').getByTestId("transition-suggestion-use").click();
-    await saved(["4", "57"]);
-    await block.locator('[data-step="step"][data-chord="G"]').waitFor();
+    await block.getByTestId("transition-chords-chooser").locator('[data-kind="altered"] [data-testid="transition-form"]').getByTestId("transition-suggestion-use").click();
+    await saved(["57b9"]);
+    await block.locator('[data-step="step"][data-chord="A7b9"]').waitFor();
   });
 
   await step("Live: Next scrolls on into the stacked song, which becomes the one playing", async () => {
@@ -160,8 +166,7 @@ try {
     await api(leader, "PATCH", `/setlists/${set.id}/items/${secondItem}`, { transposeSteps: 2 });
     await page.goto(`${WEB}/sets/${set.id}/live/${firstItem}`);
     const chords = page.getByTestId("live-transition-chords");
-    await chords.locator('[data-step="step"][data-chord="A"]').waitFor();
-    await chords.locator('[data-step="step"][data-chord="B7"]').waitFor();
+    await chords.locator('[data-step="step"][data-chord="B7b9"]').waitFor();
     await page.locator('[data-step="first"][data-chord="E"]').waitFor();
   });
 
@@ -172,8 +177,7 @@ try {
     await page.getByTestId("live-transpose").getByRole("button", { name: "Up a semitone" }).click();
     const block = page.locator('[data-testid="live-transition-block"][data-between]');
     await block.locator('[data-step="first"][data-chord="F"]').waitFor();
-    await block.locator('[data-step="step"][data-chord="Bb"]').waitFor();
-    await block.locator('[data-step="step"][data-chord="C7"]').waitFor();
+    await block.locator('[data-step="step"][data-chord="C7b9"]').waitFor();
     await block.getByTestId("live-transition").getByText(/G → F/).waitFor();
     // This song down a semitone (G to F#): where it starts follows.
     // (The open transpose box closes with a tap elsewhere.)
@@ -182,7 +186,7 @@ try {
     await page.getByTestId("live-transpose").getByRole("button", { name: "Down a semitone" }).click();
     await block.locator('[data-step="last"][data-chord="F#"], [data-step="last"][data-chord="Gb"]').first().waitFor();
     // Only here, tonight: the set keeps its chords as they were.
-    if (JSON.stringify((await items())[0].transitionChords) !== JSON.stringify(["4", "57"])) throw new Error("changed in the set");
+    if (JSON.stringify((await items())[0].transitionChords) !== JSON.stringify(["57b9"])) throw new Error("changed in the set");
     // Gone with the page: back to the set's keys.
     await page.reload();
     await page.getByTestId("live-view").waitFor();

@@ -21,6 +21,8 @@ const buttonGroupVariants = cva("flex w-fit items-stretch", {
         "[&>*:not(:first-child):not(:last-child)]:[clip-path:polygon(0_0,calc(100%-0.625rem)_0,100%_50%,calc(100%-0.625rem)_100%,0_100%,0.625rem_50%)]",
         "[&>*:last-child:not(:first-child)]:[clip-path:polygon(0_0,100%_0,100%_100%,0_100%,0.625rem_50%)]",
         "[&>*:first-child]:rounded-l-md [&>*:last-child]:rounded-r-md",
+        // The flat ends: more room before the first and after the last, as a button has.
+        "[&>*:first-child]:pl-[calc(var(--step-padding,0.75rem)+0.5rem)] [&>*:last-child]:pr-[calc(var(--step-padding,0.75rem)+0.5rem)]",
       ].join(" "),
     },
   },
