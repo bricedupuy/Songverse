@@ -44,7 +44,7 @@ And into the first chord itself (into a song in D that starts on D):
 - **Step up (♭VI–♭VII)** - into a key a half or whole step up, the classic lift: F G into A;
 - **Down the circle of fifths** - four chords, F#m7 Bm7 Em7 A7 into D.
 
-**How many chords** keeps the ones of that length. Tap any chord - in a suggestion, or the two around them - to hear it, and **Use** to choose that suggestion; or type your own (**Em7 A7**, or as numbers, **2m7 57**) and tap **Use**; **No chords** takes them away. They're kept as numbers in the next song's key, so if that song moves to another key, its chords move with it. In Live, they're shown under the transition - between the song's last chord and the next one's first - as [chord diagrams](/versions/#chord-diagrams) if you have them on: tap one to hear it. If you can change the set, the same **Chords** button is there to change them.
+**How many chords** keeps the ones of that length. Tap any chord - in a suggestion, or the two around them - to hear it, and **Use** to choose that suggestion; or type your own (**Em7 A7**, or as numbers, **2m7 57**) and tap **Use**; **No chords** takes them away. They're kept as numbers in the next song's key, so if that song moves to another key, its chords move with it. In Live, they're shown under the transition as one compact row of steps - the song's last chord, the transition's chords, the next one's first - each tapped to hear it. The button at the end of the row opens it: the [chord diagrams](/versions/#chord-diagrams) of your instrument under each chord and, if you can change the set, the other ways in to choose from (the list above). It stays open or compact on this device.
 
 ### Just for this set
 

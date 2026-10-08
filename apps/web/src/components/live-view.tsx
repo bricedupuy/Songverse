@@ -1,5 +1,5 @@
 import { chartSeconds, degreeChords, transposeChord, transposeKey, structureOf, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
-import { AArrowDown, AArrowUp, ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
+import { AArrowDown, AArrowUp, ArrowLeft, ChevronDown, ChevronUp, Settings2, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { PdfPages, ViewSwitch, type ReadingView } from "#/components/chart-or-pdf";
@@ -9,8 +9,9 @@ import { ModeSwitch } from "#/components/mode-switch";
 import { OfflineBanner } from "#/components/offline-banner";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { PresentPanel } from "#/components/present-panel";
-import { TransitionChordsPicker, TransitionSymbol, transitionText } from "#/components/set-transition";
-import { ChartWithDiagrams, ChordRow } from "#/components/chord-diagrams";
+import { TransitionChordsChooser, TransitionSymbol, transitionText } from "#/components/set-transition";
+import { ChartWithDiagrams, ChordSteps, type ChordStep } from "#/components/chord-diagrams";
+import { Button } from "#/components/ui/button";
 import { SyncControl } from "#/components/sync-control";
 import { SidebarTrigger } from "#/components/ui/sidebar";
 import { useChartColumns } from "#/lib/chart-columns";
@@ -611,12 +612,17 @@ function transposedTransition(transition: SetTransitionView, steps: number, next
  */
 function TransitionBlock({ song, transition, between }: { song: LiveSong; transition: SetTransitionView; between: boolean }) {
   const { t } = useTranslation();
+  const [open, setOpen] = useTransitionOpen();
   const chords = transition.chords ?? [];
   const spelled = transition.toKey ? degreeChords(chords, transition.toKey) : chords;
   const isTransition = transition.kind === "TRANSITION";
-  const row = (list: string[], testId: string) => (
-    <ChordRow chords={list} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} player={song.player} musicalKey={transition.toKey} testId={testId} />
-  );
+  const editable = !!song.onTransitionChords;
+  // From the song's last chord, through the transition's, into the next one's first.
+  const steps: ChordStep[] = [
+    ...(transition.lastChord ? [{ chord: transition.lastChord, edge: true, role: "last" }] : []),
+    ...(spelled.length > 0 ? spelled.map((chord) => ({ chord, role: "step" })) : [{ chord: null, role: "gap" }]),
+    ...(transition.firstChord ? [{ chord: transition.firstChord, edge: true, role: "first" }] : []),
+  ];
   return (
     <div
       className={cn("flex flex-col gap-2 text-sm", between ? "my-8 rounded-lg border-2 border-dashed border-primary/50 bg-primary/5 px-4 py-3" : "mt-2")}
@@ -627,38 +633,69 @@ function TransitionBlock({ song, transition, between }: { song: LiveSong; transi
         <TransitionSymbol kind={transition.kind} className="size-4 text-primary" />
         {transitionText(transition, t)}
       </p>
-      {isTransition && (chords.length > 0 || song.onTransitionChords) ? (
-        <div className="flex flex-wrap items-end gap-2">
-          {transition.lastChord ? row([transition.lastChord], "live-transition-last") : null}
-          {transition.lastChord ? <ArrowRight className="mb-2 size-4 text-muted-foreground" aria-hidden /> : null}
-          {chords.length > 0 ? (
-            <span className="flex items-end gap-2" data-testid="live-transition-chords">
-              <span className="mb-1 text-muted-foreground">{t("sets.transitionChordsLive")}</span>
-              {row(spelled, "chord-row")}
-            </span>
-          ) : (
-            <span className="mb-1 text-muted-foreground">…</span>
-          )}
-          {transition.firstChord ? <ArrowRight className="mb-2 size-4 text-muted-foreground" aria-hidden /> : null}
-          {transition.firstChord ? row([transition.firstChord], "live-transition-first") : null}
-          {song.onTransitionChords ? (
-            <TransitionChordsPicker
+      {isTransition && (chords.length > 0 || editable) ? (
+        <>
+          {/* Compact: the chords as one row of steps, each heard with a tap; opened, their diagrams and (for who changes the set) the other ways in. */}
+          <div className="flex flex-wrap items-start gap-2" data-testid="live-transition-chords">
+            <ChordSteps steps={steps} expanded={open} diagrams={song.diagrams} notation={song.notation ?? "LETTERS"} player={song.player} musicalKey={transition.toKey} />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="size-9 shrink-0"
+              onClick={() => setOpen(!open)}
+              aria-expanded={open}
+              aria-label={open ? t("sets.transitionCollapse") : t(editable ? "sets.transitionExpandEdit" : "sets.transitionExpand")}
+              title={open ? t("sets.transitionCollapse") : t(editable ? "sets.transitionExpandEdit" : "sets.transitionExpand")}
+              data-testid="live-transition-expand"
+            >
+              {open ? <ChevronUp /> : editable ? <Settings2 /> : <ChevronDown />}
+            </Button>
+          </div>
+          {open && editable ? (
+            <TransitionChordsChooser
               fromKey={transition.fromKey}
               toKey={transition.toKey}
               lastChord={transition.lastChord}
               firstChord={transition.firstChord}
               degrees={chords}
-              onChange={song.onTransitionChords}
+              onChange={song.onTransitionChords!}
               diagrams={song.diagrams}
               notation={song.notation ?? "LETTERS"}
               player={song.player}
-              className="mb-1"
+              framed={false}
+              className="max-w-xl rounded-md border bg-background p-3"
             />
           ) : null}
-        </div>
+        </>
       ) : null}
     </div>
   );
+}
+
+const TRANSITION_OPEN_KEY = "songverse.live.transitionOpen";
+
+/** Whether Live's transitions are opened (diagrams, the other ways in), on this device: compact unless opened. */
+function useTransitionOpen(): [boolean, (open: boolean) => void] {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    try {
+      setOpen(localStorage.getItem(TRANSITION_OPEN_KEY) === "1");
+    } catch {
+      // Storage blocked: compact.
+    }
+  }, []);
+  return [
+    open,
+    (next) => {
+      setOpen(next);
+      try {
+        localStorage.setItem(TRANSITION_OPEN_KEY, next ? "1" : "0");
+      } catch {
+        // Storage blocked: for this page only.
+      }
+    },
+  ];
 }
 
 const iconClass =

@@ -1,6 +1,6 @@
 import { degreeChords, SET_TRANSITIONS, transitionDegrees, transitionProgressions, type ChordDiagramsValue, type ChordNotationValue, type DiagramPlayer, type SetTransitionValue, type SetTransitionView } from "@songverse/core";
 import { ArrowDown, ArrowRight, ArrowRightLeft, ChevronsDown, Music, Square, type LucideIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ComponentProps } from "react";
 import { useTranslation } from "react-i18next";
 import { ChordRow } from "#/components/chord-diagrams";
 import { Degrees } from "#/components/song-editor/progressions-card";
@@ -81,13 +81,53 @@ export function transitionText(view: SetTransitionView, t: (key: string, options
 
 /**
  * The chords played into the next song (issues #10, #217), for who edits the
- * set: from this song's last chord to the next one's first, suggestions from
- * music theory for the two keys as they're played - its dominant, a ii-V, a
- * chord both keys share... - with as many chords as asked for, or typed
- * (letters, or Nashville numbers). Every chord is tapped to hear it. Kept as
- * degrees of the next song's key, so they follow it when it's moved.
+ * set: a button showing them, opening the chooser. Kept as degrees of the
+ * next song's key, so they follow it when it's moved.
  */
-export function TransitionChordsPicker({
+export function TransitionChordsPicker(props: Omit<ComponentProps<typeof TransitionChordsChooser>, "framed" | "className"> & { className?: string }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const current = props.toKey ? degreeChords(props.degrees, props.toKey) : props.degrees;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className={cn("h-8 gap-1.5 font-normal", props.className)}
+            aria-label={t("sets.transitionChordsLabel")}
+            data-testid="set-song-transition-chords"
+            data-degrees={props.degrees.join(" ")}
+          />
+        }
+      >
+        <Music className="size-3.5" />
+        {current.length > 0 ? <span className="font-semibold">{current.join(" ")}</span> : t("sets.transitionChords")}
+      </PopoverTrigger>
+      <PopoverContent align="start" className="max-h-[70vh] w-80 overflow-y-auto sm:w-96" data-testid="transition-chords-picker">
+        <TransitionChordsChooser
+          {...props}
+          className={undefined}
+          onChange={(degrees) => {
+            props.onChange(degrees);
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/**
+ * Choosing a transition's chords (issues #10, #217): from this song's last
+ * chord to the next one's first, the styles of transition for the two keys
+ * as they're played, as many chords as asked for, or typed (letters, or
+ * Nashville numbers); every chord tapped to hear it. In the picker's popup
+ * on the set's page, and under Live's transition when it's opened (#214).
+ */
+export function TransitionChordsChooser({
   fromKey,
   toKey,
   lastChord,
@@ -97,6 +137,7 @@ export function TransitionChordsPicker({
   diagrams,
   notation = "LETTERS",
   player,
+  framed = true,
   className,
 }: {
   fromKey: string | null;
@@ -110,10 +151,11 @@ export function TransitionChordsPicker({
   diagrams?: ChordDiagramsValue;
   notation?: ChordNotationValue;
   player?: DiagramPlayer;
+  /** With the song's last chord and the next one's first around the choice; not where they're shown already. */
+  framed?: boolean;
   className?: string;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
   const [count, setCount] = useState<number | null>(null);
   const [typed, setTyped] = useState("");
   const [invalid, setInvalid] = useState(false);
@@ -122,10 +164,7 @@ export function TransitionChordsPicker({
   const chosen = degrees.join(" ");
   const row = (chords: string[], testId: string) => <ChordRow chords={chords} names diagrams={diagrams} notation={notation} player={player} musicalKey={toKey} testId={testId} />;
 
-  function pick(next: string[]) {
-    onChange(next);
-    setOpen(false);
-  }
+  const pick = onChange;
   function keepTyped() {
     // Without the next song's key, only numbers can be kept.
     const read = transitionDegrees(typed, toKey ?? "C");
@@ -137,27 +176,10 @@ export function TransitionChordsPicker({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className={cn("h-8 gap-1.5 font-normal", className)}
-            aria-label={t("sets.transitionChordsLabel")}
-            data-testid="set-song-transition-chords"
-            data-degrees={chosen}
-          />
-        }
-      >
-        <Music className="size-3.5" />
-        {current.length > 0 ? <span className="font-semibold">{current.join(" ")}</span> : t("sets.transitionChords")}
-      </PopoverTrigger>
-      <PopoverContent align="start" className="flex max-h-[70vh] w-80 flex-col gap-3 overflow-y-auto sm:w-96" data-testid="transition-chords-picker">
+      <div className={cn("flex flex-col gap-3", className)} data-testid="transition-chords-chooser">
         <p className="text-sm font-medium">{toKey ? t("sets.transitionChordsInto", { key: toKey }) : t("sets.transitionChordsLabel")}</p>
         {/* Where it goes from and to: the end of this song, what's chosen, the start of the next - each heard with a tap. */}
-        {lastChord || firstChord ? (
+        {framed && (lastChord || firstChord) ? (
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground" data-testid="transition-chords-frame">
             {lastChord ? (
               <span className="flex items-center gap-1">
@@ -235,7 +257,6 @@ export function TransitionChordsPicker({
             {t("sets.transitionChordsNone")}
           </Button>
         ) : null}
-      </PopoverContent>
-    </Popover>
+      </div>
   );
 }

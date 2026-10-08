@@ -5,13 +5,17 @@
 // tap; kept as degrees of the next song's key, so moving that song moves
 // them. In Live (issue #214) a segue or transition stacks the next song
 // under it on the same page, the transition between them, changed there;
-// the song being played follows the scroll; a setting turns it off.
+// the song being played follows the scroll; a setting turns it off. The
+// transition is compact - its chords as one row of steps - and opened, shows
+// their diagrams and the other ways in.
 import { chromium } from "playwright";
 import { WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
 const leader = await user("Transition chords");
+// Guitar diagrams on: shown under the transition's chords once it's opened.
+await api(leader, "PATCH", "/users/me", { chordDiagrams: "GUITAR" });
 
 const lines = (chords) => chords.map((chord, i) => `[${chord}]Line ${i + 1} of the song`).join("\n");
 const song = (title, key, chords) =>
@@ -106,18 +110,23 @@ try {
     // The third comes after a song with nothing said: on its own page.
     if ((await songs.count()) !== 2) throw new Error(`${await songs.count()} songs on the page`);
     const block = page.locator('[data-testid="live-transition-block"][data-between]');
-    await block.getByTestId("live-transition-last").locator('[data-chord="G"]').waitFor();
-    await block.getByTestId("live-transition-chords").locator('[data-chord="Em7"]').waitFor();
-    await block.getByTestId("live-transition-chords").locator('[data-chord="A7"]').click();
-    await block.getByTestId("live-transition-first").locator('[data-chord="D"]').waitFor();
+    await block.locator('[data-step="last"][data-chord="G"]').waitFor();
+    await block.locator('[data-step="step"][data-chord="Em7"]').waitFor();
+    await block.locator('[data-step="step"][data-chord="A7"]').click();
+    await block.locator('[data-step="first"][data-chord="D"]').waitFor();
   });
 
   await step("Live: the transition's chords changed there", async () => {
     const block = page.locator('[data-testid="live-transition-block"][data-between]');
-    await block.getByTestId("set-song-transition-chords").click();
-    await page.getByTestId("transition-chords-picker").locator('[data-kind="four-five"]').getByTestId("transition-suggestion-use").click();
+    // Compact by default: no diagrams, no choices.
+    if (await block.getByTestId("transition-chords-chooser").count()) throw new Error("opened by default");
+    if (await block.locator("[data-step] svg").count()) throw new Error("diagrams shown compact");
+    // Opened: the other ways in, to pick from there.
+    await block.getByTestId("live-transition-expand").click();
+    await block.locator('[data-step="step"] svg').first().waitFor();
+    await block.getByTestId("transition-chords-chooser").locator('[data-kind="four-five"]').getByTestId("transition-suggestion-use").click();
     await saved(["4", "57"]);
-    await block.getByTestId("live-transition-chords").locator('[data-chord="G"]').waitFor();
+    await block.locator('[data-step="step"][data-chord="G"]').waitFor();
   });
 
   await step("Live: Next scrolls on into the stacked song, which becomes the one playing", async () => {
@@ -151,9 +160,9 @@ try {
     await api(leader, "PATCH", `/setlists/${set.id}/items/${secondItem}`, { transposeSteps: 2 });
     await page.goto(`${WEB}/sets/${set.id}/live/${firstItem}`);
     const chords = page.getByTestId("live-transition-chords");
-    await chords.locator('[data-chord="A"]').waitFor();
-    await chords.locator('[data-chord="B7"]').waitFor();
-    await page.getByTestId("live-transition-first").locator('[data-chord="E"]').waitFor();
+    await chords.locator('[data-step="step"][data-chord="A"]').waitFor();
+    await chords.locator('[data-step="step"][data-chord="B7"]').waitFor();
+    await page.locator('[data-step="first"][data-chord="E"]').waitFor();
   });
 
   await step("Live: a key changed at the last minute moves the transition with it", async () => {
@@ -162,23 +171,23 @@ try {
     await keyOf(secondItem).click();
     await page.getByTestId("live-transpose").getByRole("button", { name: "Up a semitone" }).click();
     const block = page.locator('[data-testid="live-transition-block"][data-between]');
-    await block.getByTestId("live-transition-first").locator('[data-chord="F"]').waitFor();
-    await block.getByTestId("live-transition-chords").locator('[data-chord="Bb"]').waitFor();
-    await block.getByTestId("live-transition-chords").locator('[data-chord="C7"]').waitFor();
+    await block.locator('[data-step="first"][data-chord="F"]').waitFor();
+    await block.locator('[data-step="step"][data-chord="Bb"]').waitFor();
+    await block.locator('[data-step="step"][data-chord="C7"]').waitFor();
     await block.getByTestId("live-transition").getByText(/G → F/).waitFor();
     // This song down a semitone (G to F#): where it starts follows.
     // (The open transpose box closes with a tap elsewhere.)
     await page.locator(`[data-testid="live-song"][data-item="${firstItem}"] h1`).click();
     await keyOf(firstItem).click();
     await page.getByTestId("live-transpose").getByRole("button", { name: "Down a semitone" }).click();
-    await block.getByTestId("live-transition-last").locator('[data-chord="F#"], [data-chord="Gb"]').first().waitFor();
+    await block.locator('[data-step="last"][data-chord="F#"], [data-step="last"][data-chord="Gb"]').first().waitFor();
     // Only here, tonight: the set keeps its chords as they were.
     if (JSON.stringify((await items())[0].transitionChords) !== JSON.stringify(["4", "57"])) throw new Error("changed in the set");
     // Gone with the page: back to the set's keys.
     await page.reload();
     await page.getByTestId("live-view").waitFor();
     await page.waitForLoadState("networkidle");
-    await page.locator('[data-testid="live-transition-block"][data-between]').getByTestId("live-transition-first").locator('[data-chord="E"]').waitFor();
+    await page.locator('[data-testid="live-transition-block"][data-between]').locator('[data-step="first"][data-chord="E"]').waitFor();
   });
 
   await step("Stack segues and transitions, turned off on this device: a song per page", async () => {

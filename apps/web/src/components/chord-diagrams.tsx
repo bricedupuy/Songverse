@@ -25,6 +25,7 @@ import { Popover, PopoverContent } from "#/components/ui/popover";
 import { apiClient } from "#/lib/api-client";
 import { playPiano, strum } from "#/lib/chord-sound";
 import { KeyboardDiagram } from "#/components/keyboard-diagram";
+import { ButtonGroup } from "#/components/ui/button-group";
 import { cn } from "#/lib/utils";
 
 /**
@@ -498,5 +499,79 @@ export function ChordRow({
         );
       })}
     </span>
+  );
+}
+
+/** A step of a progression shown as `ChordSteps`: a chord, or a gap still to fill ("…"). */
+export interface ChordStep {
+  chord: string | null;
+  /** Where the transition starts and lands (the songs' own chords) are quieter than the chords between. */
+  edge?: boolean;
+  /** For tests and styling: "last", "step", "first". */
+  role: string;
+}
+
+/**
+ * A progression as one row of chevron-shaped buttons, read left to right
+ * (issue #214): each chord tapped to hear it on the player's instrument;
+ * `expanded`, its diagram under its name.
+ */
+export function ChordSteps({
+  steps,
+  expanded,
+  diagrams,
+  notation,
+  player,
+  musicalKey,
+  className,
+}: {
+  steps: ChordStep[];
+  expanded: boolean;
+  diagrams: ChordDiagramsValue | undefined;
+  notation: ChordNotationValue;
+  player?: DiagramPlayer;
+  musicalKey?: string | null;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  const chosen = instrumentOf(diagrams ?? "OFF");
+  const instrument = chosen ?? "guitar";
+  const up = useRef(false);
+  const chords = steps.flatMap((step) => (step.chord ? [step.chord] : []));
+  const setup = useMemo<Setup>(() => {
+    const tuning = instrument === "piano" ? "standard" : ((instrument === "ukulele" ? player?.ukuleleTuning : player?.guitarTuning) ?? "standard");
+    const pianoNames = player?.pianoNoteNames === "all" || player?.pianoNoteNames === "none" ? player.pianoNoteNames : "card";
+    const pianoHands = player?.pianoHands === "right" ? "right" : "both";
+    const start = new Map<string, number>();
+    if (instrument === "piano") songVoicings(chords, { hands: pianoHands, smooth: player?.pianoSmooth !== false }).forEach((index, i) => start.set(chords[i]!, index));
+    return { instrument, tuning, leftHanded: !!player?.leftHanded, pianoHands, pianoNames, start, chosen: new Map() };
+    // The chords as text: the same progression keeps its setup.
+  }, [instrument, chords.join(" "), player?.ukuleleTuning, player?.guitarTuning, player?.pianoNoteNames, player?.pianoHands, player?.pianoSmooth, player?.leftHanded]);
+  const name = (chord: string) => (notation === "NASHVILLE" ? formatChord(chord, "nashville", musicalKey) : shownName(chord, notation));
+  return (
+    <ButtonGroup variant="chevron" className={cn("max-w-full flex-wrap gap-y-1", className)} data-testid="chord-steps" data-expanded={expanded ? "" : undefined}>
+      {steps.map((step, i) => {
+        const option = step.chord ? optionsFor(step.chord, setup, 1)[0] : undefined;
+        return (
+          <button
+            key={`${i}-${step.chord ?? "gap"}`}
+            type="button"
+            disabled={!option}
+            onClick={() => option && play(option, setup, up)}
+            aria-label={step.chord ? t("chords.play", { chord: name(step.chord) }) : undefined}
+            className={cn(
+              "flex min-h-9 flex-col items-center justify-center py-1 text-sm font-bold transition-colors [--step-padding:0.5rem] disabled:cursor-default",
+              step.edge ? "bg-muted text-muted-foreground hover:bg-muted/70" : "bg-secondary text-primary hover:bg-accent",
+              !step.chord && "font-normal text-muted-foreground",
+            )}
+            data-chord={step.chord ?? undefined}
+            data-step={step.role}
+          >
+            <span>{step.chord ? name(step.chord) : "…"}</span>
+            {expanded && option ? <OptionDiagram option={option} setup={setup} chord={step.chord!} name={name(step.chord!)} notation={notation} /> : null}
+          </button>
+        );
+      })}
+    </ButtonGroup>
   );
 }
