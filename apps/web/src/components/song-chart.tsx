@@ -66,11 +66,14 @@ export function SongChart({
     <div
       className={cn(
         "font-mono text-sm leading-snug",
+        // Chords named as capo shapes, not as they sound (issue #219): in italics, never mistaken for the sounding ones.
+        chart.capoShapes && "[&_[data-chord]]:italic",
         flowed ? "gap-x-12 [column-rule:1px_solid_var(--color-border)] [&>[data-pass]]:mb-5 [&>[data-pass]]:break-inside-avoid" : "flex flex-col gap-5",
       )}
       // Auto: as many columns of at least 24rem as fit; 2 or 3: up to that many, never narrower than 18rem (a phone keeps one).
       style={flowed ? { columns: columns === "auto" ? "24rem" : `${columns} 18rem` } : undefined}
       data-columns={columns}
+      data-capo-shapes={chart.capoShapes ? "" : undefined}
       data-testid="song-chart"
     >
       {chart.passes.map((pass) => {

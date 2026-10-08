@@ -1292,6 +1292,7 @@ const en = {
     capo: "Capo {{capo}}",
     suggestedCapo: "Capo {{capo}} (suggested for the song)",
     showingShapes: "chords shown as the shapes to play",
+    capoChordsAsShapes: "chords as shapes",
     showingSounding: "chords shown as they sound",
     diagrams: "Diagrams",
     names: "Names",

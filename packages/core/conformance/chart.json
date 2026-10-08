@@ -137,6 +137,7 @@
           "expected": {
             "key": "G",
             "capo": null,
+            "capoShapes": false,
             "tempo": 72,
             "timeSignature": {
               "numerator": 4,
@@ -477,6 +478,7 @@
           "expected": {
             "key": "Bb",
             "capo": null,
+            "capoShapes": false,
             "tempo": 72,
             "timeSignature": {
               "numerator": 4,
@@ -818,6 +820,7 @@
           "expected": {
             "key": "G",
             "capo": 2,
+            "capoShapes": false,
             "tempo": 72,
             "timeSignature": {
               "numerator": 4,
@@ -1158,6 +1161,7 @@
           "expected": {
             "key": "G",
             "capo": 2,
+            "capoShapes": true,
             "tempo": 72,
             "timeSignature": {
               "numerator": 4,
@@ -1503,6 +1507,7 @@
           "expected": {
             "key": "G",
             "capo": null,
+            "capoShapes": false,
             "tempo": 72,
             "timeSignature": {
               "numerator": 4,
@@ -1900,6 +1905,7 @@
           "expected": {
             "key": "F",
             "capo": 3,
+            "capoShapes": false,
             "tempo": 72,
             "timeSignature": {
               "numerator": 4,
@@ -2348,6 +2354,7 @@
           "expected": {
             "key": "F",
             "capo": 3,
+            "capoShapes": true,
             "tempo": 72,
             "timeSignature": {
               "numerator": 4,

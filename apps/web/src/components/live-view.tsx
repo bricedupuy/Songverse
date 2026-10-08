@@ -10,6 +10,7 @@ import { OfflineBanner } from "#/components/offline-banner";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
 import { PresentPanel } from "#/components/present-panel";
 import { TransitionChordsChooser, TransitionSymbol, TransitionVariations, transitionText } from "#/components/set-transition";
+import { CapoBadge } from "#/components/capo-badge";
 import { ChartWithDiagrams, ChordSteps, type ChordStep } from "#/components/chord-diagrams";
 import { Button } from "#/components/ui/button";
 import { SyncControl } from "#/components/sync-control";
@@ -537,7 +538,6 @@ function LiveSongSection({
   const transition = useMemo(() => (song.transition ? transposedTransition(song.transition, extraSteps, nextSteps) : null), [song.transition, extraSteps, nextSteps]);
   const details = [
     ...song.references,
-    chart?.capo ? t("player.capo", { capo: chart.capo }) : null,
     chart?.tempo ? `${chart.tempo} BPM` : null,
     song.arrangementName,
   ].filter(Boolean);
@@ -552,6 +552,8 @@ function LiveSongSection({
           <div className="min-w-0">
             <h1 className={cn("text-2xl leading-tight font-bold sm:text-3xl", stacked && !current && "text-muted-foreground")}>{song.title}</h1>
             {song.artist ? <p className="text-base text-muted-foreground sm:text-lg">{song.artist}</p> : null}
+            {/* The capo, hard to miss (issue #219). */}
+            {chart?.capo ? <CapoBadge capo={chart.capo} shapes={chart.capoShapes} className="mt-1" /> : null}
             {details.length > 0 ? (
               <p className="mt-1 text-xs text-muted-foreground" data-testid={id("live-details")}>
                 {details.join(" · ")}

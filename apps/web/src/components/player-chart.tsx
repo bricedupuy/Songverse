@@ -1,5 +1,5 @@
 import { chartNotation, renderChart, type ChartPreferences, type RenderedChart, type ChordDiagramsValue, type ChordNotationValue, type CapoDisplayModeValue, type SetlistSongView } from "@songverse/core";
-import { EyeOff } from "lucide-react";
+import { EyeOff, TriangleAlert } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { ChartColumnsPicker } from "#/components/chart-columns-picker";
@@ -142,7 +142,9 @@ export function PlayerChart({ view }: { view: SetlistSongView }) {
         ) : null}
       </div>
       {chart.capo ? (
-        <p className="text-xs text-muted-foreground" data-testid="capo">
+        // Hard to miss (issue #219): a red pill with a warning sign; the chords in italics when they're shapes.
+        <p className="inline-flex w-fit items-center gap-1 rounded-full bg-destructive px-2 py-0.5 text-xs font-semibold text-destructive-foreground" data-testid="capo">
+          <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
           {capoIsSuggestion ? t("player.suggestedCapo", { capo: chart.capo }) : t("player.capo", { capo: chart.capo })}
           {" · "}
           {capoDisplay === "FINGERED" ? t("player.showingShapes") : t("player.showingSounding")}

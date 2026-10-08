@@ -1,4 +1,5 @@
 import { chartNotation, cueSectionsOf, getLanguageDisplayName, renderChart, type Attachment, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type LiveViewValue, type SongVersionDetail } from "@songverse/core";
+import { CapoBadge } from "#/components/capo-badge";
 import { Link, useRouter } from "@tanstack/react-router";
 import { Mic, Pencil } from "lucide-react";
 import { useMemo } from "react";
@@ -67,7 +68,6 @@ export function PracticeSongPage({
   const details = [
     ...references,
     chart.key,
-    chart.capo ? t("player.capo", { capo: chart.capo }) : null,
     chart.tempo ? `${chart.tempo} BPM` : null,
   ].filter(Boolean);
 
@@ -88,6 +88,8 @@ export function PracticeSongPage({
             {[artistNames(version.artists), getLanguageDisplayName(version.language, i18n.language)].filter(Boolean).join(" · ")}
           </p>
           {details.length > 0 ? <p className="text-sm font-medium text-muted-foreground">{details.join(" · ")}</p> : null}
+          {/* The capo, hard to miss (issue #219). */}
+          {chart.capo ? <CapoBadge capo={chart.capo} shapes={chart.capoShapes} /> : null}
         </div>
         </div>
         <div className="flex items-center gap-2">

@@ -82,6 +82,8 @@ export interface RenderedChart {
   /** The key it starts in, as sounding. */
   key: string | null;
   capo: number | null;
+  /** Its chords are named as the shapes played with the capo on, not as they sound: shown so (in italics), never mistaken for the sounding chords. */
+  capoShapes: boolean;
   tempo: number | null;
   timeSignature: SongDocumentV2["defaults"]["timeSignature"];
   passes: RenderedPass[];
@@ -238,6 +240,7 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
   return {
     key: keyAt(baseSteps),
     capo,
+    capoShapes: !!capo && view.capoDisplay === "shapes" && view.notation !== "nashville",
     tempo: defaults?.tempo ?? song.defaults.tempo ?? null,
     timeSignature: defaults?.timeSignature ?? song.defaults.timeSignature ?? null,
     passes,

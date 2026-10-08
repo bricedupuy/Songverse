@@ -1295,6 +1295,7 @@ const fr: typeof en = {
     capo: "Capo {{capo}}",
     suggestedCapo: "Capo {{capo}} (suggéré pour le chant)",
     showingShapes: "accords affichés comme les formes à jouer",
+    capoChordsAsShapes: "accords en formes",
     showingSounding: "accords affichés tels qu'ils sonnent",
     diagrams: "Diagrammes",
     names: "Noms",
