@@ -6,7 +6,7 @@ import "@fontsource-variable/nunito";
 import "@fontsource-variable/oswald";
 import "@fontsource/bebas-neue";
 import "#/styles/screen-stage.css";
-import { SCREEN_FONT_FAMILIES, sectionEnergy, type RenderedChart, type ScreenMode, type ScreenSlide, type ScreenTheme } from "@songverse/core";
+import { SCREEN_FONT_FAMILIES, sectionEnergy, type RenderedChart, type ScreenMode, type ScreenSlide, type ScreenTheme, type ScreenThemeAsset } from "@songverse/core";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { SongChart } from "#/components/song-chart";
@@ -40,6 +40,7 @@ export function ScreenStage({
   slide,
   black = false,
   idle,
+  assets = [],
   className,
 }: {
   theme: ScreenTheme;
@@ -49,6 +50,8 @@ export function ScreenStage({
   black?: boolean;
   /** Shown when there's no song (no set, nothing presented). */
   idle?: ReactNode;
+  /** The theme's own pictures, videos and fonts (issue #194), which it refers to by id. */
+  assets?: ScreenThemeAsset[];
   className?: string;
 }) {
   const index = song ? Math.max(0, Math.min(slide, song.slides.length - 1)) : 0;
@@ -80,6 +83,9 @@ export function ScreenStage({
     return () => clearTimeout(timer);
   }, [black]);
 
+  const customFont = useThemeFont(assets.find((asset) => asset.id === theme.text.customFont && asset.kind === "font"));
+  const media = assets.find((asset) => asset.id === theme.background.media && asset.kind === "media");
+
   const style = {
     "--t": `${duration}ms`,
     "--stagger": `${theme.motion.stagger}ms`,
@@ -91,7 +97,7 @@ export function ScreenStage({
     "--c2": colors[2] ?? colors[1] ?? colors[0],
     "--c3": colors[3] ?? colors[2] ?? colors[1] ?? colors[0],
     "--chord": theme.chords.color,
-    fontFamily: SCREEN_FONT_FAMILIES[theme.text.font],
+    fontFamily: customFont ? `"${customFont}", ${SCREEN_FONT_FAMILIES[theme.text.font]}` : SCREEN_FONT_FAMILIES[theme.text.font],
   } as CSSProperties;
 
   return (
@@ -104,7 +110,7 @@ export function ScreenStage({
       data-reveal={theme.motion.reveal}
       data-energy={energy}
     >
-      <Background theme={theme} />
+      <Background theme={theme} media={media} />
       {theme.background.reactive && song ? <div key={viewKey} className="sv-pulse" aria-hidden /> : null}
       {theme.background.dim > 0 ? <div className="sv-bg-dim" style={{ opacity: theme.background.dim }} aria-hidden /> : null}
       {dark ? null : !song || !current ? (
@@ -123,7 +129,7 @@ export function ScreenStage({
 }
 
 /** The background: a colour, a gradient, or lights that move (and answer the song when reactive). */
-function Background({ theme }: { theme: ScreenTheme }) {
+function Background({ theme, media }: { theme: ScreenTheme; media?: ScreenThemeAsset }) {
   const particles = useMemo(() => {
     // The same field every time: a seeded spread, not Math.random on each render.
     let seed = 7;
@@ -136,11 +142,17 @@ function Background({ theme }: { theme: ScreenTheme }) {
       "--sway": `${(next() - 0.5) * 16}cqmin`,
     }));
   }, []);
-  const kind = theme.background.kind;
+  // A picture or video without its file (not uploaded, or removed): the colours instead.
+  const kind = (theme.background.kind === "image" || theme.background.kind === "video") && !media ? "gradient" : theme.background.kind;
   // Still: no motion asked for.
   const still = theme.background.motion === 0;
   return (
     <div className={cn("sv-bg", kind === "gradient" && "sv-bg-gradient", still && "[&_*]:[animation-play-state:paused]")} aria-hidden>
+      {kind === "image" && media ? <img className="sv-media sv-media-image" src={media.url} alt="" draggable={false} data-testid="screen-media" /> : null}
+      {kind === "video" && media ? (
+        // Muted, looping, inline: it plays on its own on any TV's browser.
+        <video className="sv-media" src={media.url} autoPlay muted loop playsInline preload="auto" data-testid="screen-media" />
+      ) : null}
       {kind === "aurora" ? (
         <>
           <div className="sv-blob" />
@@ -341,4 +353,32 @@ function ChartStage({ theme, chart, title, passId }: { theme: ScreenTheme; chart
       </div>
     </div>
   );
+}
+
+/**
+ * A font uploaded with the theme, loaded for the stage: its bytes fetched
+ * and handed to the browser as a FontFace (the page's CSP only lets fonts
+ * come from the app itself as files). Its family's name once it's ready;
+ * null until then, or when it can't be read - the theme's font meanwhile.
+ */
+function useThemeFont(asset: ScreenThemeAsset | undefined): string | null {
+  const [family, setFamily] = useState<string | null>(null);
+  useEffect(() => {
+    setFamily(null);
+    if (!asset || typeof FontFace === "undefined") return;
+    let current = true;
+    const name = `sv-theme-${asset.id}`;
+    fetch(asset.url)
+      .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(String(response.status)))))
+      .then((bytes) => new FontFace(name, bytes).load())
+      .then((face) => {
+        document.fonts.add(face);
+        if (current) setFamily(name);
+      })
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [asset?.id, asset?.url]);
+  return family;
 }

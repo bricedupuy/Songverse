@@ -64,15 +64,15 @@ A theme is how a screen looks: its font, colours and background, the lines aroun
 
 **Customize** opens one in the theme editor, with its preview beside the settings - at **16:9** or **4:3**, on the lyrics or the band's chart - changing as you change them. **⏵** plays the sample song, **‹ ›** go slide by slide.
 
-- **Text** - the font, its size (**Fit the line**, or fixed), weight, colour, **Capitals**, **Readability** (a shadow, an outline or a glow, for words over a moving background), alignment, line and letter spacing.
+- **Text** - the font (or an **Uploaded font**: a WOFF2, WOFF, TTF or OTF file you may use this way), its size (**Fit the line**, or fixed), weight, colour, **Capitals**, **Readability** (a shadow, an outline or a glow, for words over a moving background), alignment, line and letter spacing.
 - **Lines** - **The slide**, with the lines before and after it, or **The whole section** with the slide's lines picked out; the lines around them **Dimmed**, **Smaller**, **Blurred** or **Hidden**.
 - **Layout** - top, centre, bottom or **Lower third**, and a **Safe margin** for TVs that crop their edges.
-- **Background** - a **Colour**, a **Gradient**, or moving light: **Aurora**, **Waves**, **Particles**, **Spotlight**, in up to four colours. **Moves with the song** sends a pulse of light with each slide and brightens it in a chorus. **Darken** keeps words readable over anything.
+- **Background** - a **Colour**, a **Gradient**, moving light (**Aurora**, **Waves**, **Particles**, **Spotlight**, in up to four colours), or your own **Picture** (drifting slowly closer) or looping **Video**: **Upload…** a JPEG, PNG, WebP, AVIF or GIF up to 15 MB, or an MP4 or WebM up to 150 MB. **Moves with the song** sends a pulse of light with each slide and brightens it in a chorus. **Darken** keeps words readable over anything.
 - **Motion** - **Between slides**: a cut, a fade, a slide, rise, scale, blur or zoom, and how long it takes (a new song takes twice as long). **Words appear** all at once, line by line, word by word, letter by letter, typed or glowing.
 - **Title and credits** - whether to show the song's title and its credits (writers, copyright, CCLI number), on which slides and where.
 - **Chords** - for **The chart, for the band**: the chords' colour and the chart's size.
 
-The editor checks the contrast between the words and the background and warns when it's under 4.5:1. Name the theme and **Save theme**: it's yours, or - if you're an admin of a team - the team's, for every member to pick for their screens (only its admins change it). A theme you can change has **Edit** and **Delete**; deleting it puts its screens back to the default look.
+The editor checks the contrast between the words and the background and warns when it's under 4.5:1. Pictures, videos and fonts are added to a saved theme, so save it first; they count toward your storage. Name the theme and **Save theme**: it's yours, or - if you're an admin of a team - the team's, for every member to pick for their screens (only its admins change it). A theme you can change has **Edit** and **Delete**; deleting it puts its screens back to the default look.
 
 Everything that moves is drawn by the screen's graphics chip, so it stays smooth on a TV's browser. A viewer whose device asks for reduced motion gets still backgrounds and simple fades.
 

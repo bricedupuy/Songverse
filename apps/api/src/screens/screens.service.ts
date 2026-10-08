@@ -11,6 +11,7 @@ import { SetlistsService } from "../setlists/setlists.service.js";
 /** How long a pairing code waits to be confirmed. */
 export const PAIRING_TTL_S = 10 * 60;
 import { SCREEN_CHANNEL } from "./screen-channel.js";
+import { presentScreenThemeAssets } from "./screen-theme-assets.js";
 import { ScreenThemesService } from "./screen-themes.service.js";
 
 export { SCREEN_CHANNEL };
@@ -133,7 +134,11 @@ export class ScreensService {
   async current(token: string) {
     const screen = await this.byToken(token);
     if (!screen) throw new NotFoundException("This screen was disconnected");
-    const { theme } = await this.prisma.client.screen.update({ where: { id: screen.id }, data: { lastSeenAt: new Date() }, select: { theme: { select: { document: true } } } });
+    const { theme } = await this.prisma.client.screen.update({
+      where: { id: screen.id },
+      data: { lastSeenAt: new Date() },
+      select: { theme: { select: { document: true, assets: { select: { id: true, kind: true, storageKey: true, mimeType: true, filename: true } } } } },
+    });
     const owner = await this.ownerOf(screen.ownerUserId);
     let set = null;
     if (owner && screen.setlistId) {
@@ -144,7 +149,8 @@ export class ScreensService {
         // No longer theirs to read: the screen waits for another set.
       }
     }
-    return { screen: present(screen), theme: screenLook({ themeTemplate: screen.themeTemplate, theme }), set };
+    // Its theme's pictures, videos and fonts (issue #194), at addresses a screen can load without a session.
+    return { screen: present(screen), theme: screenLook({ themeTemplate: screen.themeTemplate, theme }), assets: presentScreenThemeAssets(theme?.assets ?? []), set };
   }
 
   /** The screens of a set its leaders see, or the user's own. */

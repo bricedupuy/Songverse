@@ -159,7 +159,7 @@ function ThemesCard({ themes, onChanged }: { themes: ScreenThemeSummary[]; onCha
             <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="saved-themes">
               {themes.map((theme) => (
                 <li key={theme.id} className="flex flex-col gap-2" data-testid={`saved-theme-${theme.name}`}>
-                  <ScreenThemePreview theme={theme.theme} />
+                  <ScreenThemePreview theme={theme.theme} assets={theme.assets} />
                   <div className="flex items-center gap-2">
                     <p className="min-w-0 flex-1 truncate text-sm font-medium">{theme.name}</p>
                     {theme.teamName ? (
@@ -170,7 +170,7 @@ function ThemesCard({ themes, onChanged }: { themes: ScreenThemeSummary[]; onCha
                     ) : null}
                     {theme.canEdit ? (
                       <>
-                        <Button size="sm" variant="outline" onClick={() => setDraft({ id: theme.id, name: theme.name, theme: theme.theme, ownerTeamId: theme.ownerTeamId })} data-testid="edit-theme">
+                        <Button size="sm" variant="outline" onClick={() => setDraft({ id: theme.id, name: theme.name, theme: theme.theme, ownerTeamId: theme.ownerTeamId, assets: theme.assets })} data-testid="edit-theme">
                           <Pencil />
                           {t("screens.editTheme")}
                         </Button>

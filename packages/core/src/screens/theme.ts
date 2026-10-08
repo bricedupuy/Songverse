@@ -33,7 +33,10 @@ export const SCREEN_CONTEXT_STYLES = ["dim", "small", "blur", "hidden"] as const
 /** Where the lines sit: a lower third leaves the picture above free, for a stream or a video. */
 export const SCREEN_POSITIONS = ["top", "center", "bottom", "lower-third"] as const;
 /** A still colour, a gradient, or a moving background that answers the words (see `reactive`). */
-export const SCREEN_BACKGROUNDS = ["color", "gradient", "aurora", "waves", "particles", "spotlight"] as const;
+export const SCREEN_BACKGROUNDS = ["color", "gradient", "aurora", "waves", "particles", "spotlight", "image", "video"] as const;
+/** What a theme's own files are for (issue #194): a background picture or looping video, or a font. */
+export const SCREEN_THEME_ASSET_KINDS = ["media", "font"] as const;
+export type ScreenThemeAssetKind = (typeof SCREEN_THEME_ASSET_KINDS)[number];
 /** How one slide gives way to the next. */
 export const SCREEN_TRANSITIONS = ["cut", "fade", "slide", "rise", "scale", "blur", "zoom"] as const;
 /** How a slide's words come in: all at once, line by line, word by word, letter by letter, typed, or glowing in. */
@@ -49,6 +52,8 @@ function screenThemeSchema(strict: boolean) {
   $schema: z.literal(SCREEN_THEME_SCHEMA).default(SCREEN_THEME_SCHEMA),
   text: object({
       font: z.enum(SCREEN_FONTS).default("sans"),
+      /** A font uploaded with the theme (its asset's id): used when the client has it, `font` otherwise. */
+      customFont: z.string().max(40).nullable().default(null),
       /** "auto" fits the longest line; a number is the size in % of the screen's shorter side. */
       size: z.union([z.literal("auto"), z.number().min(2).max(20)]).default("auto"),
       weight: z.number().int().min(100).max(900).multipleOf(100).default(600),
@@ -87,6 +92,8 @@ function screenThemeSchema(strict: boolean) {
       reactive: z.boolean().default(false),
       /** How much it moves, 0 (still) to 1. */
       motion: z.number().min(0).max(1).default(0.5),
+      /** A picture or looping video uploaded with the theme (its asset's id), for "image" and "video"; without one, the colours. */
+      media: z.string().max(40).nullable().default(null),
       /** Darkens it under the words, 0 to 0.9: words stay readable over anything. */
       dim: z.number().min(0).max(0.9).default(0),
     })
@@ -247,7 +254,8 @@ export function contrastRatio(a: string, b: string): number {
 
 /**
  * The lowest contrast between a theme's words and what's under them (the
- * background's colours, darkened by `dim`): an editor warns under 4.5. An
+ * background's colours, darkened by `dim`; a picture or video counts as
+ * mid-grey, as it could be anything): an editor warns under 4.5. An
  * outline, shadow or glow helps words over a moving background, so they
  * count as half again.
  */
@@ -258,7 +266,10 @@ export function screenThemeContrast(theme: ScreenTheme): number {
   const base = rgb(colors[0]!);
   // A gradient's colours are all under the words; a moving background's others are soft lights over its base (at most 45% of them).
   const under =
-    kind === "color"
+    kind === "image" || kind === "video"
+      ? // A picture or a video could be anything: mid-grey under the words, unless it's darkened.
+        [base, [128, 128, 128]]
+      : kind === "color"
       ? [base]
       : kind === "gradient"
         ? colors.map(rgb)

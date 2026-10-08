@@ -3,12 +3,13 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 /**
  * Signed, expiring addresses (issue #112 brought them to one place): for
  * what can't send the Bearer token - an <audio src> (a file link, issue
- * #33), an <img src> (a song's or an artist's image, #85, #86). The
+ * #33), an <img src> (a song's or an artist's image, #85, #86), a screen
+ * theme's picture, video or font, for a screen without a session (#194). The
  * signature covers what the address is for and when it stops working;
  * each use has its own key, derived from BETTER_AUTH_SECRET, so one kind
  * of address can't be passed off as another.
  */
-export type SignedPurpose = "file-links" | "song-images";
+export type SignedPurpose = "file-links" | "song-images" | "screen-theme-assets";
 
 function key(purpose: SignedPurpose): Buffer {
   const secret = process.env.BETTER_AUTH_SECRET;

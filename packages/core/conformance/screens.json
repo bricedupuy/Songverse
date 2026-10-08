@@ -577,6 +577,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "sans",
+              "customFont": null,
               "size": "auto",
               "weight": 600,
               "upperCase": false,
@@ -603,6 +604,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -644,6 +646,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "elegant",
+              "customFont": null,
               "size": "auto",
               "weight": 600,
               "upperCase": true,
@@ -670,6 +673,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -714,6 +718,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "sans",
+              "customFont": null,
               "size": "auto",
               "weight": 600,
               "upperCase": false,
@@ -741,6 +746,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -781,6 +787,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "sans",
+              "customFont": null,
               "size": "auto",
               "weight": 600,
               "upperCase": false,
@@ -807,6 +814,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -839,6 +847,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "sans",
+              "customFont": null,
               "size": "auto",
               "weight": 600,
               "upperCase": false,
@@ -865,6 +874,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -905,6 +915,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "sans",
+              "customFont": null,
               "size": "auto",
               "weight": 600,
               "upperCase": false,
@@ -931,6 +942,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -963,6 +975,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "geometric",
+              "customFont": null,
               "size": "auto",
               "weight": 800,
               "upperCase": true,
@@ -992,6 +1005,7 @@
               ],
               "reactive": true,
               "motion": 0.7,
+              "media": null,
               "dim": 0.15
             },
             "title": {
@@ -1024,6 +1038,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "elegant",
+              "customFont": null,
               "size": "auto",
               "weight": 500,
               "upperCase": false,
@@ -1052,6 +1067,7 @@
               ],
               "reactive": false,
               "motion": 0.2,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -1084,6 +1100,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "rounded",
+              "customFont": null,
               "size": "auto",
               "weight": 700,
               "upperCase": false,
@@ -1113,6 +1130,7 @@
               ],
               "reactive": true,
               "motion": 0.5,
+              "media": null,
               "dim": 0.25
             },
             "title": {
@@ -1145,6 +1163,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "serif",
+              "customFont": null,
               "size": "auto",
               "weight": 600,
               "upperCase": false,
@@ -1173,6 +1192,7 @@
               ],
               "reactive": true,
               "motion": 0.4,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -1205,6 +1225,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "display",
+              "customFont": null,
               "size": "auto",
               "weight": 400,
               "upperCase": true,
@@ -1232,6 +1253,7 @@
               ],
               "reactive": true,
               "motion": 0.6,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -1264,6 +1286,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "sans",
+              "customFont": null,
               "size": 5.5,
               "weight": 700,
               "upperCase": false,
@@ -1290,6 +1313,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -1322,6 +1346,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "sans",
+              "customFont": null,
               "size": "auto",
               "weight": 500,
               "upperCase": false,
@@ -1348,6 +1373,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -1380,6 +1406,7 @@
             "$schema": "screen-theme/v1",
             "text": {
               "font": "condensed",
+              "customFont": null,
               "size": 9,
               "weight": 700,
               "upperCase": true,
@@ -1406,6 +1433,7 @@
               ],
               "reactive": false,
               "motion": 0.5,
+              "media": null,
               "dim": 0
             },
             "title": {
@@ -1475,6 +1503,22 @@
             }
           ],
           "expected": 7.86
+        },
+        {
+          "name": "a picture: mid-grey under the words unless darkened",
+          "args": [
+            {
+              "text": {
+                "effect": "none"
+              },
+              "background": {
+                "kind": "image",
+                "media": "asset1",
+                "dim": 0.5
+              }
+            }
+          ],
+          "expected": 10.37
         }
       ]
     },

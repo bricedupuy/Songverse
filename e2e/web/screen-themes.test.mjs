@@ -3,7 +3,11 @@
 // change shows on the screen at once; `?theme=` pins a built-in one on a
 // device. Every client reads the same screen-theme/v1 document.
 import { chromium } from "playwright";
-import { SP, WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { readFileSync } from "node:fs";
+import { API, SP, WEB, api, call, check, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
+import { png } from "../lib/fake-providers.mjs";
+
+const FONT = new URL("../../apps/web/node_modules/@fontsource/bebas-neue/files/bebas-neue-latin-400-normal.woff2", import.meta.url);
 
 let page;
 const step = stepper(() => page);
@@ -133,11 +137,51 @@ try {
     await tv.getByTestId("screen-lines").getByText("third line here").waitFor();
   });
 
+  await step("a picture for the background and an uploaded font, from the editor: on the screen", async () => {
+    page = tablet;
+    await tablet.evaluate(() => localStorage.setItem("songverse.mode", "edit"));
+    await tablet.goto(`${WEB}/screens`);
+    await tablet.getByTestId(`saved-theme-Starry ${stamp}`).getByTestId("edit-theme").click();
+    const editor = tablet.getByTestId("theme-editor");
+    await editor.getByTestId("theme-background").locator('[data-value="image"]').click();
+    await editor.getByTestId("theme-upload-media").setInputFiles({ name: "stage.png", mimeType: "image/png", buffer: png(40, 90, 160) });
+    await editor.getByTestId("theme-media").getByText("stage.png").waitFor();
+    await editor.locator('[data-testid="theme-preview"] img[data-testid="screen-media"]').waitFor();
+    await editor.getByTestId("theme-upload-font").setInputFiles({ name: "bebas.woff2", mimeType: "font/woff2", buffer: readFileSync(FONT) });
+    await editor.getByTestId("theme-custom-font").locator("option", { hasText: "bebas.woff2" }).waitFor({ state: "attached" });
+    await editor.getByTestId("theme-save").click();
+    await editor.waitFor({ state: "detached" });
+    page = tv;
+    await tv.locator('[data-testid="screen-stage"][data-background="image"] img[data-testid="screen-media"]').waitFor();
+    await tv.waitForFunction(() => getComputedStyle(document.querySelector('[data-testid="screen-stage"]')).fontFamily.includes("sv-theme-"));
+    await tv.waitForFunction(() => [...document.fonts].some((face) => face.family.startsWith("sv-theme-") && face.status === "loaded"));
+  });
+
+  await step("a theme's files: at a signed address, only pictures, videos and fonts", async () => {
+    const saved = (await api(leader, "GET", "/screen-themes")).find((one) => one.name === `Starry ${stamp}`);
+    const picture = saved.assets.find((asset) => asset.kind === "media");
+    const font = saved.assets.find((asset) => asset.kind === "font");
+    if (saved.theme.background.media !== picture?.id || saved.theme.text.customFont !== font?.id) throw new Error(JSON.stringify(saved));
+    let res = await fetch(picture.url);
+    if (res.status !== 200 || res.headers.get("content-type") !== "image/png") throw new Error(`${res.status} ${res.headers.get("content-type")}`);
+    res = await fetch(picture.url.replace(/signature=[^&]+/, "signature=forged"));
+    if (res.status !== 403) throw new Error(`forged: ${res.status}`);
+    // A font is read as bytes, never shown as a page.
+    res = await fetch(font.url);
+    if (res.status !== 200 || res.headers.get("content-type") !== "application/octet-stream") throw new Error(`font: ${res.status} ${res.headers.get("content-type")}`);
+    const form = new FormData();
+    form.append("file", new Blob(["<script>alert(1)</script>"], { type: "text/html" }), "page.html");
+    res = await fetch(`${API}/screen-themes/${saved.id}/assets?kind=media`, { method: "POST", headers: { Authorization: `Bearer ${leader.bearer}` }, body: form });
+    if (res.status !== 400) throw new Error(`html: ${res.status}`);
+    res = await fetch(`${API}/screen-themes/${saved.id}/assets?kind=media`, { method: "POST", headers: { Authorization: `Bearer ${member.bearer}` }, body: form });
+    if (res.status !== 404) throw new Error(`someone else's theme: ${res.status}`);
+  });
+
   await step("?theme= pins a built-in theme on this device", async () => {
     await tv.goto(`${WEB}/screen?theme=stream`);
     await tv.locator('[data-testid="screen-stage"][data-background="color"][data-transition="slide"]').waitFor({ timeout: 15000 });
     await tv.goto(`${WEB}/screen?theme=nonsense`);
-    await tv.locator('[data-testid="screen-stage"][data-background="waves"]').waitFor({ timeout: 15000 });
+    await tv.locator('[data-testid="screen-stage"][data-background="image"]').waitFor({ timeout: 15000 });
   });
 
   await step("the theme deleted: its screen goes back to the default look", async () => {

@@ -2310,12 +2310,32 @@ model ScreenTheme {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  owner   User?    @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-  team    Team?    @relation(fields: [ownerTeamId], references: [id], onDelete: Cascade)
+  owner   User?              @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  team    Team?              @relation(fields: [ownerTeamId], references: [id], onDelete: Cascade)
   screens Screen[]
+  assets  ScreenThemeAsset[]
 
   @@index([ownerUserId])
   @@index([ownerTeamId])
+}
+
+// A theme's own file (issue #194): a background picture or looping video
+// ("media"), or a font. Content-addressed in storage like every upload;
+// the theme's document refers to it by id.
+model ScreenThemeAsset {
+  id         String   @id @default(cuid())
+  themeId    String
+  kind       String
+  storageKey String
+  mimeType   String
+  filename   String
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
+
+  theme ScreenTheme @relation(fields: [themeId], references: [id], onDelete: Cascade)
+
+  @@index([themeId])
+  @@index([storageKey])
 }
 
 enum ScreenMode {

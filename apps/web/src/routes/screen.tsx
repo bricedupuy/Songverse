@@ -107,7 +107,16 @@ function Showing({ current, presenting, online, theme }: { current: ScreenCurren
       data-slide={presenting?.slide ?? ""}
       data-theme={current.screen.themeId ?? current.screen.themeTemplate ?? ""}
     >
-      <ScreenStage className="size-full" theme={look} mode={current.screen.mode} song={idle ? null : song} slide={presenting?.slide ?? 0} black={!!presenting?.black} idle={idle} />
+      <ScreenStage
+        className="size-full"
+        theme={look}
+        mode={current.screen.mode}
+        song={idle ? null : song}
+        slide={presenting?.slide ?? 0}
+        black={!!presenting?.black}
+        idle={idle}
+        assets={current.assets}
+      />
       {/* Lost the connection: said quietly, in a corner; it comes back by itself. */}
       {!online ? <WifiOff className="absolute right-[2vmin] bottom-[2vmin] z-10 size-[3vmin] text-neutral-600" aria-label={t("screens.displayOffline")} /> : null}
     </div>

@@ -36,6 +36,26 @@
   z-index: 0;
   pointer-events: none;
 }
+/* A picture or looping video, filling the screen; a picture drifts slowly closer (Ken Burns). */
+.sv-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sv-media-image {
+  will-change: transform;
+  animation: sv-kenburns calc(60s - var(--motion) * 40s) ease-in-out infinite alternate;
+}
+@keyframes sv-kenburns {
+  from {
+    transform: scale(1) translate3d(0, 0, 0);
+  }
+  to {
+    transform: scale(1.12) translate3d(-2%, -1.5%, 0);
+  }
+}
 .sv-bg-gradient {
   background: linear-gradient(160deg, var(--c0), var(--c1) 55%, var(--c2));
 }

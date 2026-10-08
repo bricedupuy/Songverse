@@ -11,6 +11,7 @@ import {
   screenThemeContrast,
   type ScreenMode,
   type ScreenTheme,
+  type ScreenThemeAsset,
   type ScreenThemeSummary,
   type TeamSummary,
 } from "@songverse/core";
@@ -37,6 +38,8 @@ export interface ThemeDraft {
   name: string;
   theme: ScreenTheme;
   ownerTeamId?: string | null;
+  /** A saved theme's pictures, videos and fonts. */
+  assets?: ScreenThemeAsset[];
 }
 
 /**
@@ -55,6 +58,8 @@ export function ScreenThemeEditor({ draft, teams, onClose, onSaved }: { draft: T
   const [playing, setPlaying] = useState(true);
   const [slide, setSlide] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState(false);
+  const [assets, setAssets] = useState<ScreenThemeAsset[]>(draft.assets ?? []);
+  const [uploading, setUploading] = useState<ScreenThemeAsset["kind"] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const sample = useSampleSong(t("screens.sampleTitle"), t("screens.sampleWriters"));
   const adminTeams = teams.filter((team) => team.currentUserRole === "ADMIN");
@@ -77,6 +82,35 @@ export function ScreenThemeEditor({ draft, teams, onClose, onSaved }: { draft: T
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
+    }
+  }
+
+  /** A picture, video or font for this (saved) theme: uploaded, then used at once. */
+  async function upload(kind: ScreenThemeAsset["kind"], file: File | undefined) {
+    if (!file || !draft.id) return;
+    setUploading(kind);
+    setError(null);
+    try {
+      const asset = await apiClient.uploadScreenThemeAsset(draft.id, kind, file, file.name);
+      setAssets((before) => [...before, asset]);
+      if (kind === "font") set("text", { customFont: asset.id });
+      else set("background", { media: asset.id, kind: asset.mimeType.startsWith("video/") ? "video" : "image" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(null);
+    }
+  }
+
+  async function removeAsset(asset: ScreenThemeAsset) {
+    if (!draft.id) return;
+    try {
+      await apiClient.deleteScreenThemeAsset(draft.id, asset.id);
+      setAssets((before) => before.filter((one) => one.id !== asset.id));
+      if (theme.background.media === asset.id) set("background", { media: null });
+      if (theme.text.customFont === asset.id) set("text", { customFont: null });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -103,6 +137,26 @@ export function ScreenThemeEditor({ draft, teams, onClose, onSaved }: { draft: T
                     </option>
                   ))}
                 </NativeSelect>
+              </Field>
+              <Field label={t("screens.editor.customFont")}>
+                {draft.id ? (
+                  <div className="flex flex-col gap-1.5">
+                    <NativeSelect value={theme.text.customFont ?? ""} onChange={(e) => set("text", { customFont: e.target.value || null })} data-testid="theme-custom-font">
+                      <option value="">{t("screens.editor.customFontNone")}</option>
+                      {assets
+                        .filter((asset) => asset.kind === "font")
+                        .map((asset) => (
+                          <option key={asset.id} value={asset.id}>
+                            {asset.filename}
+                          </option>
+                        ))}
+                    </NativeSelect>
+                    <FileButton accept=".woff2,.woff,.ttf,.otf" busy={uploading === "font"} onFile={(file) => void upload("font", file)} testId="theme-upload-font" />
+                    <span className="text-xs text-muted-foreground">{t("screens.editor.fontHint")}</span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">{t("screens.editor.saveFirst")}</span>
+                )}
               </Field>
               <Field label={t("screens.editor.size")}>
                 <div className="flex items-center gap-2">
@@ -168,6 +222,38 @@ export function ScreenThemeEditor({ draft, teams, onClose, onSaved }: { draft: T
               <Field label={t("screens.editor.backgroundKind")}>
                 <Choices value={theme.background.kind} options={SCREEN_BACKGROUNDS} label={(one) => t(`screens.editor.backgrounds.${one}`)} onChange={(kind) => set("background", { kind })} testId="theme-background" />
               </Field>
+              {theme.background.kind === "image" || theme.background.kind === "video" ? (
+                <Field label={t("screens.editor.media")}>
+                  {draft.id ? (
+                    <div className="flex flex-col gap-1.5">
+                      {assets.filter((asset) => asset.kind === "media").length === 0 ? <span className="text-xs text-muted-foreground">{t("screens.editor.noMedia")}</span> : null}
+                      <ul className="flex flex-col gap-1">
+                        {assets
+                          .filter((asset) => asset.kind === "media")
+                          .map((asset) => (
+                            <li key={asset.id} className="flex items-center gap-2 text-xs" data-testid="theme-media">
+                              <button
+                                type="button"
+                                aria-pressed={theme.background.media === asset.id}
+                                onClick={() => set("background", { media: asset.id, kind: asset.mimeType.startsWith("video/") ? "video" : "image" })}
+                                className={cn("min-w-0 flex-1 truncate rounded border px-2 py-1 text-left", theme.background.media === asset.id ? "border-primary bg-primary/10" : "hover:bg-muted")}
+                              >
+                                {asset.filename}
+                              </button>
+                              <button type="button" className="text-destructive hover:underline" onClick={() => void removeAsset(asset)}>
+                                {t("screens.editor.removeFile")}
+                              </button>
+                            </li>
+                          ))}
+                      </ul>
+                      <FileButton accept="image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm" busy={uploading === "media"} onFile={(file) => void upload("media", file)} testId="theme-upload-media" />
+                      <span className="text-xs text-muted-foreground">{t("screens.editor.mediaHint")}</span>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{t("screens.editor.saveFirst")}</span>
+                  )}
+                </Field>
+              ) : null}
               <Field label={t("screens.editor.colors")}>
                 <div className="flex flex-wrap items-center gap-2">
                   {[0, 1, 2, 3].map((i) =>
@@ -282,7 +368,7 @@ export function ScreenThemeEditor({ draft, teams, onClose, onSaved }: { draft: T
                 </Button>
               </span>
             </div>
-            <ScreenThemePreview theme={theme} mode={mode} aspect={aspect} playing={playing} slide={playing ? undefined : (slide ?? 0)} className={cn("w-full", aspect === "4/3" && "mx-auto max-w-[75%]")} />
+            <ScreenThemePreview theme={theme} assets={assets} mode={mode} aspect={aspect} playing={playing} slide={playing ? undefined : (slide ?? 0)} className={cn("w-full", aspect === "4/3" && "mx-auto max-w-[75%]")} />
             <p className={cn("flex items-center gap-1.5 text-xs", contrast < 4.5 ? "text-destructive" : "text-muted-foreground")} data-testid="theme-contrast">
               {contrast < 4.5 ? <TriangleAlert className="size-3.5 shrink-0" aria-hidden /> : null}
               {contrast < 4.5 ? t("screens.contrastLow", { ratio: contrast }) : t("screens.contrastOk", { ratio: contrast })}
@@ -394,5 +480,25 @@ function Choices<T extends string>({ value, options, label, onChange, testId }: 
         </button>
       ))}
     </div>
+  );
+}
+
+/** Picks a file and hands it over at once: a button, the input hidden behind it. */
+function FileButton({ accept, busy, onFile, testId }: { accept: string; busy: boolean; onFile: (file: File | undefined) => void; testId?: string }) {
+  const { t } = useTranslation();
+  return (
+    <label className={cn("inline-flex h-8 w-fit cursor-pointer items-center rounded-md border bg-background px-3 text-xs font-medium hover:bg-muted", busy && "pointer-events-none opacity-60")}>
+      {busy ? t("screens.editor.uploading") : t("screens.editor.upload")}
+      <input
+        type="file"
+        accept={accept}
+        className="sr-only"
+        data-testid={testId}
+        onChange={(event) => {
+          onFile(event.target.files?.[0]);
+          event.target.value = "";
+        }}
+      />
+    </label>
   );
 }

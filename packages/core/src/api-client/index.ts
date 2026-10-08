@@ -573,6 +573,15 @@ export interface ScreenSummary {
   themeTemplate: string | null;
 }
 
+/** A screen theme's own file (issue #194): a background picture or video ("media"), or a font, at a signed address. */
+export interface ScreenThemeAsset {
+  id: string;
+  kind: "media" | "font";
+  mimeType: string;
+  filename: string;
+  url: string;
+}
+
 /** A saved screen theme (issue #194): the user's own or a team's. */
 export interface ScreenThemeSummary {
   id: string;
@@ -584,6 +593,8 @@ export interface ScreenThemeSummary {
   /** Theirs, or a team's they're an admin of: they change and delete it. */
   canEdit: boolean;
   updatedAt: string;
+  /** Its pictures, videos and fonts, which its document refers to by id. */
+  assets: ScreenThemeAsset[];
 }
 
 /** What a screen shows (GET /screens/current, with its own token): itself, and its set to keep - each song as the song view gives it - with the songs' credits. */
@@ -591,6 +602,8 @@ export interface ScreenCurrent {
   screen: ScreenSummary;
   /** Its look (issue #194), worked out: its theme, else its built-in one, else the default. */
   theme: ScreenTheme;
+  /** Its theme's pictures, videos and fonts; left out by an older API. */
+  assets?: ScreenThemeAsset[];
   set: (SetlistOfflineCopy & { credits: Record<string, { writers: string[]; copyright: string | null; ccli: string | null }> }) | null;
 }
 
@@ -2132,6 +2145,13 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     createScreenTheme: (data: CreateScreenThemeRequest) => request<ScreenThemeSummary>("/screen-themes", { method: "POST", body: JSON.stringify(data) }),
     updateScreenTheme: (themeId: string, data: UpdateScreenThemeRequest) => request<ScreenThemeSummary>(`/screen-themes/${themeId}`, { method: "PATCH", body: JSON.stringify(data) }),
     deleteScreenTheme: (themeId: string) => request<void>(`/screen-themes/${themeId}`, { method: "DELETE" }),
+    /** A background picture or video ("media"), or a font, for a saved theme. */
+    uploadScreenThemeAsset: (themeId: string, kind: "media" | "font", file: Blob, filename: string) => {
+      const form = new FormData();
+      form.append("file", file, filename);
+      return request<ScreenThemeAsset>(`/screen-themes/${themeId}/assets?kind=${kind}`, { method: "POST", body: form });
+    },
+    deleteScreenThemeAsset: (themeId: string, assetId: string) => request<void>(`/screen-themes/${themeId}/assets/${assetId}`, { method: "DELETE" }),
     adminCreateInstrument: (data: CreateInstrumentRequest) => request<CustomInstrument>("/admin/instruments", { method: "POST", body: JSON.stringify(data) }),
     adminUpdateInstrument: (id: string, data: UpdateInstrumentRequest) => request<CustomInstrument>(`/admin/instruments/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     adminDeleteInstrument: (id: string) => request<void>(`/admin/instruments/${id}`, { method: "DELETE" }),

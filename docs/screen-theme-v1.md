@@ -33,6 +33,7 @@ section with the slide's lines picked out.
   "$schema": "screen-theme/v1",
   "text": {
     "font": "sans",          // sans, rounded, geometric, serif, elegant, condensed, display, mono
+    "customFont": null,      // an uploaded font's asset id: used once it's loaded, "font" meanwhile
     "size": "auto",          // "auto" fits the longest current line; or % of the screen's shorter side (2-20)
     "weight": 600,           // 100-900
     "upperCase": false,
@@ -53,7 +54,8 @@ section with the slide's lines picked out.
     "margin": 5              // kept clear all round, % of the screen (overscan)
   },
   "background": {
-    "kind": "color",         // color, gradient, aurora, waves, particles, spotlight
+    "kind": "color",         // color, gradient, aurora, waves, particles, spotlight, image, video
+    "media": null,           // the picture's or video's asset id, for image and video; without it, the colours
     "colors": ["#000000"],   // 1-4; the first is the base, the others the gradient's or the moving lights'
     "reactive": false,       // a pulse of light with each slide; brighter in a chorus (sectionEnergy)
     "motion": 0.5,           // 0 (still) to 1
@@ -70,6 +72,17 @@ section with the slide's lines picked out.
   "chords": { "color": "#7dd3fc", "scale": 1 }                      // the band's chart
 }
 ```
+
+## A theme's files
+
+A saved theme can have files (`ScreenThemeAsset`): a background picture or
+looping video (`media`: JPEG, PNG, WebP, AVIF, GIF up to 15 MB; MP4, WebM up
+to 150 MB) and fonts (`font`: WOFF2, WOFF, TTF, OTF up to 5 MB), uploaded with
+`POST /screen-themes/:id/assets?kind=`. The document refers to them by id.
+A screen gets them in `GET /screens/current` (`assets`), each with a signed
+address it can load without a session. A client loads a font from its bytes
+(the web app hands them to `FontFace`), plays a video muted and looping, and
+shows the colours while a file is missing.
 
 ## Built-in themes
 

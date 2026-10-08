@@ -1,4 +1,4 @@
-import { lyricSlides, renderChart, songDocumentFromText, type ScreenMode, type ScreenTheme } from "@songverse/core";
+import { lyricSlides, renderChart, songDocumentFromText, type ScreenMode, type ScreenTheme, type ScreenThemeAsset } from "@songverse/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ScreenStage, type StageSong } from "#/components/screen-stage";
@@ -32,6 +32,7 @@ export function ScreenThemePreview({
   aspect = "16/9",
   playing = true,
   slide: fixed,
+  assets,
   className,
 }: {
   theme: ScreenTheme;
@@ -40,6 +41,8 @@ export function ScreenThemePreview({
   playing?: boolean;
   /** A slide shown instead of stepping through them. */
   slide?: number;
+  /** The theme's own pictures, videos and fonts. */
+  assets?: ScreenThemeAsset[];
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -63,7 +66,7 @@ export function ScreenThemePreview({
 
   return (
     <div ref={box} className={cn("relative overflow-hidden rounded-lg bg-black shadow-sm ring-1 ring-border", className)} style={{ aspectRatio: aspect }} data-testid="theme-preview">
-      <ScreenStage className={cn("absolute inset-0", !visible && "[&_*]:[animation-play-state:paused]")} theme={theme} mode={mode} song={song} slide={fixed ?? slide} />
+      <ScreenStage className={cn("absolute inset-0", !visible && "[&_*]:[animation-play-state:paused]")} theme={theme} mode={mode} song={song} slide={fixed ?? slide} assets={assets} />
     </div>
   );
 }

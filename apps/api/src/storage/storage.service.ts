@@ -142,7 +142,7 @@ export class StorageService {
    */
   async deleteUnreferenced(hashes: string[]): Promise<void> {
     for (const hash of new Set(hashes)) {
-      const [attachments, avatars, songImages, artistPictures, teamPictures, songbookPictures] = await Promise.all([
+      const [attachments, avatars, songImages, artistPictures, teamPictures, songbookPictures, themeFiles] = await Promise.all([
         // A file, or a lossless original kept beside one (issue #182).
         this.prisma.client.attachment.count({ where: { OR: [{ storageKey: hash }, { originalStorageKey: hash }] } }),
         this.prisma.client.user.count({ where: { avatarStorageKey: hash } }),
@@ -153,8 +153,10 @@ export class StorageService {
         // Teams' and songbooks' pictures (issue #161).
         this.prisma.client.team.count({ where: { avatarStorageKey: hash } }),
         this.prisma.client.songbook.count({ where: { avatarStorageKey: hash } }),
+        // Screen themes' pictures, videos and fonts (issue #194).
+        this.prisma.client.screenThemeAsset.count({ where: { storageKey: hash } }),
       ]);
-      if (attachments === 0 && avatars === 0 && songImages === 0 && artistPictures === 0 && teamPictures === 0 && songbookPictures === 0) {
+      if (attachments === 0 && avatars === 0 && songImages === 0 && artistPictures === 0 && teamPictures === 0 && songbookPictures === 0 && themeFiles === 0) {
         await this.delete(hash);
       }
     }

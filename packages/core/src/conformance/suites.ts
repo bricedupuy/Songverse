@@ -911,6 +911,7 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "white on black", args: [{}] },
           { name: "dark grey on black, no effect", args: [{ text: { color: "#333333", effect: "none" } }] },
           { name: "a moving background's lights, darkened", args: [{ text: { effect: "none" }, background: { kind: "aurora", colors: ["#05010f", "#facc15", "#ffffff"], dim: 0.3 } }] },
+          { name: "a picture: mid-grey under the words unless darkened", args: [{ text: { effect: "none" }, background: { kind: "image", media: "asset1", dim: 0.5 } }] },
         ],
       },
       sectionEnergy: {

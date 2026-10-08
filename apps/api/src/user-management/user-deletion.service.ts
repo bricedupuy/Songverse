@@ -169,7 +169,7 @@ export class UserDeletionService {
     ];
   }
 
-  /** Removes the user row and personal activity. Returns the avatar key, if any, for storage cleanup. */
+  /** Removes the user row and personal activity. Returns the keys of their avatar and screen themes' files, for storage cleanup. */
   private async removeAccount(tx: Tx, userId: string): Promise<string[]> {
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true, avatarStorageKey: true } });
 
@@ -188,10 +188,13 @@ export class UserDeletionService {
     await tx.versionContributor.updateMany({ where: { userId }, data: { userId: null } });
 
     await this.handOverTeamAdminRoles(tx, userId);
-    // Sessions, accounts, passkeys, memberships, a pending ContentTransfer
-    // and other per-user rows cascade; Attachment.uploadedByUserId nulls.
+    // Their own screen themes go with them (issue #194, cascading), and their files with those.
+    const themeFiles = await tx.screenThemeAsset.findMany({ where: { theme: { ownerUserId: userId } }, select: { storageKey: true } });
+    // Sessions, accounts, passkeys, memberships, a pending ContentTransfer,
+    // screens and screen themes and other per-user rows cascade;
+    // Attachment.uploadedByUserId nulls.
     await tx.user.delete({ where: { id: userId } });
 
-    return user.avatarStorageKey ? [user.avatarStorageKey] : [];
+    return [...(user.avatarStorageKey ? [user.avatarStorageKey] : []), ...themeFiles.map((file) => file.storageKey)];
   }
 }
