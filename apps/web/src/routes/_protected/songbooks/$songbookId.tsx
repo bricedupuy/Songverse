@@ -1,6 +1,6 @@
 import { BULK_UPLOAD_EXTENSIONS, isNetworkError, keptSongbook, onlineOrKept, type BulkUploadContentType, type BulkUploadFileMatch, type LanguageCode, type SongbookSection, type SongVersionSummary } from "@songverse/core";
 import { createFileRoute, Link, redirect, useNavigate, useRouter } from "@tanstack/react-router";
-import { ChevronDown, Settings2 } from "lucide-react";
+import { ChevronDown, Settings2, Share2, Users } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
@@ -13,6 +13,8 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { NativeSelect } from "#/components/ui/native-select";
 import { ConfirmButton } from "#/components/confirm-button";
+import { Badge } from "#/components/ui/badge";
+import { SongbookShareDialog } from "#/components/songbook-share-dialog";
 import { OfflinePinButton } from "#/components/offline-pin-button";
 import { SectionsEditor } from "#/components/sections-editor";
 import { deviceStorage } from "#/lib/offline-data";
@@ -44,14 +46,19 @@ function SongbookDetail() {
   const navigate = useNavigate();
   const { session, teams, songbook, offline } = Route.useLoaderData();
 
-  const canEdit =
-    !offline &&
-    (session.isGlobalAdmin ||
-    (songbook.ownerScope === "USER"
-      ? songbook.ownerUserId === session.userId
-      : songbook.ownerScope === "TEAM"
-        ? teams.some((team) => team.id === songbook.ownerTeamId && team.currentUserRole === "ADMIN")
-        : false));
+  // Its owner (or its team's admins) change, share and delete it; someone it's shared with to edit changes its entries and details (issue #211).
+  const owns =
+    songbook.access === "own" ||
+    (!songbook.access &&
+      (session.isGlobalAdmin ||
+        (songbook.ownerScope === "USER"
+          ? songbook.ownerUserId === session.userId
+          : songbook.ownerScope === "TEAM"
+            ? teams.some((team) => team.id === songbook.ownerTeamId && team.currentUserRole === "ADMIN")
+            : false)));
+  const canEdit = !offline && (owns || songbook.access === "edit");
+  const sharedWithMe = songbook.access === "edit" || (songbook.access === "view" && songbook.ownerScope !== "GLOBAL");
+  const [sharing, setSharing] = useState(false);
   const isNumbered = songbook.kind === "NUMBERED";
 
   const [name, setName] = useState(songbook.name);
@@ -251,6 +258,7 @@ function SongbookDetail() {
 
   return (
     <div className="flex flex-col gap-6">
+      {owns ? <SongbookShareDialog songbookId={songbook.id} open={sharing} onOpenChange={setSharing} /> : null}
       <div>
         <div className="flex min-w-0 items-center gap-3">
           <EntityAvatar name={songbook.name} color={songbook.color} avatarUrl={songbook.avatarUrl} size={40} />
@@ -273,6 +281,19 @@ function SongbookDetail() {
         </p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <OfflinePinButton kind="SONGBOOK" targetId={songbook.id} />
+          {/* Shared with people and teams (issue #211), by its owner. */}
+          {owns && !offline && songbook.ownerScope !== "GLOBAL" ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => setSharing(true)} data-testid="songbook-share">
+              <Share2 />
+              {t("songbookSharing.share")}
+            </Button>
+          ) : null}
+          {sharedWithMe ? (
+            <Badge variant="muted" data-testid="songbook-shared-with-me" data-access={songbook.access}>
+              <Users className="size-3" />
+              {songbook.access === "edit" ? t("songbookSharing.sharedToEdit") : t("songbookSharing.sharedToView")}
+            </Badge>
+          ) : null}
           {/* Its details, sections and deletion, tucked away: the page is about its entries (issue #148). */}
           <Button type="button" variant="outline" size="sm" aria-expanded={detailsOpen} onClick={() => setDetailsOpen(!detailsOpen)} data-testid="songbook-details-toggle">
             <Settings2 />
@@ -338,14 +359,14 @@ function SongbookDetail() {
                   <Button onClick={() => void save()} disabled={saving || !name.trim()}>
                     {saving ? t("songbooks.saving") : t("songbooks.save")}
                   </Button>
-                  <ConfirmButton
+                  {owns ? <ConfirmButton
                     label={t("songbooks.deleteSongbook")}
                     confirmLabel={t("songbooks.confirmDelete")}
                     busyLabel={t("songbooks.deleting")}
                     cancelLabel={t("songbooks.cancel")}
                     busy={deleting}
                     onConfirm={remove}
-                  />
+                  /> : null}
                 </div>
               ) : null}
             </CardContent>
@@ -535,7 +556,8 @@ function SongbookDetail() {
         </CardContent>
       </Card>
 
-      {isNumbered && canEdit ? (
+      {/* A bulk upload writes into its owner's songs: the owner's (issue #211). */}
+      {isNumbered && canEdit && owns ? (
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">{t("songbooks.bulkUpload")}</CardTitle>

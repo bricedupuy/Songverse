@@ -751,7 +751,14 @@ function SongbooksPanel({ title, pathname, songbooks, fromSongbook }: { title: s
       <PanelHeader title={title} filter={filter} onFilter={setFilter} newItem={<NewLink to="/songbooks/new" label={t("nav.new")} />} />
       <PanelList empty={filter ? undefined : t("songbooks.noSongbooksYet")}>
         {shown.map((book) => (
-          <PanelEntry key={book.id} active={pathname === `/songbooks/${book.id}`} title={book.name} detail={[book.abbreviation, book.publisher].filter(Boolean).join(" · ")} leading={<EntityAvatar name={book.name} color={book.color} avatarUrl={book.avatarUrl} size={28} />}>
+          <PanelEntry
+            key={book.id}
+            active={pathname === `/songbooks/${book.id}`}
+            title={book.name}
+            // Shared with you (issue #211), marked as such.
+            detail={[book.abbreviation, book.publisher, book.ownerScope !== "GLOBAL" && (book.access === "view" || book.access === "edit") ? t("songbookSharing.sharedMark") : null].filter(Boolean).join(" · ")}
+            leading={<EntityAvatar name={book.name} color={book.color} avatarUrl={book.avatarUrl} size={28} />}
+          >
             {(className, content) => (
               <Link to="/songbooks/$songbookId" params={{ songbookId: book.id }} className={className}>
                 {content}

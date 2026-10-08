@@ -2,7 +2,7 @@ import { Body, Controller, Param, PayloadTooLargeException, Post, UnauthorizedEx
 import { ApiBearerAuth, ApiConsumes, ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { BULK_UPLOAD_MAX_FILES_PER_REQUEST } from "@songverse/core";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
-import { SongbookOwnerGuard } from "../common/guards/songbook-owner.guard.js";
+import { SongbookManagerGuard } from "../common/guards/songbook-manager.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { BulkUploadService } from "./bulk-upload.service.js";
 import { BulkUploadCommitDto } from "./dto/bulk-upload-commit.dto.js";
@@ -16,7 +16,8 @@ import { SongFileInterceptor } from "../uploads/song-file.interceptor.js";
 @ApiTags("bulk-upload")
 @ApiBearerAuth()
 @Controller("songbooks/:songbookId/bulk-upload")
-@UseGuards(SongbookOwnerGuard)
+// Its owner's: a bulk upload writes into the owner's songs, not for someone it's shared with to edit (issue #211).
+@UseGuards(SongbookManagerGuard)
 export class BulkUploadController {
   constructor(private readonly bulkUploadService: BulkUploadService) {}
 

@@ -107,8 +107,34 @@ export class SongbooksService {
       }));
   }
 
-  async findVisibleToUser(user: AuthenticatedUser): Promise<Prisma.SongbookGetPayload<object>[]> {
-    return this.prisma.client.songbook.findMany({ where: await this.access.songbooksVisibleTo(user), orderBy: { name: "asc" } });
+  async findVisibleToUser(user: AuthenticatedUser) {
+    const [songbooks, accessOf] = await Promise.all([
+      this.prisma.client.songbook.findMany({ where: await this.access.songbooksVisibleTo(user), orderBy: { name: "asc" } }),
+      this.accessChecker(user),
+    ]);
+    return songbooks.map((songbook) => ({ ...songbook, access: accessOf(songbook) }));
+  }
+
+  /**
+   * What the user may do with each songbook (issue #211): "own" it (change,
+   * share and delete it - its owner, its team's admins), "edit" it (shared
+   * to edit: its entries and details), or only "view" it.
+   */
+  private async accessChecker(user: AuthenticatedUser): Promise<(songbook: { id: string; ownerScope: string; ownerUserId: string | null; ownerTeamId: string | null }) => "own" | "edit" | "view"> {
+    const [owns, teamIds] = await Promise.all([this.access.editChecker(user), this.access.teamIds(user.id)]);
+    const shares = await this.prisma.client.songbookShare.findMany({
+      where: { OR: [{ userId: user.id }, ...(teamIds.length ? [{ teamId: { in: teamIds } }] : [])] },
+      select: { songbookId: true, canEdit: true },
+    });
+    const editable = new Set(shares.filter((share) => share.canEdit).map((share) => share.songbookId));
+    return (songbook) => (owns(songbook) ? "own" : editable.has(songbook.id) ? "edit" : "view");
+  }
+
+  /** Throws unless the user owns the songbook (its owner, its team's admins): deleting and sharing it. */
+  async assertOwns(user: AuthenticatedUser, songbookId: string) {
+    const songbook = await this.prisma.client.songbook.findUnique({ where: { id: songbookId }, select: { ownerScope: true, ownerUserId: true, ownerTeamId: true } });
+    if (!songbook) throw new NotFoundException("Songbook not found");
+    await this.access.assertCanEdit(user, songbook, "songbook");
   }
 
 
@@ -148,7 +174,7 @@ export class SongbooksService {
       if (sections?.length && key(sections) !== key(songbook.sections as SongbookSection[] | null)) catalogSections = sections;
     }
 
-    return { ...toDetail(songbook), pendingEntries, catalogSections };
+    return { ...toDetail(songbook), pendingEntries, catalogSections, access: (await this.accessChecker(user))(songbook) };
   }
 
   private async assertVisible(
@@ -386,7 +412,9 @@ export class SongbooksService {
     if (avatarStorageKey) await this.storage.deleteUnreferenced([avatarStorageKey]);
   }
 
-  async addEntry(songbookId: string, dto: AddSongbookEntryDto) {
+  async addEntry(user: AuthenticatedUser, songbookId: string, dto: AddSongbookEntryDto) {
+    // Only a song the user can see: a songbook shared with others opens its songs to them (issue #211).
+    await this.access.assertCanSeeSong(user, dto.songVersionId);
     const songbook = await this.prisma.client.songbook.findUnique({
       where: { id: songbookId },
       select: { kind: true, sections: true },

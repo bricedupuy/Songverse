@@ -34,6 +34,11 @@ export class SongbookResponseDto {
     description: "Set if this songbook was imported from a SongbookCatalog",
   })
   sourceCatalogId?: string | null;
+  @ApiProperty({
+    enum: ["own", "edit", "view"],
+    description: "What the user may do with it (issue #211): own it (change, share, delete), edit its entries and details (shared to edit), or view it",
+  })
+  access!: "own" | "edit" | "view";
   @ApiProperty({ type: SongbookEntryResponseDto, isArray: true, required: false })
   entries?: SongbookEntryResponseDto[];
   @ApiProperty({

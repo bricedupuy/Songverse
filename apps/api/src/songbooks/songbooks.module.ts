@@ -3,11 +3,13 @@ import { SongVersionsModule } from "../song-versions/song-versions.module.js";
 import { StorageModule } from "../storage/storage.module.js";
 import { SongbookEntriesController, SongbooksController } from "./songbooks.controller.js";
 import { SongbooksService } from "./songbooks.service.js";
+import { SongbookSharesController } from "./songbook-shares.controller.js";
+import { SongbookSharesService } from "./songbook-shares.service.js";
 
 @Module({
   imports: [SongVersionsModule, StorageModule],
-  controllers: [SongbooksController, SongbookEntriesController],
-  providers: [SongbooksService],
+  controllers: [SongbooksController, SongbookEntriesController, SongbookSharesController],
+  providers: [SongbooksService, SongbookSharesService],
   exports: [SongbooksService],
 })
 export class SongbooksModule {}

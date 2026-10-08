@@ -322,6 +322,8 @@ model User {
   // The people they invited to sign up (issue #198).
   signupInvitations   SignupInvitation[]
   ownedSongbooks      Songbook[]             @relation("SongbookOwnerUser")
+  songbookShares      SongbookShare[]        @relation("SongbookShareUser")
+  songbooksShared     SongbookShare[]        @relation("SongbookShareBy")
   importJobs          ImportJob[]
   uploadedAttachments Attachment[]           @relation("AttachmentUploader")
   ownedSetlists       Setlist[]              @relation("SetlistOwnerUser")
@@ -464,6 +466,7 @@ model Team {
   shareLinks          ShareLink[]
   ownedTags           Tag[]
   ownedSongbooks      Songbook[]             @relation("SongbookOwnerTeam")
+  songbookShares      SongbookShare[]        @relation("SongbookShareTeam")
   ownedSetlists       Setlist[]              @relation("SetlistOwnerTeam")
   ownershipRequests   SongOwnershipRequest[]
   visibleAttachments  Attachment[]           @relation("AttachmentVisibleToTeam")
@@ -1140,10 +1143,36 @@ model Songbook {
   sourceCatalog   SongbookCatalog? @relation(fields: [sourceCatalogId], references: [id], onDelete: SetNull)
 
   entries SongbookEntry[]
+  // Who else sees it, or changes it too (issue #211).
+  shares  SongbookShare[]
 
   @@index([ownerUserId])
   @@index([ownerTeamId])
   @@index([ownerScope])
+}
+
+/// A songbook shared with a person or a team (issue #211): they see it, its
+/// entries and the songs in it (read-only, while they're in it); with
+/// `canEdit`, they change its entries and details too - not delete it or
+/// share it on. A team's share is its members', present and future.
+model SongbookShare {
+  id         String   @id @default(cuid())
+  songbookId String
+  userId     String?
+  teamId     String?
+  canEdit    Boolean  @default(false)
+  sharedById String?
+  createdAt  DateTime @default(now())
+
+  songbook Songbook @relation(fields: [songbookId], references: [id], onDelete: Cascade)
+  user     User?    @relation("SongbookShareUser", fields: [userId], references: [id], onDelete: Cascade)
+  team     Team?    @relation("SongbookShareTeam", fields: [teamId], references: [id], onDelete: Cascade)
+  sharedBy User?    @relation("SongbookShareBy", fields: [sharedById], references: [id], onDelete: SetNull)
+
+  @@unique([songbookId, userId])
+  @@unique([songbookId, teamId])
+  @@index([userId])
+  @@index([teamId])
 }
 
 model SongbookEntry {

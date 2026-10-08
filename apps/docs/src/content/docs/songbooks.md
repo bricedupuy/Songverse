@@ -32,6 +32,15 @@ A numbered songbook can have **sections**: ranges of numbers with a label, like 
 
 A song's page lists its songbooks with its full reference - the songbook's abbreviation, the number and the volume: **JEM 855 · JEM3** - and **Copy** puts "Title — JEM 855 · JEM3" on the clipboard, to give someone who doesn't use Songverse. A set shows it under each song too.
 
+## Sharing a songbook
+
+To let your band use a songbook you started - find its songs by number, see **JEM 683** in Live, put its songs in their sets - open it and tap **Share**. Choose one of your [people](/people/) or one of your teams, and what they can do:
+
+- **Can view** - it shows in their songbooks (marked **Shared with you**), with its numbers and the songs in it, read-only: they open them, find them with the search box, add them to their sets and play them. A team's share is for its members, now and later.
+- **Can edit** - they also add, remove and renumber its songs and change its details. They add songs they can see; those songs stay theirs, now readable by everyone the songbook is shared with.
+
+The songs stay yours. Taking a song out of the songbook, or stopping the share, takes that access away. Only you (or your team's admins) share it, delete it and bulk-upload into it. In the same dialog, change what someone can do, or stop sharing with them (**×**). Someone it's shared with can take it out of their songbooks.
+
 ## From a published songbook's catalog
 
 The **Songbook catalog** (**Browse catalog**) is a directory of known published songbooks: their numbers, titles, credits, keys and more - but no lyrics or chords.

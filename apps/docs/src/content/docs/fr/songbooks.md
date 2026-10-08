@@ -32,6 +32,15 @@ Un recueil numéroté peut avoir des **sections** : des plages de numéros avec 
 
 La page d'un chant liste ses recueils avec sa référence complète - l'abréviation du recueil, le numéro et le volume : **JEM 855 · JEM3** - et **Copier** met « Titre — JEM 855 · JEM3 » dans le presse-papiers, pour la donner à quelqu'un qui n'utilise pas Songverse. Une liste l'indique aussi sous chaque chant.
 
+## Partager un recueil
+
+Pour que votre groupe utilise un recueil que vous avez commencé - retrouver ses chants par numéro, voir **JEM 683** en Live, mettre ses chants dans leurs listes - ouvrez-le et touchez **Partager**. Choisissez l'un de vos [contacts](/fr/people/) ou l'une de vos équipes, et ce qu'ils peuvent faire :
+
+- **Peut lire** - il apparaît dans leurs recueils (marqué **Partagé avec vous**), avec ses numéros et ses chants, en lecture seule : ils les ouvrent, les retrouvent avec la recherche, les ajoutent à leurs listes et les jouent. Le partage avec une équipe vaut pour ses membres, actuels et futurs.
+- **Peut modifier** - ils ajoutent aussi, retirent et renumérotent ses chants et changent ses détails. Ils ajoutent des chants qu'ils voient ; ces chants restent à eux, désormais lisibles par tous ceux avec qui le recueil est partagé.
+
+Les chants restent à vous. Retirer un chant du recueil, ou arrêter le partage, retire cet accès. Vous seul (ou les admins de votre équipe) le partagez, le supprimez et y faites un import en masse. Dans la même fenêtre, changez ce que quelqu'un peut faire, ou arrêtez de partager avec lui (**×**). Quelqu'un avec qui il est partagé peut le retirer de ses recueils.
+
 ## À partir du catalogue d'un recueil publié
 
 Le **Catalogue de recueils** (**Parcourir le catalogue**) est un annuaire de recueils publiés : numéros, titres, crédits, tonalités et plus - mais ni paroles ni accords.

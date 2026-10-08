@@ -63,20 +63,24 @@ export class SongbooksController {
     return this.songbooksService.update(songbookId, dto);
   }
 
+  /** Deleting it stays its owner's, not someone it's shared with to edit (issue #211). */
   @Delete(":songbookId")
-  @UseGuards(SongbookOwnerGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param("songbookId") songbookId: string): Promise<void> {
+  async remove(@CurrentUser() user: AuthenticatedUser | undefined, @Param("songbookId") songbookId: string): Promise<void> {
+    if (!user) throw new UnauthorizedException();
+    await this.songbooksService.assertOwns(user, songbookId);
     return this.songbooksService.remove(songbookId);
   }
 
   @Post(":songbookId/entries")
   @UseGuards(SongbookOwnerGuard)
   addEntry(
+    @CurrentUser() user: AuthenticatedUser | undefined,
     @Param("songbookId") songbookId: string,
     @Body() dto: AddSongbookEntryDto,
   ): ReturnType<SongbooksService["addEntry"]> {
-    return this.songbooksService.addEntry(songbookId, dto);
+    if (!user) throw new UnauthorizedException();
+    return this.songbooksService.addEntry(user, songbookId, dto);
   }
 
   @Delete(":songbookId/entries/:entryId")

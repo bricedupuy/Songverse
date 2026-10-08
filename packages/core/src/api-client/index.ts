@@ -725,6 +725,19 @@ export interface SongbookSummary {
   /** Its colour and picture (issue #161). */
   color: string | null;
   avatarUrl: string | null;
+  /**
+   * What the user may do with it (issue #211): own it (change, share,
+   * delete), edit its entries and details (shared to edit), or only view
+   * it. Missing from copies kept offline before then.
+   */
+  access?: "own" | "edit" | "view";
+}
+
+/** Someone, or a team, a songbook is shared with (issue #211). */
+export interface SongbookShare {
+  canEdit: boolean;
+  user: Person | null;
+  team: { id: string; name: string } | null;
 }
 
 export interface PendingSongbookEntry {
@@ -1896,6 +1909,13 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     shareSong: (songVersionId: string, userId: string, canEdit: boolean) =>
       request<SongShare[]>(`/song-versions/${songVersionId}/shares/${userId}`, { method: "PUT", body: JSON.stringify({ canEdit }) }),
     unshareSong: (songVersionId: string, userId: string) => request<void>(`/song-versions/${songVersionId}/shares/${userId}`, { method: "DELETE" }),
+    getSongbookShares: (songbookId: string) => request<SongbookShare[]>(`/songbooks/${songbookId}/shares`),
+    shareSongbook: (songbookId: string, to: { userId: string } | { teamId: string }, canEdit: boolean) =>
+      request<SongbookShare[]>(`/songbooks/${songbookId}/shares/${"userId" in to ? `users/${to.userId}` : `teams/${to.teamId}`}`, { method: "PUT", body: JSON.stringify({ canEdit }) }),
+    unshareSongbook: (songbookId: string, to: { userId: string } | { teamId: string }) =>
+      request<SongbookShare[]>(`/songbooks/${songbookId}/shares/${"userId" in to ? `users/${to.userId}` : `teams/${to.teamId}`}`, { method: "DELETE" }),
+    /** Takes a songbook shared with you out of your songbooks. */
+    leaveSharedSongbook: (songbookId: string) => request<void>(`/songbooks/${songbookId}/shares/users/me`, { method: "DELETE" }),
     /** Takes a song shared with you out of your library. */
     leaveSharedSong: (songVersionId: string) => request<void>(`/song-versions/${songVersionId}/shares/me`, { method: "DELETE" }),
     getSongHistory: (songVersionId: string) => request<SongRevisionEntry[]>(`/song-versions/${songVersionId}/history`),

@@ -62,6 +62,8 @@ export class UserDeletionService {
       const toOwner = { ownerUserId: toUserId };
       await tx.songVersion.updateMany({ where: byOwner, data: toOwner });
       await tx.arrangement.updateMany({ where: byOwner, data: toOwner });
+      // A songbook they'd shared with the new owner is now theirs (issue #211).
+      await tx.songbookShare.deleteMany({ where: { userId: toUserId, songbook: byOwner } });
       await tx.songbook.updateMany({ where: byOwner, data: toOwner });
       await tx.tag.updateMany({ where: byOwner, data: toOwner });
       await tx.setlist.updateMany({ where: byOwner, data: toOwner });

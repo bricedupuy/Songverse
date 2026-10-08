@@ -104,7 +104,14 @@ export class SetlistAccessService {
   async addableWhere(set: SetRow): Promise<Prisma.SongVersionWhereInput> {
     const approvedGlobal: Prisma.SongVersionWhereInput = { ownerScope: "GLOBAL", publicationState: "APPROVED" };
     if (set.ownerTeamId) {
-      return { OR: [approvedGlobal, { ownerScope: "TEAM", ownerTeamId: set.ownerTeamId }] };
+      return {
+        OR: [
+          approvedGlobal,
+          { ownerScope: "TEAM", ownerTeamId: set.ownerTeamId },
+          // In a songbook shared with the team (issue #211).
+          { ownerScope: { not: "GLOBAL" }, songbookEntries: { some: { songbook: { shares: { some: { teamId: set.ownerTeamId } } } } } },
+        ],
+      };
     }
     // What the owner sees in their own library (as a regular user, even if they're a global admin).
     return this.policy.songsVisibleWhere({ id: set.ownerUserId!, isGlobalAdmin: false }, await this.policy.teamIds(set.ownerUserId!));
@@ -115,9 +122,18 @@ export class SetlistAccessService {
     const ownerTeams = set.ownerTeamId ? new Set([set.ownerTeamId]) : await this.teamIdsOf(set.ownerUserId!);
     // Songs shared with a personal set's owner (issue #77) are theirs to put in it.
     const shared = set.ownerTeamId ? new Map() : await this.policy.sharedWith(set.ownerUserId!);
+    // A team set: the songs of the songbooks shared with the team (issue #211).
+    const teamShared = set.ownerTeamId
+      ? new Set(
+          (await this.prisma.client.songbookEntry.findMany({ where: { songbook: { shares: { some: { teamId: set.ownerTeamId } } } }, select: { songVersionId: true } })).map(
+            (entry) => entry.songVersionId,
+          ),
+        )
+      : new Set<string>();
     return (song) => {
       if (song.ownerScope === "GLOBAL") return song.publicationState === "APPROVED";
       if (!set.ownerTeamId && shared.has(song.id)) return true;
+      if (set.ownerTeamId && teamShared.has(song.id)) return true;
       if (song.ownerScope === "TEAM") return !!song.ownerTeamId && ownerTeams.has(song.ownerTeamId);
       return !set.ownerTeamId && song.ownerUserId === set.ownerUserId;
     };
