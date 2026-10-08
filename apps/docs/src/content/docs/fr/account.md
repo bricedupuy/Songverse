@@ -31,7 +31,7 @@ Dites à vos équipes ce que vous jouez ou faites : des **Instruments** (chant, 
 
 Comment se lisent les accords sur toutes les grilles que vous ouvrez :
 
-- **Noms des accords** - en lettres (C D E), en solfège (Do Ré Mi) ou en chiffres Nashville (1 4 5) : voir [Chiffres Nashville et couleurs des accords](/fr/versions/#chiffres-nashville-et-couleurs-des-accords).
+- **Noms des accords** - en lettres (C D E), en solfège (Do Ré Mi) en chiffres Nashville (1 4 5) ou en chiffres romains (I IV V) : voir [Chiffres Nashville et couleurs des accords](/fr/versions/#chiffres-nashville-et-couleurs-des-accords).
 - **Couleurs des accords** - **Sans couleur**, ou **Selon le type d'accord**.
 - **Avec un capo** - les accords tels qu'ils sonnent, ou les formes à jouer. Les formes sont écrites en *italique*, pour ne jamais les prendre pour les accords qu'on entend, et un chant avec un capo l'affiche dans une pastille rouge - **⚠ Capo 1 · accords en formes** - en Pratique et en Live.
 - **Diagrammes d'accords** - **Aucun**, **Guitare**, **Ukulélé** ou **Piano** : comment jouer les accords du chant, à côté de sa grille (voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords)).

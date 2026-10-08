@@ -1,9 +1,10 @@
 // Nashville numbers and chord colours (issues #9, #207 phase 2): numbers
 // count from the key each part is sung in - a key change keeps them the
 // same - and a capo doesn't change them; chords coloured by family. Chosen
-// in Chart display or a set's My view, for every chart.
+// in Chart display, or for one mode in the Display panel - and Roman
+// numerals (issue #220), the same way.
 import { chromium } from "playwright";
-import { WEB, api, call, check, finish, signIn, stamp, stepper, user, displaySetting } from "../lib/harness.mjs";
+import { WEB, api, call, check, finish, signIn, stamp, stepper, user, displaySetting, resetDisplay } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -43,6 +44,15 @@ await step("Chart display: Nashville numbers; the key change keeps them, the cap
   // Sung in D, then in E: the same numbers both times, capo shapes or not.
   const shown = (await labels()).join(" ");
   if (shown !== "1 2m7 1/3 4 57 1 2m7 1/3 4 57") throw new Error(shown);
+});
+
+await step("Roman numerals from the Display panel (issue #220): Practice only, the key change and the capo keep them", async () => {
+  await displaySetting(page, "chords", "display-notation-ROMAN");
+  await page.waitForFunction(() => document.querySelector("[data-chord]")?.textContent.trim() === "I");
+  const shown = (await labels()).join(" ");
+  if (shown !== "I ii7 I/3 IV V7 I ii7 I/3 IV V7") throw new Error(shown);
+  await resetDisplay(page);
+  await page.waitForFunction(() => document.querySelector("[data-chord]")?.textContent.trim() === "1");
 });
 
 await step("Chart display: colours by chord type", async () => {

@@ -1,4 +1,5 @@
 import {
+  chartNotation,
   chartChords,
   chordShapes,
   formatChord,
@@ -478,7 +479,7 @@ export function ChordRow({
     if (instrument === "piano") songVoicings(chords, { hands: pianoHands, smooth: player?.pianoSmooth !== false }).forEach((index, i) => start.set(chords[i]!, index));
     return { instrument, tuning, leftHanded: !!player?.leftHanded, pianoHands, pianoNames, start, chosen: new Map() };
   }, [instrument, chords, player?.ukuleleTuning, player?.guitarTuning, player?.pianoNoteNames, player?.pianoHands, player?.pianoSmooth, player?.leftHanded]);
-  const name = (chord: string) => (notation === "NASHVILLE" ? formatChord(chord, "nashville", musicalKey) : shownName(chord, notation));
+  const name = (chord: string) => (notation === "NASHVILLE" || notation === "ROMAN" ? formatChord(chord, chartNotation(notation), musicalKey) : shownName(chord, notation));
   return (
     <span className={cn("flex flex-wrap items-end gap-1", className)} data-testid={testId}>
       {chords.map((chord, i) => {
@@ -550,7 +551,7 @@ export function ChordSteps({
     return { instrument, tuning, leftHanded: !!player?.leftHanded, pianoHands, pianoNames, start, chosen: new Map() };
     // The chords as text: the same progression keeps its setup.
   }, [instrument, chords.join(" "), player?.ukuleleTuning, player?.guitarTuning, player?.pianoNoteNames, player?.pianoHands, player?.pianoSmooth, player?.leftHanded]);
-  const name = (chord: string) => (notation === "NASHVILLE" ? formatChord(chord, "nashville", musicalKey) : shownName(chord, notation));
+  const name = (chord: string) => (notation === "NASHVILLE" || notation === "ROMAN" ? formatChord(chord, chartNotation(notation), musicalKey) : shownName(chord, notation));
   return (
     <ButtonGroup variant="chevron" className={cn(size === "sm" ? "flex-nowrap" : "max-w-full flex-wrap gap-y-1", className)} data-testid="chord-steps" data-expanded={expanded ? "" : undefined}>
       {steps.map((step, i) => {

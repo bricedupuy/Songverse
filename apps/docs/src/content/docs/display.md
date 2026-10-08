@@ -18,7 +18,7 @@ Anything a mode hasn't changed comes from your account's [Chart display](/accoun
 The list at the top of the panel picks a section:
 
 - **Text** - **Size** (**−** and **+**, from 75% to 300%; Live starts at 150%), **Font** (monospace, where chords line up with each letter, or proportional) and **Spacing** between lines (**Compact**, **Normal**, **Relaxed**).
-- **Chords** - **Names** in letters, solfège or Nashville numbers (see [Nashville numbers and chord colours](/versions/#nashville-numbers-and-chord-colours)), **Colours** by chord type, chords **With a capo** as they sound or as the shapes to play, and **Chords** shown or hidden (**Lyrics only**).
+- **Chords** - **Names** in letters, solfège, Nashville numbers or Roman numerals (see [Nashville numbers and chord colours](/versions/#nashville-numbers-and-chord-colours)), **Colours** by chord type, chords **With a capo** as they sound or as the shapes to play, and **Chords** shown or hidden (**Lyrics only**).
 - **Instrument** - **Diagrams**: **None**, **Guitar**, **Ukulele** or **Piano** (see [Chord diagrams](/versions/#chord-diagrams)). With a guitar or a ukulele, its **Tuning** and **Left-handed** diagrams; with a piano, the **Hands**. The tuning, left-handed and hands are your account's, the same in every mode.
 - **Layout** - **Columns**: **Auto** flows a long song into as many columns as the screen fits, a section never split between two; **1**, **2** or **3** set how many at most. A phone always has one.
 

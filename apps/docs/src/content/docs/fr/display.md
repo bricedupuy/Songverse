@@ -18,7 +18,7 @@ Ce qu'un mode n'a pas changé vient de l'[Affichage des grilles](/fr/account/#af
 La liste en haut du panneau choisit une partie :
 
 - **Texte** - **Taille** (**−** et **+**, de 75 % à 300 % ; le Live commence à 150 %), **Police** (à chasse fixe, où les accords s'alignent sur chaque lettre, ou proportionnelle) et **Interligne** (**Serré**, **Normal**, **Aéré**).
-- **Accords** - **Noms** en lettres, en solfège ou en chiffres Nashville (voir [Chiffres Nashville et couleurs des accords](/fr/versions/#chiffres-nashville-et-couleurs-des-accords)), **Couleurs** par type d'accord, accords **Avec un capodastre** tels qu'ils sonnent ou en formes à jouer, et **Accords** affichés ou masqués (**Paroles seules**).
+- **Accords** - **Noms** en lettres, en solfège, en chiffres Nashville ou en chiffres romains (voir [Chiffres Nashville et couleurs des accords](/fr/versions/#chiffres-nashville-et-couleurs-des-accords)), **Couleurs** par type d'accord, accords **Avec un capodastre** tels qu'ils sonnent ou en formes à jouer, et **Accords** affichés ou masqués (**Paroles seules**).
 - **Instrument** - **Diagrammes** : **Aucun**, **Guitare**, **Ukulélé** ou **Piano** (voir [Diagrammes d'accords](/fr/versions/#diagrammes-daccords)). Avec une guitare ou un ukulélé, son **Accordage** et les diagrammes pour **Gaucher** ; avec un piano, les **Mains**. L'accordage, gaucher et les mains sont ceux de votre compte, les mêmes dans tous les modes.
 - **Mise en page** - **Colonnes** : **Auto** répartit un long chant sur autant de colonnes que l'écran en contient, sans jamais couper une partie en deux ; **1**, **2** ou **3** fixent un maximum. Un téléphone en a toujours une.
 

@@ -50,6 +50,8 @@ Hidden and simpler chords are kept per song (and per version). Beside them, **Di
 
 With **Nashville numbers (1 4 5)** under **Chord names**, each chord shows as its place in the key: in D, D is **1**, Em7 **2m7**, D/F# **1/3**, G **4** and A7 **57**; a chord from outside the key gets a flat or a sharp (Bb in C is **b7**). The rest of the chord is written as usual. Numbers count from the key each part is sung in, so after a key change they stay the same, and a capo doesn't change them either. In a minor key they count from its own tonic: in Em, Em is **1m** and G **b3**. A song without a key keeps its letters. Diagrams keep their letters too: they show a real chord to play.
 
+With **Roman numerals (I IV V)**, the case says what kind of chord it is: capitals for a major chord, lowercase for a minor or diminished one. In D, D is **I**, Em7 **ii7**, A7 **V7**, Bm **vi**, C#m7b5 **viiø7** and C#dim **vii°**; an augmented chord gets **+** (**I+**), and a chord from outside the key a ♭ or a ♯ (Bb in C is **♭VII**). A slash chord's bass is a scale degree, as in Nashville: D/F# is **I/3**. Like the numbers, numerals count from the key each part is sung in, in a minor key from its own tonic (in Em, Em is **i** and G **♭III**), and a capo doesn't change them.
+
 With **Chord colours** set to **By chord type**, each chord on the chart is coloured by what it sounds like: major green, minor blue, sus yellow, diminished (and m7b5) purple, augmented orange, dominant 7ths (G7, G9, G13) red. Power chords (G5) keep the usual colour.
 
 ## Chord diagrams

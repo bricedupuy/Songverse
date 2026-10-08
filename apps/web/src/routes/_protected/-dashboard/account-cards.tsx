@@ -403,6 +403,7 @@ export function ChartDisplayCard({ profile }: { profile: Pick<UserProfile, "chor
             <option value="LETTERS">{t("dashboard.notationLetters")}</option>
             <option value="SOLFEGE">{t("dashboard.notationSolfege")}</option>
             <option value="NASHVILLE">{t("dashboard.notationNashville")}</option>
+            <option value="ROMAN">{t("dashboard.notationRoman")}</option>
           </NativeSelect>
           <p className="text-xs text-muted-foreground">{t("dashboard.notationHint")}</p>
         </div>

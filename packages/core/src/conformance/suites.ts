@@ -3,7 +3,7 @@ import { pianoVoicings, songVoicings, voicingText } from "../chords/piano.js";
 import { effectiveDisplaySettings, mergeDisplaySettings } from "../display/settings.js";
 import { chartEdgeChords, degreeChord, transitionDegrees, transitionProgressions } from "../chords/transitions.js";
 import { findProgression, parseProgressionQuery, progressionDegree, progressionGrams, progressionSimilarity, songProgressions } from "../chords/progressions.js";
-import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
+import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, romanChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
 import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-keys/transpose.js";
 import { parseArrangementDocumentV2, findArrangementProblems } from "../schemas/arrangement-document-v2.js";
 import { chordPositionProblem } from "../schemas/song-document-v2.js";
@@ -224,6 +224,34 @@ export const CONFORMANCE: ConformanceArea[] = [
           ["B7", "Em"],
           ["(C)", "G"],
           ["Db", "Ab"],
+          ["N.C.", "G"],
+          ["G", null],
+        ].map((args) => ({ name: `${args[0]} in ${args[1]}`, args })),
+      },
+      romanChord: {
+        about: "A chord as a Roman numeral in a key (issue #220): the root counted from the key's tonic, in capitals when major and lowercase when minor or diminished; ° diminished, ø half-diminished, + augmented; extensions as written; a slash chord's bass as a degree; a minor key counts from its own tonic; the chord as written without a key.",
+        params: ["raw", "key"],
+        run: romanChord,
+        cases: [
+          ["D", "D"],
+          ["Em7", "D"],
+          ["A7", "D"],
+          ["D/F#", "D"],
+          ["Bb", "C"],
+          ["F#m7b5", "G"],
+          ["C#dim", "D"],
+          ["Bdim7", "C"],
+          ["A7sus4", "D"],
+          ["Cmaj7", "C"],
+          ["G9", "C"],
+          ["Caug", "C"],
+          ["C6/9", "C"],
+          ["G7b9", "C"],
+          ["G7maj", "G"],
+          ["F#d", "G"],
+          ["Em", "Em"],
+          ["G", "Em"],
+          ["(C)", "G"],
           ["N.C.", "G"],
           ["G", null],
         ].map((args) => ({ name: `${args[0]} in ${args[1]}`, args })),
@@ -607,6 +635,7 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "as written", args: [SONG, null, {}] },
           { name: "a set's own transposition, in solfège", args: [SONG, null, { transposeSteps: 3, notation: "solfege" }] },
           { name: "Nashville numbers, the same with a capo", args: [SONG, null, { notation: "nashville", suggestedCapo: 2, capoDisplay: "shapes" }] },
+          { name: "Roman numerals, the same with a capo", args: [SONG, null, { notation: "roman", suggestedCapo: 2, capoDisplay: "shapes" }] },
           { name: "the song's capo suggestion, as shapes", args: [SONG, null, { suggestedCapo: 2, capoDisplay: "shapes" }] },
           { name: "simpler chords, no bass notes, a hidden chord", args: [SONG, null, { preferences: { simplifyChords: true, hideBassNotes: true, hiddenChordIds: ["chd_v2"] } }] },
           { name: "an arrangement", args: [SONG, ARRANGEMENT, {}] },

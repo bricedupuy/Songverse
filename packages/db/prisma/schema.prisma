@@ -71,6 +71,8 @@ enum ChordNotation {
   SOLFEGE
   // Nashville numbers, in the key of each pass (issue #207).
   NASHVILLE
+  // Roman numerals, in the key of each pass (issue #220).
+  ROMAN
 }
 
 // Chord diagrams beside a chart (issue #207): none, or for this instrument.

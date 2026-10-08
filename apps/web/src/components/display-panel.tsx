@@ -202,7 +202,8 @@ export function DisplayPanel({
                   options={[
                     { value: "LETTERS", label: t("dashboard.notationLetters"), content: "C" },
                     { value: "SOLFEGE", label: t("player.solfege"), content: "Do" },
-                    { value: "NASHVILLE", label: t("player.numbers"), content: "1" },
+                    { value: "NASHVILLE", label: t("dashboard.notationNashville"), content: "1" },
+                    { value: "ROMAN", label: t("dashboard.notationRoman"), content: "I" },
                   ]}
                 />
               </Row>

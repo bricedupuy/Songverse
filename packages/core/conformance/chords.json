@@ -677,6 +677,183 @@
         }
       ]
     },
+    "romanChord": {
+      "about": "A chord as a Roman numeral in a key (issue #220): the root counted from the key's tonic, in capitals when major and lowercase when minor or diminished; ° diminished, ø half-diminished, + augmented; extensions as written; a slash chord's bass as a degree; a minor key counts from its own tonic; the chord as written without a key.",
+      "params": [
+        "raw",
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "D in D",
+          "args": [
+            "D",
+            "D"
+          ],
+          "expected": "I"
+        },
+        {
+          "name": "Em7 in D",
+          "args": [
+            "Em7",
+            "D"
+          ],
+          "expected": "ii7"
+        },
+        {
+          "name": "A7 in D",
+          "args": [
+            "A7",
+            "D"
+          ],
+          "expected": "V7"
+        },
+        {
+          "name": "D/F# in D",
+          "args": [
+            "D/F#",
+            "D"
+          ],
+          "expected": "I/3"
+        },
+        {
+          "name": "Bb in C",
+          "args": [
+            "Bb",
+            "C"
+          ],
+          "expected": "♭VII"
+        },
+        {
+          "name": "F#m7b5 in G",
+          "args": [
+            "F#m7b5",
+            "G"
+          ],
+          "expected": "viiø7"
+        },
+        {
+          "name": "C#dim in D",
+          "args": [
+            "C#dim",
+            "D"
+          ],
+          "expected": "vii°"
+        },
+        {
+          "name": "Bdim7 in C",
+          "args": [
+            "Bdim7",
+            "C"
+          ],
+          "expected": "vii°7"
+        },
+        {
+          "name": "A7sus4 in D",
+          "args": [
+            "A7sus4",
+            "D"
+          ],
+          "expected": "V7sus4"
+        },
+        {
+          "name": "Cmaj7 in C",
+          "args": [
+            "Cmaj7",
+            "C"
+          ],
+          "expected": "Imaj7"
+        },
+        {
+          "name": "G9 in C",
+          "args": [
+            "G9",
+            "C"
+          ],
+          "expected": "V9"
+        },
+        {
+          "name": "Caug in C",
+          "args": [
+            "Caug",
+            "C"
+          ],
+          "expected": "I+"
+        },
+        {
+          "name": "C6/9 in C",
+          "args": [
+            "C6/9",
+            "C"
+          ],
+          "expected": "I6/9"
+        },
+        {
+          "name": "G7b9 in C",
+          "args": [
+            "G7b9",
+            "C"
+          ],
+          "expected": "V7b9"
+        },
+        {
+          "name": "G7maj in G",
+          "args": [
+            "G7maj",
+            "G"
+          ],
+          "expected": "Imaj7"
+        },
+        {
+          "name": "F#d in G",
+          "args": [
+            "F#d",
+            "G"
+          ],
+          "expected": "vii°"
+        },
+        {
+          "name": "Em in Em",
+          "args": [
+            "Em",
+            "Em"
+          ],
+          "expected": "i"
+        },
+        {
+          "name": "G in Em",
+          "args": [
+            "G",
+            "Em"
+          ],
+          "expected": "♭III"
+        },
+        {
+          "name": "(C) in G",
+          "args": [
+            "(C)",
+            "G"
+          ],
+          "expected": "(IV)"
+        },
+        {
+          "name": "N.C. in G",
+          "args": [
+            "N.C.",
+            "G"
+          ],
+          "expected": "N.C."
+        },
+        {
+          "name": "G in null",
+          "args": [
+            "G",
+            null
+          ],
+          "expected": "G"
+        }
+      ]
+    },
     "chordFamily": {
       "about": "A chord's family, for colouring it (issue #9): major, minor, suspended, diminished, augmented or dominant (a major triad with a minor seventh); null for a power chord or something that isn't a chord.",
       "params": [

@@ -91,9 +91,9 @@ export interface RenderedChart {
 
 type Item = SectionInstance & { overrides?: OverrideV2[] };
 
-/** How renderChart names chords for a player's setting: letters, solfège or Nashville numbers. */
+/** How renderChart names chords for a player's setting: letters, solfège, Nashville numbers or Roman numerals. */
 export function chartNotation(value: ChordNotationValue | null | undefined): ChordNotation {
-  return value === "SOLFEGE" ? "solfege" : value === "NASHVILLE" ? "nashville" : "english";
+  return value === "SOLFEGE" ? "solfege" : value === "NASHVILLE" ? "nashville" : value === "ROMAN" ? "roman" : "english";
 }
 
 /** The song played as `arrangement` says (or as written), seen through `view`. */
@@ -119,8 +119,8 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
     }
     const fretted = capo ? transposeChord(sounding, -capo, key ? transposeKey(key, -capo) : null) : sounding;
     const shown = capo && view.capoDisplay === "shapes" ? fretted : sounding;
-    // Numbers are the same with or without a capo: the sounding chord in the key it's sung in.
-    const label = view.notation === "nashville" ? formatChord(sounding, "nashville", key) : view.notation === "solfege" ? formatChord(shown, "solfege") : shown;
+    // Numbers and numerals are the same with or without a capo: the sounding chord in the key it's sung in.
+    const label = view.notation === "nashville" || view.notation === "roman" ? formatChord(sounding, view.notation, key) : view.notation === "solfege" ? formatChord(shown, "solfege") : shown;
     return { label, sounding, fretted, family: chordFamily(sounding) };
   };
 
@@ -240,7 +240,7 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
   return {
     key: keyAt(baseSteps),
     capo,
-    capoShapes: !!capo && view.capoDisplay === "shapes" && view.notation !== "nashville",
+    capoShapes: !!capo && view.capoDisplay === "shapes" && view.notation !== "nashville" && view.notation !== "roman",
     tempo: defaults?.tempo ?? song.defaults.tempo ?? null,
     timeSignature: defaults?.timeSignature ?? song.defaults.timeSignature ?? null,
     passes,

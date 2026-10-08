@@ -365,7 +365,7 @@ export function diatonicChords(key: string | null | undefined): DiatonicChord[] 
   }));
 }
 
-export type ChordNotation = "english" | "solfege" | "nashville";
+export type ChordNotation = "english" | "solfege" | "nashville" | "roman";
 const SOLFEGE: Record<NoteLetter, string> = { C: "Do", D: "Ré", E: "Mi", F: "Fa", G: "Sol", A: "La", B: "Si" };
 
 /**
@@ -376,6 +376,7 @@ const SOLFEGE: Record<NoteLetter, string> = { C: "Do", D: "Ré", E: "Mi", F: "Fa
 export function formatChord(raw: string, notation: ChordNotation, key?: string | null): string {
   if (notation === "english") return raw;
   if (notation === "nashville") return nashvilleChord(raw, key);
+  if (notation === "roman") return romanChord(raw, key);
   const parts = splitChord(raw);
   return parts ? rebuild(parts, notation) : raw;
 }
@@ -398,6 +399,39 @@ export function nashvilleChord(raw: string, key: string | null | undefined): str
   const degree = (note: NoteName) => DEGREES[mod12(semitoneOf(note) - tonic)]!;
   const text = degree(parts.root) + parts.suffix + (parts.bass ? `/${degree(parts.bass)}` : "");
   return parts.optional ? `(${text})` : text;
+}
+
+// Each semitone above the key's tonic as a Roman numeral, for a major chord on it.
+const NUMERALS = ["I", "♭II", "II", "♭III", "III", "IV", "♯IV", "V", "♭VI", "VI", "♭VII", "VII"];
+
+/**
+ * The chord as a Roman numeral in `key` (issue #220): its root counted from
+ * the key's tonic, as nashvilleChord counts, in capitals for a major chord and
+ * lowercase for a minor or diminished one - Em7 in D is "ii7", A7 "V7",
+ * C#m7b5 "viiø7", C#dim "vii°", Bb in C "♭VII". The bass of a slash chord
+ * is a degree, as in Nashville (D/F# is "I/3"), never mistaken for a
+ * secondary dominant (V/V). A minor key counts from its own tonic. Without
+ * a key it can read, or for anything that isn't a chord, the chord as written.
+ */
+export function romanChord(raw: string, key: string | null | undefined): string {
+  const parsed = parseChord(raw);
+  const match = key ? /^\s*([A-G])([#♯b♭]?)/i.exec(key) : null;
+  if (!parsed || parsed.kind !== "chord" || !match) return raw;
+  const tonic = semitoneOf(toNote(match[1]!.toUpperCase(), match[2]!));
+  const step = (note: NoteName) => mod12(semitoneOf(note) - tonic);
+  const { quality, seventh, extensions, alterations } = parsed;
+  const lower = quality === "minor" || quality === "diminished" || quality === "half-diminished";
+  const numeral = lower ? NUMERALS[step(parsed.root)]!.toLowerCase() : NUMERALS[step(parsed.root)]!;
+  // A 9, 11 or 13 over a seventh names the chord in its place (V9, Imaj13); the others follow.
+  const upper: string[] = seventh ? extensions.filter((one) => one === "9" || one === "11" || one === "13") : [];
+  const highest = upper.at(-1) ?? "7";
+  const rest = extensions.filter((one) => !upper.includes(one));
+  const added = rest.includes("6") && rest.includes("9") && rest.length === 2 ? "6/9" : rest.join("");
+  const mark = quality === "diminished" ? "°" : quality === "half-diminished" ? "ø" : quality === "augmented" ? "+" : "";
+  const sevenths = quality === "half-diminished" ? highest : seventh ? (seventh === "major" ? "maj" : "") + highest : "";
+  const sus = quality === "sus2" || quality === "sus4" ? quality : quality === "power" ? "5" : "";
+  const text = numeral + mark + sevenths + added + sus + alterations.join("") + (parsed.bass ? `/${DEGREES[step(parsed.bass)]}` : "");
+  return parsed.optional ? `(${text})` : text;
 }
 
 /** A chord's family, for colouring it (issue #9): what it sounds like at a glance. */
