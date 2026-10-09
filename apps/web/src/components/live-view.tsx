@@ -1,4 +1,4 @@
-import { chartSeconds, degreeChords, transposeChord, transposeKey, structureOf, type DiagramPlayer, type EffectiveDisplaySettings, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
+import { chartSeconds, type ControlsPositionValue, type LiveControlValue, degreeChords, transposeChord, transposeKey, structureOf, type DiagramPlayer, type EffectiveDisplaySettings, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
 import { AArrowDown, AArrowUp, ArrowLeft, ChevronDown, ChevronUp, Settings2, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -360,8 +360,45 @@ export function LiveView({
     element.scrollTo({ top: pass.getBoundingClientRect().top - element.getBoundingClientRect().top + element.scrollTop - 12, behavior: "smooth" });
   }
 
+  // Where the controls are, and which show (issue #224); a PDF's page has its own.
+  const layout = display.controls;
+  const shows = (control: LiveControlValue) => !display.hiddenControls.includes(control);
+  const autoscroll = (
+    <div className="flex items-center gap-1" role="group" aria-label={t("live.autoscroll")}>
+      <IconButton label={t("live.slower")} onClick={() => changeSpeed(-1)} disabled={!chart || speed === SPEEDS[0]}>
+        <Turtle />
+      </IconButton>
+      <button
+        type="button"
+        onClick={() => setPlaying(!playing)}
+        disabled={!chart || seconds <= 0}
+        aria-label={playing ? t("live.pause") : t("live.play")}
+        aria-pressed={playing}
+        className="flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50 [&_svg]:size-4"
+      >
+        {playing ? <Pause /> : <Play />}
+        <span className="tabular-nums" data-testid="live-speed">
+          {Math.round(speed * 100)}%
+        </span>
+      </button>
+      <IconButton label={t("live.faster")} onClick={() => changeSpeed(1)} disabled={!chart || speed === SPEEDS.at(-1)}>
+        <Rabbit />
+      </IconButton>
+    </div>
+  );
+  const textSizes = (
+    <>
+      <IconButton label={t("live.smaller")} onClick={() => changeTextSize(-1)} disabled={!!pdf || stepTextSize(textSize, -1) === textSize}>
+        <AArrowDown />
+      </IconButton>
+      <IconButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={!!pdf || stepTextSize(textSize, 1) === textSize}>
+        <AArrowUp />
+      </IconButton>
+    </>
+  );
+
   return (
-    <div className="flex h-dvh flex-col bg-background text-foreground" data-testid="live-view">
+    <div className="relative flex h-dvh flex-col bg-background text-foreground" data-testid="live-view">
       {/* Always the same height; the song's own title is at the top of its chart (issue #68). */}
       <header className="flex h-14 shrink-0 items-center gap-2 border-b-2 border-b-primary px-2 sm:gap-3 sm:px-4">
         {/* The sidebar (issue #154): beside the song on a wider screen, a sheet on a phone. */}
@@ -379,7 +416,7 @@ export function LiveView({
         {song.reading ? <ViewSwitch reading={song.reading} compact /> : null}
         {/* The song's tempo and time signature, one press (issue #2); the rest on the Metronome page. */}
         {song.setId ? <SyncControl setId={song.setId} itemId={song.id} compact /> : null}
-        <MetronomeSongButton songId={song.id} tempo={chart?.tempo} timeSignature={chart?.timeSignature} />
+        {shows("metronome") ? <MetronomeSongButton songId={song.id} tempo={chart?.tempo} timeSignature={chart?.timeSignature} /> : null}
         <CommandSearch />
         <DisplayPanel mode="LIVE" settings={display} player={head.player} compact className="size-10 border-0 text-muted-foreground [&_svg]:size-5" />
         {fullScreen.available ? (
@@ -392,7 +429,7 @@ export function LiveView({
         <ModeSwitch />
       </header>
 
-      {steps.length > 0 && !pdf ? <StructureBar steps={steps} current={current} onPick={goToPass} /> : null}
+      {steps.length > 0 && !pdf && shows("structure") ? <StructureBar steps={steps} current={current} onPick={goToPass} /> : null}
 
       <main ref={scroller} className="flex-1 overflow-y-auto" data-testid="live-scroll" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {/* The whole screen's width (issue #177): a long song flows into columns rather than down. */}
@@ -411,7 +448,7 @@ export function LiveView({
               display={display}
               extraSteps={extra[one.id] ?? 0}
               nextSteps={songs[i + 1] ? (extra[songs[i + 1]!.id] ?? 0) : 0}
-              onTranspose={(steps) => setExtra((before) => ({ ...before, [one.id]: steps }))}
+              onTranspose={shows("transpose") ? (steps) => setExtra((before) => ({ ...before, [one.id]: steps })) : null}
             />
           ))}
         </div>
@@ -420,59 +457,73 @@ export function LiveView({
       {/* Presenting on the set's screens (issue #186), leading its session. */}
       {song.setId ? <PresentPanel setId={song.setId} itemId={song.id} chart={chart} next={next} previous={previous} onSlidePass={goToPass} /> : null}
 
-      <footer className="flex shrink-0 items-center gap-1 border-t bg-card px-2 py-2 sm:gap-2 sm:px-4">
-        {inSet ? (
-          <IconButton label={t("sets.previousSong")} onClick={() => previous?.()} disabled={!previous}>
-            <ChevronLeft />
-          </IconButton>
-        ) : null}
-
-        <div className="flex items-center gap-1" role="group" aria-label={t("live.autoscroll")}>
-          <IconButton label={t("live.slower")} onClick={() => changeSpeed(-1)} disabled={!chart || speed === SPEEDS[0]}>
-            <Turtle />
-          </IconButton>
-          <button
-            type="button"
-            onClick={() => setPlaying(!playing)}
-            disabled={!chart || seconds <= 0}
-            aria-label={playing ? t("live.pause") : t("live.play")}
-            aria-pressed={playing}
-            className="flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50 [&_svg]:size-4"
-          >
-            {playing ? <Pause /> : <Play />}
-            <span className="tabular-nums" data-testid="live-speed">
-              {Math.round(speed * 100)}%
-            </span>
-          </button>
-          <IconButton label={t("live.faster")} onClick={() => changeSpeed(1)} disabled={!chart || speed === SPEEDS.at(-1)}>
-            <Rabbit />
-          </IconButton>
-        </div>
-
-        <div className="hidden items-center gap-1 sm:flex">
-          <IconButton label={t("live.smaller")} onClick={() => changeTextSize(-1)} disabled={!!pdf || stepTextSize(textSize, -1) === textSize}>
-            <AArrowDown />
-          </IconButton>
-          <IconButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={!!pdf || stepTextSize(textSize, 1) === textSize}>
-            <AArrowUp />
-          </IconButton>
-        </div>
-
-        <p className="hidden flex-1 text-center text-xs text-muted-foreground lg:block">{inSet ? t("live.keys") : t("live.keysAlone")}</p>
-
-        {inSet ? (
-          <button
-            type="button"
-            onClick={() => next?.()}
-            disabled={!next}
-            className="ml-auto flex h-10 min-w-0 items-center gap-1 rounded-md border px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0"
-            data-testid="live-next"
-          >
-            <span className="truncate">{song.nextLabel}</span>
-            <ChevronRight />
-          </button>
-        ) : null}
-      </footer>
+      {layout === "footer" ? (
+        <footer className="flex shrink-0 items-center gap-1 border-t bg-card px-2 py-2 sm:gap-2 sm:px-4" data-testid="live-controls" data-layout="footer">
+          {shows("songs") && inSet ? (
+            <IconButton label={t("sets.previousSong")} onClick={() => previous?.()} disabled={!previous}>
+              <ChevronLeft />
+            </IconButton>
+          ) : null}
+          {shows("autoscroll") ? autoscroll : null}
+          {shows("textSize") ? <div className="hidden items-center gap-1 sm:flex">{textSizes}</div> : null}
+          <p className="hidden flex-1 text-center text-xs text-muted-foreground lg:block">{inSet ? t("live.keys") : t("live.keysAlone")}</p>
+          {shows("songs") && inSet ? (
+            <button
+              type="button"
+              onClick={() => next?.()}
+              disabled={!next}
+              className="ml-auto flex h-10 min-w-0 items-center gap-1 rounded-md border px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0"
+              data-testid="live-next"
+            >
+              <span className="truncate">{song.nextLabel}</span>
+              <ChevronRight />
+            </button>
+          ) : null}
+        </footer>
+      ) : (
+        <FloatingControls
+          layout={layout}
+          position={layout === "hidden" ? "bottom-center" : display.controlsPosition}
+          opacity={layout === "hidden" ? 1 : display.controlsOpacity}
+        >
+          {shows("songs") && inSet ? (
+            <FloatingButton label={t("sets.previousSong")} onClick={() => previous?.()} disabled={!previous}>
+              <ChevronLeft />
+            </FloatingButton>
+          ) : null}
+          {shows("autoscroll") ? (
+            <>
+              <FloatingButton label={t("live.slower")} onClick={() => changeSpeed(-1)} disabled={!chart || speed === SPEEDS[0]}>
+                <Turtle />
+              </FloatingButton>
+              <FloatingButton label={playing ? t("live.pause") : t("live.play")} onClick={() => setPlaying(!playing)} disabled={!chart || seconds <= 0} pressed={playing} primary>
+                {playing ? <Pause /> : <Play />}
+                <span className="sr-only" data-testid="live-speed">
+                  {Math.round(speed * 100)}%
+                </span>
+              </FloatingButton>
+              <FloatingButton label={t("live.faster")} onClick={() => changeSpeed(1)} disabled={!chart || speed === SPEEDS.at(-1)}>
+                <Rabbit />
+              </FloatingButton>
+            </>
+          ) : null}
+          {shows("textSize") ? (
+            <>
+              <FloatingButton label={t("live.smaller")} onClick={() => changeTextSize(-1)} disabled={!!pdf || stepTextSize(textSize, -1) === textSize}>
+                <AArrowDown />
+              </FloatingButton>
+              <FloatingButton label={t("live.bigger")} onClick={() => changeTextSize(1)} disabled={!!pdf || stepTextSize(textSize, 1) === textSize}>
+                <AArrowUp />
+              </FloatingButton>
+            </>
+          ) : null}
+          {shows("songs") && inSet ? (
+            <FloatingButton label={song.nextLabel ?? t("sets.nextSong")} onClick={() => next?.()} disabled={!next} testId="live-next">
+              <ChevronRight />
+            </FloatingButton>
+          ) : null}
+        </FloatingControls>
+      )}
     </div>
   );
 }
@@ -505,7 +556,8 @@ function LiveSongSection({
   extraSteps: number;
   /** The next song's last-minute transpose, when it's stacked under this one. */
   nextSteps: number;
-  onTranspose: (steps: number) => void;
+  /** Null: the key shown, without transposing it (issue #224). */
+  onTranspose: ((steps: number) => void) | null;
 }) {
   const { t } = useTranslation();
   const pdf = song.reading?.shown ?? null;
@@ -534,7 +586,12 @@ function LiveSongSection({
               </p>
             ) : null}
           </div>
-          {chart?.key ? <KeyButton musicalKey={chart.key} shift={shiftOf(song.keyShift + extraSteps)} extraSteps={extraSteps} onTranspose={onTranspose} testId={id("live-key")} /> : null}
+          {chart?.key && !onTranspose ? (
+            <span className="shrink-0 rounded-lg border px-3 py-1 text-2xl font-bold sm:text-3xl" data-testid={id("live-key")}>
+              {chart.key}
+            </span>
+          ) : null}
+          {chart?.key && onTranspose ? <KeyButton musicalKey={chart.key} shift={shiftOf(song.keyShift + extraSteps)} extraSteps={extraSteps} onTranspose={onTranspose} testId={id("live-key")} /> : null}
         </div>
         {song.notes.length > 0 ? (
           <div className="flex flex-col gap-1 rounded-md border-l-4 border-primary bg-muted px-3 py-2 text-sm">
@@ -705,6 +762,116 @@ function IconButton({
 }) {
   return (
     <button type="button" className={iconClass} aria-label={label} title={label} aria-pressed={pressed} onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  );
+}
+
+/** How long floating controls stay before fading, or hidden ones before going again. */
+const CONTROLS_AWAKE_MS = 4000;
+/** Faded floating controls: a faint outline, out of the way of the chart. */
+const CONTROLS_FADED = 0.12;
+
+/**
+ * Live's controls over the chart (issue #224): round buttons in a corner or
+ * along an edge, fading after a few seconds without a touch and back with
+ * the next one, or a key. Hidden: nothing, until a tap at the bottom of the
+ * screen brings them up for a moment. A faded button doesn't take the tap
+ * that wakes it.
+ */
+function FloatingControls({ layout, position, opacity, children }: { layout: "floating" | "hidden"; position: ControlsPositionValue; opacity: number; children: ReactNode }) {
+  const { t } = useTranslation();
+  const [awake, setAwake] = useState(layout === "floating");
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wake = () => {
+    setAwake(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setAwake(false), CONTROLS_AWAKE_MS);
+  };
+  useEffect(() => {
+    if (layout !== "floating") {
+      setAwake(false);
+      return;
+    }
+    wake();
+    window.addEventListener("pointerdown", wake);
+    window.addEventListener("keydown", wake);
+    return () => {
+      window.removeEventListener("pointerdown", wake);
+      window.removeEventListener("keydown", wake);
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [layout]);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+
+  const vertical = position === "right";
+  const shown = layout === "floating" || awake;
+  return (
+    <>
+      {layout === "hidden" ? (
+        // A strip along the bottom: a tap brings the controls up.
+        <button type="button" className="absolute inset-x-0 bottom-0 z-20 h-8 opacity-0" aria-label={t("live.showControls")} onClick={wake} data-testid="live-controls-reveal" />
+      ) : null}
+      {shown ? (
+        <div
+          role="toolbar"
+          aria-label={t("live.controls")}
+          className={cn(
+            "absolute z-30 flex items-center gap-2 transition-opacity duration-500",
+            !awake && "pointer-events-none",
+            vertical ? "top-[60%] right-3 -translate-y-1/2 flex-col" : "bottom-[max(1rem,env(safe-area-inset-bottom))]",
+            position === "bottom-right" && "right-4",
+            position === "bottom-left" && "left-4",
+            position === "bottom-center" && "left-1/2 -translate-x-1/2",
+          )}
+          style={{ opacity: awake ? opacity : Math.min(opacity, CONTROLS_FADED) }}
+          onPointerDown={layout === "hidden" ? wake : undefined}
+          data-testid="live-controls"
+          data-layout={layout}
+          data-position={position}
+          data-faded={awake ? undefined : ""}
+        >
+          {children}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+/** A floating control: round, big enough to hit on stage. */
+function FloatingButton({
+  label,
+  onClick,
+  disabled,
+  pressed,
+  primary = false,
+  testId,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  pressed?: boolean;
+  primary?: boolean;
+  testId?: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      aria-pressed={pressed}
+      onClick={onClick}
+      disabled={disabled}
+      data-testid={testId}
+      className={cn(
+        "flex size-12 shrink-0 items-center justify-center rounded-full border shadow-lg backdrop-blur disabled:opacity-40 [&_svg]:size-5",
+        primary ? "border-primary bg-primary text-primary-foreground" : "bg-card/90 text-foreground hover:bg-accent",
+      )}
+    >
       {children}
     </button>
   );

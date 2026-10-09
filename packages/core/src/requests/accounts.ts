@@ -1,6 +1,6 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
+import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, CONTROLS_LAYOUTS, CONTROLS_OPACITIES, CONTROLS_POSITIONS, LIVE_CONTROLS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
 import { TUNINGS } from "../chords/shapes.js";
 import { clearableText, optional, requiredText } from "./fields.js";
 
@@ -44,6 +44,11 @@ export const DisplaySettingsSchema = z.strictObject({
   chordDiagrams: z.enum(CHORD_DIAGRAMS).nullable().optional(),
   /** Lyrics only: the chords hidden, for a singer. */
   hideChords: z.boolean().nullable().optional(),
+  /** Live's controls (issue #224): where they are, which are hidden, and floating ones' opacity. */
+  controls: z.enum(CONTROLS_LAYOUTS).nullable().optional(),
+  controlsPosition: z.enum(CONTROLS_POSITIONS).nullable().optional(),
+  hiddenControls: z.array(z.enum(LIVE_CONTROLS)).max(LIVE_CONTROLS.length).nullable().optional(),
+  controlsOpacity: z.union(CONTROLS_OPACITIES.map((value) => z.literal(value)) as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]).nullable().optional(),
 });
 export type DisplaySettingsRequest = z.input<typeof DisplaySettingsSchema>;
 

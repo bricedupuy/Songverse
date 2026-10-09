@@ -99,6 +99,17 @@ export const DISPLAY_COLUMNS = ["auto", "1", "2", "3"] as const;
 export type DisplayColumnsValue = (typeof DISPLAY_COLUMNS)[number];
 /** Text size, as a zoom of the chart: its own proportions kept. */
 export const DISPLAY_TEXT_SIZES = [0.75, 0.875, 1, 1.25, 1.5, 1.75, 2, 2.5, 3] as const;
+/** Where Live's controls are (issue #224): a bar along the bottom, round buttons over the chart, or none. */
+export const CONTROLS_LAYOUTS = ["footer", "floating", "hidden"] as const;
+export type ControlsLayoutValue = (typeof CONTROLS_LAYOUTS)[number];
+/** Where floating controls sit. */
+export const CONTROLS_POSITIONS = ["bottom-right", "bottom-left", "bottom-center", "right"] as const;
+export type ControlsPositionValue = (typeof CONTROLS_POSITIONS)[number];
+/** Live's controls, each of which can be hidden, in the order they show. */
+export const LIVE_CONTROLS = ["songs", "autoscroll", "textSize", "metronome", "structure", "transpose"] as const;
+export type LiveControlValue = (typeof LIVE_CONTROLS)[number];
+/** How opaque floating controls are, 20% to 100%. */
+export const CONTROLS_OPACITIES = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1] as const;
 
 /** How a song reads in Live (issue #155): its chart (chords and lyrics), or its PDF. More to come: lyrics only (#106), drummer (#107). */
 export const LIVE_VIEWS = ["CHART", "PDF"] as const;

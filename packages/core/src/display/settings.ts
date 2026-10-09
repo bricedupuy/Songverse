@@ -3,6 +3,9 @@ import type {
   CapoDisplayModeValue,
   ChordDiagramsValue,
   ChordNotationValue,
+  ControlsLayoutValue,
+  ControlsPositionValue,
+  LiveControlValue,
   DisplayColumnsValue,
   DisplayFontValue,
   DisplaySpacingValue,
@@ -30,6 +33,11 @@ export interface EffectiveDisplaySettings {
   capoDisplayMode: CapoDisplayModeValue;
   chordDiagrams: ChordDiagramsValue;
   hideChords: boolean;
+  /** Live's controls (issue #224): a footer, floating buttons or none; which are hidden; floating ones' opacity. */
+  controls: ControlsLayoutValue;
+  controlsPosition: ControlsPositionValue;
+  hiddenControls: LiveControlValue[];
+  controlsOpacity: number;
 }
 
 export type SavedDisplaySettings = Partial<Record<AppModeValue, DisplaySettings>>;
@@ -60,6 +68,10 @@ export function effectiveDisplaySettings(account: AccountDisplaySettings | null 
     capoDisplayMode: own.capoDisplayMode ?? account?.capoDisplayMode ?? "SOUNDING",
     chordDiagrams: own.chordDiagrams ?? account?.chordDiagrams ?? "OFF",
     hideChords: own.hideChords ?? false,
+    controls: own.controls ?? "footer",
+    controlsPosition: own.controlsPosition ?? "bottom-right",
+    hiddenControls: own.hiddenControls ?? [],
+    controlsOpacity: own.controlsOpacity ?? 0.7,
   };
 }
 

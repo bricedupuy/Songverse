@@ -1,6 +1,11 @@
-import { DISPLAY_TEXT_SIZES, TUNINGS, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
+import { CONTROLS_POSITIONS, DISPLAY_TEXT_SIZES, LIVE_CONTROLS, TUNINGS, type ControlsPositionValue, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
 import {
+  ArrowDown,
+  ArrowDownLeft,
+  ArrowDownRight,
+  ArrowRight,
   Baseline,
+  CircleDot,
   Columns2,
   Columns3,
   Ear,
@@ -14,6 +19,7 @@ import {
   Minus,
   Music,
   Palette,
+  PanelBottom,
   Plus,
   RectangleVertical,
   RotateCcw,
@@ -35,9 +41,11 @@ import { useMediaQuery } from "#/hooks/use-media-query";
 import { changeDiagramPlayer, changeDisplaySettings, stepTextSize } from "#/lib/display-settings";
 import { cn } from "#/lib/utils";
 
-const SECTIONS = ["text", "chords", "instrument", "layout"] as const;
+const SECTIONS = ["text", "chords", "instrument", "layout", "controls"] as const;
 type Section = (typeof SECTIONS)[number];
-const SECTION_ICONS: Record<Section, LucideIcon> = { text: Type, chords: Music, instrument: Guitar, layout: Columns3 };
+const SECTION_ICONS: Record<Section, LucideIcon> = { text: Type, chords: Music, instrument: Guitar, layout: Columns3, controls: PanelBottom };
+/** Only Live has controls to lay out (issue #224). */
+const sectionsFor = (mode: AppModeValue) => SECTIONS.filter((one) => one !== "controls" || mode === "LIVE");
 
 const KEY = "songverse.display.section";
 /** From here the panel is a column down the right, every section in it (issue #209). */
@@ -75,7 +83,9 @@ export function DisplayPanel({
   compact?: boolean;
 }) {
   const { t } = useTranslation();
-  const [section, setSection] = useState<Section>(keptSection);
+  const [kept, setSection] = useState<Section>(keptSection);
+  const sections = sectionsFor(mode);
+  const section = sections.includes(kept) ? kept : "text";
   const [open, setOpen] = useState(false);
   // A large screen has room for a column down the right with every section in it; a phone, the bottom.
   const wide = useMediaQuery(WIDE);
@@ -121,7 +131,7 @@ export function DisplayPanel({
                 <SelectValue>{(value: Section) => <SectionLabel section={value} />}</SelectValue>
               </SelectTrigger>
               <SelectContent>
-                {SECTIONS.map((value) => (
+                {sections.map((value) => (
                   <SelectItem key={value} value={value} data-testid={`display-section-${value}`}>
                     <SectionLabel section={value} />
                   </SelectItem>
@@ -136,7 +146,7 @@ export function DisplayPanel({
             variant="ghost"
             size="icon"
             className="ml-auto size-8"
-            onClick={() => change({ textSize: null, chordSize: null, font: null, spacing: null, columns: null, chordNotation: null, chordColors: null, capoDisplayMode: null, chordDiagrams: null, hideChords: null })}
+            onClick={() => change({ textSize: null, chordSize: null, font: null, spacing: null, columns: null, chordNotation: null, chordColors: null, capoDisplayMode: null, chordDiagrams: null, hideChords: null, controls: null, controlsPosition: null, hiddenControls: null, controlsOpacity: null })}
             title={t("display.resetHint", { mode: modeName })}
             aria-label={t("display.resetHint", { mode: modeName })}
             data-testid="display-reset"
@@ -279,10 +289,90 @@ export function DisplayPanel({
               </Row>
             </SectionBlock>
           ) : null}
+          {sections.includes("controls") && shown("controls") ? (
+            <SectionBlock section="controls" heading={wide}>
+              <ControlsSection settings={settings} onChange={change} />
+            </SectionBlock>
+          ) : null}
         </div>
       </DrawerContent>
     </Drawer>
   );
+}
+
+/** Live's controls (issue #224): a footer, floating buttons or none; which show; how opaque floating ones are. */
+function ControlsSection({ settings, onChange }: { settings: EffectiveDisplaySettings; onChange: (change: Parameters<typeof changeDisplaySettings>[1]) => void }) {
+  const { t } = useTranslation();
+  const hidden = new Set(settings.hiddenControls);
+  const opacity = Math.round(settings.controlsOpacity * 100);
+  return (
+    <>
+      <Row label={t("display.controlsLayout")}>
+        <Choices
+          value={settings.controls}
+          onChange={(controls) => onChange({ controls })}
+          name="controls"
+          options={[
+            { value: "footer", label: t("display.controlsFooter"), content: <PanelBottom /> },
+            { value: "floating", label: t("display.controlsFloating"), content: <CircleDot /> },
+            { value: "hidden", label: t("display.controlsHidden"), content: <EyeOff /> },
+          ]}
+        />
+      </Row>
+      {settings.controls === "floating" ? (
+        <>
+          <Row label={t("display.controlsPosition")}>
+            <Choices
+              value={settings.controlsPosition}
+              onChange={(controlsPosition) => onChange({ controlsPosition })}
+              name="controls-position"
+              options={CONTROLS_POSITIONS.map((value) => ({ value, label: t(`display.positions.${value}`), content: <PositionIcon position={value} /> }))}
+            />
+          </Row>
+          <Row label={t("display.controlsOpacity")}>
+            <span className="flex min-w-0 items-center gap-2">
+              <input
+                type="range"
+                min={20}
+                max={100}
+                step={10}
+                value={opacity}
+                onChange={(event) => onChange({ controlsOpacity: Number(event.target.value) / 100 })}
+                aria-label={t("display.controlsOpacity")}
+                className="min-w-0 flex-1 accent-primary"
+                data-testid="display-controls-opacity"
+              />
+              <span className="w-9 text-right text-xs tabular-nums text-muted-foreground">{opacity}%</span>
+            </span>
+          </Row>
+        </>
+      ) : null}
+      {settings.controls === "hidden" ? <p className="text-xs text-muted-foreground">{t("display.controlsHiddenHint")}</p> : (
+        <div className="flex flex-col gap-1" role="group" aria-label={t("display.controlsShown")}>
+          <span className="text-xs text-muted-foreground">{t("display.controlsShown")}</span>
+          <div className="grid grid-cols-2 gap-1">
+            {LIVE_CONTROLS.map((control) => (
+              <Choice
+                key={control}
+                pressed={!hidden.has(control)}
+                onClick={() => onChange({ hiddenControls: hidden.has(control) ? settings.hiddenControls.filter((one) => one !== control) : [...settings.hiddenControls, control] })}
+                label={t(`display.liveControls.${control}`)}
+                testId={`display-control-${control}`}
+              >
+                <span className="truncate">{t(`display.liveControls.${control}`)}</span>
+              </Choice>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/** Where floating controls sit, as an arrow towards it. */
+function PositionIcon({ position }: { position: ControlsPositionValue }) {
+  const Icon = { "bottom-right": ArrowDownRight, "bottom-left": ArrowDownLeft, "bottom-center": ArrowDown, right: ArrowRight }[position];
+  return <Icon />;
 }
 
 /** A section of the panel: under its heading when they're all shown at once. */

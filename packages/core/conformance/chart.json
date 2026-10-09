@@ -2979,7 +2979,11 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "GUITAR",
-            "hideChords": false
+            "hideChords": false,
+            "controls": "footer",
+            "controlsPosition": "bottom-right",
+            "hiddenControls": [],
+            "controlsOpacity": 0.7
           }
         },
         {
@@ -3010,7 +3014,11 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
-            "hideChords": false
+            "hideChords": false,
+            "controls": "footer",
+            "controlsPosition": "bottom-right",
+            "hiddenControls": [],
+            "controlsOpacity": 0.7
           }
         },
         {
@@ -3036,7 +3044,49 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
-            "hideChords": false
+            "hideChords": false,
+            "controls": "footer",
+            "controlsPosition": "bottom-right",
+            "hiddenControls": [],
+            "controlsOpacity": 0.7
+          }
+        },
+        {
+          "name": "Live's controls floating, some hidden",
+          "args": [
+            null,
+            {
+              "LIVE": {
+                "controls": "floating",
+                "controlsPosition": "right",
+                "hiddenControls": [
+                  "metronome",
+                  "transpose"
+                ],
+                "controlsOpacity": 0.4
+              }
+            },
+            "LIVE"
+          ],
+          "expected": {
+            "textSize": 1.5,
+            "chordSize": 1.5,
+            "sizesLinked": true,
+            "font": "mono",
+            "spacing": "normal",
+            "columns": "auto",
+            "chordNotation": "LETTERS",
+            "chordColors": false,
+            "capoDisplayMode": "SOUNDING",
+            "chordDiagrams": "OFF",
+            "hideChords": false,
+            "controls": "floating",
+            "controlsPosition": "right",
+            "hiddenControls": [
+              "metronome",
+              "transpose"
+            ],
+            "controlsOpacity": 0.4
           }
         },
         {
@@ -3057,7 +3107,11 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
-            "hideChords": false
+            "hideChords": false,
+            "controls": "footer",
+            "controlsPosition": "bottom-right",
+            "hiddenControls": [],
+            "controlsOpacity": 0.7
           }
         }
       ]

@@ -76,6 +76,7 @@ Sur scène, passez en mode **Live** - le bouton sur la page de la liste, ou le s
 - Les boutons **A** réduisent ou agrandissent le texte. **Affichage** dans l'en-tête (curseurs) ouvre le panneau [Affichage](/fr/display/) du Live, en bas de l'écran pendant que le chant reste visible : taille du texte, police et interligne, noms et couleurs des accords, diagrammes, et les colonnes - **Auto** répartit un long chant sur autant de colonnes que l'écran en contient, comme un journal, sans jamais couper une section entre deux, pour qu'il tienne sans défiler ; **1**, **2** ou **3** fixent le maximum. Ils sont gardés pour le Live sur votre compte, à part de ceux de la Session.
 - Le bouton d'agrandissement passe en plein écran, sans les barres du navigateur.
 - L'écran reste allumé tant qu'un chant est ouvert.
+- Les boutons peuvent flotter par-dessus la grille au lieu de la barre du bas, ou être masqués, et chacun peut être retiré : **Commandes** dans le [panneau Affichage](/fr/display/#ce-quil-règle).
 
 Au clavier ou avec un pédalier tourne-page : **Espace** lance et met en pause le défilement, **↑** **↓** (ou Page précédente et Page suivante) font défiler, **←** **→** passent au chant précédent ou suivant.
 

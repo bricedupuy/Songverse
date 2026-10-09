@@ -283,6 +283,10 @@ try {
     await syncItem(/^(Turn sync off|Désactiver la synchro)$/).click();
     // Live mode (it's remembered, so back to Edit for the rest).
     await shoot("live", `/sets/${set.id}/live/${items[0].id}`, () => page.locator("[data-pass]").first().waitFor());
+    // Floating controls over the chart (issue #224), then back to the footer.
+    await api(me, "PATCH", "/users/me", { displaySettings: { LIVE: { controls: "floating" } } });
+    await shoot("live-floating", `/sets/${set.id}/live/${items[0].id}`, () => page.locator('[data-testid="live-controls"][data-layout="floating"]:not([data-faded])').waitFor());
+    await api(me, "PATCH", "/users/me", { displaySettings: { LIVE: { controls: null } } });
     // Screens (issue #186): a big screen showing its code, paired from /screens, then the set presented from Live.
     const tvContext = await browser.newContext({ viewport: { width: 1280, height: 720 }, locale: locale === "fr" ? "fr-FR" : "en-US" });
     const tv = await tvContext.newPage();

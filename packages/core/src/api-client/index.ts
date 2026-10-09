@@ -5,6 +5,9 @@ import type {
   ChordDiagramsValue,
   DisplayColumnsValue,
   DisplayFontValue,
+  ControlsLayoutValue,
+  ControlsPositionValue,
+  LiveControlValue,
   AppModeValue,
   DisplaySpacingValue,
   LiveViewValue,
@@ -448,6 +451,11 @@ export interface DisplaySettings {
   capoDisplayMode?: CapoDisplayModeValue;
   chordDiagrams?: ChordDiagramsValue;
   hideChords?: boolean;
+  /** Live's controls (issue #224). */
+  controls?: ControlsLayoutValue;
+  controlsPosition?: ControlsPositionValue;
+  hiddenControls?: LiveControlValue[];
+  controlsOpacity?: number;
 }
 
 export interface UserProfile {

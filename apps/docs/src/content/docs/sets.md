@@ -76,6 +76,7 @@ On stage, switch to **Live** - the button on the set's page, or the mode switch 
 - The **A** buttons make the text smaller or bigger. **Display** in the header (sliders) opens the [Display](/display/) panel for Live, at the bottom of the screen while the song stays in view: the text size, font and spacing, chord names and colours, diagrams, and the columns - **Auto** flows a long song into as many columns as the screen fits, like a newspaper, a section never split between two, so it fits without scrolling; **1**, **2** or **3** set how many at most. They're kept for Live on your account, apart from Practice's.
 - The expand button goes full screen, hiding the browser's own bars.
 - The screen stays on while a song is open.
+- The buttons can float over the chart instead of the bar along the bottom, or be hidden, and each can be left out: **Controls** in the [Display panel](/display/#what-it-changes).
 
 With a keyboard or a page-turner pedal: **Space** starts and pauses autoscroll, **↑** **↓** (or Page Up and Page Down) scroll, **←** **→** go to the previous or next song.
 
