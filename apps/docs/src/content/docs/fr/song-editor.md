@@ -26,7 +26,7 @@ Modifier les paroles garde les accords avec elles : taper avant un accord l'emm�
 
 Chaque bloc est une section : intro, couplet, pré-refrain, refrain, post-refrain, pont, vamp (une phrase répétée autant qu'il faut), break, instrumental, interlude, outro ou tag.
 
-- **Ajoutez une section** depuis la liste **Sections** de la palette.
+- **Ajoutez une section** depuis la liste **Sections** de la palette : un clic l'ajoute après la section où vous êtes ; sur un ordinateur, faites-la plutôt glisser pour la déposer entre deux sections (une ligne montre où elle ira).
 - Changez le **type** ou le **libellé** d'une section (« Couplet 2 ») en haut de celle-ci. Le bouton en forme d'œil masque son libellé sur la grille.
 - Le menu **⋯** la déplace, la duplique ou la supprime.
 - Une ligne peut être une **note pour le groupe** (« ×2, montée ») plutôt que des paroles.

@@ -26,7 +26,7 @@ Editing the words keeps the chords with them: typing before a chord carries it a
 
 Each block is a section: intro, verse, pre-chorus, chorus, post-chorus, bridge, vamp (a phrase repeated as long as needed), breakdown, instrumental, interlude, outro or tag.
 
-- **Add a section** from the palette's **Sections** list.
+- **Add a section** from the palette's **Sections** list: a click adds it after the section you're in; on a computer, drag it instead to drop it between any two sections (a line shows where it will go).
 - Change a section's **type** or **label** ("Verse 2") at its top. The eye button hides its label on the chart.
 - The **⋯** menu moves, duplicates or deletes it.
 - A line can be a **note for the band** ("×2, build") rather than lyrics.

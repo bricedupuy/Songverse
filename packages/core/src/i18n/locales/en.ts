@@ -2017,6 +2017,7 @@ const en = {
     inSong: "In this song",
     otherChord: "Another chord",
     addChord: "Add",
+    sectionHint: "Click a section to add it after the one you're in, or drag it between two.",
     chordHint: "Click a chord to add it at the cursor, or drag it onto a lyric.",
     placeholder: "Type or paste the lyrics - chords as [G], or chords above the lines",
     hints: "Type [G] for a chord. Drag a chord to move it, or select it and use ← →. Paste a whole chart anywhere.",

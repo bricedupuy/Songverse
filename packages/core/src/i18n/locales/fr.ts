@@ -2020,6 +2020,7 @@ const fr: typeof en = {
     inSong: "Dans ce chant",
     otherChord: "Autre accord",
     addChord: "Ajouter",
+    sectionHint: "Cliquez sur une section pour l'ajouter après celle où vous êtes, ou faites-la glisser entre deux.",
     chordHint: "Cliquez sur un accord pour l'ajouter au curseur, ou faites-le glisser sur les paroles.",
     placeholder: "Tapez ou collez les paroles - accords en [G], ou au-dessus des lignes",
     hints: "Tapez [G] pour un accord. Faites glisser un accord pour le déplacer, ou sélectionnez-le et utilisez ← →. Collez une grille entière n'importe où.",

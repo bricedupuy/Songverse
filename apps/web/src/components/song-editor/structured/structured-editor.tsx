@@ -30,7 +30,7 @@ import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
 import { KEY_OPTIONS } from "../song-form";
 import { editorToSections, sameSections, sectionsToEditorJSON } from "./document";
-import { startChordDrag } from "./drag";
+import { startChordDrag, startSectionDrag } from "./drag";
 import { SongOrder } from "./song-order";
 import {
   addSection,
@@ -334,8 +334,13 @@ function Palette({ editor, songKey, sections }: { editor: Editor; songKey: strin
             <button
               key={type}
               type="button"
-              className="flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
-              onClick={() => addSection(editor.view, type)}
+              className="flex shrink-0 touch-pan-x items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted"
+              data-palette-section={type}
+              onMouseDown={(event) => event.preventDefault()}
+              // A click adds it after the current section; a drag, where it's dropped.
+              onPointerDown={(event) => startSectionDrag(editor.view, event.nativeEvent, type, t(`chart.sections.${type}`), () => addSection(editor.view, type), event.currentTarget)}
+              // Keyboard activation (a pointer press is handled above).
+              onClick={(event) => event.detail === 0 && addSection(editor.view, type)}
               aria-label={t("structuredEditor.addSection", { type: t(`chart.sections.${type}`) })}
             >
               <Plus className="size-3" aria-hidden />
@@ -343,6 +348,7 @@ function Palette({ editor, songKey, sections }: { editor: Editor; songKey: strin
             </button>
           ))}
         </div>
+        <p className="hidden text-xs text-muted-foreground lg:block">{t("structuredEditor.sectionHint")}</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <h3 className={heading}>{songKey && inKey.length > 0 ? t("structuredEditor.inKey", { key: songKey }) : t("structuredEditor.chords")}</h3>

@@ -295,6 +295,23 @@
   color: var(--color-primary-foreground);
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.2);
 }
+.sv-drag-ghost-section {
+  padding: 0.125rem 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+/* Where a section dragged from the palette would go: a line between two sections. */
+.sv-section-drop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99;
+  height: 3px;
+  border-radius: 2px;
+  pointer-events: none;
+  background: var(--color-primary);
+}
 body.sv-dragging {
   cursor: grabbing;
   user-select: none;

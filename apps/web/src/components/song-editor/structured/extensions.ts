@@ -543,16 +543,39 @@ export function currentSection(state: EditorState): { pos: number; node: PMNode 
 
 /** A new, empty section after the current one (or at the end), with the cursor in it. */
 export function addSection(view: EditorView, type: SectionType) {
+  const current = currentSection(view.state);
+  insertSection(view, type, current ? current.pos + current.node.nodeSize : view.state.doc.content.size);
+}
+
+/** A new, empty section at `at` (between two sections), with the cursor in it. */
+export function insertSection(view: EditorView, type: SectionType, at: number) {
   const { state } = view;
   const json = sectionsToEditorJSON([]).content![0]!;
   json.attrs = { ...json.attrs, type };
   const node = state.schema.nodeFromJSON(json);
-  const current = currentSection(state);
-  const at = current ? current.pos + current.node.nodeSize : state.doc.content.size;
   const tr = state.tr.insert(at, node);
   tr.setSelection(TextSelection.create(tr.doc, at + 2)).scrollIntoView();
   view.dispatch(tr);
   view.focus();
+}
+
+/** Where a section dropped at height `y` (on screen) goes: before the first section whose middle is below it, or at the end; and the height to show that at. */
+export function sectionDropAt(view: EditorView, y: number): { pos: number; top: number } {
+  let pos = 0;
+  let top: number | null = null;
+  let end = view.dom.getBoundingClientRect().bottom;
+  view.state.doc.forEach((node, offset) => {
+    if (top !== null) return;
+    const dom = view.nodeDOM(offset) as HTMLElement | null;
+    if (!dom?.getBoundingClientRect) return;
+    const rect = dom.getBoundingClientRect();
+    if (y < rect.top + rect.height / 2) top = rect.top;
+    else {
+      pos = offset + node.nodeSize;
+      end = rect.bottom;
+    }
+  });
+  return { pos, top: top ?? end };
 }
 
 export function deleteSection(view: EditorView, pos: number) {

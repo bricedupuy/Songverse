@@ -329,6 +329,46 @@ await step("an edit made the moment a save finishes isn't lost when the song rel
   if ((await key.inputValue()) !== "A") throw new Error("discarding goes back to the saved song");
 });
 
+// Drags with the mouse from one element to a point, in small steps.
+async function dragTo(from, x, y) {
+  const box = await from.boundingBox();
+  await page.mouse.move(box.x + 5, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(x, y, { steps: 15 });
+}
+
+await step("a palette chord dragged onto a lyric lands on it", async () => {
+  await openEditor();
+  const line = await editor().locator("p[data-sv-line]").nth(1).boundingBox();
+  const before = await editor().locator('[data-sv-chord="Bm"]').count();
+  await dragTo(page.locator('[data-palette-chord="Bm"]').first(), line.x + 5, line.y - 10);
+  await editor().locator(".sv-drop-target").waitFor();
+  await page.mouse.up();
+  await editor().locator('[data-sv-chord="Bm"]').nth(before).waitFor({ state: "attached" });
+  await page.getByRole("button", { name: "Discard changes" }).click();
+});
+
+await step("a section dragged from the palette goes between the two sections it's dropped between", async () => {
+  await openEditor();
+  const types = () => editor().locator("[data-section-type]").evaluateAll((els) => els.map((el) => el.dataset.sectionType));
+  const before = await types();
+  // Just above the second section.
+  const second = await editor().locator("[data-section-type]").nth(1).boundingBox();
+  await dragTo(page.locator('[data-palette-section="bridge"]'), second.x + 40, second.y + 4);
+  await page.locator(".sv-section-drop").waitFor();
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+  const after = await types();
+  const expected = [before[0], "bridge", ...before.slice(1)];
+  if (JSON.stringify(after) !== JSON.stringify(expected)) throw new Error(`${JSON.stringify(before)} -> ${JSON.stringify(after)}`);
+  if (await page.locator(".sv-section-drop").count()) throw new Error("the drop line stayed");
+  // A click still adds one after the section you're in. (Empty, they aren't changes to save.)
+  await select(0, 0);
+  await page.locator('[data-palette-section="tag"]').click();
+  const clicked = await types();
+  if (clicked[1] !== "tag") throw new Error(JSON.stringify(clicked));
+});
+
 await step("on a phone: the palette scrolls sideways, a tapped chord opens its details", async () => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openEditor();
