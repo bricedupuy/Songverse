@@ -1,6 +1,6 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, CONTROLS_LAYOUTS, CONTROLS_OPACITIES, CONTROLS_POSITIONS, LIVE_CONTROLS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
+import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, CHORD_ROW_COLORS, CHORD_ROW_FONTS, CHORD_ROW_NAMES, CHORD_ROW_WEIGHTS, SECOND_ROW_POSITIONS, SECOND_ROW_SIZES, CONTROLS_LAYOUTS, CONTROLS_OPACITIES, CONTROLS_POSITIONS, LIVE_CONTROLS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
 import { TUNINGS } from "../chords/shapes.js";
 import { clearableText, optional, requiredText } from "./fields.js";
 
@@ -31,6 +31,9 @@ export type ChooseChordShapeRequest = z.input<typeof ChooseChordShapeSchema>;
  * only what differs from the account's (the dashboard's Chart display); a
  * field set to null goes back to it.
  */
+/** A row of chords' colour (issue #230): the theme's accent, muted, by chord type, or #rrggbb. */
+const chordRowColor = z.union([z.enum(CHORD_ROW_COLORS), z.string().regex(/^#[0-9a-fA-F]{6}$/, "chordColor must be theme, muted, family or a colour as #rrggbb")]);
+
 export const DisplaySettingsSchema = z.strictObject({
   textSize: z.union(DISPLAY_TEXT_SIZES.map((size) => z.literal(size)) as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]).nullable().optional(),
   /** The chords' own size (issue #225); left out or null, the same as the lyrics' (textSize). */
@@ -38,8 +41,26 @@ export const DisplaySettingsSchema = z.strictObject({
   font: z.enum(DISPLAY_FONTS).nullable().optional(),
   spacing: z.enum(DISPLAY_SPACINGS).nullable().optional(),
   columns: z.enum(DISPLAY_COLUMNS).nullable().optional(),
-  chordNotation: z.enum(CHORD_NOTATIONS).nullable().optional(),
+  /** The main row of chords' names (issue #230): a notation, or a small diagram on each chord. */
+  chordNotation: z.enum(CHORD_ROW_NAMES).nullable().optional(),
   chordColors: z.boolean().nullable().optional(),
+  /** The main row's look (issue #230); chordColor replaces chordColors ("family" for colours by chord type). */
+  chordFont: z.enum(CHORD_ROW_FONTS).nullable().optional(),
+  chordWeight: z.enum(CHORD_ROW_WEIGHTS).nullable().optional(),
+  chordColor: chordRowColor.nullable().optional(),
+  /** A second row of chords (issue #230): absent or null, none. */
+  secondRow: z
+    .strictObject({
+      names: z.enum(CHORD_ROW_NAMES).optional(),
+      source: z.enum(CAPO_DISPLAY_MODES).optional(),
+      position: z.enum(SECOND_ROW_POSITIONS).optional(),
+      size: z.union(SECOND_ROW_SIZES.map((size) => z.literal(size)) as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]).optional(),
+      font: z.enum(CHORD_ROW_FONTS).optional(),
+      weight: z.enum(CHORD_ROW_WEIGHTS).optional(),
+      color: chordRowColor.optional(),
+    })
+    .nullable()
+    .optional(),
   capoDisplayMode: z.enum(CAPO_DISPLAY_MODES).nullable().optional(),
   chordDiagrams: z.enum(CHORD_DIAGRAMS).nullable().optional(),
   /** Lyrics only: the chords hidden, for a singer. */

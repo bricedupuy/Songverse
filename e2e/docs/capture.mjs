@@ -265,6 +265,17 @@ try {
     });
     await page.getByTestId("display-close").click();
     await page.setViewportSize({ width: 1280, height: 800 });
+    // A second row of chords (issue #230): letters with Roman numerals under them.
+    const rows = { secondRow: { names: "ROMAN" } };
+    await api(me, "PATCH", "/users/me", { displaySettings: { EDIT: rows, PRACTICE: rows } });
+    await shoot("chord-rows", `/sets/${set.id}/songs/${items[0].id}`, async () => {
+      await page.locator("[data-chord-second]").first().waitFor();
+      // Clear of the sticky header.
+      await page.locator("[data-pass]").first().evaluate((el) => el.scrollIntoView({ block: "center" }));
+    }, {
+      element: page.locator("[data-pass]").first(),
+    });
+    await api(me, "PATCH", "/users/me", { displaySettings: { EDIT: { secondRow: null }, PRACTICE: { secondRow: null } } });
     // Sync play (issue #13): on, leading, its menu open; then ended and off, for the rest.
     const syncControl = page.getByTestId("sync-control");
     const syncItem = (name) => page.getByTestId("sync-menu").getByRole("menuitem", { name });

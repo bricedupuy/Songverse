@@ -1,4 +1,6 @@
 import {
+  chordRowInstrument,
+  chordRowLabel,
   chartNotation,
   chartChords,
   chordShapes,
@@ -299,7 +301,7 @@ function ChordStrip({ chords, chart, setup, notation }: { chords: string[]; char
 }
 
 /** A chord's diagram, bigger, with its fingers (or note names), the other ways to play it (‹ ›), and heard with a tap. */
-function ChordCard({ chord, setup, notation }: { chord: string; setup: Setup; notation: ChordNotationValue }) {
+function ChordCard({ chord, setup, notation, also = null }: { chord: string; setup: Setup; notation: ChordNotationValue; also?: string | null }) {
   const { t } = useTranslation();
   // In the order the card opened with: choosing one doesn't reshuffle them under the player.
   const options = useMemo(() => optionsFor(chord, setup, 6), [chord, setup.instrument, setup.tuning, setup.pianoHands]);
@@ -311,6 +313,12 @@ function ChordCard({ chord, setup, notation }: { chord: string; setup: Setup; no
   return (
     <div className="flex flex-col items-center gap-1" data-testid="chord-card" data-chord={chord}>
       <p className="text-sm font-bold text-primary">{name}</p>
+      {/* How the rows of chords name it (issue #230). */}
+      {also ? (
+        <p className="-mt-1 text-xs text-muted-foreground" data-testid="chord-card-also">
+          {also}
+        </p>
+      ) : null}
       {option ? (
         <>
           <button type="button" className="rounded-md p-1 hover:bg-muted" aria-label={t("chords.play", { chord: name })} onClick={() => play(option, setup, up)}>
@@ -380,8 +388,13 @@ export function ChartWithDiagrams({
   songVersionId?: string;
 }) {
   const instrument = instrumentOf(diagrams ?? "OFF");
-  const [open, setOpen] = useState<{ chord: string; anchor: HTMLElement } | null>(null);
-  const tuning = instrument === "piano" ? "standard" : ((instrument === "ukulele" ? player?.ukuleleTuning : player?.guitarTuning) ?? "standard");
+  const rows = props.rows;
+  // The instruments drawn: the strip's, and a row of diagrams' (issue #230).
+  const rowInstruments = rows ? [rows.main, rows.second].flatMap((row) => (row ? [chordRowInstrument(row.names)] : [])).filter((one) => one !== null) : [];
+  const used = [...new Set([...(instrument ? [instrument] : []), ...rowInstruments])];
+  const usedKey = used.join(",");
+  const [open, setOpen] = useState<{ chord: string; anchor: HTMLElement; also: string | null; instrument: Instrument } | null>(null);
+  const tuningOf = (one: Instrument) => (one === "piano" ? "standard" : ((one === "ukulele" ? player?.ukuleleTuning : player?.guitarTuning) ?? "standard"));
   const pianoHands = player?.pianoHands === "right" ? "right" : "both";
   const smooth = player?.pianoSmooth !== false;
   // The chords at the top, as fretted with the capo on (a guitar) or as they sound.
@@ -389,7 +402,7 @@ export function ChartWithDiagrams({
   const [choices, setChoices] = useState<ChordShapeChoice[]>([]);
   useEffect(() => {
     setChoices([]);
-    if (!instrument || !songVersionId) return;
+    if (used.length === 0 || !songVersionId) return;
     let current = true;
     // Offline (or a song this player can't read): the usual shapes.
     apiClient
@@ -399,42 +412,79 @@ export function ChartWithDiagrams({
     return () => {
       current = false;
     };
-  }, [instrument, songVersionId]);
-  const setup = useMemo<Setup | null>(() => {
-    if (!instrument) return null;
-    const chosen = new Map(choices.filter((one) => one.instrument === instrument && one.tuning === tuning).map((one) => [one.chord, one.frets]));
-    const choose = songVersionId
-      ? (chord: string, frets: string | null) =>
-          void apiClient
-            .chooseChordShape(songVersionId, { instrument, tuning, chord, frets })
-            .then(setChoices)
-            .catch(() => undefined)
-      : undefined;
-    // A piano's voicings as the song goes: each nearest the one before, or root position.
-    const start = new Map<string, number>();
-    if (instrument === "piano") songVoicings(chords, { hands: pianoHands, smooth }).forEach((index, i) => start.set(chords[i]!, index));
-    const pianoNames = player?.pianoNoteNames === "all" || player?.pianoNoteNames === "none" ? player.pianoNoteNames : "card";
-    return { instrument, tuning, leftHanded: !!player?.leftHanded, pianoHands, pianoNames, start, chosen, choose };
-  }, [instrument, tuning, player?.leftHanded, player?.pianoNoteNames, pianoHands, smooth, chords, choices, songVersionId]);
-  if (!instrument || !setup) return <SongChart chart={chart} onChordClick={onChordClick} {...props} />;
+  }, [usedKey, songVersionId]);
+  const setups = useMemo(() => {
+    const all = new Map<Instrument, Setup>();
+    for (const one of used) {
+      const tuning = tuningOf(one);
+      const chosen = new Map(choices.filter((choice) => choice.instrument === one && choice.tuning === tuning).map((choice) => [choice.chord, choice.frets]));
+      const choose = songVersionId
+        ? (chord: string, frets: string | null) =>
+            void apiClient
+              .chooseChordShape(songVersionId, { instrument: one, tuning, chord, frets })
+              .then(setChoices)
+              .catch(() => undefined)
+        : undefined;
+      // A piano's voicings as the song goes: each nearest the one before, or root position.
+      const start = new Map<string, number>();
+      if (one === "piano") {
+        const sounding = chartChords(chart, "sounding");
+        songVoicings(sounding, { hands: pianoHands, smooth }).forEach((index, i) => start.set(sounding[i]!, index));
+      }
+      const pianoNames = player?.pianoNoteNames === "all" || player?.pianoNoteNames === "none" ? player.pianoNoteNames : "card";
+      all.set(one, { instrument: one, tuning, leftHanded: !!player?.leftHanded, pianoHands, pianoNames, start, chosen, choose });
+    }
+    return all;
+  }, [usedKey, player?.guitarTuning, player?.ukuleleTuning, player?.leftHanded, player?.pianoNoteNames, pianoHands, smooth, chart, choices, songVersionId]);
+  const setup = instrument ? (setups.get(instrument) ?? null) : null;
+  // A row of diagrams draws each chord's usual (or chosen) shape, small.
+  const shownRows = useMemo(
+    () =>
+      rows && {
+        ...rows,
+        renderDiagram: (chord: string, one: Instrument) => {
+          const rowSetup = setups.get(one);
+          const option = rowSetup ? optionsFor(chord, rowSetup, 1)[0] : undefined;
+          return option && rowSetup ? (
+            <span className="inline-flex font-sans font-normal" data-row-diagram={chord}>
+              <OptionDiagram option={option} setup={rowSetup} chord={chord} name={chord} notation="LETTERS" />
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground">{chord}</span>
+          );
+        },
+      },
+    [rows, setups],
+  );
+  // The card a tapped chord opens: the strip's instrument, else a row's diagrams'; with the second row's name too.
+  const cardInstrument = instrument ?? rowInstruments[0] ?? null;
+  const openCard = (_id: string, element: HTMLElement, chord: RenderedChord) => {
+    if (!cardInstrument) return;
+    const shown = cardInstrument === "guitar" ? chord.fretted : chord.sounding;
+    // How the rows name it, where the card's own name (the chord drawn) doesn't say it already.
+    const names = rows ? [rows.main, rows.second].flatMap((row) => (row && !chordRowInstrument(row.names) ? [chordRowLabel(chord, row, chart.capo)] : [])) : [];
+    const also = [...new Set(names)].filter((name) => name !== shown).join(" · ") || null;
+    setOpen({ chord: shown, anchor: element, also, instrument: cardInstrument });
+  };
+  const cardSetup = open ? setups.get(open.instrument) : undefined;
   return (
     <div className="flex flex-col gap-3">
-      <div style={props.chordScale && props.chordScale !== 1 ? { zoom: props.chordScale } : undefined}>
-        <ChordStrip chords={chords} chart={chart} setup={setup} notation={notation} />
-      </div>
+      {setup ? (
+        <div style={props.chordScale && props.chordScale !== 1 ? { zoom: props.chordScale } : undefined}>
+          <ChordStrip chords={chords} chart={chart} setup={setup} notation={notation} />
+        </div>
+      ) : null}
       <SongChart
         chart={chart}
         {...props}
-        onChordClick={
-          onChordClick ??
-          ((_id, element, chord: RenderedChord) => setOpen({ chord: instrument === "guitar" ? chord.fretted : chord.sounding, anchor: element }))
-        }
+        rows={shownRows ?? undefined}
+        onChordClick={onChordClick ?? (cardInstrument ? openCard : undefined)}
         chordClickAction={onChordClick ? "hide" : "diagram"}
       />
       <Popover open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
-        {open ? (
+        {open && cardSetup ? (
           <PopoverContent anchor={open.anchor} className="w-auto min-w-36 p-2">
-            <ChordCard key={open.chord} chord={open.chord} setup={setup} notation={notation} />
+            <ChordCard key={open.chord} chord={open.chord} setup={cardSetup} notation={notation} also={open.also} />
           </PopoverContent>
         ) : null}
       </Popover>

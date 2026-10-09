@@ -42,6 +42,8 @@ export interface RenderedChord {
   fretted: string;
   /** Its family, for colouring it (issue #9): major, minor, suspended, diminished, augmented, dominant; null for none. */
   family: ChordFamily | null;
+  /** The key it's sung in at this point, as sounding (after key changes): what numbers and numerals count from (issue #230). */
+  key: string | null;
   /** Replaced by the arrangement on this pass. */
   replaced: boolean;
 }
@@ -121,7 +123,7 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
     const shown = capo && view.capoDisplay === "shapes" ? fretted : sounding;
     // Numbers and numerals are the same with or without a capo: the sounding chord in the key it's sung in.
     const label = view.notation === "nashville" || view.notation === "roman" ? formatChord(sounding, view.notation, key) : view.notation === "solfege" ? formatChord(shown, "solfege") : shown;
-    return { label, sounding, fretted, family: chordFamily(sounding) };
+    return { label, sounding, fretted, family: chordFamily(sounding), key };
   };
 
   let steps = baseSteps;

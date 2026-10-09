@@ -1,0 +1,187 @@
+{
+  "$schema": "songverse-conformance/v1",
+  "area": "chord-rows",
+  "about": "Rows of chords over the lyrics (issue #230): what each row shows for a chord, from the chord as it sounds or the shape played with the capo.",
+  "functions": {
+    "chordRowLabel": {
+      "about": "A chord's name in a row: letters or solfège of the sounding chord, or of the capo's shape when the row says so and there's a capo; Nashville numbers and Roman numerals from the sounding chord in the key sung at that point, capo or not; a diagram row gives the chord to draw.",
+      "params": [
+        "chord",
+        "row",
+        "capo"
+      ],
+      "cases": [
+        {
+          "name": "letters, sounding",
+          "args": [
+            {
+              "sounding": "A",
+              "fretted": "G",
+              "key": "A"
+            },
+            {
+              "names": "LETTERS",
+              "source": "SOUNDING"
+            },
+            2
+          ],
+          "expected": "A"
+        },
+        {
+          "name": "letters, the capo's shape",
+          "args": [
+            {
+              "sounding": "A",
+              "fretted": "G",
+              "key": "A"
+            },
+            {
+              "names": "LETTERS",
+              "source": "FINGERED"
+            },
+            2
+          ],
+          "expected": "G"
+        },
+        {
+          "name": "the capo's shape without a capo: the sounding chord",
+          "args": [
+            {
+              "sounding": "A",
+              "fretted": "A",
+              "key": "A"
+            },
+            {
+              "names": "LETTERS",
+              "source": "FINGERED"
+            },
+            null
+          ],
+          "expected": "A"
+        },
+        {
+          "name": "solfège of the shape",
+          "args": [
+            {
+              "sounding": "A",
+              "fretted": "G",
+              "key": "A"
+            },
+            {
+              "names": "SOLFEGE",
+              "source": "FINGERED"
+            },
+            2
+          ],
+          "expected": "Sol"
+        },
+        {
+          "name": "Nashville: the same with the capo",
+          "args": [
+            {
+              "sounding": "E",
+              "fretted": "D",
+              "key": "A"
+            },
+            {
+              "names": "NASHVILLE",
+              "source": "FINGERED"
+            },
+            2
+          ],
+          "expected": "5"
+        },
+        {
+          "name": "Roman numerals",
+          "args": [
+            {
+              "sounding": "F#m",
+              "fretted": "Em",
+              "key": "A"
+            },
+            {
+              "names": "ROMAN",
+              "source": "SOUNDING"
+            },
+            2
+          ],
+          "expected": "vi"
+        },
+        {
+          "name": "a guitar diagram of the shape",
+          "args": [
+            {
+              "sounding": "A",
+              "fretted": "G",
+              "key": "A"
+            },
+            {
+              "names": "GUITAR",
+              "source": "FINGERED"
+            },
+            2
+          ],
+          "expected": "G"
+        },
+        {
+          "name": "a piano diagram, sounding",
+          "args": [
+            {
+              "sounding": "A",
+              "fretted": "G",
+              "key": "A"
+            },
+            {
+              "names": "PIANO",
+              "source": "SOUNDING"
+            },
+            2
+          ],
+          "expected": "A"
+        }
+      ]
+    },
+    "chordRowShowsShapes": {
+      "about": "Whether a row names the capo's shapes (shown in italics): only with a capo, and not for numbers or numerals.",
+      "params": [
+        "row",
+        "capo"
+      ],
+      "cases": [
+        {
+          "name": "letters, shapes, a capo",
+          "args": [
+            {
+              "names": "LETTERS",
+              "source": "FINGERED"
+            },
+            3
+          ],
+          "expected": true
+        },
+        {
+          "name": "no capo",
+          "args": [
+            {
+              "names": "LETTERS",
+              "source": "FINGERED"
+            },
+            null
+          ],
+          "expected": false
+        },
+        {
+          "name": "Nashville",
+          "args": [
+            {
+              "names": "NASHVILLE",
+              "source": "FINGERED"
+            },
+            3
+          ],
+          "expected": false
+        }
+      ]
+    }
+  }
+}

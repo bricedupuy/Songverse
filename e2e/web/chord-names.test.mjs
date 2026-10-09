@@ -72,18 +72,18 @@ await step("a set's song: back to letters, colours off, from the Display panel -
   await displaySetting(page, "chords", "display-notation-LETTERS");
   await page.locator('[data-chord="C"]').first().waitFor(); // D sounding, capo 2 shapes: C
   const before = await page.locator('[data-family="dominant"]').first().evaluate((el) => getComputedStyle(el).color);
-  await displaySetting(page, "chords", "display-colors-off");
+  await displaySetting(page, "chords", "display-color-theme");
   await page.waitForFunction((was) => getComputedStyle(document.querySelector('[data-family="dominant"]')).color !== was, before);
   await page.waitForLoadState("networkidle");
   // Saved a moment after the last change, for Practice; the account's own settings stay as they were.
   let after;
   for (let i = 0; i < 20; i++) {
     after = await api(me, "GET", "/users/me");
-    if (after.displaySettings?.PRACTICE?.chordColors === false) break;
+    if (after.displaySettings?.PRACTICE?.chordColor === "theme") break;
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   const practice = after.displaySettings?.PRACTICE ?? {};
-  if (practice.chordNotation !== "LETTERS" || practice.chordColors !== false) throw new Error(JSON.stringify(after.displaySettings));
+  if (practice.chordNotation !== "LETTERS" || practice.chordColor !== "theme") throw new Error(JSON.stringify(after.displaySettings));
   if (after.chordColors !== true) throw new Error(`the account's colours changed: ${after.chordColors}`);
 });
 

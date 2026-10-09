@@ -6,6 +6,9 @@ import type {
   DisplayColumnsValue,
   DisplayFontValue,
   ControlsLayoutValue,
+  ChordRowFontValue,
+  ChordRowNamesValue,
+  ChordRowWeightValue,
   ControlsPositionValue,
   LiveControlValue,
   AppModeValue,
@@ -23,6 +26,7 @@ import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
 import type { LyricsMatch } from "../search-text/lyrics.js";
+import type { SecondChordRow } from "../display/chord-rows.js";
 import type { SectionProgression } from "../chords/progressions.js";
 import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
@@ -447,8 +451,15 @@ export interface DisplaySettings {
   font?: DisplayFontValue;
   spacing?: DisplaySpacingValue;
   columns?: DisplayColumnsValue;
-  chordNotation?: ChordNotationValue;
+  /** The main row's names (issue #230): a notation, or a diagram on each chord. */
+  chordNotation?: ChordRowNamesValue;
   chordColors?: boolean;
+  /** The main row's look (issue #230). */
+  chordFont?: ChordRowFontValue;
+  chordWeight?: ChordRowWeightValue;
+  chordColor?: string;
+  /** A second row of chords (issue #230). */
+  secondRow?: Partial<SecondChordRow> | null;
   capoDisplayMode?: CapoDisplayModeValue;
   chordDiagrams?: ChordDiagramsValue;
   hideChords?: boolean;

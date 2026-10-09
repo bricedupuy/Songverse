@@ -76,6 +76,20 @@ export type ChordNotationValue = (typeof CHORD_NOTATIONS)[number];
 
 /** Chord diagrams beside every chart (issue #207): off, or for a guitar, a ukulele or a piano. */
 export const CHORD_DIAGRAMS = ["OFF", "GUITAR", "UKULELE", "PIANO"] as const;
+/** What a row of chords over the lyrics shows (issue #230): a notation's names, or a small diagram on each chord. */
+export const CHORD_ROW_NAMES = [...CHORD_NOTATIONS, "GUITAR", "UKULELE", "PIANO"] as const;
+export type ChordRowNamesValue = (typeof CHORD_ROW_NAMES)[number];
+export const CHORD_ROW_FONTS = ["same", "sans", "mono"] as const;
+export type ChordRowFontValue = (typeof CHORD_ROW_FONTS)[number];
+export const CHORD_ROW_WEIGHTS = ["bold", "normal"] as const;
+export type ChordRowWeightValue = (typeof CHORD_ROW_WEIGHTS)[number];
+/** A row's colour: the theme's accent, muted, by chord type (issue #9), or a colour of its own (#rrggbb). */
+export const CHORD_ROW_COLORS = ["theme", "muted", "family"] as const;
+/** Where the second row is: under the main chords, over them, or beside each as a superscript. */
+export const SECOND_ROW_POSITIONS = ["below", "above", "beside"] as const;
+export type SecondRowPositionValue = (typeof SECOND_ROW_POSITIONS)[number];
+/** The second row's size, against the main chords'. */
+export const SECOND_ROW_SIZES = [0.5, 0.6, 0.7, 0.8, 0.9, 1] as const;
 /** Piano diagrams' hands (issue #207 phase 4): both, or the right only (a bassist covers the bass). */
 export const PIANO_HANDS = ["both", "right"] as const;
 /** Note names on a piano diagram's keys: in the bigger card only, everywhere, or never. */

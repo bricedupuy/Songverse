@@ -68,8 +68,8 @@ describe("renderChart", () => {
     expect(pass.lines.map((line) => line.text)).toEqual(["Amazing love", "Oh"]);
     expect(pass.lines[0]).toMatchObject({ note: "Softly", lyricChanged: true });
     expect(pass.lines[0]!.chords).toEqual([
-      { id: chordOf(0, 0, 0).id, at: 0, label: "A", sounding: "A", fretted: "A", family: "major", replaced: false },
-      { id: chordOf(0, 0, 1).id, at: 8, label: "C#m", sounding: "C#m", fretted: "C#m", family: "minor", replaced: true },
+      { id: chordOf(0, 0, 0).id, at: 0, label: "A", sounding: "A", fretted: "A", family: "major", key: "A", replaced: false },
+      { id: chordOf(0, 0, 1).id, at: 8, label: "C#m", sounding: "C#m", fretted: "C#m", family: "minor", key: "A", replaced: true },
     ]);
     expect(pass.lines[1]).toMatchObject({ inserted: true, chords: [{ id: "ins_chd_1", label: "D" }] });
     // The same section on another pass is untouched.

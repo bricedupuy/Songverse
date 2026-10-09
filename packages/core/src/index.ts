@@ -34,6 +34,7 @@ export * from "./chords/piano.js";
 export * from "./chords/progressions.js";
 export * from "./chords/transitions.js";
 export * from "./display/settings.js";
+export * from "./display/chord-rows.js";
 export * from "./user-roles/index.js";
 export * from "./songbook-catalog-format/index.js";
 export * from "./api-client/index.js";

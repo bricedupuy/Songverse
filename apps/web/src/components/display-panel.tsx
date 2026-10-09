@@ -1,10 +1,14 @@
-import { CONTROLS_POSITIONS, DISPLAY_TEXT_SIZES, LIVE_CONTROLS, TUNINGS, type ControlsPositionValue, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
+import { CHORD_ROW_PRESETS, SECOND_ROW_SIZES, type ChordRow, type ChordRowPreset, type SecondChordRow, CONTROLS_POSITIONS, DISPLAY_TEXT_SIZES, LIVE_CONTROLS, TUNINGS, type ControlsPositionValue, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
 import {
   ArrowDown,
+  Superscript,
+  Piano,
+  Layers2,
+  ArrowUpToLine,
+  ArrowDownToLine,
   ArrowDownLeft,
   ArrowDownRight,
   ArrowRight,
-  Baseline,
   CircleDot,
   Columns2,
   Columns3,
@@ -146,7 +150,7 @@ export function DisplayPanel({
             variant="ghost"
             size="icon"
             className="ml-auto size-8"
-            onClick={() => change({ textSize: null, chordSize: null, font: null, spacing: null, columns: null, chordNotation: null, chordColors: null, capoDisplayMode: null, chordDiagrams: null, hideChords: null, controls: null, controlsPosition: null, hiddenControls: null, controlsOpacity: null })}
+            onClick={() => change({ textSize: null, chordSize: null, font: null, spacing: null, columns: null, chordNotation: null, chordColors: null, capoDisplayMode: null, chordDiagrams: null, hideChords: null, chordFont: null, chordWeight: null, chordColor: null, secondRow: null, controls: null, controlsPosition: null, hiddenControls: null, controlsOpacity: null })}
             title={t("display.resetHint", { mode: modeName })}
             aria-label={t("display.resetHint", { mode: modeName })}
             data-testid="display-reset"
@@ -219,41 +223,19 @@ export function DisplayPanel({
           ) : null}
           {shown("chords") ? (
             <SectionBlock section="chords" heading={wide}>
-              <Row label={t("display.names")}>
-                <Choices
-                  value={settings.chordNotation}
-                  onChange={(chordNotation) => change({ chordNotation })}
-                  name="notation"
-                  options={[
-                    { value: "LETTERS", label: t("dashboard.notationLetters"), content: "C" },
-                    { value: "SOLFEGE", label: t("player.solfege"), content: "Do" },
-                    { value: "NASHVILLE", label: t("dashboard.notationNashville"), content: "1" },
-                    { value: "ROMAN", label: t("dashboard.notationRoman"), content: "I" },
-                  ]}
-                />
-              </Row>
-              <Row label={t("display.colors")}>
-                <Choices
-                  value={settings.chordColors ? "on" : "off"}
-                  onChange={(value) => change({ chordColors: value === "on" })}
-                  name="colors"
-                  options={[
-                    { value: "off", label: t("display.colorsOff"), content: <Baseline /> },
-                    { value: "on", label: t("display.colorsOn"), content: <Palette /> },
-                  ]}
-                />
-              </Row>
-              <Row label={t("display.capo")}>
-                <Choices
-                  value={settings.capoDisplayMode}
-                  onChange={(capoDisplayMode) => change({ capoDisplayMode })}
-                  name="capo"
-                  options={[
-                    { value: "SOUNDING", label: t("display.capoSounding"), content: <Ear /> },
-                    { value: "FINGERED", label: t("display.capoShapes"), content: <Hand /> },
-                  ]}
-                />
-              </Row>
+              <ChordRowControls
+                row={settings.chordRows.main}
+                name=""
+                onChange={(next) =>
+                  change({
+                    ...(next.names && { chordNotation: next.names }),
+                    ...(next.source && { capoDisplayMode: next.source }),
+                    ...(next.font && { chordFont: next.font }),
+                    ...(next.weight && { chordWeight: next.weight }),
+                    ...(next.color && { chordColor: next.color, chordColors: null }),
+                  })
+                }
+              />
               <Row label={t("display.show")}>
                 <Choices
                   value={settings.hideChords ? "hidden" : "shown"}
@@ -265,6 +247,7 @@ export function DisplayPanel({
                   ]}
                 />
               </Row>
+              <SecondRowControls settings={settings} onChange={change} />
             </SectionBlock>
           ) : null}
           {shown("instrument") ? (
@@ -366,6 +349,162 @@ function ControlsSection({ settings, onChange }: { settings: EffectiveDisplaySet
         </div>
       )}
     </>
+  );
+}
+
+/**
+ * A row of chords' options (issue #230): its names (a notation, or a
+ * diagram on each chord), the chord it names, and its look. The same for
+ * the main row and the second; `name` tells their buttons apart.
+ */
+function ChordRowControls({ row, name, onChange }: { row: ChordRow; name: string; onChange: (change: Partial<ChordRow>) => void }) {
+  const { t } = useTranslation();
+  const id = (field: string) => (name ? `${name}-${field}` : field);
+  const custom = row.color.startsWith("#");
+  return (
+    <>
+      <Row label={t("display.names")}>
+        <Choices
+          value={row.names}
+          onChange={(names) => onChange({ names })}
+          name={id("notation")}
+          options={[
+            { value: "LETTERS", label: t("dashboard.notationLetters"), content: "C" },
+            { value: "SOLFEGE", label: t("player.solfege"), content: "Do" },
+            { value: "NASHVILLE", label: t("dashboard.notationNashville"), content: "1" },
+            { value: "ROMAN", label: t("dashboard.notationRoman"), content: "I" },
+            { value: "GUITAR", label: t("display.namesGuitar"), content: <Guitar /> },
+            { value: "UKULELE", label: t("display.namesUkulele"), content: <span className="text-[10px]">Uk</span> },
+            { value: "PIANO", label: t("display.namesPiano"), content: <Piano /> },
+          ]}
+        />
+      </Row>
+      <Row label={t("display.capo")}>
+        <Choices
+          value={row.source}
+          onChange={(source) => onChange({ source })}
+          name={id("capo")}
+          options={[
+            { value: "SOUNDING", label: t("display.capoSounding"), content: <Ear /> },
+            { value: "FINGERED", label: t("display.capoShapes"), content: <Hand /> },
+          ]}
+        />
+      </Row>
+      <Row label={t("display.color")}>
+        <span className="flex min-w-0 items-center gap-1">
+          <Choices
+            value={custom ? "custom" : (row.color as "theme" | "muted" | "family")}
+            onChange={(color) => onChange({ color: color === "custom" ? "#e11d48" : color })}
+            name={id("color")}
+            options={[
+              { value: "theme", label: t("display.colorTheme"), content: <span className="size-3 rounded-full border-2 border-current bg-primary" /> },
+              { value: "muted", label: t("display.colorMuted"), content: <span className="size-3 rounded-full border-2 border-current bg-muted-foreground" /> },
+              { value: "family", label: t("display.colorsOn"), content: <Palette /> },
+              { value: "custom", label: t("display.colorCustom"), content: <span className="size-3 rounded-full" style={{ background: custom ? row.color : "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }} /> },
+            ]}
+          />
+          {custom ? (
+            <input
+              type="color"
+              value={row.color}
+              onChange={(event) => onChange({ color: event.target.value })}
+              aria-label={t("display.colorCustom")}
+              className="size-8 shrink-0 cursor-pointer rounded-md border bg-background p-0.5"
+              data-testid={`display-${id("color-pick")}`}
+            />
+          ) : null}
+        </span>
+      </Row>
+      <Row label={t("display.font")}>
+        <Choices
+          value={row.font}
+          onChange={(font) => onChange({ font })}
+          name={id("chord-font")}
+          options={[
+            { value: "same", label: t("display.fontSame"), content: "=" },
+            { value: "sans", label: t("display.fontSans"), content: <span className="font-sans">Aa</span> },
+            { value: "mono", label: t("display.fontMono"), content: <span className="font-mono">Aa</span> },
+          ]}
+        />
+      </Row>
+      <Row label={t("display.weight")}>
+        <Choices
+          value={row.weight}
+          onChange={(weight) => onChange({ weight })}
+          name={id("weight")}
+          options={[
+            { value: "bold", label: t("display.weightBold"), content: <span className="font-bold">B</span> },
+            { value: "normal", label: t("display.weightNormal"), content: <span className="font-normal">B</span> },
+          ]}
+        />
+      </Row>
+    </>
+  );
+}
+
+/** The second row of chords (issue #230): off unless turned on, a preset to start from, where it goes, its size, and a row's options. */
+function SecondRowControls({ settings, onChange }: { settings: EffectiveDisplaySettings; onChange: (change: Parameters<typeof changeDisplaySettings>[1]) => void }) {
+  const { t } = useTranslation();
+  const second = settings.chordRows.second;
+  const set = (change: Partial<SecondChordRow>) => onChange({ secondRow: { ...(second ?? {}), ...change } });
+  const preset = (key: ChordRowPreset) => {
+    const { main, second: other } = CHORD_ROW_PRESETS[key];
+    onChange({ chordNotation: main.names, capoDisplayMode: main.source, secondRow: { ...(second ?? {}), ...other } });
+  };
+  const sizeAt = SECOND_ROW_SIZES.indexOf((second?.size ?? 0.8) as (typeof SECOND_ROW_SIZES)[number]);
+  return (
+    <div className="mt-1 flex flex-col gap-2 border-t pt-2" data-testid="display-second-row">
+      <Row label={t("display.secondRow")}>
+        <Choices
+          value={second ? "on" : "off"}
+          onChange={(value) => onChange({ secondRow: value === "on" ? { ...CHORD_ROW_PRESETS.capo.second } : null })}
+          name="second"
+          options={[
+            { value: "off", label: t("display.secondOff"), content: <Minus /> },
+            { value: "on", label: t("display.secondOn"), content: <Layers2 /> },
+          ]}
+        />
+      </Row>
+      <Row label={t("display.presets")}>
+        <div className="grid grid-cols-1 gap-1">
+          {(Object.keys(CHORD_ROW_PRESETS) as ChordRowPreset[]).map((key) => (
+            <Choice key={key} pressed={false} onClick={() => preset(key)} label={t(`display.preset.${key}`)} testId={`display-preset-${key}`}>
+              <span className="truncate">{t(`display.preset.${key}`)}</span>
+            </Choice>
+          ))}
+        </div>
+      </Row>
+      {second ? (
+        <>
+          <Row label={t("display.position")}>
+            <Choices
+              value={second.position}
+              onChange={(position) => set({ position })}
+              name="second-position"
+              options={[
+                { value: "below", label: t("display.positionBelow"), content: <ArrowDownToLine /> },
+                { value: "above", label: t("display.positionAbove"), content: <ArrowUpToLine /> },
+                { value: "beside", label: t("display.positionBeside"), content: <Superscript /> },
+              ]}
+            />
+          </Row>
+          <Row label={t("display.rowSize")}>
+            <ButtonGroup className="w-full">
+              <Choice pressed={false} disabled={sizeAt <= 0} onClick={() => set({ size: SECOND_ROW_SIZES[sizeAt - 1] })} label={t("display.rowSmaller")} testId="display-second-smaller">
+                <Minus />
+              </Choice>
+              <span className="flex flex-1 items-center justify-center border-y bg-background text-xs font-medium tabular-nums" data-testid="display-second-size">
+                {Math.round((second.size ?? 0.8) * 100)}%
+              </span>
+              <Choice pressed={false} disabled={sizeAt >= SECOND_ROW_SIZES.length - 1} onClick={() => set({ size: SECOND_ROW_SIZES[sizeAt + 1] })} label={t("display.rowBigger")} testId="display-second-bigger">
+                <Plus />
+              </Choice>
+            </ButtonGroup>
+          </Row>
+          <ChordRowControls row={second} name="second" onChange={(change) => set(change)} />
+        </>
+      ) : null}
+    </div>
   );
 }
 

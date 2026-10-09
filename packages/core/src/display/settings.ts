@@ -12,6 +12,7 @@ import type {
 } from "../constants/index.js";
 import { APP_MODES } from "../constants/index.js";
 import type { DisplaySettings } from "../api-client/index.js";
+import { chordRowNotation, type ChordRow, type SecondChordRow } from "./chord-rows.js";
 
 /**
  * How a player reads charts (issue #209): each mode - Edit, Practice, Live -
@@ -38,6 +39,8 @@ export interface EffectiveDisplaySettings {
   controlsPosition: ControlsPositionValue;
   hiddenControls: LiveControlValue[];
   controlsOpacity: number;
+  /** The rows of chords over the lyrics (issue #230): the main one, and a second one or none. chordNotation and chordColors are the main row's, as a notation and on or off. */
+  chordRows: { main: ChordRow; second: SecondChordRow | null };
 }
 
 export type SavedDisplaySettings = Partial<Record<AppModeValue, DisplaySettings>>;
@@ -56,6 +59,15 @@ const DEFAULT_TEXT_SIZE: Record<AppModeValue, number> = { EDIT: 1, PRACTICE: 1, 
 /** A mode's settings in full: what it changed, else the account's, else the default. */
 export function effectiveDisplaySettings(account: AccountDisplaySettings | null | undefined, saved: SavedDisplaySettings | null | undefined, mode: AppModeValue): EffectiveDisplaySettings {
   const own = saved?.[mode] ?? {};
+  // The main row of chords (issue #230): the mode's own, else the account's, else the default.
+  const main: ChordRow = {
+    names: own.chordNotation ?? account?.chordNotation ?? "LETTERS",
+    source: own.capoDisplayMode ?? account?.capoDisplayMode ?? "SOUNDING",
+    size: 1,
+    font: own.chordFont ?? "same",
+    weight: own.chordWeight ?? "bold",
+    color: own.chordColor ?? ((own.chordColors ?? account?.chordColors) ? "family" : "theme"),
+  };
   return {
     textSize: own.textSize ?? DEFAULT_TEXT_SIZE[mode],
     chordSize: own.chordSize ?? own.textSize ?? DEFAULT_TEXT_SIZE[mode],
@@ -63,15 +75,29 @@ export function effectiveDisplaySettings(account: AccountDisplaySettings | null 
     font: own.font ?? "mono",
     spacing: own.spacing ?? "normal",
     columns: own.columns ?? "auto",
-    chordNotation: own.chordNotation ?? account?.chordNotation ?? "LETTERS",
-    chordColors: own.chordColors ?? account?.chordColors ?? false,
-    capoDisplayMode: own.capoDisplayMode ?? account?.capoDisplayMode ?? "SOUNDING",
+    chordNotation: chordRowNotation(main.names),
+    chordColors: main.color === "family",
+    capoDisplayMode: main.source,
     chordDiagrams: own.chordDiagrams ?? account?.chordDiagrams ?? "OFF",
     hideChords: own.hideChords ?? false,
     controls: own.controls ?? "footer",
     controlsPosition: own.controlsPosition ?? "bottom-right",
     hiddenControls: own.hiddenControls ?? [],
     controlsOpacity: own.controlsOpacity ?? 0.7,
+    chordRows: {
+      main,
+      second: own.secondRow
+        ? {
+            names: own.secondRow.names ?? "LETTERS",
+            source: own.secondRow.source ?? "SOUNDING",
+            position: own.secondRow.position ?? "below",
+            size: own.secondRow.size ?? 0.8,
+            font: own.secondRow.font ?? "same",
+            weight: own.secondRow.weight ?? "normal",
+            color: own.secondRow.color ?? "muted",
+          }
+        : null,
+    },
   };
 }
 

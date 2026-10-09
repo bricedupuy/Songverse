@@ -98,7 +98,7 @@ await step("Chords: names, colours and lyrics only, from the section list", asyn
   await page.getByTestId("display-section-chords").click();
   await panel().getByTestId("display-notation-NASHVILLE").click();
   await chart().locator("[data-chord]").first().getByText("1").waitFor();
-  await panel().getByTestId("display-colors-on").click();
+  await panel().getByTestId("display-color-family").click();
   await chart().locator("[data-family]").first().waitFor();
   await panel().getByTestId("display-chords-hidden").click();
   await page.locator('[data-testid="song-chart"][data-hide-chords]').waitFor();

@@ -1,6 +1,7 @@
 import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
 import { pianoVoicings, songVoicings, voicingText } from "../chords/piano.js";
 import { effectiveDisplaySettings, mergeDisplaySettings } from "../display/settings.js";
+import { chordRowLabel, chordRowShowsShapes } from "../display/chord-rows.js";
 import { chartEdgeChords, degreeChord, transitionDegrees, transitionProgressions } from "../chords/transitions.js";
 import { findProgression, parseProgressionQuery, progressionDegree, progressionGrams, progressionSimilarity, songProgressions } from "../chords/progressions.js";
 import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, romanChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
@@ -652,6 +653,9 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "nothing changed: the account's, Live bigger", args: [{ chordNotation: "SOLFEGE", chordDiagrams: "GUITAR" }, {}, "LIVE"] },
           { name: "Practice changed its names and size", args: [{ chordNotation: "SOLFEGE" }, { PRACTICE: { chordNotation: "NASHVILLE", textSize: 1.25 }, LIVE: { font: "sans" } }, "PRACTICE"] },
           { name: "chords set apart from the lyrics", args: [null, { LIVE: { textSize: 1.25, chordSize: 2 } }, "LIVE"] },
+          { name: "a second row of chords, the capo's shapes, the rest by default", args: [null, { LIVE: { secondRow: { source: "FINGERED", position: "beside" } } }, "LIVE"] },
+          { name: "the main row as diagrams, in its own colour and font", args: [{ chordColors: true }, { PRACTICE: { chordNotation: "GUITAR", chordColor: "#ff8800", chordFont: "sans", chordWeight: "normal" } }, "PRACTICE"] },
+          { name: "colours by chord type from the account", args: [{ chordColors: true }, null, "LIVE"] },
           { name: "Live's controls floating, some hidden", args: [null, { LIVE: { controls: "floating", controlsPosition: "right", hiddenControls: ["metronome", "transpose"], controlsOpacity: 0.4 } }, "LIVE"] },
           { name: "no account settings", args: [null, null, "EDIT"] },
         ],
@@ -932,6 +936,41 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "typed in lower case with a space", args: ["k7q m3x"] },
           { name: "a letter it never uses (O)", args: ["K7Q-O3X"] },
           { name: "too short", args: ["K7QM"] },
+        ],
+      },
+    },
+  },
+  {
+    area: "chord-rows",
+    about: "Rows of chords over the lyrics (issue #230): what each row shows for a chord, from the chord as it sounds or the shape played with the capo.",
+    functions: {
+      chordRowLabel: {
+        about:
+          "A chord's name in a row: letters or solfège of the sounding chord, or of the capo's shape when the row says so and there's a capo; Nashville numbers and Roman numerals from the sounding chord in the key sung at that point, capo or not; a diagram row gives the chord to draw.",
+        params: ["chord", "row", "capo"],
+        run: chordRowLabel,
+        cases: (() => {
+          const chord = { sounding: "A", fretted: "G", key: "A" };
+          return [
+            { name: "letters, sounding", args: [chord, { names: "LETTERS", source: "SOUNDING" }, 2] },
+            { name: "letters, the capo's shape", args: [chord, { names: "LETTERS", source: "FINGERED" }, 2] },
+            { name: "the capo's shape without a capo: the sounding chord", args: [{ sounding: "A", fretted: "A", key: "A" }, { names: "LETTERS", source: "FINGERED" }, null] },
+            { name: "solfège of the shape", args: [chord, { names: "SOLFEGE", source: "FINGERED" }, 2] },
+            { name: "Nashville: the same with the capo", args: [{ sounding: "E", fretted: "D", key: "A" }, { names: "NASHVILLE", source: "FINGERED" }, 2] },
+            { name: "Roman numerals", args: [{ sounding: "F#m", fretted: "Em", key: "A" }, { names: "ROMAN", source: "SOUNDING" }, 2] },
+            { name: "a guitar diagram of the shape", args: [chord, { names: "GUITAR", source: "FINGERED" }, 2] },
+            { name: "a piano diagram, sounding", args: [chord, { names: "PIANO", source: "SOUNDING" }, 2] },
+          ];
+        })(),
+      },
+      chordRowShowsShapes: {
+        about: "Whether a row names the capo's shapes (shown in italics): only with a capo, and not for numbers or numerals.",
+        params: ["row", "capo"],
+        run: chordRowShowsShapes,
+        cases: [
+          { name: "letters, shapes, a capo", args: [{ names: "LETTERS", source: "FINGERED" }, 3] },
+          { name: "no capo", args: [{ names: "LETTERS", source: "FINGERED" }, null] },
+          { name: "Nashville", args: [{ names: "NASHVILLE", source: "FINGERED" }, 3] },
         ],
       },
     },
