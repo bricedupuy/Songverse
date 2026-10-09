@@ -460,7 +460,7 @@ export interface DisplaySettings {
   chordWeight?: ChordRowWeightValue;
   chordColor?: string;
   /** A second row of chords (issue #230). */
-  secondRow?: Partial<SecondChordRow> | null;
+  secondRow?: (Partial<SecondChordRow> & { on?: boolean }) | null;
   capoDisplayMode?: CapoDisplayModeValue;
   chordDiagrams?: ChordDiagramsValue;
   /** Where the diagrams sit (issue #212). */

@@ -1,11 +1,12 @@
-import { type DiagramPositionValue, CHORD_ROW_PRESETS, SECOND_ROW_SIZES, type ChordRow, type ChordRowPreset, type SecondChordRow, CONTROLS_POSITIONS, DISPLAY_TEXT_SIZES, LIVE_CONTROLS, TUNINGS, type ControlsPositionValue, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
+import { type DiagramPositionValue, SECOND_ROW_GAPS, SECOND_ROW_SIZES, type ChordRow, type SecondChordRow, CONTROLS_POSITIONS, DISPLAY_TEXT_SIZES, LIVE_CONTROLS, TUNINGS, type ControlsPositionValue, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
 import {
   ArrowDown,
   Superscript,
-  Piano,
   Layers2,
   ArrowUpToLine,
   ArrowDownToLine,
+  ArrowLeftToLine,
+  ArrowRightToLine,
   ArrowDownLeft,
   ArrowDownRight,
   ArrowRight,
@@ -375,9 +376,6 @@ function ChordRowControls({ row, name, onChange }: { row: ChordRow; name: string
             { value: "SOLFEGE", label: t("player.solfege"), content: "Do" },
             { value: "NASHVILLE", label: t("dashboard.notationNashville"), content: "1" },
             { value: "ROMAN", label: t("dashboard.notationRoman"), content: "I" },
-            { value: "GUITAR", label: t("display.namesGuitar"), content: <Guitar /> },
-            { value: "UKULELE", label: t("display.namesUkulele"), content: <span className="text-[10px]">Uk</span> },
-            { value: "PIANO", label: t("display.namesPiano"), content: <Piano /> },
           ]}
         />
       </Row>
@@ -444,37 +442,48 @@ function ChordRowControls({ row, name, onChange }: { row: ChordRow; name: string
   );
 }
 
-/** The second row of chords (issue #230): off unless turned on, a preset to start from, where it goes, its size, and a row's options. */
+/**
+ * The second row of chords (issue #230): off unless turned on - off, it
+ * keeps its settings for when it's on again - where it goes (under, over,
+ * a superscript, side by side), the gap between the rows, its size, and a
+ * row's options.
+ */
 function SecondRowControls({ settings, onChange }: { settings: EffectiveDisplaySettings; onChange: (change: Parameters<typeof changeDisplaySettings>[1]) => void }) {
   const { t } = useTranslation();
   const second = settings.chordRows.second;
-  const set = (change: Partial<SecondChordRow>) => onChange({ secondRow: { ...(second ?? {}), ...change } });
-  const preset = (key: ChordRowPreset) => {
-    const { main, second: other } = CHORD_ROW_PRESETS[key];
-    onChange({ chordNotation: main.names, capoDisplayMode: main.source, secondRow: { ...(second ?? {}), ...other } });
+  const kept = settings.secondRowKept;
+  const set = (change: Partial<SecondChordRow>) => onChange({ secondRow: { ...kept, ...(second ?? {}), ...change, on: true } });
+  const step = <T extends number>(values: readonly T[], value: number, by: 1 | -1) => values[Math.min(values.length - 1, Math.max(0, values.indexOf(value as T) + by))]!;
+  const stepper = (field: "size" | "gap", values: readonly number[], shown: string, labels: [string, string]) => {
+    const value = second![field];
+    const at = values.indexOf(value);
+    return (
+      <ButtonGroup className="w-full">
+        <Choice pressed={false} disabled={at <= 0} onClick={() => set({ [field]: step(values, value, -1) })} label={labels[0]} testId={`display-second-${field}-smaller`}>
+          <Minus />
+        </Choice>
+        <span className="flex flex-1 items-center justify-center border-y bg-background text-xs font-medium tabular-nums" data-testid={`display-second-${field}`}>
+          {shown}
+        </span>
+        <Choice pressed={false} disabled={at >= values.length - 1} onClick={() => set({ [field]: step(values, value, 1) })} label={labels[1]} testId={`display-second-${field}-bigger`}>
+          <Plus />
+        </Choice>
+      </ButtonGroup>
+    );
   };
-  const sizeAt = SECOND_ROW_SIZES.indexOf((second?.size ?? 0.8) as (typeof SECOND_ROW_SIZES)[number]);
   return (
     <div className="mt-1 flex flex-col gap-2 border-t pt-2" data-testid="display-second-row">
       <Row label={t("display.secondRow")}>
         <Choices
           value={second ? "on" : "off"}
-          onChange={(value) => onChange({ secondRow: value === "on" ? { ...CHORD_ROW_PRESETS.capo.second } : null })}
+          // Off keeps what it was set to; on brings it back (Roman numerals the first time).
+          onChange={(value) => onChange({ secondRow: { names: "ROMAN", ...kept, on: value === "on" } })}
           name="second"
           options={[
             { value: "off", label: t("display.secondOff"), content: <Minus /> },
             { value: "on", label: t("display.secondOn"), content: <Layers2 /> },
           ]}
         />
-      </Row>
-      <Row label={t("display.presets")}>
-        <div className="grid grid-cols-1 gap-1">
-          {(Object.keys(CHORD_ROW_PRESETS) as ChordRowPreset[]).map((key) => (
-            <Choice key={key} pressed={false} onClick={() => preset(key)} label={t(`display.preset.${key}`)} testId={`display-preset-${key}`}>
-              <span className="truncate">{t(`display.preset.${key}`)}</span>
-            </Choice>
-          ))}
-        </div>
       </Row>
       {second ? (
         <>
@@ -487,22 +496,13 @@ function SecondRowControls({ settings, onChange }: { settings: EffectiveDisplayS
                 { value: "below", label: t("display.positionBelow"), content: <ArrowDownToLine /> },
                 { value: "above", label: t("display.positionAbove"), content: <ArrowUpToLine /> },
                 { value: "beside", label: t("display.positionBeside"), content: <Superscript /> },
+                { value: "right", label: t("display.positionRight"), content: <ArrowRightToLine /> },
+                { value: "left", label: t("display.positionLeft"), content: <ArrowLeftToLine /> },
               ]}
             />
           </Row>
-          <Row label={t("display.rowSize")}>
-            <ButtonGroup className="w-full">
-              <Choice pressed={false} disabled={sizeAt <= 0} onClick={() => set({ size: SECOND_ROW_SIZES[sizeAt - 1] })} label={t("display.rowSmaller")} testId="display-second-smaller">
-                <Minus />
-              </Choice>
-              <span className="flex flex-1 items-center justify-center border-y bg-background text-xs font-medium tabular-nums" data-testid="display-second-size">
-                {Math.round((second.size ?? 0.8) * 100)}%
-              </span>
-              <Choice pressed={false} disabled={sizeAt >= SECOND_ROW_SIZES.length - 1} onClick={() => set({ size: SECOND_ROW_SIZES[sizeAt + 1] })} label={t("display.rowBigger")} testId="display-second-bigger">
-                <Plus />
-              </Choice>
-            </ButtonGroup>
-          </Row>
+          <Row label={t("display.rowGap")}>{stepper("gap", SECOND_ROW_GAPS, `${second.gap}`, [t("display.rowGapSmaller"), t("display.rowGapBigger")])}</Row>
+          <Row label={t("display.rowSize")}>{stepper("size", SECOND_ROW_SIZES, `${Math.round(second.size * 100)}%`, [t("display.rowSmaller"), t("display.rowBigger")])}</Row>
           <ChordRowControls row={second} name="second" onChange={(change) => set(change)} />
         </>
       ) : null}

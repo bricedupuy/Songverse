@@ -2,6 +2,7 @@ import { chordShapes, chordTones, shapeText } from "../chords/shapes.js";
 import { pianoVoicings, songVoicings, voicingText } from "../chords/piano.js";
 import { effectiveDisplaySettings, mergeDisplaySettings } from "../display/settings.js";
 import { chordRowLabel, chordRowShowsShapes } from "../display/chord-rows.js";
+import { prettyChord } from "../display/accidentals.js";
 import { chartEdgeChords, degreeChord, transitionDegrees, transitionProgressions } from "../chords/transitions.js";
 import { findProgression, parseProgressionQuery, progressionDegree, progressionGrams, progressionSimilarity, songProgressions } from "../chords/progressions.js";
 import { chordFamily, diatonicChords, formatChord, keyUsesFlats, nashvilleChord, parseChord, romanChord, sameChord, simplifyChord, transposeChord } from "../chords/chord.js";
@@ -670,7 +671,9 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "Practice changed its names and size", args: [{ chordNotation: "SOLFEGE" }, { PRACTICE: { chordNotation: "NASHVILLE", textSize: 1.25 }, LIVE: { font: "sans" } }, "PRACTICE"] },
           { name: "chords set apart from the lyrics", args: [null, { LIVE: { textSize: 1.25, chordSize: 2 } }, "LIVE"] },
           { name: "a second row of chords, the capo's shapes, the rest by default", args: [null, { LIVE: { secondRow: { source: "FINGERED", position: "beside" } } }, "LIVE"] },
-          { name: "the main row as diagrams, in its own colour and font", args: [{ chordColors: true }, { PRACTICE: { chordNotation: "GUITAR", chordColor: "#ff8800", chordFont: "sans", chordWeight: "normal" } }, "PRACTICE"] },
+          { name: "the main row in Nashville numbers, in its own colour and font", args: [{ chordColors: true }, { PRACTICE: { chordNotation: "NASHVILLE", chordColor: "#ff8800", chordFont: "sans", chordWeight: "normal" } }, "PRACTICE"] },
+          { name: "a second row side by side, with a wider gap", args: [null, { LIVE: { secondRow: { names: "ROMAN", position: "right", gap: 0.5 } } }, "LIVE"] },
+          { name: "a second row turned off keeps its settings", args: [null, { LIVE: { secondRow: { on: false, names: "ROMAN", position: "above" } } }, "LIVE"] },
           { name: "colours by chord type from the account", args: [{ chordColors: true }, null, "LIVE"] },
           { name: "diagrams docked at the bottom", args: [{ chordDiagrams: "GUITAR" }, { LIVE: { diagramsPosition: "bottom" } }, "LIVE"] },
           { name: "Live's controls floating, some hidden", args: [null, { LIVE: { controls: "floating", controlsPosition: "right", hiddenControls: ["metronome", "transpose"], controlsOpacity: 0.4 } }, "LIVE"] },
@@ -984,10 +987,14 @@ export const CONFORMANCE: ConformanceArea[] = [
             { name: "solfège of the shape", args: [chord, { names: "SOLFEGE", source: "FINGERED" }, 2] },
             { name: "Nashville: the same with the capo", args: [{ sounding: "E", fretted: "D", key: "A" }, { names: "NASHVILLE", source: "FINGERED" }, 2] },
             { name: "Roman numerals", args: [{ sounding: "F#m", fretted: "Em", key: "A" }, { names: "ROMAN", source: "SOUNDING" }, 2] },
-            { name: "a guitar diagram of the shape", args: [chord, { names: "GUITAR", source: "FINGERED" }, 2] },
-            { name: "a piano diagram, sounding", args: [chord, { names: "PIANO", source: "SOUNDING" }, 2] },
           ];
         })(),
+      },
+      prettyChord: {
+        about: "A chord or key as it's shown: # and b as ♯ and ♭ - a b after a note (letter or solfège) or before a number; any other b is a letter.",
+        params: ["text"],
+        run: prettyChord,
+        cases: ["F#m7b5", "Bb/D", "Ebsus4", "C#7#9", "Sib", "Fa#m", "b7m7b5", "♭VII7", "Bbm(maj7)", "Absus2", "C/Bb", "Dbadd9"].map((text) => ({ name: JSON.stringify(text), args: [text] })),
       },
       chordRowShowsShapes: {
         about: "Whether a row names the capo's shapes (shown in italics): only with a capo, and not for numbers or numerals.",

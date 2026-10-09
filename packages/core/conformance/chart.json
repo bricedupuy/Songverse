@@ -3678,6 +3678,7 @@
             "controlsPosition": "bottom-right",
             "hiddenControls": [],
             "controlsOpacity": 0.7,
+            "secondRowKept": {},
             "chordRows": {
               "main": {
                 "names": "SOLFEGE",
@@ -3725,6 +3726,7 @@
             "controlsPosition": "bottom-right",
             "hiddenControls": [],
             "controlsOpacity": 0.7,
+            "secondRowKept": {},
             "chordRows": {
               "main": {
                 "names": "NASHVILLE",
@@ -3767,6 +3769,7 @@
             "controlsPosition": "bottom-right",
             "hiddenControls": [],
             "controlsOpacity": 0.7,
+            "secondRowKept": {},
             "chordRows": {
               "main": {
                 "names": "LETTERS",
@@ -3811,6 +3814,10 @@
             "controlsPosition": "bottom-right",
             "hiddenControls": [],
             "controlsOpacity": 0.7,
+            "secondRowKept": {
+              "source": "FINGERED",
+              "position": "beside"
+            },
             "chordRows": {
               "main": {
                 "names": "LETTERS",
@@ -3824,6 +3831,7 @@
                 "names": "LETTERS",
                 "source": "FINGERED",
                 "position": "beside",
+                "gap": 0.1,
                 "size": 0.8,
                 "font": "same",
                 "weight": "normal",
@@ -3833,14 +3841,14 @@
           }
         },
         {
-          "name": "the main row as diagrams, in its own colour and font",
+          "name": "the main row in Nashville numbers, in its own colour and font",
           "args": [
             {
               "chordColors": true
             },
             {
               "PRACTICE": {
-                "chordNotation": "GUITAR",
+                "chordNotation": "NASHVILLE",
                 "chordColor": "#ff8800",
                 "chordFont": "sans",
                 "chordWeight": "normal"
@@ -3855,6 +3863,52 @@
             "font": "mono",
             "spacing": "normal",
             "columns": "auto",
+            "chordNotation": "NASHVILLE",
+            "chordColors": false,
+            "capoDisplayMode": "SOUNDING",
+            "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
+            "hideChords": false,
+            "controls": "footer",
+            "controlsPosition": "bottom-right",
+            "hiddenControls": [],
+            "controlsOpacity": 0.7,
+            "secondRowKept": {},
+            "chordRows": {
+              "main": {
+                "names": "NASHVILLE",
+                "source": "SOUNDING",
+                "size": 1,
+                "font": "sans",
+                "weight": "normal",
+                "color": "#ff8800"
+              },
+              "second": null
+            }
+          }
+        },
+        {
+          "name": "a second row side by side, with a wider gap",
+          "args": [
+            null,
+            {
+              "LIVE": {
+                "secondRow": {
+                  "names": "ROMAN",
+                  "position": "right",
+                  "gap": 0.5
+                }
+              }
+            },
+            "LIVE"
+          ],
+          "expected": {
+            "textSize": 1.5,
+            "chordSize": 1.5,
+            "sizesLinked": true,
+            "font": "mono",
+            "spacing": "normal",
+            "columns": "auto",
             "chordNotation": "LETTERS",
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
@@ -3865,14 +3919,77 @@
             "controlsPosition": "bottom-right",
             "hiddenControls": [],
             "controlsOpacity": 0.7,
+            "secondRowKept": {
+              "names": "ROMAN",
+              "position": "right",
+              "gap": 0.5
+            },
             "chordRows": {
               "main": {
-                "names": "GUITAR",
+                "names": "LETTERS",
                 "source": "SOUNDING",
                 "size": 1,
-                "font": "sans",
+                "font": "same",
+                "weight": "bold",
+                "color": "theme"
+              },
+              "second": {
+                "names": "ROMAN",
+                "source": "SOUNDING",
+                "position": "right",
+                "gap": 0.5,
+                "size": 0.8,
+                "font": "same",
                 "weight": "normal",
-                "color": "#ff8800"
+                "color": "muted"
+              }
+            }
+          }
+        },
+        {
+          "name": "a second row turned off keeps its settings",
+          "args": [
+            null,
+            {
+              "LIVE": {
+                "secondRow": {
+                  "on": false,
+                  "names": "ROMAN",
+                  "position": "above"
+                }
+              }
+            },
+            "LIVE"
+          ],
+          "expected": {
+            "textSize": 1.5,
+            "chordSize": 1.5,
+            "sizesLinked": true,
+            "font": "mono",
+            "spacing": "normal",
+            "columns": "auto",
+            "chordNotation": "LETTERS",
+            "chordColors": false,
+            "capoDisplayMode": "SOUNDING",
+            "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
+            "hideChords": false,
+            "controls": "footer",
+            "controlsPosition": "bottom-right",
+            "hiddenControls": [],
+            "controlsOpacity": 0.7,
+            "secondRowKept": {
+              "names": "ROMAN",
+              "position": "above"
+            },
+            "chordRows": {
+              "main": {
+                "names": "LETTERS",
+                "source": "SOUNDING",
+                "size": 1,
+                "font": "same",
+                "weight": "bold",
+                "color": "theme"
               },
               "second": null
             }
@@ -3904,6 +4021,7 @@
             "controlsPosition": "bottom-right",
             "hiddenControls": [],
             "controlsOpacity": 0.7,
+            "secondRowKept": {},
             "chordRows": {
               "main": {
                 "names": "LETTERS",
@@ -3947,6 +4065,7 @@
             "controlsPosition": "bottom-right",
             "hiddenControls": [],
             "controlsOpacity": 0.7,
+            "secondRowKept": {},
             "chordRows": {
               "main": {
                 "names": "LETTERS",
@@ -3997,6 +4116,7 @@
               "transpose"
             ],
             "controlsOpacity": 0.4,
+            "secondRowKept": {},
             "chordRows": {
               "main": {
                 "names": "LETTERS",
@@ -4034,6 +4154,7 @@
             "controlsPosition": "bottom-right",
             "hiddenControls": [],
             "controlsOpacity": 0.7,
+            "secondRowKept": {},
             "chordRows": {
               "main": {
                 "names": "LETTERS",

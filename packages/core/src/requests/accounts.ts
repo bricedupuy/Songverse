@@ -1,6 +1,6 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, DIAGRAM_POSITIONS, CHORD_ROW_COLORS, CHORD_ROW_FONTS, CHORD_ROW_NAMES, CHORD_ROW_WEIGHTS, SECOND_ROW_POSITIONS, SECOND_ROW_SIZES, CONTROLS_LAYOUTS, CONTROLS_OPACITIES, CONTROLS_POSITIONS, LIVE_CONTROLS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
+import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, DIAGRAM_POSITIONS, CHORD_ROW_COLORS, CHORD_ROW_FONTS, CHORD_ROW_NAMES, CHORD_ROW_WEIGHTS, SECOND_ROW_GAPS, SECOND_ROW_POSITIONS, SECOND_ROW_SIZES, CONTROLS_LAYOUTS, CONTROLS_OPACITIES, CONTROLS_POSITIONS, LIVE_CONTROLS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
 import { TUNINGS } from "../chords/shapes.js";
 import { clearableText, optional, requiredText } from "./fields.js";
 
@@ -51,10 +51,13 @@ export const DisplaySettingsSchema = z.strictObject({
   /** A second row of chords (issue #230): absent or null, none. */
   secondRow: z
     .strictObject({
+      /** Off keeps its settings for when it's turned on again. */
+      on: z.boolean().optional(),
       names: z.enum(CHORD_ROW_NAMES).optional(),
       source: z.enum(CAPO_DISPLAY_MODES).optional(),
       position: z.enum(SECOND_ROW_POSITIONS).optional(),
       size: z.union(SECOND_ROW_SIZES.map((size) => z.literal(size)) as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]).optional(),
+      gap: z.union(SECOND_ROW_GAPS.map((gap) => z.literal(gap)) as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]).optional(),
       font: z.enum(CHORD_ROW_FONTS).optional(),
       weight: z.enum(CHORD_ROW_WEIGHTS).optional(),
       color: chordRowColor.optional(),

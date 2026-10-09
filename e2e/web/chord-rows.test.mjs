@@ -1,10 +1,10 @@
-// Rows of chords (issue #230): a second row under, over or beside the main
-// chords, off unless turned on; presets to start from (the capo's: chords
-// as they sound, the shapes played below); each row's own names (a
-// notation or a diagram on each chord), chord, colour, font and weight;
-// the same options for both rows. Kept per mode; a row that only repeats
-// the other isn't shown; lyrics only hides both; a tapped chord's card
-// names it as the rows do.
+// Rows of chords (issue #230): a second row under or over the main chords,
+// beside them as a superscript or side by side, the gap between them
+// adjustable; off unless turned on, and off it keeps its settings. Each
+// row's own names (a notation), chord (as it sounds, or the capo's shape),
+// colour, font and weight: the same options for both. Sharps and flats as
+// ♯ and ♭. Kept per mode; a row that only repeats the other isn't shown;
+// lyrics only hides both; a tapped chord's card names it as the rows do.
 import { chromium } from "playwright";
 import { WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
@@ -47,9 +47,12 @@ try {
     await panel().getByTestId("display-second-row").waitFor();
   });
 
-  await step("the capo's preset: the chords as they sound, the shapes played under them, in italics", async () => {
-    await panel().getByTestId("display-preset-capo").click();
-    await second().first().waitFor();
+  await step("turned on: Roman numerals; the capo's shapes instead, under the chords as they sound, in italics", async () => {
+    await panel().getByTestId("display-second-on").click();
+    await second().first().getByText("I", { exact: true }).waitFor();
+    await panel().getByTestId("display-second-notation-LETTERS").click();
+    await panel().getByTestId("display-second-capo-FINGERED").click();
+    await second().first().getByText("G", { exact: true }).waitFor();
     const [main, shape, lyric] = await Promise.all([
       songChart().locator("[data-chord]").first().evaluate((el) => ({ text: el.textContent, y: el.getBoundingClientRect().top, italic: getComputedStyle(el).fontStyle })),
       second().first().evaluate((el) => ({ text: el.textContent, y: el.getBoundingClientRect().top, italic: getComputedStyle(el).fontStyle })),
@@ -58,7 +61,7 @@ try {
     if (main.text !== "A" || shape.text !== "G") throw new Error(`${main.text} / ${shape.text}`);
     if (!(main.y < shape.y && shape.y < lyric)) throw new Error(`not under the chord: ${main.y} ${shape.y} ${lyric}`);
     if (shape.italic !== "italic" || main.italic === "italic") throw new Error(`italics: ${main.italic} ${shape.italic}`);
-    await saved((found) => found.PRACTICE?.secondRow?.source === "FINGERED" && found.PRACTICE.capoDisplayMode === "SOUNDING");
+    await saved((found) => found.PRACTICE?.secondRow?.source === "FINGERED" && found.PRACTICE.secondRow.names === "LETTERS");
   });
 
   await step("beside each chord, as a superscript", async () => {
@@ -76,16 +79,50 @@ try {
       return !!element && getComputedStyle(element).color === "rgb(0, 170, 0)";
     });
     const before = await second().first().evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-    await panel().getByTestId("display-second-smaller").click();
+    await panel().getByTestId("display-second-size-smaller").click();
     await panel().getByTestId("display-second-size").getByText("70%").waitFor();
     await page.waitForFunction((was) => parseFloat(getComputedStyle(document.querySelector("[data-chord-second]")).fontSize) < was, before);
   });
 
-  await step("a row of diagrams: one on each chord", async () => {
+  await step("side by side, after or before each chord, the gap between them adjustable", async () => {
+    await panel().getByTestId("display-second-position-right").click();
+    const inside = songChart().locator("[data-chord] [data-chord-second]").first();
+    await inside.waitFor();
+    const apart = async () =>
+      inside.evaluate((el) => {
+        const main = el.parentElement.querySelector(":scope > span:not([data-chord-second])").getBoundingClientRect();
+        const own = el.getBoundingClientRect();
+        return { gap: own.left - main.right, after: own.left >= main.right - 1, line: Math.abs(own.bottom - main.bottom) < 6 };
+      });
+    const before = await apart();
+    if (!before.after || !before.line) throw new Error(`not after the chord on its line: ${JSON.stringify(before)}`);
+    await panel().getByTestId("display-second-gap-bigger").click();
+    await panel().getByTestId("display-second-gap-bigger").click();
+    await page.waitForTimeout(200);
+    const wider = await apart();
+    if (!(wider.gap > before.gap + 1)) throw new Error(`the gap didn't grow: ${before.gap} -> ${wider.gap}`);
+    await panel().getByTestId("display-second-position-left").click();
+    await page.waitForFunction(() => {
+      const second = document.querySelector("[data-chord] [data-chord-second]");
+      const main = second?.parentElement.querySelector(":scope > span:not([data-chord-second])");
+      return second && main && second.getBoundingClientRect().right <= main.getBoundingClientRect().left + 1;
+    });
     await panel().getByTestId("display-second-position-below").click();
-    await panel().getByTestId("display-second-notation-GUITAR").click();
-    await songChart().locator("[data-row-diagram]").first().waitFor();
-    if ((await songChart().locator("[data-row-diagram]").count()) !== 4) throw new Error(`${await songChart().locator("[data-row-diagram]").count()} diagrams`);
+  });
+
+  await step("sharps and flats as their symbols", async () => {
+    await songChart().locator("[data-chord]").filter({ hasText: "F♯m" }).first().waitFor();
+    if ((await songChart().textContent()).includes("F#m")) throw new Error("a # left");
+  });
+
+  await step("turned off and on again: as it was set", async () => {
+    await panel().getByTestId("display-second-off").click();
+    await second().first().waitFor({ state: "detached" });
+    await saved((found) => found.PRACTICE?.secondRow?.on === false && found.PRACTICE.secondRow.source === "FINGERED");
+    await panel().getByTestId("display-second-on").click();
+    // Its Roman numerals, 70%, green - kept.
+    await second().first().getByText("I", { exact: true }).waitFor();
+    await panel().getByTestId("display-second-size").getByText("70%").waitFor();
   });
 
   await step("the main row has the same options: its font and weight", async () => {
@@ -98,7 +135,7 @@ try {
   });
 
   await step("a tapped chord's card names it as the rows do: the shape to play, and the chord as it sounds", async () => {
-    await panel().getByTestId("display-preset-capo").click();
+    await panel().getByTestId("display-second-notation-LETTERS").click();
     await second().first().getByText("G").waitFor();
     // The card's instrument: the player's diagrams.
     await panel().getByTestId("display-diagrams-GUITAR").click();
@@ -139,7 +176,7 @@ try {
     await page.getByTestId("display-open").click();
     await panel().getByTestId("display-second-off").click();
     await second().first().waitFor({ state: "detached" });
-    await saved((found) => !found.PRACTICE?.secondRow);
+    await saved((found) => found.PRACTICE?.secondRow?.on === false);
   });
 } finally {
   await browser.close();

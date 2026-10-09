@@ -146,7 +146,7 @@ await step("a player reads it as capo shapes or in solfège", async () => {
 
 await step("a player hides a chord for themselves only", async () => {
   await page.getByRole("button", { name: "Hide chords" }).click();
-  await page.getByRole("button", { name: "Hide F#m for me" }).click();
+  await page.getByRole("button", { name: "Hide F♯m for me" }).click();
   await page.getByRole("button", { name: "Show 1 hidden chord" }).waitFor();
   await page.reload();
   await page.waitForLoadState("networkidle");

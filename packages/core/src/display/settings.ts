@@ -44,6 +44,8 @@ export interface EffectiveDisplaySettings {
   controlsOpacity: number;
   /** The rows of chords over the lyrics (issue #230): the main one, and a second one or none. chordNotation and chordColors are the main row's, as a notation and on or off. */
   chordRows: { main: ChordRow; second: SecondChordRow | null };
+  /** The second row's settings as kept, on or off: what it comes back with when turned on again. */
+  secondRowKept: Partial<SecondChordRow>;
 }
 
 export type SavedDisplaySettings = Partial<Record<AppModeValue, DisplaySettings>>;
@@ -64,7 +66,7 @@ export function effectiveDisplaySettings(account: AccountDisplaySettings | null 
   const own = saved?.[mode] ?? {};
   // The main row of chords (issue #230): the mode's own, else the account's, else the default.
   const main: ChordRow = {
-    names: own.chordNotation ?? account?.chordNotation ?? "LETTERS",
+    names: chordRowNotation(own.chordNotation ?? account?.chordNotation ?? "LETTERS"),
     source: own.capoDisplayMode ?? account?.capoDisplayMode ?? "SOUNDING",
     size: 1,
     font: own.chordFont ?? "same",
@@ -88,13 +90,16 @@ export function effectiveDisplaySettings(account: AccountDisplaySettings | null 
     controlsPosition: own.controlsPosition ?? "bottom-right",
     hiddenControls: own.hiddenControls ?? [],
     controlsOpacity: own.controlsOpacity ?? 0.7,
+    secondRowKept: Object.fromEntries(Object.entries(own.secondRow ?? {}).filter(([field]) => field !== "on")) as Partial<SecondChordRow>,
     chordRows: {
       main,
-      second: own.secondRow
+      // Off keeps its settings (on: false), for when it's turned on again.
+      second: own.secondRow && own.secondRow.on !== false
         ? {
-            names: own.secondRow.names ?? "LETTERS",
+            names: chordRowNotation(own.secondRow.names ?? "LETTERS"),
             source: own.secondRow.source ?? "SOUNDING",
             position: own.secondRow.position ?? "below",
+            gap: own.secondRow.gap ?? 0.1,
             size: own.secondRow.size ?? 0.8,
             font: own.secondRow.font ?? "same",
             weight: own.secondRow.weight ?? "normal",

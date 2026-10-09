@@ -1,6 +1,6 @@
 import {
-  chordRowInstrument,
   chordRowLabel,
+  prettyChord,
   chordRowShowsShapes,
   layoutChordLine,
   type ChartCell,
@@ -130,7 +130,7 @@ export function SongChart({
                 ) : null}
                 {pass.keyChange ? (
                   <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary normal-case" data-key-change={pass.keyChange}>
-                    {t("chart.keyChange", { key: pass.keyChange })}
+                    {t("chart.keyChange", { key: prettyChord(pass.keyChange) })}
                   </span>
                 ) : null}
                 {pass.differs ? <span className="font-normal text-amber-700 normal-case dark:text-amber-400">{t("chart.differs")}</span> : null}
@@ -215,7 +215,6 @@ function ChartLine({
 
   /** One row's chords in a cell: their names (the main row's taps), or a diagram each. */
   const rowOf = (row: RowLook, cell: ChartCell, isMain: boolean) => {
-    const instrument = rows ? chordRowInstrument(row.names) : null;
     const shapes = rows ? chordRowShowsShapes(row, capo) : false;
     const size = isMain ? "calc(1em * var(--chord-scale, 1))" : `calc(1em * var(--chord-scale, 1) * ${row.size})`;
     const look = (id: string | undefined) => {
@@ -229,15 +228,8 @@ function ChartLine({
     };
     const custom = row.color.startsWith("#") ? { color: row.color } : undefined;
     const items = cell.chords.map((chord, k) => {
-      const label = labelOf(row, chord.id, chord.label);
-      const content =
-        instrument && rows?.renderDiagram ? (
-          <span className="inline-block align-bottom" style={{ zoom: `calc(var(--chord-scale, 1) * ${isMain ? 1 : row.size})` }}>
-            {rows.renderDiagram(label, instrument)}
-          </span>
-        ) : (
-          label
-        );
+      // Sharps and flats as their symbols (issue #230).
+      const label = prettyChord(labelOf(row, chord.id, chord.label));
       return (
         <Fragment key={chord.id ?? k}>
           {k > 0 ? " " : null}
@@ -251,17 +243,17 @@ function ChartLine({
               aria-label={t(action === "hide" ? "chart.hideChord" : "chart.showDiagram", { chord: label })}
               onClick={(event) => onChordClick(chord.id!, event.currentTarget, byId.get(chord.id!)!)}
             >
-              {content}
+              {label}
             </button>
           ) : (
             <span className={look(chord.id)} style={custom} data-family={(chord.id && byId.get(chord.id)?.family) || undefined}>
-              {content}
+              {label}
             </span>
           )}
         </Fragment>
       );
     });
-    return { items, shapes, size, instrument };
+    return { items, shapes, size };
   };
 
   return (
@@ -275,17 +267,30 @@ function ChartLine({
             {word.map((cell, c) => {
               const mainRow = rowOf(main, cell, true);
               const secondRow = second && cell.chords.length > 0 ? rowOf(second, cell, false) : null;
-              // A chord wider than its text widens the cell, so the next chord stays over its own character (both rows' names; diagrams widen it themselves).
-              const length = (row: RowLook, items: { label: string; id?: string }[]) =>
-                rows && chordRowInstrument(row.names) ? 0 : items.map((chord) => labelOf(row, chord.id, chord.label)).join(" ").length;
+              // A chord wider than its text widens the cell, so the next chord stays over its own character (both rows' names).
+              const length = (row: RowLook, items: { label: string; id?: string }[]) => items.map((chord) => labelOf(row, chord.id, chord.label)).join(" ").length;
               const mainLength = cell.chord ? length(main, cell.chords) : 0;
               const secondLength = second && cell.chord ? length(second, cell.chords) * second.size : 0;
-              const width = cell.chord ? (second?.position === "beside" ? mainLength + secondLength : Math.max(mainLength, secondLength)) + 1 : 0;
+              const side = second && (second.position === "beside" || second.position === "left" || second.position === "right");
+              // The gap is in em; a character about 0.6em.
+              const gapLength = second && side ? second.gap / 0.6 : 0;
+              const width = cell.chord ? (side ? mainLength + secondLength + gapLength : Math.max(mainLength, secondLength)) + 1 : 0;
               const stretched = cell.midWord && width > cell.text.length;
               const rowClass = (row: RowLook, shapes: boolean) =>
                 cn(row.font === "sans" && "font-sans", row.font === "mono" && "font-mono", row.weight === "bold" ? "font-bold" : "font-normal", shapes && "italic");
+              const gap = `${second?.gap ?? 0}em`;
               const secondEl = secondRow ? (
-                <span className={rowClass(second!, secondRow.shapes)} style={{ fontSize: secondRow.size }} data-chord-second={cell.chord ?? undefined}>
+                <span
+                  className={rowClass(second!, secondRow.shapes)}
+                  style={{
+                    fontSize: secondRow.size,
+                    ...(second!.position === "below" && { marginTop: gap }),
+                    ...(second!.position === "above" && { marginBottom: gap }),
+                    ...((second!.position === "right" || second!.position === "beside") && { marginLeft: gap }),
+                    ...(second!.position === "left" && { marginRight: gap }),
+                  }}
+                  data-chord-second={cell.chord ?? undefined}
+                >
                   {secondRow.items}
                 </span>
               ) : null;
@@ -293,8 +298,10 @@ function ChartLine({
                 <span key={c} className="inline-flex flex-col justify-end" style={width ? { minWidth: `calc(${Math.round(width * 100) / 100}ch * var(--chord-scale, 1))` } : undefined}>
                   {second?.position === "above" ? (secondEl ?? <span className="leading-none"> </span>) : null}
                   <span className={rowClass(main, mainRow.shapes)} style={{ fontSize: mainRow.size }} data-chord={cell.chord ?? undefined}>
+                    {second?.position === "left" && secondEl ? secondEl : null}
                     {cell.chords.length === 0 ? " " : mainRow.items}
-                    {second?.position === "beside" && secondEl ? <sup className="ml-0.5 align-super">{secondEl}</sup> : null}
+                    {second?.position === "right" && secondEl ? secondEl : null}
+                    {second?.position === "beside" && secondEl ? <sup className="align-super">{secondEl}</sup> : null}
                   </span>
                   {second?.position === "below" ? (secondEl ?? <span> </span>) : null}
                   <span className="flex">
@@ -323,16 +330,14 @@ type RowLook = ChordRowSettings;
 function secondRowDiffers(chart: RenderedChart, rows: ChordRowsView): boolean {
   const second = rows.second;
   if (!second) return false;
-  if (chordRowInstrument(second.names) !== chordRowInstrument(rows.main.names)) return true;
   for (const pass of chart.passes)
     for (const line of pass.lines)
       for (const chord of line.chords) if (chordRowLabel(chord, second, chart.capo) !== chordRowLabel(chord, rows.main, chart.capo)) return true;
   return false;
 }
 
-/** The rows of chords a chart draws (issue #230), and how a diagram row draws a chord. */
+/** The rows of chords a chart draws (issue #230). */
 export interface ChordRowsView {
   main: ChordRowSettings;
   second: SecondChordRow | null;
-  renderDiagram?: (chord: string, instrument: "guitar" | "ukulele" | "piano") => ReactNode;
 }

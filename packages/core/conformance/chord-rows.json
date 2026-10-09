@@ -106,38 +106,98 @@
             2
           ],
           "expected": "vi"
+        }
+      ]
+    },
+    "prettyChord": {
+      "about": "A chord or key as it's shown: # and b as ♯ and ♭ - a b after a note (letter or solfège) or before a number; any other b is a letter.",
+      "params": [
+        "text"
+      ],
+      "cases": [
+        {
+          "name": "\"F#m7b5\"",
+          "args": [
+            "F#m7b5"
+          ],
+          "expected": "F♯m7♭5"
         },
         {
-          "name": "a guitar diagram of the shape",
+          "name": "\"Bb/D\"",
           "args": [
-            {
-              "sounding": "A",
-              "fretted": "G",
-              "key": "A"
-            },
-            {
-              "names": "GUITAR",
-              "source": "FINGERED"
-            },
-            2
+            "Bb/D"
           ],
-          "expected": "G"
+          "expected": "B♭/D"
         },
         {
-          "name": "a piano diagram, sounding",
+          "name": "\"Ebsus4\"",
           "args": [
-            {
-              "sounding": "A",
-              "fretted": "G",
-              "key": "A"
-            },
-            {
-              "names": "PIANO",
-              "source": "SOUNDING"
-            },
-            2
+            "Ebsus4"
           ],
-          "expected": "A"
+          "expected": "E♭sus4"
+        },
+        {
+          "name": "\"C#7#9\"",
+          "args": [
+            "C#7#9"
+          ],
+          "expected": "C♯7♯9"
+        },
+        {
+          "name": "\"Sib\"",
+          "args": [
+            "Sib"
+          ],
+          "expected": "Si♭"
+        },
+        {
+          "name": "\"Fa#m\"",
+          "args": [
+            "Fa#m"
+          ],
+          "expected": "Fa♯m"
+        },
+        {
+          "name": "\"b7m7b5\"",
+          "args": [
+            "b7m7b5"
+          ],
+          "expected": "♭7m7♭5"
+        },
+        {
+          "name": "\"♭VII7\"",
+          "args": [
+            "♭VII7"
+          ],
+          "expected": "♭VII7"
+        },
+        {
+          "name": "\"Bbm(maj7)\"",
+          "args": [
+            "Bbm(maj7)"
+          ],
+          "expected": "B♭m(maj7)"
+        },
+        {
+          "name": "\"Absus2\"",
+          "args": [
+            "Absus2"
+          ],
+          "expected": "A♭sus2"
+        },
+        {
+          "name": "\"C/Bb\"",
+          "args": [
+            "C/Bb"
+          ],
+          "expected": "C/B♭"
+        },
+        {
+          "name": "\"Dbadd9\"",
+          "args": [
+            "Dbadd9"
+          ],
+          "expected": "D♭add9"
         }
       ]
     },

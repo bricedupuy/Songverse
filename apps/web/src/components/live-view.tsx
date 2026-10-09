@@ -1,4 +1,4 @@
-import { chartSeconds, type ControlsPositionValue, type LiveControlValue, degreeChords, transposeChord, transposeKey, structureOf, type DiagramPlayer, type EffectiveDisplaySettings, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
+import { prettyChord, chartSeconds, type ControlsPositionValue, type LiveControlValue, degreeChords, transposeChord, transposeKey, structureOf, type DiagramPlayer, type EffectiveDisplaySettings, type RenderedChart, type SetTransitionView, type StructureGroup } from "@songverse/core";
 import { AArrowDown, AArrowUp, ArrowLeft, ChevronDown, ChevronUp, Settings2, ChevronLeft, ChevronRight, Expand, Minus, Pause, Play, Plus, Rabbit, Shrink, Turtle } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode, type RefObject, type TouchEvent } from "react";
 import { useTranslation } from "react-i18next";
@@ -588,7 +588,7 @@ function LiveSongSection({
           </div>
           {chart?.key && !onTranspose ? (
             <span className="shrink-0 rounded-lg border px-3 py-1 text-2xl font-bold sm:text-3xl" data-testid={id("live-key")}>
-              {chart.key}
+              {prettyChord(chart.key)}
             </span>
           ) : null}
           {chart?.key && onTranspose ? <KeyButton musicalKey={chart.key} shift={shiftOf(song.keyShift + extraSteps)} extraSteps={extraSteps} onTranspose={onTranspose} testId={id("live-key")} /> : null}
@@ -1067,7 +1067,7 @@ function KeyButton({ musicalKey, shift, extraSteps, onTranspose, testId }: { mus
         className="flex items-baseline gap-0.5 rounded-lg border px-3 py-1 hover:bg-accent"
         data-testid={testId}
       >
-        <span className="text-2xl font-bold sm:text-3xl">{musicalKey}</span>
+        <span className="text-2xl font-bold sm:text-3xl">{prettyChord(musicalKey)}</span>
         {shiftText ? <span className="text-sm text-muted-foreground">{shiftText}</span> : null}
       </button>
       {open ? (
@@ -1077,7 +1077,7 @@ function KeyButton({ musicalKey, shift, extraSteps, onTranspose, testId }: { mus
             <button type="button" className={iconClass} onClick={() => onTranspose(extraSteps - 1)} aria-label={t("live.semitoneDown")}>
               <Minus />
             </button>
-            <span className="text-2xl font-bold">{musicalKey}</span>
+            <span className="text-2xl font-bold">{prettyChord(musicalKey)}</span>
             <button type="button" className={iconClass} onClick={() => onTranspose(extraSteps + 1)} aria-label={t("live.semitoneUp")}>
               <Plus />
             </button>
