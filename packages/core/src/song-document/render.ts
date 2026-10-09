@@ -76,6 +76,12 @@ export interface RenderedPass {
   lines: RenderedLine[];
   /** The arrangement changes something on this pass: the band should know it's not as usual. */
   differs: boolean;
+  /** The song's own pass differs from its section (issue #205): its own chords, transposed, or only some lines - marked *. */
+  changed: boolean;
+  /** Only some of the section's lines. */
+  partial: boolean;
+  /** Semitones this pass alone is moved by. */
+  transpose: number;
   /** References that no longer match the song (deleted lines or chords); shown, never dropped silently. */
   problems: string[];
 }
@@ -134,7 +140,9 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
     if (item.keyChange) steps += item.keyChange.steps;
     if (item.tempo) tempo = item.tempo;
     if (!section) continue;
-    const key = keyAt(steps);
+    // This pass only (issue #205): a few semitones up or down, after the key changes so far.
+    const passSteps = steps + (item.transpose ?? 0);
+    const key = keyAt(passSteps);
     const overrides = item.overrides ?? [];
     const problems: string[] = [];
     const lineIds = new Set(section.lines.map((line) => line.id));
@@ -153,6 +161,22 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
     const hiddenLines = new Set(overrides.flatMap((o) => (o.type === "hide_line" ? [o.lineId] : [])));
     // Placed among every line, hidden ones too: a line added after a hidden one shows where it was.
     let lines: Working[] = section.lines.map((line) => toWorking(line, false));
+    // The pass's own (issue #205): only some lines, and its own chords - under an arrangement's changes.
+    if (item.lines) {
+      const from = lines.findIndex((line) => line.id === item.lines!.from);
+      const to = lines.findIndex((line) => line.id === item.lines!.to);
+      if (from < 0 || to < 0) problems.push(`lines ${from < 0 ? item.lines.from : item.lines.to} not found`);
+      else lines = lines.slice(Math.min(from, to), Math.max(from, to) + 1);
+    }
+    for (const change of item.chords ?? []) {
+      const line = lines.find((one) => one.chords.some((chord) => chord.id === change.chordId));
+      if (!line) {
+        if (!section.lines.some((one) => one.chords.some((chord) => chord.id === change.chordId))) problems.push(`chord ${change.chordId} not found`);
+        continue;
+      }
+      if (change.raw === null) line.chords = line.chords.filter((chord) => chord.id !== change.chordId);
+      else line.chords = line.chords.map((chord) => (chord.id === change.chordId ? { ...chord, raw: change.raw!, replaced: true } : chord));
+    }
     for (const override of overrides) {
       if (override.type !== "insert_line") continue;
       const inserted = toWorking(override.line, true);
@@ -232,9 +256,12 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
         lyricChanged: line.lyricChanged,
         chords: line.chords
           .filter((chord) => !hidden.has(chord.id))
-          .map((chord) => ({ id: chord.id, at: chord.at, ...show(chord.raw, steps, key), replaced: chord.replaced })),
+          .map((chord) => ({ id: chord.id, at: chord.at, ...show(chord.raw, passSteps, key), replaced: chord.replaced })),
       })),
       differs: overrides.length > 0,
+      changed: !!item.transpose || (item.chords?.length ?? 0) > 0 || !!item.lines,
+      partial: !!item.lines,
+      transpose: item.transpose ?? 0,
       problems,
     });
   }

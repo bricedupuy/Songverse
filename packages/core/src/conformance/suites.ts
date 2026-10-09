@@ -139,6 +139,18 @@ const ARRANGEMENT = {
   ],
 };
 
+/** The song with passes of its own (issue #205): the verse's last line again, a chorus with a chord of its own and one left out, a pass a tone up. */
+const SONG_WITH_PASSES = {
+  ...SONG,
+  flow: [
+    { id: "fi_verse", sectionId: "sec_verse" },
+    { id: "fi_chorus", sectionId: "sec_chorus", chords: [{ chordId: "chd_c1", raw: "Am" }, { chordId: "chd_c3", raw: null }] },
+    { id: "fi_verse_end", sectionId: "sec_verse", lines: { from: "line_v3", to: "line_v3" } },
+    { id: "fi_chorus_up", sectionId: "sec_chorus", transpose: 2 },
+    { id: "fi_missing", sectionId: "sec_verse", lines: { from: "line_gone", to: "line_v3" }, chords: [{ chordId: "chd_gone", raw: "E" }] },
+  ],
+};
+
 const read = (json: unknown) => readSongDocument(json);
 const arrangement = (json: unknown) => parseArrangementDocumentV2(json);
 
@@ -620,7 +632,10 @@ export const CONFORMANCE: ConformanceArea[] = [
         about: "The order a song is sung in, as ChordPro: a section again is a reference to it.",
         params: ["song"],
         run: (song: unknown) => flowToChordPro(read(song)),
-        cases: [{ name: "verse, chorus, chorus", args: [SONG] }],
+        cases: [
+          { name: "verse, chorus, chorus", args: [SONG] },
+          { name: "passes of their own, written out in full", args: [SONG_WITH_PASSES] },
+        ],
       },
     },
   },
@@ -642,6 +657,7 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "the song's capo suggestion, as shapes", args: [SONG, null, { suggestedCapo: 2, capoDisplay: "shapes" }] },
           { name: "simpler chords, no bass notes, a hidden chord", args: [SONG, null, { preferences: { simplifyChords: true, hideBassNotes: true, hiddenChordIds: ["chd_v2"] } }] },
           { name: "an arrangement", args: [SONG, ARRANGEMENT, {}] },
+          { name: "passes of their own: some lines, their own chords, a tone up, and references that are gone", args: [SONG_WITH_PASSES, null, {}] },
           { name: "an arrangement with its capo, as shapes", args: [SONG, ARRANGEMENT, { capoDisplay: "shapes" }] },
         ],
       },

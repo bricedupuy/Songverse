@@ -365,12 +365,27 @@ export function flowToChordPro(doc: Pick<SongDocumentV2, "sections" | "flow">): 
     if (item.note) before.push(`{comment: ${item.note}}`);
     const label = item.label ?? section.label ?? null;
     let body: string;
-    if (seen.has(section.id) && section.type === "chorus" && shift % 12 === 0) {
+    // A pass with changes of its own (issue #205) is written out in full: ChordPro can't say "this chorus, but".
+    const own = !!item.transpose || (item.chords?.length ?? 0) > 0 || !!item.lines;
+    if (!own && seen.has(section.id) && section.type === "chorus" && shift % 12 === 0) {
       body = label ? `{chorus: ${label}}` : "{chorus}";
     } else {
-      const lines = section.lines.map((line) =>
-        shift % 12 === 0 ? line : { ...line, chords: line.chords.map((chord) => ({ ...chord, raw: transposeChord(chord.raw, shift, key) })) },
-      );
+      const steps = shift + (item.transpose ?? 0);
+      const changes = new Map((item.chords ?? []).map((change) => [change.chordId, change.raw]));
+      let lines = section.lines.map((line) => ({
+        ...line,
+        chords: line.chords
+          .filter((chord) => changes.get(chord.id) !== null)
+          .map((chord) => {
+            const raw = changes.get(chord.id) ?? chord.raw;
+            return { ...chord, raw: steps % 12 === 0 ? raw : transposeChord(raw, steps, key) };
+          }),
+      }));
+      if (item.lines) {
+        const from = lines.findIndex((line) => line.id === item.lines!.from);
+        const to = lines.findIndex((line) => line.id === item.lines!.to);
+        if (from >= 0 && to >= 0) lines = lines.slice(Math.min(from, to), Math.max(from, to) + 1);
+      }
       body = sectionsToChordPro([{ ...section, label, lines }]).trimEnd();
     }
     seen.add(section.id);

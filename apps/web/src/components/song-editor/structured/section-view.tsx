@@ -1,15 +1,17 @@
 import { SECTION_TYPES } from "@songverse/core";
 import { NodeViewContent, NodeViewWrapper, type ReactNodeViewProps } from "@tiptap/react";
-import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, MoreHorizontal, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, MoreHorizontal, Repeat, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { NativeSelect } from "#/components/ui/native-select";
 import { cn } from "#/lib/utils";
 import { deleteSection, duplicateSection, moveSection } from "./extensions";
+import { useSongOrderActions } from "./song-order-context";
 
 /** A section in the editor: its heading controls (type, label, shown or not, menu) above its lines. */
 export function SectionView({ node, editor, getPos, updateAttributes }: ReactNodeViewProps) {
   const { t } = useTranslation();
+  const orderActions = useSongOrderActions();
   const type = node.attrs.type as (typeof SECTION_TYPES)[number];
   const label = (node.attrs.label as string | null) ?? "";
   const showLabel = node.attrs.showLabel !== false;
@@ -72,6 +74,13 @@ export function SectionView({ node, editor, getPos, updateAttributes }: ReactNod
               <ArrowDown />
               {t("structuredEditor.moveDown")}
             </DropdownMenuItem>
+            {/* Sung again, linked: the same section, another pass in the song's order - changed there for that pass only (issue #205). */}
+            {orderActions ? (
+              <DropdownMenuItem onClick={() => orderActions.singAgain(node.attrs.id as string)} data-testid="section-sing-again">
+                <Repeat />
+                {t("structuredEditor.singAgain")}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={() => duplicateSection(editor.view, at())}>
               <Copy />
               {t("structuredEditor.duplicateSection")}

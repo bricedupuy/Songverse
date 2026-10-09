@@ -48,6 +48,16 @@ The **Song order** above the chart is the order the song is sung in, each time t
 
 Key changes and notes show on the chart at that pass.
 
+### A pass of its own
+
+A pass is the section itself, linked to it: change the section and every pass of it follows. To sing it differently once, change that pass only - **Sing again (linked)** in a section's menu adds a pass of it right after its last one and opens it here. Under **This pass only**:
+
+- **Transpose** moves this pass alone up or down (a key change, above, carries on to the end of the song).
+- **Lines sung**: only some of the section's lines, from one line to another - the last line of the chorus again at the end, say.
+- **Its chords**: type another chord over one (written in the song's key) for this pass, or leave one out with the eye button. Empty, a chord is as written.
+
+A pass changed this way shows **\*** in the song order and beside its heading on the chart, where its replaced chords are underlined. **As the section is written** takes its changes away. If a line or chord it names is deleted from the section, the chart says so rather than dropping it. Exported to ChordPro, such a pass is written out in full.
+
 ## Pasting a chart
 
 Paste a whole chart anywhere - ChordPro, or chords written above the lyrics - and it's turned into sections with chords in place. Pasting plain words just types them. Section names on a line of their own ("Verse 1", "[Chorus]", "Refrain", "Pont", "Coro") start a section of that kind, in English, French, Spanish, German, Italian or Portuguese.

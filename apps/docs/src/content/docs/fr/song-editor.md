@@ -48,6 +48,16 @@ L'**Ordre du chant**, au-dessus de la grille, est l'ordre dans lequel on le chan
 
 Les changements de tonalité et les notes s'affichent sur la grille à ce passage.
 
+### Un passage à part
+
+Un passage est la section elle-même, liée à elle : modifiez la section et tous ses passages suivent. Pour la chanter autrement une fois, modifiez ce passage seulement - **Rechanter (liée)** dans le menu d'une section ajoute un passage juste après son dernier et l'ouvre ici. Sous **Ce passage seulement** :
+
+- **Transposer** monte ou descend ce passage seul (un changement de tonalité, au-dessus, vaut jusqu'à la fin du chant).
+- **Lignes chantées** : seulement certaines lignes de la section, d'une ligne à une autre - la dernière ligne du refrain une nouvelle fois à la fin, par exemple.
+- **Ses accords** : tapez un autre accord sur l'un d'eux (écrit dans la tonalité du chant) pour ce passage, ou retirez-en un avec le bouton en forme d'œil. Vide, un accord est tel qu'écrit.
+
+Un passage ainsi modifié porte une **\*** dans l'ordre du chant et à côté de son titre sur la grille, où ses accords remplacés sont soulignés. **Comme la section est écrite** retire ses modifications. Si une ligne ou un accord qu'il mentionne est supprimé de la section, la grille le signale au lieu de l'ignorer. Exporté en ChordPro, un tel passage est écrit en entier.
+
 ## Coller une grille
 
 Collez une grille entière n'importe où - en ChordPro, ou avec les accords écrits au-dessus des paroles - et elle devient des sections avec les accords en place. Coller de simples paroles les tape, tout simplement. Un nom de section seul sur sa ligne (« Strophe 1 », « [Refrain] », « Pont », « Chorus », « Coro ») commence une section de ce type, en français, anglais, espagnol, allemand, italien ou portugais.

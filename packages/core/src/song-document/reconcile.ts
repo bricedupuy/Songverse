@@ -52,7 +52,7 @@ function reconcileChords(previous: ChordV2[], next: ChordV2[]): ChordV2[] {
 export function reconcileFlow(previous: SongDocumentV2 | null, sections: SectionV2[]): SectionInstance[] {
   const plain = (flow: SectionInstance[], order: SectionV2[]) =>
     flow.length === order.length &&
-    flow.every((item, i) => item.sectionId === order[i]!.id && !item.label && !item.keyChange && !item.tempo && !item.timeSignature && !item.note);
+    flow.every((item, i) => item.sectionId === order[i]!.id && !item.label && !item.keyChange && !item.tempo && !item.timeSignature && !item.note && !item.transpose && !item.chords?.length && !item.lines);
   if (!previous || plain(previous.flow, previous.sections)) {
     return sections.map((section) => {
       const kept = previous?.flow.find((item) => item.sectionId === section.id);

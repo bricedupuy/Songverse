@@ -1,4 +1,6 @@
 import {
+  generateId,
+  ID_PREFIXES,
   detectImportFormat,
   diatonicChords,
   parseChord,
@@ -32,6 +34,7 @@ import { KEY_OPTIONS } from "../song-form";
 import { editorToSections, sameSections, sectionsToEditorJSON } from "./document";
 import { startChordDrag, startSectionDrag } from "./drag";
 import { SongOrder } from "./song-order";
+import { SongOrderActions } from "./song-order-context";
 import {
   addSection,
   deleteChord,
@@ -76,6 +79,23 @@ export function StructuredEditor({
   const { t } = useTranslation();
   const [mode, setMode] = useState<EditorMode>(readOnly ? "preview" : "visual");
   const [editTick, setEditTick] = useState(0);
+  // A pass added from a section's menu, opened in the song order (issue #205).
+  const [openPass, setOpenPass] = useState<{ id: string; at: number } | null>(null);
+  const flowRef = useRef(flow);
+  flowRef.current = flow;
+  const orderActions = useMemo(
+    () => ({
+      singAgain: (sectionId: string) => {
+        const current = flowRef.current;
+        const item = { id: generateId(ID_PREFIXES.flowItem), sectionId };
+        // Right after the section's last pass, or at the end.
+        const last = current.map((pass) => pass.sectionId).lastIndexOf(sectionId);
+        onFlowChange(last >= 0 ? [...current.slice(0, last + 1), item, ...current.slice(last + 1)] : [...current, item]);
+        setOpenPass({ id: item.id, at: Date.now() });
+      },
+    }),
+    [onFlowChange],
+  );
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   // The sections the editor last reported: anything else arriving is an outside change to load.
@@ -138,7 +158,7 @@ export function StructuredEditor({
   return (
     <div className="flex flex-col gap-3">
       <Toolbar editor={editor} mode={mode} onModeChange={setMode} songKey={songKey} onSongKeyChange={onSongKeyChange} />
-      {sections.length > 0 && mode !== "text" ? <SongOrder sections={sections} flow={flow} onChange={onFlowChange} songKey={songKey} /> : null}
+      {sections.length > 0 && mode !== "text" ? <SongOrder sections={sections} flow={flow} onChange={onFlowChange} songKey={songKey} open={openPass} /> : null}
       {/* With room (issue #177), the chart as it will read beside the editor. */}
       <div
         className={cn(
@@ -149,7 +169,9 @@ export function StructuredEditor({
       >
         {mode === "visual" && editor ? <Palette editor={editor} songKey={songKey} sections={sections} /> : null}
         <div className={cn("relative min-w-0", mode !== "visual" && "hidden")} data-editor-container="">
-          <EditorContent editor={editor} className="sv-editor" />
+          <SongOrderActions.Provider value={orderActions}>
+            <EditorContent editor={editor} className="sv-editor" />
+          </SongOrderActions.Provider>
           {editor ? <ChordPopover editor={editor} songKey={songKey} editTick={editTick} /> : null}
           <p className="mt-4 text-xs text-muted-foreground">{t("structuredEditor.hints")}</p>
         </div>

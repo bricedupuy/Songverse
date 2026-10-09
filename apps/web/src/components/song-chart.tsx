@@ -118,10 +118,16 @@ export function SongChart({
             data-differs={pass.differs ? "" : undefined}
             className={cn(pass.differs && "-ml-3 border-l-2 border-amber-500/70 pl-2.5")}
           >
-            {heading || pass.keyChange || pass.differs || aside ? (
+            {heading || pass.keyChange || pass.differs || pass.changed || aside ? (
               <div className="mb-1 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
               <p className="flex flex-wrap items-baseline gap-x-2 font-sans text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {heading ? <span>{heading}</span> : null}
+                {/* Its own chords, lines or transposition (issue #205). */}
+                {pass.changed ? (
+                  <span className="text-amber-600 dark:text-amber-400" title={t("chart.changed")} aria-label={t("chart.changed")} data-pass-changed="">
+                    *
+                  </span>
+                ) : null}
                 {pass.keyChange ? (
                   <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary normal-case" data-key-change={pass.keyChange}>
                     {t("chart.keyChange", { key: pass.keyChange })}

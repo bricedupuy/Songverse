@@ -132,6 +132,18 @@ export const SectionInstanceSchema = z.object({
   timeSignature: TimeSignatureSchema.nullable().optional(),
   /** For the band: "softer", "band re-enters bar 5". */
   note: z.string().max(500).nullable().optional(),
+  /** This pass only, a few semitones up or down (issue #205); a key change carries on, this doesn't. */
+  transpose: z.number().int().min(-11).max(11).nullable().optional(),
+  /**
+   * This pass's own chords (issue #205): each chord (by ID, so it survives
+   * edits) becomes `raw`, written in the song's key, or is left out (null).
+   */
+  chords: z
+    .array(z.object({ chordId: z.string().min(1), raw: z.string().trim().min(1).max(SONG_DOCUMENT_LIMITS.chordLength).nullable() }))
+    .max(500)
+    .optional(),
+  /** Only some of the section's lines, from one to another (by ID), in order (issue #205): the end of the chorus again, say. */
+  lines: z.object({ from: z.string().min(1), to: z.string().min(1) }).nullable().optional(),
 });
 export type SectionInstance = z.infer<typeof SectionInstanceSchema>;
 
