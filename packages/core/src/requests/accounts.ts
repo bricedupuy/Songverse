@@ -1,6 +1,6 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, CHORD_ROW_COLORS, CHORD_ROW_FONTS, CHORD_ROW_NAMES, CHORD_ROW_WEIGHTS, SECOND_ROW_POSITIONS, SECOND_ROW_SIZES, CONTROLS_LAYOUTS, CONTROLS_OPACITIES, CONTROLS_POSITIONS, LIVE_CONTROLS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
+import { CAPO_DISPLAY_MODES, CHORD_DIAGRAMS, DIAGRAM_POSITIONS, CHORD_ROW_COLORS, CHORD_ROW_FONTS, CHORD_ROW_NAMES, CHORD_ROW_WEIGHTS, SECOND_ROW_POSITIONS, SECOND_ROW_SIZES, CONTROLS_LAYOUTS, CONTROLS_OPACITIES, CONTROLS_POSITIONS, LIVE_CONTROLS, DISPLAY_COLUMNS, DISPLAY_FONTS, DISPLAY_SPACINGS, DISPLAY_TEXT_SIZES, PIANO_HANDS, PIANO_NOTE_NAMES, CHORD_NOTATIONS, ENTITY_COLORS, INSTRUMENTS, LIVE_VIEWS, SUPPORTED_LOCALES, TEAM_ROLES, TECH_ROLES } from "../constants/index.js";
 import { TUNINGS } from "../chords/shapes.js";
 import { clearableText, optional, requiredText } from "./fields.js";
 
@@ -63,6 +63,8 @@ export const DisplaySettingsSchema = z.strictObject({
     .optional(),
   capoDisplayMode: z.enum(CAPO_DISPLAY_MODES).nullable().optional(),
   chordDiagrams: z.enum(CHORD_DIAGRAMS).nullable().optional(),
+  /** Where the diagrams sit (issue #212). */
+  diagramsPosition: z.enum(DIAGRAM_POSITIONS).nullable().optional(),
   /** Lyrics only: the chords hidden, for a singer. */
   hideChords: z.boolean().nullable().optional(),
   /** Live's controls (issue #224): where they are, which are hidden, and floating ones' opacity. */

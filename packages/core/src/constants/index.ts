@@ -76,6 +76,9 @@ export type ChordNotationValue = (typeof CHORD_NOTATIONS)[number];
 
 /** Chord diagrams beside every chart (issue #207): off, or for a guitar, a ukulele or a piano. */
 export const CHORD_DIAGRAMS = ["OFF", "GUITAR", "UKULELE", "PIANO"] as const;
+/** Where the song's chord diagrams sit (issue #212): nowhere (a tapped chord still opens its card), at the top, docked at the bottom for the section being played, or beside each section. */
+export const DIAGRAM_POSITIONS = ["hidden", "top", "bottom", "sections"] as const;
+export type DiagramPositionValue = (typeof DIAGRAM_POSITIONS)[number];
 /** What a row of chords over the lyrics shows (issue #230): a notation's names, or a small diagram on each chord. */
 export const CHORD_ROW_NAMES = [...CHORD_NOTATIONS, "GUITAR", "UKULELE", "PIANO"] as const;
 export type ChordRowNamesValue = (typeof CHORD_ROW_NAMES)[number];

@@ -1,4 +1,6 @@
 import {
+  sectionChords,
+  type DiagramPositionValue,
   chordRowInstrument,
   chordRowLabel,
   chartNotation,
@@ -273,27 +275,126 @@ function ChordStrip({ chords, chart, setup, notation }: { chords: string[]; char
       </button>
       {folded ? null : (
         <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
-          {chords.map((chord) => {
-            const option = optionsFor(chord, setup, 1)[0];
-            return (
-              <button
-                key={chord}
-                type="button"
-                disabled={!option}
-                onClick={() => option && play(option, setup, up)}
-                aria-label={t("chords.play", { chord: shownName(chord, notation) })}
-                className="flex shrink-0 flex-col items-center rounded-md px-1 pt-0.5 hover:bg-muted disabled:opacity-50"
-                data-chord-diagram={chord}
-              >
-                <span className="text-xs font-bold text-primary">{shownName(chord, notation)}</span>
-                {option ? (
-                  <OptionDiagram option={option} setup={setup} chord={chord} name={shownName(chord, notation)} notation={notation} />
-                ) : (
-                  <span className="h-14 text-xs text-muted-foreground">?</span>
-                )}
-              </button>
-            );
-          })}
+          {chords.map((chord) => (
+            <DiagramButton key={chord} chord={chord} setup={setup} notation={notation} up={up} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A chord's name and usual (or chosen) diagram, heard with a tap. */
+function DiagramButton({ chord, setup, notation, up }: { chord: string; setup: Setup; notation: ChordNotationValue; up: { current: boolean } }) {
+  const { t } = useTranslation();
+  const option = optionsFor(chord, setup, 1)[0];
+  return (
+    <button
+      type="button"
+      disabled={!option}
+      onClick={() => option && play(option, setup, up)}
+      aria-label={t("chords.play", { chord: shownName(chord, notation) })}
+      className="flex shrink-0 flex-col items-center rounded-md px-1 pt-0.5 hover:bg-muted disabled:opacity-50"
+      data-chord-diagram={chord}
+    >
+      <span className="text-xs font-bold text-primary">{shownName(chord, notation)}</span>
+      {option ? <OptionDiagram option={option} setup={setup} chord={chord} name={shownName(chord, notation)} notation={notation} /> : <span className="h-14 text-xs text-muted-foreground">?</span>}
+    </button>
+  );
+}
+
+/** A section's chord diagrams beside its heading (issue #212): small, one scrolling row on a phone. */
+function PassDiagrams({ chords, setup, notation }: { chords: string[]; setup: Setup; notation: ChordNotationValue }) {
+  const up = useRef(false);
+  if (chords.length === 0) return null;
+  return (
+    <div className="-mx-1 flex w-full gap-0.5 overflow-x-auto px-1 font-sans sm:w-auto sm:max-w-[65%] sm:flex-wrap sm:justify-end" style={{ zoom: 0.75 }} data-testid="pass-diagrams">
+      {chords.map((chord) => (
+        <DiagramButton key={chord} chord={chord} setup={setup} notation={notation} up={up} />
+      ))}
+    </div>
+  );
+}
+
+const DOCK_FOLDED_KEY = "songverse.diagrams.dock.folded";
+
+/**
+ * The chords of the section being played, docked at the bottom (issue
+ * #212): the pass crossing the upper third of the screen (Live's reading
+ * line), else the first one on screen, following the scroll. Sticky at
+ * the chart's end, so it stays in the chart's own scroll (never over
+ * Live's controls) and the last line can come up above it; over a docked
+ * stem player. Folds to its handle, remembered on the device.
+ */
+function DockedDiagrams({ chart, root, setup, notation, as }: { chart: RenderedChart; root: { current: HTMLElement | null }; setup: Setup; notation: ChordNotationValue; as: "fretted" | "sounding" }) {
+  const { t } = useTranslation();
+  const [passId, setPassId] = useState<string | null>(chart.passes[0]?.id ?? null);
+  const [folded, setFolded] = useState(false);
+  const up = useRef(false);
+  useEffect(() => {
+    try {
+      setFolded(localStorage.getItem(DOCK_FOLDED_KEY) === "1");
+    } catch {
+      // Storage blocked: open.
+    }
+  }, []);
+  useEffect(() => {
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      const passes = [...(root.current?.querySelectorAll<HTMLElement>("[data-pass]") ?? [])];
+      const line = window.innerHeight / 3;
+      const visible = passes.filter((pass) => {
+        const rect = pass.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+      });
+      const current = visible.find((pass) => {
+        const rect = pass.getBoundingClientRect();
+        return rect.top <= line && rect.bottom > line;
+      }) ?? visible[0];
+      if (current) setPassId(current.dataset.pass ?? null);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    // Any scroll: the page's, or Live's own.
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll, { capture: true });
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, [chart, root]);
+  const pass = chart.passes.find((one) => one.id === passId) ?? chart.passes[0];
+  const chords = pass ? sectionChords(pass, as) : [];
+  function fold(next: boolean) {
+    setFolded(next);
+    try {
+      localStorage.setItem(DOCK_FOLDED_KEY, next ? "1" : "0");
+    } catch {
+      // Storage blocked: for this page only.
+    }
+  }
+  return (
+    <div
+      className="sticky z-20 -mx-1 border-t bg-background/95 px-1 pt-1 font-sans backdrop-blur supports-[backdrop-filter]:bg-background/80"
+      style={{ bottom: "var(--stem-dock-height, 0px)" }}
+      data-testid="docked-diagrams"
+      data-for-pass={pass?.id}
+      data-folded={folded ? "" : undefined}
+    >
+      <button type="button" onClick={() => fold(!folded)} aria-expanded={!folded} className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
+        {folded ? <ChevronUp className="size-3.5" aria-hidden /> : <ChevronDown className="size-3.5" aria-hidden />}
+        {t("chords.sectionChords")}
+        {folded ? <span className="truncate font-normal">{chords.map((chord) => shownName(chord, notation)).join(" · ")}</span> : null}
+      </button>
+      {folded ? null : (
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          {chords.map((chord) => (
+            <DiagramButton key={chord} chord={chord} setup={setup} notation={notation} up={up} />
+          ))}
         </div>
       )}
     </div>
@@ -378,9 +479,12 @@ export function ChartWithDiagrams({
   player,
   songVersionId,
   onChordClick,
+  diagramsPosition = "top",
   ...props
 }: ComponentProps<typeof SongChart> & {
   diagrams: ChordDiagramsValue | undefined;
+  /** Where the diagrams sit (issue #212): hidden, at the top, docked at the bottom, beside each section. */
+  diagramsPosition?: DiagramPositionValue;
   notation: ChordNotationValue;
   /** Left-handed, and the tunings (issue #207 phase 3). */
   player?: DiagramPlayer;
@@ -467,9 +571,11 @@ export function ChartWithDiagrams({
     setOpen({ chord: shown, anchor: element, also, instrument: cardInstrument });
   };
   const cardSetup = open ? setups.get(open.instrument) : undefined;
+  const root = useRef<HTMLDivElement>(null);
+  const as = instrument === "guitar" ? "fretted" : "sounding";
   return (
-    <div className="flex flex-col gap-3">
-      {setup ? (
+    <div ref={root} className="flex flex-col gap-3">
+      {setup && diagramsPosition === "top" ? (
         <div style={props.chordScale && props.chordScale !== 1 ? { zoom: props.chordScale } : undefined}>
           <ChordStrip chords={chords} chart={chart} setup={setup} notation={notation} />
         </div>
@@ -478,9 +584,11 @@ export function ChartWithDiagrams({
         chart={chart}
         {...props}
         rows={shownRows ?? undefined}
+        passAside={setup && diagramsPosition === "sections" ? (pass) => <PassDiagrams chords={sectionChords(pass, as)} setup={setup} notation={notation} /> : undefined}
         onChordClick={onChordClick ?? (cardInstrument ? openCard : undefined)}
         chordClickAction={onChordClick ? "hide" : "diagram"}
       />
+      {setup && diagramsPosition === "bottom" ? <DockedDiagrams chart={chart} root={root} setup={setup} notation={notation} as={as} /> : null}
       <Popover open={open !== null} onOpenChange={(next) => !next && setOpen(null)}>
         {open && cardSetup ? (
           <PopoverContent anchor={open.anchor} className="w-auto min-w-36 p-2">

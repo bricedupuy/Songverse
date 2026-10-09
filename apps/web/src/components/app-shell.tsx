@@ -74,6 +74,7 @@ export function AppShell({
           </div>
           {/* A song's stem player docks here, at the bottom of the screen (issue #64). */}
           <div ref={setDockSlot} className="sticky bottom-0 z-30 empty:hidden" />
+          <DockHeight slot={dockSlot} />
         </SidebarInset>
       </SidebarProvider>
       <StemReturnButton />
@@ -95,4 +96,23 @@ function ShellSidebar(props: { session: AppSession; teams: TeamSummary[]; songbo
   if (!nested) return <AppSidebar {...props} />;
   // On a phone the sheet switches between the item's list and the full sidebar, rather than nesting them.
   return isMobile ? <AppSidebar {...props} itemPanel={<ItemPanel teams={props.teams} songbooks={props.songbooks} setlists={props.setlists} />} /> : <NestedSidebar {...props} />;
+}
+
+/**
+ * The docked stem player's height, as --stem-dock-height on the page, for
+ * what docks at the bottom too (the chord diagrams, issue #212) to sit
+ * above it.
+ */
+function DockHeight({ slot }: { slot: HTMLElement | null }) {
+  useEffect(() => {
+    if (!slot) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => root.style.setProperty("--stem-dock-height", `${slot.offsetHeight}px`));
+    observer.observe(slot);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty("--stem-dock-height");
+    };
+  }, [slot]);
+  return null;
 }

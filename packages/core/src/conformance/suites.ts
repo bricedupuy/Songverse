@@ -9,7 +9,7 @@ import { formatKey, parseKey, semitonesBetween, transposeKey } from "../music-ke
 import { parseArrangementDocumentV2, findArrangementProblems } from "../schemas/arrangement-document-v2.js";
 import { chordPositionProblem } from "../schemas/song-document-v2.js";
 import { arrangementFromChart, mapChartIds, remapArrangement } from "../song-document/fold.js";
-import { chartChords, chartSeconds, renderChart } from "../song-document/render.js";
+import { chartChords, chartSeconds, renderChart, sectionChords } from "../song-document/render.js";
 import { structureOf } from "../song-document/structure.js";
 import { flowToChordPro, lineToInlineText, readSongDocument, sectionsFromText, songDocumentFromSections, songDocumentFromText, songFromText, songToChordPro } from "../song-document/text.js";
 import { sectionHeading } from "../chordpro/section-labels.js";
@@ -656,6 +656,7 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "a second row of chords, the capo's shapes, the rest by default", args: [null, { LIVE: { secondRow: { source: "FINGERED", position: "beside" } } }, "LIVE"] },
           { name: "the main row as diagrams, in its own colour and font", args: [{ chordColors: true }, { PRACTICE: { chordNotation: "GUITAR", chordColor: "#ff8800", chordFont: "sans", chordWeight: "normal" } }, "PRACTICE"] },
           { name: "colours by chord type from the account", args: [{ chordColors: true }, null, "LIVE"] },
+          { name: "diagrams docked at the bottom", args: [{ chordDiagrams: "GUITAR" }, { LIVE: { diagramsPosition: "bottom" } }, "LIVE"] },
           { name: "Live's controls floating, some hidden", args: [null, { LIVE: { controls: "floating", controlsPosition: "right", hiddenControls: ["metronome", "transpose"], controlsOpacity: 0.4 } }, "LIVE"] },
           { name: "no account settings", args: [null, null, "EDIT"] },
         ],
@@ -673,6 +674,15 @@ export const CONFORMANCE: ConformanceArea[] = [
         about: "The chords a chart plays, each once, in the order they first come (a strip of chord diagrams): as a guitarist frets them with the capo, or as they sound.",
         params: ["song", "view", "as"],
         run: (song: unknown, view: Parameters<typeof renderChart>[2], as: "fretted" | "sounding") => chartChords(renderChart(read(song), null, view), as),
+        cases: [
+          { name: "as they sound", args: [SONG, {}, "sounding"] },
+          { name: "fretted with the capo on 2", args: [SONG, { suggestedCapo: 2 }, "fretted"] },
+        ],
+      },
+      sectionChords: {
+        about: "Each pass's chords, once each, in the order they come (issue #212): diagrams beside a section, or docked for the section being played.",
+        params: ["song", "view", "as"],
+        run: (song: unknown, view: Parameters<typeof renderChart>[2], as: "fretted" | "sounding") => renderChart(read(song), null, view).passes.map((pass) => sectionChords(pass, as)),
         cases: [
           { name: "as they sound", args: [SONG, {}, "sounding"] },
           { name: "fretted with the capo on 2", args: [SONG, { suggestedCapo: 2 }, "fretted"] },

@@ -5,6 +5,7 @@ import type {
   ChordNotationValue,
   ControlsLayoutValue,
   ControlsPositionValue,
+  DiagramPositionValue,
   LiveControlValue,
   DisplayColumnsValue,
   DisplayFontValue,
@@ -33,6 +34,8 @@ export interface EffectiveDisplaySettings {
   chordColors: boolean;
   capoDisplayMode: CapoDisplayModeValue;
   chordDiagrams: ChordDiagramsValue;
+  /** Where the diagrams sit (issue #212): hidden, at the top, docked at the bottom, beside each section. */
+  diagramsPosition: DiagramPositionValue;
   hideChords: boolean;
   /** Live's controls (issue #224): a footer, floating buttons or none; which are hidden; floating ones' opacity. */
   controls: ControlsLayoutValue;
@@ -79,6 +82,7 @@ export function effectiveDisplaySettings(account: AccountDisplaySettings | null 
     chordColors: main.color === "family",
     capoDisplayMode: main.source,
     chordDiagrams: own.chordDiagrams ?? account?.chordDiagrams ?? "OFF",
+    diagramsPosition: own.diagramsPosition ?? "top",
     hideChords: own.hideChords ?? false,
     controls: own.controls ?? "footer",
     controlsPosition: own.controlsPosition ?? "bottom-right",

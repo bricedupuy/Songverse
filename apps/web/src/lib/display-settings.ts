@@ -241,6 +241,7 @@ export function chartDisplayProps(settings: EffectiveDisplaySettings) {
     notation: settings.chordNotation,
     colors: settings.chordColors,
     diagrams: settings.chordDiagrams,
+    diagramsPosition: settings.diagramsPosition,
   };
 }
 

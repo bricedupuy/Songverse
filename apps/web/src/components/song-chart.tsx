@@ -54,6 +54,7 @@ export function SongChart({
   hideChords = false,
   chordScale = 1,
   rows,
+  passAside,
 }: {
   chart: RenderedChart;
   emptyText?: string;
@@ -73,6 +74,8 @@ export function SongChart({
   chordScale?: number;
   /** The rows of chords as the player set them (issue #230): the main one, and a second one or none. Without, the chords' own labels. */
   rows?: ChordRowsView;
+  /** Something beside each pass's heading - its chord diagrams (issue #212); under it on a phone. */
+  passAside?: (pass: RenderedPass) => ReactNode;
 }) {
   const { t } = useTranslation();
   if (chart.passes.length === 0) {
@@ -106,6 +109,7 @@ export function SongChart({
     >
       {chart.passes.map((pass) => {
         const heading = pass.section.showLabel === false ? null : labelFor(pass);
+        const aside = passAside?.(pass) ?? null;
         return (
           <div
             key={pass.id}
@@ -114,8 +118,9 @@ export function SongChart({
             data-differs={pass.differs ? "" : undefined}
             className={cn(pass.differs && "-ml-3 border-l-2 border-amber-500/70 pl-2.5")}
           >
-            {heading || pass.keyChange || pass.differs ? (
-              <p className="mb-1 flex flex-wrap items-baseline gap-x-2 font-sans text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+            {heading || pass.keyChange || pass.differs || aside ? (
+              <div className="mb-1 flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+              <p className="flex flex-wrap items-baseline gap-x-2 font-sans text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                 {heading ? <span>{heading}</span> : null}
                 {pass.keyChange ? (
                   <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary normal-case" data-key-change={pass.keyChange}>
@@ -124,6 +129,8 @@ export function SongChart({
                 ) : null}
                 {pass.differs ? <span className="font-normal text-amber-700 normal-case dark:text-amber-400">{t("chart.differs")}</span> : null}
               </p>
+              {aside}
+              </div>
             ) : null}
             {pass.note ? <p className="mb-1 font-sans text-xs text-muted-foreground italic">{pass.note}</p> : null}
             {pass.problems.length > 0 ? (

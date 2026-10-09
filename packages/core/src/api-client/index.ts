@@ -6,6 +6,7 @@ import type {
   DisplayColumnsValue,
   DisplayFontValue,
   ControlsLayoutValue,
+  DiagramPositionValue,
   ChordRowFontValue,
   ChordRowNamesValue,
   ChordRowWeightValue,
@@ -462,6 +463,8 @@ export interface DisplaySettings {
   secondRow?: Partial<SecondChordRow> | null;
   capoDisplayMode?: CapoDisplayModeValue;
   chordDiagrams?: ChordDiagramsValue;
+  /** Where the diagrams sit (issue #212). */
+  diagramsPosition?: DiagramPositionValue;
   hideChords?: boolean;
   /** Live's controls (issue #224). */
   controls?: ControlsLayoutValue;

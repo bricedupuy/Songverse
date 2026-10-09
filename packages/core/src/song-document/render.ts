@@ -302,6 +302,11 @@ export function readArrangementDocument(
  * strip of chord diagrams shows (issue #207). `fretted` (a guitarist with
  * the capo on) or as they sound (anyone else).
  */
+/** A pass's chords once each, in the order they come (issue #212): the diagrams beside a section, or docked for the section being played. */
+export function sectionChords(pass: Pick<RenderedPass, "lines">, as: "fretted" | "sounding" = "sounding"): string[] {
+  return chartChords({ passes: [pass as RenderedPass] }, as);
+}
+
 export function chartChords(chart: Pick<RenderedChart, "passes">, as: "fretted" | "sounding" = "sounding"): string[] {
   const seen = new Set<string>();
   for (const pass of chart.passes) {

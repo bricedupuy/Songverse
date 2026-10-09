@@ -3070,6 +3070,7 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "GUITAR",
+            "diagramsPosition": "top",
             "hideChords": false,
             "controls": "footer",
             "controlsPosition": "bottom-right",
@@ -3116,6 +3117,7 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
             "hideChords": false,
             "controls": "footer",
             "controlsPosition": "bottom-right",
@@ -3157,6 +3159,7 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
             "hideChords": false,
             "controls": "footer",
             "controlsPosition": "bottom-right",
@@ -3200,6 +3203,7 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
             "hideChords": false,
             "controls": "footer",
             "controlsPosition": "bottom-right",
@@ -3253,6 +3257,7 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
             "hideChords": false,
             "controls": "footer",
             "controlsPosition": "bottom-right",
@@ -3291,6 +3296,7 @@
             "chordColors": true,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
             "hideChords": false,
             "controls": "footer",
             "controlsPosition": "bottom-right",
@@ -3304,6 +3310,49 @@
                 "font": "same",
                 "weight": "bold",
                 "color": "family"
+              },
+              "second": null
+            }
+          }
+        },
+        {
+          "name": "diagrams docked at the bottom",
+          "args": [
+            {
+              "chordDiagrams": "GUITAR"
+            },
+            {
+              "LIVE": {
+                "diagramsPosition": "bottom"
+              }
+            },
+            "LIVE"
+          ],
+          "expected": {
+            "textSize": 1.5,
+            "chordSize": 1.5,
+            "sizesLinked": true,
+            "font": "mono",
+            "spacing": "normal",
+            "columns": "auto",
+            "chordNotation": "LETTERS",
+            "chordColors": false,
+            "capoDisplayMode": "SOUNDING",
+            "chordDiagrams": "GUITAR",
+            "diagramsPosition": "bottom",
+            "hideChords": false,
+            "controls": "footer",
+            "controlsPosition": "bottom-right",
+            "hiddenControls": [],
+            "controlsOpacity": 0.7,
+            "chordRows": {
+              "main": {
+                "names": "LETTERS",
+                "source": "SOUNDING",
+                "size": 1,
+                "font": "same",
+                "weight": "bold",
+                "color": "theme"
               },
               "second": null
             }
@@ -3337,6 +3386,7 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
             "hideChords": false,
             "controls": "floating",
             "controlsPosition": "right",
@@ -3376,6 +3426,7 @@
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
+            "diagramsPosition": "top",
             "hideChords": false,
             "controls": "footer",
             "controlsPosition": "bottom-right",
@@ -3730,6 +3781,304 @@
             "C",
             "Dsus4",
             "Bm7b5"
+          ]
+        }
+      ]
+    },
+    "sectionChords": {
+      "about": "Each pass's chords, once each, in the order they come (issue #212): diagrams beside a section, or docked for the section being played.",
+      "params": [
+        "song",
+        "view",
+        "as"
+      ],
+      "cases": [
+        {
+          "name": "as they sound",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            {},
+            "sounding"
+          ],
+          "expected": [
+            [
+              "G",
+              "G7",
+              "C",
+              "D/F#",
+              "Em7"
+            ],
+            [
+              "C",
+              "Dsus4",
+              "Bm7b5"
+            ],
+            [
+              "D",
+              "Esus4",
+              "C#m7b5"
+            ]
+          ]
+        },
+        {
+          "name": "fretted with the capo on 2",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 3,
+              "defaults": {
+                "key": "G",
+                "tempo": 72,
+                "timeSignature": {
+                  "numerator": 4,
+                  "denominator": 4
+                },
+                "durationSeconds": 180
+              },
+              "sections": [
+                {
+                  "id": "sec_verse",
+                  "type": "verse",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_v1",
+                      "kind": "lyric",
+                      "text": "Amazing grace how sweet the sound",
+                      "chords": [
+                        {
+                          "id": "chd_v1",
+                          "at": 0,
+                          "raw": "G"
+                        },
+                        {
+                          "id": "chd_v2",
+                          "at": 18,
+                          "raw": "G7"
+                        },
+                        {
+                          "id": "chd_v3",
+                          "at": 28,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "line_v2",
+                      "kind": "note",
+                      "text": "softly",
+                      "chords": []
+                    },
+                    {
+                      "id": "line_v3",
+                      "kind": "lyric",
+                      "text": "That saved a wretch like me",
+                      "chords": [
+                        {
+                          "id": "chd_v4",
+                          "at": 0,
+                          "raw": "D/F#"
+                        },
+                        {
+                          "id": "chd_v5",
+                          "at": 20,
+                          "raw": "Em7"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sec_chorus",
+                  "type": "chorus",
+                  "label": null,
+                  "showLabel": true,
+                  "lines": [
+                    {
+                      "id": "line_c1",
+                      "kind": "lyric",
+                      "text": "I once was lost but now am found",
+                      "chords": [
+                        {
+                          "id": "chd_c1",
+                          "at": 2,
+                          "raw": "C"
+                        },
+                        {
+                          "id": "chd_c2",
+                          "at": 17,
+                          "raw": "Dsus4"
+                        },
+                        {
+                          "id": "chd_c3",
+                          "at": 26,
+                          "raw": "Bm7b5"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "flow": [
+                {
+                  "id": "fi_verse",
+                  "sectionId": "sec_verse"
+                },
+                {
+                  "id": "fi_chorus",
+                  "sectionId": "sec_chorus"
+                },
+                {
+                  "id": "fi_chorus2",
+                  "sectionId": "sec_chorus",
+                  "label": "Chorus 2",
+                  "keyChange": {
+                    "steps": 2,
+                    "key": "A"
+                  }
+                }
+              ]
+            },
+            {
+              "suggestedCapo": 2
+            },
+            "fretted"
+          ],
+          "expected": [
+            [
+              "F",
+              "F7",
+              "Bb",
+              "C/E",
+              "Dm7"
+            ],
+            [
+              "Bb",
+              "Csus4",
+              "Am7b5"
+            ],
+            [
+              "C",
+              "Dsus4",
+              "Bm7b5"
+            ]
           ]
         }
       ]

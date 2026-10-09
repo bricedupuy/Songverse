@@ -1,4 +1,4 @@
-import { CHORD_ROW_PRESETS, SECOND_ROW_SIZES, type ChordRow, type ChordRowPreset, type SecondChordRow, CONTROLS_POSITIONS, DISPLAY_TEXT_SIZES, LIVE_CONTROLS, TUNINGS, type ControlsPositionValue, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
+import { type DiagramPositionValue, CHORD_ROW_PRESETS, SECOND_ROW_SIZES, type ChordRow, type ChordRowPreset, type SecondChordRow, CONTROLS_POSITIONS, DISPLAY_TEXT_SIZES, LIVE_CONTROLS, TUNINGS, type ControlsPositionValue, type AppModeValue, type ChordDiagramsValue, type DiagramPlayer, type DisplayColumnsValue, type EffectiveDisplaySettings } from "@songverse/core";
 import {
   ArrowDown,
   Superscript,
@@ -24,6 +24,8 @@ import {
   Music,
   Palette,
   PanelBottom,
+  PanelRight,
+  PanelTop,
   Plus,
   RectangleVertical,
   RotateCcw,
@@ -150,7 +152,7 @@ export function DisplayPanel({
             variant="ghost"
             size="icon"
             className="ml-auto size-8"
-            onClick={() => change({ textSize: null, chordSize: null, font: null, spacing: null, columns: null, chordNotation: null, chordColors: null, capoDisplayMode: null, chordDiagrams: null, hideChords: null, chordFont: null, chordWeight: null, chordColor: null, secondRow: null, controls: null, controlsPosition: null, hiddenControls: null, controlsOpacity: null })}
+            onClick={() => change({ textSize: null, chordSize: null, font: null, spacing: null, columns: null, chordNotation: null, chordColors: null, capoDisplayMode: null, chordDiagrams: null, diagramsPosition: null, hideChords: null, chordFont: null, chordWeight: null, chordColor: null, secondRow: null, controls: null, controlsPosition: null, hiddenControls: null, controlsOpacity: null })}
             title={t("display.resetHint", { mode: modeName })}
             aria-label={t("display.resetHint", { mode: modeName })}
             data-testid="display-reset"
@@ -252,7 +254,7 @@ export function DisplayPanel({
           ) : null}
           {shown("instrument") ? (
             <SectionBlock section="instrument" heading={wide}>
-              <InstrumentSection settings={settings} player={player} onChange={(chordDiagrams) => change({ chordDiagrams })} />
+              <InstrumentSection settings={settings} player={player} onChange={(chordDiagrams) => change({ chordDiagrams })} onPosition={(diagramsPosition) => change({ diagramsPosition })} />
             </SectionBlock>
           ) : null}
           {shown("layout") ? (
@@ -539,7 +541,17 @@ function SectionLabel({ section }: { section: Section }) {
   );
 }
 
-function InstrumentSection({ settings, player, onChange }: { settings: EffectiveDisplaySettings; player?: DiagramPlayer; onChange: (value: ChordDiagramsValue) => void }) {
+function InstrumentSection({
+  settings,
+  player,
+  onChange,
+  onPosition,
+}: {
+  settings: EffectiveDisplaySettings;
+  player?: DiagramPlayer;
+  onChange: (value: ChordDiagramsValue) => void;
+  onPosition: (value: DiagramPositionValue) => void;
+}) {
   const { t } = useTranslation();
   const fretted = settings.chordDiagrams === "GUITAR" || settings.chordDiagrams === "UKULELE";
   const instrument = settings.chordDiagrams === "UKULELE" ? "ukulele" : "guitar";
@@ -559,6 +571,21 @@ function InstrumentSection({ settings, player, onChange }: { settings: Effective
           ]}
         />
       </Row>
+      {settings.chordDiagrams !== "OFF" ? (
+        <Row label={t("display.diagramsPosition")}>
+          <Choices
+            value={settings.diagramsPosition}
+            onChange={onPosition}
+            name="diagrams-position"
+            options={[
+              { value: "hidden", label: t("display.diagramsHidden"), content: <EyeOff /> },
+              { value: "top", label: t("display.diagramsTop"), content: <PanelTop /> },
+              { value: "bottom", label: t("display.diagramsBottom"), content: <PanelBottom /> },
+              { value: "sections", label: t("display.diagramsSections"), content: <PanelRight /> },
+            ]}
+          />
+        </Row>
+      ) : null}
       {fretted ? (
         <>
           <Row label={t("display.tuning")}>
