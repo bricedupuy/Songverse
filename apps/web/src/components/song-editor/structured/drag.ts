@@ -14,9 +14,10 @@ const EDGE = 48;
  * is highlighted, and letting go pins it there. A press without a drag is a
  * click (`onClick`). Works the same with a mouse, a pen or a finger.
  */
-export function startChordDrag(view: EditorView, event: PointerEvent, source: DragSource, onClick: () => void) {
+export function startChordDrag(view: EditorView, event: PointerEvent, source: DragSource, onClick: () => void, pressed?: HTMLElement) {
   if (event.button !== 0 || !view.editable) return;
-  const handle = event.currentTarget as HTMLElement;
+  // React's own event knows the element pressed; its native event's currentTarget is wherever React listens.
+  const handle = pressed ?? (event.currentTarget as HTMLElement);
   const rect = handle.getBoundingClientRect();
   const grab = { x: event.clientX - rect.left, y: event.clientY - rect.top };
   const start = { x: event.clientX, y: event.clientY };

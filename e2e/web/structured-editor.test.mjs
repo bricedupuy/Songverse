@@ -157,6 +157,15 @@ await step("typing [Am] adds a chord; Enter splits a line and its chords go with
   await page.waitForTimeout(100);
 });
 
+await step("a palette chord is added where the cursor is", async () => {
+  await select(1, 3);
+  await page.locator('[data-palette-chord="Bm"]').first().click();
+  await chip("Bm").waitFor();
+  // Added selected: Delete takes it away again.
+  await page.keyboard.press("Delete");
+  await chip("Bm").waitFor({ state: "detached" });
+});
+
 await step("the popover changes a chord's symbol from the key's chords, and deletes one", async () => {
   await chip("G7").click();
   const popover = page.getByTestId("chord-popover");

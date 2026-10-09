@@ -299,7 +299,7 @@ function PaletteChord({ editor, raw, degree }: { editor: Editor; raw: string; de
       className="flex shrink-0 touch-pan-x items-baseline gap-1 rounded-md border px-2 py-1 font-mono text-sm font-bold text-primary hover:bg-primary/10"
       data-palette-chord={raw}
       onMouseDown={(event) => event.preventDefault()}
-      onPointerDown={(event) => startChordDrag(editor.view, event.nativeEvent, { kind: "new", raw }, apply)}
+      onPointerDown={(event) => startChordDrag(editor.view, event.nativeEvent, { kind: "new", raw }, apply, event.currentTarget)}
       // Keyboard activation (a pointer press is handled above).
       onClick={(event) => event.detail === 0 && apply()}
     >
