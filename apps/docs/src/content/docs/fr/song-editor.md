@@ -28,7 +28,7 @@ Chaque bloc est une section : intro, couplet, pré-refrain, refrain, post-refrai
 
 - **Ajoutez une section** depuis la liste **Sections** de la palette : un clic l'ajoute après la section où vous êtes ; sur un ordinateur, faites-la plutôt glisser pour la déposer entre deux sections (une ligne montre où elle ira).
 - Changez le **type** ou le **libellé** d'une section (« Couplet 2 ») en haut de celle-ci. Le bouton en forme d'œil masque son libellé sur la grille.
-- Le menu **⋯** la déplace, la duplique ou la supprime.
+- Le menu **⋯** la déplace, la duplique (liée ou en copie indépendante, voir [Copies liées](/fr/song-editor/#copies-liées)), la retire de l'ordre du chant ou la supprime.
 - Une ligne peut être une **note pour le groupe** (« ×2, montée ») plutôt que des paroles.
 
 ## Tonalité et transposition
@@ -48,15 +48,17 @@ L'**Ordre du chant**, au-dessus de la grille, est l'ordre dans lequel on le chan
 
 Les changements de tonalité et les notes s'affichent sur la grille à ce passage.
 
-### Un passage à part
+### Copies liées
 
-Un passage est la section elle-même, liée à elle : modifiez la section et tous ses passages suivent. Pour la chanter autrement une fois, modifiez ce passage seulement - **Rechanter (liée)** dans le menu d'une section ajoute un passage juste après son dernier et l'ouvre ici. Sous **Ce passage seulement** :
+L'éditeur montre le chant dans l'ordre où il est chanté. La première apparition d'une section est le bloc que vous modifiez ; partout où elle est rechantée, c'est une **copie liée** - marquée d'un lien, « Liée à Refrain », verrouillée - qui suit la section : modifiez la section et chaque copie le montre.
 
-- **Transposer** monte ou descend ce passage seul (un changement de tonalité, au-dessus, vaut jusqu'à la fin du chant).
-- **Lignes chantées** : seulement certaines lignes de la section, d'une ligne à une autre - la dernière ligne du refrain une nouvelle fois à la fin, par exemple.
-- **Ses accords** : tapez un autre accord sur l'un d'eux (écrit dans la tonalité du chant) pour ce passage, ou retirez-en un avec le bouton en forme d'œil. Vide, un accord est tel qu'écrit.
+- **Dupliquer (liée)** dans le menu d'une section en ajoute une copie juste après ; **Dupliquer (copie indépendante)** ajoute une section indépendante. Monter et descendre les blocs (leur menu) change l'ordre où ils sont chantés, comme l'**Ordre du chant** au-dessus.
+- **− / +** dans le titre d'une copie transpose cette copie seule (un changement de tonalité, dans l'ordre du chant, vaut jusqu'à la fin du chant).
+- **Modifier cette copie** ouvre ses modifications, qui restent des différences avec la section, si bien qu'elle continue de la suivre : **Retirer la ligne**, changer ses paroles (les mots retirés s'affichent grisés et barrés, les nouveaux surlignés, et les accords suivent leurs mots), ou taper un autre accord sur l'un d'eux (écrit dans la tonalité du chant) ou le retirer avec le bouton en forme d'œil. **Terminé** la verrouille de nouveau.
+- Une copie modifiée porte une **\*** dans son titre, dans l'ordre du chant et sur la grille. **Comme la section est écrite** (son menu) retire les modifications ; **Rendre indépendante** en fait une section à part, ses modifications écrites dedans - elle ne suit plus l'originale.
+- **Retirer de l'ordre du chant** (menu d'une section) place une section à la fin, sous **Pas dans l'ordre du chant**, avec ses copies ; **Remettre dans l'ordre du chant** la ramène.
 
-Un passage ainsi modifié porte une **\*** dans l'ordre du chant et à côté de son titre sur la grille, où ses accords remplacés sont soulignés. **Comme la section est écrite** retire ses modifications. Si une ligne ou un accord qu'il mentionne est supprimé de la section, la grille le signale au lieu de l'ignorer. Exporté en ChordPro, un tel passage est écrit en entier.
+Si une ligne ou un accord qu'une copie modifie est supprimé de la section, la grille le signale au lieu de l'ignorer. Exportée en ChordPro, une copie modifiée est écrite en entier.
 
 ## Coller une grille
 

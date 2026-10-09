@@ -2641,7 +2641,7 @@
           }
         },
         {
-          "name": "passes of their own: some lines, their own chords, a tone up, and references that are gone",
+          "name": "passes of their own: lines left out, their own words and chords, a tone up, and references that are gone",
           "args": [
             {
               "$schema": "song-document/v2",
@@ -2757,15 +2757,21 @@
                       "chordId": "chd_c3",
                       "raw": null
                     }
+                  ],
+                  "lyrics": [
+                    {
+                      "lineId": "line_c1",
+                      "text": "I once was blind but now I see"
+                    }
                   ]
                 },
                 {
                   "id": "fi_verse_end",
                   "sectionId": "sec_verse",
-                  "lines": {
-                    "from": "line_v3",
-                    "to": "line_v3"
-                  }
+                  "hiddenLines": [
+                    "line_v1",
+                    "line_v2"
+                  ]
                 },
                 {
                   "id": "fi_chorus_up",
@@ -2775,10 +2781,15 @@
                 {
                   "id": "fi_missing",
                   "sectionId": "sec_verse",
-                  "lines": {
-                    "from": "line_gone",
-                    "to": "line_v3"
-                  },
+                  "hiddenLines": [
+                    "line_gone"
+                  ],
+                  "lyrics": [
+                    {
+                      "lineId": "line_gone2",
+                      "text": "x"
+                    }
+                  ],
                   "chords": [
                     {
                       "chordId": "chd_gone",
@@ -2918,10 +2929,10 @@
                   {
                     "id": "line_c1",
                     "kind": "lyric",
-                    "text": "I once was lost but now am found",
+                    "text": "I once was blind but now I see",
                     "note": null,
                     "inserted": false,
-                    "lyricChanged": false,
+                    "lyricChanged": true,
                     "chords": [
                       {
                         "id": "chd_c1",
@@ -2935,7 +2946,7 @@
                       },
                       {
                         "id": "chd_c2",
-                        "at": 17,
+                        "at": 18,
                         "label": "Dsus4",
                         "sounding": "Dsus4",
                         "fretted": "Dsus4",
@@ -3163,7 +3174,8 @@
                 "partial": true,
                 "transpose": 0,
                 "problems": [
-                  "lines line_gone not found",
+                  "line line_gone not found",
+                  "line line_gone2 not found",
                   "chord chd_gone not found"
                 ]
               }
@@ -4505,6 +4517,317 @@
             "Dsus4",
             "Bm7b5"
           ]
+        }
+      ]
+    },
+    "wordDiff": {
+      "about": "How a linked copy's words differ from its section's (issue #205), word by word: kept, removed (shown greyed out) or added.",
+      "params": [
+        "before",
+        "after"
+      ],
+      "cases": [
+        {
+          "name": "a word replaced",
+          "args": [
+            "I once was lost but now am found",
+            "I once was blind but now am found"
+          ],
+          "expected": [
+            {
+              "kind": "same",
+              "text": "I once was "
+            },
+            {
+              "kind": "removed",
+              "text": "lost"
+            },
+            {
+              "kind": "added",
+              "text": "blind"
+            },
+            {
+              "kind": "same",
+              "text": " but now am found"
+            }
+          ]
+        },
+        {
+          "name": "words removed",
+          "args": [
+            "My chains are gone, I've been set free",
+            "My chains are gone"
+          ],
+          "expected": [
+            {
+              "kind": "same",
+              "text": "My chains are gone"
+            },
+            {
+              "kind": "removed",
+              "text": ", I've been set free"
+            }
+          ]
+        },
+        {
+          "name": "a word added",
+          "args": [
+            "Amazing grace",
+            "Amazing, amazing grace"
+          ],
+          "expected": [
+            {
+              "kind": "same",
+              "text": "Amazing"
+            },
+            {
+              "kind": "added",
+              "text": ","
+            },
+            {
+              "kind": "same",
+              "text": " "
+            },
+            {
+              "kind": "added",
+              "text": "amazing "
+            },
+            {
+              "kind": "same",
+              "text": "grace"
+            }
+          ]
+        },
+        {
+          "name": "the same",
+          "args": [
+            "Grace",
+            "Grace"
+          ],
+          "expected": [
+            {
+              "kind": "same",
+              "text": "Grace"
+            }
+          ]
+        }
+      ]
+    },
+    "followChords": {
+      "about": "A line's chords over a copy's new words: on their character where the word is kept, at the start of what replaced their word, or at the next kept word when theirs is removed.",
+      "params": [
+        "before",
+        "after",
+        "chords"
+      ],
+      "cases": [
+        {
+          "name": "a word replaced before a chord",
+          "args": [
+            "I once was lost but now am found",
+            "I once was blind but now am found",
+            [
+              {
+                "id": "a",
+                "at": 2
+              },
+              {
+                "id": "b",
+                "at": 17
+              },
+              {
+                "id": "c",
+                "at": 26
+              }
+            ]
+          ],
+          "expected": [
+            {
+              "id": "a",
+              "at": 2
+            },
+            {
+              "id": "b",
+              "at": 18
+            },
+            {
+              "id": "c",
+              "at": 27
+            }
+          ]
+        },
+        {
+          "name": "a chord on a replaced word",
+          "args": [
+            "I once was lost but now am found",
+            "I once was blind but now am found",
+            [
+              {
+                "id": "a",
+                "at": 11
+              }
+            ]
+          ],
+          "expected": [
+            {
+              "id": "a",
+              "at": 11
+            }
+          ]
+        },
+        {
+          "name": "a chord on a removed word",
+          "args": [
+            "My chains are gone now",
+            "My chains now",
+            [
+              {
+                "id": "a",
+                "at": 14
+              }
+            ]
+          ],
+          "expected": [
+            {
+              "id": "a",
+              "at": 10
+            }
+          ]
+        }
+      ]
+    },
+    "uniquePass": {
+      "about": "A linked copy made unique: a section of its own with new IDs, its lines left out, its words and chords written in, its chords moved by its transposition (spelt in the key it reaches).",
+      "params": [
+        "section",
+        "pass",
+        "key"
+      ],
+      "cases": [
+        {
+          "name": "words, a chord and a line, a tone up",
+          "args": [
+            {
+              "id": "sec_verse",
+              "type": "verse",
+              "label": null,
+              "showLabel": true,
+              "lines": [
+                {
+                  "id": "line_v1",
+                  "kind": "lyric",
+                  "text": "Amazing grace how sweet the sound",
+                  "chords": [
+                    {
+                      "id": "chd_v1",
+                      "at": 0,
+                      "raw": "G"
+                    },
+                    {
+                      "id": "chd_v2",
+                      "at": 18,
+                      "raw": "G7"
+                    },
+                    {
+                      "id": "chd_v3",
+                      "at": 28,
+                      "raw": "C"
+                    }
+                  ]
+                },
+                {
+                  "id": "line_v2",
+                  "kind": "note",
+                  "text": "softly",
+                  "chords": []
+                },
+                {
+                  "id": "line_v3",
+                  "kind": "lyric",
+                  "text": "That saved a wretch like me",
+                  "chords": [
+                    {
+                      "id": "chd_v4",
+                      "at": 0,
+                      "raw": "D/F#"
+                    },
+                    {
+                      "id": "chd_v5",
+                      "at": 20,
+                      "raw": "Em7"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "fi_x",
+              "sectionId": "sec_verse",
+              "transpose": 2,
+              "hiddenLines": [
+                "line_v2"
+              ],
+              "lyrics": [
+                {
+                  "lineId": "line_v1",
+                  "text": "Amazing love how sweet the sound"
+                }
+              ],
+              "chords": [
+                {
+                  "chordId": "chd_v2",
+                  "raw": "Em"
+                },
+                {
+                  "chordId": "chd_v5",
+                  "raw": null
+                }
+              ]
+            },
+            "G"
+          ],
+          "expected": {
+            "id": "section_new1",
+            "type": "verse",
+            "label": null,
+            "showLabel": true,
+            "lines": [
+              {
+                "id": "line_new2",
+                "kind": "lyric",
+                "text": "Amazing love how sweet the sound",
+                "chords": [
+                  {
+                    "id": "chord_new3",
+                    "at": 0,
+                    "raw": "A"
+                  },
+                  {
+                    "id": "chord_new4",
+                    "at": 17,
+                    "raw": "F#m"
+                  },
+                  {
+                    "id": "chord_new5",
+                    "at": 27,
+                    "raw": "D"
+                  }
+                ]
+              },
+              {
+                "id": "line_new6",
+                "kind": "lyric",
+                "text": "That saved a wretch like me",
+                "chords": [
+                  {
+                    "id": "chord_new7",
+                    "at": 0,
+                    "raw": "E/G#"
+                  }
+                ]
+              }
+            ]
+          }
         }
       ]
     },

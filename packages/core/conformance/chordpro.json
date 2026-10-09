@@ -1291,15 +1291,21 @@
                       "chordId": "chd_c3",
                       "raw": null
                     }
+                  ],
+                  "lyrics": [
+                    {
+                      "lineId": "line_c1",
+                      "text": "I once was blind but now I see"
+                    }
                   ]
                 },
                 {
                   "id": "fi_verse_end",
                   "sectionId": "sec_verse",
-                  "lines": {
-                    "from": "line_v3",
-                    "to": "line_v3"
-                  }
+                  "hiddenLines": [
+                    "line_v1",
+                    "line_v2"
+                  ]
                 },
                 {
                   "id": "fi_chorus_up",
@@ -1309,10 +1315,15 @@
                 {
                   "id": "fi_missing",
                   "sectionId": "sec_verse",
-                  "lines": {
-                    "from": "line_gone",
-                    "to": "line_v3"
-                  },
+                  "hiddenLines": [
+                    "line_gone"
+                  ],
+                  "lyrics": [
+                    {
+                      "lineId": "line_gone2",
+                      "text": "x"
+                    }
+                  ],
                   "chords": [
                     {
                       "chordId": "chd_gone",
@@ -1323,7 +1334,7 @@
               ]
             }
           ],
-          "expected": "{start_of_verse}\n[G]Amazing grace how [G7]sweet the [C]sound\n{comment: softly}\n[D/F#]That saved a wretch [Em7]like me\n{end_of_verse}\n\n{start_of_chorus}\nI [Am]once was lost b[Dsus4]ut now am found\n{end_of_chorus}\n\n{start_of_verse}\n[D/F#]That saved a wretch [Em7]like me\n{end_of_verse}\n\n{start_of_chorus}\nI [D]once was lost b[Esus4]ut now am[C#m7b5] found\n{end_of_chorus}\n\n{start_of_verse}\n[G]Amazing grace how [G7]sweet the [C]sound\n{comment: softly}\n[D/F#]That saved a wretch [Em7]like me\n{end_of_verse}\n"
+          "expected": "{start_of_verse}\n[G]Amazing grace how [G7]sweet the [C]sound\n{comment: softly}\n[D/F#]That saved a wretch [Em7]like me\n{end_of_verse}\n\n{start_of_chorus}\nI [Am]once was blind b[Dsus4]ut now I see\n{end_of_chorus}\n\n{start_of_verse}\n[D/F#]That saved a wretch [Em7]like me\n{end_of_verse}\n\n{start_of_chorus}\nI [D]once was lost b[Esus4]ut now am[C#m7b5] found\n{end_of_chorus}\n\n{start_of_verse}\n[G]Amazing grace how [G7]sweet the [C]sound\n{comment: softly}\n[D/F#]That saved a wretch [Em7]like me\n{end_of_verse}\n"
         }
       ]
     }

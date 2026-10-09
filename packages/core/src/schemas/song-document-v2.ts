@@ -142,8 +142,13 @@ export const SectionInstanceSchema = z.object({
     .array(z.object({ chordId: z.string().min(1), raw: z.string().trim().min(1).max(SONG_DOCUMENT_LIMITS.chordLength).nullable() }))
     .max(500)
     .optional(),
-  /** Only some of the section's lines, from one to another (by ID), in order (issue #205): the end of the chorus again, say. */
-  lines: z.object({ from: z.string().min(1), to: z.string().min(1) }).nullable().optional(),
+  /** Lines this pass leaves out (by ID, issue #205): the end of the chorus again, say. */
+  hiddenLines: z.array(z.string().min(1)).max(SONG_DOCUMENT_LIMITS.linesPerSection).optional(),
+  /** This pass's own words for some lines (issue #205): words removed or replaced, the chords following their words. */
+  lyrics: z
+    .array(z.object({ lineId: z.string().min(1), text: z.string().max(SONG_DOCUMENT_LIMITS.lineLength) }))
+    .max(SONG_DOCUMENT_LIMITS.linesPerSection)
+    .optional(),
 });
 export type SectionInstance = z.infer<typeof SectionInstanceSchema>;
 

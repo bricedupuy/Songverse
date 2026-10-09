@@ -1,6 +1,5 @@
 import {
-  generateId,
-  ID_PREFIXES,
+  uniquePass,
   detectImportFormat,
   diatonicChords,
   parseChord,
@@ -31,10 +30,10 @@ import { NativeSelect } from "#/components/ui/native-select";
 import { Textarea } from "#/components/ui/textarea";
 import { cn } from "#/lib/utils";
 import { KEY_OPTIONS } from "../song-form";
-import { editorToSections, sameSections, sectionsToEditorJSON } from "./document";
+import { editorToSections, editorToSong, sameOrder, sameSections, sectionsToEditorJSON, songToEditorJSON } from "./document";
 import { startChordDrag, startSectionDrag } from "./drag";
 import { SongOrder } from "./song-order";
-import { SongOrderActions } from "./song-order-context";
+import { SongOrderActionsContext, type SongOrderActions } from "./song-order-context";
 import {
   addSection,
   deleteChord,
@@ -42,6 +41,7 @@ import {
   nudgeChord,
   REPLACE_META,
   replaceDocument,
+  replaceLinked,
   selectedChord,
   setChordSymbol,
   songEditorExtensions,
@@ -79,27 +79,21 @@ export function StructuredEditor({
   const { t } = useTranslation();
   const [mode, setMode] = useState<EditorMode>(readOnly ? "preview" : "visual");
   const [editTick, setEditTick] = useState(0);
-  // A pass added from a section's menu, opened in the song order (issue #205).
-  const [openPass, setOpenPass] = useState<{ id: string; at: number } | null>(null);
+  // The song's order, current, for the linked copies (issue #205): read and changed here.
   const flowRef = useRef(flow);
   flowRef.current = flow;
-  const orderActions = useMemo(
-    () => ({
-      singAgain: (sectionId: string) => {
-        const current = flowRef.current;
-        const item = { id: generateId(ID_PREFIXES.flowItem), sectionId };
-        // Right after the section's last pass, or at the end.
-        const last = current.map((pass) => pass.sectionId).lastIndexOf(sectionId);
-        onFlowChange(last >= 0 ? [...current.slice(0, last + 1), item, ...current.slice(last + 1)] : [...current, item]);
-        setOpenPass({ id: item.id, at: Date.now() });
-      },
-    }),
-    [onFlowChange],
-  );
+  const onFlowChangeRef = useRef(onFlowChange);
+  onFlowChangeRef.current = onFlowChange;
+  const setFlow = (next: SectionInstance[]) => {
+    flowRef.current = next;
+    emittedFlow.current = next;
+    onFlowChangeRef.current(next);
+  };
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
-  // The sections the editor last reported: anything else arriving is an outside change to load.
+  // The sections and order the editor last reported: anything else arriving is an outside change to load.
   const emitted = useRef(sections);
+  const emittedFlow = useRef(flow);
 
   const events = useRef<ChordViewEvents>({ onChordPointerDown: () => {}, onEditChord: () => {} });
   const extensions = useMemo(
@@ -115,16 +109,18 @@ export function StructuredEditor({
   );
   const editor = useEditor({
     extensions,
-    content: sectionsToEditorJSON(sections),
+    // In the order it's sung, linked copies and all (issue #205).
+    content: songToEditorJSON(sections, flow),
     editable: !readOnly,
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
     editorProps: { attributes: { "aria-label": t("structuredEditor.label"), spellcheck: "false", "data-testid": "structured-editor" } },
     onUpdate: ({ editor: current, transaction }) => {
       if (transaction.getMeta(REPLACE_META)) return;
-      const next = editorToSections(current.state.doc);
-      emitted.current = next;
-      onChangeRef.current(next);
+      const next = editorToSong(current.state.doc, flowRef.current);
+      emitted.current = next.sections;
+      onChangeRef.current(next.sections);
+      setFlow(next.flow);
     },
   });
 
@@ -140,12 +136,33 @@ export function StructuredEditor({
     onEditChord: () => setEditTick((tick) => tick + 1),
   };
 
-  // Load the sections when they change from outside (Song Info's text, Discard, a save, text mode).
+  // Load the song when it changes from outside (Song Info's text, Discard, a save, text mode, the song order bar).
   useEffect(() => {
-    if (!editor || sameSections(sections, emitted.current)) return;
+    if (!editor || (sameSections(sections, emitted.current) && sameOrder(flow, emittedFlow.current))) return;
     emitted.current = sections;
-    replaceDocument(editor.view, editor.schema.nodeFromJSON(sectionsToEditorJSON(sections)), mode === "text");
-  }, [editor, sections]);
+    emittedFlow.current = flow;
+    replaceDocument(editor.view, editor.schema.nodeFromJSON(songToEditorJSON(sections, flow)), mode === "text");
+  }, [editor, sections, flow]);
+
+  // What the linked copies read and change (issue #205).
+  const orderActions = useMemo<SongOrderActions>(
+    () => ({
+      pass: (passId) => flow.find((item) => item.id === passId),
+      updatePass: (passId, change) => setFlow(flowRef.current.map((item) => (item.id === passId ? { ...item, ...change } : item))),
+      makeUnique: (passId, pos) => {
+        const pass = flowRef.current.find((item) => item.id === passId);
+        if (!editor || !pass) return;
+        const section = editorToSections(editor.state.doc).find((one) => one.id === pass.sectionId);
+        if (!section) return;
+        const json = sectionsToEditorJSON([uniquePass(section, pass, songKey || null)]).content![0]!;
+        // Its changes are written into the new section: the pass no longer carries them.
+        setFlow(flowRef.current.map((item) => (item.id === passId ? { ...item, transpose: null, chords: undefined, hiddenLines: undefined, lyrics: undefined } : item)));
+        replaceLinked(editor.view, pos, editor.schema.nodeFromJSON(json));
+      },
+      songKey,
+    }),
+    [flow, editor, songKey],
+  );
 
   useEffect(() => {
     editor?.setEditable(!readOnly);
@@ -158,7 +175,7 @@ export function StructuredEditor({
   return (
     <div className="flex flex-col gap-3">
       <Toolbar editor={editor} mode={mode} onModeChange={setMode} songKey={songKey} onSongKeyChange={onSongKeyChange} />
-      {sections.length > 0 && mode !== "text" ? <SongOrder sections={sections} flow={flow} onChange={onFlowChange} songKey={songKey} open={openPass} /> : null}
+      {sections.length > 0 && mode !== "text" ? <SongOrder sections={sections} flow={flow} onChange={onFlowChange} songKey={songKey} /> : null}
       {/* With room (issue #177), the chart as it will read beside the editor. */}
       <div
         className={cn(
@@ -169,9 +186,9 @@ export function StructuredEditor({
       >
         {mode === "visual" && editor ? <Palette editor={editor} songKey={songKey} sections={sections} /> : null}
         <div className={cn("relative min-w-0", mode !== "visual" && "hidden")} data-editor-container="">
-          <SongOrderActions.Provider value={orderActions}>
+          <SongOrderActionsContext.Provider value={orderActions}>
             <EditorContent editor={editor} className="sv-editor" />
-          </SongOrderActions.Provider>
+          </SongOrderActionsContext.Provider>
           {editor ? <ChordPopover editor={editor} songKey={songKey} editTick={editTick} /> : null}
           <p className="mt-4 text-xs text-muted-foreground">{t("structuredEditor.hints")}</p>
         </div>

@@ -1,17 +1,15 @@
 import { SECTION_TYPES } from "@songverse/core";
 import { NodeViewContent, NodeViewWrapper, type ReactNodeViewProps } from "@tiptap/react";
-import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, MoreHorizontal, Repeat, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Link2, ListMinus, ListPlus, MoreHorizontal, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { NativeSelect } from "#/components/ui/native-select";
 import { cn } from "#/lib/utils";
-import { deleteSection, duplicateSection, moveSection } from "./extensions";
-import { useSongOrderActions } from "./song-order-context";
+import { deleteSection, duplicateLinked, duplicateSection, moveBlock, setSung } from "./extensions";
 
 /** A section in the editor: its heading controls (type, label, shown or not, menu) above its lines. */
 export function SectionView({ node, editor, getPos, updateAttributes }: ReactNodeViewProps) {
   const { t } = useTranslation();
-  const orderActions = useSongOrderActions();
   const type = node.attrs.type as (typeof SECTION_TYPES)[number];
   const label = (node.attrs.label as string | null) ?? "";
   const showLabel = node.attrs.showLabel !== false;
@@ -19,9 +17,17 @@ export function SectionView({ node, editor, getPos, updateAttributes }: ReactNod
   const at = () => getPos() ?? -1;
   const index = editor.state.doc.resolve(Math.max(0, at())).index(0);
   const count = editor.state.doc.childCount;
+  // Not in the song's order (issue #205): at the end, the first of them under a heading.
+  const sung = node.attrs.sung !== false;
+  const firstUnsung = !sung && (index === 0 || editor.state.doc.child(index - 1).attrs.sung !== false || editor.state.doc.child(index - 1).type.name !== "section");
 
   return (
-    <NodeViewWrapper as="section" className="sv-section group/section" data-section-type={type} data-section-id={node.attrs.id}>
+    <NodeViewWrapper as="section" className={cn("sv-section group/section", !sung && "opacity-70")} data-section-type={type} data-section-id={node.attrs.id} data-unsung={sung ? undefined : ""}>
+      {firstUnsung ? (
+        <p contentEditable={false} className="mb-2 border-t pt-3 font-sans text-xs font-semibold tracking-wide text-muted-foreground uppercase select-none" data-testid="unsung-heading">
+          {t("structuredEditor.notInOrder")}
+        </p>
+      ) : null}
       <div
         data-sv-section-header=""
         contentEditable={false}
@@ -66,24 +72,28 @@ export function SectionView({ node, editor, getPos, updateAttributes }: ReactNod
               <MoreHorizontal className="size-3.5" />
             </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
-            <DropdownMenuItem disabled={index === 0} onClick={() => moveSection(editor.view, at(), -1)}>
+            <DropdownMenuItem disabled={index === 0} onClick={() => moveBlock(editor.view, at(), -1)}>
               <ArrowUp />
               {t("structuredEditor.moveUp")}
             </DropdownMenuItem>
-            <DropdownMenuItem disabled={index === count - 1} onClick={() => moveSection(editor.view, at(), 1)}>
+            <DropdownMenuItem disabled={index === count - 1} onClick={() => moveBlock(editor.view, at(), 1)}>
               <ArrowDown />
               {t("structuredEditor.moveDown")}
             </DropdownMenuItem>
-            {/* Sung again, linked: the same section, another pass in the song's order - changed there for that pass only (issue #205). */}
-            {orderActions ? (
-              <DropdownMenuItem onClick={() => orderActions.singAgain(node.attrs.id as string)} data-testid="section-sing-again">
-                <Repeat />
-                {t("structuredEditor.singAgain")}
+            {/* Sung again where it's put, following this one (issue #205). */}
+            {sung ? (
+              <DropdownMenuItem onClick={() => duplicateLinked(editor.view, at())} data-testid="section-duplicate-linked">
+                <Link2 />
+                {t("structuredEditor.duplicateLinked")}
               </DropdownMenuItem>
             ) : null}
-            <DropdownMenuItem onClick={() => duplicateSection(editor.view, at())}>
+            <DropdownMenuItem onClick={() => duplicateSection(editor.view, at())} data-testid="section-duplicate">
               <Copy />
               {t("structuredEditor.duplicateSection")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSung(editor.view, at(), !sung)} data-testid="section-toggle-sung">
+              {sung ? <ListMinus /> : <ListPlus />}
+              {sung ? t("structuredEditor.takeOutOfOrder") : t("structuredEditor.putBackInOrder")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteSection(editor.view, at())}>

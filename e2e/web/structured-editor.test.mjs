@@ -233,7 +233,7 @@ await step("a section can be retyped, relabelled, duplicated and deleted", async
   const bridge = editor().locator('[data-section-type="bridge"]');
   await bridge.getByLabel("Section label").fill("Bridge A");
   await bridge.getByRole("button", { name: /actions$/ }).click();
-  await page.getByRole("menuitem", { name: "Duplicate" }).click();
+  await page.getByRole("menuitem", { name: "Duplicate (unique copy)" }).click();
   if ((await editor().locator('[data-section-type="bridge"]').count()) !== 2) throw new Error("not duplicated");
   const copy = editor().locator('[data-section-type="bridge"]').nth(1);
   await copy.getByLabel("Section type").selectOption("outro");

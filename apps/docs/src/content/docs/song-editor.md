@@ -28,7 +28,7 @@ Each block is a section: intro, verse, pre-chorus, chorus, post-chorus, bridge, 
 
 - **Add a section** from the palette's **Sections** list: a click adds it after the section you're in; on a computer, drag it instead to drop it between any two sections (a line shows where it will go).
 - Change a section's **type** or **label** ("Verse 2") at its top. The eye button hides its label on the chart.
-- The **⋯** menu moves, duplicates or deletes it.
+- The **⋯** menu moves, duplicates (linked or as a unique copy, see [Linked copies](/song-editor/#linked-copies)), takes out of the song order or deletes it.
 - A line can be a **note for the band** ("×2, build") rather than lyrics.
 
 ## Key and transposing
@@ -48,15 +48,17 @@ The **Song order** above the chart is the order the song is sung in, each time t
 
 Key changes and notes show on the chart at that pass.
 
-### A pass of its own
+### Linked copies
 
-A pass is the section itself, linked to it: change the section and every pass of it follows. To sing it differently once, change that pass only - **Sing again (linked)** in a section's menu adds a pass of it right after its last one and opens it here. Under **This pass only**:
+The editor shows the song in the order it's sung. A section's first appearance is the block you edit; wherever it's sung again, it's a **linked copy** - marked with a link, "Linked to Chorus", locked - that follows the section: change the section and every copy shows it.
 
-- **Transpose** moves this pass alone up or down (a key change, above, carries on to the end of the song).
-- **Lines sung**: only some of the section's lines, from one line to another - the last line of the chorus again at the end, say.
-- **Its chords**: type another chord over one (written in the song's key) for this pass, or leave one out with the eye button. Empty, a chord is as written.
+- **Duplicate (linked)** in a section's menu adds a copy of it right after; **Duplicate (unique copy)** adds an independent section instead. Moving blocks up and down (their menu) changes the order they're sung in, as does the **Song order** above.
+- **− / +** in a copy's heading transposes that copy alone (a key change, in Song order, carries on to the end of the song).
+- **Edit this copy** opens its changes, which stay differences from the section, so it keeps following it: **Leave the line out**, change its words (removed words show greyed out and struck through, new ones highlighted, and the chords follow their words), or type another chord over one (written in the song's key) or leave it out with the eye button. **Done** locks it again.
+- A changed copy shows **\*** in its heading, in the song order and on the chart. **As the section is written** (its menu) takes the changes away; **Make unique** turns it into a section of its own, its changes written in - it no longer follows the original.
+- **Take out of the song order** (a section's menu) moves a section to the end, under **Not in the song order**, with its copies; **Put back in the song order** brings it back.
 
-A pass changed this way shows **\*** in the song order and beside its heading on the chart, where its replaced chords are underlined. **As the section is written** takes its changes away. If a line or chord it names is deleted from the section, the chart says so rather than dropping it. Exported to ChordPro, such a pass is written out in full.
+If a line or chord a copy changes is deleted from the section, the chart says so rather than dropping it. Exported to ChordPro, a changed copy is written out in full.
 
 ## Pasting a chart
 

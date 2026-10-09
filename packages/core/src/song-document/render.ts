@@ -1,4 +1,5 @@
 import { chordFamily, formatChord, parseChord, simplifyChord, transposeChord, type ChordFamily, type ChordNotation } from "../chords/chord.js";
+import { passChanged, passLines } from "./pass.js";
 import type { ChordNotationValue } from "../constants/index.js";
 import { transposeKey } from "../music-keys/transpose.js";
 import {
@@ -78,7 +79,7 @@ export interface RenderedPass {
   differs: boolean;
   /** The song's own pass differs from its section (issue #205): its own chords, transposed, or only some lines - marked *. */
   changed: boolean;
-  /** Only some of the section's lines. */
+  /** Some of the section's lines are left out. */
   partial: boolean;
   /** Semitones this pass alone is moved by. */
   transpose: number;
@@ -159,24 +160,11 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
       lyricChanged: false,
     });
     const hiddenLines = new Set(overrides.flatMap((o) => (o.type === "hide_line" ? [o.lineId] : [])));
+    // The pass's own (issue #205): lines left out, its own words and chords - under an arrangement's changes.
+    const own = passLines(section, item);
+    problems.push(...own.problems);
     // Placed among every line, hidden ones too: a line added after a hidden one shows where it was.
-    let lines: Working[] = section.lines.map((line) => toWorking(line, false));
-    // The pass's own (issue #205): only some lines, and its own chords - under an arrangement's changes.
-    if (item.lines) {
-      const from = lines.findIndex((line) => line.id === item.lines!.from);
-      const to = lines.findIndex((line) => line.id === item.lines!.to);
-      if (from < 0 || to < 0) problems.push(`lines ${from < 0 ? item.lines.from : item.lines.to} not found`);
-      else lines = lines.slice(Math.min(from, to), Math.max(from, to) + 1);
-    }
-    for (const change of item.chords ?? []) {
-      const line = lines.find((one) => one.chords.some((chord) => chord.id === change.chordId));
-      if (!line) {
-        if (!section.lines.some((one) => one.chords.some((chord) => chord.id === change.chordId))) problems.push(`chord ${change.chordId} not found`);
-        continue;
-      }
-      if (change.raw === null) line.chords = line.chords.filter((chord) => chord.id !== change.chordId);
-      else line.chords = line.chords.map((chord) => (chord.id === change.chordId ? { ...chord, raw: change.raw!, replaced: true } : chord));
-    }
+    let lines: Working[] = own.lines.map((line) => ({ ...toWorking(line, false), lyricChanged: line.lyricChanged, chords: line.chords.map((chord) => ({ ...chord, replaced: line.replaced.includes(chord.id) })) }));
     for (const override of overrides) {
       if (override.type !== "insert_line") continue;
       const inserted = toWorking(override.line, true);
@@ -259,8 +247,8 @@ export function renderChart(song: SongDocumentV2, arrangement: ArrangementDocume
           .map((chord) => ({ id: chord.id, at: chord.at, ...show(chord.raw, passSteps, key), replaced: chord.replaced })),
       })),
       differs: overrides.length > 0,
-      changed: !!item.transpose || (item.chords?.length ?? 0) > 0 || !!item.lines,
-      partial: !!item.lines,
+      changed: passChanged(item),
+      partial: (item.hiddenLines?.length ?? 0) > 0,
       transpose: item.transpose ?? 0,
       problems,
     });

@@ -79,7 +79,8 @@ export function remapArrangement(arrangement: ArrangementDocumentV2, map: ChartI
         ...item,
         sectionId: map.sections.get(item.sectionId) ?? item.sectionId,
         ...(item.chords && { chords: item.chords.map((change) => ({ ...change, chordId: chord(change.chordId) })) }),
-        ...(item.lines && { lines: { from: line(item.lines.from), to: line(item.lines.to) } }),
+        ...(item.hiddenLines && { hiddenLines: item.hiddenLines.map(line) }),
+        ...(item.lyrics && { lyrics: item.lyrics.map((change) => ({ ...change, lineId: line(change.lineId) })) }),
         overrides: item.overrides.map((override): OverrideV2 => {
           switch (override.type) {
             case "chord":
@@ -229,8 +230,22 @@ export function arrangementFromChart(
     const { id, label, keyChange, tempo, timeSignature, note, transpose } = pass;
     // The pass's own chords and lines (issue #205), pointed at the other song's.
     const chords = pass.chords?.map((change) => ({ chordId: map.chords.get(change.chordId) ?? change.chordId, raw: change.raw === null ? null : transposeChord(change.raw, -steps, toKey) }));
-    const lines = pass.lines ? { from: map.lines.get(pass.lines.from) ?? pass.lines.from, to: map.lines.get(pass.lines.to) ?? pass.lines.to } : undefined;
-    items.push({ id, sectionId: target.id, label, keyChange, tempo, timeSignature, note, overrides, ...(transpose && { transpose }), ...(chords?.length && { chords }), ...(lines && { lines }) });
+    const hiddenLines = pass.hiddenLines?.map((lineId) => map.lines.get(lineId) ?? lineId);
+    const lyrics = pass.lyrics?.map((change) => ({ ...change, lineId: map.lines.get(change.lineId) ?? change.lineId }));
+    items.push({
+      id,
+      sectionId: target.id,
+      label,
+      keyChange,
+      tempo,
+      timeSignature,
+      note,
+      overrides,
+      ...(transpose && { transpose }),
+      ...(chords?.length && { chords }),
+      ...(hiddenLines?.length && { hiddenLines }),
+      ...(lyrics?.length && { lyrics }),
+    });
   }
 
   const tempo = from.defaults.tempo !== to.defaults.tempo ? (from.defaults.tempo ?? null) : null;
@@ -249,7 +264,8 @@ export function arrangementFromChart(
         item.overrides.length === 0 &&
         !item.transpose &&
         !item.chords?.length &&
-        !item.lines &&
+        !item.hiddenLines?.length &&
+        !item.lyrics?.length &&
         item.sectionId === pass.sectionId &&
         (item.label ?? null) === (pass.label ?? null) &&
         JSON.stringify(item.keyChange ?? null) === JSON.stringify(pass.keyChange ?? null) &&

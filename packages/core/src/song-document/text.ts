@@ -1,4 +1,5 @@
 import type { SupportedImportFormat } from "../constants/index.js";
+import { passChanged, passLines } from "./pass.js";
 import { parseSongText } from "../import-detection/detect-format.js";
 import { sectionHeading } from "../chordpro/section-labels.js";
 import { transposeChord } from "../chords/chord.js";
@@ -366,26 +367,15 @@ export function flowToChordPro(doc: Pick<SongDocumentV2, "sections" | "flow">): 
     const label = item.label ?? section.label ?? null;
     let body: string;
     // A pass with changes of its own (issue #205) is written out in full: ChordPro can't say "this chorus, but".
-    const own = !!item.transpose || (item.chords?.length ?? 0) > 0 || !!item.lines;
+    const own = passChanged(item);
     if (!own && seen.has(section.id) && section.type === "chorus" && shift % 12 === 0) {
       body = label ? `{chorus: ${label}}` : "{chorus}";
     } else {
       const steps = shift + (item.transpose ?? 0);
-      const changes = new Map((item.chords ?? []).map((change) => [change.chordId, change.raw]));
-      let lines = section.lines.map((line) => ({
+      const lines = passLines(section, item).lines.map(({ replaced: _replaced, lyricChanged: _changed, ...line }) => ({
         ...line,
-        chords: line.chords
-          .filter((chord) => changes.get(chord.id) !== null)
-          .map((chord) => {
-            const raw = changes.get(chord.id) ?? chord.raw;
-            return { ...chord, raw: steps % 12 === 0 ? raw : transposeChord(raw, steps, key) };
-          }),
+        chords: line.chords.map((chord) => ({ ...chord, raw: steps % 12 === 0 ? chord.raw : transposeChord(chord.raw, steps, key) })),
       }));
-      if (item.lines) {
-        const from = lines.findIndex((line) => line.id === item.lines!.from);
-        const to = lines.findIndex((line) => line.id === item.lines!.to);
-        if (from >= 0 && to >= 0) lines = lines.slice(Math.min(from, to), Math.max(from, to) + 1);
-      }
       body = sectionsToChordPro([{ ...section, label, lines }]).trimEnd();
     }
     seen.add(section.id);

@@ -11,6 +11,8 @@ import { parseArrangementDocumentV2, findArrangementProblems } from "../schemas/
 import { chordPositionProblem } from "../schemas/song-document-v2.js";
 import { arrangementFromChart, mapChartIds, remapArrangement } from "../song-document/fold.js";
 import { chartChords, chartSeconds, renderChart, sectionChords } from "../song-document/render.js";
+import { followChords, uniquePass, wordDiff } from "../song-document/pass.js";
+import type { SectionInstance } from "../schemas/song-document-v2.js";
 import { structureOf } from "../song-document/structure.js";
 import { flowToChordPro, lineToInlineText, readSongDocument, sectionsFromText, songDocumentFromSections, songDocumentFromText, songFromText, songToChordPro } from "../song-document/text.js";
 import { sectionHeading } from "../chordpro/section-labels.js";
@@ -140,15 +142,23 @@ const ARRANGEMENT = {
   ],
 };
 
-/** The song with passes of its own (issue #205): the verse's last line again, a chorus with a chord of its own and one left out, a pass a tone up. */
+/** The song with passes of its own (issue #205): the verse's last line again, a chorus with its own words and chords, a pass a tone up, and references that are gone. */
 const SONG_WITH_PASSES = {
   ...SONG,
   flow: [
     { id: "fi_verse", sectionId: "sec_verse" },
-    { id: "fi_chorus", sectionId: "sec_chorus", chords: [{ chordId: "chd_c1", raw: "Am" }, { chordId: "chd_c3", raw: null }] },
-    { id: "fi_verse_end", sectionId: "sec_verse", lines: { from: "line_v3", to: "line_v3" } },
+    {
+      id: "fi_chorus",
+      sectionId: "sec_chorus",
+      chords: [
+        { chordId: "chd_c1", raw: "Am" },
+        { chordId: "chd_c3", raw: null },
+      ],
+      lyrics: [{ lineId: "line_c1", text: "I once was blind but now I see" }],
+    },
+    { id: "fi_verse_end", sectionId: "sec_verse", hiddenLines: ["line_v1", "line_v2"] },
     { id: "fi_chorus_up", sectionId: "sec_chorus", transpose: 2 },
-    { id: "fi_missing", sectionId: "sec_verse", lines: { from: "line_gone", to: "line_v3" }, chords: [{ chordId: "chd_gone", raw: "E" }] },
+    { id: "fi_missing", sectionId: "sec_verse", hiddenLines: ["line_gone"], lyrics: [{ lineId: "line_gone2", text: "x" }], chords: [{ chordId: "chd_gone", raw: "E" }] },
   ],
 };
 
@@ -658,7 +668,7 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "the song's capo suggestion, as shapes", args: [SONG, null, { suggestedCapo: 2, capoDisplay: "shapes" }] },
           { name: "simpler chords, no bass notes, a hidden chord", args: [SONG, null, { preferences: { simplifyChords: true, hideBassNotes: true, hiddenChordIds: ["chd_v2"] } }] },
           { name: "an arrangement", args: [SONG, ARRANGEMENT, {}] },
-          { name: "passes of their own: some lines, their own chords, a tone up, and references that are gone", args: [SONG_WITH_PASSES, null, {}] },
+          { name: "passes of their own: lines left out, their own words and chords, a tone up, and references that are gone", args: [SONG_WITH_PASSES, null, {}] },
           { name: "an arrangement with its capo, as shapes", args: [SONG, ARRANGEMENT, { capoDisplay: "shapes" }] },
         ],
       },
@@ -696,6 +706,45 @@ export const CONFORMANCE: ConformanceArea[] = [
         cases: [
           { name: "as they sound", args: [SONG, {}, "sounding"] },
           { name: "fretted with the capo on 2", args: [SONG, { suggestedCapo: 2 }, "fretted"] },
+        ],
+      },
+      wordDiff: {
+        about: "How a linked copy's words differ from its section's (issue #205), word by word: kept, removed (shown greyed out) or added.",
+        params: ["before", "after"],
+        run: wordDiff,
+        cases: [
+          { name: "a word replaced", args: ["I once was lost but now am found", "I once was blind but now am found"] },
+          { name: "words removed", args: ["My chains are gone, I've been set free", "My chains are gone"] },
+          { name: "a word added", args: ["Amazing grace", "Amazing, amazing grace"] },
+          { name: "the same", args: ["Grace", "Grace"] },
+        ],
+      },
+      followChords: {
+        about: "A line's chords over a copy's new words: on their character where the word is kept, at the start of what replaced their word, or at the next kept word when theirs is removed.",
+        params: ["before", "after", "chords"],
+        run: followChords,
+        cases: [
+          { name: "a word replaced before a chord", args: ["I once was lost but now am found", "I once was blind but now am found", [{ id: "a", at: 2 }, { id: "b", at: 17 }, { id: "c", at: 26 }]] },
+          { name: "a chord on a replaced word", args: ["I once was lost but now am found", "I once was blind but now am found", [{ id: "a", at: 11 }]] },
+          { name: "a chord on a removed word", args: ["My chains are gone now", "My chains now", [{ id: "a", at: 14 }]] },
+        ],
+      },
+      uniquePass: {
+        about: "A linked copy made unique: a section of its own with new IDs, its lines left out, its words and chords written in, its chords moved by its transposition (spelt in the key it reaches).",
+        params: ["section", "pass", "key"],
+        run: (section: unknown, pass: SectionInstance, key: string | null) => {
+          let n = 0;
+          return uniquePass(read({ ...SONG, sections: [section], flow: [] }).sections[0]!, pass, key, (kind) => `${kind}_new${++n}`);
+        },
+        cases: [
+          {
+            name: "words, a chord and a line, a tone up",
+            args: [
+              SONG.sections[0],
+              { id: "fi_x", sectionId: "sec_verse", transpose: 2, hiddenLines: ["line_v2"], lyrics: [{ lineId: "line_v1", text: "Amazing love how sweet the sound" }], chords: [{ chordId: "chd_v2", raw: "Em" }, { chordId: "chd_v5", raw: null }] },
+              "G",
+            ],
+          },
         ],
       },
       sectionChords: {

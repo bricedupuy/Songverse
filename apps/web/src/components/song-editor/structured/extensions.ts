@@ -16,6 +16,7 @@ import { joinBackward, joinForward } from "@tiptap/pm/commands";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { sectionsToEditorJSON } from "./document";
 import { SectionView } from "./section-view";
+import { LinkedView } from "./linked-view";
 
 /**
  * The structured song editor's schema and behaviour (docs/song-document-v2.md,
@@ -39,7 +40,8 @@ export interface ChordViewEvents {
 
 // --- nodes
 
-const SongDoc = Node.create({ name: "doc", topNode: true, content: "section+" });
+// The song in the order it's sung (issue #205): sections, and linked copies of them where they're sung again.
+const SongDoc = Node.create({ name: "doc", topNode: true, content: "section (section | linked)*" });
 
 const Text = Node.create({ name: "text", group: "inline" });
 
@@ -71,6 +73,9 @@ const SectionNode = Node.create({
       // Kept as they are through an edit; not edited here yet.
       rhythm: { default: null, rendered: false },
       groove: { default: null, rendered: false },
+      // Its first pass in the song's order, and whether it's sung at all (issue #205).
+      passId: { default: null, rendered: false },
+      sung: { default: true, rendered: false },
     };
   },
   parseHTML() {
@@ -83,6 +88,36 @@ const SectionNode = Node.create({
     return ReactNodeViewRenderer(SectionView, {
       stopEvent: ({ event }) => !!(event.target as HTMLElement | null)?.closest?.("[data-sv-section-header]"),
     });
+  },
+});
+
+/**
+ * A linked copy (issue #205): another pass of a section, where the song
+ * sings it again. Its words follow the section; what it changes for itself
+ * (transposed, lines left out, its own words and chords) is the pass's, in
+ * the song's order. Edited from its own panel, not as text.
+ */
+const LinkedNode = Node.create({
+  name: "linked",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: false,
+  addAttributes() {
+    return {
+      passId: { default: null, parseHTML: (el) => el.getAttribute("data-pass-id"), renderHTML: (attrs) => ({ "data-pass-id": attrs.passId }) },
+      sectionId: { default: null, parseHTML: (el) => el.getAttribute("data-linked-to"), renderHTML: (attrs) => ({ "data-linked-to": attrs.sectionId }) },
+    };
+  },
+  parseHTML() {
+    return [{ tag: "div[data-sv-linked]" }];
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ["div", { "data-sv-linked": "", ...HTMLAttributes }];
+  },
+  addNodeView() {
+    // Its own controls take their own events; the editor leaves them alone.
+    return ReactNodeViewRenderer(LinkedView, { stopEvent: () => true, ignoreMutation: () => true });
   },
 });
 
@@ -258,6 +293,8 @@ export function withFreshIds(node: PMNode): PMNode {
     item.content?.forEach((child) => refresh(child as typeof item));
   };
   refresh(json);
+  // A copy is a section of its own: no pass of the original's.
+  if (json.attrs && "passId" in json.attrs) json.attrs.passId = null;
   return node.type.schema.nodeFromJSON(json);
 }
 
@@ -333,9 +370,27 @@ function uniqueIds() {
         const kept = old === undefined ? 0 : Math.max(0, entries.findIndex((entry) => entry.pos === mapping.map(old)));
         renew.push(...entries.filter((_, index) => index !== kept));
       }
-      if (renew.length === 0) return null;
+      // A pass is one block: a section or linked copy pasted twice gets a pass of its own.
+      const passes = new Map<string, number[]>();
+      newState.doc.forEach((node, pos) => {
+        const passId = node.attrs.passId as string | null | undefined;
+        if (passId) passes.set(passId, [...(passes.get(passId) ?? []), pos]);
+      });
+      const oldPasses = new Map<string, number>();
+      oldState.doc.forEach((node, pos) => {
+        if (node.attrs.passId) oldPasses.set(node.attrs.passId as string, pos);
+      });
+      const renewPasses: number[] = [];
+      for (const [passId, positions] of passes) {
+        if (positions.length < 2) continue;
+        const old = oldPasses.get(passId);
+        const kept = old === undefined ? 0 : Math.max(0, positions.indexOf(mapping.map(old)));
+        renewPasses.push(...positions.filter((_, index) => index !== kept));
+      }
+      if (renew.length === 0 && renewPasses.length === 0) return null;
       const tr = newState.tr;
       for (const { pos, node } of renew) tr.setNodeAttribute(pos, "id", generateId(PREFIXES[node.type.name] as never));
+      for (const pos of renewPasses) tr.setNodeAttribute(pos, "passId", generateId(ID_PREFIXES.flowItem));
       return tr.setMeta("addToHistory", false);
     },
   });
@@ -768,10 +823,75 @@ export function songEditorExtensions(events: ChordViewEvents) {
       ];
     },
   });
-  return [SongDoc, Text, SectionNode, LineNode, chordNode(events), behaviour];
+  return [SongDoc, Text, SectionNode, LinkedNode, LineNode, chordNode(events), behaviour];
 }
 
 export function setDropTarget(view: EditorView, target: number | null) {
   if (dropKey.getState(view.state) === target) return;
   view.dispatch(view.state.tr.setMeta(DROP_TARGET_META, target).setMeta("addToHistory", false));
+}
+
+// --- linked copies (issue #205)
+
+/** A linked copy of the section at `pos`, right after it, as another pass in the song's order. */
+export function duplicateLinked(view: EditorView, pos: number): string | null {
+  const node = view.state.doc.nodeAt(pos);
+  if (!node || node.type.name !== "section") return null;
+  const passId = generateId(ID_PREFIXES.flowItem);
+  const copy = view.state.schema.nodes.linked!.create({ passId, sectionId: node.attrs.id });
+  view.dispatch(view.state.tr.insert(pos + node.nodeSize, copy).scrollIntoView());
+  return passId;
+}
+
+/** The linked copy at `pos` replaced by `section` (its changes written in), keeping its pass: made unique. */
+export function replaceLinked(view: EditorView, pos: number, section: PMNode) {
+  const node = view.state.doc.nodeAt(pos);
+  if (!node || node.type.name !== "linked") return;
+  const withPass = view.state.schema.nodes.section!.create({ ...section.attrs, passId: node.attrs.passId, sung: true }, section.content);
+  view.dispatch(view.state.tr.replaceWith(pos, pos + node.nodeSize, withPass).scrollIntoView());
+}
+
+/** A section taken out of the song's order (to the end, under "Not in the song order"), or put back (before those). */
+export function setSung(view: EditorView, pos: number, sung: boolean) {
+  const { state } = view;
+  const node = state.doc.nodeAt(pos);
+  if (!node || node.type.name !== "section") return;
+  let tr = state.tr.delete(pos, pos + node.nodeSize);
+  // Its linked copies go with it when it's no longer sung.
+  if (!sung) {
+    const copies: number[] = [];
+    tr.doc.forEach((child, at) => {
+      if (child.type.name === "linked" && child.attrs.sectionId === node.attrs.id) copies.push(at);
+    });
+    for (const at of copies.reverse()) tr = tr.delete(at, at + tr.doc.nodeAt(at)!.nodeSize);
+  }
+  let at = tr.doc.content.size;
+  if (sung) {
+    tr.doc.forEach((child, offset) => {
+      if (child.type.name === "section" && child.attrs.sung === false && at === tr.doc.content.size) at = offset;
+    });
+  }
+  tr = tr.insert(at, node.type.create({ ...node.attrs, sung }, node.content));
+  view.dispatch(tr.scrollIntoView());
+}
+
+/** The linked copy at `pos` removed: the section sung once less. */
+export function deleteLinked(view: EditorView, pos: number) {
+  const node = view.state.doc.nodeAt(pos);
+  if (node?.type.name === "linked") view.dispatch(view.state.tr.delete(pos, pos + node.nodeSize));
+}
+
+/** A block (section or linked copy) moved one place up or down, among the sung ones. */
+export function moveBlock(view: EditorView, pos: number, direction: -1 | 1) {
+  const { state } = view;
+  const node = state.doc.nodeAt(pos);
+  if (!node) return;
+  const $pos = state.doc.resolve(pos);
+  const index = $pos.index(0);
+  const other = state.doc.maybeChild(index + direction);
+  if (!other) return;
+  const tr = state.tr.delete(pos, pos + node.nodeSize);
+  const target = direction < 0 ? pos - other.nodeSize : pos + other.nodeSize;
+  tr.insert(target, node);
+  view.dispatch(tr.scrollIntoView());
 }

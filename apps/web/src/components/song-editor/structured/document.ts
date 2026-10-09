@@ -1,5 +1,6 @@
 import {
   characterBoundaries,
+  flowItemId,
   generateId,
   ID_PREFIXES,
   type LineV2,
@@ -40,23 +41,81 @@ function lineJSON(line: LineV2): JSONContent {
   return { type: "line", attrs: { id: line.id, kind: line.kind }, ...(content.length > 0 && { content }) };
 }
 
+function sectionJSON(section: SectionV2, extra: { passId?: string | null; sung?: boolean } = {}): JSONContent {
+  return {
+    type: "section",
+    attrs: {
+      id: section.id,
+      type: section.type,
+      label: section.label ?? null,
+      showLabel: section.showLabel !== false,
+      rhythm: section.rhythm ?? null,
+      groove: section.groove ?? null,
+      passId: extra.passId ?? null,
+      sung: extra.sung ?? true,
+    },
+    content: section.lines.length > 0 ? section.lines.map(lineJSON) : [newLineJSON()],
+  };
+}
+
 /** The editor's document for these sections; an empty song gets one empty verse to type into. */
 export function sectionsToEditorJSON(sections: SectionV2[]): JSONContent {
-  const content = sections.map(
-    (section): JSONContent => ({
-      type: "section",
-      attrs: {
-        id: section.id,
-        type: section.type,
-        label: section.label ?? null,
-        showLabel: section.showLabel !== false,
-        rhythm: section.rhythm ?? null,
-        groove: section.groove ?? null,
-      },
-      content: section.lines.length > 0 ? section.lines.map(lineJSON) : [newLineJSON()],
-    }),
-  );
+  const content = sections.map((section) => sectionJSON(section));
   return { type: "doc", content: content.length > 0 ? content : [newSectionJSON("verse")] };
+}
+
+/**
+ * The song as the editor holds it (issue #205): in the order it's sung -
+ * each section where it's first sung, a linked copy wherever it's sung
+ * again - then the sections not sung at all, under "Not in the song order".
+ * A song with no order of its own sings each section once, in order.
+ */
+export function songToEditorJSON(sections: SectionV2[], flow: SectionInstance[]): JSONContent {
+  const byId = new Map(sections.map((section) => [section.id, section]));
+  const passes = flow.filter((item) => byId.has(item.sectionId));
+  if (passes.length === 0) return { type: "doc", content: sections.length > 0 ? sections.map((section) => sectionJSON(section, { passId: flowItemId(section.id) })) : [newSectionJSON("verse")] };
+  const seen = new Set<string>();
+  const content: JSONContent[] = [];
+  for (const item of passes) {
+    if (seen.has(item.sectionId)) content.push({ type: "linked", attrs: { passId: item.id, sectionId: item.sectionId } });
+    else {
+      seen.add(item.sectionId);
+      content.push(sectionJSON(byId.get(item.sectionId)!, { passId: item.id }));
+    }
+  }
+  for (const section of sections) if (!seen.has(section.id)) content.push(sectionJSON(section, { sung: false }));
+  return { type: "doc", content };
+}
+
+/**
+ * The song's sections and order from the editor (issue #205): the sections
+ * in the order they appear, and the order they're sung in - each sung
+ * section and linked copy a pass, keeping what `previous` had for it (its
+ * label, key change, note, its own changes).
+ */
+export function editorToSong(doc: PMNode, previous: SectionInstance[]): { sections: SectionV2[]; flow: SectionInstance[] } {
+  const sections = editorToSections(doc);
+  const kept = new Set(sections.map((section) => section.id));
+  const before = new Map(previous.map((item) => [item.id, item]));
+  const flow: SectionInstance[] = [];
+  doc.forEach((node) => {
+    if (node.type.name === "section") {
+      if (node.attrs.sung === false || !kept.has(node.attrs.id as string)) return;
+      const id = (node.attrs.passId as string | null) ?? flowItemId(node.attrs.id as string);
+      flow.push({ ...(before.get(id) ?? {}), id, sectionId: node.attrs.id as string });
+    } else if (node.type.name === "linked") {
+      const sectionId = node.attrs.sectionId as string;
+      if (!kept.has(sectionId) || !flow.some((item) => item.sectionId === sectionId)) return;
+      const id = node.attrs.passId as string;
+      flow.push({ ...(before.get(id) ?? {}), id, sectionId });
+    }
+  });
+  return { sections, flow };
+}
+
+/** The same passes in the same order (what the editor's blocks are), whatever else they say. */
+export function sameOrder(a: SectionInstance[], b: SectionInstance[]): boolean {
+  return a.length === b.length && a.every((item, i) => item.id === b[i]!.id && item.sectionId === b[i]!.sectionId);
 }
 
 function lineFromNode(node: PMNode): LineV2 {
