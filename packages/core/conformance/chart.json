@@ -2970,6 +2970,8 @@
           ],
           "expected": {
             "textSize": 1.5,
+            "chordSize": 1.5,
+            "sizesLinked": true,
             "font": "mono",
             "spacing": "normal",
             "columns": "auto",
@@ -2999,10 +3001,38 @@
           ],
           "expected": {
             "textSize": 1.25,
+            "chordSize": 1.25,
+            "sizesLinked": true,
             "font": "mono",
             "spacing": "normal",
             "columns": "auto",
             "chordNotation": "NASHVILLE",
+            "chordColors": false,
+            "capoDisplayMode": "SOUNDING",
+            "chordDiagrams": "OFF",
+            "hideChords": false
+          }
+        },
+        {
+          "name": "chords set apart from the lyrics",
+          "args": [
+            null,
+            {
+              "LIVE": {
+                "textSize": 1.25,
+                "chordSize": 2
+              }
+            },
+            "LIVE"
+          ],
+          "expected": {
+            "textSize": 1.25,
+            "chordSize": 2,
+            "sizesLinked": false,
+            "font": "mono",
+            "spacing": "normal",
+            "columns": "auto",
+            "chordNotation": "LETTERS",
             "chordColors": false,
             "capoDisplayMode": "SOUNDING",
             "chordDiagrams": "OFF",
@@ -3018,6 +3048,8 @@
           ],
           "expected": {
             "textSize": 1,
+            "chordSize": 1,
+            "sizesLinked": true,
             "font": "mono",
             "spacing": "normal",
             "columns": "auto",

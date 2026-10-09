@@ -61,6 +61,38 @@ await step("Text: font, spacing and size change the chart at once", async () => 
   if (zoom !== "1.25") throw new Error(`zoom ${zoom}`);
 });
 
+await step("Text: the chords' size apart from the lyrics', the chords still over their letters", async () => {
+  const link = () => panel().getByTestId("display-link-sizes");
+  const scale = async (expected) => {
+    await page.locator(`[data-testid="song-chart"][data-chord-scale="${expected}"]`).waitFor();
+    // The chord's own lettering against its line's.
+    const ratio = await chart()
+      .locator("[data-chord]:not([data-chord=''])")
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize) / parseFloat(getComputedStyle(el.parentElement).fontSize));
+    if (Math.abs(ratio - expected) > 0.01) throw new Error(`chords at ${ratio}, not ${expected}`);
+  };
+  // Linked by default: the chords follow the lyrics.
+  await panel().getByTestId("display-chords-size").getByText("125%").waitFor();
+  if ((await link().getAttribute("aria-pressed")) !== "true") throw new Error("not linked by default");
+  await panel().getByTestId("display-chords-bigger").click();
+  await panel().getByTestId("display-chords-size").getByText("150%").waitFor();
+  if ((await link().getAttribute("aria-pressed")) !== "false") throw new Error("still linked");
+  await scale(1.2);
+  // Set apart: smaller lyrics leave the chords as they are.
+  await panel().getByTestId("display-smaller").click();
+  await panel().getByTestId("display-size").getByText("100%").waitFor();
+  await panel().getByTestId("display-chords-size").getByText("150%").waitFor();
+  await scale(1.5);
+  await savedSettings((found) => found.PRACTICE?.chordSize === 1.5 && found.PRACTICE?.textSize === 1);
+  await panel().getByTestId("display-bigger").click();
+  // Linked again: the lyrics' size.
+  await link().click();
+  await panel().getByTestId("display-chords-size").getByText("125%").waitFor();
+  await scale(1);
+  await savedSettings((found) => found.PRACTICE?.textSize === 1.25 && found.PRACTICE?.chordSize === undefined);
+});
+
 await step("Chords: names, colours and lyrics only, from the section list", async () => {
   await panel().getByTestId("display-section").click();
   await page.getByTestId("display-section-chords").click();

@@ -650,6 +650,7 @@ export const CONFORMANCE: ConformanceArea[] = [
         cases: [
           { name: "nothing changed: the account's, Live bigger", args: [{ chordNotation: "SOLFEGE", chordDiagrams: "GUITAR" }, {}, "LIVE"] },
           { name: "Practice changed its names and size", args: [{ chordNotation: "SOLFEGE" }, { PRACTICE: { chordNotation: "NASHVILLE", textSize: 1.25 }, LIVE: { font: "sans" } }, "PRACTICE"] },
+          { name: "chords set apart from the lyrics", args: [null, { LIVE: { textSize: 1.25, chordSize: 2 } }, "LIVE"] },
           { name: "no account settings", args: [null, null, "EDIT"] },
         ],
       },

@@ -10,6 +10,7 @@ import {
   Guitar,
   Hand,
   LayoutGrid,
+  Link2,
   Minus,
   Music,
   Palette,
@@ -20,6 +21,7 @@ import {
   SlidersHorizontal,
   Type,
   UnfoldVertical,
+  Unlink2,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -134,7 +136,7 @@ export function DisplayPanel({
             variant="ghost"
             size="icon"
             className="ml-auto size-8"
-            onClick={() => change({ textSize: null, font: null, spacing: null, columns: null, chordNotation: null, chordColors: null, capoDisplayMode: null, chordDiagrams: null, hideChords: null })}
+            onClick={() => change({ textSize: null, chordSize: null, font: null, spacing: null, columns: null, chordNotation: null, chordColors: null, capoDisplayMode: null, chordDiagrams: null, hideChords: null })}
             title={t("display.resetHint", { mode: modeName })}
             aria-label={t("display.resetHint", { mode: modeName })}
             data-testid="display-reset"
@@ -148,30 +150,37 @@ export function DisplayPanel({
         <div className={cn("flex flex-col gap-2 overflow-y-auto px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]", wide && "gap-5 pt-4")}>
           {shown("text") ? (
             <SectionBlock section="text" heading={wide}>
-              <Row label={t("display.size")}>
-                <ButtonGroup className="w-full">
+              <Row label={t("display.lyricsSize")}>
+                <SizeStepper
+                  size={settings.textSize}
+                  onChange={(textSize) => change({ textSize })}
+                  smaller={t("display.smaller")}
+                  bigger={t("display.bigger")}
+                  testId="display"
+                />
+              </Row>
+              <Row label={t("display.chordSize")}>
+                <div className="flex min-w-0 items-center gap-1">
+                  <SizeStepper
+                    size={settings.chordSize}
+                    // Set apart from the lyrics' from here on.
+                    onChange={(chordSize) => change({ chordSize })}
+                    smaller={t("display.chordsSmaller")}
+                    bigger={t("display.chordsBigger")}
+                    testId="display-chords"
+                  />
+                  <span className="flex w-9 shrink-0">
                   <Choice
-                    pressed={false}
-                    disabled={settings.textSize <= DISPLAY_TEXT_SIZES[0]!}
-                    onClick={() => change({ textSize: stepTextSize(settings.textSize, -1) })}
-                    label={t("display.smaller")}
-                    testId="display-smaller"
+                    pressed={settings.sizesLinked}
+                    // Linked: the chords follow the lyrics again; unlinked: they keep the size they have now.
+                    onClick={() => change({ chordSize: settings.sizesLinked ? settings.textSize : null })}
+                    label={t("display.linkSizes")}
+                    testId="display-link-sizes"
                   >
-                    <Minus />
+                    {settings.sizesLinked ? <Link2 /> : <Unlink2 />}
                   </Choice>
-                  <span className="flex flex-1 items-center justify-center border-y bg-background text-xs font-medium tabular-nums" data-testid="display-size">
-                    {Math.round(settings.textSize * 100)}%
                   </span>
-                  <Choice
-                    pressed={false}
-                    disabled={settings.textSize >= DISPLAY_TEXT_SIZES[DISPLAY_TEXT_SIZES.length - 1]!}
-                    onClick={() => change({ textSize: stepTextSize(settings.textSize, 1) })}
-                    label={t("display.bigger")}
-                    testId="display-bigger"
-                  >
-                    <Plus />
-                  </Choice>
-                </ButtonGroup>
+                </div>
               </Row>
               <Row label={t("display.font")}>
                 <Choices
@@ -374,6 +383,23 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
       <span className="truncate text-xs text-muted-foreground">{label}</span>
       {children}
     </div>
+  );
+}
+
+/** A size, a step down or up the scale at a time, as a percentage. */
+function SizeStepper({ size, onChange, smaller, bigger, testId }: { size: number; onChange: (size: number) => void; smaller: string; bigger: string; testId: string }) {
+  return (
+    <ButtonGroup className="w-full">
+      <Choice pressed={false} disabled={size <= DISPLAY_TEXT_SIZES[0]!} onClick={() => onChange(stepTextSize(size, -1))} label={smaller} testId={`${testId}-smaller`}>
+        <Minus />
+      </Choice>
+      <span className="flex flex-1 items-center justify-center border-y bg-background text-xs font-medium tabular-nums" data-testid={`${testId}-size`}>
+        {Math.round(size * 100)}%
+      </span>
+      <Choice pressed={false} disabled={size >= DISPLAY_TEXT_SIZES[DISPLAY_TEXT_SIZES.length - 1]!} onClick={() => onChange(stepTextSize(size, 1))} label={bigger} testId={`${testId}-bigger`}>
+        <Plus />
+      </Choice>
+    </ButtonGroup>
   );
 }
 

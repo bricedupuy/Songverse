@@ -419,7 +419,9 @@ export function ChartWithDiagrams({
   if (!instrument || !setup) return <SongChart chart={chart} onChordClick={onChordClick} {...props} />;
   return (
     <div className="flex flex-col gap-3">
-      <ChordStrip chords={chords} chart={chart} setup={setup} notation={notation} />
+      <div style={props.chordScale && props.chordScale !== 1 ? { zoom: props.chordScale } : undefined}>
+        <ChordStrip chords={chords} chart={chart} setup={setup} notation={notation} />
+      </div>
       <SongChart
         chart={chart}
         {...props}

@@ -236,6 +236,7 @@ export function chartDisplayProps(settings: EffectiveDisplaySettings) {
     font: settings.font,
     spacing: settings.spacing,
     hideChords: settings.hideChords,
+    chordScale: settings.chordSize / settings.textSize,
     notation: settings.chordNotation,
     colors: settings.chordColors,
     diagrams: settings.chordDiagrams,

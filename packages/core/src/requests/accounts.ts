@@ -33,6 +33,8 @@ export type ChooseChordShapeRequest = z.input<typeof ChooseChordShapeSchema>;
  */
 export const DisplaySettingsSchema = z.strictObject({
   textSize: z.union(DISPLAY_TEXT_SIZES.map((size) => z.literal(size)) as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]).nullable().optional(),
+  /** The chords' own size (issue #225); left out or null, the same as the lyrics' (textSize). */
+  chordSize: z.union(DISPLAY_TEXT_SIZES.map((size) => z.literal(size)) as [z.ZodLiteral<number>, ...z.ZodLiteral<number>[]]).nullable().optional(),
   font: z.enum(DISPLAY_FONTS).nullable().optional(),
   spacing: z.enum(DISPLAY_SPACINGS).nullable().optional(),
   columns: z.enum(DISPLAY_COLUMNS).nullable().optional(),

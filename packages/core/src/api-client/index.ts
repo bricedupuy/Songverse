@@ -438,6 +438,8 @@ export interface SongOwnershipRequest {
 /** One mode's display settings (issue #209): only what it changes; the rest comes from the account's. */
 export interface DisplaySettings {
   textSize?: number;
+  /** The chords' own size (issue #225); left out, the same as the lyrics'. */
+  chordSize?: number;
   font?: DisplayFontValue;
   spacing?: DisplaySpacingValue;
   columns?: DisplayColumnsValue;

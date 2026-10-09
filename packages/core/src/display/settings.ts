@@ -16,7 +16,12 @@ import type { DisplaySettings } from "../api-client/index.js";
  * the account's settings (the dashboard's Chart display), then a default.
  */
 export interface EffectiveDisplaySettings {
+  /** The lyrics' size (and the whole chart's, but the chords'). */
   textSize: number;
+  /** The chords' size (issue #225): the lyrics' unless set apart. */
+  chordSize: number;
+  /** Whether the chords' size follows the lyrics'. */
+  sizesLinked: boolean;
   font: DisplayFontValue;
   spacing: DisplaySpacingValue;
   columns: DisplayColumnsValue;
@@ -45,6 +50,8 @@ export function effectiveDisplaySettings(account: AccountDisplaySettings | null 
   const own = saved?.[mode] ?? {};
   return {
     textSize: own.textSize ?? DEFAULT_TEXT_SIZE[mode],
+    chordSize: own.chordSize ?? own.textSize ?? DEFAULT_TEXT_SIZE[mode],
+    sizesLinked: own.chordSize == null,
     font: own.font ?? "mono",
     spacing: own.spacing ?? "normal",
     columns: own.columns ?? "auto",

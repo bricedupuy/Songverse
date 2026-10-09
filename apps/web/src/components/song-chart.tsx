@@ -10,7 +10,7 @@ import {
   type SectionV2,
 } from "@songverse/core";
 import { AlertTriangle } from "lucide-react";
-import { Fragment } from "react";
+import { Fragment, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import type { ChartColumns } from "#/lib/chart-columns";
 import type { DisplayFontValue, DisplaySpacingValue } from "@songverse/core";
@@ -46,6 +46,7 @@ export function SongChart({
   font = "mono",
   spacing = "normal",
   hideChords = false,
+  chordScale = 1,
 }: {
   chart: RenderedChart;
   emptyText?: string;
@@ -61,6 +62,8 @@ export function SongChart({
   font?: DisplayFontValue;
   spacing?: DisplaySpacingValue;
   hideChords?: boolean;
+  /** The chords' size against the lyrics' (issue #225): they stay over their letters at any size. */
+  chordScale?: number;
 }) {
   const { t } = useTranslation();
   if (chart.passes.length === 0) {
@@ -81,7 +84,8 @@ export function SongChart({
         flowed ? "gap-x-12 [column-rule:1px_solid_var(--color-border)] [&>[data-pass]]:mb-5 [&>[data-pass]]:break-inside-avoid" : "flex flex-col gap-5",
       )}
       // Auto: as many columns of at least 24rem as fit; 2 or 3: up to that many, never narrower than 18rem (a phone keeps one).
-      style={flowed ? { columns: columns === "auto" ? "24rem" : `${columns} 18rem` } : undefined}
+      style={{ ...(flowed && { columns: columns === "auto" ? "24rem" : `${columns} 18rem` }), ...(chordScale !== 1 && ({ "--chord-scale": chordScale } as CSSProperties)) }}
+      data-chord-scale={chordScale}
       data-columns={columns}
       data-font={font}
       data-spacing={spacing}
@@ -181,8 +185,8 @@ function ChartLine({
               const width = cell.chord ? cell.chord.length + 1 : 0;
               const stretched = cell.midWord && width > cell.text.length;
               return (
-                <span key={c} className="inline-flex flex-col" style={width ? { minWidth: `${width}ch` } : undefined}>
-                  <span className="font-bold text-primary" data-chord={cell.chord ?? undefined}>
+                <span key={c} className="inline-flex flex-col" style={width ? { minWidth: `calc(${width}ch * var(--chord-scale, 1))` } : undefined}>
+                  <span className="font-bold text-primary [font-size:calc(1em*var(--chord-scale,1))]" data-chord={cell.chord ?? undefined}>
                     {cell.chords.length === 0
                       ? " "
                       : cell.chords.map((chord, k) => (
