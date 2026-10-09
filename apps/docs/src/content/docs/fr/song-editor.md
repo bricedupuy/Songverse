@@ -27,7 +27,7 @@ Modifier les paroles garde les accords avec elles : taper avant un accord l'emm�
 Chaque bloc est une section : intro, couplet, pré-refrain, refrain, post-refrain, pont, vamp (une phrase répétée autant qu'il faut), break, instrumental, interlude, outro ou tag.
 
 - **Ajoutez une section** depuis la liste **Sections** de la palette : un clic l'ajoute après la section où vous êtes ; sur un ordinateur, faites-la plutôt glisser pour la déposer entre deux sections (une ligne montre où elle ira).
-- Changez le **type** ou le **libellé** d'une section (« Couplet 2 ») en haut de celle-ci. Le bouton en forme d'œil masque son libellé sur la grille.
+- Changez le **type** ou le **libellé** d'une section (« Couplet 2 ») en haut de celle-ci. Le bouton en forme d'œil, avec les outils de la section à droite de son titre, masque son libellé (« Refrain ») sur la grille en Session et en Live.
 - Le menu **⋯** la déplace, la duplique (liée ou en copie indépendante, voir [Copies liées](/fr/song-editor/#copies-liées)), la retire de l'ordre du chant ou la supprime.
 - Une ligne peut être une **note pour le groupe** (« ×2, montée ») plutôt que des paroles.
 
@@ -53,7 +53,7 @@ Les changements de tonalité et les notes s'affichent sur la grille à ce passag
 L'éditeur montre le chant dans l'ordre où il est chanté. La première apparition d'une section est le bloc que vous modifiez ; partout où elle est rechantée, c'est une **copie liée** - marquée d'un lien, « Liée à Refrain », verrouillée - qui suit la section : modifiez la section et chaque copie le montre.
 
 - **Dupliquer (liée)** dans le menu d'une section en ajoute une copie juste après ; **Dupliquer (copie indépendante)** ajoute une section indépendante. Dans le menu d'une copie, **Dupliquer (liée)** ajoute une autre copie avec les mêmes modifications, toujours liée à la section, pas à la copie. Monter et descendre les blocs (leur menu) change l'ordre où ils sont chantés, comme l'**Ordre du chant** au-dessus.
-- Quand l'éditeur a de la place, les flèches pour monter et descendre un bloc, et **Dupliquer (liée)**, sont aussi à droite de son titre, à côté de son menu.
+- Quand l'éditeur a de la place, les flèches pour monter et descendre un bloc et ses duplications sont aussi à droite de son titre, à côté de son menu : sur une section, **Dupliquer (liée)** (le lien) et **Dupliquer (copie indépendante)** (l'icône de copie) ; sur une copie liée, **Dupliquer (liée)** (l'icône de copie).
 - **− / +** dans le titre d'une copie transpose cette copie seule (un changement de tonalité, dans l'ordre du chant, vaut jusqu'à la fin du chant).
 - **Modifier cette copie** ouvre ses modifications, qui restent des différences avec la section, si bien qu'elle continue de la suivre : **Retirer la ligne**, changer ses paroles (les mots retirés s'affichent grisés et barrés, les nouveaux surlignés, et les accords suivent leurs mots), ou taper un autre accord sur l'un d'eux (écrit dans la tonalité du chant) ou le retirer avec le bouton en forme d'œil. **Terminé** la verrouille de nouveau.
 - Une copie modifiée porte une **\*** dans son titre, dans l'ordre du chant et sur la grille. **Comme la section est écrite** (son menu) retire les modifications ; **Rendre indépendante** en fait une section à part, ses modifications écrites dedans - elle ne suit plus l'originale.

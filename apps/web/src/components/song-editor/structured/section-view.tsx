@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { NativeSelect } from "#/components/ui/native-select";
 import { cn } from "#/lib/utils";
-import { BlockTools } from "./block-tools";
+import { BlockTools, ToolButton } from "./block-tools";
 import { deleteSection, duplicateLinked, duplicateSection, moveBlock, setSung } from "./extensions";
 
 /** A section in the editor: its heading controls (type, label, shown or not, menu) above its lines. */
@@ -59,17 +59,26 @@ export function SectionView({ node, editor, getPos, updateAttributes }: ReactNod
             !showLabel && "text-muted-foreground line-through",
           )}
         />
-        <button
-          type="button"
-          className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-pressed={!showLabel}
-          aria-label={showLabel ? t("structuredEditor.hideLabel") : t("structuredEditor.showLabel")}
-          title={showLabel ? t("structuredEditor.hideLabel") : t("structuredEditor.showLabel")}
-          onClick={() => updateAttributes({ showLabel: !showLabel })}
+        <BlockTools
+          editor={editor}
+          at={at}
+          tools={
+            <>
+              {/* The section's name ("Chorus") shown on the chart or not, in Practice and Live. */}
+              <ToolButton label={showLabel ? t("structuredEditor.hideLabel") : t("structuredEditor.showLabel")} pressed={!showLabel} onClick={() => updateAttributes({ showLabel: !showLabel })} testId="section-label-shown">
+                {showLabel ? <Eye /> : <EyeOff />}
+              </ToolButton>
+              {sung ? (
+                <ToolButton className="hidden @xl/block:flex" label={t("structuredEditor.duplicateLinked")} onClick={() => duplicateLinked(editor.view, at())} testId="block-duplicate-linked">
+                  <Link2 />
+                </ToolButton>
+              ) : null}
+              <ToolButton className="hidden @xl/block:flex" label={t("structuredEditor.duplicateSection")} onClick={() => duplicateSection(editor.view, at())} testId="block-duplicate">
+                <Copy />
+              </ToolButton>
+            </>
+          }
         >
-          {showLabel ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
-        </button>
-        <BlockTools editor={editor} at={at} onDuplicateLinked={sung ? () => duplicateLinked(editor.view, at()) : undefined}>
           <DropdownMenu>
             <DropdownMenuTrigger render={<button type="button" className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t("structuredEditor.sectionMenu", { section: label || typeName })} />}>
               <MoreHorizontal className="size-3.5" />

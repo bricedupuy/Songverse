@@ -5,7 +5,12 @@
 // replaced or removed (shown greyed out), chords changed or left out - while
 // it keeps following the section otherwise. Changed copies are marked *;
 // "Make unique" turns one into a section of its own. Sections taken out of
-// the song's order sit at the end, under "Not in the song order".
+// the song's order sit at the end, under "Not in the song order". A copy
+// duplicated is another copy of the section, with the same changes (issue
+// #234). With room, a block's arrows and duplicates are at the right of its
+// heading with the eye (its name on the chart or not), sections' and copies'
+// on the same edge. Chords stay over their letters in a copy, several on one
+// letter and after the last one too - and on the chart.
 import { chromium } from "playwright";
 import { WEB, api, finish, signIn, stamp, stepper, user } from "../lib/harness.mjs";
 
@@ -137,6 +142,15 @@ try {
     const chorusTools = editor().locator('[data-section-type="chorus"]').first();
     await chorusTools.getByTestId("block-move-up").waitFor();
     await copy().getByTestId("block-move-down").waitFor();
+    // A section: both duplicates; a copy: one, another copy. The eye with them: the name shown on the chart or not.
+    await chorusTools.getByTestId("block-duplicate-linked").waitFor();
+    await chorusTools.getByTestId("block-duplicate").waitFor();
+    await copy().getByTestId("block-duplicate-linked").waitFor();
+    const eye = chorusTools.locator("[data-block-tools]").getByTestId("section-label-shown");
+    await eye.click();
+    await chorusTools.getByRole("button", { name: "Show the label on the chart" }).waitFor();
+    if ((await eye.getAttribute("aria-pressed")) !== "true") throw new Error("the name not hidden");
+    await eye.click();
     const right = async (block) => block.getByRole("button", { name: /actions$/ }).evaluate((el) => Math.round(el.getBoundingClientRect().right));
     const [a, b] = [await right(chorusTools), await right(copy())];
     if (Math.abs(a - b) > 1) throw new Error(`menus not lined up: ${a} / ${b}`);

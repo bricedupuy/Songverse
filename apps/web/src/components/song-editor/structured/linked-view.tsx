@@ -12,13 +12,13 @@ import {
   type SectionV2,
 } from "@songverse/core";
 import { NodeViewWrapper, useEditorState, type ReactNodeViewProps } from "@tiptap/react";
-import { ArrowDown, ArrowUp, Eye, EyeOff, Link2, Lock, LockOpen, Minus, MoreHorizontal, Plus, RotateCcw, Trash2, Unlink2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Link2, Lock, LockOpen, Minus, MoreHorizontal, Plus, RotateCcw, Trash2, Unlink2 } from "lucide-react";
 import { Fragment, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { cn } from "#/lib/utils";
 import { editorToSections } from "./document";
-import { BlockTools } from "./block-tools";
+import { BlockTools, ToolButton } from "./block-tools";
 import { deleteLinked, moveBlock } from "./extensions";
 import { useSongOrderActions } from "./song-order-context";
 
@@ -91,7 +91,12 @@ export function LinkedView({ node, editor, getPos }: ReactNodeViewProps) {
         <BlockTools
           editor={editor}
           at={at}
-          onDuplicateLinked={() => actions?.duplicatePass(passId, at())}
+          tools={
+            // Another copy of the section, with this one's changes.
+            <ToolButton className="hidden @xl/block:flex" label={t("structuredEditor.duplicateLinked")} onClick={() => actions?.duplicatePass(passId, at())} testId="block-duplicate-linked">
+              <Copy />
+            </ToolButton>
+          }
           leading={
             <>
               {/* The whole copy up or down, by itself. */}
@@ -125,7 +130,7 @@ export function LinkedView({ node, editor, getPos }: ReactNodeViewProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => actions?.duplicatePass(passId, at())} data-testid="linked-duplicate">
-                <Link2 />
+                <Copy />
                 {t("structuredEditor.duplicateLinked")}
               </DropdownMenuItem>
               <DropdownMenuItem disabled={index === 0} onClick={() => moveBlock(editor.view, at(), -1)}>
