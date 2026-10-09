@@ -256,6 +256,8 @@ function ChartLine({
     return { items, shapes, size };
   };
 
+  const lineHasText = words.some((word) => word.some((cell) => cell.text.length > 0));
+
   return (
     <p data-line="" data-line-id={line.id} className={cn(line.inserted && "text-amber-800 dark:text-amber-300")}>
       {words.map((word, w) => (
@@ -305,7 +307,8 @@ function ChartLine({
                   </span>
                   {second?.position === "below" ? (secondEl ?? <span> </span>) : null}
                   <span className="flex">
-                    <span>{cell.text}</span>
+                    {/* Chords after the last letter: a blank under them, so they stay on the chords' row (not on a line of chords alone). */}
+                    <span>{cell.text || (lineHasText ? " " : null)}</span>
                     {stretched ? (
                       <span aria-hidden className="flex-1 text-center text-muted-foreground">
                         -

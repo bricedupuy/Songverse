@@ -18,6 +18,7 @@ import { useTranslation } from "react-i18next";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "#/components/ui/dropdown-menu";
 import { cn } from "#/lib/utils";
 import { editorToSections } from "./document";
+import { BlockTools } from "./block-tools";
 import { deleteLinked, moveBlock } from "./extensions";
 import { useSongOrderActions } from "./song-order-context";
 
@@ -78,7 +79,7 @@ export function LinkedView({ node, editor, getPos }: ReactNodeViewProps) {
       data-editing={editing ? "" : undefined}
       data-testid="linked-copy"
     >
-      <div className="mb-1.5 flex flex-wrap items-center gap-1.5 select-none" contentEditable={false}>
+      <div className="@container/block mb-1.5 flex flex-wrap items-center gap-1.5 select-none" contentEditable={false}>
         <Link2 className="size-3.5 text-primary" aria-hidden />
         <span className="text-xs font-semibold tracking-wide uppercase">{pass.label || name}</span>
         <span className="text-xs text-muted-foreground">{t("linkedCopy.linkedTo", { section: name })}</span>
@@ -87,58 +88,72 @@ export function LinkedView({ node, editor, getPos }: ReactNodeViewProps) {
             *
           </span>
         ) : null}
-        {/* The whole copy up or down, by itself. */}
-        <span className="ml-auto flex items-center rounded-md border bg-background" role="group" aria-label={t("linkedCopy.transpose")}>
-          <button type="button" className="flex size-7 items-center justify-center hover:bg-muted [&_svg]:size-3.5" onClick={() => update({ transpose: steps - 1 || null })} disabled={steps <= -11} aria-label={t("linkedCopy.down")} title={t("linkedCopy.down")} data-testid="linked-transpose-down">
-            <Minus />
-          </button>
-          <span className="min-w-8 text-center text-xs tabular-nums" data-testid="linked-transpose">
-            {steps > 0 ? `+${steps}` : steps < 0 ? `−${-steps}` : "±0"}
-          </span>
-          <button type="button" className="flex size-7 items-center justify-center hover:bg-muted [&_svg]:size-3.5" onClick={() => update({ transpose: steps + 1 || null })} disabled={steps >= 11} aria-label={t("linkedCopy.up")} title={t("linkedCopy.up")} data-testid="linked-transpose-up">
-            <Plus />
-          </button>
-        </span>
-        <button
-          type="button"
-          onClick={() => setEditing(!editing)}
-          aria-pressed={editing}
-          className={cn("flex h-7 items-center gap-1 rounded-md border px-2 text-xs [&_svg]:size-3.5", editing ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted")}
-          data-testid="linked-edit"
+        <BlockTools
+          editor={editor}
+          at={at}
+          onDuplicateLinked={() => actions?.duplicatePass(passId, at())}
+          leading={
+            <>
+              {/* The whole copy up or down, by itself. */}
+              <span className="mr-1 flex items-center rounded-md border bg-background" role="group" aria-label={t("linkedCopy.transpose")}>
+                <button type="button" className="flex size-7 items-center justify-center hover:bg-muted [&_svg]:size-3.5" onClick={() => update({ transpose: steps - 1 || null })} disabled={steps <= -11} aria-label={t("linkedCopy.down")} title={t("linkedCopy.down")} data-testid="linked-transpose-down">
+                  <Minus />
+                </button>
+                <span className="min-w-8 text-center text-xs tabular-nums" data-testid="linked-transpose">
+                  {steps > 0 ? `+${steps}` : steps < 0 ? `−${-steps}` : "±0"}
+                </span>
+                <button type="button" className="flex size-7 items-center justify-center hover:bg-muted [&_svg]:size-3.5" onClick={() => update({ transpose: steps + 1 || null })} disabled={steps >= 11} aria-label={t("linkedCopy.up")} title={t("linkedCopy.up")} data-testid="linked-transpose-up">
+                  <Plus />
+                </button>
+              </span>
+              <button
+                type="button"
+                onClick={() => setEditing(!editing)}
+                aria-pressed={editing}
+                className={cn("mr-1 flex h-7 items-center gap-1 rounded-md border px-2 text-xs [&_svg]:size-3.5", editing ? "border-primary bg-primary text-primary-foreground" : "bg-background hover:bg-muted")}
+                data-testid="linked-edit"
+              >
+                {editing ? <LockOpen /> : <Lock />}
+                {editing ? t("linkedCopy.done") : t("linkedCopy.edit")}
+              </button>
+            </>
+          }
         >
-          {editing ? <LockOpen /> : <Lock />}
-          {editing ? t("linkedCopy.done") : t("linkedCopy.edit")}
-        </button>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<button type="button" className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t("linkedCopy.menu", { section: name })} />}>
-            <MoreHorizontal className="size-3.5" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled={index === 0} onClick={() => moveBlock(editor.view, at(), -1)}>
-              <ArrowUp />
-              {t("structuredEditor.moveUp")}
-            </DropdownMenuItem>
-            <DropdownMenuItem disabled={index === count - 1} onClick={() => moveBlock(editor.view, at(), 1)}>
-              <ArrowDown />
-              {t("structuredEditor.moveDown")}
-            </DropdownMenuItem>
-            {changed ? (
-              <DropdownMenuItem onClick={() => update({ transpose: null, chords: undefined, hiddenLines: undefined, lyrics: undefined })} data-testid="linked-as-written">
-                <RotateCcw />
-                {t("linkedCopy.asWritten")}
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<button type="button" className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t("linkedCopy.menu", { section: name })} />}>
+              <MoreHorizontal className="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => actions?.duplicatePass(passId, at())} data-testid="linked-duplicate">
+                <Link2 />
+                {t("structuredEditor.duplicateLinked")}
               </DropdownMenuItem>
-            ) : null}
-            <DropdownMenuItem onClick={() => actions?.makeUnique(passId, at())} data-testid="linked-make-unique">
-              <Unlink2 />
-              {t("linkedCopy.makeUnique")}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteLinked(editor.view, at())}>
-              <Trash2 />
-              {t("linkedCopy.remove")}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuItem disabled={index === 0} onClick={() => moveBlock(editor.view, at(), -1)}>
+                <ArrowUp />
+                {t("structuredEditor.moveUp")}
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={index === count - 1} onClick={() => moveBlock(editor.view, at(), 1)}>
+                <ArrowDown />
+                {t("structuredEditor.moveDown")}
+              </DropdownMenuItem>
+              {changed ? (
+                <DropdownMenuItem onClick={() => update({ transpose: null, chords: undefined, hiddenLines: undefined, lyrics: undefined })} data-testid="linked-as-written">
+                  <RotateCcw />
+                  {t("linkedCopy.asWritten")}
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuItem onClick={() => actions?.makeUnique(passId, at())} data-testid="linked-make-unique">
+                <Unlink2 />
+                {t("linkedCopy.makeUnique")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => deleteLinked(editor.view, at())}>
+                <Trash2 />
+                {t("linkedCopy.remove")}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </BlockTools>
       </div>
       <div className={cn("flex flex-col gap-1", !editing && "pointer-events-none text-foreground/70")} contentEditable={false}>
         {section.lines.map((line) => (
@@ -234,9 +249,10 @@ function CopyLine({
           {w > 0 ? "​" : null}
           <span className="inline-flex whitespace-pre align-bottom">
             {word.map((cell, c) => (
-              <span key={c} className="inline-flex flex-col justify-end" style={cell.chord ? { minWidth: `${cell.chord.length + 1}ch` } : undefined}>
+              // The cell as wide as its chords (and a space) or its text, whichever is wider - measured, not counted: a ♭ is wider than a letter.
+              <span key={c} className="inline-flex flex-col justify-end" data-copy-cell="">
                 {cell.chords.length > 0 ? (
-                  <span className="font-bold text-primary">
+                  <span className="pr-[1ch] font-bold text-primary">
                     {cell.chords.map((chord, k) => (
                       <Fragment key={chord.id ?? k}>
                         {k > 0 ? " " : null}
@@ -249,7 +265,16 @@ function CopyLine({
                 ) : (
                   <span> </span>
                 )}
-                <span>{styled(cell.start, cell.text)}</span>
+                <span className="flex">
+                  {/* Chords after the last letter: a blank under them, so they stay on the chords' row. */}
+                  <span>{cell.text ? styled(cell.start, cell.text) : display ? " " : null}</span>
+                  {/* In the gap a wider chord leaves inside a word; no width of its own. */}
+                  {cell.midWord ? (
+                    <span aria-hidden className="w-0 grow overflow-hidden text-center text-muted-foreground">
+                      -
+                    </span>
+                  ) : null}
+                </span>
               </span>
             ))}
           </span>

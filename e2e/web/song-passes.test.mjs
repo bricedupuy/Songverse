@@ -17,7 +17,7 @@ const song = await api(me, "POST", "/song-versions", {
   language: "en",
   artists: ["Band"],
   key: "C",
-  content: "{start_of_verse}\n[C]Amazing grace\n{end_of_verse}\n{start_of_chorus}\n[C]My chains are [G]gone\n[D]I've been set [C]free\n[F]Your mercy reigns\n{end_of_chorus}\n",
+  content: "{start_of_verse}\n[C]Amazing grace\n{end_of_verse}\n{start_of_chorus}\n[C]My chains are [G]gone\n[D]I've been set [C]free\n[F]Your mercy reigns\n{end_of_chorus}\n{start_of_bridge}\n[Bb]Al[Gm]lé[Bb]lu[Cm][Gm]ia[Gm][Dm][Eb]\n{end_of_bridge}\n",
   contentFormat: "CHORDPRO",
 });
 const stored = async () => (await api(me, "GET", `/song-versions/${song.id}`)).documentJson;
@@ -33,6 +33,9 @@ try {
   const editor = () => page.getByTestId("structured-editor");
   const copy = () => editor().getByTestId("linked-copy");
   const order = () => page.getByTestId("song-order");
+  // The editor's blocks in order: sections by type, linked copies as "copy".
+  const order_ = async () =>
+    (await editor().locator(":scope > [data-node-view-wrapper], :scope > section, :scope > div").evaluateAll((els) => els.map((el) => (el.matches("[data-linked-pass]") || el.querySelector("[data-linked-pass]") ? "copy" : el.getAttribute("data-section-type") ?? el.querySelector("[data-section-type]")?.getAttribute("data-section-type"))))).filter(Boolean);
   const save = async (check) => {
     await page.getByRole("button", { name: "Save song" }).first().click();
     for (let i = 0; i < 40; i++) {
@@ -51,8 +54,8 @@ try {
     await copy().waitFor();
     await copy().getByText("Linked to Chorus").waitFor();
     // In the editor's order: verse, chorus, its copy.
-    const blocks = await editor().locator(":scope > [data-node-view-wrapper], :scope > section, :scope > div").evaluateAll((els) => els.map((el) => (el.matches("[data-linked-pass]") || el.querySelector("[data-linked-pass]") ? "copy" : el.getAttribute("data-section-type") ?? el.querySelector("[data-section-type]")?.getAttribute("data-section-type"))));
-    if (JSON.stringify(blocks.filter(Boolean)) !== JSON.stringify(["verse", "chorus", "copy"])) throw new Error(JSON.stringify(blocks));
+    const blocks = await order_();
+    if (JSON.stringify(blocks) !== JSON.stringify(["verse", "chorus", "copy", "bridge"])) throw new Error(JSON.stringify(blocks));
     // Locked: no text to type into.
     if (await copy().locator("input").count()) throw new Error("editable while locked");
     await order().getByRole("listitem").nth(2).getByLabel("Linked copy").waitFor();
@@ -109,7 +112,53 @@ try {
     // Am a tone up: Bm; the C left out.
     const chords = await passes.nth(2).locator("[data-line]").first().locator("[data-chord]:not([data-chord=''])").evaluateAll((els) => els.map((el) => el.textContent.trim()).filter(Boolean));
     if (JSON.stringify(chords) !== JSON.stringify(["Bm"])) throw new Error(JSON.stringify(chords));
+    // Chords after the last letter stay on the chords' row, over the end of the words.
+    const bridge = page.getByTestId("song-chart").locator("[data-pass]").last().locator("[data-line]").first();
+    const [first, last] = await Promise.all([bridge.locator("[data-chord]:not([data-chord=''])").first(), bridge.locator("[data-chord]:not([data-chord=''])").last()].map((el) => el.evaluate((one) => Math.round(one.getBoundingClientRect().top))));
+    if (first !== last) throw new Error(`trailing chords off the chords' row: ${first} / ${last}`);
     await page.getByRole("radiogroup", { name: "Mode" }).getByRole("radio", { name: "Edit" }).click();
+  });
+
+  await step("a copy duplicated: another copy of the chorus, not of the copy, with its changes", async () => {
+    await copy().getByRole("button", { name: "Chorus copy actions" }).click();
+    await page.getByTestId("linked-duplicate").click();
+    await copy().nth(1).waitFor();
+    if ((await copy().nth(1).getAttribute("data-linked-to")) !== chorus.id) throw new Error("linked to the copy");
+    await copy().nth(1).getByTestId("linked-transpose").getByText("+2").waitFor();
+    const saved = await save((found) => found.flow.length === 5);
+    const [, , one, two] = saved.flow;
+    if (two.sectionId !== chorus.id || two.id === one.id || JSON.stringify({ ...two, id: one.id }) !== JSON.stringify(one)) throw new Error(JSON.stringify(saved.flow));
+    await copy().nth(1).getByRole("button", { name: "Chorus copy actions" }).click();
+    await page.getByRole("menuitem", { name: "Remove" }).click();
+    await save((found) => found.flow.length === 4);
+  });
+
+  await step("with room, the arrows at the right of the heading, sections' and copies' on the same edge", async () => {
+    const chorusTools = editor().locator('[data-section-type="chorus"]').first();
+    await chorusTools.getByTestId("block-move-up").waitFor();
+    await copy().getByTestId("block-move-down").waitFor();
+    const right = async (block) => block.getByRole("button", { name: /actions$/ }).evaluate((el) => Math.round(el.getBoundingClientRect().right));
+    const [a, b] = [await right(chorusTools), await right(copy())];
+    if (Math.abs(a - b) > 1) throw new Error(`menus not lined up: ${a} / ${b}`);
+    // The copy up one: before the chorus.
+    await copy().getByTestId("block-move-up").click();
+    if (JSON.stringify(await order_()) !== JSON.stringify(["verse", "copy", "chorus", "bridge"])) throw new Error(JSON.stringify(await order_()));
+    await copy().getByTestId("block-move-down").click();
+    if (JSON.stringify(await order_()) !== JSON.stringify(["verse", "chorus", "copy", "bridge"])) throw new Error(JSON.stringify(await order_()));
+  });
+
+  await step("chords several on a letter and after the last one: on the chords' row, apart", async () => {
+    const bridge = editor().locator('[data-section-type="bridge"]');
+    await bridge.getByRole("button", { name: "Bridge actions" }).click();
+    await page.getByTestId("section-duplicate-linked").click();
+    const line = editor().locator('[data-linked-to] [data-copy-line]').last();
+    await line.waitFor();
+    const boxes = await line.locator("[data-copy-cell] > span:first-child").evaluateAll((els) => els.map((el) => { const r = el.getBoundingClientRect(); return { text: el.textContent.trim(), left: r.left, right: r.right, top: Math.round(r.top) }; }).filter((box) => box.text));
+    if (boxes.map((box) => box.text).join("|") !== "B♭|Gm|B♭|Cm Gm|Gm Dm E♭") throw new Error(JSON.stringify(boxes));
+    if (new Set(boxes.map((box) => box.top)).size !== 1) throw new Error(`not on one row: ${JSON.stringify(boxes)}`);
+    for (let i = 1; i < boxes.length; i++) if (boxes[i].left < boxes[i - 1].right - 0.5) throw new Error(`overlapping: ${JSON.stringify(boxes)}`);
+    await editor().locator('[data-linked-to]').last().getByRole("button", { name: "Bridge copy actions" }).click();
+    await page.getByRole("menuitem", { name: "Remove" }).click();
   });
 
   await step("Make unique: a section of its own, its changes written in", async () => {
@@ -119,7 +168,7 @@ try {
     await page.getByTestId("linked-make-unique").click();
     await copy().waitFor({ state: "detached" });
     if ((await editor().locator('[data-section-type="chorus"]').count()) !== 2) throw new Error("not a section of its own");
-    const saved = await save((found) => found.sections.length === 3);
+    const saved = await save((found) => found.sections.length === 4);
     const pass = saved.flow[2];
     const own = saved.sections.find((one) => one.id === pass.sectionId);
     if (own.id === chorus.id || pass.transpose || pass.lyrics || pass.hiddenLines || pass.chords) throw new Error(JSON.stringify(pass));

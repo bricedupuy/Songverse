@@ -41,6 +41,7 @@ import {
   nudgeChord,
   REPLACE_META,
   replaceDocument,
+  duplicateLinked,
   replaceLinked,
   selectedChord,
   setChordSymbol,
@@ -158,6 +159,14 @@ export function StructuredEditor({
         // Its changes are written into the new section: the pass no longer carries them.
         setFlow(flowRef.current.map((item) => (item.id === passId ? { ...item, transpose: null, chords: undefined, hiddenLines: undefined, lyrics: undefined } : item)));
         replaceLinked(editor.view, pos, editor.schema.nodeFromJSON(json));
+      },
+      duplicatePass: (passId, pos) => {
+        const pass = flowRef.current.find((item) => item.id === passId);
+        if (!editor || !pass) return;
+        // Inserting it adds its pass to the order (onUpdate); then it takes the copy's changes.
+        const newId = duplicateLinked(editor.view, pos);
+        if (!newId) return;
+        setFlow(flowRef.current.map((item) => (item.id === newId ? { ...pass, id: newId } : item)));
       },
       songKey,
     }),

@@ -833,12 +833,13 @@ export function setDropTarget(view: EditorView, target: number | null) {
 
 // --- linked copies (issue #205)
 
-/** A linked copy of the section at `pos`, right after it, as another pass in the song's order. */
+/** A linked copy of the section at `pos` (or of the section a copy there follows), right after it, as another pass in the song's order. */
 export function duplicateLinked(view: EditorView, pos: number): string | null {
   const node = view.state.doc.nodeAt(pos);
-  if (!node || node.type.name !== "section") return null;
+  if (!node || (node.type.name !== "section" && node.type.name !== "linked")) return null;
   const passId = generateId(ID_PREFIXES.flowItem);
-  const copy = view.state.schema.nodes.linked!.create({ passId, sectionId: node.attrs.id });
+  // A copy of a copy follows the section too, not the copy.
+  const copy = view.state.schema.nodes.linked!.create({ passId, sectionId: node.type.name === "linked" ? node.attrs.sectionId : node.attrs.id });
   view.dispatch(view.state.tr.insert(pos + node.nodeSize, copy).scrollIntoView());
   return passId;
 }

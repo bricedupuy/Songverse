@@ -13,6 +13,8 @@ export interface SongOrderActions {
   updatePass: (passId: string, change: Partial<SectionInstance>) => void;
   /** The linked copy at `pos` made a section of its own, its changes written in. */
   makeUnique: (passId: string, pos: number) => void;
+  /** The linked copy at `pos` duplicated just after it, its changes and all, linked to the same section. */
+  duplicatePass: (passId: string, pos: number) => void;
   /** The key the song's sections are written in. */
   songKey: string;
 }
