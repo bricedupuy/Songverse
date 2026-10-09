@@ -1,0 +1,404 @@
+{
+  "$schema": "songverse-conformance/v1",
+  "area": "lyrics-search",
+  "about": "Finding a song by its words (issue #221): its sung lines, how a search is read, and the line it finds.",
+  "functions": {
+    "lyricsLines": {
+      "about": "A song's sung lines in order, with their ids: no chords, notes or empty lines; a line sung again only the first time.",
+      "params": [
+        "document"
+      ],
+      "cases": [
+        {
+          "name": "a chorus written out twice, a note, an empty line",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 1,
+              "defaults": {},
+              "sections": [
+                {
+                  "id": "c1",
+                  "type": "chorus",
+                  "lines": [
+                    {
+                      "id": "l1",
+                      "text": "My chains are gone,  I've been set free",
+                      "chords": [
+                        {
+                          "id": "k1",
+                          "at": 3,
+                          "raw": "C"
+                        }
+                      ]
+                    },
+                    {
+                      "id": "l2",
+                      "kind": "note",
+                      "text": "Softly"
+                    }
+                  ]
+                },
+                {
+                  "id": "v1",
+                  "type": "verse",
+                  "lines": [
+                    {
+                      "id": "l3",
+                      "text": ""
+                    },
+                    {
+                      "id": "l4",
+                      "text": "Amazing grace"
+                    }
+                  ]
+                },
+                {
+                  "id": "c2",
+                  "type": "chorus",
+                  "lines": [
+                    {
+                      "id": "l5",
+                      "text": "My chains are gone, I've been set free"
+                    }
+                  ]
+                }
+              ],
+              "flow": []
+            }
+          ],
+          "expected": [
+            {
+              "id": "l1",
+              "text": "My chains are gone, I've been set free"
+            },
+            {
+              "id": "l4",
+              "text": "Amazing grace"
+            }
+          ]
+        }
+      ]
+    },
+    "lyricsSearchText": {
+      "about": "What's kept to search a song's words: its sung lines folded (case, accents, apostrophes, punctuation), one per line.",
+      "params": [
+        "document"
+      ],
+      "cases": [
+        {
+          "name": "accents, apostrophes and punctuation",
+          "args": [
+            {
+              "$schema": "song-document/v2",
+              "revision": 1,
+              "defaults": {},
+              "sections": [
+                {
+                  "id": "s",
+                  "type": "verse",
+                  "lines": [
+                    {
+                      "id": "a",
+                      "text": "Ô Seigneur, c'est Toi!"
+                    },
+                    {
+                      "id": "b",
+                      "text": "Cœur — à cœur"
+                    }
+                  ]
+                }
+              ],
+              "flow": []
+            }
+          ],
+          "expected": "o seigneur cest toi\ncoeur a coeur"
+        }
+      ]
+    },
+    "parseLyricsQuery": {
+      "about": "A lyrics search as typed: its words and quoted phrases, folded; null under three letters.",
+      "params": [
+        "query"
+      ],
+      "cases": [
+        {
+          "name": "\"chains free\"",
+          "args": [
+            "chains free"
+          ],
+          "expected": [
+            "chains",
+            "free"
+          ]
+        },
+        {
+          "name": "\"\\\"chains are gone\\\" free\"",
+          "args": [
+            "\"chains are gone\" free"
+          ],
+          "expected": [
+            "chains are gone",
+            "free"
+          ]
+        },
+        {
+          "name": "\"Élévation\"",
+          "args": [
+            "Élévation"
+          ],
+          "expected": [
+            "elevation"
+          ]
+        },
+        {
+          "name": "\"I've\"",
+          "args": [
+            "I've"
+          ],
+          "expected": [
+            "ive"
+          ]
+        },
+        {
+          "name": "\"ab\"",
+          "args": [
+            "ab"
+          ],
+          "expected": null
+        },
+        {
+          "name": "\"a b c\"",
+          "args": [
+            "a b c"
+          ],
+          "expected": [
+            "a",
+            "b",
+            "c"
+          ]
+        },
+        {
+          "name": "\"«set free»\"",
+          "args": [
+            "«set free»"
+          ],
+          "expected": [
+            "set free"
+          ]
+        }
+      ]
+    },
+    "matchLyrics": {
+      "about": "The line that matches: every word and phrase in order, not necessarily next to each other; the closest together, then the first. Where the words are, in the line's own text.",
+      "params": [
+        "query",
+        "lines"
+      ],
+      "cases": [
+        {
+          "name": "words in order, apart",
+          "args": [
+            "chains free",
+            [
+              {
+                "id": "l1",
+                "text": "Amazing grace, how sweet the sound"
+              },
+              {
+                "id": "l2",
+                "text": "My chains are gone, I've been set free"
+              },
+              {
+                "id": "l3",
+                "text": "Free, my chains are gone, they're free"
+              },
+              {
+                "id": "l4",
+                "text": "Élévation, cœur à cœur"
+              }
+            ]
+          ],
+          "expected": {
+            "index": 2,
+            "lineId": "l3",
+            "text": "Free, my chains are gone, they're free",
+            "found": [
+              [
+                9,
+                15
+              ],
+              [
+                34,
+                38
+              ]
+            ]
+          }
+        },
+        {
+          "name": "an exact phrase",
+          "args": [
+            "\"set free\"",
+            [
+              {
+                "id": "l1",
+                "text": "Amazing grace, how sweet the sound"
+              },
+              {
+                "id": "l2",
+                "text": "My chains are gone, I've been set free"
+              },
+              {
+                "id": "l3",
+                "text": "Free, my chains are gone, they're free"
+              },
+              {
+                "id": "l4",
+                "text": "Élévation, cœur à cœur"
+              }
+            ]
+          ],
+          "expected": {
+            "index": 1,
+            "lineId": "l2",
+            "text": "My chains are gone, I've been set free",
+            "found": [
+              [
+                30,
+                38
+              ]
+            ]
+          }
+        },
+        {
+          "name": "words out of order: none",
+          "args": [
+            "free sweet",
+            [
+              {
+                "id": "l1",
+                "text": "Amazing grace, how sweet the sound"
+              },
+              {
+                "id": "l2",
+                "text": "My chains are gone, I've been set free"
+              },
+              {
+                "id": "l3",
+                "text": "Free, my chains are gone, they're free"
+              },
+              {
+                "id": "l4",
+                "text": "Élévation, cœur à cœur"
+              }
+            ]
+          ],
+          "expected": null
+        },
+        {
+          "name": "accents and ligatures ignored",
+          "args": [
+            "elevation coeur",
+            [
+              {
+                "id": "l1",
+                "text": "Amazing grace, how sweet the sound"
+              },
+              {
+                "id": "l2",
+                "text": "My chains are gone, I've been set free"
+              },
+              {
+                "id": "l3",
+                "text": "Free, my chains are gone, they're free"
+              },
+              {
+                "id": "l4",
+                "text": "Élévation, cœur à cœur"
+              }
+            ]
+          ],
+          "expected": {
+            "index": 3,
+            "lineId": "l4",
+            "text": "Élévation, cœur à cœur",
+            "found": [
+              [
+                0,
+                9
+              ],
+              [
+                11,
+                15
+              ]
+            ]
+          }
+        },
+        {
+          "name": "an apostrophe left out",
+          "args": [
+            "ive been",
+            [
+              {
+                "id": "l1",
+                "text": "Amazing grace, how sweet the sound"
+              },
+              {
+                "id": "l2",
+                "text": "My chains are gone, I've been set free"
+              },
+              {
+                "id": "l3",
+                "text": "Free, my chains are gone, they're free"
+              },
+              {
+                "id": "l4",
+                "text": "Élévation, cœur à cœur"
+              }
+            ]
+          ],
+          "expected": {
+            "index": 1,
+            "lineId": "l2",
+            "text": "My chains are gone, I've been set free",
+            "found": [
+              [
+                20,
+                24
+              ],
+              [
+                25,
+                29
+              ]
+            ]
+          }
+        },
+        {
+          "name": "too short",
+          "args": [
+            "my",
+            [
+              {
+                "id": "l1",
+                "text": "Amazing grace, how sweet the sound"
+              },
+              {
+                "id": "l2",
+                "text": "My chains are gone, I've been set free"
+              },
+              {
+                "id": "l3",
+                "text": "Free, my chains are gone, they're free"
+              },
+              {
+                "id": "l4",
+                "text": "Élévation, cœur à cœur"
+              }
+            ]
+          ],
+          "expected": null
+        }
+      ]
+    }
+  }
+}

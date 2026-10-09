@@ -29,6 +29,11 @@ import {
   type SupportedImportFormat,
   type SongFields,
   findProgression,
+  lyricsLines,
+  lyricsSearchText,
+  matchLyrics,
+  parseLyricsQuery,
+  type LyricsMatch,
   parseProgressionQuery,
   progressionGrams,
   progressionSimilarity,
@@ -351,6 +356,10 @@ export type ListItem = Omit<ListRow, "contributors" | "versionTags" | "imageStor
   tags: ListRow["versionTags"][number]["tag"][];
   /** Shared with the viewer by its owner (issue #77). */
   sharedBy: SharedBy | null;
+  /** Where it is in the viewer's numbered songbooks, when asked (issue #213). */
+  songbookReferences?: string[];
+  /** Found by its words (issue #221): the line, and the words in it. */
+  lyricsMatch?: LyricsMatch;
 };
 
 type TagRow = ListRow["versionTags"][number]["tag"];
@@ -436,6 +445,9 @@ const MATCH_VERSION_SELECT = {
 } satisfies Prisma.SongVersionSelect;
 
 /** A library list's order: its sort, newest first by default; ties (same title, say) in a stable order. */
+/** How many songs with the words searched are checked line by line (issue #221). */
+const LYRICS_CANDIDATES = 300;
+
 function listOrder(query: ListSongVersionsQueryDto): Prisma.SongVersionOrderByWithRelationInput[] {
   const sort = query.sort ?? "updatedAt";
   const dir = query.dir ?? (sort === "updatedAt" || sort === "createdAt" ? "desc" : "asc");
@@ -467,6 +479,7 @@ export class SongVersionsService {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 50;
     const where = await this.listWhere(user, query);
+    if (query.in === "lyrics") return this.findByLyrics(user, query, where, page, pageSize);
     const [total, versions] = await Promise.all([
       this.prisma.client.songVersion.count({ where }),
       this.prisma.client.songVersion.findMany({
@@ -477,19 +490,46 @@ export class SongVersionsService {
         take: pageSize,
       }),
     ]);
+    return { items: await this.pageItems(user, versions, query), total, page, pageSize };
+  }
+
+  /**
+   * Songs found by their words (issue #221): the database narrows them to
+   * those with every word searched (the trigram-indexed lyricsText), then
+   * each is checked line by line - the words in order, on one line - and
+   * comes with the line found. In the list's order; the first
+   * LYRICS_CANDIDATES songs with the words are looked at.
+   */
+  private async findByLyrics(user: AuthenticatedUser, query: ListSongVersionsQueryDto, where: Prisma.SongVersionWhereInput, page: number, pageSize: number): Promise<SongPage> {
+    const terms = parseLyricsQuery(query.q ?? "");
+    if (!terms) return { items: [], total: 0, page, pageSize };
+    const rows = await this.prisma.client.songVersion.findMany({ where, select: { id: true, documentJson: true }, orderBy: listOrder(query), take: LYRICS_CANDIDATES });
+    const matches = new Map<string, LyricsMatch>();
+    for (const row of rows) {
+      try {
+        const match = matchLyrics(terms, lyricsLines(readSongDocument(row.documentJson)));
+        if (match) matches.set(row.id, match);
+      } catch {
+        // A chart it can't read: not found by its words.
+      }
+    }
+    const ids = [...matches.keys()].slice((page - 1) * pageSize, page * pageSize);
+    const found = await this.prisma.client.songVersion.findMany({ where: { id: { in: ids } }, select: LIST_SELECT });
+    const versions = ids.map((id) => found.find((version) => version.id === id)).filter((version) => version !== undefined);
+    const items = await this.pageItems(user, versions, query);
+    return { items: items.map((item) => ({ ...item, lyricsMatch: matches.get(item.id)! })), total: matches.size, page, pageSize };
+  }
+
+  /** A page's songs as listed: their images signed, who shared them, and where they are in the user's songbooks when asked. */
+  private async pageItems(user: AuthenticatedUser, versions: ListRow[], query: ListSongVersionsQueryDto): Promise<ListItem[]> {
     const seesTag = await this.seesTag(user);
     const shared = await this.sharedByOf(user, versions.map((version) => version.id));
     // Where each is in the user's songbooks, when asked (issue #213: beside the songs a search finds).
     const references = query.references ? await songbookReferencesOf(this.prisma, await this.access.songbooksVisibleTo(user), versions.map((version) => version.id)) : null;
-    return {
-      items: versions.map((version) => ({
-        ...toListItem(version, seesTag, shared.get(version.id) ?? null),
-        ...(references && { songbookReferences: references.get(version.id) ?? [] }),
-      })),
-      total,
-      page,
-      pageSize,
-    };
+    return versions.map((version) => ({
+      ...toListItem(version, seesTag, shared.get(version.id) ?? null),
+      ...(references && { songbookReferences: references.get(version.id) ?? [] }),
+    }));
   }
 
   /**
@@ -624,10 +664,13 @@ export class SongVersionsService {
 
   /** What a list of the library holds: the songs the user can see, searched and filtered as `query` says. */
   private async listWhere(user: AuthenticatedUser, query: ListSongVersionsQueryDto): Promise<Prisma.SongVersionWhereInput> {
-    const q = query.q?.trim();
+    // Searched in the lyrics (issue #221): every word in the song's words, somewhere (findByLyrics checks the order).
+    const lyrics = query.in === "lyrics" ? (parseLyricsQuery(query.q ?? "") ?? []) : null;
+    const q = lyrics ? undefined : query.q?.trim();
     return {
       AND: [
         await this.access.songsVisibleTo(user),
+        ...(lyrics ? (lyrics.length > 0 ? lyrics.map((term) => ({ lyricsText: { contains: term } })) : [{ id: { in: [] } }]) : []),
         ...(q
           ? [
               {
@@ -1095,6 +1138,8 @@ export class SongVersionsService {
       notes: fields.notes ?? null,
       capo,
       documentJson: documentJson as object,
+      // Its words, as a lyrics search finds them (issue #221).
+      lyricsText: lyricsSearchText(documentJson),
     };
   }
 
@@ -1315,7 +1360,7 @@ export class SongVersionsService {
       typeof storedRevision === "number"
         ? { id, documentJson: { path: ["revision"], equals: storedRevision } }
         : { id, documentJson: { equals: stored as Prisma.InputJsonValue } };
-    const { count } = await tx.songVersion.updateMany({ where, data: { documentJson: next as object } });
+    const { count } = await tx.songVersion.updateMany({ where, data: { documentJson: next as object, lyricsText: lyricsSearchText(next) } });
     if (count === 0) throw staleRevision();
   }
 

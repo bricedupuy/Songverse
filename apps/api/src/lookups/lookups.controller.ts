@@ -30,4 +30,10 @@ export class LookupsController {
     if (!(await this.artists.settings()).enabled) throw new NotFoundException("Artist pictures and bios are turned off");
     return this.lookups.backfill("artist-backfill");
   }
+
+  /** Works out the words of songs saved before lyrics search (issue #221); queued by itself when the API starts with any left. */
+  @Post("lyrics/backfill")
+  lyricsBackfill() {
+    return this.lookups.backfill("lyrics-backfill");
+  }
 }

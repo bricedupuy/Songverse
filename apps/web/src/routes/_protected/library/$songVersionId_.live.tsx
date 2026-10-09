@@ -1,4 +1,5 @@
 import { chartNotation, findKeptSong, isNetworkError, keptSongReferences, offlineViewer, onlineOrKept, renderChart, type CapoDisplayModeValue, type ChordDiagramsValue, type DiagramPlayer, type ChordNotationValue, type LiveViewValue, type SavedDisplaySettings, type SongDocumentV2 } from "@songverse/core";
+import { useRevealLine } from "#/lib/lyrics-search";
 import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -42,8 +43,11 @@ export interface LoneSong {
 export const Route = createFileRoute("/_protected/library/$songVersionId_/live")({
   staticData: { fullScreen: true },
   // Only a path in the app: never another site.
-  validateSearch: (search: Record<string, unknown>): { back?: string } =>
-    typeof search.back === "string" && search.back.startsWith("/") && !search.back.startsWith("//") ? { back: search.back } : {},
+  validateSearch: (search: Record<string, unknown>): { back?: string; line?: string } => ({
+    ...(typeof search.back === "string" && search.back.startsWith("/") && !search.back.startsWith("//") && { back: search.back }),
+    // Found by its words (issue #221): the line it opens at.
+    ...(typeof search.line === "string" && search.line && { line: search.line }),
+  }),
   loader: ({ params }) =>
     onlineOrKept<LoneSong>(
       async () => {
@@ -102,7 +106,8 @@ export const Route = createFileRoute("/_protected/library/$songVersionId_/live")
 
 function SongLiveRoute() {
   const song = Route.useLoaderData();
-  const { back } = Route.useSearch();
+  const { back, line } = Route.useSearch();
+  useRevealLine(line);
   useEffect(() => setMode("live"), []);
   useSongView(song.id);
   return <SongLiveView song={song} back={back} />;

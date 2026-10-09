@@ -40,6 +40,7 @@ export * from "./api-client/index.js";
 export * from "./offline/index.js";
 export * from "./songbook-references/index.js";
 export * from "./search-text/index.js";
+export * from "./search-text/lyrics.js";
 export * from "./stems/index.js";
 export * from "./recording/index.js";
 export * from "./recording/cues.js";

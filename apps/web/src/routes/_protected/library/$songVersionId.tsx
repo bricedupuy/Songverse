@@ -8,6 +8,7 @@ import { useMode } from "#/lib/mode";
 import { apiClient } from "#/lib/api-client";
 import { parseNotices, parseSongSearch } from "./-song-search";
 import { useSongView } from "#/lib/song-views";
+import { useRevealLine } from "#/lib/lyrics-search";
 import { SongNeighborsBar } from "#/components/song-neighbors";
 
 export const Route = createFileRoute("/_protected/library/$songVersionId")({
@@ -44,16 +45,17 @@ async function loadOnline(songVersionId: string) {
 
 function SongVersionPage() {
   const loaded = Route.useLoaderData();
-  const { tab, notice, from, songbook } = Route.useSearch();
+  const { tab, notice, from, songbook, line } = Route.useSearch();
   const navigate = Route.useNavigate();
   const { mode } = useMode();
   const songVersionId = "offline" in loaded ? loaded.offline.songVersionId : loaded.online.version.id;
   useSongView(songVersionId);
+  useRevealLine(line);
 
   // Live: the song full screen, as a set's song is (issue #67); its × comes back to the library.
   useEffect(() => {
-    if (mode === "live") void navigate({ to: "/library/$songVersionId/live", params: { songVersionId }, search: { back: "/library" }, replace: true });
-  }, [mode, navigate, songVersionId]);
+    if (mode === "live") void navigate({ to: "/library/$songVersionId/live", params: { songVersionId }, search: { back: "/library", ...(line && { line }) }, replace: true });
+  }, [mode, navigate, songVersionId, line]);
   if (mode === "live") return null;
 
   if ("offline" in loaded) return <OfflineSongPage song={loaded.offline} />;
@@ -88,7 +90,8 @@ function SongVersionPage() {
       mode="edit"
       {...data}
       notices={parseNotices(notice)}
-      tab={tab ?? "info"}
+      // Opened at a line (a lyrics search, issue #221): where the chart is.
+      tab={tab ?? (line ? "editor" : "info")}
       onTabChange={(next) => void navigate({ search: (prev) => ({ ...prev, tab: next === "info" ? undefined : next }), replace: true })}
       />
     </>

@@ -159,7 +159,7 @@ function ChartLine({
   if (line.kind === "note") return <p className="font-sans text-xs text-muted-foreground italic">{line.text}</p>;
   if (line.chords.length === 0) {
     return (
-      <p className={cn("whitespace-pre-wrap", line.inserted && "text-amber-800 dark:text-amber-300")} data-line="">
+      <p className={cn("whitespace-pre-wrap", line.inserted && "text-amber-800 dark:text-amber-300")} data-line="" data-line-id={line.id}>
         {line.text || " "}
         {note}
       </p>
@@ -174,7 +174,7 @@ function ChartLine({
   };
   const words = layoutChordLine(line.text, line.chords);
   return (
-    <p data-line="" className={cn(line.inserted && "text-amber-800 dark:text-amber-300")}>
+    <p data-line="" data-line-id={line.id} className={cn(line.inserted && "text-amber-800 dark:text-amber-300")}>
       {words.map((word, w) => (
         <Fragment key={w}>
           {/* A place the line may wrap, between words (never inside one). */}

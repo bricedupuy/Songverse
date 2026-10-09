@@ -721,6 +721,12 @@ model SongVersion {
   // 20260929090000, 20261003110000) - never written by the app.
   searchText String @default("")
 
+  // The sung lines, folded as a lyrics search compares them, one per line
+  // (issue #221, lyricsSearchText in @songverse/core): written by the API
+  // with each save of the chart; null until worked out (the Worker's
+  // lyrics backfill fills older songs).
+  lyricsText String?
+
   // Canonical content
   // SongDocument v2 (docs/song-document-v2.md): the music only. Rows saved
   // before v2 are upgraded by the API on read and at startup.
@@ -784,6 +790,7 @@ model SongVersion {
   @@index([ccli])
   // Trigram (pg_trgm) indexes for "contains"/"ignoring case" searches.
   @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([lyricsText(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([alternateTitle(ops: raw("gin_trgm_ops"))], type: Gin)
 }

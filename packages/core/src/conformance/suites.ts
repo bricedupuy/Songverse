@@ -17,6 +17,7 @@ import { clockOffset, deviceTime, metronomePositionAt, stemsPositionAt } from ".
 import { cuesFromSections } from "../recording/cues.js";
 import { lyricSlides, normalizeScreenCode, resolveScreenTheme, SCREEN_THEME_TEMPLATES, screenThemeContrast, sectionEnergy } from "../screens/index.js";
 import { rankSongbookHits, songbookReferences } from "../songbook-references/index.js";
+import { lyricsLines, lyricsSearchText, matchLyrics, parseLyricsQuery } from "../search-text/lyrics.js";
 import { CreateSongVersionSchema, UpdateSongVersionSchema } from "../requests/songs.js";
 import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
 import { UpdateUserSchema } from "../requests/accounts.js";
@@ -932,6 +933,68 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "a letter it never uses (O)", args: ["K7Q-O3X"] },
           { name: "too short", args: ["K7QM"] },
         ],
+      },
+    },
+  },
+  {
+    area: "lyrics-search",
+    about: "Finding a song by its words (issue #221): its sung lines, how a search is read, and the line it finds.",
+    functions: {
+      lyricsLines: {
+        about: "A song's sung lines in order, with their ids: no chords, notes or empty lines; a line sung again only the first time.",
+        params: ["document"],
+        run: (json: unknown) => lyricsLines(read(json)),
+        cases: [
+          {
+            name: "a chorus written out twice, a note, an empty line",
+            args: [
+              {
+                $schema: "song-document/v2",
+                revision: 1,
+                defaults: {},
+                sections: [
+                  { id: "c1", type: "chorus", lines: [{ id: "l1", text: "My chains are gone,  I've been set free", chords: [{ id: "k1", at: 3, raw: "C" }] }, { id: "l2", kind: "note", text: "Softly" }] },
+                  { id: "v1", type: "verse", lines: [{ id: "l3", text: "" }, { id: "l4", text: "Amazing grace" }] },
+                  { id: "c2", type: "chorus", lines: [{ id: "l5", text: "My chains are gone, I've been set free" }] },
+                ],
+                flow: [],
+              },
+            ],
+          },
+        ],
+      },
+      lyricsSearchText: {
+        about: "What's kept to search a song's words: its sung lines folded (case, accents, apostrophes, punctuation), one per line.",
+        params: ["document"],
+        run: (json: unknown) => lyricsSearchText(read(json)),
+        cases: [{ name: "accents, apostrophes and punctuation", args: [{ $schema: "song-document/v2", revision: 1, defaults: {}, sections: [{ id: "s", type: "verse", lines: [{ id: "a", text: "Ô Seigneur, c'est Toi!" }, { id: "b", text: "Cœur — à cœur" }] }], flow: [] }] }],
+      },
+      parseLyricsQuery: {
+        about: "A lyrics search as typed: its words and quoted phrases, folded; null under three letters.",
+        params: ["query"],
+        run: parseLyricsQuery,
+        cases: ["chains free", '"chains are gone" free', "Élévation", "I've", "ab", "a b c", "«set free»"].map((query) => ({ name: JSON.stringify(query), args: [query] })),
+      },
+      matchLyrics: {
+        about: "The line that matches: every word and phrase in order, not necessarily next to each other; the closest together, then the first. Where the words are, in the line's own text.",
+        params: ["query", "lines"],
+        run: matchLyrics,
+        cases: (() => {
+          const lines = [
+            { id: "l1", text: "Amazing grace, how sweet the sound" },
+            { id: "l2", text: "My chains are gone, I've been set free" },
+            { id: "l3", text: "Free, my chains are gone, they're free" },
+            { id: "l4", text: "Élévation, cœur à cœur" },
+          ];
+          return [
+            { name: "words in order, apart", args: ["chains free", lines] },
+            { name: "an exact phrase", args: ['"set free"', lines] },
+            { name: "words out of order: none", args: ["free sweet", lines] },
+            { name: "accents and ligatures ignored", args: ["elevation coeur", lines] },
+            { name: "an apostrophe left out", args: ["ive been", lines] },
+            { name: "too short", args: ["my", lines] },
+          ];
+        })(),
       },
     },
   },

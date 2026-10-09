@@ -1,6 +1,6 @@
-import { resolveTranslation, type LocaleValue, type SongSort, type SongVersionSummary, type Tag } from "@songverse/core";
+import { parseLyricsQuery, resolveTranslation, type LocaleValue, type LyricsMatch, type SongSort, type SongVersionSummary, type Tag } from "@songverse/core";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ListFilter, Loader2, Search, Star, X } from "lucide-react";
+import { ListFilter, Loader2, Quote, Search, Star, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
@@ -15,6 +15,8 @@ import { ConfirmButton } from "#/components/confirm-button";
 import { LanguageSelect } from "#/components/language-select";
 import { NativeSelect } from "#/components/ui/native-select";
 import { refreshSmartLists, useSmartLists } from "#/lib/smart-lists";
+import { useInLyrics } from "#/lib/lyrics-search";
+import { LyricsSnippet } from "#/components/lyrics-snippet";
 
 const PAGE_SIZE = 50;
 
@@ -159,6 +161,7 @@ function LibraryIndex() {
                 className="pl-9"
               />
             </div>
+            <InLyricsToggle />
             <LanguageSelect
               value={search.language ?? ""}
               onChange={(language) => setFilter({ language: language || undefined })}
@@ -196,6 +199,7 @@ function LibraryIndex() {
             ) : null}
             </div>
           </div>
+          <LyricsResults search={search} listed={items} />
           <DataTable
             columns={columns}
             data={items}
@@ -334,6 +338,78 @@ function SmartListBar({ search, filtered }: { search: LibrarySearch; filtered: b
         </Button>
       )}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+    </div>
+  );
+}
+
+/** In the songs' words too (issue #221): the same choice as the search box's, on this device. */
+function InLyricsToggle() {
+  const { t } = useTranslation();
+  const [inLyrics, setInLyrics] = useInLyrics();
+  return (
+    <Button type="button" variant={inLyrics ? "default" : "outline"} aria-pressed={inLyrics} onClick={() => setInLyrics(!inLyrics)} data-testid="library-in-lyrics">
+      <Quote />
+      {t("search.inLyrics")}
+    </Button>
+  );
+}
+
+const LYRICS_SHOWN = 20;
+
+/**
+ * Songs found by their words (issue #221), above the list: each with the
+ * line found, opening at it; a song the list already has by its title isn't
+ * repeated. With the other filters, as the list has them.
+ */
+function LyricsResults({ search, listed }: { search: LibrarySearch; listed: SongVersionSummary[] }) {
+  const { t } = useTranslation();
+  const [inLyrics] = useInLyrics();
+  const terms = inLyrics && search.q ? parseLyricsQuery(search.q) : null;
+  const key = terms ? JSON.stringify({ ...filtersOf(search), favorites: search.favorites }) : "";
+  const [found, setFound] = useState<(SongVersionSummary & { lyricsMatch: LyricsMatch })[]>([]);
+  useEffect(() => {
+    setFound([]);
+    if (!key) return;
+    let current = true;
+    apiClient
+      .listSongVersions({ ...filtersOf(search), favorites: search.favorites, in: "lyrics", sort: "title", dir: "asc", pageSize: LYRICS_SHOWN })
+      .then((page) => current && setFound(page.items.flatMap((song) => (song.lyricsMatch ? [{ ...song, lyricsMatch: song.lyricsMatch }] : []))))
+      .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [key]);
+  const ids = new Set(listed.map((song) => song.id));
+  const shown = found.filter((song) => !ids.has(song.id));
+  if (!inLyrics || !search.q) return null;
+  return (
+    <div className="border-t px-4 py-3" data-testid="library-lyrics">
+      <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Quote className="size-3.5" aria-hidden />
+        {t("search.lyrics")}
+      </p>
+      {!terms ? (
+        <p className="text-xs text-muted-foreground">{t("search.lyricsTooShort")}</p>
+      ) : shown.length === 0 ? (
+        <p className="text-xs text-muted-foreground">{t("library.noLyricsMatches")}</p>
+      ) : (
+        <ul className="flex flex-col">
+          {shown.map((song) => (
+            <li key={song.id}>
+              <Link
+                to="/library/$songVersionId"
+                params={{ songVersionId: song.id }}
+                search={song.lyricsMatch.lineId ? { line: song.lyricsMatch.lineId } : {}}
+                className="flex min-w-0 flex-col rounded-md px-2 py-1.5 hover:bg-accent sm:flex-row sm:items-baseline sm:gap-3"
+                data-testid="library-lyrics-song"
+              >
+                <span className="shrink-0 text-sm font-medium">{song.versionName ? `${song.title} — ${song.versionName}` : song.title}</span>
+                <LyricsSnippet match={song.lyricsMatch} className="min-w-0 truncate text-xs text-muted-foreground" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

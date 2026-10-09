@@ -130,6 +130,7 @@ export const ListSongVersionsQuerySchema = z.strictObject({
   page: optional(queryInt().pipe(z.number().min(1))).describe("Defaults to 1"),
   pageSize: optional(queryInt().pipe(z.number().min(1).max(200))).describe("Defaults to 50"),
   references: optional(queryBoolean()).describe("Each song's places in your numbered songbooks too (issue #213): songbookReferences"),
+  in: optional(z.enum(["lyrics"])).describe("lyrics: q searches the songs' words instead (issue #221), each song with the line found (lyricsMatch); at least three letters"),
 });
 
 export const SetStreamingLinkSchema = z.strictObject({

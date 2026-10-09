@@ -12,6 +12,7 @@ import type {
   SongbookOfflineCopy,
   SongOfflineCopy,
 } from "../api-client/index.js";
+import { lyricsLines, matchLyrics, parseLyricsQuery, type LyricsMatch } from "../search-text/lyrics.js";
 import type { AppModeValue, CapoDisplayModeValue, ChordDiagramsValue, ChordNotationValue, LiveViewValue } from "../constants/index.js";
 import type { SongDocumentV2 } from "../schemas/song-document-v2.js";
 import { foldForSearch } from "../search-text/index.js";
@@ -132,6 +133,19 @@ export async function searchKeptSongs(storage: OfflineStorage, query: string, li
   const q = foldForSearch(query.trim());
   return (await allFoundSongs(storage))
     .filter((song) => !q || [song.title, song.versionName, song.artists].some((text) => text && foldForSearch(text).includes(q)))
+    .sort((a, b) => a.title.localeCompare(b.title))
+    .slice(0, limit);
+}
+
+/** The songs readable offline found by their words (issue #221), as the API finds them: each with the line found, by title. */
+export async function searchKeptLyrics(storage: OfflineStorage, query: string, limit = 8): Promise<(FoundSong & { lyricsMatch: LyricsMatch })[]> {
+  const terms = parseLyricsQuery(query);
+  if (!terms) return [];
+  return (await allFoundSongs(storage))
+    .flatMap((song) => {
+      const lyricsMatch = matchLyrics(terms, lyricsLines(song.document));
+      return lyricsMatch ? [{ ...song, lyricsMatch }] : [];
+    })
     .sort((a, b) => a.title.localeCompare(b.title))
     .slice(0, limit);
 }

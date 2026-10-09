@@ -50,6 +50,10 @@ Un numéro de recueil trouve son entrée : tapez l'abréviation du recueil ou un
 
 ![Une recherche parmi les chants, listes, recueils et équipes](../../../assets/screenshots/fr/search.jpg)
 
+### Dans les paroles
+
+Quand vous vous souvenez des paroles mais pas du titre - « celui qui dit *mes chaînes sont tombées* » - activez **Dans les paroles** (le bouton guillemets à côté du champ de recherche, ou **Alt L**). Les chants dont les paroles correspondent viennent alors dans leur propre groupe, **Dans les paroles**, après **Chants** : chacun avec la ligne trouvée, les mots tapés en gras, et un chant déjà trouvé par son titre n'est pas répété. Les mots doivent venir dans l'ordre tapé, sur une même ligne, mais pas forcément côte à côte (« chaînes libre » trouve « Mes chaînes sont tombées, je suis libre ») ; majuscules, accents et apostrophes ne comptent pas, et des mots entre guillemets (« suis libre ») doivent se suivre. Il faut au moins trois lettres. Ouvrir un chant vous amène à cette ligne, mise en évidence un instant - en Live, en plein écran. **Dans les paroles** reste activé, sur cet appareil, jusqu'à ce que vous le désactiviez ; les **Chants** de la bibliothèque ont le même bouton à côté de leur recherche, avec les chants trouvés par leurs paroles au-dessus de la liste. Hors ligne, la recherche porte sur les chants gardés sur l'appareil.
+
 ## Édition, Session et Live
 
 Le sélecteur en haut à droite de chaque page change le mode de Songverse. Chaque mode a son propre aspect, pour que vous sachiez toujours où vous en êtes :

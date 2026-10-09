@@ -50,6 +50,10 @@ A songbook number finds its entry: type the songbook's abbreviation or part of i
 
 ![Searching across songs, sets, songbooks and teams](../../assets/screenshots/en/search.jpg)
 
+### In the lyrics
+
+When you remember the words but not the title - "the one that goes *my chains are gone*" - turn on **In lyrics** (the quote button beside the search box, or **Alt L**). Songs whose words match then come in their own group, **In the lyrics**, after **Songs**: each with the line found, the words you typed in bold, and a song already found by its title isn't repeated. The words must come in the order you typed them, on one line, but not necessarily next to each other ("chains free" finds "My chains are gone, I've been set free"); case, accents and apostrophes don't count, and words in quotes ("set free") must be next to each other. It takes three letters at least. Opening a song takes you to that line, lit up for a moment - in Live, full screen. **In lyrics** stays on, on this device, until you turn it off; the library's **Songs** has the same button beside its search, listing the songs found by their words above the list. Offline, it searches the songs kept on the device.
+
 ## Edit, Practice and Live
 
 The switch at the top right of every page changes Songverse's mode. Each mode has its own look, so you always know which one you're in:

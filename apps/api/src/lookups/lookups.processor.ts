@@ -3,13 +3,16 @@ import { Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
 import { ArtistsService } from "../artists/artists.service.js";
 import { ArtworkService } from "../artwork/artwork.service.js";
+import { PrismaService } from "../prisma/prisma.service.js";
+import { backfillLyrics } from "../song-versions/lyrics-backfill.js";
 import { BACKFILLS_QUEUE, JOB_WORKER_OPTIONS, LOOKUPS_QUEUE } from "../jobs/jobs.constants.js";
 
 export type LookupJob =
   | { name: "artwork"; data: { songVersionId: string } }
   | { name: "artist"; data: { name: string } }
   | { name: "artwork-backfill"; data: Record<string, never> }
-  | { name: "artist-backfill"; data: Record<string, never> };
+  | { name: "artist-backfill"; data: Record<string, never> }
+  | { name: "lyrics-backfill"; data: Record<string, never> };
 
 /**
  * The lookups queue (issue #92): a new song's artwork, a new artist's
@@ -52,12 +55,15 @@ export class BackfillsProcessor extends WorkerHost {
   constructor(
     private readonly artwork: ArtworkService,
     private readonly artists: ArtistsService,
+    private readonly prisma: PrismaService,
   ) {
     super();
   }
 
   async process(job: Job): Promise<unknown> {
     switch (job.name) {
+      case "lyrics-backfill":
+        return backfillLyrics(this.prisma);
       case "artwork-backfill":
         return this.artwork.backfill();
       case "artist-backfill":

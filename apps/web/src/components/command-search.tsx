@@ -1,11 +1,13 @@
-import { foldForSearch, formatSongbookReference, keptSongReferences, onlineOrKept, partialEntryDigits, searchKeptEntries, searchKeptSongs, SONGBOOK_HIT_LIMITS, songbookReferences, type SongbookEntryHit } from "@songverse/core";
+import { foldForSearch, formatSongbookReference, keptSongReferences, onlineOrKept, parseLyricsQuery, partialEntryDigits, searchKeptEntries, searchKeptLyrics, searchKeptSongs, SONGBOOK_HIT_LIMITS, songbookReferences, type LyricsMatch, type SongbookEntryHit } from "@songverse/core";
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { useNavigate, useRouteContext, useRouter, useRouterState } from "@tanstack/react-router";
-import { BookOpen, Hash, ListEnd, ListMusic, ListPlus, Music, Search, Users, type LucideIcon } from "lucide-react";
+import { BookOpen, Hash, ListEnd, ListMusic, ListPlus, Music, Quote, Search, Users, type LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { apiClient } from "#/lib/api-client";
 import { artistNames } from "#/lib/artists";
+import { useInLyrics } from "#/lib/lyrics-search";
+import { LyricsSnippet } from "#/components/lyrics-snippet";
 import { useMode } from "#/lib/mode";
 import { deviceStorage } from "#/lib/offline-data";
 import { formatSetDate, setlistTitle } from "#/lib/setlists";
@@ -22,6 +24,13 @@ interface FoundSong {
   /** Where it is in the player's songbooks, abbreviations first (issue #213). */
   references: string[];
 }
+/** A song found by its words (issue #221), with the line. */
+interface FoundLyrics {
+  id: string;
+  title: string;
+  versionName: string | null;
+  match: LyricsMatch;
+}
 const OTHER_LIMIT = 5;
 // Songbook references beside a song: the first two, then "+2".
 const SHOWN_REFERENCES = 2;
@@ -29,7 +38,7 @@ const SHOWN_REFERENCES = 2;
 const MORE_LIMITS = { exact: 50, prefix: 100, contains: 100 };
 const DEBOUNCE_MS = 200;
 
-type Kind = "entries" | "entriesPrefix" | "entriesContains" | "songs" | "sets" | "songbooks" | "teams";
+type Kind = "entries" | "entriesPrefix" | "entriesContains" | "songs" | "lyrics" | "sets" | "songbooks" | "teams";
 interface Result {
   kind: Kind;
   id: string;
@@ -40,8 +49,10 @@ interface Result {
   references?: string[];
   /** A song, in Live in a set they can change (issue #199): added after the song playing, or at the end. */
   add?: (where: "next" | "end") => void;
+  /** Found in the lyrics: the line, shown under the title. */
+  lyrics?: LyricsMatch;
 }
-const ICONS: Record<Kind, LucideIcon> = { entries: Hash, entriesPrefix: Hash, entriesContains: Hash, songs: Music, sets: ListMusic, songbooks: BookOpen, teams: Users };
+const ICONS: Record<Kind, LucideIcon> = { entries: Hash, entriesPrefix: Hash, entriesContains: Hash, songs: Music, lyrics: Quote, sets: ListMusic, songbooks: BookOpen, teams: Users };
 
 
 /**
@@ -112,6 +123,36 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   const [active, setActive] = useState(0);
   const list = useRef<HTMLDivElement>(null);
   const q = foldForSearch(query.trim());
+  // In the songs' words too (issue #221): off unless turned on, remembered on the device.
+  const [inLyrics, setInLyrics] = useInLyrics();
+  const [lyrics, setLyrics] = useState<FoundLyrics[]>([]);
+  const lyricsQuery = inLyrics ? parseLyricsQuery(query) : null;
+  const lyricsKey = lyricsQuery ? JSON.stringify(lyricsQuery) : "";
+
+  useEffect(() => {
+    if (!lyricsKey) {
+      setLyrics([]);
+      return;
+    }
+    let current = true;
+    const timer = setTimeout(() => {
+      onlineOrKept<FoundLyrics[]>(
+        async () =>
+          (await apiClient.listSongVersions({ q: query.trim(), in: "lyrics", pageSize: SONG_LIMIT, sort: "title" })).items.flatMap((song) =>
+            song.lyricsMatch ? [{ id: song.id, title: song.title, versionName: song.versionName, match: song.lyricsMatch }] : [],
+          ),
+        // Offline: the kept songs' words, matched the same way.
+        async () =>
+          (await searchKeptLyrics(deviceStorage(), query, SONG_LIMIT)).map((song) => ({ id: song.songVersionId, title: song.title, versionName: song.versionName, match: song.lyricsMatch })),
+      )
+        .then((found) => current && setLyrics(found))
+        .catch(() => current && setLyrics([]));
+    }, DEBOUNCE_MS);
+    return () => {
+      current = false;
+      clearTimeout(timer);
+    };
+  }, [lyricsKey]);
 
   // Songs from the library's own search (title, subtitle, version, artist, CCLI), a moment after typing stops.
   useEffect(() => {
@@ -172,11 +213,13 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
       open();
     };
     // In Live, a song opens full screen; × comes back here (or wherever an earlier one was opened from).
-    const openSong = (id: string) => {
-      if (mode !== "live") return navigate({ to: "/library/$songVersionId", params: { songVersionId: id } });
+    // At a line, from a lyrics search (issue #221).
+    const openSong = (id: string, line?: string | null) => {
+      const at = line ? { line } : {};
+      if (mode !== "live") return navigate({ to: "/library/$songVersionId", params: { songVersionId: id }, search: at });
       const location = router.state.location;
       const from = /^\/library\/[^/]+\/live\/?$/.test(location.pathname) ? (location.search as { back?: string }).back : location.href;
-      return navigate({ to: "/library/$songVersionId/live", params: { songVersionId: id }, search: from ? { back: from } : {} });
+      return navigate({ to: "/library/$songVersionId/live", params: { songVersionId: id }, search: { ...(from && { back: from }), ...at } });
     };
     const matches = (...texts: (string | null | undefined)[]) => texts.some((text) => text && foldForSearch(text).includes(q));
     // Added to the set: the set's pages and Live's "Next" reload; the song playing stays.
@@ -213,6 +256,18 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         open: go(() => void openSong(song.id)),
         add: addToSet(song.id),
       })),
+      // A song found by its title isn't repeated here.
+      ...lyrics
+        .filter((found) => !songs.some((song) => song.id === found.id))
+        .map((found) => ({
+          kind: "lyrics" as const,
+          id: found.id,
+          label: found.versionName ? `${found.title} — ${found.versionName}` : found.title,
+          detail: null,
+          lyrics: found.match,
+          open: go(() => void openSong(found.id, found.match.lineId)),
+          add: addToSet(found.id),
+        })),
       ...sortSets(setlists, q)
         .filter((set) => !q || matches(setlistTitle(set, t, i18n.language), set.name, set.teamName))
         .slice(0, OTHER_LIMIT)
@@ -249,7 +304,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         : []),
     ];
     return byKind;
-  }, [entries, songs, setlists, songbooks, teams, q, mode, t, i18n.language, navigate, router, onDone, liveSet, playingItemId]);
+  }, [entries, songs, lyrics, setlists, songbooks, teams, q, mode, t, i18n.language, navigate, router, onDone, liveSet, playingItemId]);
 
   // The first result is picked as the results change.
   useEffect(() => setActive(0), [results]);
@@ -258,7 +313,9 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
   }, [active]);
 
   function onKeyDown(event: ReactKeyboardEvent) {
-    if (event.key === "ArrowDown") setActive((a) => Math.min(results.length - 1, a + 1));
+    // Alt+L: in the lyrics too, or not (by the key's place: a Mac's Option+L types "¬").
+    if (event.altKey && event.code === "KeyL") setInLyrics(!inLyrics);
+    else if (event.key === "ArrowDown") setActive((a) => Math.min(results.length - 1, a + 1));
     else if (event.key === "ArrowUp") setActive((a) => Math.max(0, a - 1));
     // In a set: Shift+Enter plays it next (issue #199).
     else if (event.key === "Enter" && event.shiftKey && results[active]?.add) results[active].add!("next");
@@ -267,7 +324,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
     event.preventDefault();
   }
 
-  const groups = (["entries", "entriesPrefix", "entriesContains", "songs", "sets", "songbooks", "teams"] as const)
+  const groups = (["entries", "entriesPrefix", "entriesContains", "songs", "lyrics", "sets", "songbooks", "teams"] as const)
     .map((kind) => ({ kind, items: results.map((result, index) => ({ result, index })).filter(({ result }) => result.kind === kind) }))
     .filter((group) => group.items.length > 0);
 
@@ -293,6 +350,21 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
           aria-activedescendant={results[active] ? `command-result-${active}` : undefined}
           className="h-12 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
         />
+        <button
+          type="button"
+          onClick={() => setInLyrics(!inLyrics)}
+          aria-pressed={inLyrics}
+          title={`${t("search.inLyrics")} (Alt L)`}
+          className={cn(
+            "flex h-7 shrink-0 items-center gap-1 rounded-md border px-2 text-xs font-medium [&_svg]:size-3.5",
+            inLyrics ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+          )}
+          data-testid="search-in-lyrics"
+        >
+          <Quote aria-hidden />
+          <span className="hidden sm:inline">{t("search.inLyrics")}</span>
+          <span className="sr-only sm:hidden">{t("search.inLyrics")}</span>
+        </button>
         <DialogPrimitive.Close className="rounded border px-1.5 text-xs text-muted-foreground hover:text-foreground">Esc</DialogPrimitive.Close>
       </div>
       <div ref={list} id="command-search-results" role="listbox" aria-label={t("search.label")} className="flex-1 overflow-y-auto p-2">
@@ -315,7 +387,14 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
                   className={cn("flex cursor-pointer items-center gap-3 rounded-md px-2 py-2", index === active && "bg-accent text-accent-foreground")}
                 >
                   <Icon className="size-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate text-sm">{result.label}</span>
+                  {result.lyrics ? (
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-sm">{result.label}</span>
+                      <LyricsSnippet match={result.lyrics} className="truncate text-xs text-muted-foreground" />
+                    </span>
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate text-sm">{result.label}</span>
+                  )}
                   {result.detail ? <span className="max-w-[45%] shrink-0 truncate text-xs text-muted-foreground">{result.detail}</span> : null}
                   {result.references?.length ? (
                     <span className="shrink-0 text-xs font-medium whitespace-nowrap text-muted-foreground tabular-nums" data-testid="search-song-references">
@@ -373,6 +452,7 @@ function SearchPanel({ onDone }: { onDone: () => void }) {
         {q && !searching && results.length === 0 ? (
           <p className="px-2 py-6 text-center text-sm text-muted-foreground">{t("search.noResults", { query: query.trim() })}</p>
         ) : null}
+        {inLyrics && q && !lyricsQuery ? <p className="px-2 py-1 text-xs text-muted-foreground" data-testid="search-lyrics-short">{t("search.lyricsTooShort")}</p> : null}
         {searching && songs.length === 0 ? <p className="px-2 py-2 text-xs text-muted-foreground">{t("search.searching")}</p> : null}
       </div>
       {addError ? (

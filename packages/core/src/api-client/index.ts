@@ -22,6 +22,7 @@ import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
+import type { LyricsMatch } from "../search-text/lyrics.js";
 import type { SectionProgression } from "../chords/progressions.js";
 import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
@@ -1030,12 +1031,16 @@ export interface SongVersionSummary {
   tags: Tag[];
   /** Where it is in the viewer's numbered songbooks, abbreviations first ("JEM 58", "HY 12"), when asked for (issue #213). */
   songbookReferences?: string[];
+  /** Searched in the lyrics (issue #221): the line found, the words found in it. */
+  lyricsMatch?: LyricsMatch;
 }
 
 
 export interface ListSongVersionsQuery {
   /** Matches title, subtitle, version name or artist (ignoring case), or a CCLI number exactly. */
   q?: string;
+  /** "lyrics": q searches the songs' words instead (issue #221), each song with the line found. */
+  in?: "lyrics";
   /** Only the user's favorites (issue #81). */
   favorites?: boolean;
   language?: string;
