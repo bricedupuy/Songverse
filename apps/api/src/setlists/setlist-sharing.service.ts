@@ -79,14 +79,15 @@ export class SetlistSharingService {
           include: {
             ownerTeam: { select: { name: true } },
             ownerUser: { select: { displayName: true } },
+            eventDateOf: { select: { id: true } },
             _count: { select: { items: true } },
           },
         },
       },
     });
     if (!link) throw new NotFoundException("This link doesn't work any more. Ask for a new one.");
-    const { name, eventDate, teamName, ownerName } = summarize(link.setlist);
-    return { name, eventDate, teamName, ownerName, itemCount: link.setlist._count.items };
+    const { name, eventDate, teamName, ownerName, fromEvent } = summarize(link.setlist);
+    return { name, eventDate, teamName, ownerName, fromEvent, itemCount: link.setlist._count.items };
   }
 
   /** Joins the set as a guest - or, for someone who can already open it, just says where it is. */

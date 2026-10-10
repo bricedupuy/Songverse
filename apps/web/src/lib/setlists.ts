@@ -10,8 +10,19 @@ export function formatSetDate(date: string, locale: string, style: "long" | "sho
   return new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, options);
 }
 
-/** A set's custom name, else its date written out, else "Untitled set". */
-export function setlistTitle(set: Pick<SetlistSummary, "name" | "eventDate">, t: TFunction, locale: string): string {
+/** A day and short month ("12 Oct", "12 oct."), with the year when it isn't this one. */
+export function formatSetDay(date: string, locale: string): string {
+  const thisYear = date.slice(0, 4) === String(new Date().getFullYear());
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, { day: "numeric", month: "short", ...(thisYear ? {} : { year: "numeric" }), timeZone: "UTC" });
+}
+
+/**
+ * A set's custom name, else its date written out, else "Untitled set". A
+ * set made for a date of its team's calendar (issue #235) is its name and
+ * that date, in the reader's language: "Morning service - 12 Oct".
+ */
+export function setlistTitle(set: Pick<SetlistSummary, "name" | "eventDate" | "fromEvent">, t: TFunction, locale: string): string {
+  if (set.name && set.fromEvent && set.eventDate) return `${set.name} - ${formatSetDay(set.eventDate, locale)}`;
   if (set.name) return set.name;
   if (set.eventDate) return formatSetDate(set.eventDate, locale, "long");
   return t("sets.untitled");

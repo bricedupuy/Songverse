@@ -79,6 +79,7 @@ export class SetlistsService {
       },
       include: {
         ownerTeam: { select: { name: true } },
+        eventDateOf: { select: { id: true } },
         ownerUser: { select: { displayName: true } },
         _count: { select: { items: true } },
       },
@@ -110,7 +111,8 @@ export class SetlistsService {
         ownerUserId: dto.teamId ? null : user.id,
         ownerTeamId: dto.teamId ?? null,
       },
-      include: { ownerTeam: { select: { name: true } }, ownerUser: { select: { displayName: true } } },
+      include: { ownerTeam: { select: { name: true } },
+        eventDateOf: { select: { id: true } }, ownerUser: { select: { displayName: true } } },
     });
     return { ...summarize(set), itemCount: 0, canEdit: true, isGuest: false };
   }
@@ -121,6 +123,7 @@ export class SetlistsService {
       where: { id: setlistId },
       include: {
         ownerTeam: { select: { name: true } },
+        eventDateOf: { select: { id: true } },
         ownerUser: { select: { displayName: true } },
         items: { orderBy: { position: "asc" }, include: ITEM_INCLUDE },
       },
@@ -392,6 +395,7 @@ export class SetlistsService {
       where: { id: setlistId },
       include: {
         ownerTeam: { select: { name: true } },
+        eventDateOf: { select: { id: true } },
         ownerUser: { select: { displayName: true } },
         items: { orderBy: { position: "asc" }, include: ITEM_INCLUDE },
       },
@@ -594,6 +598,7 @@ export function summarize(set: {
   ownerTeamId: string | null;
   ownerTeam?: { name: string } | null;
   ownerUser?: { displayName: string } | null;
+  eventDateOf?: { id: string } | null;
 }) {
   return {
     id: set.id,
@@ -603,6 +608,8 @@ export function summarize(set: {
     teamName: set.ownerTeam?.name ?? null,
     // Whose personal set it is, for guests.
     ownerName: set.ownerTeamId ? null : (set.ownerUser?.displayName ?? null),
+    // Made for a date of the team's calendar (issue #235): shown with its date, "Morning service - 12 Oct".
+    fromEvent: !!set.eventDateOf,
   };
 }
 

@@ -167,6 +167,8 @@ export interface SetlistSummary {
   canEdit: boolean;
   /** Shared with the current user by link, rather than theirs or their team's. */
   isGuest: boolean;
+  /** Made for a date of its team's calendar (issue #235): shown as its name and date, "Morning service - 12 Oct". Left out by older offline copies. */
+  fromEvent?: boolean;
 }
 
 export interface SetlistItem {
@@ -432,6 +434,7 @@ export interface SetInvitePreview {
   eventDate: string | null;
   teamName: string | null;
   ownerName: string | null;
+  fromEvent?: boolean;
   itemCount: number;
 }
 
@@ -591,7 +594,7 @@ export interface ScreenSummary {
   name: string;
   mode: ScreenMode;
   setlistId: string | null;
-  setlist: { id: string; name: string | null; eventDate: string | null } | null;
+  setlist: { id: string; name: string | null; eventDate: string | null; fromEvent?: boolean } | null;
   /** When it last loaded its set. */
   lastSeenAt: string | null;
   createdAt: string;
@@ -977,7 +980,7 @@ export interface Attachment {
   multitrackName: string | null;
   /** The set its multitrack was recorded for (issue #127). */
   multitrackSetlistId: string | null;
-  multitrackSetlist: { id: string; name: string | null; eventDate: string | null } | null;
+  multitrackSetlist: { id: string; name: string | null; eventDate: string | null; fromEvent?: boolean } | null;
   /** Another take of its part, kept but not played (issue #127). */
   otherTake: boolean;
   /** A recorded take being turned into Opus (PENDING), or that couldn't be (FAILED); null once done, or for any other file. */

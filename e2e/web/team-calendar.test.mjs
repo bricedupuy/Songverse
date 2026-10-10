@@ -58,7 +58,9 @@ try {
     const date = await far.getAttribute("data-event-date");
     await far.getByTestId("calendar-plan-set").click();
     await page.waitForURL(/\/sets\/[^/]+$/);
-    await page.getByRole("heading", { name: "Morning service" }).first().waitFor();
+    // Its name and date, in the reader's language: "Morning service - Nov 22".
+    const day = new Date(`${date}T00:00:00Z`).toLocaleDateString("en", { day: "numeric", month: "short", ...(date.slice(0, 4) === String(new Date().getFullYear()) ? {} : { year: "numeric" }), timeZone: "UTC" });
+    await page.getByRole("heading", { name: `Morning service - ${day}` }).first().waitFor();
     const setId = page.url().split("/").pop();
     if (sql(`select "eventDate"::text from "Setlist" where id = '${setId}'`) !== date) throw new Error("not the date's set");
   });

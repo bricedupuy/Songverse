@@ -320,7 +320,7 @@ export class AttachmentsService {
 const ATTACHMENT_INCLUDE = {
   uploadedBy: { select: { id: true, displayName: true, avatarUrl: true } },
   visibleToTeam: { select: { id: true, name: true } },
-  multitrackSetlist: { select: { id: true, name: true, eventDate: true } },
+  multitrackSetlist: { select: { id: true, name: true, eventDate: true, eventDateOf: { select: { id: true } } } },
 } satisfies Prisma.AttachmentInclude;
 
 type AttachmentRow = Prisma.AttachmentGetPayload<{ include: typeof ATTACHMENT_INCLUDE }>;
@@ -390,7 +390,7 @@ function present(row: AttachmentRow, viewer: Viewer, canEditSong: boolean) {
     // A lossless upload's original kept beside it (issue #182): downloaded at /original.
     original: originalStorageKey ? { mimeType: originalMimeType ?? "audio/flac", sizeBytes: originalSizeBytes } : null,
     // The set its multitrack was recorded for (issue #127), named as sets are: its date a calendar day.
-    multitrackSetlist: set ? { id: set.id, name: set.name, eventDate: set.eventDate ? set.eventDate.toISOString().slice(0, 10) : null } : null,
+    multitrackSetlist: set ? { id: set.id, name: set.name, eventDate: set.eventDate ? set.eventDate.toISOString().slice(0, 10) : null, fromEvent: !!set.eventDateOf } : null,
     mine,
     canChange: viewer.isGlobalAdmin || canEditSong || mine,
     canChangeVisibility: viewer.isGlobalAdmin || mine || (row.uploadedByUserId === null && canEditSong),

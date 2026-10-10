@@ -38,7 +38,7 @@ const SCREEN_SELECT = {
   ownerUserId: true,
   lastSeenAt: true,
   createdAt: true,
-  setlist: { select: { id: true, name: true, eventDate: true } },
+  setlist: { select: { id: true, name: true, eventDate: true, eventDateOf: { select: { id: true } } } },
 } as const;
 
 /** A screen's look (issue #194), worked out: its theme, else its built-in one, else the default. */
@@ -255,14 +255,14 @@ function present(screen: {
   themeTemplate: string | null;
   lastSeenAt: Date | null;
   createdAt: Date;
-  setlist: { id: string; name: string | null; eventDate: Date | null } | null;
+  setlist: { id: string; name: string | null; eventDate: Date | null; eventDateOf?: { id: string } | null } | null;
 }) {
   return {
     id: screen.id,
     name: screen.name,
     mode: screen.mode,
     setlistId: screen.setlistId,
-    setlist: screen.setlist ? { id: screen.setlist.id, name: screen.setlist.name, eventDate: screen.setlist.eventDate ? screen.setlist.eventDate.toISOString().slice(0, 10) : null } : null,
+    setlist: screen.setlist ? { id: screen.setlist.id, name: screen.setlist.name, eventDate: screen.setlist.eventDate ? screen.setlist.eventDate.toISOString().slice(0, 10) : null, fromEvent: !!screen.setlist.eventDateOf } : null,
     lastSeenAt: screen.lastSeenAt?.toISOString() ?? null,
     createdAt: screen.createdAt.toISOString(),
     themeId: screen.themeId,

@@ -34,7 +34,9 @@ check("a member sees the team's dates in a range", r.status === 200 && dates.len
 const withSets = dates.filter((d) => d.setlistId);
 check("each date in the next 4 weeks has its set, the later ones not yet", withSets.length >= 4 && withSets.length <= 5 && withSets.every((d) => d.date <= plus(28)), withSets.map((d) => d.date).join(" "));
 const firstSet = (await call(member, "GET", `/setlists/${dates[0].setlistId}`)).body;
-check("a date's set is the team's, named and dated after it", firstSet.name === "Morning service" && firstSet.eventDate === plus(1) && firstSet.teamId === team.id, JSON.stringify({ name: firstSet.name, eventDate: firstSet.eventDate }));
+check("a date's set is the team's, named and dated after it, marked as the event's", firstSet.name === "Morning service" && firstSet.eventDate === plus(1) && firstSet.teamId === team.id && firstSet.fromEvent === true, JSON.stringify({ name: firstSet.name, eventDate: firstSet.eventDate, fromEvent: firstSet.fromEvent }));
+r = await call(member, "GET", "/setlists");
+check("…in the list of sets too; a set made by hand isn't", r.body.find((set) => set.id === firstSet.id)?.fromEvent === true && r.body.filter((set) => !set.fromEvent).every((set) => set.fromEvent === false));
 
 // --- further ahead, up to a year
 r = await call(admin, "PUT", `${base}/calendar-settings`, { setsAheadWeeks: 60 });
