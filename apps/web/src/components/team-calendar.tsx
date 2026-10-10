@@ -1,5 +1,5 @@
 import { addDays, localDate, type MemberEventAnswer, type TeamEvent, type TeamEventDateSummary } from "@songverse/core";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Ban, CalendarPlus, MapPin, MoreHorizontal, Pencil, Repeat, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,7 +31,11 @@ const browserZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "U
 export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boolean }) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const router = useRouter();
   const [weeks, setWeeks] = useState(SHOWN_WEEKS);
+  // Past dates, newest first (issue #235): opened on demand, further back with each "Show more".
+  const [pastWeeks, setPastWeeks] = useState(0);
+  const [past, setPast] = useState<TeamEventDateSummary[] | null>(null);
   const [dates, setDates] = useState<TeamEventDateSummary[] | null>(null);
   const [events, setEvents] = useState<TeamEvent[]>([]);
   const [editing, setEditing] = useState<TeamEvent | "new" | null>(null);
@@ -45,7 +49,11 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
     const now = Date.now();
     setDates(found.filter((date) => Date.parse(date.endsAt) >= now - 12 * 3600_000));
     setEvents(all);
-  }, [teamId, weeks]);
+    if (pastWeeks > 0) {
+      const gone = await apiClient.listTeamEventDates(teamId, addDays(today, -pastWeeks * 7), addDays(today, 1));
+      setPast(gone.filter((date) => Date.parse(date.endsAt) < now - 12 * 3600_000 && !date.cancelled).reverse());
+    } else setPast(null);
+  }, [teamId, weeks, pastWeeks]);
 
   useEffect(() => {
     void load().catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)));
@@ -56,6 +64,8 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
     try {
       await work();
       await load();
+      // The sidebar lists the sets of dates you signed up for.
+      await router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
@@ -170,6 +180,35 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
             {t("teamCalendar.showMore")}
           </Button>
         ) : null}
+        <div className="flex flex-col gap-2 border-t pt-4" data-testid="calendar-past">
+          <Button variant="ghost" size="sm" className="self-start" onClick={() => setPastWeeks((shown) => (shown > 0 ? 0 : SHOWN_WEEKS))} aria-expanded={pastWeeks > 0} data-testid="calendar-past-toggle">
+            {pastWeeks > 0 ? t("teamCalendar.hidePastDates") : t("teamCalendar.pastDates")}
+          </Button>
+          {past === null ? null : past.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t("teamCalendar.noPastDates")}</p>
+          ) : (
+            <ul className="flex flex-col divide-y" aria-label={t("teamCalendar.pastDates")}>
+              {past.map((date) => (
+                <li key={`${date.eventId}-${date.date}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-2 text-muted-foreground" data-past-date={date.date}>
+                  <span className="w-28 shrink-0 text-sm tabular-nums">{dayFormat.format(new Date(`${date.date}T12:00:00Z`))}</span>
+                  <span className="min-w-0 flex-1 text-sm">{date.title}</span>
+                  {date.counts ? <span className="text-xs tabular-nums">✓ {date.counts.AVAILABLE}</span> : null}
+                  {date.setlistId ? (
+                    <Button variant="outline" size="sm" render={<Link to="/sets/$setlistId" params={{ setlistId: date.setlistId }} />} data-testid="calendar-past-set">
+                      {t("teamCalendar.openSet")}
+                      <span className="text-muted-foreground">· {t("teamCalendar.songs", { count: date.songCount })}</span>
+                    </Button>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+          {past && past.length > 0 ? (
+            <Button variant="ghost" size="sm" className="self-start" onClick={() => setPastWeeks((shown) => shown + SHOWN_WEEKS)}>
+              {t("teamCalendar.showMore")}
+            </Button>
+          ) : null}
+        </div>
         {isAdmin ? <SetsAhead teamId={teamId} onSaved={load} /> : null}
       </CardContent>
       {answersOf ? (

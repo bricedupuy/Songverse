@@ -391,6 +391,67 @@
         }
       ]
     },
+    "setListing": {
+      "about": "Where a set is listed for someone: a set made by hand as always; an event's set in the sidebar while coming if they signed up, on the Sets page only if not; once past, in the archive if they took part, else hidden.",
+      "params": [
+        "set"
+      ],
+      "cases": [
+        {
+          "name": "made by hand",
+          "args": [
+            {
+              "fromEvent": false
+            }
+          ],
+          "expected": "sidebar"
+        },
+        {
+          "name": "coming, signed up",
+          "args": [
+            {
+              "fromEvent": true,
+              "signedUp": true,
+              "past": false
+            }
+          ],
+          "expected": "sidebar"
+        },
+        {
+          "name": "coming, not signed up",
+          "args": [
+            {
+              "fromEvent": true,
+              "signedUp": false,
+              "past": false
+            }
+          ],
+          "expected": "list"
+        },
+        {
+          "name": "past, took part",
+          "args": [
+            {
+              "fromEvent": true,
+              "signedUp": true,
+              "past": true
+            }
+          ],
+          "expected": "archive"
+        },
+        {
+          "name": "past, didn't take part",
+          "args": [
+            {
+              "fromEvent": true,
+              "signedUp": false,
+              "past": true
+            }
+          ],
+          "expected": "hidden"
+        }
+      ]
+    },
     "isPastDate": {
       "about": "Whether a date is over: before today in the team's time zone. An event's date is still coming on the day.",
       "params": [

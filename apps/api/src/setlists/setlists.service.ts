@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { type SavedDisplaySettings, chartEdgeChords, readArrangementDocument, readSongDocument, renderChart, transposeKey, type SetTransitionValue } from "@songverse/core";
+import { type SavedDisplaySettings, chartEdgeChords, isPastDate, signedUp, readArrangementDocument, readSongDocument, renderChart, transposeKey, type SetTransitionValue } from "@songverse/core";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
@@ -79,12 +79,22 @@ export class SetlistsService {
       },
       include: {
         ownerTeam: { select: { name: true } },
-        eventDateOf: { select: { id: true } },
+        eventDateOf: { select: { id: true, eventId: true, date: true, event: { select: { timeZone: true } } } },
         ownerUser: { select: { displayName: true } },
         _count: { select: { items: true } },
       },
     });
     const memberTeams = new Set(memberships.map((m) => m.teamId));
+    // An event's set (issue #235): whether the viewer signed up for its date, and whether it's over.
+    const eventDates = rows.flatMap((set) => (set.eventDateOf ? [set.eventDateOf] : []));
+    const answers = eventDates.length
+      ? await this.prisma.client.teamEventAnswer.findMany({
+          where: { userId: user.id, OR: eventDates.map((date) => ({ eventId: date.eventId, date: date.date })) },
+          select: { eventId: true, date: true, answer: true },
+        })
+      : [];
+    const signedUpFor = new Set(answers.filter((answer) => signedUp(answer.answer)).map((answer) => `${answer.eventId}|${answer.date.toISOString()}`));
+    const now = new Date();
     const adminTeams = new Set(memberships.filter((m) => m.role === "ADMIN").map((m) => m.teamId));
 
     return sortForDisplay(rows).map((set) => {
@@ -94,6 +104,10 @@ export class SetlistsService {
         itemCount: set._count.items,
         canEdit: user.isGlobalAdmin || set.ownerUserId === user.id || (!!set.ownerTeamId && adminTeams.has(set.ownerTeamId)),
         isGuest,
+        ...(set.eventDateOf && {
+          signedUp: signedUpFor.has(`${set.eventDateOf.eventId}|${set.eventDateOf.date.toISOString()}`),
+          past: isPastDate(set.eventDateOf.date.toISOString().slice(0, 10), now, set.eventDateOf.event.timeZone),
+        }),
       };
     });
   }

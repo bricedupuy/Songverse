@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { type SavedDisplaySettings, offlineFingerprint } from "@songverse/core";
+import { type SavedDisplaySettings, offlineFingerprint, setListing } from "@songverse/core";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { AttachmentsService } from "../attachments/attachments.service.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
@@ -126,7 +126,8 @@ export class OfflineService {
     const today = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
     const from = new Date(today - DAY_MS).toISOString().slice(0, 10);
     const to = new Date(today + days * DAY_MS).toISOString().slice(0, 10);
-    const upcoming = (await this.setlists.list(user)).filter((set) => set.eventDate && set.eventDate >= from && set.eventDate <= to).map((set) => set.id);
+    // As the sidebar lists them (issue #235): a team's event set only for a date one signed up for.
+    const upcoming = (await this.setlists.list(user)).filter((set) => set.eventDate && set.eventDate >= from && set.eventDate <= to && setListing(set) === "sidebar").map((set) => set.id);
     const knownSets = new Map((dto.known ?? []).map((set) => [set.id, set.version]));
     const sets: { id: string; version: string; copy?: Awaited<ReturnType<SetlistsService["offlineCopy"]>> }[] = [];
     const gone: string[] = [];

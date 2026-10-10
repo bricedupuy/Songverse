@@ -24,6 +24,10 @@ Under each date, say whether you can play: **Available**, **If needed** (free if
 
 The team's admins see, beside each date, how many members are available, if needed, not available, and haven't answered. Clicking it opens **Who can play**: everyone's answer, with their notes and days away. An admin can answer there for a member who doesn't use Songverse; it shows as answered by them.
 
+### Which sets you see
+
+A date's set shows in your sidebar when you've said you're **Available** for it - answering puts it there, taking the answer back removes it. The team's other coming dates are still on the **Sets** page and the team's calendar. Once a date is over, its set leaves the sidebar and the list: the ones you took part in are on the **Sets** page under **Archive**, and every past date is on the team's page under **Past dates**. Sets you make yourself are listed as before. Sets kept for offline use follow the same rule.
+
 ## Members and roles
 
 - **Admins** manage the team: they change its songs, versions and sets, and invite people.

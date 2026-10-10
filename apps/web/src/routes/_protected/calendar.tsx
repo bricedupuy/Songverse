@@ -1,5 +1,5 @@
 import { addDays, localDate, type AwayDays, type MyEventDate } from "@songverse/core";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { MapPin, Repeat, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -31,6 +31,7 @@ const browserZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "U
  */
 function MyCalendarPage() {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const [weeks, setWeeks] = useState(SHOWN_WEEKS);
   const [dates, setDates] = useState<MyEventDate[] | null>(null);
   const [away, setAway] = useState<AwayDays[]>([]);
@@ -53,6 +54,8 @@ function MyCalendarPage() {
     try {
       await work();
       await load();
+      // The sidebar lists the sets of dates you signed up for.
+      await router.invalidate();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }

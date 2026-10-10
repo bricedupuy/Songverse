@@ -27,7 +27,7 @@ import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
 import { UpdateUserSchema } from "../requests/accounts.js";
 import { checkRequest } from "../requests/messages.js";
 import { AnswerEventDateSchema, CreateAwaySchema, CreateTeamEventSchema } from "../requests/events.js";
-import { effectiveAnswer, eventDates, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
+import { effectiveAnswer, eventDates, setListing, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
 import type { z } from "zod";
 
 /**
@@ -1215,6 +1215,18 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "away, but answered for that day", args: ["AVAILABLE", [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-09"] },
           { name: "away on the last day of the range", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-15"] },
           { name: "no answer", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-16"] },
+        ],
+      },
+      setListing: {
+        about: "Where a set is listed for someone: a set made by hand as always; an event's set in the sidebar while coming if they signed up, on the Sets page only if not; once past, in the archive if they took part, else hidden.",
+        params: ["set"],
+        run: setListing,
+        cases: [
+          { name: "made by hand", args: [{ fromEvent: false }] },
+          { name: "coming, signed up", args: [{ fromEvent: true, signedUp: true, past: false }] },
+          { name: "coming, not signed up", args: [{ fromEvent: true, signedUp: false, past: false }] },
+          { name: "past, took part", args: [{ fromEvent: true, signedUp: true, past: true }] },
+          { name: "past, didn't take part", args: [{ fromEvent: true, signedUp: false, past: true }] },
         ],
       },
       isPastDate: {

@@ -44,7 +44,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { docsUrl, docsView } from "#/lib/docs";
 import { EntityAvatar } from "#/components/entity-avatar";
-import { SOURCE_CODE_URL } from "@songverse/core";
+import { SOURCE_CODE_URL, setListing } from "@songverse/core";
 import { forgetOffline } from "#/lib/offline-db";
 import { setTheme, useMode } from "#/lib/mode";
 import { forgetSmartLists, smartListSearch, useSmartLists } from "#/lib/smart-lists";
@@ -330,8 +330,9 @@ function MainNav({
 }) {
   const { t, i18n } = useTranslation();
   // Upcoming and undated sets come first (the API's order); past ones are
-  // on the Sets page.
-  const shownSetlists = setlists.slice(0, SIDEBAR_SET_LIMIT);
+  // on the Sets page. A team's event sets only for dates you signed up for (issue #235).
+  const sidebarSets = setlists.filter((set) => setListing(set) === "sidebar");
+  const shownSetlists = sidebarSets.slice(0, SIDEBAR_SET_LIMIT);
   const smartLists = useSmartLists();
   const listId = useRouterState({ select: (s) => (s.location.search as { list?: string }).list });
   const favorites = useRouterState({ select: (s) => !!(s.location.search as { favorites?: boolean }).favorites });
@@ -384,8 +385,8 @@ function MainNav({
                 isActive: pathname === `/sets/${set.id}`,
                 link: { to: "/sets/$setlistId" as const, params: { setlistId: set.id } },
               })),
-              ...(setlists.length > shownSetlists.length
-                ? [{ key: "all", label: t("sets.viewAll", { count: setlists.length }), muted: true, isActive: false, link: { to: "/sets" as const } }]
+              ...(sidebarSets.length > shownSetlists.length
+                ? [{ key: "all", label: t("sets.viewAll", { count: sidebarSets.length }), muted: true, isActive: false, link: { to: "/sets" as const } }]
                 : []),
             ]}
           />

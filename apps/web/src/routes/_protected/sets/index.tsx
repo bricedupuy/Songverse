@@ -1,4 +1,4 @@
-import type { SetlistSummary } from "@songverse/core";
+import { setListing, type SetlistSummary } from "@songverse/core";
 import type { ColumnDef } from "@tanstack/react-table";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
@@ -18,7 +18,10 @@ export const Route = createFileRoute("/_protected/sets/")({
 function SetsIndex() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const setlists = Route.useLoaderData();
+  const all = Route.useLoaderData();
+  // A team's event sets (issue #235): past ones you took part in are in the Archive; the others go.
+  const setlists = all.filter((set) => setListing(set) === "sidebar" || setListing(set) === "list");
+  const archive = all.filter((set) => setListing(set) === "archive").sort((a, b) => (b.eventDate ?? "").localeCompare(a.eventDate ?? ""));
 
   const columns = useMemo<ColumnDef<SetlistSummary>[]>(
     () => [
@@ -76,6 +79,18 @@ function SetsIndex() {
           />
         </Card>
       )}
+
+      {archive.length > 0 ? (
+        <section className="flex flex-col gap-2" aria-labelledby="sets-archive" data-testid="sets-archive">
+          <h2 id="sets-archive" className="text-sm font-semibold">
+            {t("sets.archive")}
+          </h2>
+          <p className="text-sm text-muted-foreground">{t("sets.archiveDescription")}</p>
+          <Card className="p-0">
+            <DataTable columns={columns} data={archive} onRowClick={(set) => void navigate({ to: "/sets/$setlistId", params: { setlistId: set.id } })} />
+          </Card>
+        </section>
+      ) : null}
     </div>
   );
 }

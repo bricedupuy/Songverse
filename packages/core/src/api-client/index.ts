@@ -169,6 +169,10 @@ export interface SetlistSummary {
   isGuest: boolean;
   /** Made for a date of its team's calendar (issue #235): shown as its name and date, "Morning service - 12 Oct". Left out by older offline copies. */
   fromEvent?: boolean;
+  /** For an event's set: the viewer signed up for its date (answered Available). */
+  signedUp?: boolean;
+  /** For an event's set: its date is over, in the team's time zone. */
+  past?: boolean;
 }
 
 export interface SetlistItem {

@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SET_LIST_DETAILS, type SetListDetailValue, type SetTransitionValue } from "@songverse/core";
+import { SET_LIST_DETAILS, setListing, type SetListDetailValue, type SetTransitionValue } from "@songverse/core";
 import { keptSetDetail, keptSongbook, onlineOrKept, transposeKey, type ListSongVersionsQuery, type PeopleOverview, type SetlistDetail, type SetlistSummary, type SongbookDetail, type SongbookSummary, type SongVersionSummary, type TeamSummary } from "@songverse/core";
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import {
@@ -475,7 +475,8 @@ function SetsPanel({ title, pathname, setlists }: { title: string; pathname: str
   const [listingSets, setListingSets] = useState(false);
   useEffect(() => setListingSets(false), [pathname]);
   if (openSet && !listingSets) return <SetSongsPanel setId={openSet} pathname={pathname} sets={title} onBack={() => setListingSets(true)} />;
-  const shown = setlists.filter((set) => fold(setlistTitle(set, t, i18n.language)).includes(fold(filter.trim())));
+  // A team's event sets only for dates you signed up for (issue #235); the others are on the Sets page.
+  const shown = setlists.filter((set) => setListing(set) === "sidebar" && fold(setlistTitle(set, t, i18n.language)).includes(fold(filter.trim())));
   return (
     <>
       <PanelHeader title={title} filter={filter} onFilter={setFilter} newItem={<NewLink to="/sets/new" label={t("nav.new")} />} />

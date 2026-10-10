@@ -220,3 +220,19 @@ export function effectiveAnswer(own: AvailabilityAnswer | null, away: AwayRange[
 export function signedUp(answer: AvailabilityAnswer | null): boolean {
   return answer === "AVAILABLE";
 }
+
+/**
+ * Where a set is listed for someone (issue #235). A set made by hand:
+ * "sidebar" (as always). A set made for a date of their team's calendar:
+ * "sidebar" while the date is coming and they signed up for it; "list"
+ * (the Sets page and the team's calendar, not the sidebar) while it's
+ * coming and they didn't; "archive" once it's past if they took part;
+ * "hidden" once it's past if they didn't (the team's page still has it).
+ */
+export type SetListing = "sidebar" | "list" | "archive" | "hidden";
+
+export function setListing(set: { fromEvent?: boolean; signedUp?: boolean; past?: boolean }): SetListing {
+  if (!set.fromEvent) return "sidebar";
+  if (set.past) return set.signedUp ? "archive" : "hidden";
+  return set.signedUp ? "sidebar" : "list";
+}

@@ -884,6 +884,9 @@ const fr: typeof en = {
     authClearing: "Retour en cours…",
   },
   teamCalendar: {
+    pastDates: "Dates passées",
+    hidePastDates: "Masquer les dates passées",
+    noPastDates: "Aucune date passée.",
     title: "Calendrier",
     description: "Les cultes, répétitions et autres événements de l'équipe. Chaque date a sa propre liste.",
     newEvent: "Nouvel événement",
@@ -1226,6 +1229,8 @@ const fr: typeof en = {
     storageUnlimited: "{{used}} utilisés · aucune limite",
   },
   sets: {
+    archive: "Archives",
+    archiveDescription: "Les dates passées des calendriers de vos équipes auxquelles vous avez participé.",
     justThisSet: "Pour cette liste seulement",
     newJustThisSet: "Pour cette liste seulement…",
     editJustThisSet: "Modifier {{title}} pour cette liste",

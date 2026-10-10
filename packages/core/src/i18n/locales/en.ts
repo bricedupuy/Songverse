@@ -881,6 +881,9 @@ const en = {
     authClearing: "Reverting…",
   },
   teamCalendar: {
+    pastDates: "Past dates",
+    hidePastDates: "Hide past dates",
+    noPastDates: "No past dates.",
     title: "Calendar",
     description: "The team's services, rehearsals and other events. Each date gets its own set.",
     newEvent: "New event",
@@ -1222,6 +1225,8 @@ const en = {
     storageUnlimited: "{{used}} used · no limit",
   },
   sets: {
+    archive: "Archive",
+    archiveDescription: "Past dates of your teams' calendars that you took part in.",
     justThisSet: "Just for this set",
     newJustThisSet: "Just for this set…",
     editJustThisSet: "Change {{title}} for this set",
