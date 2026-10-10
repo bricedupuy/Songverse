@@ -26,7 +26,7 @@ import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
-import type { NotificationData, NotificationKind, NotificationPreferences } from "../notifications/index.js";
+import type { NotificationData, NotificationKind, NotificationPreferences, QuietHours } from "../notifications/index.js";
 import type { LyricsMatch } from "../search-text/lyrics.js";
 import type { SecondChordRow } from "../display/chord-rows.js";
 import type { SectionProgression } from "../chords/progressions.js";
@@ -34,7 +34,7 @@ import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
 import type { CreateSignupInvitationRequest } from "../requests/invitations.js";
-import type { SaveNotificationServerSettingsRequest, UpdateNotificationPreferencesRequest } from "../requests/notifications.js";
+import type { CreatePushSubscriptionRequest, SaveNotificationServerSettingsRequest, UpdateNotificationPreferencesRequest } from "../requests/notifications.js";
 import type { UpdateSetlistItemRequest } from "../requests/sets.js";
 import type { AnswerEventDateRequest, CreateAwayRequest, UpdateAwayRequest, CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
 import type { AvailabilityAnswer, EventDate, EventRepeat } from "../calendar/index.js";
@@ -888,12 +888,32 @@ export interface NotificationPage {
 /** How each kind of notification reaches someone, and whether this server emails at all (Admin > Notifications). */
 export interface MyNotificationPreferences {
   kinds: NotificationPreferences;
+  quiet: QuietHours | null;
   emailAvailable: boolean;
+  /** The server's VAPID public key, to turn a device on; null: push isn't set up. */
+  pushKey: string | null;
+}
+
+/** A device someone turned notifications on for (issue #236). */
+export interface PushDevice {
+  id: string;
+  endpoint: string;
+  label: string | null;
+  createdAt: string;
+  lastPushedAt: string | null;
 }
 
 export interface NotificationServerSettingsSummary {
   source: "database" | "env" | "none";
   settings: { emailEnabled: SecuritySetting<boolean> };
+  push: {
+    source: "database" | "env" | "none";
+    ready: boolean;
+    publicKey: string | null;
+    hasDatabasePrivateKey: boolean;
+    subject: string | null;
+    subjectEnv: string | null;
+  };
 }
 
 export interface TeamCalendarSettings {
@@ -1812,6 +1832,10 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     getMyNotificationPreferences: () => request<MyNotificationPreferences>("/users/me/notifications/settings"),
     updateMyNotificationPreferences: (data: UpdateNotificationPreferencesRequest) =>
       request<MyNotificationPreferences>("/users/me/notifications/settings", { method: "PUT", body: JSON.stringify(data) }),
+    listMyPushDevices: () => request<PushDevice[]>("/users/me/push-subscriptions"),
+    addMyPushDevice: (data: CreatePushSubscriptionRequest) => request<PushDevice>("/users/me/push-subscriptions", { method: "POST", body: JSON.stringify(data) }),
+    removeMyPushDevice: (id: string) => request<void>(`/users/me/push-subscriptions/${id}`, { method: "DELETE" }),
+    testMyPushDevices: () => request<void>("/users/me/push-subscriptions/test", { method: "POST" }),
     markMyNotificationsRead: (ids?: string[]) => request<{ unread: number }>("/users/me/notifications/read", { method: "POST", body: JSON.stringify(ids ? { ids } : {}) }),
     getTeamCalendarSettings: (teamId: string) => request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`),
     updateTeamCalendarSettings: (teamId: string, data: TeamCalendarSettings) =>
@@ -2365,6 +2389,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     adminGetNotificationSettings: () => request<NotificationServerSettingsSummary>("/admin/notifications"),
     adminSaveNotificationSettings: (data: SaveNotificationServerSettingsRequest) => request<void>("/admin/notifications", { method: "PUT", body: JSON.stringify(data) }),
     adminClearNotificationSettings: () => request<void>("/admin/notifications", { method: "DELETE" }),
+    adminGeneratePushKeys: () => request<{ publicKey: string }>("/admin/notifications/vapid-keys", { method: "POST" }),
   };
 }
 

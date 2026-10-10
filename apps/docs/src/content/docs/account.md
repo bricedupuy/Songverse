@@ -33,7 +33,11 @@ Choose the app's language under **Language**. **First day of the week** sets whe
 
 ## Notifications
 
-Everything Songverse tells you shows under the bell at the top of every page (see [Notifications](/teams/#notifications)). Under **Notifications**, tick which kinds are also sent to you by email - a date you signed up for cancelled or changed, an event deleted, an admin answering for you; they're all on until you choose. Several at once come as one email. When the server doesn't send notifications by email, the card says so.
+Everything Songverse tells you shows under the bell at the top of every page (see [Notifications](/teams/#notifications)). Under **Notifications**, tick which kinds are also sent to you by **Email** and to your devices (**Push**) - a date you signed up for cancelled or changed, an event deleted, an admin answering for you; they're all on until you choose. Several at once come as one email, or one notification. When the server doesn't send them by email or to devices, the card says so.
+
+**Turn on notifications on this device** asks your browser for permission, then lists the device under **Your devices** - do it on each phone or computer you want them on. On an iPhone or iPad, add Songverse to the home screen first (Share, then Add to Home Screen) and turn them on from there. **Send a test notification** checks they arrive; **Turn off on this device**, or the bin beside a device, stops them there. A device whose browser stopped them is removed by itself.
+
+**Quiet hours** keep your devices silent at night (22:00 to 07:00 to begin with, in your time zone - change **From** and **To**): what comes in then shows when they end. The bell and emails aren't held back.
 
 ## Chart display
 

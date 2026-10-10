@@ -28,7 +28,7 @@ import { UpdateUserSchema } from "../requests/accounts.js";
 import { checkRequest } from "../requests/messages.js";
 import { AnswerEventDateSchema, CreateAwaySchema, CreateTeamEventSchema } from "../requests/events.js";
 import { calendarFeed } from "../calendar/ical.js";
-import { notificationEmail, notificationPreferences, notificationText, withNotificationChanges, type NotificationData, type NotificationKind } from "../notifications/index.js";
+import { isPushEndpoint, notificationEmail, notificationPush, notificationPreferences, quietHoursEnd, notificationText, withNotificationChanges, type NotificationData, type NotificationKind } from "../notifications/index.js";
 import enMessages from "../i18n/locales/en.js";
 import frMessages from "../i18n/locales/fr.js";
 import { effectiveAnswer, eventDates, setListing, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
@@ -1262,6 +1262,52 @@ export const CONFORMANCE: ConformanceArea[] = [
               "fr",
             ],
           },
+        ],
+      },
+      notificationPush: {
+        about: "A notification on a device's screen: one by its own words, several under one title with the first three listed.",
+        params: ["items", "locale"],
+        run: (items: { kind: NotificationKind; data: NotificationData }[], locale: string) => notificationPush(items, locale === "fr" ? frMessages : enMessages, locale),
+        cases: [
+          { name: "one", args: [[{ kind: "EVENT_CANCELLED", data: { event: "Morning service", team: "Worship team" } }], "en"] },
+          {
+            name: "four",
+            args: [
+              ["2026-10-18", "2026-10-25", "2026-11-01", "2026-11-08"].map((date) => ({ kind: "EVENT_DATE_CHANGED", data: { event: "Morning service", date, team: "Worship team", startTime: "09:30" } })),
+              "en",
+            ],
+          },
+        ],
+      },
+      quietHoursEnd: {
+        about: "When someone's quiet hours end, if they're on: over midnight when they end earlier than they start, in their time zone; null when not on.",
+        params: ["quiet", "now"],
+        run: quietHoursEnd,
+        cases: [
+          { name: "none", args: [null, "2026-10-10T23:00:00Z"] },
+          { name: "night, before midnight (Paris)", args: [{ from: "22:00", to: "07:00", timeZone: "Europe/Paris" }, "2026-10-10T21:30:00Z"] },
+          { name: "night, after midnight (Paris)", args: [{ from: "22:00", to: "07:00", timeZone: "Europe/Paris" }, "2026-10-11T03:00:00Z"] },
+          { name: "night, in the day: not on", args: [{ from: "22:00", to: "07:00", timeZone: "Europe/Paris" }, "2026-10-11T12:00:00Z"] },
+          { name: "the night the clocks go back", args: [{ from: "22:00", to: "07:00", timeZone: "Europe/Paris" }, "2026-10-24T21:30:00Z"] },
+          { name: "in the day", args: [{ from: "13:00", to: "15:00", timeZone: "America/New_York" }, "2026-10-10T17:30:00Z"] },
+          { name: "at the end: not on", args: [{ from: "13:00", to: "15:00", timeZone: "UTC" }, "2026-10-10T15:00:00Z"] },
+        ],
+      },
+      isPushEndpoint: {
+        about: "Whether a device's push address is a push service's (Google, Mozilla, Apple, Microsoft), https only, or one of the given stand-ins: the server posts to it, so nowhere else.",
+        params: ["endpoint", "extraOrigins"],
+        run: isPushEndpoint,
+        cases: [
+          { name: "Google", args: ["https://fcm.googleapis.com/fcm/send/abc:def", []] },
+          { name: "Mozilla", args: ["https://updates.push.services.mozilla.com/wpush/v2/gAAAA", []] },
+          { name: "Apple", args: ["https://web.push.apple.com/QGuQ", []] },
+          { name: "Microsoft", args: ["https://wns2-par02p.notify.windows.com/w/?token=x", []] },
+          { name: "not https", args: ["http://fcm.googleapis.com/fcm/send/abc", []] },
+          { name: "another host", args: ["https://fcm.googleapis.com.evil.example/fcm", []] },
+          { name: "an inside address", args: ["https://169.254.169.254/latest", []] },
+          { name: "another port", args: ["https://fcm.googleapis.com:8443/fcm/send/abc", []] },
+          { name: "a stand-in for tests", args: ["http://localhost:3997/push/1", ["http://localhost:3997"]] },
+          { name: "not an address", args: ["nope", []] },
         ],
       },
       calendarFeed: {

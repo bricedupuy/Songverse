@@ -69,7 +69,7 @@ How the API protects itself. **Limit requests** caps how many requests it takes 
 
 ### Notifications
 
-What Songverse tells people besides the bell in the app. **Send notifications by email** is off until you turn it on: emails go through the Resend account set under **Auth**, the same as account mail, and its free tier has a sending limit. Once on, each person chooses which kinds they're emailed about in their account settings; one email covers notifications made together (an event that changed several dates), and an address that isn't verified gets none. The setting shows where it comes from, and **Revert to environment variables** goes back to the server's configuration.
+What Songverse tells people besides the bell in the app. **Send notifications by email** is off until you turn it on: emails go through the Resend account set under **Auth**, the same as account mail, and its free tier has a sending limit. Once on, each person chooses which kinds they're emailed about in their account settings; one email covers notifications made together (an event that changed several dates), and an address that isn't verified gets none. **Push to devices** sends notifications to people's phones and computers through their browser's push service (Google's, Mozilla's, Apple's, Microsoft's - never anywhere else). It needs a VAPID key pair: **Generate keys** makes one and keeps it (the private key encrypted, never shown again), or paste your own, with a **Contact (mailto: or https:)** the push services can reach. Generating new keys later means everyone turns their devices on again. Each setting shows where it comes from, and **Revert to environment variables** goes back to the server's configuration.
 
 ### Storage
 

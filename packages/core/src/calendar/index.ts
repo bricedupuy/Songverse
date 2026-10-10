@@ -146,6 +146,12 @@ export function localDate(instant: string | Date, timeZone: string): string {
   return `${String(c.y).padStart(4, "0")}-${String(c.m).padStart(2, "0")}-${String(c.d).padStart(2, "0")}`;
 }
 
+/** The wall-clock time an instant falls on in a time zone, HH:MM. */
+export function localTime(instant: string | Date, timeZone: string): string {
+  const c = wallClock(new Date(instant).getTime(), timeZone);
+  return `${String(c.h).padStart(2, "0")}:${String(c.min).padStart(2, "0")}`;
+}
+
 /** Whether a date is over: before today in its time zone (an event's date stays coming until the day after). */
 export function isPastDate(date: string, now: string | Date, timeZone: string): boolean {
   return date < localDate(now, timeZone);

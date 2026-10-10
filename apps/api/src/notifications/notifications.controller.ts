@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post, Put, Query, UnauthorizedException } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { MarkNotificationsReadDto, NotificationsQueryDto, UpdateNotificationPreferencesDto } from "./dto/notifications.dto.js";
+import { CreatePushSubscriptionDto } from "./dto/push.dto.js";
 import { NotificationsService } from "./notifications.service.js";
 
 /** One's own notifications (issue #236). */
@@ -44,5 +45,41 @@ export class NotificationsController {
   updateSettings(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: UpdateNotificationPreferencesDto) {
     if (!user) throw new UnauthorizedException();
     return this.notifications.updatePreferences(user.id, dto);
+  }
+}
+
+/** The devices one turned notifications on for (issue #236): their browsers' push subscriptions. */
+@ApiTags("notifications")
+@ApiBearerAuth()
+@Controller("users/me/push-subscriptions")
+export class PushSubscriptionsController {
+  constructor(private readonly notifications: NotificationsService) {}
+
+  @Get()
+  list(@CurrentUser() user: AuthenticatedUser | undefined) {
+    if (!user) throw new UnauthorizedException();
+    return this.notifications.devices(user.id);
+  }
+
+  /** This device turned on: its browser's PushSubscription, as toJSON() gives it. */
+  @Post()
+  add(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: CreatePushSubscriptionDto) {
+    if (!user) throw new UnauthorizedException();
+    return this.notifications.addDevice(user.id, dto);
+  }
+
+  /** A test notification to all one's devices. */
+  @Post("test")
+  @HttpCode(HttpStatus.ACCEPTED)
+  test(@CurrentUser() user: AuthenticatedUser | undefined) {
+    if (!user) throw new UnauthorizedException();
+    return this.notifications.testPush(user.id);
+  }
+
+  @Delete(":id")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@CurrentUser() user: AuthenticatedUser | undefined, @Param("id") id: string) {
+    if (!user) throw new UnauthorizedException();
+    return this.notifications.removeDevice(user.id, id);
   }
 }

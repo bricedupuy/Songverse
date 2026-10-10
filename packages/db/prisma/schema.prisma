@@ -361,6 +361,7 @@ model User {
   awayRanges          UserAway[]
   calendarFeed        CalendarFeed?
   notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
   // How each kind of notification reaches them (issue #236): push, email; quiet hours.
   notificationSettings Json?
 
@@ -1112,6 +1113,8 @@ model Notification {
   readAt    DateTime?
   // When it went by email (issue #236): sent, or looked at and not sent (the person's choice, email off).
   emailedAt DateTime?
+  // When it went to their devices, or was looked at and not sent (no device, the person's choice, push not set up).
+  pushedAt  DateTime?
   createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2053,7 +2056,31 @@ model NotificationSettings {
   id           String   @id @default("singleton")
   // Notifications sent by email at all (NOTIFICATION_EMAILS; off by default).
   emailEnabled Boolean?
+  // Web push's VAPID key pair (VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY), the private key
+  // encrypted with SETTINGS_ENCRYPTION_KEY; and who sends (VAPID_SUBJECT).
+  vapidPublicKey           String?
+  vapidPrivateKeyEncrypted String?
+  vapidSubject             String?
   updatedAt    DateTime @updatedAt
+}
+
+// A device someone turned notifications on for (issue #236): its browser's
+// push subscription. Gone when the push service says it's expired.
+model PushSubscription {
+  id           String    @id @default(cuid())
+  userId       String
+  // The push service's address for the device: Google's, Mozilla's, Apple's, Microsoft's.
+  endpoint     String    @unique
+  p256dh       String
+  auth         String
+  // Which device, as its browser named it: "Chrome on Android".
+  label        String?
+  createdAt    DateTime  @default(now())
+  lastPushedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // Content of a deleted user, held for a limited time behind a one-time

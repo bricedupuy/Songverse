@@ -1,4 +1,4 @@
-import { AVAILABILITY_ANSWERS, type AvailabilityAnswer } from "../calendar/index.js";
+import { addDays, AVAILABILITY_ANSWERS, isTimeOfDay, isTimeZone, localDate, localTime, zonedInstant, type AvailabilityAnswer } from "../calendar/index.js";
 import type { Messages } from "../i18n/index.js";
 
 /**
@@ -108,4 +108,64 @@ export function notificationEmail(
   const lines = items.map((item) => notificationText(item.kind, item.data, messages, locale));
   const subject = lines.length === 1 ? lines[0]!.title : fill(messages.notifications.email.several, { count: String(lines.length) });
   return { subject, lines };
+}
+
+/** A notification on a device's screen (issue #236): one by its own words, several under one title, the first few listed. */
+export function notificationPush(items: { kind: NotificationKind; data: NotificationData }[], messages: Messages, locale: string): { title: string; body: string } {
+  const { subject, lines } = notificationEmail(items, messages, locale);
+  if (lines.length === 1) return { title: subject, body: lines[0]!.body };
+  return { title: subject, body: lines.slice(0, 3).map((line) => line.title).join("\n") + (lines.length > 3 ? "\n…" : "") };
+}
+
+/** Hours someone's devices stay quiet (issue #236): from, to (HH:MM, to the next day when earlier), in their time zone. */
+export interface QuietHours {
+  from: string;
+  to: string;
+  timeZone: string;
+}
+
+/** Someone's quiet hours as stored (`User.notificationSettings.quiet`), or null: none, or not valid. */
+export function quietHoursOf(stored: unknown): QuietHours | null {
+  const quiet = stored && typeof stored === "object" ? (stored as { quiet?: unknown }).quiet : undefined;
+  if (!quiet || typeof quiet !== "object") return null;
+  const { from, to, timeZone } = quiet as Record<string, unknown>;
+  if (typeof from !== "string" || typeof to !== "string" || typeof timeZone !== "string") return null;
+  if (!isTimeOfDay(from) || !isTimeOfDay(to) || !isTimeZone(timeZone) || from === to) return null;
+  return { from, to, timeZone };
+}
+
+/**
+ * When quiet hours that are on at `now` end, ISO 8601 in UTC; null when
+ * they aren't on (or there are none). Hours from 22:00 to 07:00 run over
+ * midnight; the end is the wall-clock time in their zone, whatever the
+ * clocks did.
+ */
+export function quietHoursEnd(quiet: QuietHours | null, now: string | Date): string | null {
+  if (!quiet || quiet.from === quiet.to) return null;
+  const today = localDate(now, quiet.timeZone);
+  const time = localTime(now, quiet.timeZone);
+  if (quiet.from < quiet.to) return time >= quiet.from && time < quiet.to ? zonedInstant(today, quiet.to, quiet.timeZone) : null;
+  if (time >= quiet.from) return zonedInstant(addDays(today, 1), quiet.to, quiet.timeZone);
+  if (time < quiet.to) return zonedInstant(today, quiet.to, quiet.timeZone);
+  return null;
+}
+
+/** The push services browsers subscribe with: Google (Chrome, Edge, Android), Mozilla, Apple, Microsoft. */
+const PUSH_HOSTS = ["fcm.googleapis.com", "push.services.mozilla.com", "push.apple.com", "notify.windows.com"];
+
+/**
+ * Whether a device's push address is one of the push services' (issue
+ * #236) - the server posts to it, so never anywhere else - or starts with
+ * one of `extraOrigins` (a stand-in for tests).
+ */
+export function isPushEndpoint(endpoint: string, extraOrigins: string[] = []): boolean {
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  if (extraOrigins.some((origin) => origin && url.origin === new URL(origin).origin)) return true;
+  if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443")) return false;
+  return PUSH_HOSTS.some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`));
 }

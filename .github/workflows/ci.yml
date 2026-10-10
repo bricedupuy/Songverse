@@ -148,6 +148,8 @@ jobs:
       SPOTIFY_API_URL: "http://localhost:3999/spotify"
       SPOTIFY_ACCOUNTS_URL: "http://localhost:3999/spotify-accounts"
       YOUTUBE_API_URL: "http://localhost:3999/youtube"
+      # A stand-in push service (e2e/lib/fake-push.mjs) the API may post to, besides the real ones (issue #236).
+      PUSH_TEST_ORIGINS: "http://localhost:3997"
     steps:
       - uses: actions/checkout@v4
 

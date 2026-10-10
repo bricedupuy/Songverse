@@ -33,7 +33,11 @@ Choisissez la langue de l'application sous **Langue**. **Premier jour de la sema
 
 ## Notifications
 
-Tout ce que Songverse vous dit s'affiche sous la cloche en haut de chaque page (voir [Notifications](/fr/teams/#notifications)). Sous **Notifications**, cochez ce qui vous est aussi envoyé par e-mail - une date où vous êtes inscrit annulée ou modifiée, un événement supprimé, un administrateur qui répond pour vous ; tout est coché tant que vous n'avez pas choisi. Plusieurs à la fois arrivent en un seul e-mail. Quand le serveur n'envoie pas de notifications par e-mail, la carte l'indique.
+Tout ce que Songverse vous dit s'affiche sous la cloche en haut de chaque page (voir [Notifications](/fr/teams/#notifications)). Sous **Notifications**, cochez ce qui vous est aussi envoyé par **E-mail** et sur vos appareils (**Appareils**) - une date où vous êtes inscrit annulée ou modifiée, un événement supprimé, un administrateur qui répond pour vous ; tout est coché tant que vous n'avez pas choisi. Plusieurs à la fois arrivent en un seul e-mail, ou une seule notification. Quand le serveur n'en envoie pas par e-mail ou sur les appareils, la carte l'indique.
+
+**Activer les notifications sur cet appareil** demande l'autorisation à votre navigateur, puis ajoute l'appareil sous **Vos appareils** - faites-le sur chaque téléphone ou ordinateur où vous les voulez. Sur un iPhone ou un iPad, ajoutez d'abord Songverse à l'écran d'accueil (Partager, puis Sur l'écran d'accueil) et activez-les depuis là. **Envoyer une notification de test** vérifie qu'elles arrivent ; **Désactiver sur cet appareil**, ou la corbeille à côté d'un appareil, les arrête là. Un appareil dont le navigateur les a arrêtées est retiré de lui-même.
+
+**Heures calmes** garde vos appareils silencieux la nuit (de 22:00 à 07:00 au départ, dans votre fuseau horaire - changez **De** et **À**) : ce qui arrive pendant s'affiche à la fin. La cloche et les e-mails ne sont pas retenus.
 
 ## Affichage des grilles
 

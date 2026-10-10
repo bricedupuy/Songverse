@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmButton } from "#/components/confirm-button";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent } from "#/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
+import { Input } from "#/components/ui/input";
+import { Label } from "#/components/ui/label";
 import { apiClient } from "#/lib/api-client";
 
 export const Route = createFileRoute("/_protected/admin/notifications")({
@@ -14,7 +16,9 @@ export const Route = createFileRoute("/_protected/admin/notifications")({
 /**
  * Admin > Notifications (issue #236): whether notifications also go by
  * email - off by default, since they go through the same Resend account
- * as account mail, with its sending limits. The setting says where it
+ * as account mail, with its sending limits - and web push to people's
+ * devices: its VAPID key pair (generated here, or one's own; the private
+ * key never shown, only kept) and contact. Each setting says where it
  * comes from; a saved one wins over the environment.
  */
 function AdminNotificationsPage() {
@@ -22,8 +26,18 @@ function AdminNotificationsPage() {
   const router = useRouter();
   const summary = Route.useLoaderData();
   const setting = summary.settings.emailEnabled;
+  const { push } = summary;
   const [emailEnabled, setEmailEnabled] = useState(setting.value);
-  useEffect(() => setEmailEnabled(setting.value), [summary]);
+  const [publicKey, setPublicKey] = useState(push.publicKey ?? "");
+  const [privateKey, setPrivateKey] = useState("");
+  const [subject, setSubject] = useState(push.subject ?? "");
+  useEffect(() => {
+    setEmailEnabled(setting.value);
+    setPublicKey(push.publicKey ?? "");
+    setPrivateKey("");
+    setSubject(push.subject ?? "");
+  }, [summary]);
+  const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,10 +84,65 @@ function AdminNotificationsPage() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">{t("notifications.adminPush")}</CardTitle>
+          <CardDescription>{t("notifications.adminPushHint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <p className="text-xs" data-testid="push-status">
+            <span className="font-medium">{push.ready ? t("notifications.adminPushReady") : t("notifications.adminPushMissing")}</span>{" "}
+            <span className="text-muted-foreground">
+              {push.source === "database" ? t("admin.securityFromDatabase") : push.source === "env" ? t("admin.securityFromEnv", { name: "VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY" }) : null}
+            </span>
+          </p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="vapid-public">{t("notifications.adminPublicKey")}</Label>
+            <Input id="vapid-public" value={publicKey} onChange={(event) => setPublicKey(event.target.value)} className="font-mono text-xs" data-testid="vapid-public" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="vapid-private">{t("notifications.adminPrivateKey")}</Label>
+            <Input id="vapid-private" type="password" autoComplete="off" value={privateKey} onChange={(event) => setPrivateKey(event.target.value)} className="font-mono text-xs" data-testid="vapid-private" />
+            {push.hasDatabasePrivateKey ? <span className="text-xs text-muted-foreground">{t("notifications.adminPrivateKeyKeep")}</span> : null}
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="vapid-subject">{t("notifications.adminSubject")}</Label>
+            <Input id="vapid-subject" value={subject} placeholder={push.subjectEnv ?? "mailto:"} onChange={(event) => setSubject(event.target.value)} data-testid="vapid-subject" />
+            <span className="text-xs text-muted-foreground">{t("notifications.adminSubjectHint")}</span>
+          </div>
+          {push.ready ? (
+            <ConfirmButton
+              label={t("notifications.adminGenerate")}
+              confirmLabel={t("notifications.adminGenerateConfirm")}
+              busyLabel={t("notifications.adminGenerate")}
+              cancelLabel={t("admin.cancel")}
+              busy={generating}
+              onConfirm={() => run(async () => void (await apiClient.adminGeneratePushKeys()), setGenerating)}
+            />
+          ) : (
+            <Button variant="outline" className="self-start" disabled={generating} onClick={() => void run(async () => void (await apiClient.adminGeneratePushKeys()), setGenerating)} data-testid="vapid-generate">
+              {t("notifications.adminGenerate")}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex items-center justify-between">
         <Button
-          onClick={() => void run(() => apiClient.adminSaveNotificationSettings(emailEnabled !== setting.value ? { emailEnabled } : {}), setSaving)}
+          onClick={() =>
+            void run(
+              () =>
+                apiClient.adminSaveNotificationSettings({
+                  // Only what changed: the rest keeps coming from where it does.
+                  ...(emailEnabled !== setting.value ? { emailEnabled } : {}),
+                  ...(publicKey !== (push.publicKey ?? "") ? { vapidPublicKey: publicKey } : {}),
+                  ...(privateKey ? { vapidPrivateKey: privateKey } : {}),
+                  ...(subject !== (push.subject ?? "") ? { vapidSubject: subject } : {}),
+                }),
+              setSaving,
+            )
+          }
           disabled={saving}
           data-testid="notifications-save"
         >

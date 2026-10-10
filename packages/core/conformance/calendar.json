@@ -640,6 +640,262 @@
         }
       ]
     },
+    "notificationPush": {
+      "about": "A notification on a device's screen: one by its own words, several under one title with the first three listed.",
+      "params": [
+        "items",
+        "locale"
+      ],
+      "cases": [
+        {
+          "name": "one",
+          "args": [
+            [
+              {
+                "kind": "EVENT_CANCELLED",
+                "data": {
+                  "event": "Morning service",
+                  "team": "Worship team"
+                }
+              }
+            ],
+            "en"
+          ],
+          "expected": {
+            "title": "Morning service is cancelled",
+            "body": "Worship team: its coming dates are off"
+          }
+        },
+        {
+          "name": "four",
+          "args": [
+            [
+              {
+                "kind": "EVENT_DATE_CHANGED",
+                "data": {
+                  "event": "Morning service",
+                  "date": "2026-10-18",
+                  "team": "Worship team",
+                  "startTime": "09:30"
+                }
+              },
+              {
+                "kind": "EVENT_DATE_CHANGED",
+                "data": {
+                  "event": "Morning service",
+                  "date": "2026-10-25",
+                  "team": "Worship team",
+                  "startTime": "09:30"
+                }
+              },
+              {
+                "kind": "EVENT_DATE_CHANGED",
+                "data": {
+                  "event": "Morning service",
+                  "date": "2026-11-01",
+                  "team": "Worship team",
+                  "startTime": "09:30"
+                }
+              },
+              {
+                "kind": "EVENT_DATE_CHANGED",
+                "data": {
+                  "event": "Morning service",
+                  "date": "2026-11-08",
+                  "team": "Worship team",
+                  "startTime": "09:30"
+                }
+              }
+            ],
+            "en"
+          ],
+          "expected": {
+            "title": "4 updates from Songverse",
+            "body": "Morning service on Sun, Oct 18 changed\nMorning service on Sun, Oct 25 changed\nMorning service on Sun, Nov 1 changed\n…"
+          }
+        }
+      ]
+    },
+    "quietHoursEnd": {
+      "about": "When someone's quiet hours end, if they're on: over midnight when they end earlier than they start, in their time zone; null when not on.",
+      "params": [
+        "quiet",
+        "now"
+      ],
+      "cases": [
+        {
+          "name": "none",
+          "args": [
+            null,
+            "2026-10-10T23:00:00Z"
+          ],
+          "expected": null
+        },
+        {
+          "name": "night, before midnight (Paris)",
+          "args": [
+            {
+              "from": "22:00",
+              "to": "07:00",
+              "timeZone": "Europe/Paris"
+            },
+            "2026-10-10T21:30:00Z"
+          ],
+          "expected": "2026-10-11T05:00:00.000Z"
+        },
+        {
+          "name": "night, after midnight (Paris)",
+          "args": [
+            {
+              "from": "22:00",
+              "to": "07:00",
+              "timeZone": "Europe/Paris"
+            },
+            "2026-10-11T03:00:00Z"
+          ],
+          "expected": "2026-10-11T05:00:00.000Z"
+        },
+        {
+          "name": "night, in the day: not on",
+          "args": [
+            {
+              "from": "22:00",
+              "to": "07:00",
+              "timeZone": "Europe/Paris"
+            },
+            "2026-10-11T12:00:00Z"
+          ],
+          "expected": null
+        },
+        {
+          "name": "the night the clocks go back",
+          "args": [
+            {
+              "from": "22:00",
+              "to": "07:00",
+              "timeZone": "Europe/Paris"
+            },
+            "2026-10-24T21:30:00Z"
+          ],
+          "expected": "2026-10-25T06:00:00.000Z"
+        },
+        {
+          "name": "in the day",
+          "args": [
+            {
+              "from": "13:00",
+              "to": "15:00",
+              "timeZone": "America/New_York"
+            },
+            "2026-10-10T17:30:00Z"
+          ],
+          "expected": "2026-10-10T19:00:00.000Z"
+        },
+        {
+          "name": "at the end: not on",
+          "args": [
+            {
+              "from": "13:00",
+              "to": "15:00",
+              "timeZone": "UTC"
+            },
+            "2026-10-10T15:00:00Z"
+          ],
+          "expected": null
+        }
+      ]
+    },
+    "isPushEndpoint": {
+      "about": "Whether a device's push address is a push service's (Google, Mozilla, Apple, Microsoft), https only, or one of the given stand-ins: the server posts to it, so nowhere else.",
+      "params": [
+        "endpoint",
+        "extraOrigins"
+      ],
+      "cases": [
+        {
+          "name": "Google",
+          "args": [
+            "https://fcm.googleapis.com/fcm/send/abc:def",
+            []
+          ],
+          "expected": true
+        },
+        {
+          "name": "Mozilla",
+          "args": [
+            "https://updates.push.services.mozilla.com/wpush/v2/gAAAA",
+            []
+          ],
+          "expected": true
+        },
+        {
+          "name": "Apple",
+          "args": [
+            "https://web.push.apple.com/QGuQ",
+            []
+          ],
+          "expected": true
+        },
+        {
+          "name": "Microsoft",
+          "args": [
+            "https://wns2-par02p.notify.windows.com/w/?token=x",
+            []
+          ],
+          "expected": true
+        },
+        {
+          "name": "not https",
+          "args": [
+            "http://fcm.googleapis.com/fcm/send/abc",
+            []
+          ],
+          "expected": false
+        },
+        {
+          "name": "another host",
+          "args": [
+            "https://fcm.googleapis.com.evil.example/fcm",
+            []
+          ],
+          "expected": false
+        },
+        {
+          "name": "an inside address",
+          "args": [
+            "https://169.254.169.254/latest",
+            []
+          ],
+          "expected": false
+        },
+        {
+          "name": "another port",
+          "args": [
+            "https://fcm.googleapis.com:8443/fcm/send/abc",
+            []
+          ],
+          "expected": false
+        },
+        {
+          "name": "a stand-in for tests",
+          "args": [
+            "http://localhost:3997/push/1",
+            [
+              "http://localhost:3997"
+            ]
+          ],
+          "expected": true
+        },
+        {
+          "name": "not an address",
+          "args": [
+            "nope",
+            []
+          ],
+          "expected": false
+        }
+      ]
+    },
     "calendarFeed": {
       "about": "A personal calendar feed (iCalendar): each date one signed up for, its times in UTC, text escaped, lines folded at 75 octets with CRLF.",
       "params": [

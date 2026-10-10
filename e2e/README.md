@@ -23,6 +23,9 @@ seed`) - some suites use the built-in global tags.
      WIKIDATA_API_URL=http://localhost:3999/wikidata/w/api.php WIKIPEDIA_URL='http://localhost:3999/wikipedia/{lang}' \
      SPOTIFY_API_URL=http://localhost:3999/spotify SPOTIFY_ACCOUNTS_URL=http://localhost:3999/spotify-accounts \
      YOUTUBE_API_URL=http://localhost:3999/youtube
+   # Push notifications go to a stand-in push service (lib/fake-push.mjs, port 3997) besides the real ones.
+   # The Worker reads the notification emails' and pushes' outcomes; the email suites read its log, /tmp/worker.log.
+   export PUSH_TEST_ORIGINS=http://localhost:3997
    # As in production (#92): the API only adds background jobs, the Worker runs them.
    JOBS_IN_API=false pnpm --filter @songverse/api dev > /tmp/api-dev.log 2>&1 &
    pnpm --filter @songverse/api build && (cd apps/api && node dist/worker.js > /tmp/worker.log 2>&1 &)

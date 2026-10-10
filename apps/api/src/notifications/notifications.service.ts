@@ -1,11 +1,11 @@
 import { InjectQueue } from "@nestjs/bullmq";
-import { Injectable, Logger } from "@nestjs/common";
-import { notificationPreferences, withNotificationChanges, type NotificationData, type NotificationKind, type UpdateNotificationPreferencesRequest } from "@songverse/core";
+import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { isPushEndpoint, notificationPreferences, quietHoursOf, withNotificationChanges, type CreatePushSubscriptionRequest, type NotificationData, type NotificationKind, type UpdateNotificationPreferencesRequest } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
 import type { Queue } from "bullmq";
 import { NOTIFICATIONS_QUEUE } from "../jobs/jobs.constants.js";
 import { PrismaService } from "../prisma/prisma.service.js";
-import { getEffectiveNotificationSettings } from "./notification-settings.js";
+import { getEffectiveNotificationSettings, getPushConfig, pushTestOrigins } from "./notification-settings.js";
 
 /** The web app's address, for the links in emails: the API knows it, the Worker may not. */
 const webUrl = () => (process.env.WEB_URL ?? "http://localhost:3000").replace(/\/+$/, "");
@@ -15,6 +15,15 @@ export interface DeliverJob {
   ids: string[];
   webUrl: string;
 }
+
+/** A test push to someone's devices. */
+export interface TestPushJob {
+  userId: string;
+  webUrl: string;
+}
+
+/** The most devices someone turns notifications on for. */
+const MAX_DEVICES = 20;
 
 /** One notification for someone: its kind, details and where it leads. */
 export interface NotificationInput {
@@ -81,16 +90,52 @@ export class NotificationsService {
     return { unread: await this.unread(userId) };
   }
 
-  /** One's choices of how each kind reaches them, and whether this server emails at all. */
+  /** One's choices of how each kind reaches them and their quiet hours; whether this server emails, and pushes (with its public key, to subscribe). */
   async preferences(userId: string) {
     const user = await this.prisma.client.user.findUnique({ where: { id: userId }, select: { notificationSettings: true } });
-    return { kinds: notificationPreferences(user?.notificationSettings), emailAvailable: (await getEffectiveNotificationSettings()).emailEnabled };
+    const [{ emailEnabled }, push] = await Promise.all([getEffectiveNotificationSettings(), getPushConfig()]);
+    return { kinds: notificationPreferences(user?.notificationSettings), quiet: quietHoursOf(user?.notificationSettings), emailAvailable: emailEnabled, pushKey: push?.publicKey ?? null };
   }
 
-  /** Choices changed: what's left out stays as it was. */
+  /** Choices changed: what's left out stays as it was; quiet hours null: none. */
   async updatePreferences(userId: string, dto: UpdateNotificationPreferencesRequest) {
     const user = await this.prisma.client.user.findUnique({ where: { id: userId }, select: { notificationSettings: true } });
-    await this.prisma.client.user.update({ where: { id: userId }, data: { notificationSettings: withNotificationChanges(user?.notificationSettings, dto.kinds) as Prisma.InputJsonValue } });
+    const stored = user?.notificationSettings;
+    const quiet = dto.quiet === undefined ? quietHoursOf(stored) : dto.quiet;
+    const next = { ...withNotificationChanges(stored, dto.kinds ?? {}), quiet };
+    await this.prisma.client.user.update({ where: { id: userId }, data: { notificationSettings: next as unknown as Prisma.InputJsonValue } });
     return this.preferences(userId);
+  }
+
+  /** The devices one turned notifications on for, newest first. */
+  async devices(userId: string) {
+    const rows = await this.prisma.client.pushSubscription.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+    return rows.map((row) => ({ id: row.id, endpoint: row.endpoint, label: row.label, createdAt: row.createdAt.toISOString(), lastPushedAt: row.lastPushedAt?.toISOString() ?? null }));
+  }
+
+  /** A device turned on: its browser's subscription, kept for this person (a browser someone else used before moves over). */
+  async addDevice(userId: string, dto: CreatePushSubscriptionRequest) {
+    if (!(await getPushConfig())) throw new BadRequestException(["This server doesn't send notifications to devices"]);
+    if (!isPushEndpoint(dto.endpoint, pushTestOrigins())) throw new BadRequestException(["endpoint must be a push service's address"]);
+    const existing = await this.prisma.client.pushSubscription.findUnique({ where: { endpoint: dto.endpoint } });
+    if (!existing || existing.userId !== userId) {
+      const count = await this.prisma.client.pushSubscription.count({ where: { userId } });
+      if (count >= MAX_DEVICES) throw new BadRequestException([`You can turn on notifications for ${MAX_DEVICES} devices at most: remove one first`]);
+    }
+    const data = { userId, p256dh: dto.keys.p256dh, auth: dto.keys.auth, label: dto.label || null };
+    const row = await this.prisma.client.pushSubscription.upsert({ where: { endpoint: dto.endpoint }, create: { endpoint: dto.endpoint, ...data }, update: data });
+    return { id: row.id, endpoint: row.endpoint, label: row.label, createdAt: row.createdAt.toISOString(), lastPushedAt: row.lastPushedAt?.toISOString() ?? null };
+  }
+
+  async removeDevice(userId: string, id: string): Promise<void> {
+    const { count } = await this.prisma.client.pushSubscription.deleteMany({ where: { id, userId } });
+    if (count === 0) throw new NotFoundException("Device not found");
+  }
+
+  /** A test notification to all one's devices, sent by the job, quiet hours or not. */
+  async testPush(userId: string): Promise<void> {
+    if (!(await getPushConfig())) throw new BadRequestException(["This server doesn't send notifications to devices"]);
+    if ((await this.prisma.client.pushSubscription.count({ where: { userId } })) === 0) throw new BadRequestException(["Turn on notifications on a device first"]);
+    await this.queue.add("test", { userId, webUrl: webUrl() } satisfies TestPushJob, { removeOnComplete: 100, removeOnFail: 100 });
   }
 }

@@ -16,7 +16,7 @@ import { SaveStorageLimitsDto, StorageLimitsResponseDto } from "./dto/storage-li
 import { SaveSecuritySettingsDto } from "./dto/security-settings.dto.js";
 import { clearSecuritySettings, getSecuritySettingsSummary, saveSecuritySettings } from "../security/security-settings.js";
 import { SaveNotificationServerSettingsDto } from "./dto/notification-settings.dto.js";
-import { clearNotificationSettings, getNotificationSettingsSummary, saveNotificationSettings } from "../notifications/notification-settings.js";
+import { clearNotificationSettings, generatePushKeys, getNotificationSettingsSummary, saveNotificationSettings } from "../notifications/notification-settings.js";
 
 /**
  * Operational tools for global admins - today, the migrate/seed steps
@@ -160,6 +160,12 @@ export class AdminController {
   @HttpCode(HttpStatus.NO_CONTENT)
   clearNotificationSettings(): Promise<void> {
     return clearNotificationSettings();
+  }
+
+  /** A new VAPID key pair for web push, saved; devices turned on with the old one must be turned on again. */
+  @Post("notifications/vapid-keys")
+  generatePushKeys(): Promise<{ publicKey: string }> {
+    return generatePushKeys();
   }
 
   @Get("auth")
