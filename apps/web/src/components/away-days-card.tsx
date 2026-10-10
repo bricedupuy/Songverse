@@ -117,8 +117,13 @@ function AwayEditor({ initial, others, onCancel, onSave }: { initial: Range | nu
         defaultMonth={selected?.from ?? today}
         // A new range can't start in the past; one already there keeps its days.
         disabled={initial ? undefined : { before: today }}
-        modifiers={{ otherAway: others.map((range) => ({ from: fromDayKey(range.from), to: fromDayKey(range.to) })) }}
-        modifiersClassNames={{ otherAway: "[&>button]:bg-muted [&>button]:text-muted-foreground [&>button]:line-through" }}
+        // The other ranges: one muted strip each, rounded at its ends, days struck through.
+        modifiers={{
+          otherAway: others.map((range) => ({ from: fromDayKey(range.from), to: fromDayKey(range.to) })),
+          otherAwayStart: others.map((range) => fromDayKey(range.from)),
+          otherAwayEnd: others.map((range) => fromDayKey(range.to)),
+        }}
+        modifiersClassNames={{ otherAway: "bg-muted text-muted-foreground [&>button]:line-through", otherAwayStart: "rounded-l-md", otherAwayEnd: "rounded-r-md" }}
         className="self-center rounded-md border p-2"
       />
       <div className="text-sm font-medium" data-testid="away-selected">
