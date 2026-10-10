@@ -1766,6 +1766,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     clearTeamEventDateAnswerFor: (teamId: string, eventId: string, date: string, userId: string) =>
       request<void>(`/teams/${teamId}/events/${eventId}/dates/${date}/answers/${userId}`, { method: "DELETE" }),
     listMyEventDates: (from: string, to: string) => request<MyEventDate[]>(`/users/me/event-dates?${new URLSearchParams({ from, to })}`),
+    getMyCalendarFeed: () => request<{ url: string | null }>("/users/me/calendar-feed"),
+    resetMyCalendarFeed: () => request<{ url: string }>("/users/me/calendar-feed", { method: "POST" }),
+    turnOffMyCalendarFeed: () => request<void>("/users/me/calendar-feed", { method: "DELETE" }),
     listMyAway: () => request<AwayDays[]>("/users/me/away"),
     addMyAway: (data: CreateAwayRequest) => request<AwayDays>("/users/me/away", { method: "POST", body: JSON.stringify(data) }),
     removeMyAway: (id: string) => request<void>(`/users/me/away/${id}`, { method: "DELETE" }),

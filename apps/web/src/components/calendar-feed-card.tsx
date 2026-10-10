@@ -1,0 +1,102 @@
+import { Check, Copy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { ConfirmButton } from "#/components/confirm-button";
+import { Button } from "#/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
+import { Input } from "#/components/ui/input";
+import { apiClient } from "#/lib/api-client";
+
+/** The same address as a subscription link (webcal:), which calendar apps open as "subscribe". */
+const webcal = (url: string) => url.replace(/^https?:/, "webcal:");
+
+/**
+ * Someone's calendar link (issue #235): the dates they signed up for, as a
+ * feed their own calendar subscribes to. Copied, or added to Google, Apple
+ * or Outlook in one click; reset (the old link stops) or turned off.
+ */
+export function CalendarFeedCard() {
+  const { t } = useTranslation();
+  const [url, setUrl] = useState<string | null | undefined>(undefined);
+  const [copied, setCopied] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    void apiClient.getMyCalendarFeed().then((feed) => setUrl(feed.url));
+  }, []);
+  const run = async (work: () => Promise<void>) => {
+    setBusy(true);
+    try {
+      await work();
+    } finally {
+      setBusy(false);
+    }
+  };
+  const make = () =>
+    run(async () => {
+      setUrl((await apiClient.resetMyCalendarFeed()).url);
+      setCopied(false);
+    });
+
+  return (
+    <Card data-testid="calendar-feed">
+      <CardHeader>
+        <CardTitle className="text-sm">{t("teamCalendar.feedTitle")}</CardTitle>
+        <CardDescription>{t("teamCalendar.feedDescription")}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {url === undefined ? null : url === null ? (
+          <Button variant="outline" size="sm" className="self-start" disabled={busy} onClick={() => void make()} data-testid="calendar-feed-make">
+            {t("teamCalendar.feedMake")}
+          </Button>
+        ) : (
+          <>
+            <div className="flex gap-2">
+              <Input readOnly value={url} aria-label={t("teamCalendar.feedTitle")} className="font-mono text-xs" onFocus={(event) => event.target.select()} data-testid="calendar-feed-url" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 shrink-0"
+                onClick={() =>
+                  void navigator.clipboard.writeText(url).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  })
+                }
+                data-testid="calendar-feed-copy"
+              >
+                {copied ? <Check /> : <Copy />}
+                {copied ? t("teamCalendar.feedCopied") : t("teamCalendar.feedCopy")}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">{t("teamCalendar.feedPrivate")}</p>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" render={<a href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal(url))}`} target="_blank" rel="noopener noreferrer" />} data-testid="calendar-feed-google">
+                {t("teamCalendar.feedGoogle")}
+              </Button>
+              <Button variant="outline" size="sm" render={<a href={webcal(url)} />} data-testid="calendar-feed-apple">
+                {t("teamCalendar.feedApple")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                render={<a href={`https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(url)}&name=${encodeURIComponent(t("teamCalendar.feedName"))}`} target="_blank" rel="noopener noreferrer" />}
+                data-testid="calendar-feed-outlook"
+              >
+                {t("teamCalendar.feedOutlook")}
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+              <ConfirmButton label={t("teamCalendar.feedReset")} confirmLabel={t("teamCalendar.feedResetConfirm")} busyLabel={t("teamCalendar.feedReset")} cancelLabel={t("teamCalendar.cancel")} busy={busy} onConfirm={make} />
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => void run(async () => {
+                await apiClient.turnOffMyCalendarFeed();
+                setUrl(null);
+              })} data-testid="calendar-feed-off">
+                {t("teamCalendar.feedOff")}
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

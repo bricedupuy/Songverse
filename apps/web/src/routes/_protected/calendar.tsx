@@ -3,6 +3,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { MapPin, Repeat, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CalendarFeedCard } from "#/components/calendar-feed-card";
 import { EntityAvatar } from "#/components/entity-avatar";
 import { EventAnswer } from "#/components/event-answer";
 import { Badge } from "#/components/ui/badge";
@@ -136,7 +137,11 @@ function MyCalendarPage() {
             ) : null}
           </CardContent>
         </Card>
-        <AwayCard away={away} locale={i18n.language} onAdd={(range) => act(() => apiClient.addMyAway(range))} onRemove={(id) => act(() => apiClient.removeMyAway(id))} />
+        <div className="flex flex-col gap-6">
+          {/* The dates signed up for, in one's own calendar (issue #235). */}
+          <CalendarFeedCard />
+          <AwayCard away={away} locale={i18n.language} onAdd={(range) => act(() => apiClient.addMyAway(range))} onRemove={(id) => act(() => apiClient.removeMyAway(id))} />
+        </div>
       </div>
     </div>
   );

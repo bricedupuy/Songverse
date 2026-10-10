@@ -391,6 +391,48 @@
         }
       ]
     },
+    "calendarFeed": {
+      "about": "A personal calendar feed (iCalendar): each date one signed up for, its times in UTC, text escaped, lines folded at 75 octets with CRLF.",
+      "params": [
+        "entries",
+        "options"
+      ],
+      "cases": [
+        {
+          "name": "one date, with a place, a long description and characters to escape",
+          "args": [
+            [
+              {
+                "uid": "evt_1-2026-10-11@songverse",
+                "start": "2026-10-11T08:00:00.000Z",
+                "end": "2026-10-11T10:00:00.000Z",
+                "title": "Morning service, Worship team",
+                "location": "Main hall; side door",
+                "description": "The set: https://app.example.com/sets/abc - planned by Sam\nArrive at 9:15 for the soundcheck. Les chants à répéter sont dans la liste.",
+                "url": "https://app.example.com/sets/abc"
+              }
+            ],
+            {
+              "name": "Songverse - Alex",
+              "now": "2026-10-01T12:00:00.000Z"
+            }
+          ],
+          "expected": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Songverse//Calendar//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Songverse - Alex\r\nNAME:Songverse - Alex\r\nREFRESH-INTERVAL;VALUE=DURATION:PT60M\r\nX-PUBLISHED-TTL:PT60M\r\nBEGIN:VEVENT\r\nUID:evt_1-2026-10-11@songverse\r\nDTSTAMP:20261001T120000Z\r\nDTSTART:20261011T080000Z\r\nDTEND:20261011T100000Z\r\nSUMMARY:Morning service\\, Worship team\r\nLOCATION:Main hall\\; side door\r\nDESCRIPTION:The set: https://app.example.com/sets/abc - planned by Sam\\nArr\r\n ive at 9:15 for the soundcheck. Les chants à répéter sont dans la liste\r\n .\r\nURL:https://app.example.com/sets/abc\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
+        },
+        {
+          "name": "nothing signed up for",
+          "args": [
+            [],
+            {
+              "name": "Songverse - Alex",
+              "now": "2026-10-01T12:00:00.000Z",
+              "refreshMinutes": 30
+            }
+          ],
+          "expected": "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Songverse//Calendar//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Songverse - Alex\r\nNAME:Songverse - Alex\r\nREFRESH-INTERVAL;VALUE=DURATION:PT30M\r\nX-PUBLISHED-TTL:PT30M\r\nEND:VCALENDAR\r\n"
+        }
+      ]
+    },
     "setListing": {
       "about": "Where a set is listed for someone: a set made by hand as always; an event's set in the sidebar while coming if they signed up, on the Sets page only if not; once past, in the archive if they took part, else hidden.",
       "params": [

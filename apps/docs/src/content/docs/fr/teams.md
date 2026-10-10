@@ -24,6 +24,12 @@ Sous chaque date, dites si vous pouvez jouer : **Disponible**, **Si besoin** (li
 
 Les administrateurs de l'équipe voient, à côté de chaque date, combien de membres sont disponibles, si besoin, pas disponibles, et n'ont pas répondu. Un clic ouvre **Qui peut jouer** : la réponse de chacun, avec ses notes et ses absences. Un administrateur peut y répondre pour un membre qui n'utilise pas Songverse ; c'est marqué comme répondu par lui.
 
+### Votre lien de calendrier
+
+Dans **Mon calendrier**, **Lien de calendrier** met les dates où vous êtes inscrit (réponse **Disponible**) dans votre propre calendrier : **Obtenir mon lien de calendrier**, puis **Ajouter à Google Agenda**, **Ajouter à Calendrier Apple** ou **Ajouter à Outlook** - ou **Copier le lien** et l'ajouter à n'importe quelle application de calendrier comme abonnement (« À partir de l'URL », « S'abonner à un calendrier »). Chaque date s'affiche avec son équipe, son lieu et un lien vers sa liste, de trois mois en arrière à un an à l'avance ; les dates annulées en disparaissent.
+
+Le calendrier se met à jour tout seul, mais les applications de calendrier vérifient les changements à leur rythme - toutes les quelques heures (Google peut mettre jusqu'à un jour). Toute personne ayant le lien voit ces dates : gardez-le pour vous. **Réinitialiser le lien** en crée un nouveau et arrête l'ancien ; **Désactiver** le supprime.
+
 ### Les listes que vous voyez
 
 La liste d'une date s'affiche dans votre barre latérale quand vous avez répondu **Disponible** - répondre l'y met, retirer la réponse l'enlève. Les autres dates à venir de l'équipe restent sur la page **Listes de chants** et dans le calendrier de l'équipe. Une fois la date passée, sa liste quitte la barre latérale et la liste : celles auxquelles vous avez participé sont sur la page **Listes de chants** sous **Archives**, et toutes les dates passées sont sur la page de l'équipe sous **Dates passées**. Les listes que vous créez vous-même s'affichent comme avant. Les listes gardées hors ligne suivent la même règle.

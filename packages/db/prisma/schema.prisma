@@ -357,6 +357,7 @@ model User {
   eventAnswers        TeamEventAnswer[]     @relation("TeamEventAnswerUser")
   eventAnswersGiven   TeamEventAnswer[]     @relation("TeamEventAnswerBy")
   awayRanges          UserAway[]
+  calendarFeed        CalendarFeed?
 
   @@index([email])
 }
@@ -1078,6 +1079,19 @@ model TeamEventAnswer {
 
   @@unique([eventId, date, userId])
   @@index([userId])
+}
+
+// Someone's calendar link (issue #235): an iCalendar feed of the dates
+// they signed up for, opened without signing in by the token in its address.
+// Resetting it makes a new token (the old address stops); turning it off
+// deletes the row.
+model CalendarFeed {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  token     String   @unique
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Days someone is away (issue #235), across all their teams: every date in

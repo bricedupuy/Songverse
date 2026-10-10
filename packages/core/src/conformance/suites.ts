@@ -27,6 +27,7 @@ import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
 import { UpdateUserSchema } from "../requests/accounts.js";
 import { checkRequest } from "../requests/messages.js";
 import { AnswerEventDateSchema, CreateAwaySchema, CreateTeamEventSchema } from "../requests/events.js";
+import { calendarFeed } from "../calendar/ical.js";
 import { effectiveAnswer, eventDates, setListing, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
 import type { z } from "zod";
 
@@ -1215,6 +1216,31 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "away, but answered for that day", args: ["AVAILABLE", [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-09"] },
           { name: "away on the last day of the range", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-15"] },
           { name: "no answer", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-16"] },
+        ],
+      },
+      calendarFeed: {
+        about: "A personal calendar feed (iCalendar): each date one signed up for, its times in UTC, text escaped, lines folded at 75 octets with CRLF.",
+        params: ["entries", "options"],
+        run: calendarFeed,
+        cases: [
+          {
+            name: "one date, with a place, a long description and characters to escape",
+            args: [
+              [
+                {
+                  uid: "evt_1-2026-10-11@songverse",
+                  start: "2026-10-11T08:00:00.000Z",
+                  end: "2026-10-11T10:00:00.000Z",
+                  title: "Morning service, Worship team",
+                  location: "Main hall; side door",
+                  description: "The set: https://app.example.com/sets/abc - planned by Sam\nArrive at 9:15 for the soundcheck. Les chants à répéter sont dans la liste.",
+                  url: "https://app.example.com/sets/abc",
+                },
+              ],
+              { name: "Songverse - Alex", now: "2026-10-01T12:00:00.000Z" },
+            ],
+          },
+          { name: "nothing signed up for", args: [[], { name: "Songverse - Alex", now: "2026-10-01T12:00:00.000Z", refreshMinutes: 30 }] },
         ],
       },
       setListing: {

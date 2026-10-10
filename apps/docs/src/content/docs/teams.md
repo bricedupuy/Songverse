@@ -24,6 +24,12 @@ Under each date, say whether you can play: **Available**, **If needed** (free if
 
 The team's admins see, beside each date, how many members are available, if needed, not available, and haven't answered. Clicking it opens **Who can play**: everyone's answer, with their notes and days away. An admin can answer there for a member who doesn't use Songverse; it shows as answered by them.
 
+### Your calendar link
+
+On **My calendar**, **Calendar link** puts the dates you signed up for (answered **Available**) in your own calendar: **Get my calendar link**, then **Add to Google Calendar**, **Add to Apple Calendar** or **Add to Outlook** - or **Copy link** and add it to any calendar app as a subscription ("From URL", "Subscribe to calendar"). Each date shows with its team, place and a link to its set, from three months back to a year ahead; cancelled dates leave it.
+
+The calendar keeps itself up to date, but calendar apps look for changes on their own schedule - every few hours (Google can take up to a day). Anyone with the link can see those dates, so keep it to yourself: **Reset link** makes a new one and stops the old one; **Turn off** removes it.
+
 ### Which sets you see
 
 A date's set shows in your sidebar when you've said you're **Available** for it - answering puts it there, taking the answer back removes it. The team's other coming dates are still on the **Sets** page and the team's calendar. Once a date is over, its set leaves the sidebar and the list: the ones you took part in are on the **Sets** page under **Archive**, and every past date is on the team's page under **Past dates**. Sets you make yourself are listed as before. Sets kept for offline use follow the same rule.
