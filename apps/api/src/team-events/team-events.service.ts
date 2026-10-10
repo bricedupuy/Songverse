@@ -7,12 +7,12 @@ import type { CreateTeamEventDto, UpdateTeamCalendarDto, UpdateTeamEventDateDto,
 /** The longest range of dates asked for at once. */
 const MAX_RANGE_DAYS = 400;
 
-type EventRow = Prisma.TeamEventGetPayload<{ include: { dates: { include: { setlist: { select: { id: true; _count: { select: { items: true } } } } } } } }>;
+export type EventRow = Prisma.TeamEventGetPayload<{ include: { dates: { include: { setlist: { select: { id: true; _count: { select: { items: true } } } } } } } }>;
 
-const day = (date: string) => new Date(`${date}T00:00:00.000Z`);
-const dateText = (date: Date) => date.toISOString().slice(0, 10);
+export const day = (date: string) => new Date(`${date}T00:00:00.000Z`);
+export const dateText = (date: Date) => date.toISOString().slice(0, 10);
 
-function timingOf(event: EventRow): EventTiming {
+export function timingOf(event: EventRow): EventTiming {
   return {
     date: dateText(event.date),
     startTime: event.startTime,
@@ -22,11 +22,11 @@ function timingOf(event: EventRow): EventTiming {
   };
 }
 
-function changesOf(event: EventRow) {
+export function changesOf(event: EventRow) {
   return event.dates.map((row) => ({ date: dateText(row.date), cancelled: row.cancelled, startTime: row.startTime, title: row.title }));
 }
 
-const withDates = { dates: { include: { setlist: { select: { id: true, _count: { select: { items: true } } } } } } } as const;
+export const withDates = { dates: { include: { setlist: { select: { id: true, _count: { select: { items: true } } } } } } } as const;
 
 /**
  * A team's calendar (issue #235): its events, the dates they fall on, and
@@ -119,6 +119,10 @@ export class TeamEventsService {
       if (rowDate < today || eventFallsOn(timing, rowDate)) continue;
       await this.dropDate(row.id, row.setlist);
     }
+    // Answers for coming dates it no longer falls on go too.
+    const answers = await this.prisma.client.teamEventAnswer.findMany({ where: { eventId, date: { gte: day(today) } }, select: { id: true, date: true } });
+    const gone = answers.filter((answer) => !eventFallsOn(timing, dateText(answer.date))).map((answer) => answer.id);
+    if (gone.length > 0) await this.prisma.client.teamEventAnswer.deleteMany({ where: { id: { in: gone } } });
     // Read again: the dates dropped above are gone.
     await this.syncSetNames(await this.find(teamId, eventId), today);
     await this.makeSets(eventId);

@@ -301,6 +301,96 @@
         }
       ]
     },
+    "effectiveAnswer": {
+      "about": "Someone's answer for a date: their own if they gave one, else Not available on a day they're away, else none (never taken as Available).",
+      "params": [
+        "own",
+        "away",
+        "date"
+      ],
+      "cases": [
+        {
+          "name": "answered",
+          "args": [
+            "IF_NEEDED",
+            [],
+            "2026-08-09"
+          ],
+          "expected": {
+            "answer": "IF_NEEDED",
+            "away": false
+          }
+        },
+        {
+          "name": "away that day",
+          "args": [
+            null,
+            [
+              {
+                "from": "2026-08-01",
+                "to": "2026-08-15"
+              }
+            ],
+            "2026-08-09"
+          ],
+          "expected": {
+            "answer": "UNAVAILABLE",
+            "away": true
+          }
+        },
+        {
+          "name": "away, but answered for that day",
+          "args": [
+            "AVAILABLE",
+            [
+              {
+                "from": "2026-08-01",
+                "to": "2026-08-15"
+              }
+            ],
+            "2026-08-09"
+          ],
+          "expected": {
+            "answer": "AVAILABLE",
+            "away": false
+          }
+        },
+        {
+          "name": "away on the last day of the range",
+          "args": [
+            null,
+            [
+              {
+                "from": "2026-08-01",
+                "to": "2026-08-15"
+              }
+            ],
+            "2026-08-15"
+          ],
+          "expected": {
+            "answer": "UNAVAILABLE",
+            "away": true
+          }
+        },
+        {
+          "name": "no answer",
+          "args": [
+            null,
+            [
+              {
+                "from": "2026-08-01",
+                "to": "2026-08-15"
+              }
+            ],
+            "2026-08-16"
+          ],
+          "expected": {
+            "answer": null,
+            "away": false
+          }
+        }
+      ]
+    },
     "isPastDate": {
       "about": "Whether a date is over: before today in the team's time zone. An event's date is still coming on the day.",
       "params": [

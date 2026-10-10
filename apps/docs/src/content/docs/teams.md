@@ -16,6 +16,14 @@ The team's page starts with its **Calendar**: its services, rehearsals and other
 - A date's **…** menu: **Cancel this date** (its set is deleted if it has no songs yet) or **Restore this date**, and **Edit event**.
 - Changing an event (its title, its date, how often it repeats) updates its coming sets. Dates it no longer falls on lose their sets if they're still empty; a set with songs stays, as a set of the team's. **Delete event** works the same way. A set deleted by hand isn't made again; **Plan the set** brings it back.
 
+### Availability
+
+Under each date, say whether you can play: **Available**, **If needed** (free if asked, not first choice) or **Not available**. Press your answer again to take it back. Once you've answered, add a note for the team's admins ("Keys only", "arriving late"); only you and they see it. Not answering is never taken as available.
+
+**My calendar**, in the sidebar, lists the coming dates of all your teams, to answer them in one place. Under **Days away**, add the days you're away (**From**, **To**, a note): every date in them reads **Not available**, marked **Away**, for all your teams - unless you answer that date yourself.
+
+The team's admins see, beside each date, how many members are available, if needed, not available, and haven't answered. Clicking it opens **Who can play**: everyone's answer, with their notes and days away. An admin can answer there for a member who doesn't use Songverse; it shows as answered by them.
+
 ## Members and roles
 
 - **Admins** manage the team: they change its songs, versions and sets, and invite people.

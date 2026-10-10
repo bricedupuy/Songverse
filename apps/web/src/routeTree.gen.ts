@@ -15,6 +15,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ScreenRouteImport } from './routes/screen'
 import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
 import { Route as ProtectedAdminRouteImport } from './routes/_protected/admin'
+import { Route as ProtectedCalendarRouteImport } from './routes/_protected/calendar'
 import { Route as ProtectedDashboardRouteImport } from './routes/_protected/dashboard'
 import { Route as ProtectedMetronomeRouteImport } from './routes/_protected/metronome'
 import { Route as ProtectedOfflineRouteImport } from './routes/_protected/offline'
@@ -91,6 +92,11 @@ const ProtectedAccountRoute = ProtectedAccountRouteImport.update({
 const ProtectedAdminRoute = ProtectedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedCalendarRoute = ProtectedCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedDashboardRoute = ProtectedDashboardRouteImport.update({
@@ -355,6 +361,7 @@ export interface FileRoutesByFullPath {
   '/screen': typeof ScreenRoute
   '/account': typeof ProtectedAccountRoute
   '/admin': typeof ProtectedAdminRouteWithChildren
+  '/calendar': typeof ProtectedCalendarRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/metronome': typeof ProtectedMetronomeRoute
   '/offline': typeof ProtectedOfflineRoute
@@ -409,6 +416,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/screen': typeof ScreenRoute
   '/account': typeof ProtectedAccountRoute
+  '/calendar': typeof ProtectedCalendarRoute
   '/dashboard': typeof ProtectedDashboardRoute
   '/metronome': typeof ProtectedMetronomeRoute
   '/offline': typeof ProtectedOfflineRoute
@@ -465,6 +473,7 @@ export interface FileRoutesById {
   '/screen': typeof ScreenRoute
   '/_protected/account': typeof ProtectedAccountRoute
   '/_protected/admin': typeof ProtectedAdminRouteWithChildren
+  '/_protected/calendar': typeof ProtectedCalendarRoute
   '/_protected/dashboard': typeof ProtectedDashboardRoute
   '/_protected/metronome': typeof ProtectedMetronomeRoute
   '/_protected/offline': typeof ProtectedOfflineRoute
@@ -522,6 +531,7 @@ export interface FileRouteTypes {
     | '/screen'
     | '/account'
     | '/admin'
+    | '/calendar'
     | '/dashboard'
     | '/metronome'
     | '/offline'
@@ -576,6 +586,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/screen'
     | '/account'
+    | '/calendar'
     | '/dashboard'
     | '/metronome'
     | '/offline'
@@ -631,6 +642,7 @@ export interface FileRouteTypes {
     | '/screen'
     | '/_protected/account'
     | '/_protected/admin'
+    | '/_protected/calendar'
     | '/_protected/dashboard'
     | '/_protected/metronome'
     | '/_protected/offline'
@@ -734,6 +746,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof ProtectedAdminRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/calendar': {
+      id: '/_protected/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof ProtectedCalendarRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_protected/dashboard': {
@@ -1127,6 +1146,7 @@ const ProtectedReviewRouteWithChildren = ProtectedReviewRoute._addFileChildren(
 interface ProtectedRouteChildren {
   ProtectedAccountRoute: typeof ProtectedAccountRoute
   ProtectedAdminRoute: typeof ProtectedAdminRouteWithChildren
+  ProtectedCalendarRoute: typeof ProtectedCalendarRoute
   ProtectedDashboardRoute: typeof ProtectedDashboardRoute
   ProtectedMetronomeRoute: typeof ProtectedMetronomeRoute
   ProtectedOfflineRoute: typeof ProtectedOfflineRoute
@@ -1162,6 +1182,7 @@ interface ProtectedRouteChildren {
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAccountRoute: ProtectedAccountRoute,
   ProtectedAdminRoute: ProtectedAdminRouteWithChildren,
+  ProtectedCalendarRoute: ProtectedCalendarRoute,
   ProtectedDashboardRoute: ProtectedDashboardRoute,
   ProtectedMetronomeRoute: ProtectedMetronomeRoute,
   ProtectedOfflineRoute: ProtectedOfflineRoute,

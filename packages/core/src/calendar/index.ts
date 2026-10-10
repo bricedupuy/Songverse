@@ -195,3 +195,28 @@ export function eventDates(event: EventTiming, from: string, to: string, changes
 
 /** How many weeks ahead a team's event sets are made (issue #235): its setting, 1 to 52 (a year). */
 export const SETS_AHEAD_WEEKS = { min: 1, max: 52, default: 4 } as const;
+
+/** A person's answer for a date (issue #235): Available, If needed (free if asked, not first choice), Not available. */
+export const AVAILABILITY_ANSWERS = ["AVAILABLE", "IF_NEEDED", "UNAVAILABLE"] as const;
+export type AvailabilityAnswer = (typeof AVAILABILITY_ANSWERS)[number];
+
+/** Days someone is away ("1-15 August"): every date in them, both included. */
+export interface AwayRange {
+  from: string;
+  to: string;
+}
+
+/**
+ * Someone's answer for a date: the date's own answer if they gave one,
+ * else Not available when the date falls in a range they're away, else
+ * none - no answer is never taken as Available.
+ */
+export function effectiveAnswer(own: AvailabilityAnswer | null, away: AwayRange[], date: string): { answer: AvailabilityAnswer | null; away: boolean } {
+  if (own) return { answer: own, away: false };
+  return away.some((range) => range.from <= date && date <= range.to) ? { answer: "UNAVAILABLE", away: true } : { answer: null, away: false };
+}
+
+/** Whether someone signed up for a date: they answered Available (If needed isn't signing up). */
+export function signedUp(answer: AvailabilityAnswer | null): boolean {
+  return answer === "AVAILABLE";
+}

@@ -425,6 +425,14 @@ function MainNav({
                 <span>{t("nav.people")}</span>
               </SidebarMenuButton>
           </SidebarMenuItem>
+
+          {/* My calendar (issue #235). */}
+          <SidebarMenuItem>
+            <SidebarMenuButton isActive={pathname === "/calendar"} tooltip={t("nav.calendar")} render={<Link to="/calendar" />}>
+              <CalendarDays />
+              <span>{t("nav.calendar")}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarGroup>
 

@@ -26,8 +26,8 @@ import { CreateSongVersionSchema, UpdateSongVersionSchema } from "../requests/so
 import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
 import { UpdateUserSchema } from "../requests/accounts.js";
 import { checkRequest } from "../requests/messages.js";
-import { CreateTeamEventSchema } from "../requests/events.js";
-import { eventDates, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
+import { AnswerEventDateSchema, CreateAwaySchema, CreateTeamEventSchema } from "../requests/events.js";
+import { effectiveAnswer, eventDates, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
 import type { z } from "zod";
 
 /**
@@ -1205,6 +1205,18 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "Tokyo", args: ["2026-10-11T20:00:00.000Z", "Asia/Tokyo"] },
         ],
       },
+      effectiveAnswer: {
+        about: "Someone's answer for a date: their own if they gave one, else Not available on a day they're away, else none (never taken as Available).",
+        params: ["own", "away", "date"],
+        run: effectiveAnswer,
+        cases: [
+          { name: "answered", args: ["IF_NEEDED", [], "2026-08-09"] },
+          { name: "away that day", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-09"] },
+          { name: "away, but answered for that day", args: ["AVAILABLE", [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-09"] },
+          { name: "away on the last day of the range", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-15"] },
+          { name: "no answer", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-16"] },
+        ],
+      },
       isPastDate: {
         about: "Whether a date is over: before today in the team's time zone. An event's date is still coming on the day.",
         params: ["date", "now", "timeZone"],
@@ -1249,6 +1261,24 @@ export const CONFORMANCE: ConformanceArea[] = [
         cases: [
           { name: "every Sunday morning", args: [{ title: "Morning service", date: "2026-10-11", startTime: "10:00", timeZone: "Europe/Paris", repeat: { everyWeeks: 1 } }] },
           { name: "a time and a zone that aren't", args: [{ title: "Rehearsal", date: "2026-02-30", startTime: "25:00", timeZone: "Mars/Olympus" }] },
+        ],
+      },
+      AnswerEventDateSchema: {
+        about: "PUT /teams/:teamId/events/:eventId/dates/:date/answer (issue #235)",
+        params: ["body"],
+        run: checked(AnswerEventDateSchema),
+        cases: [
+          { name: "available, with a note", args: [{ answer: "AVAILABLE", note: "Keys only" }] },
+          { name: "an answer that isn't one", args: [{ answer: "MAYBE" }] },
+        ],
+      },
+      CreateAwaySchema: {
+        about: "POST /users/me/away (issue #235)",
+        params: ["body"],
+        run: checked(CreateAwaySchema),
+        cases: [
+          { name: "two weeks in August", args: [{ from: "2026-08-01", to: "2026-08-15", note: "Holidays" }] },
+          { name: "ending before it starts", args: [{ from: "2026-08-15", to: "2026-08-01" }] },
         ],
       },
       CreateSetlistSchema: {

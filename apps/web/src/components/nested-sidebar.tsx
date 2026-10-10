@@ -29,6 +29,7 @@ import {
   ShieldCheck,
   Users,
   UsersRound,
+  CalendarDays,
 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
@@ -132,6 +133,13 @@ export function NestedSidebar({
           <Music2 className="size-5" />
         </Link>
         {rail.map(railItem)}
+        {/* My calendar (issue #235): the dates of all one's teams, a page of its own. */}
+        <Tooltip>
+          <TooltipTrigger render={<Link to="/calendar" aria-label={t("nav.calendar")} data-active={pathname === "/calendar"} className={cn("flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4", pathname === "/calendar" && "bg-sidebar-accent text-sidebar-accent-foreground")} />}>
+            <CalendarDays />
+          </TooltipTrigger>
+          <TooltipContent side="right">{t("nav.calendar")}</TooltipContent>
+        </Tooltip>
         {/* The metronome (issue #2): a page of its own, no panel. */}
         <Tooltip>
           <TooltipTrigger render={<Link to="/metronome" aria-label={t("nav.metronome")} className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/80 outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-ring [&>svg]:size-4" />}>

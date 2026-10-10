@@ -195,6 +195,85 @@
         }
       ]
     },
+    "AnswerEventDateSchema": {
+      "about": "PUT /teams/:teamId/events/:eventId/dates/:date/answer (issue #235)",
+      "params": [
+        "body"
+      ],
+      "cases": [
+        {
+          "name": "available, with a note",
+          "args": [
+            {
+              "answer": "AVAILABLE",
+              "note": "Keys only"
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "answer": "AVAILABLE",
+              "note": "Keys only"
+            }
+          }
+        },
+        {
+          "name": "an answer that isn't one",
+          "args": [
+            {
+              "answer": "MAYBE"
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "answer must be one of the following values: AVAILABLE, IF_NEEDED, UNAVAILABLE"
+            ]
+          }
+        }
+      ]
+    },
+    "CreateAwaySchema": {
+      "about": "POST /users/me/away (issue #235)",
+      "params": [
+        "body"
+      ],
+      "cases": [
+        {
+          "name": "two weeks in August",
+          "args": [
+            {
+              "from": "2026-08-01",
+              "to": "2026-08-15",
+              "note": "Holidays"
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "from": "2026-08-01",
+              "to": "2026-08-15",
+              "note": "Holidays"
+            }
+          }
+        },
+        {
+          "name": "ending before it starts",
+          "args": [
+            {
+              "from": "2026-08-15",
+              "to": "2026-08-01"
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "to must not be before from"
+            ]
+          }
+        }
+      ]
+    },
     "CreateSetlistSchema": {
       "about": "POST /setlists",
       "params": [

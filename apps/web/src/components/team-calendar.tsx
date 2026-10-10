@@ -1,9 +1,10 @@
-import { addDays, localDate, type TeamEvent, type TeamEventDateSummary } from "@songverse/core";
+import { addDays, localDate, type MemberEventAnswer, type TeamEvent, type TeamEventDateSummary } from "@songverse/core";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Ban, CalendarPlus, MapPin, MoreHorizontal, Pencil, Repeat, RotateCcw } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmButton } from "#/components/confirm-button";
+import { EventAnswer } from "#/components/event-answer";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
@@ -34,6 +35,7 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
   const [dates, setDates] = useState<TeamEventDateSummary[] | null>(null);
   const [events, setEvents] = useState<TeamEvent[]>([]);
   const [editing, setEditing] = useState<TeamEvent | "new" | null>(null);
+  const [answersOf, setAnswersOf] = useState<TeamEventDateSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -114,6 +116,18 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
                         {date.place}
                       </span>
                     ) : null}
+                    {/* Whether you can play (issue #235); for the admins, how everyone answered. */}
+                    {!date.cancelled ? (
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <EventAnswer
+                          value={date.myAnswer}
+                          label={t("teamCalendar.yourAnswer")}
+                          onAnswer={(answer, note) => act(() => apiClient.answerTeamEventDate(teamId, date.eventId, date.date, { answer, ...(note !== undefined && { note }) }))}
+                          onClear={() => act(() => apiClient.clearTeamEventDateAnswer(teamId, date.eventId, date.date))}
+                        />
+                        {date.counts ? <AnswerCounts counts={date.counts} onOpen={() => setAnswersOf(date)} /> : null}
+                      </div>
+                    ) : null}
                   </div>
                   {!date.cancelled && date.setlistId ? (
                     <Button variant="outline" size="sm" render={<Link to="/sets/$setlistId" params={{ setlistId: date.setlistId }} />} data-testid="calendar-open-set">
@@ -158,6 +172,17 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
         ) : null}
         {isAdmin ? <SetsAhead teamId={teamId} onSaved={load} /> : null}
       </CardContent>
+      {answersOf ? (
+        <AnswersDialog
+          teamId={teamId}
+          date={answersOf}
+          title={`${answersOf.title}, ${dayFormat.format(new Date(`${answersOf.date}T12:00:00Z`))}`}
+          onClose={() => {
+            setAnswersOf(null);
+            void load();
+          }}
+        />
+      ) : null}
       {editing ? (
         <EventDialog
           teamId={teamId}
@@ -173,13 +198,70 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
   );
 }
 
+/** How a date's members answered, for the team's admins: available, if needed, not available, no answer. */
+function AnswerCounts({ counts, onOpen }: { counts: NonNullable<TeamEventDateSummary["counts"]>; onOpen: () => void }) {
+  const { t } = useTranslation();
+  const summary = t("teamCalendar.answersSummary", { available: counts.AVAILABLE, ifNeeded: counts.IF_NEEDED, unavailable: counts.UNAVAILABLE, none: counts.NONE });
+  return (
+    <button type="button" onClick={onOpen} className="flex h-7 items-center gap-2 rounded-md border px-2 text-xs tabular-nums hover:bg-muted" aria-label={`${t("teamCalendar.whoCanPlay")}: ${summary}`} title={summary} data-testid="calendar-answers">
+      <span className="text-emerald-700 dark:text-emerald-400">✓ {counts.AVAILABLE}</span>
+      <span className="text-amber-700 dark:text-amber-400">? {counts.IF_NEEDED}</span>
+      <span className="text-rose-700 dark:text-rose-400">✗ {counts.UNAVAILABLE}</span>
+      <span className="text-muted-foreground">– {counts.NONE}</span>
+    </button>
+  );
+}
+
+/** Every member's answer for a date, with their notes; an admin answers for someone (marked as answered by them). */
+function AnswersDialog({ teamId, date, title, onClose }: { teamId: string; date: TeamEventDateSummary; title: string; onClose: () => void }) {
+  const { t } = useTranslation();
+  const [members, setMembers] = useState<MemberEventAnswer[] | null>(null);
+  const load = useCallback(() => apiClient.listTeamEventDateAnswers(teamId, date.eventId, date.date).then(setMembers), [teamId, date]);
+  useEffect(() => {
+    void load();
+  }, [load]);
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-xl" data-testid="answers-dialog">
+        <DialogHeader>
+          <DialogTitle>{t("teamCalendar.whoCanPlay")}</DialogTitle>
+          <p className="text-sm text-muted-foreground">{title}</p>
+        </DialogHeader>
+        <ul className="flex max-h-[60vh] flex-col divide-y overflow-y-auto">
+          {(members ?? []).map((member) => (
+            <li key={member.userId} className="flex flex-col gap-1.5 py-2.5" data-member={member.userId}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-sm font-medium">{member.displayName}</span>
+                {member.answeredBy ? <span className="text-xs text-muted-foreground italic">{t("teamCalendar.answeredBy", { name: member.answeredBy })}</span> : null}
+              </div>
+              <EventAnswer
+                value={{ answer: member.answer, away: member.away, note: member.note, byAdmin: false }}
+                label={t("teamCalendar.answerFor", { name: member.displayName })}
+                onAnswer={(answer, note) => apiClient.answerTeamEventDateFor(teamId, date.eventId, date.date, member.userId, { answer, ...(note !== undefined && { note }) }).then(load)}
+                onClear={() => apiClient.clearTeamEventDateAnswerFor(teamId, date.eventId, date.date, member.userId).then(load)}
+              />
+              {member.away && member.note ? <p className="text-xs text-muted-foreground">{member.note}</p> : null}
+            </li>
+          ))}
+        </ul>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            {t("teamCalendar.close")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /** The team's "Create sets ahead", in weeks (1 to 52). */
 function SetsAhead({ teamId, onSaved }: { teamId: string; onSaved: () => Promise<void> }) {
   const { t } = useTranslation();
   const [weeks, setWeeks] = useState("");
   const [saved, setSaved] = useState(false);
   useEffect(() => {
-    void apiClient.getTeamCalendarSettings(teamId).then((settings) => setWeeks(String(settings.setsAheadWeeks)));
+    // Not over what's been typed meanwhile.
+    void apiClient.getTeamCalendarSettings(teamId).then((settings) => setWeeks((typed) => typed || String(settings.setsAheadWeeks)));
   }, [teamId]);
   const value = Number(weeks);
   const valid = Number.isInteger(value) && value >= 1 && value <= 52;

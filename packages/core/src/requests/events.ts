@@ -1,6 +1,6 @@
 import "../zod-config.js";
 import { z } from "zod";
-import { isCalendarDate, isTimeOfDay, isTimeZone, SETS_AHEAD_WEEKS } from "../calendar/index.js";
+import { AVAILABILITY_ANSWERS, isCalendarDate, isTimeOfDay, isTimeZone, SETS_AHEAD_WEEKS } from "../calendar/index.js";
 import { clearableText, optional, requiredText } from "./fields.js";
 
 /** A team's calendar (issue #235): its events and their dates. */
@@ -63,3 +63,22 @@ export const UpdateTeamCalendarSchema = z.strictObject({
     .describe("How many weeks ahead each date's set is made, 1 to 52"),
 });
 export type UpdateTeamCalendarRequest = z.input<typeof UpdateTeamCalendarSchema>;
+
+/** Someone's answer for a date (issue #235); the note is seen by them and the team's admins only. */
+export const AnswerEventDateSchema = z.strictObject({
+  answer: z.enum(AVAILABILITY_ANSWERS).describe("AVAILABLE, IF_NEEDED (free if asked) or UNAVAILABLE"),
+  note: clearableText(300).describe('"Can only play keys", "arriving late"; seen by the team\'s admins'),
+});
+export type AnswerEventDateRequest = z.input<typeof AnswerEventDateSchema>;
+
+/** Days someone is away, across all their teams: every date in them reads Not available unless answered. */
+export const CreateAwaySchema = z
+  .strictObject({
+    from: date("from"),
+    to: date("to"),
+    note: optional(z.string().trim().max(300)),
+  })
+  .refine((range) => range.to >= range.from, { message: "to must not be before from", path: ["to"] });
+export type CreateAwayRequest = z.input<typeof CreateAwaySchema>;
+
+export const MyEventDatesQuerySchema = TeamEventDatesQuerySchema;

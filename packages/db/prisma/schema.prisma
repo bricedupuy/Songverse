@@ -354,6 +354,9 @@ model User {
   connectionsAnswered Connection[]          @relation("ConnectionAddressee")
   reviewedProposals   ChangeProposal[]      @relation("ProposalReviewer")
   teamEventsCreated   TeamEvent[]           @relation("TeamEventCreatedBy")
+  eventAnswers        TeamEventAnswer[]     @relation("TeamEventAnswerUser")
+  eventAnswersGiven   TeamEventAnswer[]     @relation("TeamEventAnswerBy")
+  awayRanges          UserAway[]
 
   @@index([email])
 }
@@ -1045,8 +1048,51 @@ model TeamEvent {
   team      Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
   createdBy User?           @relation("TeamEventCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   dates     TeamEventDate[]
+  answers   TeamEventAnswer[]
 
   @@index([teamId])
+}
+
+enum AvailabilityAnswer {
+  AVAILABLE
+  IF_NEEDED
+  UNAVAILABLE
+}
+
+// Someone's answer for a date of an event (issue #235): Available, If
+// needed or Not available, with a note seen by them and the team's admins.
+// answeredBy is an admin who answered for them (null: they did).
+model TeamEventAnswer {
+  id               String             @id @default(cuid())
+  eventId          String
+  date             DateTime           @db.Date
+  userId           String
+  answer           AvailabilityAnswer
+  note             String?
+  answeredByUserId String?
+  updatedAt        DateTime           @updatedAt
+
+  event      TeamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user       User      @relation("TeamEventAnswerUser", fields: [userId], references: [id], onDelete: Cascade)
+  answeredBy User?     @relation("TeamEventAnswerBy", fields: [answeredByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, date, userId])
+  @@index([userId])
+}
+
+// Days someone is away (issue #235), across all their teams: every date in
+// them reads Not available unless they answered that date themselves.
+model UserAway {
+  id        String   @id @default(cuid())
+  userId    String
+  from      DateTime @db.Date
+  to        DateTime @db.Date
+  note      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // One date of an event with something of its own: changed (cancelled,

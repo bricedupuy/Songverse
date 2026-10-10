@@ -34,8 +34,8 @@ import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
 import type { CreateSignupInvitationRequest } from "../requests/invitations.js";
 import type { UpdateSetlistItemRequest } from "../requests/sets.js";
-import type { CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
-import type { EventDate, EventRepeat } from "../calendar/index.js";
+import type { AnswerEventDateRequest, CreateAwayRequest, CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
+import type { AvailabilityAnswer, EventDate, EventRepeat } from "../calendar/index.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
 import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
@@ -805,6 +805,58 @@ export interface TeamEventDateSummary extends EventDate {
   repeats: boolean;
   setlistId: string | null;
   songCount: number;
+  /** The viewer's answer (issue #235). */
+  myAnswer: MyEventAnswer;
+  /** For the team's admins: how its members answered (NONE: no answer yet). */
+  counts: Record<AvailabilityAnswer | "NONE", number> | null;
+}
+
+/** Someone's answer for a date: their own, or Not available on a day they're away (`away`); null when not answered. */
+export interface MyEventAnswer {
+  answer: AvailabilityAnswer | null;
+  away: boolean;
+  note: string | null;
+  /** Given by one of the team's admins for them. */
+  byAdmin: boolean;
+}
+
+/** A member's answer for a date, as the team's admins see it. */
+export interface MemberEventAnswer {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  instruments: string[];
+  role: TeamRole;
+  answer: AvailabilityAnswer | null;
+  away: boolean;
+  note: string | null;
+  /** The admin who answered for them. */
+  answeredBy: string | null;
+}
+
+/** A date of one of someone's teams, on their own calendar. */
+export interface MyEventDate extends EventDate {
+  eventId: string;
+  title: string;
+  place: string | null;
+  timeZone: string;
+  repeats: boolean;
+  teamId: string;
+  teamName: string;
+  teamColor: string | null;
+  teamAvatarUrl: string | null;
+  isAdmin: boolean;
+  setlistId: string | null;
+  songCount: number;
+  myAnswer: MyEventAnswer;
+}
+
+/** Days someone is away, across all their teams. */
+export interface AwayDays {
+  id: string;
+  from: string;
+  to: string;
+  note: string | null;
 }
 
 export interface TeamCalendarSettings {
@@ -1699,6 +1751,20 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       request<TeamEventDateSummary>(`/teams/${teamId}/events/${eventId}/dates/${date}`, { method: "PATCH", body: JSON.stringify(data) }),
     ensureTeamEventDateSet: (teamId: string, eventId: string, date: string) =>
       request<{ setlistId: string }>(`/teams/${teamId}/events/${eventId}/dates/${date}/set`, { method: "POST" }),
+    answerTeamEventDate: (teamId: string, eventId: string, date: string, data: AnswerEventDateRequest) =>
+      request<MyEventAnswer>(`/teams/${teamId}/events/${eventId}/dates/${date}/answer`, { method: "PUT", body: JSON.stringify(data) }),
+    clearTeamEventDateAnswer: (teamId: string, eventId: string, date: string) =>
+      request<void>(`/teams/${teamId}/events/${eventId}/dates/${date}/answer`, { method: "DELETE" }),
+    listTeamEventDateAnswers: (teamId: string, eventId: string, date: string) =>
+      request<MemberEventAnswer[]>(`/teams/${teamId}/events/${eventId}/dates/${date}/answers`),
+    answerTeamEventDateFor: (teamId: string, eventId: string, date: string, userId: string, data: AnswerEventDateRequest) =>
+      request<MyEventAnswer>(`/teams/${teamId}/events/${eventId}/dates/${date}/answers/${userId}`, { method: "PUT", body: JSON.stringify(data) }),
+    clearTeamEventDateAnswerFor: (teamId: string, eventId: string, date: string, userId: string) =>
+      request<void>(`/teams/${teamId}/events/${eventId}/dates/${date}/answers/${userId}`, { method: "DELETE" }),
+    listMyEventDates: (from: string, to: string) => request<MyEventDate[]>(`/users/me/event-dates?${new URLSearchParams({ from, to })}`),
+    listMyAway: () => request<AwayDays[]>("/users/me/away"),
+    addMyAway: (data: CreateAwayRequest) => request<AwayDays>("/users/me/away", { method: "POST", body: JSON.stringify(data) }),
+    removeMyAway: (id: string) => request<void>(`/users/me/away/${id}`, { method: "DELETE" }),
     getTeamCalendarSettings: (teamId: string) => request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`),
     updateTeamCalendarSettings: (teamId: string, data: TeamCalendarSettings) =>
       request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`, { method: "PUT", body: JSON.stringify(data) }),

@@ -16,6 +16,14 @@ La page de l'équipe commence par son **Calendrier** : ses cultes, répétitions
 - Le menu **…** d'une date : **Annuler cette date** (sa liste est supprimée si elle n'a pas encore de chants) ou **Rétablir cette date**, et **Modifier l'événement**.
 - Modifier un événement (son titre, sa date, sa fréquence) met à jour ses listes à venir. Les dates où il n'a plus lieu perdent leur liste si elle est encore vide ; une liste avec des chants reste, comme liste de l'équipe. **Supprimer l'événement** fait de même. Une liste supprimée à la main n'est pas recréée ; **Préparer la liste** la fait revenir.
 
+### Disponibilités
+
+Sous chaque date, dites si vous pouvez jouer : **Disponible**, **Si besoin** (libre si on vous le demande, pas en premier choix) ou **Pas disponible**. Appuyez de nouveau sur votre réponse pour la retirer. Une fois répondu, ajoutez une note pour les administrateurs de l'équipe (« Clavier seulement », « j'arrive en retard ») ; seuls vous et eux la voient. Ne pas répondre n'est jamais compté comme disponible.
+
+**Mon calendrier**, dans la barre latérale, liste les dates à venir de toutes vos équipes, pour y répondre au même endroit. Sous **Absences**, ajoutez les jours où vous êtes absent (**Du**, **Au**, une note) : chaque date de ces jours se lit **Pas disponible**, marquée **Absent**, pour toutes vos équipes - sauf si vous répondez vous-même à cette date.
+
+Les administrateurs de l'équipe voient, à côté de chaque date, combien de membres sont disponibles, si besoin, pas disponibles, et n'ont pas répondu. Un clic ouvre **Qui peut jouer** : la réponse de chacun, avec ses notes et ses absences. Un administrateur peut y répondre pour un membre qui n'utilise pas Songverse ; c'est marqué comme répondu par lui.
+
 ## Membres et rôles
 
 - Les **Administrateurs** gèrent l'équipe : ils modifient ses chants, ses versions et ses listes, et invitent des personnes.
