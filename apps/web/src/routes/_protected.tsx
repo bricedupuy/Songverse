@@ -5,6 +5,7 @@ import { AppShell } from "#/components/app-shell";
 import { keepAppDataOffline, loadAppData } from "#/lib/app-data";
 import { useOfflineSync } from "#/lib/offline-data";
 import { createI18n, loadLocale } from "#/lib/i18n";
+import { WeekStartContext } from "#/lib/dates";
 
 /**
  * Pathless layout route — gates every route nested under `_protected/` in
@@ -40,9 +41,12 @@ function RouteComponent() {
 
   return (
     <I18nextProvider i18n={i18n}>
-      <AppShell session={session} teams={teams} songbooks={songbooks} setlists={setlists}>
-        <Outlet />
-      </AppShell>
+      {/* Every calendar's first day of the week (issue #235). */}
+      <WeekStartContext.Provider value={session.weekStartsOn}>
+        <AppShell session={session} teams={teams} songbooks={songbooks} setlists={setlists}>
+          <Outlet />
+        </AppShell>
+      </WeekStartContext.Provider>
     </I18nextProvider>
   );
 }

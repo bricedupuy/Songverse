@@ -324,15 +324,15 @@ export function PasskeysCard() {
   );
 }
 
-export function LanguageCard({ locale }: { locale: string }) {
+export function LanguageCard({ locale, weekStartsOn }: { locale: string; weekStartsOn: 0 | 1 | 6 | null }) {
   const { t } = useTranslation();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
-  async function changeLocale(next: LocaleValue) {
+  async function save(change: { locale?: LocaleValue; weekStartsOn?: 0 | 1 | 6 | null }) {
     setSaving(true);
     try {
-      await apiClient.updateMe({ locale: next });
+      await apiClient.updateMe(change);
       await router.invalidate();
     } finally {
       setSaving(false);
@@ -350,7 +350,7 @@ export function LanguageCard({ locale }: { locale: string }) {
           id="locale"
           value={locale}
           disabled={saving}
-          onChange={(e) => void changeLocale(e.target.value as LocaleValue)}
+          onChange={(e) => void save({ locale: e.target.value as LocaleValue })}
           className="w-full max-w-xs"
         >
           {SUPPORTED_LOCALES.map((option) => (
@@ -358,6 +358,23 @@ export function LanguageCard({ locale }: { locale: string }) {
               {LOCALE_NAMES[option]}
             </option>
           ))}
+        </NativeSelect>
+        {/* Calendars' first day of the week (issue #235): Automatic follows the language. */}
+        <Label htmlFor="week-start" className="mt-3">
+          {t("dashboard.weekStart")}
+        </Label>
+        <NativeSelect
+          id="week-start"
+          value={weekStartsOn === null ? "auto" : String(weekStartsOn)}
+          disabled={saving}
+          onChange={(e) => void save({ weekStartsOn: e.target.value === "auto" ? null : (Number(e.target.value) as 0 | 1 | 6) })}
+          className="w-full max-w-xs"
+          data-testid="week-start"
+        >
+          <option value="auto">{t("dashboard.weekStartAuto")}</option>
+          <option value="1">{t("dashboard.weekStartMonday")}</option>
+          <option value="0">{t("dashboard.weekStartSunday")}</option>
+          <option value="6">{t("dashboard.weekStartSaturday")}</option>
         </NativeSelect>
       </CardContent>
     </Card>

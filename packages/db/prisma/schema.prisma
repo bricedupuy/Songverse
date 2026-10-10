@@ -290,6 +290,8 @@ model User {
   chordColors       Boolean           @default(false)
   // Diagrams mirrored for a left-handed player, and each instrument's tuning (issue #207 phase 3): TUNINGS' ids in core.
   leftHanded        Boolean           @default(false)
+  // The first day of calendars' weeks (issue #235): 0 Sunday, 1 Monday, 6 Saturday; null from the language.
+  weekStartsOn      Int?
   guitarTuning      String            @default("standard")
   ukuleleTuning     String            @default("standard")
   // Piano diagrams (issue #207 phase 4): smooth voice leading or root position, both hands or the right only, note names on the keys ("card", "all", "none").

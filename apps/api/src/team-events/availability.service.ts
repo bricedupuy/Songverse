@@ -143,6 +143,14 @@ export class AvailabilityService {
     return { id: row.id, from: dto.from, to: dto.to, note: row.note };
   }
 
+  /** Days away changed: their first and last day, and note. */
+  async updateAway(userId: string, id: string, dto: CreateAwayDto) {
+    if (daysBetween(dto.from, dto.to) > 366) throw new BadRequestException(["to must be at most a year after from"]);
+    const { count } = await this.prisma.client.userAway.updateMany({ where: { id, userId }, data: { from: day(dto.from), to: day(dto.to), note: dto.note || null } });
+    if (count === 0) throw new NotFoundException("Not found");
+    return { id, from: dto.from, to: dto.to, note: dto.note || null };
+  }
+
   async removeAway(userId: string, id: string): Promise<void> {
     const { count } = await this.prisma.client.userAway.deleteMany({ where: { id, userId } });
     if (count === 0) throw new NotFoundException("Not found");

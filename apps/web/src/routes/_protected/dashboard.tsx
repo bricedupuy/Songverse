@@ -173,7 +173,7 @@ function Dashboard() {
           <EmailCard email={profile.email} />
           <PasskeysCard />
           <StorageCard storage={storage} />
-          <LanguageCard locale={profile.locale} />
+          <LanguageCard locale={profile.locale} weekStartsOn={profile.weekStartsOn} />
           <ChartDisplayCard profile={profile} />
         </div>
       </section>

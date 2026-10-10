@@ -198,3 +198,20 @@ export async function resetDisplay(p) {
   await panel.getByTestId("display-close").click();
   await panel.waitFor({ state: "detached" });
 }
+
+/**
+ * Picks a day ("YYYY-MM-DD") on the app's calendar (react-day-picker,
+ * issue #235) within `scope`: on to the next month until it shows, then
+ * clicked. The calendar must already be open.
+ */
+export async function pickDay(scope, day) {
+  for (let i = 0; i < 24; i++) {
+    const cell = scope.locator(`td[data-day="${day}"]:not([data-outside]) button`).first();
+    if (await cell.count()) {
+      await cell.click();
+      return;
+    }
+    await scope.locator(".rdp-button_next").first().click();
+  }
+  throw new Error(`The calendar never showed ${day}`);
+}

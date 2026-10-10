@@ -20,7 +20,7 @@ The team's page starts with its **Calendar**: its services, rehearsals and other
 
 Under each date, say whether you can play: **Available**, **If needed** (free if asked, not first choice) or **Not available**. Press your answer again to take it back. Once you've answered, add a note for the team's admins ("Keys only", "arriving late"); only you and they see it. Not answering is never taken as available.
 
-**My calendar**, in the sidebar, lists the coming dates of all your teams, to answer them in one place. Under **Days away**, add the days you're away (**From**, **To**, a note): every date in them reads **Not available**, marked **Away**, for all your teams - unless you answer that date yourself.
+**My calendar**, in the sidebar, lists the coming dates of all your teams, to answer them in one place. Under **Days away**, **Add days away** opens a calendar: pick the first day, then the last, add a note if you like, and **Add**. Every date in them reads **Not available**, marked **Away**, for all your teams - unless you answer that date yourself. Each range can be changed (**Edit**: pick the days again, change the note, **Save**) or removed; your other ranges show struck through on the calendar.
 
 The team's admins see, beside each date, how many members are available, if needed, not available, and haven't answered. Clicking it opens **Who can play**: everyone's answer, with their notes and days away. An admin can answer there for a member who doesn't use Songverse; it shows as answered by them.
 

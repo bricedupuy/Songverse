@@ -4,6 +4,8 @@
 // English strings until translated.
 const en = {
   common: {
+    pickDate: "Pick a date",
+    clearDate: "Clear the date",
     noLanguage: "No language",
     loading: "Loading…",
     tooManyRequests: "Too many requests, try again in a moment.",
@@ -453,6 +455,11 @@ const en = {
     panel: "{{section}} list",
   },
   dashboard: {
+    weekStart: "First day of the week",
+    weekStartAuto: "Automatic (from the language)",
+    weekStartMonday: "Monday",
+    weekStartSunday: "Sunday",
+    weekStartSaturday: "Saturday",
     chartDisplay: "Chart display",
     chartDisplayDescription: "How chords read on every chart. Hidden chords and simpler chords are set per song, from its chart.",
     chordNotation: "Chord names",
@@ -881,6 +888,11 @@ const en = {
     authClearing: "Reverting…",
   },
   teamCalendar: {
+    awayAddButton: "Add days away",
+    awayEdit: "Edit",
+    awaySave: "Save",
+    awayPick: "Pick the first day, then the last.",
+    awayEditTitle: "Days away",
     feedTitle: "Calendar link",
     feedDescription: "Add the dates you signed up for to your own calendar - Google, Apple, Outlook or any other. It stays up to date by itself; calendar apps look for changes every few hours.",
     feedMake: "Get my calendar link",

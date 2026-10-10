@@ -1,6 +1,6 @@
 // Browser test for Sets (issue #1).
 import { chromium } from "playwright";
-import { sidebarEntry, WEB, SP, stamp, tag, sql, stepper, user, api, signIn, finish } from "../lib/harness.mjs";
+import { api, finish, pickDay, sidebarEntry, signIn, SP, sql, stamp, stepper, tag, user, WEB } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -39,7 +39,9 @@ await step("create a dated set without a name; it's titled by its date", async (
   await page.getByRole("link", { name: "New set" }).click();
   await page.waitForURL("**/sets/new");
   await page.waitForLoadState("networkidle");
-  await page.getByLabel("Date (optional)").fill(date);
+  // The date on the calendar (issue #235).
+  await page.getByTestId("set-date").click();
+  await pickDay(page.locator("[data-slot=calendar]").last(), date);
   await page.getByRole("button", { name: "Create set" }).click();
   await page.waitForURL("**/sets/**");
   await page.getByRole("heading", { name: longDate }).waitFor();

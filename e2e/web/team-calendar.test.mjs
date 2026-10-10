@@ -4,7 +4,7 @@
 // demand; "Create sets ahead" saved; the event edited. A member sees the
 // dates and opens a set, without the admin's tools.
 import { chromium } from "playwright";
-import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, finish, pickDay, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -27,7 +27,9 @@ try {
     await page.getByTestId("calendar-new-event").click();
     const dialog = page.getByTestId("event-dialog");
     await dialog.getByLabel("Title").fill("Morning service");
-    await dialog.getByLabel("Date").fill(tomorrow);
+    await dialog.getByTestId("event-date").click();
+    await pickDay(page.locator("[data-slot=calendar]").last(), tomorrow);
+    if ((await dialog.getByTestId("event-date").getAttribute("data-value")) !== tomorrow) throw new Error("date not picked");
     await dialog.getByLabel("Start time").fill("10:00");
     await dialog.getByLabel("Repeats").selectOption("1");
     await dialog.getByLabel("Place (optional)").fill("Main hall");

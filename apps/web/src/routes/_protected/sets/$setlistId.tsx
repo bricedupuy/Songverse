@@ -1,4 +1,5 @@
 import { ApiError, keptSetDetail, onlineOrKept, type SetlistDetail, type SetlistItem, type TeamSummary } from "@songverse/core";
+import { DatePicker } from "#/components/date-picker";
 import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Mic, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -396,7 +397,7 @@ function DetailsCard({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="set-date">{t("sets.dateLabel")}</Label>
-              <Input id="set-date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+              <DatePicker id="set-date" value={eventDate} clearable onChange={setEventDate} testId="set-date" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="set-name">{t("sets.nameLabel")}</Label>

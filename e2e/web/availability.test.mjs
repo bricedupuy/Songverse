@@ -4,7 +4,7 @@
 // someone. My calendar (from the sidebar) lists the dates of all one's
 // teams; days away read Not available, marked Away, until answered.
 import { chromium } from "playwright";
-import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
+import { WEB, api, finish, pickDay, signIn, sql, stamp, stepper, user } from "../lib/harness.mjs";
 
 let page;
 const step = stepper(() => page);
@@ -41,15 +41,50 @@ try {
     await page.getByTestId("sidebar-rail").getByRole("link", { name: "My calendar" }).click();
     await page.waitForURL(/\/calendar$/);
     await row(first).getByText(`Avail ${stamp}`).waitFor();
-    await page.getByLabel("From").fill(plus(8));
-    await page.getByLabel("To", { exact: true }).fill(plus(10));
-    await page.getByLabel("Note (optional)").fill("Holidays");
-    await page.getByTestId("away-add").click();
+    // Days away on the range calendar: the first day, then the last.
+    const card = page.getByTestId("away-card");
+    await card.getByTestId("away-add-open").click();
+    await pickDay(card, plus(8));
+    await pickDay(card, plus(10));
+    await card.getByLabel("Note (optional)").fill("Holidays");
+    await card.getByTestId("away-save").click();
     await page.locator(`[data-away-range="${plus(8)}/${plus(10)}"]`).waitFor();
     await row(plus(9)).getByTestId("answer-away").waitFor();
     await row(plus(9)).locator('[data-answer="UNAVAILABLE"][data-away]').waitFor();
     await row(plus(16)).getByTestId("answer-UNAVAILABLE").click();
     await row(plus(16)).locator('[data-answer="UNAVAILABLE"]:not([data-away])').waitFor();
+  });
+
+  await step("days away edited on the calendar: a day longer, the note kept", async () => {
+    const card = page.getByTestId("away-card");
+    await card.locator(`[data-away-range="${plus(8)}/${plus(10)}"]`).getByTestId("away-edit").click();
+    const editor = card.getByTestId("away-editor");
+    // The range shows selected; picking again starts a new one: the first day, then the last.
+    await editor.locator(`td[data-day="${plus(9)}"]`).first().waitFor();
+    await pickDay(editor, plus(8));
+    await pickDay(editor, plus(11));
+    if ((await editor.getByLabel("Note (optional)").inputValue()) !== "Holidays") throw new Error("the note wasn't kept");
+    await editor.getByTestId("away-save").click();
+    await card.locator(`[data-away-range="${plus(8)}/${plus(11)}"]`).waitFor();
+    await row(plus(9)).getByTestId("answer-away").waitFor();
+  });
+
+  await step("the first day of the week: from the language, or as chosen on the account page", async () => {
+    const firstWeekday = async () => {
+      await page.goto(`${WEB}/calendar`);
+      await page.getByTestId("away-add-open").click();
+      return (await page.getByTestId("away-editor").locator(".rdp-weekday").first().getAttribute("aria-label")) ?? "";
+    };
+    // English: Sunday first.
+    if (!/sunday/i.test(await firstWeekday())) throw new Error("not Sunday by default in English");
+    await page.goto(`${WEB}/dashboard`);
+    await page.getByTestId("week-start").selectOption("1");
+    await page.waitForFunction(() => document.querySelector('[data-testid="week-start"]')?.value === "1");
+    await page.waitForTimeout(500);
+    if (!/monday/i.test(await firstWeekday())) throw new Error("not Monday once chosen");
+    await page.goto(`${WEB}/dashboard`);
+    await page.getByTestId("week-start").selectOption("auto");
+    await page.waitForTimeout(500);
   });
 
   await step("the admin sees the counts and who can play, with notes and days away, and answers for someone", async () => {

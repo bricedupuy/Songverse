@@ -92,6 +92,8 @@ export const UpdateUserSchema = z.strictObject({
   chordDiagrams: optional(z.enum(CHORD_DIAGRAMS)),
   chordColors: optional(z.boolean()),
   leftHanded: optional(z.boolean()),
+  // Calendars' first day of the week (issue #235): null goes back to the language's.
+  weekStartsOn: z.union([z.literal(0), z.literal(1), z.literal(6)]).nullable().optional().describe("0 Sunday, 1 Monday, 6 Saturday; null from the language"),
   guitarTuning: optional(z.enum(TUNING_IDS.guitar)),
   ukuleleTuning: optional(z.enum(TUNING_IDS.ukulele)),
   pianoSmooth: optional(z.boolean()),

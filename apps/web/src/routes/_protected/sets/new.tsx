@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
+import { DatePicker } from "#/components/date-picker";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "#/components/ui/button";
@@ -57,7 +58,7 @@ function NewSet() {
           >
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="set-date">{t("sets.dateLabel")}</Label>
-              <Input id="set-date" type="date" min={todayIso()} value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+              <DatePicker id="set-date" min={todayIso()} value={eventDate} clearable onChange={setEventDate} testId="set-date" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="set-name">{t("sets.nameLabel")}</Label>

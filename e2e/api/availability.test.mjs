@@ -88,6 +88,12 @@ check("…not the dates of teams one isn't in", !r.body.some((d) => d.eventId ==
 await call(admin, "PATCH", `/teams/${teamA.id}/events/${weekly.id}`, { date: plus(3) });
 check("answers for dates the event left are deleted", sql(`select count(*) from "TeamEventAnswer" where "eventId" = '${weekly.id}'`) === "0");
 
+r = await call(singer, "PATCH", `/users/me/away/${away.id}`, { from: plus(8), to: plus(12), note: "Longer holidays" });
+check("days away edited", r.status === 200 && r.body.to === plus(12) && r.body.note === "Longer holidays", JSON.stringify(r.body));
+r = await call(singer, "PATCH", `/users/me/away/${away.id}`, { from: plus(12), to: plus(8) });
+check("…ending before they start: refused", r.status === 400, String(r.status));
+r = await call(drummer, "PATCH", `/users/me/away/${away.id}`, { from: plus(8), to: plus(9) });
+check("…only one's own", r.status === 404, String(r.status));
 r = await call(singer, "DELETE", `/users/me/away/${away.id}`);
 check("days away removed", r.status === 204);
 r = await call(drummer, "DELETE", `/users/me/away/${away.id}`);

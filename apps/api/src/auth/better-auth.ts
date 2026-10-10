@@ -131,6 +131,8 @@ function buildAuth(settings: EffectiveAuthSettings) {
       additionalFields: {
         isGlobalAdmin: { type: "boolean", input: false, defaultValue: false },
         locale: { type: "string", input: false, defaultValue: "en" },
+        // Calendars' first day of the week (issue #235); null from the language.
+        weekStartsOn: { type: "number", input: false, required: false },
       },
     },
     databaseHooks: {

@@ -16,6 +16,8 @@ export interface AppSession {
   /** May upload audio files (issue #183); recording in Songverse needs no role. Global admins always can. */
   canUploadAudio: boolean;
   locale: LocaleValue;
+  /** Calendars' first day of the week (issue #235): 0 Sunday, 1 Monday, 6 Saturday; null from the language. */
+  weekStartsOn: 0 | 1 | 6 | null;
 }
 
 interface BetterAuthUser {
@@ -28,6 +30,7 @@ interface BetterAuthUser {
   canSeparateStems?: boolean;
   canUploadAudio?: boolean;
   locale?: string;
+  weekStartsOn?: number | null;
 }
 
 function asLocale(value: string): LocaleValue {
@@ -67,6 +70,7 @@ async function loadSession(): Promise<AppSession | null> {
     canSeparateStems: Boolean(data.user.canSeparateStems),
     canUploadAudio: Boolean(data.user.canUploadAudio),
     locale: asLocale(data.user.locale ?? DEFAULT_LOCALE),
+    weekStartsOn: data.user.weekStartsOn === 0 || data.user.weekStartsOn === 1 || data.user.weekStartsOn === 6 ? data.user.weekStartsOn : null,
   };
 }
 

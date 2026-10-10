@@ -27,6 +27,10 @@ Ajoutez-en une sur chaque appareil que vous utilisez. Vous pouvez supprimer une 
 
 Dites à vos équipes ce que vous jouez ou faites : des **Instruments** (chant, guitares, claviers, batterie, harpe, accordéon, cajón… et ceux que votre administrateur a ajoutés) et d'**Autres rôles** (technicien, opérateur média, ingénieur du son). Ils s'affichent à côté de votre nom dans les listes de membres des équipes.
 
+## Langue et calendriers
+
+Choisissez la langue de l'application sous **Langue**. **Premier jour de la semaine** fixe le début des semaines de tous les calendriers : **Automatique (selon la langue)** - le dimanche en anglais, le lundi en français - ou toujours **Lundi**, **Dimanche** ou **Samedi**.
+
 ## Affichage des grilles
 
 Comment se lisent les accords sur toutes les grilles que vous ouvrez :

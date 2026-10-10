@@ -34,7 +34,7 @@ import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
 import type { CreateSignupInvitationRequest } from "../requests/invitations.js";
 import type { UpdateSetlistItemRequest } from "../requests/sets.js";
-import type { AnswerEventDateRequest, CreateAwayRequest, CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
+import type { AnswerEventDateRequest, CreateAwayRequest, UpdateAwayRequest, CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
 import type { AvailabilityAnswer, EventDate, EventRepeat } from "../calendar/index.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
@@ -512,6 +512,8 @@ export interface UserProfile {
   chordColors: boolean;
   /** Chord diagrams mirrored for a left-handed player, and each instrument's tuning (issue #207). */
   leftHanded: boolean;
+  /** Calendars' first day of the week (issue #235): 0 Sunday, 1 Monday, 6 Saturday; null from the language. */
+  weekStartsOn: 0 | 1 | 6 | null;
   guitarTuning: string;
   ukuleleTuning: string;
   /** Piano diagrams' options (issue #207 phase 4). */
@@ -1771,6 +1773,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     turnOffMyCalendarFeed: () => request<void>("/users/me/calendar-feed", { method: "DELETE" }),
     listMyAway: () => request<AwayDays[]>("/users/me/away"),
     addMyAway: (data: CreateAwayRequest) => request<AwayDays>("/users/me/away", { method: "POST", body: JSON.stringify(data) }),
+    updateMyAway: (id: string, data: UpdateAwayRequest) => request<AwayDays>(`/users/me/away/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     removeMyAway: (id: string) => request<void>(`/users/me/away/${id}`, { method: "DELETE" }),
     getTeamCalendarSettings: (teamId: string) => request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`),
     updateTeamCalendarSettings: (teamId: string, data: TeamCalendarSettings) =>

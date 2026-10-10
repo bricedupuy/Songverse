@@ -236,3 +236,7 @@ export function setListing(set: { fromEvent?: boolean; signedUp?: boolean; past?
   if (set.past) return set.signedUp ? "archive" : "hidden";
   return set.signedUp ? "sidebar" : "list";
 }
+
+/** The days a calendar's week can start on (issue #235): Sunday, Monday, Saturday. Someone's choice, or none: their language's. */
+export const WEEK_STARTS = [0, 1, 6] as const;
+export type WeekStart = (typeof WEEK_STARTS)[number];

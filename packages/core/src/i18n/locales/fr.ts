@@ -4,6 +4,8 @@ import type en from "./en.js";
 // mismatch since it's typed against `typeof en`.
 const fr: typeof en = {
   common: {
+    pickDate: "Choisir une date",
+    clearDate: "Effacer la date",
     noLanguage: "Aucune langue",
     loading: "Chargement…",
     tooManyRequests: "Trop de requêtes, réessayez dans un instant.",
@@ -453,6 +455,11 @@ const fr: typeof en = {
     panel: "Liste : {{section}}",
   },
   dashboard: {
+    weekStart: "Premier jour de la semaine",
+    weekStartAuto: "Automatique (selon la langue)",
+    weekStartMonday: "Lundi",
+    weekStartSunday: "Dimanche",
+    weekStartSaturday: "Samedi",
     chartDisplay: "Affichage des grilles",
     chartDisplayDescription: "Comment se lisent les accords sur toutes les grilles. Les accords masqués ou simplifiés se règlent par chant, depuis sa grille.",
     chordNotation: "Noms des accords",
@@ -884,6 +891,11 @@ const fr: typeof en = {
     authClearing: "Retour en cours…",
   },
   teamCalendar: {
+    awayAddButton: "Ajouter une absence",
+    awayEdit: "Modifier",
+    awaySave: "Enregistrer",
+    awayPick: "Choisissez le premier jour, puis le dernier.",
+    awayEditTitle: "Absence",
     feedTitle: "Lien de calendrier",
     feedDescription: "Ajoutez les dates où vous êtes inscrit à votre propre calendrier - Google, Apple, Outlook ou un autre. Il se met à jour tout seul ; les applications de calendrier vérifient les changements toutes les quelques heures.",
     feedMake: "Obtenir mon lien de calendrier",

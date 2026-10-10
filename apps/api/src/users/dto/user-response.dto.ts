@@ -14,6 +14,7 @@ export class UserResponseDto {
   @ApiProperty({ enum: CHORD_DIAGRAMS, description: "Chord diagrams beside charts (issue #207)" }) chordDiagrams!: (typeof CHORD_DIAGRAMS)[number];
   @ApiProperty({ description: "Chords coloured by family (issue #9)" }) chordColors!: boolean;
   @ApiProperty({ description: "Chord diagrams mirrored for a left-handed player (issue #207)" }) leftHanded!: boolean;
+  @ApiProperty({ description: "Calendars' first day of the week (issue #235): 0 Sunday, 1 Monday, 6 Saturday; null from the language", nullable: true, type: Number }) weekStartsOn!: number | null;
   @ApiProperty({ description: "The guitar's tuning: one of TUNINGS.guitar's ids in core" }) guitarTuning!: string;
   @ApiProperty({ description: "The ukulele's tuning: one of TUNINGS.ukulele's ids in core" }) ukuleleTuning!: string;
   @ApiProperty({ description: "Piano diagrams: each chord's inversion nearest the one before (issue #207)" }) pianoSmooth!: boolean;

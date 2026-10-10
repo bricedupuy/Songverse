@@ -27,6 +27,10 @@ Add one on each device you use. You can remove a passkey at any time.
 
 Tell your teams what you play or do - **Instruments** (vocals, guitars, keys, drums, harp, accordion, cajón… and any your admin added) and **Other roles** (technician, media operator, sound engineer). They're shown next to your name in team member lists.
 
+## Language and calendars
+
+Choose the app's language under **Language**. **First day of the week** sets where every calendar's weeks start: **Automatic (from the language)** - Sunday in English, Monday in French - or always **Monday**, **Sunday** or **Saturday**.
+
 ## Chart display
 
 How chords read on every chart you open:

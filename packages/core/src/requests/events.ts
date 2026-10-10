@@ -81,4 +81,8 @@ export const CreateAwaySchema = z
   .refine((range) => range.to >= range.from, { message: "to must not be before from", path: ["to"] });
 export type CreateAwayRequest = z.input<typeof CreateAwaySchema>;
 
+/** Days away changed: the whole range again (first and last day, note). */
+export const UpdateAwaySchema = CreateAwaySchema;
+export type UpdateAwayRequest = z.input<typeof UpdateAwaySchema>;
+
 export const MyEventDatesQuerySchema = TeamEventDatesQuerySchema;

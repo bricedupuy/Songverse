@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, UnauthorizedException } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
 import { AvailabilityService } from "./availability.service.js";
-import { CreateAwayDto, MyEventDatesQueryDto } from "./dto/team-events.dto.js";
+import { CreateAwayDto, MyEventDatesQueryDto, UpdateAwayDto } from "./dto/team-events.dto.js";
 
 /** Someone's own calendar (issue #235): the dates of all their teams, and the days they're away. */
 @ApiTags("team calendar")
@@ -29,6 +29,12 @@ export class MyCalendarController {
   addAway(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: CreateAwayDto) {
     if (!user) throw new UnauthorizedException();
     return this.availability.addAway(user.id, dto);
+  }
+
+  @Patch("away/:id")
+  updateAway(@CurrentUser() user: AuthenticatedUser | undefined, @Param("id") id: string, @Body() dto: UpdateAwayDto) {
+    if (!user) throw new UnauthorizedException();
+    return this.availability.updateAway(user.id, id, dto);
   }
 
   @Delete("away/:id")

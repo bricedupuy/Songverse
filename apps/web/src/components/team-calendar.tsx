@@ -4,6 +4,7 @@ import { Ban, CalendarPlus, MapPin, MoreHorizontal, Pencil, Repeat, RotateCcw } 
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmButton } from "#/components/confirm-button";
+import { DatePicker } from "#/components/date-picker";
 import { EventAnswer } from "#/components/event-answer";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
@@ -395,7 +396,7 @@ function EventDialog({ teamId, event, onClose, onSaved }: { teamId: string; even
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="event-date">{t("teamCalendar.firstDate")}</Label>
-            <Input id="event-date" type="date" value={date} required onChange={(e) => setDate(e.target.value)} />
+            <DatePicker id="event-date" value={date} onChange={setDate} testId="event-date" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="event-time">{t("teamCalendar.startTime")}</Label>
@@ -429,7 +430,7 @@ function EventDialog({ teamId, event, onClose, onSaved }: { teamId: string; even
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="event-until">{t("teamCalendar.until")}</Label>
-            <Input id="event-until" type="date" value={until} min={date} disabled={!everyWeeks} onChange={(e) => setUntil(e.target.value)} />
+            <DatePicker id="event-until" value={until} min={date} disabled={!everyWeeks} clearable onChange={setUntil} testId="event-until" />
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="event-place">{t("teamCalendar.place")}</Label>

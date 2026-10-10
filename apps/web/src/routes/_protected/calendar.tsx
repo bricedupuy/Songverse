@@ -1,18 +1,16 @@
 import { addDays, localDate, type AwayDays, type MyEventDate } from "@songverse/core";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { MapPin, Repeat, Trash2 } from "lucide-react";
+import { MapPin, Repeat } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AwayDaysCard } from "#/components/away-days-card";
 import { CalendarFeedCard } from "#/components/calendar-feed-card";
 import { EntityAvatar } from "#/components/entity-avatar";
 import { EventAnswer } from "#/components/event-answer";
 import { Badge } from "#/components/ui/badge";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "#/components/ui/card";
-import { Input } from "#/components/ui/input";
-import { Label } from "#/components/ui/label";
+import { Card, CardContent } from "#/components/ui/card";
 import { apiClient } from "#/lib/api-client";
-import { formatSetDate } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_protected/calendar")({
@@ -140,73 +138,14 @@ function MyCalendarPage() {
         <div className="flex flex-col gap-6">
           {/* The dates signed up for, in one's own calendar (issue #235). */}
           <CalendarFeedCard />
-          <AwayCard away={away} locale={i18n.language} onAdd={(range) => act(() => apiClient.addMyAway(range))} onRemove={(id) => act(() => apiClient.removeMyAway(id))} />
+          <AwayDaysCard
+            away={away}
+            onAdd={(range) => act(() => apiClient.addMyAway(range))}
+            onUpdate={(id, range) => act(() => apiClient.updateMyAway(id, range))}
+            onRemove={(id) => act(() => apiClient.removeMyAway(id))}
+          />
         </div>
       </div>
     </div>
-  );
-}
-
-/** The days one is away, for all one's teams: added with a first and last day, removed. */
-function AwayCard({ away, locale, onAdd, onRemove }: { away: AwayDays[]; locale: string; onAdd: (range: { from: string; to: string; note: string | null }) => Promise<void>; onRemove: (id: string) => Promise<void> }) {
-  const { t } = useTranslation();
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [note, setNote] = useState("");
-  return (
-    <Card data-testid="away-card">
-      <CardHeader>
-        <CardTitle className="text-sm">{t("teamCalendar.awayTitle")}</CardTitle>
-        <CardDescription>{t("teamCalendar.awayDescription")}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {away.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("teamCalendar.noAway")}</p>
-        ) : (
-          <ul className="flex flex-col divide-y">
-            {away.map((range) => (
-              <li key={range.id} className="flex items-center justify-between gap-2 py-2 first:pt-0" data-away-range={`${range.from}/${range.to}`}>
-                <div className="min-w-0 text-sm">
-                  <div>
-                    {formatSetDate(range.from, locale)} – {formatSetDate(range.to, locale)}
-                  </div>
-                  {range.note ? <div className="truncate text-xs text-muted-foreground">{range.note}</div> : null}
-                </div>
-                <Button variant="ghost" size="icon" className="size-8" aria-label={t("teamCalendar.removeAway")} title={t("teamCalendar.removeAway")} onClick={() => void onRemove(range.id)}>
-                  <Trash2 />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <form
-          className="grid grid-cols-2 gap-2"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void onAdd({ from, to, note: note.trim() || null }).then(() => {
-              setFrom("");
-              setTo("");
-              setNote("");
-            });
-          }}
-        >
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="away-from">{t("teamCalendar.awayFrom")}</Label>
-            <Input id="away-from" type="date" value={from} required onChange={(event) => setFrom(event.target.value)} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="away-to">{t("teamCalendar.awayTo")}</Label>
-            <Input id="away-to" type="date" value={to} min={from || undefined} required onChange={(event) => setTo(event.target.value)} />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="away-note">{t("teamCalendar.awayNote")}</Label>
-            <Input id="away-note" value={note} maxLength={300} onChange={(event) => setNote(event.target.value)} />
-          </div>
-          <Button type="submit" variant="outline" size="sm" className="col-span-2 justify-self-start" data-testid="away-add">
-            {t("teamCalendar.addAway")}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
   );
 }
