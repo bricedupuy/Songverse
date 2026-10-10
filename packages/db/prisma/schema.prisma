@@ -360,6 +360,9 @@ model User {
   eventAnswersGiven   TeamEventAnswer[]     @relation("TeamEventAnswerBy")
   awayRanges          UserAway[]
   calendarFeed        CalendarFeed?
+  notifications       Notification[]
+  // How each kind of notification reaches them (issue #236): push, email; quiet hours.
+  notificationSettings Json?
 
   @@index([email])
 }
@@ -1094,6 +1097,24 @@ model CalendarFeed {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Something Songverse tells someone (issue #236): its kind and details,
+// put into words in the reader's language when shown (notificationText in
+// @songverse/core), never stored as text; where it leads (url, in the web
+// app); read or not. Sent by push and email too, as the person chooses.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  kind      String
+  data      Json
+  url       String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // Days someone is away (issue #235), across all their teams: every date in

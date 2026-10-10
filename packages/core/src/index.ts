@@ -56,5 +56,6 @@ export * from "./screens/index.js";
 export * from "./file-types/index.js";
 export * from "./calendar/index.js";
 export * from "./calendar/ical.js";
+export * from "./notifications/index.js";
 export * from "./requests/index.js";
 export * from "./pdf-chart/index.js";

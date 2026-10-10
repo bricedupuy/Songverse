@@ -31,8 +31,9 @@ check("an admin adds a weekly event", r.status === 201 && weekly.repeat?.everyWe
 r = await call(member, "GET", `${base}/event-dates?from=${today}&to=${plus(60)}`);
 const dates = r.body;
 check("a member sees the team's dates in a range", r.status === 200 && dates.length >= 8 && dates[0].date === plus(1) && dates[1].date === plus(8), dates.map((d) => d.date).join(" "));
+// Counted from today in Paris, the event's zone, which can already be tomorrow in UTC: a day's leeway.
 const withSets = dates.filter((d) => d.setlistId);
-check("each date in the next 4 weeks has its set, the later ones not yet", withSets.length >= 4 && withSets.length <= 5 && withSets.every((d) => d.date <= plus(28)), withSets.map((d) => d.date).join(" "));
+check("each date in the next 4 weeks has its set, the later ones not yet", withSets.length >= 4 && withSets.length <= 5 && withSets.every((d) => d.date <= plus(29)), withSets.map((d) => d.date).join(" "));
 const firstSet = (await call(member, "GET", `/setlists/${dates[0].setlistId}`)).body;
 check("a date's set is the team's, named and dated after it, marked as the event's", firstSet.name === "Morning service" && firstSet.eventDate === plus(1) && firstSet.teamId === team.id && firstSet.fromEvent === true, JSON.stringify({ name: firstSet.name, eventDate: firstSet.eventDate, fromEvent: firstSet.fromEvent }));
 r = await call(member, "GET", "/setlists");
@@ -44,7 +45,7 @@ check("more than a year ahead is refused", r.status === 400, String(r.status));
 r = await call(admin, "PUT", `${base}/calendar-settings`, { setsAheadWeeks: 13 });
 check("13 weeks ahead: about 3 months", r.status === 200 && r.body.setsAheadWeeks === 13);
 const in3Months = (await call(member, "GET", `${base}/event-dates?from=${today}&to=${plus(120)}`)).body.filter((d) => d.setlistId);
-check("the sets 3 months ahead are made at once", in3Months.length >= 13 && in3Months.every((d) => d.date <= plus(91)), String(in3Months.length));
+check("the sets 3 months ahead are made at once", in3Months.length >= 13 && in3Months.every((d) => d.date <= plus(92)), String(in3Months.length));
 r = await call(admin, "PUT", `${base}/calendar-settings`, { setsAheadWeeks: 4 });
 check("nearer again: the sets already made stay", Number(setsOf()) >= 13, setsOf());
 

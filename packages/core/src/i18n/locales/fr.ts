@@ -890,6 +890,22 @@ const fr: typeof en = {
     authConfirmClear: "Confirmer",
     authClearing: "Retour en cours…",
   },
+  notifications: {
+    title: "Notifications",
+    open: "Notifications",
+    unread_one: "{{count}} non lue",
+    unread_other: "{{count}} non lues",
+    empty: "Rien de nouveau.",
+    markAllRead: "Tout marquer comme lu",
+    loadMore: "Voir les plus anciennes",
+    answers: { AVAILABLE: "Disponible", IF_NEEDED: "Si besoin", UNAVAILABLE: "Pas disponible" },
+    kinds: {
+      EVENT_DATE_CANCELLED: { title: "{{event}} du {{date}} est annulé", body: "{{team}}" },
+      EVENT_DATE_CHANGED: { title: "{{event}} du {{date}} a changé", body: "{{team}} - maintenant à {{time}}" },
+      EVENT_CANCELLED: { title: "{{event}} est annulé", body: "{{team}} : ses prochaines dates n'ont pas lieu" },
+      ANSWERED_FOR_YOU: { title: "{{by}} a répondu pour vous : {{answer}}", body: "{{event}} du {{date}}, {{team}}" },
+    },
+  },
   teamCalendar: {
     awayAddButton: "Ajouter une absence",
     awayEdit: "Modifier",

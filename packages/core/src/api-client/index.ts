@@ -26,6 +26,7 @@ import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
+import type { NotificationData, NotificationKind } from "../notifications/index.js";
 import type { LyricsMatch } from "../search-text/lyrics.js";
 import type { SecondChordRow } from "../display/chord-rows.js";
 import type { SectionProgression } from "../chords/progressions.js";
@@ -863,6 +864,24 @@ export interface AwayDays {
   from: string;
   to: string;
   note: string | null;
+}
+
+/** A notification (issue #236): its kind and details, put into words by `notificationText`. */
+export interface AppNotification {
+  id: string;
+  kind: NotificationKind;
+  data: NotificationData;
+  /** Where it leads in the web app. */
+  url: string | null;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface NotificationPage {
+  items: AppNotification[];
+  /** Older ones to load. */
+  more: boolean;
+  unread: number;
 }
 
 export interface TeamCalendarSettings {
@@ -1775,6 +1794,10 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     addMyAway: (data: CreateAwayRequest) => request<AwayDays>("/users/me/away", { method: "POST", body: JSON.stringify(data) }),
     updateMyAway: (id: string, data: UpdateAwayRequest) => request<AwayDays>(`/users/me/away/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     removeMyAway: (id: string) => request<void>(`/users/me/away/${id}`, { method: "DELETE" }),
+    listMyNotifications: (before?: string, limit?: number) =>
+      request<NotificationPage>(`/users/me/notifications?${new URLSearchParams({ ...(before ? { before } : {}), ...(limit ? { limit: String(limit) } : {}) })}`),
+    getMyUnreadNotifications: () => request<{ unread: number }>("/users/me/notifications/unread"),
+    markMyNotificationsRead: (ids?: string[]) => request<{ unread: number }>("/users/me/notifications/read", { method: "POST", body: JSON.stringify(ids ? { ids } : {}) }),
     getTeamCalendarSettings: (teamId: string) => request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`),
     updateTeamCalendarSettings: (teamId: string, data: TeamCalendarSettings) =>
       request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`, { method: "PUT", body: JSON.stringify(data) }),

@@ -887,6 +887,22 @@ const en = {
     authConfirmClear: "Confirm revert",
     authClearing: "Reverting…",
   },
+  notifications: {
+    title: "Notifications",
+    open: "Notifications",
+    unread_one: "{{count}} unread",
+    unread_other: "{{count}} unread",
+    empty: "Nothing new.",
+    markAllRead: "Mark all as read",
+    loadMore: "Show older",
+    answers: { AVAILABLE: "Available", IF_NEEDED: "If needed", UNAVAILABLE: "Not available" },
+    kinds: {
+      EVENT_DATE_CANCELLED: { title: "{{event}} on {{date}} is cancelled", body: "{{team}}" },
+      EVENT_DATE_CHANGED: { title: "{{event}} on {{date}} changed", body: "{{team}} - now at {{time}}" },
+      EVENT_CANCELLED: { title: "{{event}} is cancelled", body: "{{team}}: its coming dates are off" },
+      ANSWERED_FOR_YOU: { title: "{{by}} answered for you: {{answer}}", body: "{{event}} on {{date}}, {{team}}" },
+    },
+  },
   teamCalendar: {
     awayAddButton: "Add days away",
     awayEdit: "Edit",

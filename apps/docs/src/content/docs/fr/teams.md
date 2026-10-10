@@ -34,6 +34,15 @@ Le calendrier se met à jour tout seul, mais les applications de calendrier vér
 
 La liste d'une date s'affiche dans votre barre latérale quand vous avez répondu **Disponible** - répondre l'y met, retirer la réponse l'enlève. Les autres dates à venir de l'équipe restent sur la page **Listes de chants** et dans le calendrier de l'équipe. Une fois la date passée, sa liste quitte la barre latérale et la liste : celles auxquelles vous avez participé sont sur la page **Listes de chants** sous **Archives**, et toutes les dates passées sont sur la page de l'équipe sous **Dates passées**. Les listes que vous créez vous-même s'affichent comme avant. Les listes gardées hors ligne suivent la même règle.
 
+### Notifications
+
+La cloche en haut de chaque page montre combien de notifications vous n'avez pas lues ; appuyez dessus pour les voir, des plus récentes aux plus anciennes. Appuyer sur l'une d'elles ouvre ce qu'elle concerne et la marque comme lue ; **Tout marquer comme lu** remet le compteur à zéro, et **Voir les plus anciennes** charge les précédentes. Vous êtes prévenu :
+
+- quand une date pour laquelle vous êtes inscrit (réponse **Disponible**) est annulée, ou que son heure ou son titre change - aussi quand tout l'événement change ou est supprimé ;
+- quand un administrateur de l'équipe répond pour vous, avec sa réponse.
+
+Celui qui fait le changement n'en est pas prévenu.
+
 ## Membres et rôles
 
 - Les **Administrateurs** gèrent l'équipe : ils modifient ses chants, ses versions et ses listes, et invitent des personnes.

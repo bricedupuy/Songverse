@@ -1,11 +1,13 @@
 import { CommandSearch } from "#/components/command-search";
 import { ModeSwitch } from "#/components/mode-switch";
+import { NotificationBell } from "#/components/notification-bell";
 import { SidebarTrigger } from "#/components/ui/sidebar";
 import { useMode } from "#/lib/mode";
 import { cn } from "#/lib/utils";
 
 /**
- * The top of every page: the sidebar's toggle, search and the mode switch.
+ * The top of every page: the sidebar's toggle, search, notifications and
+ * the mode switch.
  * No breadcrumb (issue #67): the sidebar shows where you are, and the
  * page's own title names it.
  */
@@ -19,6 +21,7 @@ export function SiteHeader() {
         <SidebarTrigger className="-ml-1" />
         <div className="ml-auto flex items-center gap-2">
           <CommandSearch />
+          <NotificationBell />
           <ModeSwitch />
         </div>
       </div>

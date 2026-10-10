@@ -28,6 +28,9 @@ import { UpdateUserSchema } from "../requests/accounts.js";
 import { checkRequest } from "../requests/messages.js";
 import { AnswerEventDateSchema, CreateAwaySchema, CreateTeamEventSchema } from "../requests/events.js";
 import { calendarFeed } from "../calendar/ical.js";
+import { notificationText, type NotificationData, type NotificationKind } from "../notifications/index.js";
+import enMessages from "../i18n/locales/en.js";
+import frMessages from "../i18n/locales/fr.js";
 import { effectiveAnswer, eventDates, setListing, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
 import type { z } from "zod";
 
@@ -1216,6 +1219,16 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "away, but answered for that day", args: ["AVAILABLE", [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-09"] },
           { name: "away on the last day of the range", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-15"] },
           { name: "no answer", args: [null, [{ from: "2026-08-01", to: "2026-08-15" }], "2026-08-16"] },
+        ],
+      },
+      notificationText: {
+        about: "A notification in words (issue #236): its kind and details, in the reader's language (en, fr), the date written in it.",
+        params: ["kind", "data", "locale"],
+        run: (kind: NotificationKind, data: NotificationData, locale: string) => notificationText(kind, data, locale === "fr" ? frMessages : enMessages, locale),
+        cases: [
+          { name: "a date cancelled", args: ["EVENT_DATE_CANCELLED", { event: "Morning service", date: "2026-10-18", team: "Worship team" }, "en"] },
+          { name: "a date moved, in French", args: ["EVENT_DATE_CHANGED", { event: "Culte du matin", date: "2026-10-18", team: "Louange", startTime: "09:30" }, "fr"] },
+          { name: "answered for you", args: ["ANSWERED_FOR_YOU", { event: "Rehearsal", date: "2026-10-15", team: "Worship team", answer: "IF_NEEDED", by: "Sam" }, "en"] },
         ],
       },
       calendarFeed: {

@@ -14,4 +14,5 @@ export * from "./roles.js";
 export * from "./screens.js";
 export * from "./invitations.js";
 export * from "./events.js";
+export * from "./notifications.js";
 export * from "./messages.js";

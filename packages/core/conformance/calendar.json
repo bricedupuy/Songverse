@@ -391,6 +391,67 @@
         }
       ]
     },
+    "notificationText": {
+      "about": "A notification in words (issue #236): its kind and details, in the reader's language (en, fr), the date written in it.",
+      "params": [
+        "kind",
+        "data",
+        "locale"
+      ],
+      "cases": [
+        {
+          "name": "a date cancelled",
+          "args": [
+            "EVENT_DATE_CANCELLED",
+            {
+              "event": "Morning service",
+              "date": "2026-10-18",
+              "team": "Worship team"
+            },
+            "en"
+          ],
+          "expected": {
+            "title": "Morning service on Sun, Oct 18 is cancelled",
+            "body": "Worship team"
+          }
+        },
+        {
+          "name": "a date moved, in French",
+          "args": [
+            "EVENT_DATE_CHANGED",
+            {
+              "event": "Culte du matin",
+              "date": "2026-10-18",
+              "team": "Louange",
+              "startTime": "09:30"
+            },
+            "fr"
+          ],
+          "expected": {
+            "title": "Culte du matin du dim. 18 oct. a changé",
+            "body": "Louange - maintenant à 09:30"
+          }
+        },
+        {
+          "name": "answered for you",
+          "args": [
+            "ANSWERED_FOR_YOU",
+            {
+              "event": "Rehearsal",
+              "date": "2026-10-15",
+              "team": "Worship team",
+              "answer": "IF_NEEDED",
+              "by": "Sam"
+            },
+            "en"
+          ],
+          "expected": {
+            "title": "Sam answered for you: If needed",
+            "body": "Rehearsal on Thu, Oct 15, Worship team"
+          }
+        }
+      ]
+    },
     "calendarFeed": {
       "about": "A personal calendar feed (iCalendar): each date one signed up for, its times in UTC, text escaped, lines folded at 75 octets with CRLF.",
       "params": [

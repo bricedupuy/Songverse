@@ -110,22 +110,22 @@ export class TeamEventsController {
 
   @Patch("events/:eventId")
   @UseGuards(TeamAdminGuard)
-  update(@Param("teamId") teamId: string, @Param("eventId") eventId: string, @Body() dto: UpdateTeamEventDto) {
-    return this.events.update(teamId, eventId, dto);
+  update(@CurrentUser() user: AuthenticatedUser | undefined, @Param("teamId") teamId: string, @Param("eventId") eventId: string, @Body() dto: UpdateTeamEventDto) {
+    return this.events.update(teamId, eventId, dto, user?.id ?? null);
   }
 
   /** Coming dates' sets still empty go with it; the others stay as the team's sets. */
   @Delete("events/:eventId")
   @UseGuards(TeamAdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
-  remove(@Param("teamId") teamId: string, @Param("eventId") eventId: string) {
-    return this.events.remove(teamId, eventId);
+  remove(@CurrentUser() user: AuthenticatedUser | undefined, @Param("teamId") teamId: string, @Param("eventId") eventId: string) {
+    return this.events.remove(teamId, eventId, user?.id ?? null);
   }
 
   @Patch("events/:eventId/dates/:date")
   @UseGuards(TeamAdminGuard)
-  updateDate(@Param("teamId") teamId: string, @Param("eventId") eventId: string, @Param("date") date: string, @Body() dto: UpdateTeamEventDateDto) {
-    return this.events.updateDate(teamId, eventId, dateParam(date), dto);
+  updateDate(@CurrentUser() user: AuthenticatedUser | undefined, @Param("teamId") teamId: string, @Param("eventId") eventId: string, @Param("date") date: string, @Body() dto: UpdateTeamEventDateDto) {
+    return this.events.updateDate(teamId, eventId, dateParam(date), dto, user?.id ?? null);
   }
 
   /** A date's set now, however far ahead: to plan it. */

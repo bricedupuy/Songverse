@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { addDays, daysBetween, eventDates, eventFallsOn, localDate, type EventDate, type EventTiming } from "@songverse/core";
 import type { Prisma } from "@songverse/db";
+import { NotificationsService, type NotificationInput } from "../notifications/notifications.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import type { CreateTeamEventDto, UpdateTeamCalendarDto, UpdateTeamEventDateDto, UpdateTeamEventDto } from "./dto/team-events.dto.js";
 
@@ -37,7 +38,50 @@ export const withDates = { dates: { include: { setlist: { select: { id: true, _c
  */
 @Injectable()
 export class TeamEventsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
+
+  /** Who signed up (answered Available) for an event's coming dates, from `today`: each date and its people. */
+  private async signedUp(eventId: string, today: string): Promise<{ date: string; userId: string }[]> {
+    const rows = await this.prisma.client.teamEventAnswer.findMany({ where: { eventId, answer: "AVAILABLE", date: { gte: day(today) } }, select: { date: true, userId: true } });
+    return rows.map((row) => ({ date: dateText(row.date), userId: row.userId }));
+  }
+
+  private async teamName(teamId: string): Promise<string> {
+    return (await this.prisma.client.team.findUnique({ where: { id: teamId }, select: { name: true } }))?.name ?? "";
+  }
+
+  /**
+   * What changed for the people signed up for a date, as their notification
+   * (issue #236): cancelled (or gone), another time or another title; none if
+   * nothing they'd see changed.
+   */
+  private dateNotice(before: EventRow, after: EventRow | null, date: string): Pick<NotificationInput, "kind" | "data"> | null {
+    const [was] = eventDates(timingOf(before), date, date, changesOf(before));
+    if (!was || was.cancelled) return null;
+    const [now] = after && eventFallsOn(timingOf(after), date) ? eventDates(timingOf(after), date, date, changesOf(after)) : [];
+    const wasTitle = was.title || before.title;
+    if (!now || now.cancelled) return { kind: "EVENT_DATE_CANCELLED", data: { event: wasTitle, date } };
+    const title = now.title || after!.title;
+    if (now.startTime === was.startTime && title === wasTitle) return null;
+    return { kind: "EVENT_DATE_CHANGED", data: { event: title, date, startTime: now.startTime } };
+  }
+
+  /** The people signed up for an event's coming dates told what changed for theirs; `by` made the change and isn't. */
+  private async notifyDates(before: EventRow, after: EventRow | null, signedUp: { date: string; userId: string }[], by: string | null) {
+    if (signedUp.length === 0) return;
+    const team = await this.teamName(before.teamId);
+    const notices = new Map<string, ReturnType<TeamEventsService["dateNotice"]>>();
+    const sent: NotificationInput[] = [];
+    for (const { date, userId } of signedUp) {
+      if (!notices.has(date)) notices.set(date, this.dateNotice(before, after, date));
+      const notice = notices.get(date);
+      if (notice) sent.push({ userId, kind: notice.kind, data: { ...notice.data, team }, url: "/calendar" });
+    }
+    await this.notifications.notify(sent, by);
+  }
 
   private summary(event: EventRow) {
     return {
@@ -91,8 +135,9 @@ export class TeamEventsService {
     return this.summary(await this.find(teamId, event.id));
   }
 
-  async update(teamId: string, eventId: string, dto: UpdateTeamEventDto) {
+  async update(teamId: string, eventId: string, dto: UpdateTeamEventDto, by: string | null = null) {
     const before = await this.find(teamId, eventId);
+    const signedUp = await this.signedUp(eventId, localDate(new Date(), before.timeZone));
     const repeat = dto.repeat === undefined ? timingOf(before).repeat : dto.repeat;
     const date = dto.date ?? dateText(before.date);
     if (repeat?.until && repeat.until < date) throw new BadRequestException(["repeat.until must not be before date"]);
@@ -126,15 +171,25 @@ export class TeamEventsService {
     // Read again: the dates dropped above are gone.
     await this.syncSetNames(await this.find(teamId, eventId), today);
     await this.makeSets(eventId);
-    return this.summary(await this.find(teamId, eventId));
+    const fresh = await this.find(teamId, eventId);
+    await this.notifyDates(before, fresh, signedUp, by);
+    return this.summary(fresh);
   }
 
   /** The event goes; its coming dates' empty sets with it, the rest stay as the team's sets. */
-  async remove(teamId: string, eventId: string): Promise<void> {
+  async remove(teamId: string, eventId: string, by: string | null = null): Promise<void> {
     const event = await this.find(teamId, eventId);
     const today = localDate(new Date(), event.timeZone);
+    const signedUp = await this.signedUp(eventId, today);
     const empty = event.dates.filter((row) => dateText(row.date) >= today && row.setlist && row.setlist._count.items === 0).map((row) => row.setlist!.id);
     await this.prisma.client.$transaction([this.prisma.client.setlist.deleteMany({ where: { id: { in: empty } } }), this.prisma.client.teamEvent.delete({ where: { id: eventId } })]);
+    // Those signed up for a coming date of it are told, once each.
+    const team = await this.teamName(teamId);
+    const people = [...new Set(signedUp.map((one) => one.userId))];
+    await this.notifications.notify(
+      people.map((userId) => ({ userId, kind: "EVENT_CANCELLED", data: { event: event.title, team }, url: "/calendar" })),
+      by,
+    );
   }
 
   /** A date's row and, while it has no songs, its set. */
@@ -183,7 +238,7 @@ export class TeamEventsService {
   }
 
   /** One date changed by itself: cancelled (its empty set deleted), another time or title (its set renamed). */
-  async updateDate(teamId: string, eventId: string, date: string, dto: UpdateTeamEventDateDto) {
+  async updateDate(teamId: string, eventId: string, date: string, dto: UpdateTeamEventDateDto, by: string | null = null) {
     const event = await this.find(teamId, eventId);
     if (!eventFallsOn(timingOf(event), date)) throw new NotFoundException("The event isn't on that date");
     const existing = event.dates.find((row) => dateText(row.date) === date);
@@ -204,6 +259,8 @@ export class TeamEventsService {
     }
     if (!row.cancelled) await this.makeSet(event, date);
     const fresh = await this.find(teamId, eventId);
+    const signedUp = date >= localDate(new Date(), event.timeZone) ? (await this.signedUp(eventId, date)).filter((one) => one.date === date) : [];
+    await this.notifyDates(event, fresh, signedUp, by);
     const [shown] = eventDates(timingOf(fresh), date, date, changesOf(fresh));
     return this.dateSummary(fresh, shown!, fresh.dates.find((one) => dateText(one.date) === date));
   }

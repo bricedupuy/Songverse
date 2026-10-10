@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { AVAILABILITY_ANSWERS, daysBetween, effectiveAnswer, eventDates, eventFallsOn, localDate, type AvailabilityAnswer, type AwayRange } from "@songverse/core";
+import { NotificationsService } from "../notifications/notifications.service.js";
 import { PrismaService } from "../prisma/prisma.service.js";
 import type { AnswerEventDateDto, CreateAwayDto } from "./dto/team-events.dto.js";
 import { changesOf, dateText, day, timingOf, withDates, type EventRow } from "./team-events.service.js";
@@ -22,7 +23,10 @@ export type AnswerCounts = Record<AvailabilityAnswer | "NONE", number>;
  */
 @Injectable()
 export class AvailabilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   private async awayOf(userIds: string[], from: string, to: string): Promise<Map<string, (AwayRange & { note: string | null })[]>> {
     const rows = await this.prisma.client.userAway.findMany({ where: { userId: { in: userIds }, from: { lte: day(to) }, to: { gte: day(from) } } });
@@ -77,7 +81,7 @@ export class AvailabilityService {
 
   /** Someone's answer for a date: their own, or an admin's for them (`by`). */
   async answer(teamId: string, eventId: string, date: string, userId: string, dto: AnswerEventDateDto, by: string | null = null) {
-    await this.eventOn(teamId, eventId, date);
+    const event = await this.eventOn(teamId, eventId, date);
     if (by) {
       const member = await this.prisma.client.teamMembership.findUnique({ where: { teamId_userId: { teamId, userId } } });
       if (!member) throw new NotFoundException("Not a member of the team");
@@ -88,6 +92,12 @@ export class AvailabilityService {
       create: { eventId, date: day(date), userId, ...data, note: dto.note ?? null },
       update: data,
     });
+    if (by) {
+      // They're told an admin answered for them (issue #236).
+      const [admin, team] = await Promise.all([this.prisma.client.user.findUnique({ where: { id: by }, select: { displayName: true } }), this.prisma.client.team.findUnique({ where: { id: teamId }, select: { name: true } })]);
+      const [shown] = eventDates(timingOf(event), date, date, changesOf(event));
+      await this.notifications.notify([{ userId, kind: "ANSWERED_FOR_YOU", data: { event: shown?.title || event.title, date, team: team?.name ?? "", answer: row.answer, by: admin?.displayName ?? "" }, url: "/calendar" }], by);
+    }
     return { answer: row.answer, note: row.note, away: false, byAdmin: !!row.answeredByUserId };
   }
 

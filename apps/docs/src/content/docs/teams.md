@@ -34,6 +34,15 @@ The calendar keeps itself up to date, but calendar apps look for changes on thei
 
 A date's set shows in your sidebar when you've said you're **Available** for it - answering puts it there, taking the answer back removes it. The team's other coming dates are still on the **Sets** page and the team's calendar. Once a date is over, its set leaves the sidebar and the list: the ones you took part in are on the **Sets** page under **Archive**, and every past date is on the team's page under **Past dates**. Sets you make yourself are listed as before. Sets kept for offline use follow the same rule.
 
+### Notifications
+
+The bell at the top of every page shows how many notifications you haven't read; press it for the list, newest first. Pressing one opens what it's about and marks it read; **Mark all as read** clears the count, and **Show older** loads earlier ones. You're told:
+
+- when a date you signed up for (answered **Available**) is cancelled, or its time or title changes - also when the whole event changes or is deleted;
+- when a team admin answers for you, with their answer.
+
+Whoever made the change isn't told about it.
+
 ## Members and roles
 
 - **Admins** manage the team: they change its songs, versions and sets, and invite people.
