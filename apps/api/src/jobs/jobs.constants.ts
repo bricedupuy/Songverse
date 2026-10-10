@@ -13,6 +13,8 @@ export const LOOKUPS_QUEUE = "lookups";
 export const RECORDINGS_QUEUE = "recordings";
 /** Recordings split into stems at our Demucs API (issue #63). */
 export const STEM_SEPARATION_QUEUE = "stem-separation";
+/** Teams' event dates given their sets ahead of time (issue #235). */
+export const TEAM_EVENTS_QUEUE = "team-events";
 
 /**
  * A short hash of this process's SETTINGS_ENCRYPTION_KEY, or null without

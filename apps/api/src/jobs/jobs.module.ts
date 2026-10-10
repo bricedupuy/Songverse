@@ -3,11 +3,11 @@ import { Module } from "@nestjs/common";
 import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types.js";
 import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor.js";
 import { JobsController } from "./jobs.controller.js";
-import { BACKFILLS_QUEUE, LOOKUPS_QUEUE, RECORDINGS_QUEUE, STEM_SEPARATION_QUEUE } from "./jobs.constants.js";
+import { BACKFILLS_QUEUE, LOOKUPS_QUEUE, RECORDINGS_QUEUE, STEM_SEPARATION_QUEUE, TEAM_EVENTS_QUEUE } from "./jobs.constants.js";
 import { JobsService } from "./jobs.service.js";
 
 @Module({
-  imports: [BullModule.registerQueue({ name: LOOKUPS_QUEUE }, { name: BACKFILLS_QUEUE }, { name: BULK_UPLOAD_QUEUE }, { name: USER_MAINTENANCE_QUEUE }, { name: RECORDINGS_QUEUE }, { name: STEM_SEPARATION_QUEUE })],
+  imports: [BullModule.registerQueue({ name: LOOKUPS_QUEUE }, { name: BACKFILLS_QUEUE }, { name: BULK_UPLOAD_QUEUE }, { name: USER_MAINTENANCE_QUEUE }, { name: RECORDINGS_QUEUE }, { name: STEM_SEPARATION_QUEUE }, { name: TEAM_EVENTS_QUEUE })],
   controllers: [JobsController],
   providers: [JobsService],
 })

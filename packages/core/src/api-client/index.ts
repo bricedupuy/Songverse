@@ -34,6 +34,8 @@ import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
 import type { CreateSignupInvitationRequest } from "../requests/invitations.js";
 import type { UpdateSetlistItemRequest } from "../requests/sets.js";
+import type { CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
+import type { EventDate, EventRepeat } from "../calendar/index.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
 import type { AttachmentTypeValue, SaveFileSizeLimitsRequest } from "../requests/files.js";
@@ -771,6 +773,39 @@ export interface TeamMember {
   joinedAt: string;
   instruments: string[];
   techRoles: TechRoleValue[];
+}
+
+/** A team's event (issue #235). */
+export interface TeamEvent {
+  id: string;
+  teamId: string;
+  title: string;
+  /** Its first date, YYYY-MM-DD. */
+  date: string;
+  startTime: string;
+  durationMinutes: number;
+  timeZone: string;
+  place: string | null;
+  note: string | null;
+  repeat: EventRepeat | null;
+}
+
+/** A date of a team's event, with its set. */
+export interface TeamEventDateSummary extends EventDate {
+  eventId: string;
+  /** The date's own title, or the event's. */
+  title: string;
+  ownTitle: string | null;
+  eventTitle: string;
+  place: string | null;
+  timeZone: string;
+  repeats: boolean;
+  setlistId: string | null;
+  songCount: number;
+}
+
+export interface TeamCalendarSettings {
+  setsAheadWeeks: number;
 }
 
 export interface TeamInviteLink {
@@ -1647,6 +1682,23 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
       request<TeamInviteLink>(`/teams/${teamId}/invite-links`, { method: "POST", body: JSON.stringify(data) }),
     revokeTeamInviteLink: (teamId: string, linkId: string) =>
       request<void>(`/teams/${teamId}/invite-links/${linkId}`, { method: "DELETE" }),
+
+    // A team's calendar (issue #235).
+    listTeamEvents: (teamId: string) => request<TeamEvent[]>(`/teams/${teamId}/events`),
+    listTeamEventDates: (teamId: string, from: string, to: string) =>
+      request<TeamEventDateSummary[]>(`/teams/${teamId}/event-dates?${new URLSearchParams({ from, to })}`),
+    createTeamEvent: (teamId: string, data: CreateTeamEventRequest) =>
+      request<TeamEvent>(`/teams/${teamId}/events`, { method: "POST", body: JSON.stringify(data) }),
+    updateTeamEvent: (teamId: string, eventId: string, data: UpdateTeamEventRequest) =>
+      request<TeamEvent>(`/teams/${teamId}/events/${eventId}`, { method: "PATCH", body: JSON.stringify(data) }),
+    deleteTeamEvent: (teamId: string, eventId: string) => request<void>(`/teams/${teamId}/events/${eventId}`, { method: "DELETE" }),
+    updateTeamEventDate: (teamId: string, eventId: string, date: string, data: UpdateTeamEventDateRequest) =>
+      request<TeamEventDateSummary>(`/teams/${teamId}/events/${eventId}/dates/${date}`, { method: "PATCH", body: JSON.stringify(data) }),
+    ensureTeamEventDateSet: (teamId: string, eventId: string, date: string) =>
+      request<{ setlistId: string }>(`/teams/${teamId}/events/${eventId}/dates/${date}/set`, { method: "POST" }),
+    getTeamCalendarSettings: (teamId: string) => request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`),
+    updateTeamCalendarSettings: (teamId: string, data: TeamCalendarSettings) =>
+      request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`, { method: "PUT", body: JSON.stringify(data) }),
 
     listSongbooks: () => request<SongbookSummary[]>("/songbooks"),
     createSongbook: (data: CreateSongbookInput) =>

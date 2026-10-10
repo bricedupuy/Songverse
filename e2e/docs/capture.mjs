@@ -62,8 +62,8 @@ Early in the [Bm]morning our [E]song shall rise to [A]Thee;
 ];
 
 const LOCALES = {
-  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", guest: "Jordan Kim", friend: "Chris Lane", asking: "Taylor Reed", reviewer: "Robin Lee", why: "It's 'relieved', with one l.", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only", addedLine: "Sing it a|gain" },
-  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", guest: "Lucas Martin", friend: "Chloe Bernard", asking: "Emma Roux", reviewer: "Alice Moreau", why: "C'est « relieved », avec un seul l.", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul", addedLine: "Chante-le en|core" },
+  en: { user: "Alex Martin", email: "alex.martin@example.com", bandmate: "Sam Taylor", guest: "Jordan Kim", friend: "Chris Lane", asking: "Taylor Reed", reviewer: "Robin Lee", why: "It's 'relieved', with one l.", team: "Morning Band", set: "Sunday service", arrangement: "Sunday band", songbook: "Hymns", note: "Softly, piano only", addedLine: "Sing it a|gain", service: "Morning service", rehearsal: "Rehearsal", hall: "Main hall", zone: "Europe/London" },
+  fr: { user: "Camille Durand", email: "camille.durand@example.com", bandmate: "Hugo Petit", guest: "Lucas Martin", friend: "Chloe Bernard", asking: "Emma Roux", reviewer: "Alice Moreau", why: "C'est « relieved », avec un seul l.", team: "Groupe du matin", set: "Culte du dimanche", arrangement: "Groupe du dimanche", songbook: "Cantiques", note: "Doucement, piano seul", addedLine: "Chante-le en|core", service: "Culte du matin", rehearsal: "Répétition", hall: "Grande salle", zone: "Europe/Paris" },
 };
 
 const nextSunday = () => {
@@ -409,7 +409,11 @@ try {
     // The metronome (issue #2): its page, stopped.
     await shoot("metronome", "/metronome", () => page.getByTestId("metronome-beats").waitFor(), { fullPage: true });
     await shoot("songbook", `/songbooks/${songbook.id}`, null, { fullPage: true });
-    await shoot("team", `/teams/${team.id}`);
+    // Its calendar (issue #235): a weekly service from next Sunday, a rehearsal every other Thursday.
+    const service = nextSunday();
+    await api(me, "POST", `/teams/${team.id}/events`, { title: text.service, date: service, startTime: "10:00", durationMinutes: 120, timeZone: text.zone, place: text.hall, repeat: { everyWeeks: 1 } });
+    await api(me, "POST", `/teams/${team.id}/events`, { title: text.rehearsal, date: new Date(Date.parse(`${service}T00:00:00Z`) - 3 * 86400000).toISOString().slice(0, 10), startTime: "19:30", timeZone: text.zone, repeat: { everyWeeks: 2 } });
+    await shoot("team", `/teams/${team.id}`, () => page.getByTestId("team-calendar").locator("[data-event-date]").first().waitFor());
     // People (issue #77): a guest musician connected, the song shared with them, someone asking.
     // Plain addresses rather than the harness's, since they show on the page.
     const named = async (name) => {

@@ -54,5 +54,6 @@ export * from "./metronome/index.js";
 export * from "./sync/index.js";
 export * from "./screens/index.js";
 export * from "./file-types/index.js";
+export * from "./calendar/index.js";
 export * from "./requests/index.js";
 export * from "./pdf-chart/index.js";

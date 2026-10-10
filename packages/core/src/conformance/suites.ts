@@ -26,6 +26,8 @@ import { CreateSongVersionSchema, UpdateSongVersionSchema } from "../requests/so
 import { AddSetlistItemSchema, CreateSetlistSchema } from "../requests/sets.js";
 import { UpdateUserSchema } from "../requests/accounts.js";
 import { checkRequest } from "../requests/messages.js";
+import { CreateTeamEventSchema } from "../requests/events.js";
+import { eventDates, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
 import type { z } from "zod";
 
 /**
@@ -1153,6 +1155,68 @@ export const CONFORMANCE: ConformanceArea[] = [
     },
   },
   {
+    area: "calendar",
+    about: "A team's calendar (issue #235): the dates an event falls on, at its wall-clock time in the team's time zone - the same across daylight saving.",
+    functions: {
+      eventDates: {
+        about: "The dates from `from` to `to` (included), with each date's own changes.",
+        params: ["event", "from", "to", "changes"],
+        run: eventDates,
+        cases: [
+          { name: "a one-off", args: [{ date: "2026-12-24", startTime: "18:00", durationMinutes: 90, timeZone: "Europe/Paris" }, "2026-12-01", "2026-12-31", []] },
+          { name: "a one-off outside the range", args: [{ date: "2026-12-24", startTime: "18:00", durationMinutes: 90, timeZone: "Europe/Paris" }, "2027-01-01", "2027-01-31", []] },
+          {
+            name: "every Sunday at 10:00 across the clocks going back",
+            args: [{ date: "2026-10-11", startTime: "10:00", durationMinutes: 120, timeZone: "Europe/Paris", repeat: { everyWeeks: 1 } }, "2026-10-12", "2026-11-08", []],
+          },
+          {
+            name: "every other week, until a date, one cancelled and one moved",
+            args: [
+              { date: "2026-01-04", startTime: "09:30", durationMinutes: 90, timeZone: "America/New_York", repeat: { everyWeeks: 2, until: "2026-03-29" } },
+              "2026-02-01",
+              "2026-12-31",
+              [
+                { date: "2026-02-15", cancelled: true },
+                { date: "2026-03-15", startTime: "11:00", title: "Easter rehearsal" },
+              ],
+            ],
+          },
+          { name: "a range before the first date", args: [{ date: "2026-10-11", startTime: "10:00", durationMinutes: 60, timeZone: "UTC", repeat: { everyWeeks: 1 } }, "2026-09-01", "2026-10-20", []] },
+        ],
+      },
+      zonedInstant: {
+        about: "The instant a wall-clock time happens in a time zone; a time skipped by the clocks going forward is taken an hour later, one that happens twice as the first.",
+        params: ["date", "time", "timeZone"],
+        run: zonedInstant,
+        cases: [
+          { name: "summer in Paris", args: ["2026-07-05", "10:00", "Europe/Paris"] },
+          { name: "winter in Paris", args: ["2026-12-06", "10:00", "Europe/Paris"] },
+          { name: "skipped: 02:30 the day the clocks go forward", args: ["2026-03-29", "02:30", "Europe/Paris"] },
+          { name: "twice: 02:30 the day the clocks go back", args: ["2026-10-25", "02:30", "Europe/Paris"] },
+          { name: "Sydney", args: ["2026-04-05", "10:00", "Australia/Sydney"] },
+        ],
+      },
+      localDate: {
+        about: "The date an instant falls on in a time zone.",
+        params: ["instant", "timeZone"],
+        run: localDate,
+        cases: [
+          { name: "late evening in New York is the next day in UTC", args: ["2026-10-12T02:00:00.000Z", "America/New_York"] },
+          { name: "Tokyo", args: ["2026-10-11T20:00:00.000Z", "Asia/Tokyo"] },
+        ],
+      },
+      isPastDate: {
+        about: "Whether a date is over: before today in the team's time zone. An event's date is still coming on the day.",
+        params: ["date", "now", "timeZone"],
+        run: isPastDate,
+        cases: [
+          { name: "the same day, in the evening", args: ["2026-10-11", "2026-10-11T21:00:00.000Z", "Europe/Paris"] },
+          { name: "the day after", args: ["2026-10-11", "2026-10-11T23:30:00.000Z", "Europe/Paris"] },
+        ],
+      },
+    },
+  },
+  {
     area: "requests",
     about:
       "What the API takes (issue #118), checked as it checks them (checkRequest): the body it goes on with (defaults filled in, text trimmed), or the messages it answers 400 with. A client can check a form the same way before sending it.",
@@ -1176,6 +1240,15 @@ export const CONFORMANCE: ConformanceArea[] = [
         cases: [
           { name: "clearing the album", args: [{ album: "" }] },
           { name: "a capo out of range", args: [{ capo: 14 }] },
+        ],
+      },
+      CreateTeamEventSchema: {
+        about: "POST /teams/:teamId/events (issue #235)",
+        params: ["body"],
+        run: checked(CreateTeamEventSchema),
+        cases: [
+          { name: "every Sunday morning", args: [{ title: "Morning service", date: "2026-10-11", startTime: "10:00", timeZone: "Europe/Paris", repeat: { everyWeeks: 1 } }] },
+          { name: "a time and a zone that aren't", args: [{ title: "Rehearsal", date: "2026-02-30", startTime: "25:00", timeZone: "Mars/Olympus" }] },
         ],
       },
       CreateSetlistSchema: {

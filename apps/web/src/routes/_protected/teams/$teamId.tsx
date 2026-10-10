@@ -15,6 +15,7 @@ import { Input } from "#/components/ui/input";
 import { Label } from "#/components/ui/label";
 import { NativeSelect } from "#/components/ui/native-select";
 import { ConfirmButton } from "#/components/confirm-button";
+import { TeamCalendar } from "#/components/team-calendar";
 
 export const Route = createFileRoute("/_protected/teams/$teamId")({
   loader: async ({ context, params }) => {
@@ -233,6 +234,9 @@ function TeamDetail() {
       ) : null}
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      {/* Its services and rehearsals, each date with its set (issue #235). */}
+      <TeamCalendar teamId={team.id} isAdmin={isAdmin} />
 
       <div className="grid grid-cols-1 items-start gap-6 @6xl:grid-cols-2">
       <Card>

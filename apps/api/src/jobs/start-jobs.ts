@@ -7,12 +7,13 @@ import { BackfillsProcessor, LookupsProcessor } from "../lookups/lookups.process
 import { RecordingsProcessor } from "../recordings/recordings.processor.js";
 import { StemSeparationProcessor } from "../stem-separation/stem-separation.processor.js";
 import { ffmpegVersion } from "../recordings/ffmpeg.js";
+import { TeamEventsProcessor } from "../team-events/team-events.processor.js";
 import { TransferExpiryProcessor } from "../user-management/transfer-expiry.processor.js";
 import { HEARTBEAT_KEY, settingsKeyCheck } from "./jobs.constants.js";
 import { redis } from "./redis.js";
 
 /** Every job processor: a new one needs adding here, or no process runs its jobs. */
-const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor, BackfillsProcessor, RecordingsProcessor, StemSeparationProcessor];
+const PROCESSORS = [BulkUploadProcessor, TransferExpiryProcessor, LookupsProcessor, BackfillsProcessor, RecordingsProcessor, StemSeparationProcessor, TeamEventsProcessor];
 
 const logger = new Logger("Jobs");
 

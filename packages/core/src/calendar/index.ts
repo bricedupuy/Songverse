@@ -1,0 +1,197 @@
+/**
+ * A team's calendar (issue #235): events, one-off or repeating, and the
+ * dates they fall on. An event's time is a wall-clock time in the team's
+ * time zone - "every Sunday at 10:00" stays at 10:00 across daylight
+ * saving - so each date's instant is worked out in that zone. Dates are
+ * calendar days, "YYYY-MM-DD", in that zone.
+ */
+
+/** How an event repeats: every `everyWeeks` weeks on its first date's weekday, until `until` (that day included) or for ever. */
+export interface EventRepeat {
+  everyWeeks: number;
+  until?: string | null;
+}
+
+/** When an event happens: its first date and time, how long, in which zone, and whether it repeats. */
+export interface EventTiming {
+  /** The first date, YYYY-MM-DD. */
+  date: string;
+  /** Its start, HH:MM (24-hour), in `timeZone`. */
+  startTime: string;
+  durationMinutes: number;
+  /** An IANA time zone ("Europe/Paris"). */
+  timeZone: string;
+  repeat?: EventRepeat | null;
+}
+
+/** One date of an event changed by itself: cancelled, another time or another title. */
+export interface EventDateChange {
+  date: string;
+  cancelled?: boolean;
+  startTime?: string | null;
+  title?: string | null;
+}
+
+/** A date an event falls on, with its own changes applied. */
+export interface EventDate {
+  date: string;
+  startTime: string;
+  /** The start and end instants, ISO 8601 in UTC. */
+  startsAt: string;
+  endsAt: string;
+  /** This date's own title, if it has one. */
+  title: string | null;
+  cancelled: boolean;
+  /** Changed by itself (a time or a title of its own); cancelled dates aren't counted. */
+  changed: boolean;
+}
+
+/** The most dates `eventDates` lists at once. */
+export const EVENT_DATES_LIMIT = 1000;
+
+const DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/** Whether a string is a calendar date, YYYY-MM-DD, that exists. */
+export function isCalendarDate(value: string): boolean {
+  const match = DATE.exec(value);
+  if (!match) return false;
+  const day = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return day.toISOString().slice(0, 10) === value;
+}
+
+/** Whether a string is a time of day, HH:MM (24-hour). */
+export function isTimeOfDay(value: string): boolean {
+  return TIME.test(value);
+}
+
+/** Whether a time zone is one this runtime knows (an IANA name). */
+export function isTimeZone(value: string): boolean {
+  if (!value || value.length > 64) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** A date `days` days after `date` (before, if negative). */
+export function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** The days from `a` to `b` (negative if `b` is earlier). */
+export function daysBetween(a: string, b: string): number {
+  const time = (date: string) => {
+    const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round((time(b) - time(a)) / 86_400_000);
+}
+
+/** The day of the week of a date: 0 Sunday to 6 Saturday. */
+export function weekdayOf(date: string): number {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+}
+
+const formatters = new Map<string, Intl.DateTimeFormat>();
+function formatterFor(timeZone: string) {
+  let formatter = formatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    formatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
+/** The wall clock in `timeZone` at an instant: its date, and minutes past midnight. */
+function wallClock(ms: number, timeZone: string) {
+  const parts = Object.fromEntries(formatterFor(timeZone).formatToParts(new Date(ms)).map((part) => [part.type, part.value]));
+  return { y: Number(parts.year), m: Number(parts.month), d: Number(parts.day), h: Number(parts.hour) % 24, min: Number(parts.minute), s: Number(parts.second) };
+}
+
+/** How far ahead of UTC `timeZone` is at an instant, in ms. */
+function offsetAt(ms: number, timeZone: string): number {
+  const c = wallClock(ms, timeZone);
+  return Date.UTC(c.y, c.m - 1, c.d, c.h, c.min, c.s) - Math.floor(ms / 1000) * 1000;
+}
+
+/**
+ * The instant a wall-clock time happens in a time zone, ISO 8601 in UTC.
+ * A time skipped when the clocks go forward is taken as the same time
+ * after the change (02:30 becomes 03:30); one that happens twice when they
+ * go back, as the first.
+ */
+export function zonedInstant(date: string, time: string, timeZone: string): string {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  const [h, min] = time.split(":").map(Number) as [number, number];
+  const wall = Date.UTC(y, m - 1, d, h, min);
+  // The zone's offset a day either side: the larger is before a change back, the smaller after one forward.
+  const before = offsetAt(wall - 86_400_000, timeZone);
+  const after = offsetAt(wall + 86_400_000, timeZone);
+  for (const offset of before >= after ? [before, after] : [after, before]) {
+    const instant = wall - offset;
+    if (offsetAt(instant, timeZone) === offset) return new Date(instant).toISOString();
+  }
+  // Skipped (clocks forward): the same wall time, with the offset from before the change.
+  return new Date(wall - Math.min(before, after)).toISOString();
+}
+
+/** The date an instant falls on in a time zone, YYYY-MM-DD. */
+export function localDate(instant: string | Date, timeZone: string): string {
+  const c = wallClock(new Date(instant).getTime(), timeZone);
+  return `${String(c.y).padStart(4, "0")}-${String(c.m).padStart(2, "0")}-${String(c.d).padStart(2, "0")}`;
+}
+
+/** Whether a date is over: before today in its time zone (an event's date stays coming until the day after). */
+export function isPastDate(date: string, now: string | Date, timeZone: string): boolean {
+  return date < localDate(now, timeZone);
+}
+
+/** Whether an event falls on a date (before any date's own changes). */
+export function eventFallsOn(event: Pick<EventTiming, "date" | "repeat">, date: string): boolean {
+  if (date === event.date) return true;
+  const repeat = event.repeat;
+  if (!repeat || date < event.date || (repeat.until && date > repeat.until)) return false;
+  const days = daysBetween(event.date, date);
+  return days % (7 * repeat.everyWeeks) === 0;
+}
+
+/**
+ * The dates an event falls on from `from` to `to` (both included), with
+ * each date's own changes - cancelled, another start time or title. At
+ * most `EVENT_DATES_LIMIT` dates.
+ */
+export function eventDates(event: EventTiming, from: string, to: string, changes: EventDateChange[] = []): EventDate[] {
+  const byDate = new Map(changes.map((change) => [change.date, change]));
+  const dates: string[] = [];
+  const step = event.repeat ? 7 * Math.max(1, event.repeat.everyWeeks) : 0;
+  const last = event.repeat?.until && event.repeat.until < to ? event.repeat.until : to;
+  if (!event.repeat) {
+    if (event.date >= from && event.date <= to) dates.push(event.date);
+  } else {
+    // The first date on or after `from`.
+    const skip = from > event.date ? Math.ceil(daysBetween(event.date, from) / step) : 0;
+    for (let date = addDays(event.date, skip * step); date <= last && dates.length < EVENT_DATES_LIMIT; date = addDays(date, step)) dates.push(date);
+  }
+  return dates.map((date) => {
+    const change = byDate.get(date);
+    const startTime = change?.startTime || event.startTime;
+    const startsAt = zonedInstant(date, startTime, event.timeZone);
+    return {
+      date,
+      startTime,
+      startsAt,
+      endsAt: new Date(new Date(startsAt).getTime() + event.durationMinutes * 60_000).toISOString(),
+      title: change?.title || null,
+      cancelled: !!change?.cancelled,
+      changed: !change?.cancelled && (!!change?.title || (!!change?.startTime && change.startTime !== event.startTime)),
+    };
+  });
+}
+
+/** How many weeks ahead a team's event sets are made (issue #235): its setting, 1 to 52 (a year). */
+export const SETS_AHEAD_WEEKS = { min: 1, max: 52, default: 4 } as const;

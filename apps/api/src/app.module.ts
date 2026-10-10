@@ -25,6 +25,7 @@ import { SongbooksModule } from "./songbooks/songbooks.module.js";
 import { SongVersionsModule } from "./song-versions/song-versions.module.js";
 import { TagsModule } from "./tags/tags.module.js";
 import { SmartListsModule } from "./smart-lists/smart-lists.module.js";
+import { TeamEventsModule } from "./team-events/team-events.module.js";
 import { TeamsModule } from "./teams/teams.module.js";
 import { UsersModule } from "./users/users.module.js";
 import { WorksModule } from "./works/works.module.js";
@@ -54,6 +55,7 @@ import { LookupsModule } from "./lookups/lookups.module.js";
     AuthModule,
     UsersModule,
     TeamsModule,
+    TeamEventsModule,
     WorksModule,
     SongVersionsModule,
     ArrangementsModule,

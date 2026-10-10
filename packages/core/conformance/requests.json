@@ -142,6 +142,59 @@
         }
       ]
     },
+    "CreateTeamEventSchema": {
+      "about": "POST /teams/:teamId/events (issue #235)",
+      "params": [
+        "body"
+      ],
+      "cases": [
+        {
+          "name": "every Sunday morning",
+          "args": [
+            {
+              "title": "Morning service",
+              "date": "2026-10-11",
+              "startTime": "10:00",
+              "timeZone": "Europe/Paris",
+              "repeat": {
+                "everyWeeks": 1
+              }
+            }
+          ],
+          "expected": {
+            "ok": true,
+            "value": {
+              "title": "Morning service",
+              "date": "2026-10-11",
+              "startTime": "10:00",
+              "timeZone": "Europe/Paris",
+              "repeat": {
+                "everyWeeks": 1
+              }
+            }
+          }
+        },
+        {
+          "name": "a time and a zone that aren't",
+          "args": [
+            {
+              "title": "Rehearsal",
+              "date": "2026-02-30",
+              "startTime": "25:00",
+              "timeZone": "Mars/Olympus"
+            }
+          ],
+          "expected": {
+            "ok": false,
+            "messages": [
+              "date must be a date, YYYY-MM-DD",
+              "startTime must be a time, HH:MM",
+              "timeZone must be a time zone, like Europe/Paris"
+            ]
+          }
+        }
+      ]
+    },
     "CreateSetlistSchema": {
       "about": "POST /setlists",
       "params": [

@@ -353,6 +353,7 @@ model User {
   connectionsAsked    Connection[]          @relation("ConnectionRequester")
   connectionsAnswered Connection[]          @relation("ConnectionAddressee")
   reviewedProposals   ChangeProposal[]      @relation("ProposalReviewer")
+  teamEventsCreated   TeamEvent[]           @relation("TeamEventCreatedBy")
 
   @@index([email])
 }
@@ -482,6 +483,9 @@ model Team {
   roleAssignments     RoleAssignment[]
   // Its screens' looks (issue #194), for every member to pick.
   screenThemes        ScreenTheme[]
+  // Its calendar (issue #235), and how many weeks ahead each date's set is made (1-52).
+  events              TeamEvent[]
+  setsAheadWeeks      Int                    @default(4)
 
   @@index([slug])
 }
@@ -1009,9 +1013,61 @@ model Setlist {
   multitrackFiles   Attachment[]           @relation("AttachmentMultitrackSetlist")
   // The screens showing it (issue #186).
   screens           Screen[]
+  // The date of a team's event it was made for (issue #235).
+  eventDateOf       TeamEventDate?
 
   @@index([ownerUserId])
   @@index([ownerTeamId])
+}
+
+// A team's event (issue #235): a one-off, or every n weeks on its first
+// date's weekday until a date or for ever. Its time is a wall-clock time in
+// its time zone (the same across daylight saving); its dates are worked out
+// by eventDates() in @songverse/core. Managed by the team's admins.
+model TeamEvent {
+  id               String    @id @default(cuid())
+  teamId           String
+  title            String
+  // Its first date, and its start ("HH:MM") in timeZone.
+  date             DateTime  @db.Date
+  startTime        String
+  durationMinutes  Int       @default(90)
+  timeZone         String
+  place            String?
+  note             String?
+  // Null: a one-off.
+  repeatEveryWeeks Int?
+  repeatUntil      DateTime? @db.Date
+  createdByUserId  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  team      Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User?           @relation("TeamEventCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  dates     TeamEventDate[]
+
+  @@index([teamId])
+}
+
+// One date of an event with something of its own: changed (cancelled,
+// another time or title) or given its set. A date without a row is just
+// the event's. setCreatedAt says its set was made once: a set someone
+// deleted isn't made again (a cancelled date's empty set is deleted with
+// setCreatedAt cleared, so it comes back if the date does).
+model TeamEventDate {
+  id           String    @id @default(cuid())
+  eventId      String
+  date         DateTime  @db.Date
+  cancelled    Boolean   @default(false)
+  startTime    String?
+  title        String?
+  setlistId    String?   @unique
+  setCreatedAt DateTime?
+
+  event   TeamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  setlist Setlist?  @relation(fields: [setlistId], references: [id], onDelete: SetNull)
+
+  @@unique([eventId, date])
 }
 
 // At most one per set. Anyone signed in who opens it joins the set as a
