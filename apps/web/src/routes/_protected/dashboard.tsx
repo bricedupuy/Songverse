@@ -10,6 +10,7 @@ import { sizedAvatarUrl } from "#/lib/avatar-url";
 import { initials } from "#/lib/initials";
 import { artistNames } from "#/lib/artists";
 import { ChartDisplayCard, EmailCard, LanguageCard, PasskeysCard, ProfileCard, StorageCard } from "./-dashboard/account-cards";
+import { NotificationSettingsCard } from "#/components/notification-settings-card";
 import { OwnershipRequestsCard } from "./-dashboard/ownership-requests-card";
 import { RolesCard } from "./-dashboard/roles-card";
 
@@ -174,6 +175,7 @@ function Dashboard() {
           <PasskeysCard />
           <StorageCard storage={storage} />
           <LanguageCard locale={profile.locale} weekStartsOn={profile.weekStartsOn} />
+          <NotificationSettingsCard />
           <ChartDisplayCard profile={profile} />
         </div>
       </section>

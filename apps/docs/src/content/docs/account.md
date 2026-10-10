@@ -31,6 +31,10 @@ Tell your teams what you play or do - **Instruments** (vocals, guitars, keys, dr
 
 Choose the app's language under **Language**. **First day of the week** sets where every calendar's weeks start: **Automatic (from the language)** - Sunday in English, Monday in French - or always **Monday**, **Sunday** or **Saturday**.
 
+## Notifications
+
+Everything Songverse tells you shows under the bell at the top of every page (see [Notifications](/teams/#notifications)). Under **Notifications**, tick which kinds are also sent to you by email - a date you signed up for cancelled or changed, an event deleted, an admin answering for you; they're all on until you choose. Several at once come as one email. When the server doesn't send notifications by email, the card says so.
+
 ## Chart display
 
 How chords read on every chart you open:

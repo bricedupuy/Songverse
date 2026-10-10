@@ -452,6 +452,194 @@
         }
       ]
     },
+    "notificationPreferences": {
+      "about": "How each kind of notification reaches someone (issue #236), from what's stored: a choice left out is on, anything else is ignored.",
+      "params": [
+        "stored"
+      ],
+      "cases": [
+        {
+          "name": "nothing chosen: everything on",
+          "args": [
+            null
+          ],
+          "expected": {
+            "EVENT_DATE_CANCELLED": {
+              "email": true,
+              "push": true
+            },
+            "EVENT_DATE_CHANGED": {
+              "email": true,
+              "push": true
+            },
+            "EVENT_CANCELLED": {
+              "email": true,
+              "push": true
+            },
+            "ANSWERED_FOR_YOU": {
+              "email": true,
+              "push": true
+            }
+          }
+        },
+        {
+          "name": "email off for one kind; junk ignored",
+          "args": [
+            {
+              "kinds": {
+                "EVENT_DATE_CHANGED": {
+                  "email": false,
+                  "sms": true
+                },
+                "NOPE": {
+                  "email": false
+                },
+                "EVENT_CANCELLED": {
+                  "push": "no"
+                }
+              }
+            }
+          ],
+          "expected": {
+            "EVENT_DATE_CANCELLED": {
+              "email": true,
+              "push": true
+            },
+            "EVENT_DATE_CHANGED": {
+              "email": false,
+              "push": true
+            },
+            "EVENT_CANCELLED": {
+              "email": true,
+              "push": true
+            },
+            "ANSWERED_FOR_YOU": {
+              "email": true,
+              "push": true
+            }
+          }
+        }
+      ]
+    },
+    "withNotificationChanges": {
+      "about": "Choices changed: what's left out stays as it was.",
+      "params": [
+        "stored",
+        "changes"
+      ],
+      "cases": [
+        {
+          "name": "one channel changed, the rest kept",
+          "args": [
+            {
+              "kinds": {
+                "EVENT_DATE_CHANGED": {
+                  "email": false
+                }
+              }
+            },
+            {
+              "ANSWERED_FOR_YOU": {
+                "push": false
+              }
+            }
+          ],
+          "expected": {
+            "kinds": {
+              "EVENT_DATE_CANCELLED": {
+                "email": true,
+                "push": true
+              },
+              "EVENT_DATE_CHANGED": {
+                "email": false,
+                "push": true
+              },
+              "EVENT_CANCELLED": {
+                "email": true,
+                "push": true
+              },
+              "ANSWERED_FOR_YOU": {
+                "email": true,
+                "push": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "notificationEmail": {
+      "about": "Notifications in an email: one under its own title, several under one subject, in the reader's language.",
+      "params": [
+        "items",
+        "locale"
+      ],
+      "cases": [
+        {
+          "name": "one",
+          "args": [
+            [
+              {
+                "kind": "EVENT_DATE_CANCELLED",
+                "data": {
+                  "event": "Morning service",
+                  "date": "2026-10-18",
+                  "team": "Worship team"
+                }
+              }
+            ],
+            "en"
+          ],
+          "expected": {
+            "subject": "Morning service on Sun, Oct 18 is cancelled",
+            "lines": [
+              {
+                "title": "Morning service on Sun, Oct 18 is cancelled",
+                "body": "Worship team"
+              }
+            ]
+          }
+        },
+        {
+          "name": "several, in French",
+          "args": [
+            [
+              {
+                "kind": "EVENT_DATE_CHANGED",
+                "data": {
+                  "event": "Culte",
+                  "date": "2026-10-18",
+                  "team": "Louange",
+                  "startTime": "09:30"
+                }
+              },
+              {
+                "kind": "EVENT_DATE_CHANGED",
+                "data": {
+                  "event": "Culte",
+                  "date": "2026-10-25",
+                  "team": "Louange",
+                  "startTime": "09:30"
+                }
+              }
+            ],
+            "fr"
+          ],
+          "expected": {
+            "subject": "2 nouvelles de Songverse",
+            "lines": [
+              {
+                "title": "Culte du dim. 18 oct. a changé",
+                "body": "Louange - maintenant à 09:30"
+              },
+              {
+                "title": "Culte du dim. 25 oct. a changé",
+                "body": "Louange - maintenant à 09:30"
+              }
+            ]
+          }
+        }
+      ]
+    },
     "calendarFeed": {
       "about": "A personal calendar feed (iCalendar): each date one signed up for, its times in UTC, text escaped, lines folded at 75 octets with CRLF.",
       "params": [

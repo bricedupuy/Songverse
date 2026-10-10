@@ -10,9 +10,11 @@ import { getEffectiveAuthSettings } from "./auth-settings.js";
  * still work without needing a real Resend account. This is the only
  * place Songverse sends email - keep it that way, since Resend's free tier
  * has a low daily/monthly send cap and this app should only ever send
- * account mail (verification, password reset, email change) and a person's
- * request to connect (#79, limited per requester in PeopleService), never
- * bulk or marketing mail.
+ * account mail (verification, password reset, email change), a person's
+ * request to connect (#79, limited per requester in PeopleService) and -
+ * only when an admin turns them on (Admin > Notifications, off by default)
+ * - notifications (#236, from the notifications job, one email per person
+ * per batch), never bulk or marketing mail.
  */
 async function sendEmail(params: { to: string; subject: string; html: string; text: string }): Promise<void> {
   const settings = await getEffectiveAuthSettings();
@@ -121,6 +123,29 @@ export async function sendConnectionRequestEmail(to: string, from: string, url: 
       <p>To say yes (or no), sign in - or sign up with this address - and open People.</p>
       <p><a href="${url}">Open People</a></p>
       <p style="color:#666;font-size:13px">If you don't know them, you can ignore this email.</p>
+    `,
+  });
+}
+
+/**
+ * Notifications by email (issue #236), put into words by the job that sends
+ * them (NotificationsProcessor), in the reader's language: the lines, a
+ * link into the app, and where to choose what's emailed.
+ */
+export async function sendNotificationEmail(
+  to: string,
+  email: { subject: string; lines: { title: string; body: string }[]; open: string; url: string; why: string; settingsUrl: string },
+): Promise<void> {
+  const text = [...email.lines.map((line) => (line.body ? `${line.title}\n${line.body}` : line.title)), `${email.open}: ${email.url}`, `${email.why} ${email.settingsUrl}`].join("\n\n");
+  const items = email.lines.map((line) => `<p><strong>${escapeHtml(line.title)}</strong>${line.body ? `<br>${escapeHtml(line.body)}` : ""}</p>`).join("\n");
+  await sendEmail({
+    to,
+    subject: email.subject,
+    text,
+    html: `
+      ${items}
+      <p><a href="${escapeHtml(email.url)}">${escapeHtml(email.open)}</a></p>
+      <p style="color:#666;font-size:13px">${escapeHtml(email.why)} <a href="${escapeHtml(email.settingsUrl)}">${escapeHtml(email.settingsUrl)}</a></p>
     `,
   });
 }

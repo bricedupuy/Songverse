@@ -3,7 +3,7 @@ import { Injectable } from "@nestjs/common";
 import type { Job, Queue } from "bullmq";
 import { BULK_UPLOAD_QUEUE } from "../bulk-upload/bulk-upload.types.js";
 import { USER_MAINTENANCE_QUEUE } from "../user-management/transfer-expiry.processor.js";
-import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, RECORDINGS_QUEUE, settingsKeyCheck, STEM_SEPARATION_QUEUE, TEAM_EVENTS_QUEUE } from "./jobs.constants.js";
+import { BACKFILLS_QUEUE, HEARTBEAT_KEY, jobsInApi, LOOKUPS_QUEUE, RECORDINGS_QUEUE, settingsKeyCheck, STEM_SEPARATION_QUEUE, TEAM_EVENTS_QUEUE, NOTIFICATIONS_QUEUE } from "./jobs.constants.js";
 import { redis } from "./redis.js";
 
 interface Beat {
@@ -56,10 +56,11 @@ export class JobsService {
     @InjectQueue(RECORDINGS_QUEUE) private readonly recordings: Queue,
     @InjectQueue(STEM_SEPARATION_QUEUE) private readonly stemSeparation: Queue,
     @InjectQueue(TEAM_EVENTS_QUEUE) private readonly teamEvents: Queue,
+    @InjectQueue(NOTIFICATIONS_QUEUE) private readonly notifications: Queue,
   ) {}
 
   private get queues(): Queue[] {
-    return [this.lookups, this.backfills, this.bulkUpload, this.maintenance, this.recordings, this.stemSeparation, this.teamEvents];
+    return [this.lookups, this.backfills, this.bulkUpload, this.maintenance, this.recordings, this.stemSeparation, this.teamEvents, this.notifications];
   }
 
   async status(): Promise<JobsStatus> {

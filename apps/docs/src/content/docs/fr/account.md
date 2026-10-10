@@ -31,6 +31,10 @@ Dites à vos équipes ce que vous jouez ou faites : des **Instruments** (chant, 
 
 Choisissez la langue de l'application sous **Langue**. **Premier jour de la semaine** fixe le début des semaines de tous les calendriers : **Automatique (selon la langue)** - le dimanche en anglais, le lundi en français - ou toujours **Lundi**, **Dimanche** ou **Samedi**.
 
+## Notifications
+
+Tout ce que Songverse vous dit s'affiche sous la cloche en haut de chaque page (voir [Notifications](/fr/teams/#notifications)). Sous **Notifications**, cochez ce qui vous est aussi envoyé par e-mail - une date où vous êtes inscrit annulée ou modifiée, un événement supprimé, un administrateur qui répond pour vous ; tout est coché tant que vous n'avez pas choisi. Plusieurs à la fois arrivent en un seul e-mail. Quand le serveur n'envoie pas de notifications par e-mail, la carte l'indique.
+
 ## Affichage des grilles
 
 Comment se lisent les accords sur toutes les grilles que vous ouvrez :

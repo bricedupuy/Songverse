@@ -28,7 +28,7 @@ import { UpdateUserSchema } from "../requests/accounts.js";
 import { checkRequest } from "../requests/messages.js";
 import { AnswerEventDateSchema, CreateAwaySchema, CreateTeamEventSchema } from "../requests/events.js";
 import { calendarFeed } from "../calendar/ical.js";
-import { notificationText, type NotificationData, type NotificationKind } from "../notifications/index.js";
+import { notificationEmail, notificationPreferences, notificationText, withNotificationChanges, type NotificationData, type NotificationKind } from "../notifications/index.js";
 import enMessages from "../i18n/locales/en.js";
 import frMessages from "../i18n/locales/fr.js";
 import { effectiveAnswer, eventDates, setListing, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
@@ -1229,6 +1229,39 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "a date cancelled", args: ["EVENT_DATE_CANCELLED", { event: "Morning service", date: "2026-10-18", team: "Worship team" }, "en"] },
           { name: "a date moved, in French", args: ["EVENT_DATE_CHANGED", { event: "Culte du matin", date: "2026-10-18", team: "Louange", startTime: "09:30" }, "fr"] },
           { name: "answered for you", args: ["ANSWERED_FOR_YOU", { event: "Rehearsal", date: "2026-10-15", team: "Worship team", answer: "IF_NEEDED", by: "Sam" }, "en"] },
+        ],
+      },
+      notificationPreferences: {
+        about: "How each kind of notification reaches someone (issue #236), from what's stored: a choice left out is on, anything else is ignored.",
+        params: ["stored"],
+        run: notificationPreferences,
+        cases: [
+          { name: "nothing chosen: everything on", args: [null] },
+          { name: "email off for one kind; junk ignored", args: [{ kinds: { EVENT_DATE_CHANGED: { email: false, sms: true }, NOPE: { email: false }, EVENT_CANCELLED: { push: "no" } } }] },
+        ],
+      },
+      withNotificationChanges: {
+        about: "Choices changed: what's left out stays as it was.",
+        params: ["stored", "changes"],
+        run: withNotificationChanges,
+        cases: [{ name: "one channel changed, the rest kept", args: [{ kinds: { EVENT_DATE_CHANGED: { email: false } } }, { ANSWERED_FOR_YOU: { push: false } }] }],
+      },
+      notificationEmail: {
+        about: "Notifications in an email: one under its own title, several under one subject, in the reader's language.",
+        params: ["items", "locale"],
+        run: (items: { kind: NotificationKind; data: NotificationData }[], locale: string) => notificationEmail(items, locale === "fr" ? frMessages : enMessages, locale),
+        cases: [
+          { name: "one", args: [[{ kind: "EVENT_DATE_CANCELLED", data: { event: "Morning service", date: "2026-10-18", team: "Worship team" } }], "en"] },
+          {
+            name: "several, in French",
+            args: [
+              [
+                { kind: "EVENT_DATE_CHANGED", data: { event: "Culte", date: "2026-10-18", team: "Louange", startTime: "09:30" } },
+                { kind: "EVENT_DATE_CHANGED", data: { event: "Culte", date: "2026-10-25", team: "Louange", startTime: "09:30" } },
+              ],
+              "fr",
+            ],
+          },
         ],
       },
       calendarFeed: {

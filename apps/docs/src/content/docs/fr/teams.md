@@ -41,7 +41,7 @@ La cloche en haut de chaque page montre combien de notifications vous n'avez pas
 - quand une date pour laquelle vous êtes inscrit (réponse **Disponible**) est annulée, ou que son heure ou son titre change - aussi quand tout l'événement change ou est supprimé ;
 - quand un administrateur de l'équipe répond pour vous, avec sa réponse.
 
-Celui qui fait le changement n'en est pas prévenu.
+Celui qui fait le changement n'en est pas prévenu. Elles peuvent aussi arriver par e-mail, comme vous le choisissez dans les [réglages de votre compte](/fr/account/#notifications), quand le serveur les envoie.
 
 ## Membres et rôles
 

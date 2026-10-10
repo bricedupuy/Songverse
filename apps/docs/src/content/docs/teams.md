@@ -41,7 +41,7 @@ The bell at the top of every page shows how many notifications you haven't read;
 - when a date you signed up for (answered **Available**) is cancelled, or its time or title changes - also when the whole event changes or is deleted;
 - when a team admin answers for you, with their answer.
 
-Whoever made the change isn't told about it.
+Whoever made the change isn't told about it. They can also come by email, as you choose in your [account settings](/account/#notifications), when the server sends them.
 
 ## Members and roles
 

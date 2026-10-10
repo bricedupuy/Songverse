@@ -26,7 +26,7 @@ import type { MusicBrainzWorkMatch } from "../schemas/musicbrainz.js";
 import type { SectionInstance, SectionV2, SongDocumentV2 } from "../schemas/song-document-v2.js";
 import type { SongbookSection } from "../songbook-sections/index.js";
 import type { StemPart } from "../stems/index.js";
-import type { NotificationData, NotificationKind } from "../notifications/index.js";
+import type { NotificationData, NotificationKind, NotificationPreferences } from "../notifications/index.js";
 import type { LyricsMatch } from "../search-text/lyrics.js";
 import type { SecondChordRow } from "../display/chord-rows.js";
 import type { SectionProgression } from "../chords/progressions.js";
@@ -34,6 +34,7 @@ import type { CuePoint } from "../recording/cues.js";
 import type { z } from "zod";
 import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamRequest } from "../requests/accounts.js";
 import type { CreateSignupInvitationRequest } from "../requests/invitations.js";
+import type { SaveNotificationServerSettingsRequest, UpdateNotificationPreferencesRequest } from "../requests/notifications.js";
 import type { UpdateSetlistItemRequest } from "../requests/sets.js";
 import type { AnswerEventDateRequest, CreateAwayRequest, UpdateAwayRequest, CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
 import type { AvailabilityAnswer, EventDate, EventRepeat } from "../calendar/index.js";
@@ -882,6 +883,17 @@ export interface NotificationPage {
   /** Older ones to load. */
   more: boolean;
   unread: number;
+}
+
+/** How each kind of notification reaches someone, and whether this server emails at all (Admin > Notifications). */
+export interface MyNotificationPreferences {
+  kinds: NotificationPreferences;
+  emailAvailable: boolean;
+}
+
+export interface NotificationServerSettingsSummary {
+  source: "database" | "env" | "none";
+  settings: { emailEnabled: SecuritySetting<boolean> };
 }
 
 export interface TeamCalendarSettings {
@@ -1797,6 +1809,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     listMyNotifications: (before?: string, limit?: number) =>
       request<NotificationPage>(`/users/me/notifications?${new URLSearchParams({ ...(before ? { before } : {}), ...(limit ? { limit: String(limit) } : {}) })}`),
     getMyUnreadNotifications: () => request<{ unread: number }>("/users/me/notifications/unread"),
+    getMyNotificationPreferences: () => request<MyNotificationPreferences>("/users/me/notifications/settings"),
+    updateMyNotificationPreferences: (data: UpdateNotificationPreferencesRequest) =>
+      request<MyNotificationPreferences>("/users/me/notifications/settings", { method: "PUT", body: JSON.stringify(data) }),
     markMyNotificationsRead: (ids?: string[]) => request<{ unread: number }>("/users/me/notifications/read", { method: "POST", body: JSON.stringify(ids ? { ids } : {}) }),
     getTeamCalendarSettings: (teamId: string) => request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`),
     updateTeamCalendarSettings: (teamId: string, data: TeamCalendarSettings) =>
@@ -2347,6 +2362,9 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     adminGetSecuritySettings: () => request<SecuritySettingsSummary>("/admin/security"),
     adminSaveSecuritySettings: (data: SaveSecuritySettingsRequest) => request<void>("/admin/security", { method: "PUT", body: JSON.stringify(data) }),
     adminClearSecuritySettings: () => request<void>("/admin/security", { method: "DELETE" }),
+    adminGetNotificationSettings: () => request<NotificationServerSettingsSummary>("/admin/notifications"),
+    adminSaveNotificationSettings: (data: SaveNotificationServerSettingsRequest) => request<void>("/admin/notifications", { method: "PUT", body: JSON.stringify(data) }),
+    adminClearNotificationSettings: () => request<void>("/admin/notifications", { method: "DELETE" }),
   };
 }
 

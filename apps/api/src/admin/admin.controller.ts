@@ -15,6 +15,8 @@ import { SaveStorageConfigDto } from "./dto/save-storage-config.dto.js";
 import { SaveStorageLimitsDto, StorageLimitsResponseDto } from "./dto/storage-limits.dto.js";
 import { SaveSecuritySettingsDto } from "./dto/security-settings.dto.js";
 import { clearSecuritySettings, getSecuritySettingsSummary, saveSecuritySettings } from "../security/security-settings.js";
+import { SaveNotificationServerSettingsDto } from "./dto/notification-settings.dto.js";
+import { clearNotificationSettings, getNotificationSettingsSummary, saveNotificationSettings } from "../notifications/notification-settings.js";
 
 /**
  * Operational tools for global admins - today, the migrate/seed steps
@@ -138,6 +140,26 @@ export class AdminController {
   @HttpCode(HttpStatus.NO_CONTENT)
   clearSecuritySettings(): Promise<void> {
     return clearSecuritySettings();
+  }
+
+  // --- how notifications go out besides the bell (issue #236)
+
+  @Get("notifications")
+  @ApiOkResponse({ description: "Whether notifications go by email, and whether that comes from the database, its env var or the default." })
+  getNotificationSettings(): ReturnType<typeof getNotificationSettingsSummary> {
+    return getNotificationSettingsSummary();
+  }
+
+  @Put("notifications")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  saveNotificationSettings(@Body() dto: SaveNotificationServerSettingsDto): Promise<void> {
+    return saveNotificationSettings(dto);
+  }
+
+  @Delete("notifications")
+  @HttpCode(HttpStatus.NO_CONTENT)
+  clearNotificationSettings(): Promise<void> {
+    return clearNotificationSettings();
   }
 
   @Get("auth")

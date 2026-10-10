@@ -1110,6 +1110,8 @@ model Notification {
   data      Json
   url       String?
   readAt    DateTime?
+  // When it went by email (issue #236): sent, or looked at and not sent (the person's choice, email off).
+  emailedAt DateTime?
   createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2043,6 +2045,15 @@ model SecuritySettings {
   // Only invited people can create an account (issue #198).
   signupInviteOnly            Boolean?
   updatedAt                   DateTime @updatedAt
+}
+
+// How notifications go out besides the bell (issue #236), set in Admin >
+// Notifications: each field null takes its env var, then the default.
+model NotificationSettings {
+  id           String   @id @default("singleton")
+  // Notifications sent by email at all (NOTIFICATION_EMAILS; off by default).
+  emailEnabled Boolean?
+  updatedAt    DateTime @updatedAt
 }
 
 // Content of a deleted user, held for a limited time behind a one-time

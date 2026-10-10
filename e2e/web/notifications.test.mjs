@@ -8,6 +8,7 @@ import { WEB, api, finish, signIn, sql, stamp, stepper, user } from "../lib/harn
 let page;
 const step = stepper(() => page);
 const admin = await user("Bell admin");
+sql(`update "User" set "isGlobalAdmin"=true where id='${admin.id}'`);
 const member = await user("Bell member");
 const team = await api(admin, "POST", `/teams`, { name: `Bell ${stamp}` });
 sql(`insert into "TeamMembership" (id, "teamId", "userId", role, "joinedAt", "updatedAt") values ('tmb${stamp}', '${team.id}', '${member.id}', 'MEMBER', now(), now())`);
@@ -46,6 +47,40 @@ try {
     await page.getByTestId("notification-read-all").click();
     await page.getByTestId("notification-count").waitFor({ state: "detached" });
     if ((await page.locator('[data-read="false"]').count()) !== 0) throw new Error("all should be read");
+  });
+
+  await step("Account: each kind by email, off on this server until an admin turns it on", async () => {
+    await page.goto(`${WEB}/dashboard`);
+    const card = page.getByTestId("notification-settings");
+    // Its choices loaded.
+    const ready = () => page.locator('[data-testid="notification-settings"][data-ready="true"]').waitFor();
+    await ready();
+    await card.getByTestId("notification-email-off").waitFor();
+    if (!(await card.getByTestId("notify-email-EVENT_DATE_CHANGED").isDisabled())) throw new Error("the choices should wait for the server");
+    await api(admin, "PUT", "/admin/notifications", { emailEnabled: true });
+    await page.reload();
+    await ready();
+    await Promise.all([page.waitForResponse((res) => res.url().includes("/notifications/settings") && res.request().method() === "PUT"), card.getByTestId("notify-email-EVENT_DATE_CHANGED").uncheck()]);
+    await page.reload();
+    await ready();
+    if (await card.getByTestId("notify-email-EVENT_DATE_CHANGED").isChecked()) throw new Error("the choice wasn't kept");
+    if (!(await card.getByTestId("notify-email-EVENT_DATE_CANCELLED").isChecked())) throw new Error("the other kinds should stay on");
+  });
+
+  await step("Admin > Notifications: the switch, where it comes from, back to the environment", async () => {
+    await page.context().clearCookies();
+    await signIn(page, admin);
+    await page.goto(`${WEB}/admin/notifications`);
+    if (!(await page.getByTestId("notifications-email-enabled").isChecked())) throw new Error("saved on, should show on");
+    await page.getByRole("button", { name: "Revert to environment variables" }).click();
+    await page.getByRole("button", { name: "Confirm revert" }).click();
+    await page.getByTestId("notifications-email-enabled").and(page.locator(":not(:checked)")).waitFor();
+    await page.getByTestId("notifications-email-enabled").check();
+    await page.getByTestId("notifications-save").click();
+    await page.getByTestId("notification-settings-source").getByText("saved in the database", { exact: false }).waitFor();
+    await api(admin, "DELETE", "/admin/notifications");
+    await page.context().clearCookies();
+    await signIn(page, member);
   });
 
   await step("in French, in French words", async () => {

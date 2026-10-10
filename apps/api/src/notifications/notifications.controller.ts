@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Post, Query, UnauthorizedException } from "@nestjs/common";
+import { Body, Controller, Get, Post, Put, Query, UnauthorizedException } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
-import { MarkNotificationsReadDto, NotificationsQueryDto } from "./dto/notifications.dto.js";
+import { MarkNotificationsReadDto, NotificationsQueryDto, UpdateNotificationPreferencesDto } from "./dto/notifications.dto.js";
 import { NotificationsService } from "./notifications.service.js";
 
 /** One's own notifications (issue #236). */
@@ -31,5 +31,18 @@ export class NotificationsController {
   read(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: MarkNotificationsReadDto) {
     if (!user) throw new UnauthorizedException();
     return this.notifications.markRead(user.id, dto.ids);
+  }
+
+  /** How each kind reaches one besides the bell (email), and whether this server emails at all. */
+  @Get("settings")
+  settings(@CurrentUser() user: AuthenticatedUser | undefined) {
+    if (!user) throw new UnauthorizedException();
+    return this.notifications.preferences(user.id);
+  }
+
+  @Put("settings")
+  updateSettings(@CurrentUser() user: AuthenticatedUser | undefined, @Body() dto: UpdateNotificationPreferencesDto) {
+    if (!user) throw new UnauthorizedException();
+    return this.notifications.updatePreferences(user.id, dto);
   }
 }

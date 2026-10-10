@@ -15,6 +15,8 @@ export const RECORDINGS_QUEUE = "recordings";
 export const STEM_SEPARATION_QUEUE = "stem-separation";
 /** Teams' event dates given their sets ahead of time (issue #235). */
 export const TEAM_EVENTS_QUEUE = "team-events";
+/** Notifications sent by email (issue #236), and later by push. */
+export const NOTIFICATIONS_QUEUE = "notifications";
 
 /**
  * A short hash of this process's SETTINGS_ENCRYPTION_KEY, or null without

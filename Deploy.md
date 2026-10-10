@@ -103,6 +103,8 @@ Keep this stable once set — BetterAuth encrypts its signing key with it in the
 
 **Sign-up by invitation only** (issue #198) is switched on at **Admin > Users** (under **Sign-up and invitations**); `SIGNUP_INVITE_ONLY=true` is the fallback (default `false`: anyone can sign up). The `BOOTSTRAP_ADMIN_EMAILS` can always sign up, so a new server can't lock its admins out.
 
+**Notifications by email** (issue #236) are switched on at **Admin > Notifications**; `NOTIFICATION_EMAILS=true` is the fallback (default `false`: notifications only show in the app). They're sent by the Worker, through the same Resend key as account mail, one email per person per batch; the links in them point at `WEB_URL` as the API knows it, since the Worker may run without it.
+
 **Stem separation** (issue #63) is set up at **Admin > Stem separation**, and given to people and teams through the **Stem separation** role (**Admin > Roles**, issue #160); these optional env vars are the fallback: `DEMUCS_API_URL` and `DEMUCS_API_KEY` (the Demucs API and its `X-API-Key`; without both, it isn't offered), `DEMUCS_FAST_MODEL` (default `htdemucs`), `DEMUCS_HQ_ENABLED` (default `true`: a finer pass later replaces the quick stems), `DEMUCS_HQ_MODEL` (default `htdemucs_ft`), `STEM_SEPARATION_MONTHLY_LIMIT` (per person in 30 days, default none) and `DEMUCS_CALLBACK_SECRET` (signs the server's webhooks; generated and kept in the database when not set). The Worker sends recordings and brings stems in; the Demucs server calls `${AUTH_URL}/stem-separation/callback` when they're ready, so it must be able to reach the API - if it can't, the Worker checks every 2 minutes.
 
 **Object storage (R2) has two setup paths** — pick one:
