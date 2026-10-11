@@ -24,15 +24,16 @@ export function pushSubject(config: PushConfig, webUrl: string): string {
  * the server's VAPID key by web-push, posted here: only to a push
  * service's address (checked again before each post), no redirects
  * followed, waiting PROVIDER_TIMEOUT_MS at most. "gone": the push service
- * says the device unsubscribed - forget it.
+ * says the device unsubscribed - forget it; "failed": why (issue #237), the
+ * push service's status and what it said, or that it couldn't be reached.
  */
 export async function sendPush(
   device: { endpoint: string; p256dh: string; auth: string },
   payload: PushPayload,
   config: PushConfig,
   subject: string,
-): Promise<"sent" | "gone" | "failed"> {
-  if (!isPushEndpoint(device.endpoint, pushTestOrigins())) return "gone";
+): Promise<{ result: "sent" | "gone" } | { result: "failed"; error: string }> {
+  if (!isPushEndpoint(device.endpoint, pushTestOrigins())) return { result: "gone" };
   const details = webpush.generateRequestDetails({ endpoint: device.endpoint, keys: { p256dh: device.p256dh, auth: device.auth } }, JSON.stringify(payload), {
     vapidDetails: { subject, publicKey: config.publicKey, privateKey: config.privateKey },
     // A day: a phone that's off gets it when it's back, not a week later.
@@ -43,9 +44,12 @@ export async function sendPush(
   const headers = Object.fromEntries(Object.entries(details.headers).filter(([name]) => name.toLowerCase() !== "content-length").map(([name, value]) => [name, String(value)]));
   try {
     const response = await fetch(details.endpoint, { method: details.method, headers, body: details.body ? new Uint8Array(details.body) : undefined, redirect: "manual", signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS) });
-    if (response.status === 404 || response.status === 410) return "gone";
-    return response.ok ? "sent" : "failed";
-  } catch {
-    return "failed";
+    if (response.status === 404 || response.status === 410) return { result: "gone" };
+    if (response.ok) return { result: "sent" };
+    const said = (await response.text().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 200);
+    return { result: "failed", error: `${new URL(device.endpoint).hostname} answered ${response.status}${said ? `: ${said}` : ""}` };
+  } catch (error) {
+    const why = error instanceof Error && error.name === "TimeoutError" ? `no answer in ${PROVIDER_TIMEOUT_MS / 1000} s` : error instanceof Error ? error.message : String(error);
+    return { result: "failed", error: `Couldn't reach ${new URL(device.endpoint).hostname}: ${why}` };
   }
 }

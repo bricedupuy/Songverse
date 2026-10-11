@@ -901,6 +901,9 @@ export interface PushDevice {
   label: string | null;
   createdAt: string;
   lastPushedAt: string | null;
+  /** Why the last push to it failed, if it did (issue #237): cleared by one that works. */
+  lastError: string | null;
+  lastErrorAt: string | null;
 }
 
 export interface NotificationServerSettingsSummary {
@@ -911,6 +914,8 @@ export interface NotificationServerSettingsSummary {
     ready: boolean;
     publicKey: string | null;
     hasDatabasePrivateKey: boolean;
+    /** Set up, but not usable by the API (a saved key it can't decrypt). */
+    error: string | null;
     subject: string | null;
     subjectEnv: string | null;
   };

@@ -167,6 +167,11 @@ export function NotificationSettingsCard() {
                         {device.endpoint === here ? <span className="text-muted-foreground"> · {t("notifications.thisDevice")}</span> : null}
                       </span>
                       <span className="block text-xs text-muted-foreground">{t("notifications.deviceAdded", { date: formatSetDate(device.createdAt.slice(0, 10), i18n.language) })}</span>
+                      {device.lastError ? (
+                        <span className="block text-xs break-words text-destructive" data-testid="push-device-error">
+                          {t("notifications.deviceFailed", { date: formatSetDate((device.lastErrorAt ?? device.createdAt).slice(0, 10), i18n.language), error: device.lastError })}
+                        </span>
+                      ) : null}
                     </span>
                     <Button variant="ghost" size="icon" className="size-8" aria-label={t("notifications.removeDevice")} title={t("notifications.removeDevice")} disabled={busy} onClick={() => void remove(device)} data-testid="push-remove">
                       <Trash2 />

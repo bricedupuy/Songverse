@@ -7,7 +7,7 @@ import type { Job, Queue } from "bullmq";
 import { sendNotificationEmail } from "../auth/email.js";
 import { JOB_WORKER_OPTIONS, NOTIFICATIONS_QUEUE } from "../jobs/jobs.constants.js";
 import { PrismaService } from "../prisma/prisma.service.js";
-import { getEffectiveNotificationSettings, getPushConfig, type PushConfig } from "./notification-settings.js";
+import { getEffectiveNotificationSettings, getPushConfigOrError, type PushConfig } from "./notification-settings.js";
 import type { DeliverJob, TestPushJob } from "./notifications.service.js";
 import { pushSubject, sendPush, type PushPayload } from "./push-sender.js";
 
@@ -25,6 +25,9 @@ type Rows = Awaited<ReturnType<NotificationsProcessor["load"]>>;
  *   until they end (a "push" job, delayed).
  * Each notification is marked once looked at for each, sent or not, so a
  * retried job never sends it twice. "test": a test push to someone's devices.
+ * Why a push failed is kept on its device and logged (issue #237); a test
+ * that reaches no device, and push that's set up but can't be used here (a
+ * key this Worker can't decrypt), fail the job with the reason.
  */
 @Processor(NOTIFICATIONS_QUEUE, JOB_WORKER_OPTIONS)
 export class NotificationsProcessor extends WorkerHost {
@@ -91,13 +94,15 @@ export class NotificationsProcessor extends WorkerHost {
   private async push(job: DeliverJob): Promise<number> {
     const rows = await this.load(job.ids, { pushedAt: null });
     if (rows.length === 0) return 0;
-    const config = await getPushConfig();
+    const { config, error } = await getPushConfigOrError();
     let pushed = 0;
     for (const list of this.byUser(rows)) {
       const user = list[0]!.user;
       const choices = notificationPreferences(user.notificationSettings);
-      const wanted = config ? list.filter((row) => choices[row.kind as NotificationKind]?.push) : [];
+      const wanted = config || error ? list.filter((row) => choices[row.kind as NotificationKind]?.push) : [];
       const devices = wanted.length > 0 ? await this.prisma.client.pushSubscription.findMany({ where: { userId: list[0]!.userId } }) : [];
+      // Set up, but this Worker can't use it: the job fails with why, these left to push once it can.
+      if (devices.length > 0 && !config) throw new Error(error ?? "Push isn't set up");
       if (devices.length > 0) {
         const end = quietHoursEnd(quietHoursOf(user.notificationSettings), new Date());
         if (end) {
@@ -108,34 +113,47 @@ export class NotificationsProcessor extends WorkerHost {
         const messages = MESSAGES[user.locale] ?? en;
         const text = notificationPush(wanted.map((row) => ({ kind: row.kind as NotificationKind, data: row.data as NotificationData })), messages, user.locale);
         const sent = await this.toDevices(devices, { ...text, url: wanted.find((row) => row.url)?.url ?? "/calendar", tag: wanted.length === 1 ? wanted[0]!.id : undefined }, config!, job.webUrl);
-        if (sent > 0) pushed += 1;
+        if (sent.sent > 0) pushed += 1;
       }
       await this.prisma.client.notification.updateMany({ where: { id: { in: list.map((row) => row.id) } }, data: { pushedAt: new Date() } });
     }
     return pushed;
   }
 
-  /** A push to each device; the ones the push service says are gone are forgotten. How many it reached. */
-  private async toDevices(devices: { id: string; endpoint: string; p256dh: string; auth: string }[], payload: PushPayload, config: PushConfig, webUrl: string): Promise<number> {
+  /**
+   * A push to each device: the ones the push service says are gone are
+   * forgotten; why the others failed is kept on them and logged (a push
+   * that works clears it). How many it reached, and the failures.
+   */
+  private async toDevices(devices: { id: string; endpoint: string; p256dh: string; auth: string }[], payload: PushPayload, config: PushConfig, webUrl: string): Promise<{ sent: number; errors: string[] }> {
     const subject = pushSubject(config, webUrl);
     let sent = 0;
+    const errors: string[] = [];
     for (const device of devices) {
-      const result = await sendPush(device, payload, config, subject);
-      if (result === "gone") await this.prisma.client.pushSubscription.deleteMany({ where: { id: device.id } });
-      if (result === "sent") {
+      const outcome = await sendPush(device, payload, config, subject);
+      if (outcome.result === "gone") await this.prisma.client.pushSubscription.deleteMany({ where: { id: device.id } });
+      if (outcome.result === "sent") {
         sent += 1;
-        await this.prisma.client.pushSubscription.update({ where: { id: device.id }, data: { lastPushedAt: new Date() } });
+        await this.prisma.client.pushSubscription.update({ where: { id: device.id }, data: { lastPushedAt: new Date(), lastError: null, lastErrorAt: null } });
+      }
+      if (outcome.result === "failed") {
+        errors.push(outcome.error);
+        this.logger.warn(`Push to device ${device.id} failed: ${outcome.error}`);
+        await this.prisma.client.pushSubscription.update({ where: { id: device.id }, data: { lastError: outcome.error, lastErrorAt: new Date() } });
       }
     }
-    return sent;
+    return { sent, errors };
   }
 
   private async test(job: TestPushJob): Promise<number> {
-    const config = await getPushConfig();
-    if (!config) return 0;
+    const { config, error } = await getPushConfigOrError();
+    if (!config) throw new Error(error ?? "Push isn't set up");
     const user = await this.prisma.client.user.findUnique({ where: { id: job.userId }, select: { locale: true } });
     const devices = await this.prisma.client.pushSubscription.findMany({ where: { userId: job.userId } });
     const messages = MESSAGES[user?.locale ?? "en"] ?? en;
-    return this.toDevices(devices, { title: messages.notifications.testTitle, body: messages.notifications.testBody, url: "/dashboard#notifications", tag: "test" }, config, job.webUrl);
+    const { sent, errors } = await this.toDevices(devices, { title: messages.notifications.testTitle, body: messages.notifications.testBody, url: "/dashboard#notifications", tag: "test" }, config, job.webUrl);
+    // Reaching no device is a failure Admin > Background jobs shows, with why.
+    if (sent === 0 && errors.length > 0) throw new Error(`The test push reached no device: ${errors.join("; ")}`);
+    return sent;
   }
 }

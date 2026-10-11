@@ -110,7 +110,7 @@ export class NotificationsService {
   /** The devices one turned notifications on for, newest first. */
   async devices(userId: string) {
     const rows = await this.prisma.client.pushSubscription.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
-    return rows.map((row) => ({ id: row.id, endpoint: row.endpoint, label: row.label, createdAt: row.createdAt.toISOString(), lastPushedAt: row.lastPushedAt?.toISOString() ?? null }));
+    return rows.map((row) => ({ id: row.id, endpoint: row.endpoint, label: row.label, createdAt: row.createdAt.toISOString(), lastPushedAt: row.lastPushedAt?.toISOString() ?? null, lastError: row.lastError, lastErrorAt: row.lastErrorAt?.toISOString() ?? null }));
   }
 
   /** A device turned on: its browser's subscription, kept for this person (a browser someone else used before moves over). */
@@ -124,7 +124,7 @@ export class NotificationsService {
     }
     const data = { userId, p256dh: dto.keys.p256dh, auth: dto.keys.auth, label: dto.label || null };
     const row = await this.prisma.client.pushSubscription.upsert({ where: { endpoint: dto.endpoint }, create: { endpoint: dto.endpoint, ...data }, update: data });
-    return { id: row.id, endpoint: row.endpoint, label: row.label, createdAt: row.createdAt.toISOString(), lastPushedAt: row.lastPushedAt?.toISOString() ?? null };
+    return { id: row.id, endpoint: row.endpoint, label: row.label, createdAt: row.createdAt.toISOString(), lastPushedAt: row.lastPushedAt?.toISOString() ?? null, lastError: row.lastError, lastErrorAt: row.lastErrorAt?.toISOString() ?? null };
   }
 
   async removeDevice(userId: string, id: string): Promise<void> {

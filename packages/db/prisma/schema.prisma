@@ -2077,6 +2077,9 @@ model PushSubscription {
   label        String?
   createdAt    DateTime  @default(now())
   lastPushedAt DateTime?
+  // Why the last push to it failed (issue #237): the push service's answer, or that it couldn't be reached; cleared by a push that works.
+  lastError    String?
+  lastErrorAt  DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

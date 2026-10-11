@@ -3,7 +3,7 @@
 // It keeps each push it gets, decrypted (RFC 8291, aes128gcm) with the
 // keys of the device it was for - devices made here with `device()` - so a
 // suite reads what the device would show. A device whose path has "gone"
-// in it answers 410, as for a browser that unsubscribed.
+// in it answers 410, as for a browser that unsubscribed; "fail", 403.
 import { createDecipheriv, createECDH, createHmac, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 
@@ -60,6 +60,8 @@ export async function startFakePush() {
         message = { error: String(error) };
       }
       pushes.push({ path: req.url, method: req.method, headers: req.headers, message });
+      // "fail": refused, as for a key the push service doesn't accept.
+      if (req.url.includes("fail")) return void res.writeHead(403, { "Content-Type": "text/plain" }).end("invalid JWT provided");
       res.writeHead(req.url.includes("gone") ? 410 : 201).end();
     });
   });

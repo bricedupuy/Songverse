@@ -40,6 +40,8 @@ try {
     await page.getByTestId("push-status").getByText("Ready").waitFor();
     if (!(await page.getByTestId("vapid-public").inputValue())) throw new Error("the public key should show");
     if (await page.getByTestId("vapid-private").inputValue()) throw new Error("the private key must never show");
+    // …but the field says it's there (issue #237).
+    if (!(await page.getByTestId("vapid-private").getAttribute("placeholder"))?.includes("Saved and hidden")) throw new Error("the private key field should say it's saved");
   });
 
   await step("Account: this device turned on, listed as this device", async () => {

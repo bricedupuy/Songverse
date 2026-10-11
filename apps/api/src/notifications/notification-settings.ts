@@ -40,14 +40,14 @@ export interface PushConfig {
 type Row = Awaited<ReturnType<typeof prisma.notificationSettings.findUnique>>;
 
 /** The key pair saved in Admin if both halves are there, else the env vars', else none. Never one half from each. */
-function resolvePush(stored: Row): { config: PushConfig | null; source: "database" | "env" | "none" } {
+function resolvePush(stored: Row): { config: PushConfig | null; source: "database" | "env" | "none"; error?: string } {
   const subject = stored?.vapidSubject || process.env.VAPID_SUBJECT || null;
   if (stored?.vapidPublicKey && stored.vapidPrivateKeyEncrypted) {
     try {
       return { config: { publicKey: stored.vapidPublicKey, privateKey: decryptSecret(stored.vapidPrivateKeyEncrypted, process.env.SETTINGS_ENCRYPTION_KEY), subject }, source: "database" };
     } catch {
-      // Saved with another SETTINGS_ENCRYPTION_KEY: as good as none (Admin > Background jobs says which process can't read it).
-      return { config: null, source: "database" };
+      // Saved with another SETTINGS_ENCRYPTION_KEY: as good as none, and said (issue #237).
+      return { config: null, source: "database", error: "The saved VAPID private key can't be decrypted here: this process's SETTINGS_ENCRYPTION_KEY isn't the one it was saved with" };
     }
   }
   const publicKey = process.env.VAPID_PUBLIC_KEY?.trim();
@@ -59,6 +59,12 @@ function resolvePush(stored: Row): { config: PushConfig | null; source: "databas
 /** Web push as set up now, or null: not set up. Resolved fresh on each use. */
 export async function getPushConfig(): Promise<PushConfig | null> {
   return resolvePush(await prisma.notificationSettings.findUnique({ where: { id: SINGLETON_ID } })).config;
+}
+
+/** Web push as set up now, or why it can't be used here though it's set up (a key that can't be decrypted); both null: not set up. */
+export async function getPushConfigOrError(): Promise<{ config: PushConfig | null; error: string | null }> {
+  const { config, error } = resolvePush(await prisma.notificationSettings.findUnique({ where: { id: SINGLETON_ID } }));
+  return { config, error: error ?? null };
 }
 
 /** Push addresses allowed besides the push services', for tests only (a stand-in push service): PUSH_TEST_ORIGINS, comma-separated. */
@@ -83,6 +89,7 @@ export async function getNotificationSettingsSummary() {
       ready: push.config !== null,
       publicKey: push.config?.publicKey ?? stored?.vapidPublicKey ?? null,
       hasDatabasePrivateKey: !!stored?.vapidPrivateKeyEncrypted,
+      error: push.error ?? null,
       subject: stored?.vapidSubject ?? null,
       subjectEnv: process.env.VAPID_SUBJECT ?? null,
     },

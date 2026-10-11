@@ -113,9 +113,28 @@ try {
   check("a device the push service says is gone is forgotten", await until(() => push.for(old).length === 1) && (await until(() => sql(`select count(*) from "PushSubscription" where endpoint='${old.endpoint}'`) === "0")));
   check("…the others stay", (await call(singer, "GET", "/users/me/push-subscriptions")).body.length === 1);
 
+  // --- why a push failed (issue #237)
+  const refusing = push.device("fail");
+  await call(other, "POST", "/users/me/push-subscriptions", { endpoint: refusing.endpoint, keys: refusing.keys, label: "Refusing" });
+  await call(other, "POST", "/users/me/push-subscriptions/test");
+  const failedDevice = async () => (await call(other, "GET", "/users/me/push-subscriptions")).body[0];
+  check("a push the push service refuses: why is kept on the device", await until(() => push.for(refusing).length === 1) && (await (async () => { for (let i = 0; i < 40; i++) { if ((await failedDevice())?.lastError) return true; await new Promise((resolve) => setTimeout(resolve, 250)); } return false; })()), JSON.stringify(await failedDevice()));
+  const why = (await failedDevice()).lastError;
+  check("…its status and what it said", why.includes("403") && why.includes("invalid JWT provided") && why.includes("localhost"), why);
+  const failedJob = async () => (await call(admin, "GET", "/admin/jobs")).body.failed.find((job) => job.queue === "notifications" && job.error?.includes("invalid JWT provided"));
+  check("a test that reached no device fails its job, with why", await (async () => { for (let i = 0; i < 40; i++) { if (await failedJob()) return true; await new Promise((resolve) => setTimeout(resolve, 250)); } return false; })(), JSON.stringify((await call(admin, "GET", "/admin/jobs")).body.failed.slice(0, 3)));
+
   r = await call(singer, "DELETE", `/users/me/push-subscriptions/${phoneId}`);
   check("a device removed", r.status === 204 && (await call(singer, "GET", "/users/me/push-subscriptions")).body.length === 0);
   check("the stand-in's address", FAKE_PUSH_URL.startsWith("http://localhost"));
+
+  // --- a saved key this server can't decrypt (another SETTINGS_ENCRYPTION_KEY)
+  sql(`update "NotificationSettings" set "vapidPrivateKeyEncrypted"='aaaa.bbbb.cccc'`);
+  r = await call(admin, "GET", "/admin/notifications");
+  check("a key that can't be decrypted: Admin says so", r.body.push.ready === false && r.body.push.error?.includes("SETTINGS_ENCRYPTION_KEY"), JSON.stringify(r.body.push));
+  sql(`update "PushSubscription" set "lastError"=null where "userId"='${other.id}'`);
+  r = await call(other, "POST", "/users/me/push-subscriptions/test");
+  check("…and people can't send a test", r.status === 400, String(r.status));
 } finally {
   await call(admin, "DELETE", "/admin/notifications");
   await push.close();

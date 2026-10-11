@@ -96,13 +96,28 @@ function AdminNotificationsPage() {
               {push.source === "database" ? t("admin.securityFromDatabase") : push.source === "env" ? t("admin.securityFromEnv", { name: "VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY" }) : null}
             </span>
           </p>
+          {push.error ? (
+            <p className="text-xs text-destructive" data-testid="push-error">
+              {push.error}
+            </p>
+          ) : null}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="vapid-public">{t("notifications.adminPublicKey")}</Label>
             <Input id="vapid-public" value={publicKey} onChange={(event) => setPublicKey(event.target.value)} className="font-mono text-xs" data-testid="vapid-public" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="vapid-private">{t("notifications.adminPrivateKey")}</Label>
-            <Input id="vapid-private" type="password" autoComplete="off" value={privateKey} onChange={(event) => setPrivateKey(event.target.value)} className="font-mono text-xs" data-testid="vapid-private" />
+            <Input
+              id="vapid-private"
+              type="password"
+              autoComplete="off"
+              // The key is never sent back: say it's there (issue #237).
+              placeholder={push.hasDatabasePrivateKey ? `•••••••• ${t("notifications.adminPrivateKeySaved")}` : push.source === "env" ? t("notifications.adminPrivateKeyFromEnv") : undefined}
+              value={privateKey}
+              onChange={(event) => setPrivateKey(event.target.value)}
+              className="font-mono text-xs"
+              data-testid="vapid-private"
+            />
             {push.hasDatabasePrivateKey ? <span className="text-xs text-muted-foreground">{t("notifications.adminPrivateKeyKeep")}</span> : null}
           </div>
           <div className="flex flex-col gap-1.5">
