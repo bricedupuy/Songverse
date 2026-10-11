@@ -80,7 +80,8 @@ function MyCalendarPage() {
                 {dates.map((date) => (
                   <li
                     key={`${date.eventId}-${date.date}`}
-                    className={cn("flex flex-wrap items-start gap-x-4 gap-y-1 py-3 first:pt-0 last:pb-0", date.cancelled && "text-muted-foreground")}
+                    // Narrow (a phone): the date and its set on one line, the rest under them, full width.
+                    className={cn("grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0 @lg:flex @lg:flex-wrap @lg:gap-y-1", date.cancelled && "text-muted-foreground")}
                     data-event-date={date.date}
                     data-event-id={date.eventId}
                   >
@@ -88,7 +89,7 @@ function MyCalendarPage() {
                       <div className="font-medium">{dayFormat.format(new Date(`${date.date}T12:00:00Z`))}</div>
                       <div className="text-xs text-muted-foreground">{timeFormat(date.timeZone).format(new Date(date.startsAt))}</div>
                     </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="col-span-2 flex min-w-0 flex-1 flex-col gap-1">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <span className={cn("text-sm font-medium", date.cancelled && "line-through")}>{date.title}</span>
                         {date.repeats ? <Repeat className="size-3.5 text-muted-foreground" aria-label={t("teamCalendar.repeats")} /> : null}
@@ -119,7 +120,7 @@ function MyCalendarPage() {
                       ) : null}
                     </div>
                     {!date.cancelled && date.setlistId ? (
-                      <Button variant="outline" size="sm" render={<Link to="/sets/$setlistId" params={{ setlistId: date.setlistId }} />}>
+                      <Button variant="outline" size="sm" className="col-start-2 row-start-1" render={<Link to="/sets/$setlistId" params={{ setlistId: date.setlistId }} />}>
                         {t("teamCalendar.openSet")}
                         <span className="text-muted-foreground">· {t("teamCalendar.songs", { count: date.songCount })}</span>
                       </Button>

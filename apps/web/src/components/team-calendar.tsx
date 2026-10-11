@@ -143,7 +143,8 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
               return (
                 <li
                   key={`${date.eventId}-${date.date}`}
-                  className={cn("flex flex-wrap items-center gap-x-4 gap-y-1 py-2.5 first:pt-0 last:pb-0", date.cancelled && "text-muted-foreground")}
+                  // Narrow (a phone): the date, its set and the menu on one line, the rest under them, full width.
+                  className={cn("grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 py-2.5 first:pt-0 last:pb-0 @lg:flex @lg:flex-wrap @lg:gap-x-4", date.cancelled && "text-muted-foreground")}
                   data-event-date={date.date}
                   data-event-id={date.eventId}
                   data-cancelled={date.cancelled ? "" : undefined}
@@ -152,7 +153,7 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
                     <div className="font-medium">{dayFormat.format(new Date(`${date.date}T12:00:00Z`))}</div>
                     <div className="text-xs text-muted-foreground">{timeFormat(date.timeZone).format(new Date(date.startsAt))}</div>
                   </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <div className="col-span-3 flex min-w-0 flex-1 flex-col gap-0.5">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className={cn("text-sm font-medium", date.cancelled && "line-through")}>{date.title}</span>
                       {date.repeats ? <Repeat className="size-3.5 text-muted-foreground" aria-label={t("teamCalendar.repeats")} /> : null}
@@ -184,19 +185,19 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
                     ) : null}
                   </div>
                   {!date.cancelled && date.setlistId ? (
-                    <Button variant="outline" size="sm" render={<Link to="/sets/$setlistId" params={{ setlistId: date.setlistId }} />} data-testid="calendar-open-set">
+                    <Button variant="outline" size="sm" className="col-start-2 row-start-1" render={<Link to="/sets/$setlistId" params={{ setlistId: date.setlistId }} />} data-testid="calendar-open-set">
                       {t("teamCalendar.openSet")}
                       <span className="text-muted-foreground">· {t("teamCalendar.songs", { count: date.songCount })}</span>
                     </Button>
                   ) : !date.cancelled && isAdmin ? (
-                    <Button variant="outline" size="sm" onClick={() => void planSet(date)} data-testid="calendar-plan-set">
+                    <Button variant="outline" size="sm" className="col-start-2 row-start-1" onClick={() => void planSet(date)} data-testid="calendar-plan-set">
                       {t("teamCalendar.planSet")}
                     </Button>
                   ) : null}
                   {isAdmin ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger
-                        render={<button type="button" className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t("teamCalendar.dateActions", { title: `${date.title}, ${dayFormat.format(new Date(`${date.date}T12:00:00Z`))}` })} />}
+                        render={<button type="button" className="col-start-3 row-start-1 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t("teamCalendar.dateActions", { title: `${date.title}, ${dayFormat.format(new Date(`${date.date}T12:00:00Z`))}` })} />}
                       >
                         <MoreHorizontal className="size-4" />
                       </DropdownMenuTrigger>

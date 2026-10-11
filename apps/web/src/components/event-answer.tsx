@@ -54,7 +54,8 @@ export function EventAnswer({
   };
   return (
     <div className="flex flex-wrap items-center gap-1.5" data-answer={value.answer ?? "NONE"} data-away={value.away ? "" : undefined}>
-      <div className="flex" role="group" aria-label={label}>
+      {/* With their words, on a narrow screen: the three share the width, their words on one line. */}
+      <div className={cn("flex", labels && "w-full @lg:w-auto")} role="group" aria-label={label}>
         {CHOICES.map(({ answer, key, icon: Icon, on }, index) => {
           // Away isn't an answer given: the buttons stay unpressed, showing it greyed.
           const pressed = value.answer === answer && !value.away;
@@ -68,7 +69,8 @@ export function EventAnswer({
               title={t(key)}
               onClick={() => void run(() => (pressed ? onClear() : onAnswer(answer)))}
               className={cn(
-                "flex h-7 items-center gap-1 border px-2 text-xs transition-colors disabled:opacity-50 [&_svg]:size-3.5",
+                "flex h-7 items-center gap-1 border px-2 text-xs whitespace-nowrap transition-colors disabled:opacity-50 [&_svg]:size-3.5",
+                labels && "min-w-0 flex-1 justify-center @lg:flex-none",
                 index === 0 && "rounded-l-md",
                 index === CHOICES.length - 1 && "rounded-r-md",
                 index > 0 && "-ml-px",
