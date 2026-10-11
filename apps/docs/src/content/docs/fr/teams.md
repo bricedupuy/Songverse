@@ -34,6 +34,14 @@ Le calendrier se met à jour tout seul, mais les applications de calendrier vér
 
 La liste d'une date s'affiche dans votre barre latérale quand vous avez répondu **Disponible** - répondre l'y met, retirer la réponse l'enlève. Les autres dates à venir de l'équipe restent sur la page **Listes de chants** et dans le calendrier de l'équipe. Une fois la date passée, sa liste quitte la barre latérale et la liste : celles auxquelles vous avez participé sont sur la page **Listes de chants** sous **Archives**, et toutes les dates passées sont sur la page de l'équipe sous **Dates passées**. Les listes que vous créez vous-même s'affichent comme avant. Les listes gardées hors ligne suivent la même règle.
 
+### Rappels
+
+- **Demander les réponses** (administrateurs) : choisissez les dates (**Du**, **Au**) et **Répondre d'ici le**, puis **Demander**. Les membres qui n'ont pas encore répondu à certaines de ces dates sont prévenus tout de suite - pas ceux absents à ces dates - puis, s'ils n'ont toujours pas répondu, la veille de l'échéance. La demande s'affiche en haut du calendrier pour tous jusqu'à l'échéance ; **Ne plus demander** (×) la retire.
+- **La veille** : chacun de ceux inscrits à une date (réponse **Disponible**) reçoit un rappel la veille, à partir de 18:00 dans le fuseau horaire de l'événement, avec l'heure, le lieu et la liste.
+- **Dire que la liste est prête** (administrateurs, dans le menu **…** d'une date, une fois sa liste créée) : les personnes inscrites sont prévenues, et la date affiche **Liste prête**. **Le redire** après d'autres changements.
+
+Comme toutes les notifications, ils s'affichent sous la cloche, et par e-mail ou sur vos appareils selon vos choix (voir [Notifications](/fr/account/#notifications)).
+
 ### Notifications
 
 La cloche en haut de chaque page montre combien de notifications vous n'avez pas lues ; appuyez dessus pour les voir, des plus récentes aux plus anciennes. Appuyer sur l'une d'elles ouvre ce qu'elle concerne et la marque comme lue ; **Tout marquer comme lu** remet le compteur à zéro, et **Voir les plus anciennes** charge les précédentes. Vous êtes prévenu :

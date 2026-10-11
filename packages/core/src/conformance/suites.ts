@@ -31,7 +31,7 @@ import { calendarFeed } from "../calendar/ical.js";
 import { isPushEndpoint, notificationEmail, notificationPush, notificationPreferences, quietHoursEnd, notificationText, withNotificationChanges, type NotificationData, type NotificationKind } from "../notifications/index.js";
 import enMessages from "../i18n/locales/en.js";
 import frMessages from "../i18n/locales/fr.js";
-import { effectiveAnswer, eventDates, setListing, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
+import { dayBeforeReminderDue, deadlineReminderDue, effectiveAnswer, eventDates, setListing, isPastDate, localDate, zonedInstant } from "../calendar/index.js";
 import type { z } from "zod";
 
 /**
@@ -1229,6 +1229,11 @@ export const CONFORMANCE: ConformanceArea[] = [
           { name: "a date cancelled", args: ["EVENT_DATE_CANCELLED", { event: "Morning service", date: "2026-10-18", team: "Worship team" }, "en"] },
           { name: "a date moved, in French", args: ["EVENT_DATE_CHANGED", { event: "Culte du matin", date: "2026-10-18", team: "Louange", startTime: "09:30" }, "fr"] },
           { name: "answered for you", args: ["ANSWERED_FOR_YOU", { event: "Rehearsal", date: "2026-10-15", team: "Worship team", answer: "IF_NEEDED", by: "Sam" }, "en"] },
+          { name: "answers asked for", args: ["ANSWERS_REQUESTED", { team: "Worship team", by: "Sam", deadline: "2026-10-20" }, "en"] },
+          { name: "answers due, in French", args: ["ANSWER_DEADLINE", { team: "Louange", deadline: "2026-10-20", count: 3 }, "fr"] },
+          { name: "tomorrow, with a place", args: ["EVENT_TOMORROW", { event: "Morning service", date: "2026-10-18", team: "Worship team", startTime: "10:00", place: "Main hall" }, "en"] },
+          { name: "tomorrow, without one", args: ["EVENT_TOMORROW", { event: "Morning service", date: "2026-10-18", team: "Worship team", startTime: "10:00" }, "en"] },
+          { name: "the set is ready", args: ["SET_READY", { event: "Morning service", date: "2026-10-18", team: "Worship team", count: 6 }, "en"] },
         ],
       },
       notificationPreferences: {
@@ -1262,6 +1267,29 @@ export const CONFORMANCE: ConformanceArea[] = [
               "fr",
             ],
           },
+        ],
+      },
+      dayBeforeReminderDue: {
+        about: "Whether a date's day-before reminder is due: the day before, from 18:00 to midnight in the event's zone; not on the day itself.",
+        params: ["date", "startsAt", "timeZone", "now"],
+        run: dayBeforeReminderDue,
+        cases: [
+          { name: "the day before, 17:59 in Paris: not yet", args: ["2026-10-18", "2026-10-18T08:00:00Z", "Europe/Paris", "2026-10-17T15:59:00Z"] },
+          { name: "the day before, 18:00 in Paris", args: ["2026-10-18", "2026-10-18T08:00:00Z", "Europe/Paris", "2026-10-17T16:00:00Z"] },
+          { name: "the day itself, before it starts: no (it says tomorrow)", args: ["2026-10-18", "2026-10-18T08:00:00Z", "Europe/Paris", "2026-10-18T06:00:00Z"] },
+          { name: "once it started: no", args: ["2026-10-18", "2026-10-18T08:00:00Z", "Europe/Paris", "2026-10-18T08:00:00Z"] },
+          { name: "two days before: no", args: ["2026-10-18", "2026-10-18T08:00:00Z", "Europe/Paris", "2026-10-16T20:00:00Z"] },
+        ],
+      },
+      deadlineReminderDue: {
+        about: "Whether the reminder that answers are due is due: the day before the deadline from 10:00 in the asker's zone, or on the deadline itself.",
+        params: ["deadline", "timeZone", "now"],
+        run: deadlineReminderDue,
+        cases: [
+          { name: "the day before, 09:00 in New York: not yet", args: ["2026-10-20", "America/New_York", "2026-10-19T13:00:00Z"] },
+          { name: "the day before, 10:00 in New York", args: ["2026-10-20", "America/New_York", "2026-10-19T14:00:00Z"] },
+          { name: "the deadline itself", args: ["2026-10-20", "America/New_York", "2026-10-20T23:00:00Z"] },
+          { name: "after it: no", args: ["2026-10-20", "America/New_York", "2026-10-21T05:00:00Z"] },
         ],
       },
       notificationPush: {

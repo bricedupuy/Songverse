@@ -118,6 +118,18 @@ export class JobsService {
     };
   }
 
+  /**
+   * A scheduled job run now, besides its schedule (issue #235): the team
+   * calendar's sets ahead and reminders. Null: not one of them.
+   */
+  async runNow(name: string): Promise<{ queued: string } | null> {
+    const scheduled: Record<string, Queue> = { "make-event-sets": this.teamEvents, "event-reminders": this.teamEvents };
+    const queue = scheduled[name];
+    if (!queue) return null;
+    await queue.add(name, {}, { removeOnComplete: 100, removeOnFail: 100 });
+    return { queued: name };
+  }
+
   /** Clears every queue's failed jobs (issue #93), those without details left too; returns how many. */
   async clearFailed(): Promise<{ cleared: number }> {
     let cleared = 0;

@@ -246,3 +246,26 @@ export function setListing(set: { fromEvent?: boolean; signedUp?: boolean; past?
 /** The days a calendar's week can start on (issue #235): Sunday, Monday, Saturday. Someone's choice, or none: their language's. */
 export const WEEK_STARTS = [0, 1, 6] as const;
 export type WeekStart = (typeof WEEK_STARTS)[number];
+
+/** When a date's people are reminded the day before (issue #235): from this time, in the event's time zone. */
+export const DAY_BEFORE_REMINDER_TIME = "18:00";
+/** When people are reminded that answers are due tomorrow: from this time, in the zone they were asked in. */
+export const DEADLINE_REMINDER_TIME = "10:00";
+
+/**
+ * Whether the day-before reminder for a date is due at `now`: the day
+ * before, from DAY_BEFORE_REMINDER_TIME to midnight, in the event's zone.
+ * Not on the day itself, where "tomorrow" would be wrong (the job runs
+ * every hour, so it's only missed by a date added after midnight).
+ */
+export function dayBeforeReminderDue(date: string, startsAt: string, timeZone: string, now: string | Date): boolean {
+  if (new Date(now).getTime() >= new Date(startsAt).getTime()) return false;
+  return localDate(now, timeZone) === addDays(date, -1) && localTime(now, timeZone) >= DAY_BEFORE_REMINDER_TIME;
+}
+
+/** Whether the reminder that answers are due is due at `now`: the day before the deadline from DEADLINE_REMINDER_TIME, or on the deadline itself. */
+export function deadlineReminderDue(deadline: string, timeZone: string, now: string | Date): boolean {
+  const today = localDate(now, timeZone);
+  if (today === deadline) return true;
+  return today === addDays(deadline, -1) && localTime(now, timeZone) >= DEADLINE_REMINDER_TIME;
+}

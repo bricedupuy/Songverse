@@ -34,6 +34,14 @@ The calendar keeps itself up to date, but calendar apps look for changes on thei
 
 A date's set shows in your sidebar when you've said you're **Available** for it - answering puts it there, taking the answer back removes it. The team's other coming dates are still on the **Sets** page and the team's calendar. Once a date is over, its set leaves the sidebar and the list: the ones you took part in are on the **Sets** page under **Archive**, and every past date is on the team's page under **Past dates**. Sets you make yourself are listed as before. Sets kept for offline use follow the same rule.
 
+### Reminders
+
+- **Ask for answers** (admins): choose the dates (**From**, **To**) and **Answer by**, then **Ask**. Members with some of those dates still unanswered are told straight away - not those away for them - and, if they still haven't answered, reminded the day before the deadline. The request shows at the top of the calendar for everyone until the deadline is over; **Stop asking** (×) removes it.
+- **The day before**: everyone signed up for a date (answered **Available**) is reminded the day before, from 18:00 in the event's time zone, with its time, place and set.
+- **Tell them the set is ready** (admins, in a date's **…** menu, once it has a set): the people signed up are told, and the date shows **Set ready**. **Tell them again** after more changes.
+
+Like every notification, they show under the bell, and by email or on your devices as you choose (see [Notifications](/account/#notifications)).
+
 ### Notifications
 
 The bell at the top of every page shows how many notifications you haven't read; press it for the list, newest first. Pressing one opens what it's about and marks it read; **Mark all as read** clears the count, and **Show older** loads earlier ones. You're told:

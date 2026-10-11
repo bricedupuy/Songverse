@@ -1,6 +1,6 @@
-import { addDays, localDate, type MemberEventAnswer, type TeamEvent, type TeamEventDateSummary } from "@songverse/core";
+import { addDays, localDate, type MemberEventAnswer, type TeamAnswerRequest, type TeamEvent, type TeamEventDateSummary } from "@songverse/core";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
-import { Ban, CalendarPlus, MapPin, MoreHorizontal, Pencil, Repeat, RotateCcw } from "lucide-react";
+import { Ban, CalendarPlus, CircleCheck, MapPin, MessageCircleQuestion, MoreHorizontal, Pencil, Repeat, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ConfirmButton } from "#/components/confirm-button";
@@ -16,6 +16,7 @@ import { Label } from "#/components/ui/label";
 import { NativeSelect } from "#/components/ui/native-select";
 import { Textarea } from "#/components/ui/textarea";
 import { apiClient } from "#/lib/api-client";
+import { formatSetDate } from "#/lib/setlists";
 import { cn } from "#/lib/utils";
 
 /** How far the calendar shows, then how much more each "Show more" adds. */
@@ -27,7 +28,8 @@ const browserZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "U
  * A team's calendar (issue #235): its coming dates, every event's, each
  * with its set. Its admins add and edit events, cancel or restore a date,
  * plan a date's set however far ahead, and choose how far ahead the sets
- * are made.
+ * are made; ask for answers by a deadline, and tell the people signed up
+ * for a date that its set is ready (reminders, issue #235).
  */
 export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boolean }) {
   const { t, i18n } = useTranslation();
@@ -41,12 +43,16 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
   const [events, setEvents] = useState<TeamEvent[]>([]);
   const [editing, setEditing] = useState<TeamEvent | "new" | null>(null);
   const [answersOf, setAnswersOf] = useState<TeamEventDateSummary | null>(null);
+  const [requests, setRequests] = useState<TeamAnswerRequest[]>([]);
+  const [asking, setAsking] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     // From today where the browser is: the API keeps a date until its own day is over.
     const today = addDays(localDate(new Date(), browserZone()), -1);
-    const [found, all] = await Promise.all([apiClient.listTeamEventDates(teamId, today, addDays(today, weeks * 7)), apiClient.listTeamEvents(teamId)]);
+    const [found, all, asked] = await Promise.all([apiClient.listTeamEventDates(teamId, today, addDays(today, weeks * 7)), apiClient.listTeamEvents(teamId), apiClient.listTeamAnswerRequests(teamId)]);
+    setRequests(asked);
     const now = Date.now();
     setDates(found.filter((date) => Date.parse(date.endsAt) >= now - 12 * 3600_000));
     setEvents(all);
@@ -89,14 +95,45 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
           <CardDescription>{t("teamCalendar.description")}</CardDescription>
         </div>
         {isAdmin ? (
-          <Button size="sm" onClick={() => setEditing("new")} data-testid="calendar-new-event">
-            <CalendarPlus />
-            {t("teamCalendar.newEvent")}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAsking(true)} data-testid="calendar-ask">
+              <MessageCircleQuestion />
+              {t("teamCalendar.askAnswers")}
+            </Button>
+            <Button size="sm" onClick={() => setEditing("new")} data-testid="calendar-new-event">
+              <CalendarPlus />
+              {t("teamCalendar.newEvent")}
+            </Button>
+          </div>
         ) : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {notice ? (
+          <p className="text-sm text-muted-foreground" role="status">
+            {notice}
+          </p>
+        ) : null}
+        {/* Answers asked for, by when: for everyone (issue #235). */}
+        {requests.map((request) => (
+          <div key={request.id} className="flex items-center justify-between gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm" data-testid="calendar-request">
+            <span>
+              {t("teamCalendar.askedBanner", { deadline: formatSetDate(request.deadline, i18n.language), from: formatSetDate(request.from, i18n.language), to: formatSetDate(request.to, i18n.language) })}
+            </span>
+            {isAdmin ? (
+              <button
+                type="button"
+                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label={t("teamCalendar.askRemove")}
+                title={t("teamCalendar.askRemove")}
+                onClick={() => void act(() => apiClient.removeTeamAnswerRequest(teamId, request.id))}
+                data-testid="calendar-request-remove"
+              >
+                <X className="size-4" />
+              </button>
+            ) : null}
+          </div>
+        ))}
         {dates === null ? null : dates.length === 0 ? (
           <p className="text-sm text-muted-foreground">{isAdmin ? t("teamCalendar.noEventsAdmin") : t("teamCalendar.noEvents")}</p>
         ) : (
@@ -120,6 +157,12 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
                       <span className={cn("text-sm font-medium", date.cancelled && "line-through")}>{date.title}</span>
                       {date.repeats ? <Repeat className="size-3.5 text-muted-foreground" aria-label={t("teamCalendar.repeats")} /> : null}
                       {date.cancelled ? <Badge variant="outline">{t("teamCalendar.cancelled")}</Badge> : null}
+                      {!date.cancelled && date.setReadyAt ? (
+                        <Badge variant="muted" data-testid="calendar-set-ready">
+                          <CircleCheck />
+                          {t("teamCalendar.setReadyBadge")}
+                        </Badge>
+                      ) : null}
                     </div>
                     {date.place ? (
                       <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -162,6 +205,20 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
                           {date.cancelled ? <RotateCcw /> : <Ban />}
                           {date.cancelled ? t("teamCalendar.restoreDate") : t("teamCalendar.cancelDate")}
                         </DropdownMenuItem>
+                        {!date.cancelled && date.setlistId ? (
+                          <DropdownMenuItem
+                            onClick={() =>
+                              void act(async () => {
+                                const { notified } = await apiClient.setTeamEventDateReady(teamId, date.eventId, date.date);
+                                setNotice(t("teamCalendar.setReadySent", { count: notified }));
+                              })
+                            }
+                            data-testid="calendar-set-ready-send"
+                          >
+                            <CircleCheck />
+                            {date.setReadyAt ? t("teamCalendar.setReadyAgain") : t("teamCalendar.setReady")}
+                          </DropdownMenuItem>
+                        ) : null}
                         {event ? (
                           <DropdownMenuItem onClick={() => setEditing(event)} data-testid="calendar-edit-event">
                             <Pencil />
@@ -220,6 +277,17 @@ export function TeamCalendar({ teamId, isAdmin }: { teamId: string; isAdmin: boo
           onClose={() => {
             setAnswersOf(null);
             void load();
+          }}
+        />
+      ) : null}
+      {asking ? (
+        <AskDialog
+          teamId={teamId}
+          onClose={() => setAsking(false)}
+          onAsked={async (notified) => {
+            setAsking(false);
+            setNotice(t("teamCalendar.askSent", { count: notified }));
+            await load();
           }}
         />
       ) : null}
@@ -467,6 +535,63 @@ function EventDialog({ teamId, event, onClose, onSaved }: { teamId: string; even
               {busy ? t("teamCalendar.saving") : t("teamCalendar.save")}
             </Button>
           </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Answers asked for (issue #235): the dates, from today to eight weeks on, by a deadline a week away. */
+function AskDialog({ teamId, onClose, onAsked }: { teamId: string; onClose: () => void; onAsked: (notified: number) => Promise<void> }) {
+  const { t } = useTranslation();
+  const today = localDate(new Date(), browserZone());
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(addDays(today, 8 * 7));
+  const [deadline, setDeadline] = useState(addDays(today, 7));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <Dialog open onOpenChange={(open) => (open ? null : onClose())}>
+      <DialogContent data-testid="ask-dialog">
+        <DialogHeader>
+          <DialogTitle>{t("teamCalendar.askTitle")}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">{t("teamCalendar.askDescription")}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ask-from">{t("teamCalendar.askFrom")}</Label>
+            <DatePicker id="ask-from" value={from} min={today} onChange={setFrom} testId="ask-from" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ask-to">{t("teamCalendar.askTo")}</Label>
+            <DatePicker id="ask-to" value={to} min={from} onChange={setTo} testId="ask-to" />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ask-deadline">{t("teamCalendar.askDeadline")}</Label>
+            <DatePicker id="ask-deadline" value={deadline} min={today} max={to} onChange={setDeadline} testId="ask-deadline" />
+          </div>
+        </div>
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose}>
+            {t("teamCalendar.cancel")}
+          </Button>
+          <Button
+            disabled={busy || !from || !to || !deadline}
+            onClick={() => {
+              setBusy(true);
+              setError(null);
+              void apiClient
+                .askTeamForAnswers(teamId, { from, to, deadline, timeZone: browserZone() })
+                .then((asked) => onAsked(asked.notified))
+                .catch((err: unknown) => setError(err instanceof Error ? err.message : String(err)))
+                .finally(() => setBusy(false));
+            }}
+            data-testid="ask-send"
+          >
+            {t("teamCalendar.askSend")}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

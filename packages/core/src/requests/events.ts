@@ -86,3 +86,15 @@ export const UpdateAwaySchema = CreateAwaySchema;
 export type UpdateAwayRequest = z.input<typeof UpdateAwaySchema>;
 
 export const MyEventDatesQuerySchema = TeamEventDatesQuerySchema;
+
+/** A team admin asking for answers (issue #235): the dates from `from` to `to`, by `deadline`, in the asker's time zone. */
+export const CreateAnswerRequestSchema = z
+  .strictObject({
+    from: date("from"),
+    to: date("to"),
+    deadline: date("deadline"),
+    timeZone: z.string().refine(isTimeZone, "timeZone must be a time zone"),
+  })
+  .refine((request) => request.to >= request.from, { message: "to must not be before from", path: ["to"] })
+  .refine((request) => request.deadline <= request.to, { message: "deadline must not be after to", path: ["deadline"] });
+export type CreateAnswerRequestRequest = z.input<typeof CreateAnswerRequestSchema>;

@@ -234,6 +234,8 @@ export class TeamEventsService {
       repeats: !!event.repeatEveryWeeks,
       setlistId: row?.setlist?.id ?? null,
       songCount: row?.setlist?._count.items ?? 0,
+      // When an admin said its set is ready (issue #235).
+      setReadyAt: row?.setReadyAt?.toISOString() ?? null,
     };
   }
 

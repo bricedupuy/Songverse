@@ -167,6 +167,34 @@ export function BackgroundJobsCard() {
                 {cleared}
               </p>
             ) : null}
+            {/* The scheduled jobs, run now besides their schedule (issue #235). */}
+            <div className="flex flex-col gap-2" data-testid="jobs-scheduled">
+              <p className="text-sm font-medium">{t("jobs.scheduled")}</p>
+              <p className="text-xs text-muted-foreground">{t("jobs.scheduledHint")}</p>
+              <ul className="flex flex-col gap-1.5 text-sm">
+                {(["make-event-sets", "event-reminders"] as const).map((name) => (
+                  <li key={name} className="flex flex-wrap items-center justify-between gap-2">
+                    <span>{t(`jobs.job_${name}`)}</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        void apiClient.runScheduledJob(name).then(
+                          () => {
+                            setCleared(t("jobs.runQueued", { name: t(`jobs.job_${name}`) }));
+                            load();
+                          },
+                          (err: unknown) => setError(err instanceof Error ? err.message : String(err)),
+                        )
+                      }
+                      data-testid={`run-${name}`}
+                    >
+                      {t("jobs.runNow")}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="flex flex-col gap-2">
               <p className="text-sm font-medium">{t("jobs.recent")}</p>
               {status.recent.length === 0 ? (

@@ -449,6 +449,90 @@
             "title": "Sam answered for you: If needed",
             "body": "Rehearsal on Thu, Oct 15, Worship team"
           }
+        },
+        {
+          "name": "answers asked for",
+          "args": [
+            "ANSWERS_REQUESTED",
+            {
+              "team": "Worship team",
+              "by": "Sam",
+              "deadline": "2026-10-20"
+            },
+            "en"
+          ],
+          "expected": {
+            "title": "Worship team asks when you can play",
+            "body": "Sam would like your answers by Tue, Oct 20"
+          }
+        },
+        {
+          "name": "answers due, in French",
+          "args": [
+            "ANSWER_DEADLINE",
+            {
+              "team": "Louange",
+              "deadline": "2026-10-20",
+              "count": 3
+            },
+            "fr"
+          ],
+          "expected": {
+            "title": "Réponses attendues d'ici le mar. 20 oct.",
+            "body": "Louange : 3 date(s) encore sans votre réponse"
+          }
+        },
+        {
+          "name": "tomorrow, with a place",
+          "args": [
+            "EVENT_TOMORROW",
+            {
+              "event": "Morning service",
+              "date": "2026-10-18",
+              "team": "Worship team",
+              "startTime": "10:00",
+              "place": "Main hall"
+            },
+            "en"
+          ],
+          "expected": {
+            "title": "Tomorrow: Morning service at 10:00",
+            "body": "Worship team · Main hall"
+          }
+        },
+        {
+          "name": "tomorrow, without one",
+          "args": [
+            "EVENT_TOMORROW",
+            {
+              "event": "Morning service",
+              "date": "2026-10-18",
+              "team": "Worship team",
+              "startTime": "10:00"
+            },
+            "en"
+          ],
+          "expected": {
+            "title": "Tomorrow: Morning service at 10:00",
+            "body": "Worship team"
+          }
+        },
+        {
+          "name": "the set is ready",
+          "args": [
+            "SET_READY",
+            {
+              "event": "Morning service",
+              "date": "2026-10-18",
+              "team": "Worship team",
+              "count": 6
+            },
+            "en"
+          ],
+          "expected": {
+            "title": "The set for Morning service on Sun, Oct 18 is ready",
+            "body": "Worship team - 6 song(s)"
+          }
         }
       ]
     },
@@ -477,6 +561,22 @@
               "push": true
             },
             "ANSWERED_FOR_YOU": {
+              "email": true,
+              "push": true
+            },
+            "ANSWERS_REQUESTED": {
+              "email": true,
+              "push": true
+            },
+            "ANSWER_DEADLINE": {
+              "email": true,
+              "push": true
+            },
+            "EVENT_TOMORROW": {
+              "email": true,
+              "push": true
+            },
+            "SET_READY": {
               "email": true,
               "push": true
             }
@@ -514,6 +614,22 @@
               "push": true
             },
             "ANSWERED_FOR_YOU": {
+              "email": true,
+              "push": true
+            },
+            "ANSWERS_REQUESTED": {
+              "email": true,
+              "push": true
+            },
+            "ANSWER_DEADLINE": {
+              "email": true,
+              "push": true
+            },
+            "EVENT_TOMORROW": {
+              "email": true,
+              "push": true
+            },
+            "SET_READY": {
               "email": true,
               "push": true
             }
@@ -561,6 +677,22 @@
               "ANSWERED_FOR_YOU": {
                 "email": true,
                 "push": false
+              },
+              "ANSWERS_REQUESTED": {
+                "email": true,
+                "push": true
+              },
+              "ANSWER_DEADLINE": {
+                "email": true,
+                "push": true
+              },
+              "EVENT_TOMORROW": {
+                "email": true,
+                "push": true
+              },
+              "SET_READY": {
+                "email": true,
+                "push": true
               }
             }
           }
@@ -637,6 +769,113 @@
               }
             ]
           }
+        }
+      ]
+    },
+    "dayBeforeReminderDue": {
+      "about": "Whether a date's day-before reminder is due: the day before, from 18:00 to midnight in the event's zone; not on the day itself.",
+      "params": [
+        "date",
+        "startsAt",
+        "timeZone",
+        "now"
+      ],
+      "cases": [
+        {
+          "name": "the day before, 17:59 in Paris: not yet",
+          "args": [
+            "2026-10-18",
+            "2026-10-18T08:00:00Z",
+            "Europe/Paris",
+            "2026-10-17T15:59:00Z"
+          ],
+          "expected": false
+        },
+        {
+          "name": "the day before, 18:00 in Paris",
+          "args": [
+            "2026-10-18",
+            "2026-10-18T08:00:00Z",
+            "Europe/Paris",
+            "2026-10-17T16:00:00Z"
+          ],
+          "expected": true
+        },
+        {
+          "name": "the day itself, before it starts: no (it says tomorrow)",
+          "args": [
+            "2026-10-18",
+            "2026-10-18T08:00:00Z",
+            "Europe/Paris",
+            "2026-10-18T06:00:00Z"
+          ],
+          "expected": false
+        },
+        {
+          "name": "once it started: no",
+          "args": [
+            "2026-10-18",
+            "2026-10-18T08:00:00Z",
+            "Europe/Paris",
+            "2026-10-18T08:00:00Z"
+          ],
+          "expected": false
+        },
+        {
+          "name": "two days before: no",
+          "args": [
+            "2026-10-18",
+            "2026-10-18T08:00:00Z",
+            "Europe/Paris",
+            "2026-10-16T20:00:00Z"
+          ],
+          "expected": false
+        }
+      ]
+    },
+    "deadlineReminderDue": {
+      "about": "Whether the reminder that answers are due is due: the day before the deadline from 10:00 in the asker's zone, or on the deadline itself.",
+      "params": [
+        "deadline",
+        "timeZone",
+        "now"
+      ],
+      "cases": [
+        {
+          "name": "the day before, 09:00 in New York: not yet",
+          "args": [
+            "2026-10-20",
+            "America/New_York",
+            "2026-10-19T13:00:00Z"
+          ],
+          "expected": false
+        },
+        {
+          "name": "the day before, 10:00 in New York",
+          "args": [
+            "2026-10-20",
+            "America/New_York",
+            "2026-10-19T14:00:00Z"
+          ],
+          "expected": true
+        },
+        {
+          "name": "the deadline itself",
+          "args": [
+            "2026-10-20",
+            "America/New_York",
+            "2026-10-20T23:00:00Z"
+          ],
+          "expected": true
+        },
+        {
+          "name": "after it: no",
+          "args": [
+            "2026-10-20",
+            "America/New_York",
+            "2026-10-21T05:00:00Z"
+          ],
+          "expected": false
         }
       ]
     },

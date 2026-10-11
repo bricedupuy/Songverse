@@ -1,4 +1,4 @@
-import { AnswerEventDateSchema, CreateAwaySchema, UpdateAwaySchema, MyEventDatesQuerySchema, CreateTeamEventSchema, TeamEventDatesQuerySchema, UpdateTeamCalendarSchema, UpdateTeamEventDateSchema, UpdateTeamEventSchema } from "@songverse/core";
+import { AnswerEventDateSchema, CreateAnswerRequestSchema, CreateAwaySchema, UpdateAwaySchema, MyEventDatesQuerySchema, CreateTeamEventSchema, TeamEventDatesQuerySchema, UpdateTeamCalendarSchema, UpdateTeamEventDateSchema, UpdateTeamEventSchema } from "@songverse/core";
 import { zodDto } from "../../common/zod-validation.js";
 
 export class CreateTeamEventDto extends zodDto(CreateTeamEventSchema) {}
@@ -10,3 +10,4 @@ export class AnswerEventDateDto extends zodDto(AnswerEventDateSchema) {}
 export class CreateAwayDto extends zodDto(CreateAwaySchema) {}
 export class UpdateAwayDto extends zodDto(UpdateAwaySchema) {}
 export class MyEventDatesQueryDto extends zodDto(MyEventDatesQuerySchema) {}
+export class CreateAnswerRequestDto extends zodDto(CreateAnswerRequestSchema) {}

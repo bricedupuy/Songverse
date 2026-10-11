@@ -6,9 +6,10 @@ import { CurrentUser } from "../common/decorators/current-user.decorator.js";
 import { TeamAdminGuard } from "../common/guards/team-admin.guard.js";
 import { TeamMemberGuard } from "../common/guards/team-member.guard.js";
 import type { AuthenticatedUser } from "../common/types/authenticated-request.js";
-import { AnswerEventDateDto, CreateTeamEventDto, TeamEventDatesQueryDto, UpdateTeamCalendarDto, UpdateTeamEventDateDto, UpdateTeamEventDto } from "./dto/team-events.dto.js";
+import { AnswerEventDateDto, CreateAnswerRequestDto, CreateTeamEventDto, TeamEventDatesQueryDto, UpdateTeamCalendarDto, UpdateTeamEventDateDto, UpdateTeamEventDto } from "./dto/team-events.dto.js";
 import { AccessPolicyService } from "../access/access-policy.service.js";
 import { AvailabilityService } from "./availability.service.js";
+import { RemindersService } from "./reminders.service.js";
 import { TeamEventsService } from "./team-events.service.js";
 
 function dateParam(date: string): string {
@@ -28,6 +29,7 @@ export class TeamEventsController {
   constructor(
     private readonly events: TeamEventsService,
     private readonly availability: AvailabilityService,
+    private readonly reminders: RemindersService,
     private readonly access: AccessPolicyService,
   ) {}
 
@@ -129,6 +131,36 @@ export class TeamEventsController {
   }
 
   /** A date's set now, however far ahead: to plan it. */
+  /** The set for a date is ready: the people signed up for it are told (issue #235). */
+  @Post("events/:eventId/dates/:date/set-ready")
+  @UseGuards(TeamAdminGuard)
+  setReady(@CurrentUser() user: AuthenticatedUser | undefined, @Param("teamId") teamId: string, @Param("eventId") eventId: string, @Param("date") date: string) {
+    if (!user) throw new UnauthorizedException();
+    return this.reminders.setReady(teamId, eventId, dateParam(date), user.id);
+  }
+
+  /** The team's open requests for answers: for everyone, so members see what's asked by when. */
+  @Get("answer-requests")
+  @UseGuards(TeamMemberGuard)
+  answerRequests(@Param("teamId") teamId: string) {
+    return this.reminders.listRequests(teamId);
+  }
+
+  /** Answers asked for, by a deadline: members missing some are told now, and reminded the day before it. */
+  @Post("answer-requests")
+  @UseGuards(TeamAdminGuard)
+  askForAnswers(@CurrentUser() user: AuthenticatedUser | undefined, @Param("teamId") teamId: string, @Body() dto: CreateAnswerRequestDto) {
+    if (!user) throw new UnauthorizedException();
+    return this.reminders.createRequest(teamId, user.id, dto);
+  }
+
+  @Delete("answer-requests/:requestId")
+  @UseGuards(TeamAdminGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  removeAnswerRequest(@Param("teamId") teamId: string, @Param("requestId") requestId: string) {
+    return this.reminders.removeRequest(teamId, requestId);
+  }
+
   @Post("events/:eventId/dates/:date/set")
   @UseGuards(TeamAdminGuard)
   ensureSet(@Param("teamId") teamId: string, @Param("eventId") eventId: string, @Param("date") date: string) {

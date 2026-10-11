@@ -15,6 +15,14 @@ export const NOTIFICATION_KINDS = [
   "EVENT_CANCELLED",
   // A team admin answered for one (Available, If needed, Not available).
   "ANSWERED_FOR_YOU",
+  // A team admin asks for answers for some dates, by a deadline.
+  "ANSWERS_REQUESTED",
+  // The deadline is tomorrow and some of those dates have no answer from one.
+  "ANSWER_DEADLINE",
+  // A date one signed up for is tomorrow.
+  "EVENT_TOMORROW",
+  // A team admin says the set for a date one signed up for is ready.
+  "SET_READY",
 ] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
@@ -29,6 +37,11 @@ export interface NotificationData {
   answer?: AvailabilityAnswer;
   /** Who did it. */
   by?: string;
+  /** YYYY-MM-DD: when answers are wanted by. */
+  deadline?: string;
+  place?: string;
+  /** How many: dates without an answer, songs in a set. */
+  count?: number;
 }
 
 const fill = (template: string, values: Record<string, string>) => template.replace(/\{\{(\w+)\}\}/g, (_, name: string) => values[name] ?? "");
@@ -49,6 +62,10 @@ export function notificationText(kind: NotificationKind, data: NotificationData,
     time: data.startTime ?? "",
     answer: data.answer && (AVAILABILITY_ANSWERS as readonly string[]).includes(data.answer) ? answers[data.answer] : "",
     by: data.by ?? "",
+    deadline: data.deadline ? notificationDate(data.deadline, locale) : "",
+    // After the team, when there's one: "Worship team · Main hall".
+    place: data.place ? ` · ${data.place}` : "",
+    count: data.count === undefined ? "" : String(data.count),
   };
   return { title: fill(words.title, values), body: fill(words.body, values) };
 }

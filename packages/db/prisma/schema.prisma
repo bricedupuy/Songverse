@@ -362,6 +362,7 @@ model User {
   calendarFeed        CalendarFeed?
   notifications       Notification[]
   pushSubscriptions   PushSubscription[]
+  answerRequestsMade  TeamAnswerRequest[] @relation("AnswerRequestsMade")
   // How each kind of notification reaches them (issue #236): push, email; quiet hours.
   notificationSettings Json?
 
@@ -495,6 +496,7 @@ model Team {
   screenThemes        ScreenTheme[]
   // Its calendar (issue #235), and how many weeks ahead each date's set is made (1-52).
   events              TeamEvent[]
+  answerRequests      TeamAnswerRequest[]
   setsAheadWeeks      Int                    @default(4)
 
   @@index([slug])
@@ -1056,6 +1058,7 @@ model TeamEvent {
   createdBy User?           @relation("TeamEventCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   dates     TeamEventDate[]
   answers   TeamEventAnswer[]
+  reminders TeamEventReminder[]
 
   @@index([teamId])
 }
@@ -1151,11 +1154,48 @@ model TeamEventDate {
   title        String?
   setlistId    String?   @unique
   setCreatedAt DateTime?
+  // When an admin told the people signed up that its set is ready (issue #235).
+  setReadyAt   DateTime?
 
   event   TeamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   setlist Setlist?  @relation(fields: [setlistId], references: [id], onDelete: SetNull)
 
   @@unique([eventId, date])
+}
+
+// A reminder sent for one date of an event (issue #235), so it's sent once:
+// DAY_BEFORE, to the people signed up for it.
+model TeamEventReminder {
+  id      String   @id @default(cuid())
+  eventId String
+  date    DateTime @db.Date
+  kind    String
+  sentAt  DateTime @default(now())
+
+  event TeamEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, date, kind])
+}
+
+// A team admin asking members for their answers (issue #235): the dates
+// from `from` to `to`, by `deadline` (a day in `timeZone`, the asker's).
+// Members without an answer for some of them are told when it's made, and
+// reminded the day before the deadline (remindedAt).
+model TeamAnswerRequest {
+  id              String    @id @default(cuid())
+  teamId          String
+  from            DateTime  @db.Date
+  to              DateTime  @db.Date
+  deadline        DateTime  @db.Date
+  timeZone        String
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+  remindedAt      DateTime?
+
+  team      Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("AnswerRequestsMade", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([teamId])
 }
 
 // At most one per set. Anyone signed in who opens it joins the set as a

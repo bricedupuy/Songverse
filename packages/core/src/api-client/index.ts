@@ -36,7 +36,7 @@ import type { SaveSecuritySettingsRequest, SaveStorageLimitsRequest, UpdateTeamR
 import type { CreateSignupInvitationRequest } from "../requests/invitations.js";
 import type { CreatePushSubscriptionRequest, SaveNotificationServerSettingsRequest, UpdateNotificationPreferencesRequest } from "../requests/notifications.js";
 import type { UpdateSetlistItemRequest } from "../requests/sets.js";
-import type { AnswerEventDateRequest, CreateAwayRequest, UpdateAwayRequest, CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
+import type { AnswerEventDateRequest, CreateAnswerRequestRequest, CreateAwayRequest, UpdateAwayRequest, CreateTeamEventRequest, UpdateTeamEventDateRequest, UpdateTeamEventRequest } from "../requests/events.js";
 import type { AvailabilityAnswer, EventDate, EventRepeat } from "../calendar/index.js";
 import type { SaveStemSeparationSettingsRequest, StemSeparationParts } from "../requests/stem-separation.js";
 import type { AssignRolesRequest, CreateInstrumentRequest, CreateRoleRequest, UpdateInstrumentRequest, UpdateRoleRequest } from "../requests/roles.js";
@@ -813,6 +813,8 @@ export interface TeamEventDateSummary extends EventDate {
   repeats: boolean;
   setlistId: string | null;
   songCount: number;
+  /** When an admin said its set is ready. */
+  setReadyAt: string | null;
   /** The viewer's answer (issue #235). */
   myAnswer: MyEventAnswer;
   /** For the team's admins: how its members answered (NONE: no answer yet). */
@@ -857,6 +859,18 @@ export interface MyEventDate extends EventDate {
   setlistId: string | null;
   songCount: number;
   myAnswer: MyEventAnswer;
+}
+
+/** A team admin asking for answers for some dates, by a deadline (issue #235). */
+export interface TeamAnswerRequest {
+  id: string;
+  from: string;
+  to: string;
+  deadline: string;
+  timeZone: string;
+  createdBy: string | null;
+  createdAt: string;
+  remindedAt: string | null;
 }
 
 /** Days someone is away, across all their teams. */
@@ -1842,6 +1856,12 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     removeMyPushDevice: (id: string) => request<void>(`/users/me/push-subscriptions/${id}`, { method: "DELETE" }),
     testMyPushDevices: () => request<void>("/users/me/push-subscriptions/test", { method: "POST" }),
     markMyNotificationsRead: (ids?: string[]) => request<{ unread: number }>("/users/me/notifications/read", { method: "POST", body: JSON.stringify(ids ? { ids } : {}) }),
+    listTeamAnswerRequests: (teamId: string) => request<TeamAnswerRequest[]>(`/teams/${teamId}/answer-requests`),
+    askTeamForAnswers: (teamId: string, data: CreateAnswerRequestRequest) =>
+      request<TeamAnswerRequest & { notified: number }>(`/teams/${teamId}/answer-requests`, { method: "POST", body: JSON.stringify(data) }),
+    removeTeamAnswerRequest: (teamId: string, requestId: string) => request<void>(`/teams/${teamId}/answer-requests/${requestId}`, { method: "DELETE" }),
+    setTeamEventDateReady: (teamId: string, eventId: string, date: string) =>
+      request<{ setReadyAt: string; notified: number }>(`/teams/${teamId}/events/${eventId}/dates/${date}/set-ready`, { method: "POST" }),
     getTeamCalendarSettings: (teamId: string) => request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`),
     updateTeamCalendarSettings: (teamId: string, data: TeamCalendarSettings) =>
       request<TeamCalendarSettings>(`/teams/${teamId}/calendar-settings`, { method: "PUT", body: JSON.stringify(data) }),
@@ -1957,6 +1977,7 @@ export function createApiClient({ baseUrl, getToken, onUnauthorized, onChange, r
     getJobsStatus: () => request<JobsStatus>("/admin/jobs"),
     /** Clears the failed jobs, once their errors have been read (issue #93). */
     clearFailedJobs: () => request<{ cleared: number }>("/admin/jobs/failed", { method: "DELETE" }),
+    runScheduledJob: (name: "make-event-sets" | "event-reminders") => request<{ queued: string }>(`/admin/jobs/run/${name}`, { method: "POST" }),
     /** The songs before and after one in a list of the library, searched and filtered as `query` says (issue #84). */
     getSongNeighbors: (songVersionId: string, query: ListSongVersionsQuery = {}) => {
       const params = new URLSearchParams(
